@@ -29,7 +29,11 @@ import { OrbitControls, Grid, Stars, Environment, Text } from '@react-three/drei
 import { AgentAvatars } from '@holoscript/xr-embodiment/react';
 import { MATERIAL_PRESETS } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
-import { WebSurfaceRenderer, resolveWebSurfaceConfig } from '@holoscript/r3f-renderer';
+import {
+  WebSurfaceRenderer,
+  resolveWebSurfaceConfig,
+  resolveEnvironmentPreset,
+} from '@holoscript/r3f-renderer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import {
   buildAdaptivePlatformLayerReceipt,
@@ -37,7 +41,6 @@ import {
 } from '@/lib/adaptive-platform-layers';
 import { logger } from '@/lib/logger';
 import { detectPlatform } from '@/lib/platform-detect';
-import { resolveEnvironmentPreset } from '@/lib/scene/environmentPreset';
 
 // ═══════════════════════════════════════════════════════════════════
 // Geometry + Material mappers (mirrors WebXRViewer's EmbedNodeRenderer)

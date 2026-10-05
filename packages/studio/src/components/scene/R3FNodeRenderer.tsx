@@ -19,10 +19,10 @@ import {
   resolveWebSurfaceConfig,
   partitionStudioChildren,
   buildScatterMesh,
+  resolveEnvironmentPreset,
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
-import { resolveEnvironmentPreset } from '@/lib/scene/environmentPreset';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
 import { CompiledLotusMeshNode } from './CompiledLotusMeshNode';

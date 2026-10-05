@@ -13,8 +13,12 @@ import type { R3FNode } from '@holoscript/core';
 // (packages/core/src/compiler/SceneIRCompiler.ts, ~3227) writes the resolved
 // sky onto the node's `preset` prop — matching drei's own <Environment
 // preset="..."> prop name. R3FNodeRenderer used to read `props.envPreset`
-// instead (a key nothing in the compiler ever writes onto a node), so this
+// instead (a key the .holo reading never writes onto a node), so this
 // case silently fell back to 'studio' for every named sky.
+//
+// This file is the markup-level check of the viewport. The same scenes on all
+// four surfaces, and the .hsplus reading (which does write `envPreset`), are in
+// embed/__tests__/environment-preset-viewers.test.tsx.
 
 vi_mock_drei();
 function vi_mock_drei() {
@@ -38,9 +42,13 @@ vi.mock('@react-three/drei', () => ({
     React.createElement('span', null, children),
 }));
 
-vi.mock('@holoscript/r3f-renderer', () => {
+vi.mock('@holoscript/r3f-renderer', async () => {
   const NullComponent = () => null;
+  // The one export under test is the REAL implementation, from source.
+  const { resolveEnvironmentPreset } =
+    await import('../../../../../r3f-renderer/src/utils/environmentPreset');
   return {
+    resolveEnvironmentPreset,
     MeshNode: NullComponent,
     ShaderMeshNode: NullComponent,
     hasShaderTrait: () => false,
@@ -111,7 +119,7 @@ describe('R3FNodeRenderer renders the compiler-emitted Environment preset', () =
     const envNode = findEnvironmentNode(root);
     expect(envNode).toBeDefined();
     expect(envNode!.props.preset).toBe('sunset');
-    expect(envNode!.props.envPreset).toBeUndefined(); // confirms the compiler never writes this key
+    expect(envNode!.props.envPreset).toBeUndefined(); // the .holo reading writes `preset` only
 
     const markup = renderToStaticMarkup(<R3FNodeRenderer node={envNode!} />);
 

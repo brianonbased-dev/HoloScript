@@ -14,8 +14,8 @@ import {
   HolomapPointCloudViewer,
   WebSurfaceRenderer,
   resolveWebSurfaceConfig,
+  resolveEnvironmentPreset,
 } from '@holoscript/r3f-renderer';
-import { resolveEnvironmentPreset } from '@/lib/scene/environmentPreset';
 
 // VR edit session — lazy loaded to avoid SSR issues
 const VREditSession = lazy(() =>
