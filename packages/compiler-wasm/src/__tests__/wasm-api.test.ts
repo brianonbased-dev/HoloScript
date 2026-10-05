@@ -1013,7 +1013,7 @@ function main(): i32 {
     expect(validateHsViaRust(loop('    break\n')).errors[0]?.message).toContain('HS-NAME-001');
   }, 600000);
 
-  it('G21: the checker reads holo: imports, and no engine runs one before phase 2', () => {
+  it('G21: the checker reads holo: imports; passing it is not permission, and no engine runs one before phase 2', () => {
     const corpus = readFileSync(
       resolve(REPO_ROOT, 'packages/compiler-wasm/spec-corpus/hsplus-spec-corpus.v0.jsonl'),
       'utf8'
@@ -1022,7 +1022,9 @@ function main(): i32 {
       .filter(Boolean)
       .map((line) => JSON.parse(line) as SpecCorpusRow)
       .filter((row) => row.tags.includes('g21'));
-    expect(corpus.length).toBe(14);
+    // g21-015 to g21-027 are claude3's review cases: the escape forms, rebinding, a built-in's
+    // name, sources no reader takes as written, and the crdt:// stream left as before G21.
+    expect(corpus.length).toBe(27);
     // Native refuses every `holo:` import at the import, before any check of its own; a blocked
     // name (`exec`) its lexer refuses first, with the checker's code at the same place.
     const nativeRefusal = /must be an explicit relative `\.hs` path/;
@@ -1043,7 +1045,10 @@ function main(): i32 {
       );
     }
 
-    // The demo is valid to the checker; each engine refuses it by name until it binds the call.
+    // The demo is valid to the checker, and that is not permission to call the tool: the checker
+    // grants nothing, so the checked call still fails before it runs. UAAL refuses it by name until
+    // it binds the call (and the Kotlin bridge too, pinned in Rust); native refuses the import as a
+    // non-relative path.
     const demo = corpus.find((row) => row.id === 'g21-001')!;
     expect(validateHsViaRust(demo.source).valid).toBe(true);
     expect(() => compileHsToUaalViaRust(demo.source)).toThrow(
