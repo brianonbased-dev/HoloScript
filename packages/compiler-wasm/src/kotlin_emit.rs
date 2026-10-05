@@ -1114,7 +1114,12 @@ fn first_unguarded_unknown_read(node: &AstNode, unknown: &[&str], guarded: bool)
 }
 
 /// Reject top-level declaration names that would collide after caller-side import inlining.
-pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), SemanticDiagnostic> {
+/// `external` is the surrounding document of a lifted piece (`.hsplus`): a `holo:` import in the
+/// piece may not take the name of a function or struct the document declares either.
+pub(crate) fn check_top_level_declaration_collisions(
+    ast: &Ast,
+    external: &crate::semantic_types::ExternalDeclarations,
+) -> Result<(), SemanticDiagnostic> {
     let mut declarations: HashMap<String, DeclarationSite> = HashMap::new();
 
     // `export function f` declares `f` too: until 2026-09-29 it was left out here, so an exported
@@ -1148,7 +1153,48 @@ pub(crate) fn check_top_level_declaration_collisions(ast: &Ast) -> Result<(), Se
         }
     }
     for site in sites {
+        if site.kind == HOLO_IMPORT {
+            // The `.hsplus` reader checks each document's imports as a piece, with the document's
+            // functions and structs as context (G21): a stand-in elsewhere in the document is
+            // caught here, where the import is.
+            let declared = if external.functions.contains_key(&site.name) {
+                Some("function")
+            } else if external.structs.iter().any(|(name, _)| name == &site.name) {
+                Some("struct")
+            } else {
+                None
+            };
+            if let Some(kind) = declared {
+                return Err(SemanticDiagnostic {
+                    message: format!(
+                        "[{}] `{}` is imported from a Holo module (line {}, column {}) and the document also declares a {kind} named `{}`; a Holo capability cannot be defined in the file that imports it",
+                        crate::semantic_types::HIDDEN_NAME,
+                        site.name,
+                        site.line,
+                        site.column,
+                        site.name
+                    ),
+                    line: site.line,
+                    column: site.column,
+                });
+            }
+        }
         if let Some(first) = declarations.get(&site.name) {
+            if first.kind == HOLO_IMPORT && site.kind == HOLO_IMPORT {
+                return Err(SemanticDiagnostic {
+                    message: format!(
+                        "[{}] `{}` is imported twice, at line {}, column {} and at line {}, column {}; a file imports each name once",
+                        crate::semantic_types::HIDDEN_NAME,
+                        site.name,
+                        first.line,
+                        first.column,
+                        site.line,
+                        site.column
+                    ),
+                    line: site.line,
+                    column: site.column,
+                });
+            }
             if first.kind == HOLO_IMPORT || site.kind == HOLO_IMPORT {
                 let (import, other) = if first.kind == HOLO_IMPORT {
                     (first, &site)
@@ -1205,7 +1251,7 @@ pub(crate) fn check_semantics_with(
     ast: &Ast,
     external: &crate::semantic_types::ExternalDeclarations,
 ) -> Result<(), SemanticDiagnostic> {
-    check_top_level_declaration_collisions(ast)?;
+    check_top_level_declaration_collisions(ast, external)?;
     check_unknown_field_guards(ast)?;
     check_unknown_struct_field_guards(ast, external)?;
     check_assignment_mutability(ast)?;

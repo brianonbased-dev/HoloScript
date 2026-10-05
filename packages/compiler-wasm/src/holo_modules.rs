@@ -19,6 +19,14 @@ const MODULES: &[(&str, &str)] = &[("absorb", include_str!("../../std/src/holo/a
 /// The import source prefix that names a Holo module.
 pub(crate) const HOST_SCHEME: &str = "holo:";
 
+/// The value types capability ABI v1 passes between a program and its host, by value on the
+/// stack (proposal §Execution). A record, buffer or string needs a later ABI version.
+const ABI_V1_TYPES: &[&str] = &["i32", "f32", "f64", "bool"];
+
+/// The CRDT stream the `.hsplus` import resolver reads (`isCrdtImport` in ImportResolver.ts). It
+/// is not a Holo module and not a file, and the checker reads it as G11 did.
+const CRDT_SCHEME: &str = "crdt://";
+
 /// One declared capability: its typed signature and the `@host` block that governs it.
 #[derive(Debug, Clone)]
 pub(crate) struct HostFunction {
@@ -37,8 +45,13 @@ pub(crate) struct HostModule {
 
 /// What an import source names.
 pub(crate) enum HostSource<'a> {
-    /// Not a `holo:` source: an ordinary (file) import.
+    /// Not a `holo:` source: an ordinary (file) import, or the `crdt://` stream the `.hsplus`
+    /// import resolver reads.
     NotHost,
+    /// A source with a space before or after it, or a character outside ASCII (`" holo:absorb"`,
+    /// a fullwidth `ｈolo:absorb`, a Cyrillic `а`). Native trims sources, and a lookalike would
+    /// otherwise pass as an unchecked file import, so no reader takes it.
+    Unreadable,
     /// A URI-style scheme other than the exact `holo:` (`HOLO:absorb`, `https://...`). No
     /// import reads it, and a case variant must not pass for a file path.
     ForeignScheme(&'a str),
@@ -54,7 +67,13 @@ pub(crate) enum HostSource<'a> {
 }
 
 pub(crate) fn resolve_host_source(source: &str) -> HostSource<'_> {
+    if source.trim() != source || !source.is_ascii() {
+        return HostSource::Unreadable;
+    }
     let Some(name) = source.strip_prefix(HOST_SCHEME) else {
+        if source.starts_with(CRDT_SCHEME) {
+            return HostSource::NotHost;
+        }
         return match foreign_scheme(source) {
             Some(scheme) => HostSource::ForeignScheme(scheme),
             None => HostSource::NotHost,
@@ -128,16 +147,34 @@ fn is_module_name(name: &str) -> bool {
         && chars.all(|c| matches!(c, 'a'..='z' | '0'..='9' | '_'))
 }
 
+/// `[a-z_][a-z0-9_]*`: a declared capability's name, as its ABI name spells it.
+fn is_function_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    matches!(chars.next(), Some('a'..='z' | '_'))
+        && chars.all(|c| matches!(c, 'a'..='z' | '0'..='9' | '_'))
+}
+
 fn modules() -> &'static HashMap<&'static str, Result<HostModule, String>> {
     static MODULE_TABLE: OnceLock<HashMap<&'static str, Result<HostModule, String>>> =
         OnceLock::new();
     MODULE_TABLE.get_or_init(|| {
-        MODULES
-            .iter()
+        let sources = MODULES.iter();
+        #[cfg(test)]
+        let sources = sources.chain(TEST_MODULES.iter());
+        sources
             .map(|(name, source)| (*name, load_module(source)))
             .collect()
     })
 }
+
+/// A module only tests can import: capabilities with parameters, two parameter types and a
+/// version above 1, which `holo:absorb` does not have. Not listed by `module_names` or
+/// `holo_modules_json`.
+#[cfg(test)]
+const TEST_MODULES: &[(&str, &str)] = &[(
+    "fixture",
+    "@host { function: \"add_one\", authority: \"test_fixture\", version: 2 }\nexport function add_one(x: i32): i32 {\n  return unknown(\"holo:fixture/add_one needs a host\")\n}\n\n@host { function: \"scale\", authority: \"test_fixture\", version: 1 }\nexport function scale(x: f32, factor: i32): f32 {\n  return unknown(\"holo:fixture/scale needs a host\")\n}\n",
+)];
 
 /// Parse one declaration file and pair its `@host` blocks with its exported functions, one to
 /// one. The pairing is by the block's `function` string, so it is checked, not assumed: a
@@ -183,6 +220,27 @@ pub(crate) fn load_module(source: &str) -> Result<HostModule, String> {
         {
             return Err(format!(
                 "`{name}` must state every parameter type and its result type"
+            ));
+        }
+        // Every engine passes a call's values on the stack, one result back; a type the ABI does
+        // not carry would let the checker accept a call no engine can make.
+        if let Some(uncarried) = function
+            .param_types
+            .iter()
+            .chain(std::iter::once(&function.return_type))
+            .flatten()
+            .find(|annotation| !ABI_V1_TYPES.contains(&annotation.trim()))
+        {
+            return Err(format!(
+                "`{name}` passes `{uncarried}` to or from its host; capability ABI v1 carries only {}",
+                ABI_V1_TYPES.join(", ")
+            ));
+        }
+        // The name is part of the ABI name a call lowers to, `holo.<module>.<name>.v<N>`, which
+        // hosts match byte for byte: one spelling, in lower-case ASCII.
+        if !is_function_name(name) {
+            return Err(format!(
+                "`{name}` is not a capability name: write lower-case ASCII letters, digits and `_`, starting with a letter or `_`"
             ));
         }
         paired.insert(
@@ -234,13 +292,20 @@ fn read_host_block(config: Option<&AstNode>) -> Result<(String, String, u32), St
         .iter()
         .find(|property| property.key == "version")
         .and_then(|property| match property.value.as_ref() {
-            AstNode::Number(number) if number.value >= 1.0 && number.value.fract() == 0.0 => {
+            AstNode::Number(number)
+                if number.value >= 1.0
+                    && number.value <= f64::from(u32::MAX)
+                    && number.value.fract() == 0.0 =>
+            {
                 Some(number.value as u32)
             }
             _ => None,
         })
         .ok_or_else(|| {
-            format!("the @host block for `{function}` needs a whole-number `version` of 1 or more")
+            format!(
+                "the @host block for `{function}` needs a whole-number `version` from 1 to {}",
+                u32::MAX
+            )
         })?;
     Ok((function, authority, version))
 }
@@ -324,7 +389,7 @@ mod tests {
                     "@host {{ function: \"f\", authority: \"tool\", version: 0 }}\n{}",
                     function("f")
                 ),
-                "needs a whole-number `version` of 1 or more",
+                "needs a whole-number `version` from 1 to 4294967295",
             ),
             (
                 format!(
@@ -339,10 +404,48 @@ mod tests {
             ),
             (
                 format!(
+                    "{}export function f(path: string): bool {{\n  return true\n}}\n",
+                    block("f")
+                ),
+                "`f` passes `string` to or from its host; capability ABI v1 carries only i32, f32, f64, bool",
+            ),
+            (
+                format!(
+                    "struct Report {{\n  passed: bool\n}}\n{}export function f(): Report {{\n  return unknown(\"needs a host\")\n}}\n",
+                    block("f")
+                ),
+                "`f` passes `Report` to or from its host",
+            ),
+            (
+                format!(
                     "@host {{ function: \"f\", authorty: \"tool\", version: 1 }}\n{}",
                     function("f")
                 ),
                 "unknown key `authorty`",
+            ),
+            // A version is a u32 in the ABI name; a larger one used to load as 4294967295.
+            (
+                format!(
+                    "@host {{ function: \"f\", authority: \"tool\", version: 4294967296 }}\n{}",
+                    function("f")
+                ),
+                "needs a whole-number `version` from 1 to 4294967295",
+            ),
+            (
+                format!(
+                    "@host {{ function: \"f\", authority: \"tool\", version: 4000000000000 }}\n{}",
+                    function("f")
+                ),
+                "needs a whole-number `version` from 1 to 4294967295",
+            ),
+            // The name is spelled into the ABI name: one lower-case ASCII spelling.
+            (
+                format!("{}{}", block("función"), function("función")),
+                "`función` is not a capability name",
+            ),
+            (
+                format!("{}{}", block("Audit"), function("Audit")),
+                "`Audit` is not a capability name",
             ),
         ] {
             let error = load_module(&source).expect_err(&source);
@@ -376,6 +479,27 @@ mod tests {
             resolve_host_source("holo:no_such"),
             HostSource::Unknown("no_such")
         ));
+        // The stream the .hsplus import resolver reads stays what G11 made it: names, unchecked.
+        assert!(matches!(
+            resolve_host_source("crdt://holomesh/feed"),
+            HostSource::NotHost
+        ));
+        // A space around a source, or any character outside ASCII, is read by no reader: native
+        // trims it, and a lookalike would pass as an unchecked file import.
+        for unreadable in [
+            " holo:absorb",
+            "holo:absorb ",
+            "holo:absorb\t",
+            "\u{ff48}olo:absorb",
+            "holo:\u{0430}bsorb",
+            "holo:absorb\u{200b}",
+            "./donn\u{e9}es.hs",
+        ] {
+            assert!(
+                matches!(resolve_host_source(unreadable), HostSource::Unreadable),
+                "{unreadable:?}"
+            );
+        }
         for malformed in [
             "holo:",
             "holo://assets/terrain",
@@ -401,6 +525,8 @@ mod tests {
         assert_eq!(audit["abi"], "holo.absorb.manifest_audit_passes.v1");
         assert_eq!(audit["returns"], "bool");
         assert_eq!(audit["params"], serde_json::json!([]));
+        // The test module `holo:fixture` is not part of any build tools read.
+        assert_eq!(listed.as_array().map(Vec::len), Some(1), "{listed}");
     }
 
     #[test]
@@ -523,11 +649,13 @@ mod tests {
             assert_eq!((line, column), at, "{message}");
         }
 
-        // A local of the same name is the local: the capability is not used.
-        assert_eq!(
-            verdict("import { manifest_audit_passes } from \"holo:absorb\"\n\nfunction check() {\n  let manifest_audit_passes = 1\n  return manifest_audit_passes\n}\n"),
-            None
-        );
+        // Until 2026-10-05 this case was valid on purpose ("a local of the same name is the
+        // local"). It flips on purpose: a Holo import's name means the capability in the whole
+        // file, because UAAL resolved the call to the import while the checker resolved it to
+        // the local (claude3's #487 review, P1-1), so the local itself is now refused.
+        let (message, line, column) = verdict("import { manifest_audit_passes } from \"holo:absorb\"\n\nfunction check() {\n  let manifest_audit_passes = 1\n  return manifest_audit_passes\n}\n").expect("refused");
+        assert!(message.contains("[HS-SCOPE-001] function `check` binds `manifest_audit_passes` as a local, but `manifest_audit_passes` is the Holo import `holo:absorb/manifest_audit_passes` (line 1, column 10)"), "{message}");
+        assert_eq!((line, column), (4, 3), "{message}");
     }
 
     #[test]
@@ -636,5 +764,379 @@ mod tests {
             message.contains("[HS-ARITY-001] `audit` expects 0 arguments, got 1"),
             "{message}"
         );
+    }
+
+    /// The verdict, which must be a refusal with `code`.
+    fn refused_with(source: &str, code: &str) -> (String, u64, u64) {
+        let (message, line, column) =
+            verdict(source).unwrap_or_else(|| panic!("valid, expected {code}:\n{source}"));
+        assert!(
+            message.contains(&format!("[{code}]")),
+            "expected {code}:\n{source}\n=> {message}"
+        );
+        (message, line, column)
+    }
+
+    const ABSORB: &str = "import { manifest_audit_passes } from \"holo:absorb\"\n\n";
+    const FIXTURE: &str = "import { add_one, scale } from \"holo:fixture\"\n\n";
+
+    #[test]
+    fn every_way_a_capability_escaped_its_check_is_refused() {
+        // claude3's #466 review, P1: each form was valid while a direct call in the same
+        // function was refused, so a capability ran with nothing checked. One case per form,
+        // with the place the message names and the position of the use.
+        let untyped =
+            "function `check` uses `holo:absorb/manifest_audit_passes` but states no types";
+        let value = "function `main` uses `holo:absorb/manifest_audit_passes` as a value";
+        let outside = |place: &str| {
+            format!("`holo:absorb/manifest_audit_passes` is used in {place}, which is not a top-level function")
+        };
+        for (form, rest, said, at) in [
+            (
+                "a lambda's body in an untyped function",
+                "function check() {\n  let g = x => manifest_audit_passes(1, 2, 3)\n  return g(0)\n}\n",
+                untyped.to_string(),
+                (4, 16),
+            ),
+            (
+                "a lambda with the declared count",
+                "function check() {\n  let g = x => manifest_audit_passes()\n  return g(0)\n}\n",
+                untyped.to_string(),
+                (4, 16),
+            ),
+            (
+                "a lambda returned from an untyped function",
+                "function check() {\n  return x => manifest_audit_passes(7)\n}\n",
+                untyped.to_string(),
+                (4, 15),
+            ),
+            (
+                "a member call's callee, untyped",
+                "function check() {\n  return manifest_audit_passes.call(1, 2)\n}\n",
+                untyped.to_string(),
+                (4, 10),
+            ),
+            (
+                "a member call's callee, typed",
+                "function main(): bool {\n  return manifest_audit_passes.call(1, 2)\n}\n",
+                value.to_string(),
+                (4, 10),
+            ),
+            (
+                "an array statement",
+                "function check() {\n  [manifest_audit_passes(1, 2)]\n  return 0\n}\n",
+                untyped.to_string(),
+                (4, 4),
+            ),
+            (
+                "an object statement",
+                "function check() {\n  ({ a: manifest_audit_passes(9) })\n  return 0\n}\n",
+                untyped.to_string(),
+                (4, 9),
+            ),
+            (
+                "a for-in range",
+                "function check() {\n  for (x in manifest_audit_passes(4)) {\n    print(x)\n  }\n  return 0\n}\n",
+                untyped.to_string(),
+                (4, 13),
+            ),
+            (
+                "an object's onClick body",
+                "object Lamp {\n  onClick: {\n    manifest_audit_passes(1, 2)\n  }\n}\n\nfunction main(): bool {\n  return true\n}\n",
+                outside("handler `onClick`"),
+                (5, 5),
+            ),
+            (
+                "an @trait handler",
+                "@trait t {\n  @on_check(x) => {\n    return manifest_audit_passes(1, 2, 3)\n  }\n}\n\nfunction main(): bool {\n  return true\n}\n",
+                outside("`on_check` block"),
+                (5, 12),
+            ),
+            (
+                "a trait config",
+                "@audit_on_load { check: manifest_audit_passes(1, 2, 3) }\n\nfunction main(): bool {\n  return true\n}\n",
+                outside("trait `@audit_on_load`"),
+                (3, 25),
+            ),
+            (
+                "an `on` block inside a typed function",
+                "function main(): bool {\n  on_tick {\n    manifest_audit_passes()\n  }\n  return true\n}\n",
+                outside("`on_tick` block"),
+                (5, 5),
+            ),
+            (
+                "an action's clause, kept as text",
+                "function main(): bool {\n  action pick(item) {\n    effect { manifest_audit_passes() }\n  }\n  return true\n}\n",
+                outside("action `pick`"),
+                (4, 3),
+            ),
+            (
+                "a `move` target",
+                "function main(): bool {\n  move manifest_audit_passes to home\n  return true\n}\n",
+                value.to_string(),
+                (4, 3),
+            ),
+        ] {
+            let (message, line, column) = refused_with(&format!("{ABSORB}{rest}"), "HS-HOST-003");
+            assert!(message.contains(&said), "{form}: {message}");
+            assert_eq!((line, column), at, "{form}: {message}");
+        }
+    }
+
+    #[test]
+    fn a_call_in_a_typed_functions_lambda_is_checked_there() {
+        // The type checker reads a lambda's body in a typed function, so the call is checked,
+        // not refused: the right count is valid and a wrong one is an arity error.
+        assert_eq!(
+            verdict(&format!("{ABSORB}function main(): bool {{\n  let g = x => manifest_audit_passes()\n  return true\n}}\n")),
+            None
+        );
+        let (message, ..) = refused_with(
+            &format!("{ABSORB}function main(): bool {{\n  let g = x => manifest_audit_passes(1, 2, 3)\n  return true\n}}\n"),
+            "HS-ARITY-001",
+        );
+        assert!(message.contains("expects 0 arguments, got 3"), "{message}");
+    }
+
+    #[test]
+    fn a_holo_import_name_cannot_be_rebound_anywhere_in_the_file() {
+        // Decision 2026-10-05 (claude3's #487 review, P1-1): UAAL resolved a called name to the
+        // import first and the checker to a local first, so `function check(cap) { return cap() }`
+        // was valid and compiled to a capability call. The name now means the capability in the
+        // whole file, and every binding that would take it is refused, typed function or not.
+        let at_import =
+            "is the Holo import `holo:absorb/manifest_audit_passes` (line 1, column 10)";
+        for (rest, owner, what, at) in [
+            ("function check(manifest_audit_passes) {\n  return manifest_audit_passes()\n}\n", "function `check`", "parameter", (3, 16)),
+            ("function main(manifest_audit_passes: i32): bool {\n  return manifest_audit_passes()\n}\n", "function `main`", "parameter", (3, 15)),
+            ("function main(manifest_audit_passes: bool): bool {\n  return manifest_audit_passes\n}\n", "function `main`", "parameter", (3, 15)),
+            ("function check() {\n  let manifest_audit_passes = 5\n  return manifest_audit_passes()\n}\n", "function `check`", "local", (4, 3)),
+            ("function main(): bool {\n  let manifest_audit_passes = true\n  return manifest_audit_passes\n}\n", "function `main`", "local", (4, 3)),
+            ("function main(): bool {\n  let manifest_audit_passes: i32 = 3\n  return manifest_audit_passes()\n}\n", "function `main`", "local", (4, 3)),
+            ("function check() {\n  for (manifest_audit_passes in 0..3) {\n    print(1)\n  }\n  return 0\n}\n", "function `check`", "loop variable", (4, 3)),
+            ("function check() {\n  let g = manifest_audit_passes => 1\n  return g(0)\n}\n", "function `check`", "lambda parameter", (4, 11)),
+            ("function main(): bool {\n  let g = manifest_audit_passes => 1\n  return true\n}\n", "function `main`", "lambda parameter", (4, 11)),
+            ("function main(): bool {\n  on_cast(manifest_audit_passes) {\n    print(1)\n  }\n  return true\n}\n", "`on_cast` block", "parameter", (4, 3)),
+        ] {
+            let (message, line, column) = refused_with(&format!("{ABSORB}{rest}"), "HS-SCOPE-001");
+            assert!(
+                message.contains(&format!("{owner} binds `manifest_audit_passes` as a {what}, but `manifest_audit_passes` {at_import}")),
+                "{rest}\n=> {message}"
+            );
+            assert_eq!((line, column), at, "{rest}\n=> {message}");
+        }
+        // A slot, and an alias: the name the file uses is the one that may not be rebound.
+        let (message, line, column) = refused_with(
+            &format!("struct R {{\n  a: i32\n}}\n\n{ABSORB}function main(): bool {{\n  slot manifest_audit_passes: R = R(1)\n  return true\n}}\n"),
+            "HS-SCOPE-001",
+        );
+        assert!(message.contains("as a local"), "{message}");
+        assert_eq!((line, column), (8, 3), "{message}");
+        let (message, line, column) = refused_with(
+            "import { manifest_audit_passes as audit } from \"holo:absorb\"\n\nfunction check(audit) {\n  return audit()\n}\n",
+            "HS-SCOPE-001",
+        );
+        assert!(message.contains("function `check` binds `audit` as a parameter, but `audit` is the Holo import `holo:absorb/manifest_audit_passes`"), "{message}");
+        assert_eq!((line, column), (3, 16), "{message}");
+    }
+
+    #[test]
+    fn a_stand_in_is_refused_where_it_is_declared() {
+        // claude3's fault F5 moved this refusal onto the import and every test still passed.
+        for (stub, at) in [
+            (
+                "function manifest_audit_passes(): bool {\n  return true\n}\n",
+                (7, 1),
+            ),
+            (
+                "export function manifest_audit_passes(): bool {\n  return true\n}\n",
+                (7, 8),
+            ),
+        ] {
+            let (message, line, column) = refused_with(&format!("{AUDIT}\n{stub}"), "HS-SCOPE-001");
+            assert!(
+                message.contains("is imported from a Holo module (line 1, column 10) and also declared as a function"),
+                "{message}"
+            );
+            assert_eq!((line, column), at, "{message}");
+        }
+    }
+
+    #[test]
+    fn a_name_imported_twice_is_refused_at_the_second_import() {
+        let (message, line, column) = refused_with(&format!("{ABSORB}{AUDIT}"), "HS-SCOPE-001");
+        assert!(
+            message.contains("`manifest_audit_passes` is imported twice, at line 1, column 10 and at line 3, column 10; a file imports each name once"),
+            "{message}"
+        );
+        assert_eq!((line, column), (3, 10), "{message}");
+    }
+
+    #[test]
+    fn an_import_may_not_take_a_built_in_name() {
+        // Decision 2026-10-05 (claude3's #466 alias P2 and #487 P2-2): an engine reads a call to a
+        // built-in's name as the built-in (`load(r.count)` is a field read), so a capability
+        // under that name would be checked as one thing and run as another. (`move` is a keyword:
+        // the parser refuses it as a name before the checker runs.)
+        for name in [
+            "load",
+            "store",
+            "drop",
+            "buffer",
+            "known",
+            "unknown",
+            "isKnown",
+            "unknownReason",
+            "slice_length",
+            "u8_to_i32",
+            "i32_to_u8",
+            "abs",
+            "floor",
+            "max",
+            "min",
+            "pow",
+            "sqrt",
+        ] {
+            let source = format!(
+                "import {{ add_one as {name} }} from \"holo:fixture\"\n\nfunction main(): i32 {{\n  return 1\n}}\n"
+            );
+            let (message, line, column) = refused_with(&source, "HS-SCOPE-001");
+            assert!(
+                message.contains(&format!("the Holo import `holo:fixture/add_one` takes the name `{name}`, which is a built-in")),
+                "{name}: {message}"
+            );
+            assert_eq!((line, column), (1, 10), "{name}: {message}");
+        }
+    }
+
+    #[test]
+    fn capability_arguments_must_be_proven_of_their_declared_types() {
+        // Decision 2026-10-05 (claude3's #487 review, P1-2): an ordinary call accepts an argument
+        // the checker cannot type; a capability call does not, because its host receives exactly
+        // the declared types. Each case passed a string, a record or an f64 to `add_one(x: i32)`.
+        for (rest, found) in [
+            ("function helper() {\n  return \"rm -rf /\"\n}\n\nfunction main(): i32 {\n  return add_one(helper())\n}\n", "unknown"),
+            ("struct P {\n  a: i32\n}\n\nfunction main(): i32 {\n  return add_one(P(1))\n}\n", "unknown"),
+            ("function relay(v: any): i32 {\n  return add_one(v)\n}\n\nfunction main(): i32 {\n  return relay(1)\n}\n", "any"),
+            ("function relay(v: unknown): i32 {\n  return add_one(v)\n}\n\nfunction main(): i32 {\n  return relay(1)\n}\n", "unknown"),
+            ("function helper() {\n  return \"x\"\n}\n\nfunction main(): i32 {\n  let v = helper()\n  return add_one(v)\n}\n", "unknown"),
+            ("struct R {\n  v: f64\n}\n\nfunction main(): i32 {\n  slot r: R = R(2.5)\n  return add_one(load(r.v))\n}\n", "unknown"),
+            ("struct R {\n  v: i32\n}\n\nfunction main(): i32 {\n  slot r: R = R(2)\n  return add_one(&r)\n}\n", "unknown"),
+            ("function relay(v) {\n  return 1\n}\n\nfunction main(): i32 {\n  return add_one(relay(2))\n}\n", "unknown"),
+        ] {
+            let (message, ..) = refused_with(&format!("{FIXTURE}{rest}"), "HS-TYPE-ARG-001");
+            assert!(
+                message.contains(&format!("argument 1 to `add_one` is not proven `i32` (found `{found}`): `holo:fixture/add_one` is a Holo capability")),
+                "{rest}\n=> {message}"
+            );
+        }
+        // A type the checker knows and that differs is the ordinary mismatch.
+        for (rest, said) in [
+            ("function main(): i32 {\n  return add_one(true)\n}\n", "argument 1 to `add_one` has incompatible type: expected `i32`, found `bool`"),
+            ("function main(): i32 {\n  return add_one(null)\n}\n", "argument 1 to `add_one` has incompatible type: expected `i32`, found `null`"),
+            ("function main(x: f64): f32 {\n  return scale(x, 2)\n}\n", "argument 1 to `scale` has incompatible type: expected `f32`, found `f64`"),
+            ("function main(n: i32): f32 {\n  return scale(n, 2)\n}\n", "argument 1 to `scale` has incompatible type: expected `f32`, found `i32`"),
+            ("function main(): i32 {\n  return add_one(3000000000)\n}\n", "argument 1 to `add_one` has incompatible type: expected `i32`, found `integer literal`"),
+        ] {
+            let (message, ..) = refused_with(&format!("{FIXTURE}{rest}"), "HS-TYPE-ARG-001");
+            assert!(message.contains(said), "{rest}\n=> {message}");
+        }
+        // Proven: literals that fit, typed parameters and locals, arithmetic on them, and another
+        // capability's declared result.
+        for rest in [
+            "function main(): i32 {\n  return add_one(41)\n}\n",
+            "function main(n: i32): i32 {\n  return add_one(n + 1)\n}\n",
+            "function main(): f32 {\n  return scale(0.1, 3)\n}\n",
+            "function main(): f32 {\n  return scale(1, 2)\n}\n",
+            "function main(): i32 {\n  return add_one(add_one(1))\n}\n",
+            "function main(): i32 {\n  let v: i32 = 5\n  return add_one(v)\n}\n",
+            "function main(): i32 {\n  add_one(1)\n  scale(0.5, 2)\n  return 0\n}\n",
+        ] {
+            let source = format!("{FIXTURE}{rest}");
+            assert_eq!(verdict(&source), None, "{source}");
+        }
+    }
+
+    #[test]
+    fn a_source_no_reader_takes_as_written_is_refused_and_the_crdt_stream_is_left_alone() {
+        // Native trims a source, and a lookalike of `holo:` passed as an unchecked file import.
+        for source in [
+            " holo:absorb",
+            "holo:absorb ",
+            "\u{ff48}olo:absorb",
+            "holo:\u{0430}bsorb",
+            "holo:absorb\u{200b}",
+            "./donn\u{e9}es.hs",
+        ] {
+            let program = AUDIT.replace("holo:absorb\"", &format!("{source}\""));
+            let (message, line, column) = refused_with(&program, "HS-HOST-001");
+            assert!(message.contains("is not one HoloScript reads: it has a space before or after it, or a character outside ASCII"), "{source:?}: {message}");
+            assert_eq!((line, column), (1, 1), "{source:?}: {message}");
+        }
+        // The `.hsplus` import resolver reads the HoloMesh CRDT stream (`isCrdtImport`); the
+        // checker keeps G11's reading of it, as before G21: its names are bound, unchecked.
+        assert_eq!(
+            verdict("import { feed } from \"crdt://holomesh/feed\"\n\nfunction main() {\n  return feed()\n}\n"),
+            None
+        );
+    }
+
+    #[test]
+    fn a_documents_function_cannot_stand_in_for_a_holo_import_of_its_piece() {
+        // The `.hsplus` reader checks a document's imports as a piece, with the document's
+        // functions and structs as context; each function is checked alone, so a stand-in was
+        // never seen (claude3's #466 review, P2).
+        let probe = "import { manifest_audit_passes } from \"holo:absorb\"\n";
+        for (context, kind) in [
+            (
+                "{\"functions\":[{\"name\":\"manifest_audit_passes\",\"arity\":0}]}",
+                "function",
+            ),
+            (
+                "{\"structs\":[{\"name\":\"manifest_audit_passes\",\"fields\":[]}]}",
+                "struct",
+            ),
+        ] {
+            let (message, line, column) =
+                verdict_json(&crate::validate_detailed_in_context(probe, context)).expect(context);
+            assert!(message.contains(&format!("[HS-SCOPE-001] `manifest_audit_passes` is imported from a Holo module (line 1, column 10) and the document also declares a {kind} named `manifest_audit_passes`")), "{message}");
+            assert_eq!((line, column), (1, 10), "{message}");
+        }
+        // Each typed function, checked with the imports as context, does not report it again.
+        let context = "{\"functions\":[{\"name\":\"manifest_audit_passes\",\"arity\":0},{\"name\":\"caller\",\"arity\":0}],\"imports\":[{\"source\":\"holo:absorb\",\"specifiers\":[{\"imported\":\"manifest_audit_passes\",\"local\":\"manifest_audit_passes\"}]}]}";
+        assert_eq!(
+            verdict_json(&crate::validate_detailed_in_context(
+                "function caller(): bool {\n  return manifest_audit_passes()\n}\n",
+                context
+            )),
+            None
+        );
+    }
+
+    #[test]
+    fn passing_the_checker_is_not_permission_to_call_the_tool() {
+        // The checker reads what a capability takes and gives; it grants nothing. The authority
+        // a declaration names is a stored string no check consults in phase 1: a checked call
+        // still fails before it can run, on every engine (claude3's #466 review, authority).
+        assert_eq!(verdict(AUDIT), None);
+        let HostSource::Module(_, absorb) = resolve_host_source("holo:absorb") else {
+            panic!("holo:absorb should resolve");
+        };
+        assert_eq!(
+            absorb.functions["manifest_audit_passes"].authority,
+            "holo_absorb_manifest"
+        );
+        assert!(!crate::validate_detailed(AUDIT).contains("holo_absorb_manifest"));
+        let uaal = crate::uaal_emit::compile_source_to_uaal(AUDIT).expect_err("UAAL refuses it");
+        assert!(uaal.message.contains("[HS-HOST-004]"), "{}", uaal.message);
+        let kotlin =
+            crate::kotlin_emit::compile_source_to_kotlin(AUDIT, "").expect_err("Kotlin refuses it");
+        assert!(
+            kotlin.message.contains("[HS-HOST-004]"),
+            "{}",
+            kotlin.message
+        );
+        // Native refuses the import as a non-relative path before any check of its own; the
+        // G21 differential in wasm-api.test.ts runs holoscriptc on this program.
     }
 }
