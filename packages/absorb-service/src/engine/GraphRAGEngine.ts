@@ -39,6 +39,13 @@ export interface GraphRAGOptions {
   };
   /** Explicit, receipted selection from the spatial codebase graph. */
   visualFocus?: VisualGraphFocus;
+  /**
+   * Reads the code of a result for the answer prompt. The model is otherwise
+   * shown names and signatures only, and answers around the logic instead of
+   * stating it (Jetson qwen3-4b, 2026-10-05: asked how fuseHybridScore fuses
+   * scores, it described "clamp operations" and never gave the formula).
+   */
+  codeReader?: { count: number; read: (result: EnrichedResult) => string | undefined };
   /** Filter results to specific language */
   language?: string;
   /** Filter results to specific symbol type */
@@ -347,6 +354,8 @@ export class GraphRAGEngine {
           ? `   Visual focus: ${r.visualScore} (${r.visualReasons.join(', ')})`
           : '',
       ];
+      const code = options.codeReader && i < options.codeReader.count ? options.codeReader.read(r) : undefined;
+      if (code) parts.push('   Code:', ...code.split('\n').map((text) => `     ${text}`));
       return parts.filter(Boolean).join('\n');
     });
 

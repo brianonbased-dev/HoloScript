@@ -956,6 +956,21 @@ export function readSymbolLines(
   }
 }
 
+/**
+ * Code for the top 3 answer-prompt results, 30 lines each, read from the
+ * graph's own root. Sized for a 4096-token local model (Jetson qwen3-4b).
+ */
+function answerCodeReader(engine: GraphRAGEngine): {
+  count: number;
+  read: (result: EnrichedResult) => string | undefined;
+} {
+  const rootDir = engine.graph.getRootDir?.() ?? '';
+  return {
+    count: 3,
+    read: (r) => readSymbolExcerpt(rootDir, r.file, r.symbol.line, r.symbol.lineCount, 30),
+  };
+}
+
 function firstDocLine(docComment: string | undefined): string | undefined {
   const line = docComment
     ?.split(/\r?\n/)
@@ -1190,6 +1205,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       language,
       type,
       visualFocus,
+      codeReader: answerCodeReader(engine as GraphRAGEngine),
     });
 
     // Provenance integrity guard: validate every cited file:line resolves
@@ -1299,6 +1315,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
             language,
             type,
             visualFocus,
+            codeReader: answerCodeReader(fbEngine),
           });
 
           // Provenance integrity guard (same as primary path)
