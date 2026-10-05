@@ -2,7 +2,7 @@
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
   "generatedAt": "2026-10-05T20:07:42Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "fe54d4172d (parent) plus the literal-typing change committed with this artifact",
+  "sourceCommit": "60066cc2b464d79cf81693c04b16a79ae5f128c2",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"

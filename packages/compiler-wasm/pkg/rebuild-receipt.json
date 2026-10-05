@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-10-05T04:08:12Z",
+  "generatedAt": "2026-10-05T20:07:42Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "ee3b5c634e34f6bad5236a3baf972ad530519194",
+  "sourceCommit": "60066cc2b464d79cf81693c04b16a79ae5f128c2",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "node scripts/build-wasm.mjs (wasm-pack build --target web --out-dir pkg --release)"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 545447,
-    "wasmSha256": "a87f2ec34570d80662041c5481e3e21ac6c64a6e656139dfd9b1007649fd8c3f",
-    "previousWasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
+    "wasmBytes": 551044,
+    "wasmSha256": "333f124699d9fb991fcc83cf635bf914adb95f265b1c8284a5405b6bd066441d",
+    "previousWasmSha256": "a87f2ec34570d80662041c5481e3e21ac6c64a6e656139dfd9b1007649fd8c3f",
     "repeatBuildSha256Matched": true,
-    "note": "Rebuilt from the round-2 review fix of PR #428 (G10): every UAAL call leaves one value, a re-entrant call saves only slots read after it, aggregate slots end with their block. pkg/ (--target web) and pkg-node/ (--target nodejs) hold byte-identical WASM, and a third --target nodejs build into a scratch directory, with the crate recompiled after cargo clean of its wasm32 release artifacts, gave the same digest. Built with rustc 1.91.0, older than the 1.98.1 of the artifact on main, so about 46 KB of the growth over main is the toolchain. No version bump. The previous pkg/ was built on 2026-08-04 from 580d91e32 and still gave fib(10) = -80."
+    "note": "Rebuilt with pkg-node from the 5kf8 Kotlin typed-returns fix; pkg/ and pkg-node/ hold byte-identical WASM (sha 333f124699d9). Receipt corrected in a follow-up commit: the rebuild commit updated the wasm but not this receipt."
   }
 }
