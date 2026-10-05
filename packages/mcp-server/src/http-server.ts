@@ -1015,8 +1015,9 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
   // WRAP-WITH-RECEIPTS fold point (dependency-sovereignty-ladder, 2026-07-16):
   // every tool call through this SDK handler (SSE and session transports) routes
   // through gateToolCall. The stateless POST /mcp and POST /tools/call routes
-  // further down call securedToolExecution directly and do not run this gate or
-  // its frame check yet. Here, each call writes one NDJSON receipt
+  // further down, and the A2A task route (POST /a2a/tasks, a2aToolHandlerFor),
+  // call securedToolExecution directly and do not run this gate or its frame
+  // check yet. Here, each call writes one NDJSON receipt
   // (sha256 of canonical-JSON args, NEVER raw args), and the gate is the typed
   // seam where FounderGate / x402 / envelope-validation checks plug in. The
   // seam now runs the REAL check (tool-call-checks.ts): exact-four/prohibited

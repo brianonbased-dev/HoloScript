@@ -31,6 +31,8 @@ import {
 } from '../traits/cognitive/CognitiveActions';
 import {
   coerceFrameDeclarationConfig,
+  describeFrameKeyLookalike,
+  frameDeclarationKeyLookalikes,
   type FrameDeclaration,
 } from '../traits/FrameDeclarationTrait';
 import { isLocomotionReactionTrigger } from '../traits/locomotion/LocomotionActions';
@@ -3586,11 +3588,19 @@ export class HoloScriptPlusParser {
           // All fields are optional; coerceFrameDeclarationConfig applies defaults.
           // The parenthesised form is read like any other brain trait's config:
           // skipping it fell back to the default frame and so granted every tool.
+          const frameToken = this.tokens[this.pos - 1];
           const cfg = this.check('LBRACE')
             ? (this.parseBlockContent() as Record<string, unknown>)
             : this.check('LPAREN')
               ? this.parseTraitConfig()
               : {};
+          // A key that looks like a frame key but is not one (allowedTools,
+          // allowed_tool) is refused, as the Rust reader and the agent loader
+          // refuse it: ignoring it would read the real key as left out, its
+          // widest value. The coerced frame is closed too (no tool), for any
+          // consumer that reads the AST without checking for errors.
+          const lookalike = frameDeclarationKeyLookalikes(cfg)[0];
+          if (lookalike) this.errorAt(frameToken, describeFrameKeyLookalike(lookalike), 'HSP001');
           brain.frameDeclaration = coerceFrameDeclarationConfig(cfg);
         } else if (dirName === 'behavior_tree') {
           // @behavior_tree { ... } block inside the brain body

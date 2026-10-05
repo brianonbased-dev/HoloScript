@@ -103,9 +103,16 @@ function founderGateDenial(toolName: string): ToolCallCheckDecision | undefined 
 /**
  * The real FounderGate/frame/x402 pre-dispatch check — wired as the `check` option
  * at both `gateToolCall` fold points (index.ts stdio, the http-server.ts SDK
- * handler). The stateless `POST /mcp` and `POST /tools/call` routes in
- * http-server.ts call securedToolExecution directly and do not run it yet, so a
- * frame sent on those routes is not enforced.
+ * handler). The stateless `POST /mcp` and `POST /tools/call` routes and the A2A
+ * task route (`POST /a2a/tasks`) in http-server.ts call securedToolExecution
+ * directly and do not run it yet, so a frame sent on those routes is not
+ * enforced.
+ *
+ * The frame branch checks a tool's NAME against the frame's allowed_tools. It
+ * does not check denied_domains: a tool call carries no domain tag, so a frame
+ * whose list is ["*"] permits every tool here whatever domains it denies.
+ * denied_domains is enforced only where a caller passes a domain tag to core's
+ * checkToolAllowed (the trait's frame_check_tool event).
  */
 export const founderGateX402ToolCallCheck: ToolCallCheck = (envelope, ctx) => {
   // 1) FounderGate — exact-four / prohibited-operation authority routing.

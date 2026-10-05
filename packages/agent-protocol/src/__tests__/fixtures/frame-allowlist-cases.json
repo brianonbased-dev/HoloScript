@@ -1,9 +1,10 @@
 {
-  "schema": "holoscript.frame-allowlist-cases.v1",
-  "about": "G15 (proposals/Agent_Frame_Tool_Allowlist_v1.md). Each case is the body of one @frame_declaration block and the allowed_tools every reader that reads it must produce. The readers: the canonical .hsplus parser (packages/core, via coerceFrameDeclarationConfig), the Rust grammar authority (packages/compiler-wasm ast.rs), and the agent loader (packages/holoscript-agent brain.ts), whose frame is what an agent sends to the MCP gate. \"core\" or \"rust\": \"rejects\" marks a body that reader refuses to parse. The agent loader never rejects: it reads the frame or narrows it to no tool.",
+  "schema": "holoscript.frame-allowlist-cases.v2",
+  "about": "G15 (proposals/Agent_Frame_Tool_Allowlist_v1.md). Each case is one @frame_declaration and what every reader that reads it must produce. The readers: the canonical .hsplus parser (packages/core, HoloScriptPlusParser), the Rust grammar authority (packages/compiler-wasm ast.rs and parser.rs), and the agent loader (packages/holoscript-agent brain.ts), whose frame is what an agent sends to the MCP gate. A case is built from its body with one of the wraps below; core and the agent place the result inside a brain, Rust reads it at the top level. \"allowed_tools\" is what the canonical parser reads (when it refuses the case: what the readers that do read it produce). A reader that reads a case differently has its own entry: \"core\", \"rust\" or \"agent\" holds \"rejects\" (that reader refuses the source; the agent loader throws) or the list that reader produces instead. The agent's list may only ever be narrower than the canonical one: it never permits a tool the canonical frame denies. \"rust_frames\" lists the frame nodes the Rust reader returns when a case declares more than one; it combines none of them. \"permits\" and \"denies\" name tools the case's allowed_tools must permit or deny when enforced (core's checkToolAllowed, and the MCP gate); they appear only on cases every reader reads alike.",
   "wrap": {
     "braces": "@frame_declaration {\n<body>\n}",
-    "parens": "@frame_declaration(<body>)"
+    "parens": "@frame_declaration(<body>)",
+    "source": "<body>"
   },
   "cases": [
     {
@@ -11,18 +12,30 @@
       "body": "domain: \"holoscript-language\"",
       "allowed_tools": [
         "*"
+      ],
+      "permits": [
+        "read",
+        "holo_query_codebase"
       ]
     },
     {
       "id": "empty",
       "body": "allowed_tools: []",
-      "allowed_tools": []
+      "allowed_tools": [],
+      "denies": [
+        "read",
+        "holo_query_codebase"
+      ]
     },
     {
       "id": "star",
       "body": "allowed_tools: [\"*\"]",
       "allowed_tools": [
         "*"
+      ],
+      "permits": [
+        "read",
+        "holo_query_codebase"
       ]
     },
     {
@@ -30,6 +43,14 @@
       "body": "allowed_tools: [\"read\"]",
       "allowed_tools": [
         "read"
+      ],
+      "permits": [
+        "read"
+      ],
+      "denies": [
+        "write",
+        "READ",
+        "read "
       ]
     },
     {
@@ -38,6 +59,10 @@
       "allowed_tools": [
         "*",
         "read"
+      ],
+      "permits": [
+        "read",
+        "write"
       ]
     },
     {
@@ -167,6 +192,287 @@
         "*"
       ],
       "rust": "rejects"
+    },
+    {
+      "id": "block-comment-with-apostrophe-before-header",
+      "form": "source",
+      "body": "/* don't widen */ @frame_declaration {\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "block-comment-with-url-before-header",
+      "form": "source",
+      "body": "/* see https://x */ @frame_declaration {\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "multiline-block-comment-ends-on-header-line",
+      "form": "source",
+      "body": "/* a note that runs\n   on, and it's locked */ @frame_declaration {\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "block-comment-between-name-and-brace",
+      "form": "source",
+      "body": "@frame_declaration /* c */ {\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "header-inside-a-block-comment",
+      "form": "source",
+      "body": "/* was: @frame_declaration { allowed_tools: [] } */\n@frame_declaration {\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "apostrophe-in-code-before-header",
+      "form": "source",
+      "body": "note: it's locked @frame_declaration {\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [
+        "read"
+      ],
+      "core": "rejects",
+      "rust": "rejects",
+      "note": "A quote that does not close on its line cannot hide a frame from the agent: it is read as code. Core and Rust refuse the unclosed string."
+    },
+    {
+      "id": "line-comment-between-name-and-brace",
+      "form": "source",
+      "body": "@frame_declaration // c\n{\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [
+        "read"
+      ],
+      "core": "rejects",
+      "note": "Core takes a header at the end of its line as a frame with no block, and the block on the next line then fails to parse, so core refuses the source. Rust and the agent skip the comment and the line break and read the block."
+    },
+    {
+      "id": "line-break-between-name-and-brace",
+      "form": "source",
+      "body": "@frame_declaration\n{\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [
+        "read"
+      ],
+      "core": "rejects",
+      "note": "As with the line comment: core refuses the source; Rust and the agent read the block on the next line."
+    },
+    {
+      "id": "header-then-unreadable-text",
+      "form": "source",
+      "body": "@frame_declaration = {\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [],
+      "core": "rejects",
+      "rust": "rejects",
+      "note": "A header followed by something that is not a block: core and Rust refuse the source, the agent sends no tool."
+    },
+    {
+      "id": "header-then-comment-that-never-closes",
+      "form": "source",
+      "body": "@frame_declaration /* never closed {\nallowed_tools: [\"read\"]\n}",
+      "allowed_tools": [],
+      "core": "rejects",
+      "rust": [
+        "*"
+      ],
+      "note": "Both lexers read a block comment that never closes to the end of the file. Inside a brain that swallows the brain's closing brace, so core refuses; Rust, at the top level, is left with a bare header and reads every tool. Rust enforces no frame. The agent cannot find a block after the header, so it sends no tool."
+    },
+    {
+      "id": "bare-header",
+      "form": "source",
+      "body": "@frame_declaration",
+      "allowed_tools": [
+        "*"
+      ],
+      "agent": [],
+      "note": "Core and Rust read a header with no block as a frame with every default, so every tool. The agent cannot tell what the author meant to follow the header, so it sends no tool."
+    },
+    {
+      "id": "star-after-a-letter",
+      "body": "allowed_tools: [\"a*\"]",
+      "allowed_tools": [
+        "a*"
+      ],
+      "permits": [
+        "a*"
+      ],
+      "denies": [
+        "read",
+        "ab"
+      ]
+    },
+    {
+      "id": "star-with-spaces",
+      "body": "allowed_tools: [\" * \"]",
+      "allowed_tools": [
+        " * "
+      ],
+      "permits": [
+        " * "
+      ],
+      "denies": [
+        "read",
+        "*"
+      ]
+    },
+    {
+      "id": "double-star",
+      "body": "allowed_tools: [\"**\"]",
+      "allowed_tools": [
+        "**"
+      ],
+      "denies": [
+        "read",
+        "*"
+      ]
+    },
+    {
+      "id": "star-before-a-letter",
+      "body": "allowed_tools: [\"*a\"]",
+      "allowed_tools": [
+        "*a"
+      ],
+      "denies": [
+        "read",
+        "ba"
+      ]
+    },
+    {
+      "id": "fullwidth-star",
+      "body": "allowed_tools: [\"\uff0a\"]",
+      "allowed_tools": [
+        "\uff0a"
+      ],
+      "denies": [
+        "read",
+        "*"
+      ]
+    },
+    {
+      "id": "asterisk-operator",
+      "body": "allowed_tools: [\"\u2217\"]",
+      "allowed_tools": [
+        "\u2217"
+      ],
+      "denies": [
+        "read",
+        "*"
+      ]
+    },
+    {
+      "id": "star-with-zero-width-space",
+      "body": "allowed_tools: [\"*\u200b\"]",
+      "allowed_tools": [
+        "*\u200b"
+      ],
+      "denies": [
+        "read",
+        "*"
+      ]
+    },
+    {
+      "id": "star-in-a-nested-list",
+      "body": "allowed_tools: [[\"*\"]]",
+      "allowed_tools": [],
+      "denies": [
+        "read",
+        "*"
+      ]
+    },
+    {
+      "id": "lookalike-camel-case-key",
+      "body": "allowedTools: []",
+      "allowed_tools": [],
+      "core": "rejects",
+      "rust": "rejects",
+      "agent": "rejects"
+    },
+    {
+      "id": "lookalike-singular-key",
+      "body": "allowed_tool: []",
+      "allowed_tools": [],
+      "core": "rejects",
+      "rust": "rejects",
+      "agent": "rejects"
+    },
+    {
+      "id": "lookalike-shortened-key",
+      "body": "allow_tools: [\"*\"]",
+      "allowed_tools": [],
+      "core": "rejects",
+      "rust": "rejects",
+      "agent": "rejects"
+    },
+    {
+      "id": "lookalike-beside-the-real-key",
+      "body": "allowed_tools: [\"read\"]\nallowedTools: []",
+      "allowed_tools": [],
+      "core": "rejects",
+      "rust": "rejects",
+      "agent": "rejects"
+    },
+    {
+      "id": "lookalike-of-another-frame-key",
+      "body": "deniedDomains: [\"finance\"]",
+      "allowed_tools": [],
+      "core": "rejects",
+      "rust": "rejects",
+      "agent": "rejects"
+    },
+    {
+      "id": "unrelated-key-is-ignored",
+      "body": "notes: \"locked down\"\nallowed_tools: [\"read\"]",
+      "allowed_tools": [
+        "read"
+      ]
+    },
+    {
+      "id": "two-frames-in-one-brain",
+      "form": "source",
+      "body": "@frame_declaration {\nallowed_tools: [\"read\"]\n}\n@frame_declaration {\nallowed_tools: [\"*\"]\n}",
+      "allowed_tools": [
+        "*"
+      ],
+      "agent": [
+        "read"
+      ],
+      "rust_frames": [
+        [
+          "read"
+        ],
+        [
+          "*"
+        ]
+      ],
+      "note": "Core keeps the last frame; the agent sends only the tools every frame permits; Rust returns one node per frame and combines none."
+    },
+    {
+      "id": "parens-quoted-key-empty",
+      "form": "parens",
+      "body": "\"allowed_tools\": []",
+      "allowed_tools": [
+        "*"
+      ],
+      "agent": [],
+      "rust": "rejects",
+      "note": "Core's parenthesised config does not read a quoted key, so it reads the list as left out: every tool. The agent reads the key and sends no tool. Rust has no parenthesised frame."
+    },
+    {
+      "id": "parens-positional-name",
+      "form": "parens",
+      "body": "\"read\"",
+      "allowed_tools": [
+        "*"
+      ],
+      "rust": "rejects",
+      "note": "A name with no key is not a list of tools: core and the agent both read allowed_tools as left out, so every tool. Rust has no parenthesised frame."
     }
   ]
 }

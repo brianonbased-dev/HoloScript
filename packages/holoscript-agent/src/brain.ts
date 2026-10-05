@@ -1,6 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, resolve as resolvePath } from 'node:path';
-import { FRAME_ALLOW_ALL_TOOLS } from '@holoscript/agent-protocol';
+import {
+  FRAME_ALLOW_ALL_TOOLS,
+  describeFrameKeyLookalike,
+  frameKeyLookalike,
+} from '@holoscript/agent-protocol';
 import type { FrameDeclarationContract, FrameTier } from '@holoscript/agent-protocol';
 import type { OnTaskAction, RuntimeBrainConfig } from './types.js';
 
@@ -113,7 +117,7 @@ export async function loadBrain(
     capabilityTags: document.identity.capabilityTags,
     domain: document.identity.domain,
     scopeTier,
-    frameDeclaration: extractFrameDeclaration(raw),
+    frameDeclaration: extractFrameDeclaration(raw, brainPath),
     requires: document.identity.requires,
     prefers: document.identity.prefers,
     avoids: document.identity.avoids,
@@ -166,15 +170,25 @@ function adaptRuntimeBrainDocument(brain: string): RuntimeBrainDocument {
 // ─── Frame reader (G15, proposals/Agent_Frame_Tool_Allowlist_v1.md) ──────────
 //
 // The frame this reader builds is what the agent sends with every MCP tool
-// call, and this package is core-free, so it cannot call the canonical parser. It tokenizes
-// just enough .hsplus to find the block, its keys and its list entries in code
-// (never in comments or strings), and it must read what the canonical parser
-// reads. Where it cannot tell what the author wrote, it narrows the frame and
-// never widens it. The cases every reader must agree on are shared in
+// call, and this package is core-free, so it cannot call the canonical parser.
+// It reads only the brain's structured part, never its free-text prompt; it
+// finds each `frame_declaration` written in code, never in a comment or a
+// string; and it tokenizes just enough .hsplus to read each block's keys and
+// list entries. It must read what the canonical parser reads. Where it cannot
+// tell what the author wrote, it narrows the frame and never widens it: every
+// header it finds is sent as a frame, at worst one that permits no tool, and a
+// key that looks like a frame key but is not one stops the brain from loading.
+// The cases every reader must agree on are shared in
 // packages/agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json.
 
-/** `frame_declaration` opening a block: `{` or `(`, optionally after a colon. */
-const FRAME_HEADER = /\bframe_declaration\s*:?\s*[{(]/g;
+/**
+ * The first line of a brain's structured part, matched at COLUMN 0; the free
+ * text above it is the brain's prompt. This is the rule of core's
+ * AGENT_BRAIN_SECTION_START and blankAgentBrainPreamble (PR #481): keep the
+ * two in step. extractSystemPromptPreamble cuts the prompt with this pattern.
+ */
+const BRAIN_SECTION_START =
+  /^(#brain|#version|#target|#mode|identity\s*\{|state\s*\{|computed\s*\{|traits\s*\[|capabilities\s*\{|directives\s*\{|behavior\s)/;
 
 /** A token of the frame reader: enough .hsplus to find keys and list entries. */
 type FrameToken = { kind: 'word' | 'string' | 'punct'; text: string } | { kind: 'newline' };
@@ -184,40 +198,140 @@ type FrameValue = { list: string[] } | { scalar: string } | { other: true };
 
 const OPENERS = new Set(['{', '(', '[']);
 const CLOSER_OF: Record<string, string> = { '{': '}', '(': ')', '[': ']' };
+const NAME_CHAR = /[A-Za-z0-9_$]/;
 
 /**
  * Parse the brain's `@frame_declaration` into the transport-safe protocol
  * contract. An omitted `allowed_tools` is sent as `["*"]` (every tool); a
  * written list means exactly what it names, so `[]` is no tool; a written value
- * that is not a list, or a block this reader cannot read, permits no tool. When
- * the file names more than one frame, the agent gets only the tools every one
- * of them permits.
+ * that is not a list, a block this reader cannot read, or a header with no
+ * block after it permits no tool. When the brain names more than one frame, the
+ * agent gets only the tools every one of them permits. A frame holding a key
+ * that looks like a frame key but is not one (`allowedTools`) refuses the brain.
  */
-function extractFrameDeclaration(brain: string): FrameDeclarationContract | undefined {
-  const frames: FrameDeclarationContract[] = [];
-  for (const header of brain.matchAll(FRAME_HEADER)) {
-    const at = header.index ?? 0;
-    if (inLineCommentOrString(brain, at)) continue;
-    frames.push(frameFromBlock(tokenizeFrameBlock(brain, at + header[0].length - 1)));
-  }
+function extractFrameDeclaration(
+  brain: string,
+  brainPath: string
+): FrameDeclarationContract | undefined {
+  const frames = frameHeaderEnds(brain, structuredPartStart(brain)).map((end) =>
+    frameAfterHeader(brain, end, brainPath)
+  );
   return frames.length === 0 ? undefined : frames.reduce(narrowFrames);
 }
 
-/** True when `src[at]` sits after `//`, or inside a quoted string, on its own line. */
-function inLineCommentOrString(src: string, at: number): boolean {
-  let quote: string | null = null;
-  for (let i = src.lastIndexOf('\n', at - 1) + 1; i < at; i++) {
+/**
+ * Where a brain's code begins, as core's parser reads it after PR #481: the
+ * start of the first line that opens a section at column 0. Everything above
+ * it is the prompt, so a frame shown there as an example is not the brain's
+ * frame: it can neither narrow a real frame nor give a frameless brain one. A
+ * brain with no such line has no prompt to skip, and the whole file is read,
+ * so a frame is never dropped for want of one.
+ */
+function structuredPartStart(src: string): number {
+  let at = 0;
+  for (const line of src.split('\n')) {
+    if (BRAIN_SECTION_START.test(line)) return at;
+    at += line.length + 1;
+  }
+  return 0;
+}
+
+/**
+ * The index just past each `frame_declaration` written in code from `from` on:
+ * not inside a comment or a string, and not part of a longer name. A block
+ * comment may span lines; a string ends on its own line. A comment or quote
+ * that never closes is read as code, so it cannot hide a header. Reading text
+ * that was not code can only add a frame, and frames only narrow each other.
+ */
+function frameHeaderEnds(src: string, from: number): number[] {
+  const ends: number[] = [];
+  let i = from;
+  while (i < src.length) {
     const ch = src[i];
-    if (quote) {
-      if (ch === '\\') i++;
-      else if (ch === quote) quote = null;
+    if (ch === '/' && src[i + 1] === '/') {
+      const eol = src.indexOf('\n', i);
+      i = eol < 0 ? src.length : eol;
+    } else if (ch === '/' && src[i + 1] === '*') {
+      const end = src.indexOf('*/', i + 2);
+      i = end < 0 ? i + 2 : end + 2;
     } else if (ch === '"' || ch === "'") {
-      quote = ch;
-    } else if (ch === '/' && src[i + 1] === '/') {
-      return true;
+      const close = closingQuote(src, i);
+      i = close < 0 ? i + 1 : close + 1;
+    } else if (NAME_CHAR.test(ch)) {
+      let end = i;
+      while (end < src.length && NAME_CHAR.test(src[end])) end++;
+      if (src.slice(i, end) === 'frame_declaration') ends.push(end);
+      i = end;
+    } else {
+      i++;
     }
   }
-  return quote !== null;
+  return ends;
+}
+
+/** The index of the quote closing the string that opens at `src[open]`, on its line, or -1. */
+function closingQuote(src: string, open: number): number {
+  for (let j = open + 1; j < src.length && src[j] !== '\n'; j++) {
+    if (src[j] === '\\') j++;
+    else if (src[j] === src[open]) return j;
+  }
+  return -1;
+}
+
+/** Skip spaces, line breaks and comments from `i`. A block comment that never closes stays. */
+function skipSpaceAndComments(src: string, i: number): number {
+  while (i < src.length) {
+    if (/\s/.test(src[i])) {
+      i++;
+    } else if (src[i] === '/' && src[i + 1] === '/') {
+      const eol = src.indexOf('\n', i);
+      i = eol < 0 ? src.length : eol;
+    } else if (src[i] === '/' && src[i + 1] === '*') {
+      const end = src.indexOf('*/', i + 2);
+      if (end < 0) return i;
+      i = end + 2;
+    } else {
+      return i;
+    }
+  }
+  return i;
+}
+
+/**
+ * The frame a header declares: the block after it, past spaces, line breaks,
+ * comments and an optional colon. A header with no block this reader can read
+ * still declares a frame, one that permits no tool. The reader cannot tell what
+ * the author wrote there, so it narrows, and it never drops the frame, which
+ * would leave the agent every tool.
+ */
+function frameAfterHeader(
+  src: string,
+  headerEnd: number,
+  brainPath: string
+): FrameDeclarationContract {
+  let at = skipSpaceAndComments(src, headerEnd);
+  if (src[at] === ':') at = skipSpaceAndComments(src, at + 1);
+  const opensBlock = src[at] === '{' || src[at] === '(';
+  return frameFromBlock(opensBlock ? tokenizeFrameBlock(src, at) : undefined, brainPath);
+}
+
+/**
+ * This loader reads frames with @holoscript/agent-protocol, which it loads from
+ * that package's build. A build from before G15 lacks these exports, and every
+ * frame would then be sent as [undefined]; stop loudly instead.
+ */
+function requireFrameProtocol(): void {
+  if (
+    typeof FRAME_ALLOW_ALL_TOOLS !== 'string' ||
+    typeof frameKeyLookalike !== 'function' ||
+    typeof describeFrameKeyLookalike !== 'function'
+  ) {
+    throw new Error(
+      '[brain] @holoscript/agent-protocol is older than this agent, so a frame cannot be read ' +
+        '(FRAME_ALLOW_ALL_TOOLS or frameKeyLookalike is missing). Rebuild it first: ' +
+        'pnpm --filter @holoscript/agent-protocol build'
+    );
+  }
 }
 
 /**
@@ -339,9 +453,23 @@ function readFrameEntries(tokens: FrameToken[]): Map<string, FrameValue> {
   return entries;
 }
 
-/** The frame a tokenized block declares; a block this reader could not read permits no tool. */
-function frameFromBlock(tokens: FrameToken[] | undefined): FrameDeclarationContract {
+/**
+ * The frame a tokenized block declares. A missing block, or one this reader
+ * could not read, permits no tool. A key that looks like a frame key but is not
+ * one refuses the brain, as the canonical parser and the Rust reader refuse it.
+ */
+function frameFromBlock(
+  tokens: FrameToken[] | undefined,
+  brainPath: string
+): FrameDeclarationContract {
+  requireFrameProtocol();
   const entries = tokens ? readFrameEntries(tokens) : new Map<string, FrameValue>();
+  for (const written of entries.keys()) {
+    const meant = frameKeyLookalike(written);
+    if (meant) {
+      throw new Error(`[brain] ${brainPath}: ${describeFrameKeyLookalike({ written, meant })}`);
+    }
+  }
   const scalar = (key: string): string | undefined => {
     const value = entries.get(key);
     return value && 'scalar' in value ? value.scalar : undefined;
@@ -452,11 +580,9 @@ function extractReflect(brain: string): { criteria: string; escalateOnFail: bool
  */
 function extractSystemPromptPreamble(src: string): string {
   const lines = src.split('\n');
-  const BLOCK_START =
-    /^(#brain|#version|#target|#mode|identity\s*\{|state\s*\{|computed\s*\{|traits\s*\[|capabilities\s*\{|directives\s*\{|behavior\s)/;
   let cutLine = -1;
   for (let i = 0; i < lines.length; i++) {
-    if (BLOCK_START.test(lines[i].trim())) {
+    if (BRAIN_SECTION_START.test(lines[i].trim())) {
       cutLine = i;
       break;
     }

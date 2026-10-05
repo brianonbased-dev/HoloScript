@@ -871,7 +871,94 @@ fn frame_allowed_tools_default() -> Vec<String> {
     vec!["*".to_string()]
 }
 
+/// The keys a frame declaration reads; any other key is ignored (G15).
+pub const FRAME_DECLARATION_KEYS: [&str; 6] = [
+    "domain",
+    "horizon",
+    "capability_tier",
+    "trust_tier",
+    "allowed_tools",
+    "denied_domains",
+];
+
+/// The frame key `key` looks like when it is not one: with ASCII case, `_`, `-` and
+/// ASCII whitespace ignored, at most two edits (a letter added, dropped or changed)
+/// from it. `allowedTools`, `allowed_tool` and `allow_tools` all look like
+/// `allowed_tools`; a frame key itself, and a key far from every frame key, look
+/// like nothing.
+///
+/// Every frame reader refuses a frame holding such a key (G15 review): ignoring it
+/// would read the real key as left out, and a left-out key is its widest value, so
+/// the typo `allowedTools: []` would turn "no tool" into "every tool". This is the
+/// rule of `frameKeyLookalike` in @holoscript/agent-protocol; the shared frame cases
+/// hold both to it.
+pub fn frame_key_lookalike(key: &str) -> Option<&'static str> {
+    if FRAME_DECLARATION_KEYS.contains(&key) {
+        return None;
+    }
+    let written = squash_frame_key(key);
+    FRAME_DECLARATION_KEYS
+        .iter()
+        .copied()
+        .find(|known| within_two_edits(&written, &squash_frame_key(known)))
+}
+
+/// The sentence a frame reader refuses a frame with, naming the look-alike key; the
+/// same words as `describeFrameKeyLookalike` in @holoscript/agent-protocol.
+pub fn describe_frame_key_lookalike(written: &str, meant: &str) -> String {
+    format!(
+        "@frame_declaration has the key \"{written}\", which is not a frame key but looks like \
+         \"{meant}\". Read as written, \"{meant}\" would count as left out, and a left-out \
+         \"{meant}\" is its widest value (for allowed_tools: every tool), so this frame is \
+         refused. Write \"{meant}\", or remove the key."
+    )
+}
+
+/// A key lowercased (ASCII only) with `_`, `-` and ASCII whitespace dropped.
+fn squash_frame_key(key: &str) -> Vec<char> {
+    key.chars()
+        .map(|c| c.to_ascii_lowercase())
+        .filter(|c| !matches!(c, '_' | '-' | ' ' | '\t' | '\n' | '\x0C' | '\r'))
+        .collect()
+}
+
+/// True when the edit (Levenshtein) distance between `a` and `b` is at most 2.
+fn within_two_edits(a: &[char], b: &[char]) -> bool {
+    if a.len().abs_diff(b.len()) > 2 {
+        return false;
+    }
+    let mut previous: Vec<usize> = (0..=b.len()).collect();
+    for i in 1..=a.len() {
+        let mut current = vec![i; b.len() + 1];
+        for j in 1..=b.len() {
+            let substitution = previous[j - 1] + usize::from(a[i - 1] != b[j - 1]);
+            current[j] = (previous[j] + 1).min(current[j - 1] + 1).min(substitution);
+        }
+        previous = current;
+    }
+    previous[b.len()] <= 2
+}
+
 impl FrameDeclarationNode {
+    /// Each key of the directive's config block that looks like a frame key but is
+    /// not one, with the frame key it looks like, in written order. The parser
+    /// refuses a frame that has any (`parse_top_level`); `try_from_directive`
+    /// closes such a frame to no tool for any caller that builds one anyway.
+    pub fn lookalike_keys(directive: &Directive) -> Vec<(String, &'static str)> {
+        let Some(config_node) = &directive.config else {
+            return Vec::new();
+        };
+        let AstNode::ObjectLiteral(obj) = config_node.as_ref() else {
+            return Vec::new();
+        };
+        obj.properties
+            .iter()
+            .filter_map(|prop| {
+                frame_key_lookalike(&prop.key).map(|meant| (prop.key.clone(), meant))
+            })
+            .collect()
+    }
+
     /// Extract a `FrameDeclarationNode` from a generic `Directive` whose name is
     /// `"frame_declaration"`. Returns `None` if the directive name does not match.
     /// All fields default gracefully when the config block is absent or incomplete.
@@ -969,6 +1056,12 @@ impl FrameDeclarationNode {
                 }
                 _ => {}
             }
+        }
+
+        // A key that looks like a frame key but is not one closes the frame: the
+        // parser refuses it, and a caller that builds the node anyway gets no tool.
+        if !Self::lookalike_keys(directive).is_empty() {
+            allowed_tools = Vec::new();
         }
 
         Some(Self {
@@ -1082,9 +1175,21 @@ mod frame_allowlist_tests {
         assert!(written_empty.allowed_tools.is_empty());
     }
 
+    fn string_list(value: &serde_json::Value, what: &str) -> Vec<String> {
+        value
+            .as_array()
+            .unwrap_or_else(|| panic!("{what} is a list"))
+            .iter()
+            .map(|tool| tool.as_str().expect("tool names are strings").to_string())
+            .collect()
+    }
+
     /// The frame cases every reader must read the same way; the canonical
-    /// .hsplus parser (packages/core) and the agent loader (packages/holoscript-agent)
-    /// test the same file. A case marked `"rust": "rejects"` must fail to parse here.
+    /// .hsplus parser (packages/core), the agent loader (packages/holoscript-agent)
+    /// and the MCP gate test the same file. This reader must produce a case's `rust`
+    /// list when it has one, else its allowed_tools; with more than one frame, the
+    /// lists in `rust_frames`, one node per frame. A case marked `"rust": "rejects"`
+    /// must fail to parse here.
     #[test]
     fn shared_frame_cases_read_as_every_reader_must() {
         let fixture: serde_json::Value = serde_json::from_str(include_str!(
@@ -1096,10 +1201,10 @@ mod frame_allowlist_tests {
         for case in cases {
             let id = case["id"].as_str().expect("every case has an id");
             let body = case["body"].as_str().expect("every case has a body");
-            let source = if case["form"].as_str() == Some("parens") {
-                format!("@frame_declaration({body})")
-            } else {
-                format!("@frame_declaration {{\n{body}\n}}")
+            let source = match case["form"].as_str() {
+                Some("source") => body.to_string(),
+                Some("parens") => format!("@frame_declaration({body})"),
+                _ => format!("@frame_declaration {{\n{body}\n}}"),
             };
             let parsed = Parser::new(&source).parse();
             if case["rust"].as_str() == Some("rejects") {
@@ -1110,22 +1215,100 @@ mod frame_allowlist_tests {
                 continue;
             }
             let ast = parsed.unwrap_or_else(|errors| panic!("{id}: should parse, got {errors:?}"));
-            let frame = ast
+            let frames: Vec<Vec<String>> = ast
                 .body
                 .into_iter()
-                .find_map(|node| match node {
-                    AstNode::FrameDeclaration(frame) => Some(frame),
+                .filter_map(|node| match node {
+                    AstNode::FrameDeclaration(frame) => Some(frame.allowed_tools),
                     _ => None,
                 })
-                .unwrap_or_else(|| panic!("{id}: no FrameDeclaration node"));
-            let expected: Vec<String> = case["allowed_tools"]
-                .as_array()
-                .expect("every case has allowed_tools")
-                .iter()
-                .map(|tool| tool.as_str().expect("tool names are strings").to_string())
                 .collect();
-            assert_eq!(frame.allowed_tools, expected, "{id}");
+            let expected: Vec<Vec<String>> = if case["rust_frames"].is_array() {
+                case["rust_frames"]
+                    .as_array()
+                    .expect("rust_frames is a list")
+                    .iter()
+                    .map(|frame| string_list(frame, "each rust_frames entry"))
+                    .collect()
+            } else if case["rust"].is_array() {
+                vec![string_list(&case["rust"], "rust")]
+            } else {
+                vec![string_list(&case["allowed_tools"], "allowed_tools")]
+            };
+            assert_eq!(frames, expected, "{id}");
         }
+    }
+
+    #[test]
+    fn a_key_that_looks_like_a_frame_key_is_named() {
+        for (written, meant) in [
+            ("allowedTools", Some("allowed_tools")),
+            ("allowed_tool", Some("allowed_tools")),
+            ("allow_tools", Some("allowed_tools")),
+            ("Allowed-Tools", Some("allowed_tools")),
+            ("deniedDomains", Some("denied_domains")),
+            ("trustTier", Some("trust_tier")),
+            ("allowed_tools", None),
+            ("notes", None),
+            ("tools", None),
+        ] {
+            assert_eq!(super::frame_key_lookalike(written), meant, "{written}");
+        }
+    }
+
+    #[test]
+    fn a_frame_node_built_past_the_parser_is_closed_by_a_lookalike_key() {
+        // The parser refuses such a frame; a caller that builds the node from a
+        // directive anyway still gets a frame that permits no tool.
+        let ast = Parser::new("@carrier {\n  allowed_tools: [\"read\"]\n  allowedTools: []\n}")
+            .parse()
+            .expect("a generic trait with these keys parses");
+        let config = ast
+            .body
+            .into_iter()
+            .find_map(|node| match node {
+                AstNode::Trait(carrier) => carrier.config,
+                _ => None,
+            })
+            .expect("the trait has a config block");
+        let directive = super::Directive {
+            name: "frame_declaration".to_string(),
+            config: Some(config),
+            loc: None,
+        };
+        assert_eq!(
+            FrameDeclarationNode::lookalike_keys(&directive),
+            vec![("allowedTools".to_string(), "allowed_tools")]
+        );
+        let frame = FrameDeclarationNode::try_from_directive(&directive).expect("a frame node");
+        assert!(
+            frame.allowed_tools.is_empty(),
+            "a frame with a look-alike key must permit no tool"
+        );
+    }
+
+    #[test]
+    fn a_frame_with_a_lookalike_key_is_refused_with_its_name() {
+        let errors = Parser::new("@frame_declaration {\n  allowedTools: []\n}")
+            .parse()
+            .expect_err("a frame with allowedTools must be refused");
+        let message = errors
+            .iter()
+            .map(|error| error.message.as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(message.contains("\"allowedTools\""), "{message}");
+        assert!(
+            message.contains("looks like \"allowed_tools\""),
+            "{message}"
+        );
+        assert_eq!(
+            super::describe_frame_key_lookalike("allowedTools", "allowed_tools"),
+            "@frame_declaration has the key \"allowedTools\", which is not a frame key but looks \
+             like \"allowed_tools\". Read as written, \"allowed_tools\" would count as left out, \
+             and a left-out \"allowed_tools\" is its widest value (for allowed_tools: every \
+             tool), so this frame is refused. Write \"allowed_tools\", or remove the key."
+        );
     }
 
     #[test]

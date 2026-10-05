@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -6,9 +6,20 @@ import { loadBrain } from '../brain.js';
 
 /**
  * G15: the frame cases every reader must read the same way (the canonical
- * parser and the Rust reader test the same file). The agent loader never
- * rejects a case: it reads the frame or narrows it to no tool.
+ * parser, the Rust reader and the MCP gate test the same file). The agent
+ * loader sends a case's `agent` list when it has one, else its allowed_tools,
+ * and refuses to load (throws) only where `agent` is "rejects": a key that looks
+ * like a frame key but is not one. Its list may only be narrower than the
+ * canonical parser's.
  */
+interface SharedFrameCase {
+  id: string;
+  form?: 'parens' | 'source';
+  body: string;
+  allowed_tools: string[];
+  core?: 'rejects' | string[];
+  agent?: 'rejects' | string[];
+}
 const SHARED_FRAME_CASES = (
   JSON.parse(
     readFileSync(
@@ -18,8 +29,12 @@ const SHARED_FRAME_CASES = (
       ),
       'utf8'
     )
-  ) as { cases: Array<{ id: string; form?: 'parens'; body: string; allowed_tools: string[] }> }
+  ) as { cases: SharedFrameCase[] }
 ).cases;
+
+/** True when a frame with `list` lets `tool` through the MCP gate (exact name or exactly "*"). */
+const listPermits = (list: string[], tool: string): boolean =>
+  list.includes('*') || list.includes(tool);
 
 const MINI_BRAIN = `
 composition "MiniBrain" {
@@ -302,25 +317,126 @@ ${frameBody}
     expect(await allowedToolsFor('    domain: "holoscript\n    allowed_tools: ["*"]')).toEqual([]);
   });
 
-  async function frameFromSource(source: string) {
+  async function frameFromSourceBrain(source: string) {
     const path = join(dir, `g15-frame-${frameCount++}.hsplus`);
     writeFileSync(path, source, 'utf8');
-    return (await loadBrain(path)).frameDeclaration;
+    return await loadBrain(path);
+  }
+
+  async function frameFromSource(source: string) {
+    return (await frameFromSourceBrain(source)).frameDeclaration;
   }
 
   it.each(SHARED_FRAME_CASES.map((c) => [c.id, c] as const))(
     'G15: shared frame case %s reads as every reader must',
     async (_id, c) => {
       const frame =
-        c.form === 'parens'
-          ? `@frame_declaration(${c.body})`
-          : `@frame_declaration {\n${c.body}\n}`;
-      const declared = await frameFromSource(
-        `#version 6.0.0\nbrain FramedAgent : @behavior_tree {\n  ${frame}\n  identity { domain: "holoscript-language" }\n}\n`
-      );
-      expect(declared?.allowed_tools).toEqual(c.allowed_tools);
+        c.form === 'source'
+          ? c.body
+          : c.form === 'parens'
+            ? `@frame_declaration(${c.body})`
+            : `@frame_declaration {\n${c.body}\n}`;
+      const source = `#version 6.0.0\nbrain FramedAgent : @behavior_tree {\n  ${frame}\n  identity { domain: "holoscript-language" }\n}\n`;
+      if (c.agent === 'rejects') {
+        await expect(frameFromSource(source)).rejects.toThrow(/is not a frame key but looks like/);
+        return;
+      }
+      const sent = (await frameFromSource(source))?.allowed_tools;
+      const expected = Array.isArray(c.agent) ? c.agent : c.allowed_tools;
+      expect(sent).toEqual(expected);
+
+      // Never wider than the canonical parser, wherever that parser reads the case.
+      if (c.core !== 'rejects') {
+        const canonical = Array.isArray(c.core) ? c.core : c.allowed_tools;
+        const probes = [...new Set([...expected, ...canonical, 'read', 'a_tool_nobody_named'])];
+        const wider = probes.filter((t) => listPermits(expected, t) && !listPermits(canonical, t));
+        expect(wider, 'tools the agent would permit that the canonical frame denies').toEqual([]);
+      }
     }
   );
+
+  // ─── Review 2 (claude3): the frame is read from the brain's code, not its prompt ───
+  // A brain's prompt is the free text above its first column-0 section line (the rule of
+  // core's AGENT_BRAIN_SECTION_START, PR #481). An example frame shown there used to be
+  // read as a frame: a frameless brain then got no tool, and prose such as
+  // "frame_declaration (it's enforced)" narrowed a real ["read"] frame to [].
+
+  it('G15: an example frame in the prompt gives a frameless brain no frame', async () => {
+    const brain = await frameFromSourceBrain(`You teach HoloScript.
+Show users @frame_declaration { allowed_tools: [] } for an agent that may call no tool.
+#version 6.0.0
+brain Teacher : @behavior_tree {
+  identity { domain: "holoscript-language" }
+}
+`);
+    expect(brain.frameDeclaration).toBeUndefined();
+    expect(brain.systemPrompt).toContain('@frame_declaration { allowed_tools: [] }');
+  });
+
+  it('G15: an example frame or a mention in the prompt leaves the real frame as written', async () => {
+    const brain =
+      await frameFromSourceBrain(`Never call a tool outside your frame_declaration (it's enforced by the server).
+A locked agent writes @frame_declaration { allowed_tools: [] }.
+#brain Reader
+#version 6.0.0
+identity { domain: "holoscript-language" }
+@frame_declaration {
+  allowed_tools: ["read"]
+}
+`);
+    expect(brain.frameDeclaration?.allowed_tools).toEqual(['read']);
+  });
+
+  it('G15: a brain with no column-0 section line is read whole, so its frame is never dropped', async () => {
+    const frame = await frameFromSource(`brain Locked : @behavior_tree {
+  @frame_declaration {
+    allowed_tools: []
+  }
+}
+`);
+    expect(frame?.allowed_tools).toEqual([]);
+  });
+
+  it('G15: a look-alike frame key refuses the brain and names the key and the file', async () => {
+    const path = join(dir, `g15-frame-${frameCount++}.hsplus`);
+    writeFileSync(
+      path,
+      '#version 6.0.0\nbrain Typo : @behavior_tree {\n  @frame_declaration {\n    allowedTools: []\n  }\n}\n',
+      'utf8'
+    );
+    await expect(loadBrain(path)).rejects.toThrow(
+      `[brain] ${path}: @frame_declaration has the key "allowedTools", which is not a frame key but looks like "allowed_tools".`
+    );
+  });
+
+  it('G15: a stale agent-protocol build stops a framed brain loudly instead of sending [undefined]', async () => {
+    const path = join(dir, `g15-frame-${frameCount++}.hsplus`);
+    writeFileSync(
+      path,
+      '#version 6.0.0\nbrain Framed : @behavior_tree {\n  @frame_declaration {\n    allowed_tools: ["read"]\n  }\n}\n',
+      'utf8'
+    );
+    vi.resetModules();
+    // What a build from before G15 gives this loader: the frame exports are undefined.
+    vi.doMock('@holoscript/agent-protocol', () => ({
+      FRAME_ALLOW_ALL_TOOLS: undefined,
+      frameKeyLookalike: undefined,
+      describeFrameKeyLookalike: undefined,
+    }));
+    try {
+      const { loadBrain: loadWithStaleProtocol } = await import('../brain.js');
+      await expect(loadWithStaleProtocol(path)).rejects.toThrow(
+        /agent-protocol is older than this agent.*pnpm --filter @holoscript\/agent-protocol build/
+      );
+      // A brain with no frame does not need the frame exports, and still loads.
+      const unframed = join(dir, `g15-frame-${frameCount++}.hsplus`);
+      writeFileSync(unframed, MINI_BRAIN, 'utf8');
+      expect((await loadWithStaleProtocol(unframed)).frameDeclaration).toBeUndefined();
+    } finally {
+      vi.doUnmock('@holoscript/agent-protocol');
+      vi.resetModules();
+    }
+  });
 
   it('G15: a frame header inside a line comment or a string is not the frame', async () => {
     const commented = await frameFromSource(`#version 6.0.0

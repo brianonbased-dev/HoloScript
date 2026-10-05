@@ -126,6 +126,26 @@ impl Parser {
                 config: trait_node.config,
                 loc: trait_node.loc,
             };
+            // A key that looks like a frame key but is not one (`allowedTools`) is
+            // refused, as the canonical .hsplus parser and the agent loader refuse it
+            // (G15 review): reading past it would read the real key as left out, and a
+            // left-out allowed_tools is every tool.
+            if let Some((written, meant)) =
+                crate::ast::FrameDeclarationNode::lookalike_keys(&directive)
+                    .into_iter()
+                    .next()
+            {
+                let start = directive
+                    .loc
+                    .as_ref()
+                    .map(|loc| loc.start.clone())
+                    .unwrap_or_default();
+                return Err(ParseError::new(
+                    crate::ast::describe_frame_key_lookalike(&written, meant),
+                    start.line,
+                    start.column,
+                ));
+            }
             if let Some(fd) = crate::ast::FrameDeclarationNode::try_from_directive(&directive) {
                 return Ok(AstNode::FrameDeclaration(fd));
             }

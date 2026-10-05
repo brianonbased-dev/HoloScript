@@ -24,6 +24,8 @@ import {
   checkHorizon,
   checkTier,
   coerceFrameDeclarationConfig,
+  describeFrameKeyLookalike,
+  frameDeclarationKeyLookalikes,
   type FrameDeclaration,
 } from '../FrameDeclarationTrait';
 import { HoloScriptPlusParser, type HoloBrainDecl } from '../../parser/HoloScriptPlusParser';
@@ -262,6 +264,107 @@ describe('G15 — an empty tool allowlist means no tool; ["*"] means every tool'
   it('the handler default config is ["*"], every tool', () => {
     expect(frameDeclarationHandler.defaultConfig.allowed_tools).toEqual(['*']);
   });
+
+  // Review 2 (claude3, F3): with the check widened to "any entry containing a star", every
+  // test above still passed. Only the exact entry "*" is the wildcard; each look-alike names
+  // one tool (itself), so it opens nothing else.
+  it('only the exact entry "*" opens every tool; look-alike stars name one tool', () => {
+    const lookalikes = [
+      'a*',
+      ' * ',
+      '**',
+      '*a',
+      String.fromCharCode(0xff0a), // fullwidth asterisk
+      String.fromCharCode(0x2217), // asterisk operator
+      '*' + String.fromCharCode(0x200b), // star and a zero-width space
+    ];
+    for (const entry of lookalikes) {
+      const frame = frameWith([entry]);
+      for (const tool of ['read', 'holo_query_codebase', '*']) {
+        const result = checkToolAllowed(frame, tool);
+        expect(result.allowed, `${JSON.stringify(entry)} must not permit ${tool}`).toBe(false);
+        expect(result.violation_type).toBe('tool_not_allowed');
+      }
+      expect(checkToolAllowed(frame, entry).allowed, `${JSON.stringify(entry)} names itself`).toBe(
+        true
+      );
+    }
+  });
+
+  it('a list inside the list is not the wildcard, from the coercer or an untyped caller', () => {
+    const coerced = coerceFrameDeclarationConfig({ allowed_tools: [['*']] });
+    expect(coerced.allowed_tools).toEqual([]);
+    expect(checkToolAllowed(coerced, 'read').allowed).toBe(false);
+    const untyped = { ...OPEN_FRAME, allowed_tools: [['*']] } as unknown as FrameDeclaration;
+    expect(checkToolAllowed(untyped, 'read').allowed).toBe(false);
+    expect(checkToolAllowed(untyped, '*').allowed).toBe(false);
+  });
+});
+
+// ─── Review 2, N2: a key that looks like a frame key is an error, not an omission ──
+//
+// allowedTools: [] used to read as an omitted list, which G15 made "every tool". Every
+// reader now refuses such a frame (core here, Rust in ast.rs, the agent loader in brain.ts;
+// the shared cases below hold all three to it).
+
+describe('a frame key look-alike is refused, never read as an omitted key', () => {
+  it('names each look-alike key and the frame key it looks like', () => {
+    expect(
+      frameDeclarationKeyLookalikes({
+        allowedTools: [],
+        allowed_tool: [],
+        allow_tools: ['*'],
+        'Allowed-Tools': [],
+        deniedDomains: ['finance'],
+        trustTier: 3,
+        allowed_tools: ['read'],
+        notes: 'locked down',
+        tools: [],
+      })
+    ).toEqual([
+      { written: 'allowedTools', meant: 'allowed_tools' },
+      { written: 'allowed_tool', meant: 'allowed_tools' },
+      { written: 'allow_tools', meant: 'allowed_tools' },
+      { written: 'Allowed-Tools', meant: 'allowed_tools' },
+      { written: 'deniedDomains', meant: 'denied_domains' },
+      { written: 'trustTier', meant: 'trust_tier' },
+    ]);
+  });
+
+  it('the coercer, which cannot refuse, closes such a frame to no tool', () => {
+    for (const raw of [
+      { allowedTools: ['*'] },
+      { allowed_tool: [] },
+      { allowed_tools: ['read'], allowedTools: [] },
+      { deniedDomains: ['finance'] },
+    ]) {
+      const frame = coerceFrameDeclarationConfig(raw);
+      expect(frame.allowed_tools, JSON.stringify(raw)).toEqual([]);
+      expect(checkToolAllowed(frame, 'read').allowed, JSON.stringify(raw)).toBe(false);
+    }
+  });
+
+  it('the parser refuses the frame and says which key it looked like', () => {
+    const result = new HoloScriptPlusParser({ enableVRTraits: true }).parse(
+      'brain Typo : @behavior_tree {\n  @frame_declaration {\n    allowedTools: []\n  }\n}'
+    );
+    expect(result.success).toBe(false);
+    const message = result.errors.map((e) => e.message).join('\n');
+    expect(message).toContain('"allowedTools"');
+    expect(message).toContain('"allowed_tools"');
+    expect(message).toContain('refused');
+    const brain = result.ast.root as unknown as HoloBrainDecl;
+    expect(brain.frameDeclaration?.allowed_tools).toEqual([]);
+  });
+
+  it('describes the refusal in plain words', () => {
+    expect(describeFrameKeyLookalike({ written: 'allowedTools', meant: 'allowed_tools' })).toBe(
+      '@frame_declaration has the key "allowedTools", which is not a frame key but looks like ' +
+        '"allowed_tools". Read as written, "allowed_tools" would count as left out, and a ' +
+        'left-out "allowed_tools" is its widest value (for allowed_tools: every tool), so this ' +
+        'frame is refused. Write "allowed_tools", or remove the key.'
+    );
+  });
 });
 
 // ─── The migrated example: compositions/frame-declaration-example.hsplus ─────
@@ -319,16 +422,20 @@ describe('frame-declaration-example.hsplus after the G15 migration', () => {
 // ─── The shared frame cases: every reader must read the same tool list ───────
 //
 // packages/agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json is
-// also read by the agent loader's tests (brain.test.ts) and the Rust reader's
-// tests (compiler-wasm ast.rs). A reader that reads a case must produce its
-// allowed_tools; a case marked `core: "rejects"` must fail to parse here.
+// also read by the agent loader's tests (brain.test.ts), the Rust reader's tests
+// (compiler-wasm ast.rs) and the MCP gate's tests (tool-call-checks.test.ts). This
+// reader must produce a case's `core` list when it has one, else its allowed_tools;
+// a case marked `core: "rejects"` must fail to parse here. A case's permits/denies
+// are checked against the parsed frame with checkToolAllowed.
 
 interface SharedFrameCase {
   id: string;
-  form?: 'parens';
+  form?: 'parens' | 'source';
   body: string;
   allowed_tools: string[];
-  core?: 'rejects';
+  core?: 'rejects' | string[];
+  permits?: string[];
+  denies?: string[];
 }
 
 describe('the shared frame cases, read by the canonical .hsplus parser', () => {
@@ -348,7 +455,11 @@ describe('the shared frame cases, read by the canonical .hsplus parser', () => {
 
   it.each(cases.map((c) => [c.id, c] as const))('%s', (_id, c) => {
     const frame =
-      c.form === 'parens' ? `@frame_declaration(${c.body})` : `@frame_declaration {\n${c.body}\n}`;
+      c.form === 'source'
+        ? c.body
+        : c.form === 'parens'
+          ? `@frame_declaration(${c.body})`
+          : `@frame_declaration {\n${c.body}\n}`;
     const result = new HoloScriptPlusParser({ enableVRTraits: true }).parse(
       `brain SharedCase : @behavior_tree {\n  ${frame}\n}`
     );
@@ -356,9 +467,16 @@ describe('the shared frame cases, read by the canonical .hsplus parser', () => {
       expect(result.success).toBe(false);
       return;
     }
-    expect(result.success).toBe(true);
+    expect(result.success, JSON.stringify(result.errors?.map((e) => e.message))).toBe(true);
     const brain = result.ast.root as unknown as HoloBrainDecl;
-    expect(brain.frameDeclaration?.allowed_tools).toEqual(c.allowed_tools);
+    const parsed = brain.frameDeclaration as FrameDeclaration;
+    expect(parsed?.allowed_tools).toEqual(Array.isArray(c.core) ? c.core : c.allowed_tools);
+    for (const tool of c.permits ?? []) {
+      expect(checkToolAllowed(parsed, tool).allowed, `permits ${JSON.stringify(tool)}`).toBe(true);
+    }
+    for (const tool of c.denies ?? []) {
+      expect(checkToolAllowed(parsed, tool).allowed, `denies ${JSON.stringify(tool)}`).toBe(false);
+    }
   });
 });
 

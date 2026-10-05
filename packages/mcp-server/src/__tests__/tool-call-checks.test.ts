@@ -28,7 +28,11 @@ import {
   X402_SCOPE_CHECK_ID,
   FOUNDER_GATE_X402_CHECK_ID,
 } from '../tool-call-checks';
-import { gateToolCall, ToolCallGateDeniedError } from '../tool-call-gate';
+import {
+  frameDeclarationFromMcpMeta,
+  gateToolCall,
+  ToolCallGateDeniedError,
+} from '../tool-call-gate';
 import type { ToolCallCheckDecision, ToolCallGateContext } from '../tool-call-gate';
 import {
   registerKnownTools,
@@ -53,6 +57,30 @@ function httpCtx(scopes: string[]): ToolCallGateContext {
 async function runCheck(name: string, ctx: ToolCallGateContext): Promise<ToolCallCheckDecision> {
   return await founderGateX402ToolCallCheck({ name, args: {} }, ctx);
 }
+
+/**
+ * G15: the frame cases shared by every frame reader (core, Rust, the agent loader); here
+ * only the ones that say which tools their list permits or denies. The agent sends a
+ * case's `agent` list when it has one, else its allowed_tools.
+ */
+interface SharedFrameCase {
+  id: string;
+  allowed_tools: string[];
+  agent?: 'rejects' | string[];
+  permits?: string[];
+  denies?: string[];
+}
+const SHARED_FRAME_CASES = (
+  JSON.parse(
+    fs.readFileSync(
+      path.resolve(
+        import.meta.dirname,
+        '../../../agent-protocol/src/__tests__/fixtures/frame-allowlist-cases.json'
+      ),
+      'utf8'
+    )
+  ) as { cases: SharedFrameCase[] }
+).cases.filter((c) => c.agent !== 'rejects' && (c.permits || c.denies));
 
 describe('founderGateX402ToolCallCheck', () => {
   beforeEach(() => {
@@ -196,6 +224,33 @@ describe('founderGateX402ToolCallCheck', () => {
       expect(decision.check, tool).toBe(FOUNDER_GATE_X402_CHECK_ID);
     }
   });
+
+  // Review 2 (claude3, F3): the shared frame cases at the enforcement point. Each case's
+  // list goes over the wire (JSON, then the metadata validator) as the agent sends it, and
+  // its permits/denies must hold in the frame branch: only the exact entry "*" opens every
+  // tool. (A later branch may still refuse an odd name such as " * " on its own grounds.)
+  it.each(SHARED_FRAME_CASES.map((c) => [c.id, c] as const))(
+    'G15: shared frame case %s holds at the gate',
+    async (_id, c) => {
+      registerKnownTools([...(c.permits ?? []), ...(c.denies ?? [])]);
+      const sent = { ...g15Frame(Array.isArray(c.agent) ? c.agent : c.allowed_tools) };
+      const frameDeclaration = frameDeclarationFromMcpMeta(
+        JSON.parse(JSON.stringify({ 'holoscript.dev/frame-declaration': sent }))
+      );
+      expect(frameDeclaration, 'the metadata validator accepts the frame').toBeTruthy();
+      for (const tool of c.permits ?? []) {
+        const decision = await runCheck(tool, { ...stdioCtx, frameDeclaration });
+        expect(decision.check, `permits ${JSON.stringify(tool)}`).not.toBe(
+          FRAME_DECLARATION_CHECK_ID
+        );
+      }
+      for (const tool of c.denies ?? []) {
+        const decision = await runCheck(tool, { ...stdioCtx, frameDeclaration });
+        expect(decision.allowed, `denies ${JSON.stringify(tool)}`).toBe(false);
+        expect(decision.check, `denies ${JSON.stringify(tool)}`).toBe(FRAME_DECLARATION_CHECK_ID);
+      }
+    }
+  );
 
   it('fails closed when frame metadata is present but malformed', async () => {
     registerKnownTools(['parse_hs']);

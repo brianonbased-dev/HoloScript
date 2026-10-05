@@ -23,8 +23,15 @@
  *   capability_tier — 0-3 matching D.051 sovereign-seat hierarchy (T0 > T1 > T2 > T3)
  *   trust_tier      — 0-3 trust level; actions requiring higher tiers are blocked
  *   allowed_tools   — MCP tool names the agent may call; ["*"] = every tool, [] = no tool,
- *                     absent = every tool (same as ["*"]); a value that is not a list = no tool
+ *                     absent = every tool (same as ["*"]); a value that is not a list = no tool.
+ *                     Only the exact entry "*" is the wildcard: "a*", " * " and "**" each
+ *                     name one tool.
  *   denied_domains  — string tags an agent MUST NOT act on
+ *
+ * A key that looks like one of these but is not (`allowedTools`, `allowed_tool`) is an
+ * error: the parser refuses the frame, and the coercer closes it to no tool, because
+ * ignoring the key would read the real one as left out, which is its widest value
+ * (G15 review; the rule is frameKeyLookalike in @holoscript/agent-protocol).
  *
  * Events emitted:
  *   frame_declared          { node, frame }
@@ -38,8 +45,11 @@
  * @D101-compatible pure language work
  */
 
-import { FRAME_ALLOW_ALL_TOOLS } from '@holoscript/agent-protocol';
-import type { FrameDeclarationContract } from '@holoscript/agent-protocol';
+import { FRAME_ALLOW_ALL_TOOLS, frameKeyLookalike } from '@holoscript/agent-protocol';
+import type { FrameDeclarationContract, FrameKeyLookalike } from '@holoscript/agent-protocol';
+
+export { describeFrameKeyLookalike } from '@holoscript/agent-protocol';
+export type { FrameKeyLookalike } from '@holoscript/agent-protocol';
 import type { HSPlusNode } from './TraitTypes';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -138,8 +148,26 @@ function parseHorizon(h: string): Date | null {
 }
 
 /**
+ * Every key of a raw frame config that looks like a frame key but is not one, in
+ * order (frameKeyLookalike in @holoscript/agent-protocol). The parser refuses a
+ * frame for the first one, in describeFrameKeyLookalike's words.
+ */
+export function frameDeclarationKeyLookalikes(raw: Record<string, unknown>): FrameKeyLookalike[] {
+  const found: FrameKeyLookalike[] = [];
+  for (const written of Object.keys(raw)) {
+    const meant = frameKeyLookalike(written);
+    if (meant) found.push({ written, meant });
+  }
+  return found;
+}
+
+/**
  * Validate and coerce a raw config object from the .hsplus parser into a
  * well-typed FrameDeclaration, applying defaults for missing fields.
+ *
+ * A config holding a key that looks like a frame key but is not one cannot be
+ * refused here, so it is closed instead: it permits no tool. The parser refuses
+ * such a frame before it gets here (describeFrameKeyLookalike).
  */
 function coerceConfig(raw: Record<string, unknown>): FrameDeclaration {
   const domain = typeof raw.domain === 'string' ? raw.domain : DEFAULT_FRAME.domain;
@@ -159,13 +187,16 @@ function coerceConfig(raw: Record<string, unknown>): FrameDeclaration {
 
   // G15: an omitted list keeps its old meaning, every tool, as ["*"]. A written
   // list means exactly what it names, so [] is no tool. A written value that is
-  // not a list fails closed to no tool instead of widening to every tool.
+  // not a list fails closed to no tool instead of widening to every tool, and so
+  // does a frame holding a look-alike key such as allowedTools.
   const allowed_tools =
-    raw.allowed_tools === undefined
-      ? [FRAME_ALLOW_ALL_TOOLS]
-      : Array.isArray(raw.allowed_tools)
-        ? (raw.allowed_tools as unknown[]).filter((t): t is string => typeof t === 'string')
-        : [];
+    frameDeclarationKeyLookalikes(raw).length > 0
+      ? []
+      : raw.allowed_tools === undefined
+        ? [FRAME_ALLOW_ALL_TOOLS]
+        : Array.isArray(raw.allowed_tools)
+          ? (raw.allowed_tools as unknown[]).filter((t): t is string => typeof t === 'string')
+          : [];
 
   const denied_domains = Array.isArray(raw.denied_domains)
     ? (raw.denied_domains as unknown[]).filter((d): d is string => typeof d === 'string')
