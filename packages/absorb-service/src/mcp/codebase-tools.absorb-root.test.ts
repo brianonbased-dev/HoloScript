@@ -2383,6 +2383,20 @@ describe('holo_absorb_repo root validation', () => {
     expect(uncalled.count).toBe(0);
     expect(uncalled.notInGraph).toBeUndefined();
     expect(uncalled.note).toMatch(/alpha is defined \(src\/alpha\.ts:1\) and no call to it is recorded/);
+
+    // queryType "source" reads the code from the absorbed files, no admin scope needed.
+    const source = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'source',
+      symbolName: 'alpha',
+    })) as { count?: number; sources?: Array<{ name: string; file: string; line: number; code: string }> };
+    expect(source.count).toBe(1);
+    expect(source.sources?.[0]).toMatchObject({ name: 'alpha', file: 'src/alpha.ts', line: 1 });
+    expect(source.sources?.[0]?.code).toContain('return "alpha"');
+    const unknownSource = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'show me the code of `alphaa`',
+    })) as { count?: number; notInGraph?: boolean };
+    expect(unknownSource.count).toBe(0);
+    expect(unknownSource.notInGraph).toBe(true);
   }, 120_000);
 
   it('does not restart a refresh for a partial map the last refresh just left', async () => {

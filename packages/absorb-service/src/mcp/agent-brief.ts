@@ -91,6 +91,7 @@ const KEEP = [
   'durationMs',
   'note',
   'excerpts',
+  'sources',
   'fallbackReason',
   'notInGraph',
   'nearestNames',
@@ -268,6 +269,7 @@ export function briefForAgent(tool: string, args: Obj, result: unknown): unknown
   const top = firstList?.length ? topName(firstList[0]) : undefined;
   if (top && (tool === 'holo_query_codebase' || tool === 'holo_semantic_search' || tool === 'holo_ask_codebase')) {
     followUps.push(
+      { tool: 'holo_query_codebase', args: { query: 'source', symbolName: top }, why: `read the code of ${top}` },
       { tool: 'holo_query_codebase', args: { query: 'callers', symbolName: top }, why: `who calls ${top}` },
       { tool: 'holo_impact_analysis', args: { changedSymbol: top }, why: `what breaks if ${top} changes` }
     );

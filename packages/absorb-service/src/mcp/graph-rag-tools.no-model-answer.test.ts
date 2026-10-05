@@ -89,7 +89,8 @@ describe('holo_ask_codebase without a reachable model', () => {
     const outside = path.join(path.dirname(root), `outside-${path.basename(root)}.ts`);
     fs.writeFileSync(outside, 'secret');
 
-    expect(readSymbolExcerpt(root, 'long.ts', 5)?.split('\n')).toHaveLength(20);
+    expect(readSymbolExcerpt(root, 'long.ts', 5)?.split('\n')).toHaveLength(40);
+    expect(readSymbolExcerpt(root, 'long.ts', 5, undefined, 10)?.split('\n')).toHaveLength(10);
     expect(readSymbolExcerpt(root, 'long.ts', 5, 3)).toBe('line 5\nline 6\nline 7');
     expect(readSymbolExcerpt(root, `../${path.basename(outside)}`, 1)).toBeUndefined();
     expect(readSymbolExcerpt(root, outside, 1)).toBeUndefined();

@@ -26,6 +26,7 @@ import {
   isGraphRAGReady,
   resetGraphRAGState,
   resetGraphRAGStateForTests,
+  readSymbolExcerpt,
   setGraphRAGState,
 } from './graph-rag-tools';
 import {
@@ -6327,7 +6328,7 @@ export const codebaseTools: Tool[] = [
   {
     name: 'holo_query_codebase',
     description:
-      'Query a codebase knowledge graph. Supports queries like "what calls X?", "what does X call?", "show imports of file", "find all classes", "trace call chain from A to B". Requires a prior holo_absorb_repo call in the same session.',
+      'Query a codebase knowledge graph. Supports queries like "what calls X?", "what does X call?", "show imports of file", "find all classes", "trace call chain from A to B", and queryType "source" to read the code of a symbol. Uses the saved code map of the workspace (any session); if none exists the answer says to run holo_absorb_repo.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -6366,8 +6367,10 @@ export const codebaseTools: Tool[] = [
             'trace',
             'communities',
             'stats',
+            'source',
           ],
-          description: 'Structured query type',
+          description:
+            'Structured query type. source: the code of symbolName (comment block above it plus up to 120 lines, from the absorbed files only).',
         },
         traceStrategy: {
           type: 'string',
@@ -10843,6 +10846,7 @@ const STRUCTURED_QUERY_TYPES: ReadonlySet<string> = new Set([
   'trace',
   'communities',
   'stats',
+  'source',
 ]);
 
 async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
@@ -10943,6 +10947,47 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `symbols in ${file}`,
         results: symbols,
         count: symbols.length,
+        ...(cacheNote && { cacheNote }),
+      };
+    }
+
+    case 'source': {
+      // Read a symbol's code (task_1791211408192_rz9m): tester agents located
+      // the right function but could not read it, because file reads need the
+      // admin scope. This reads only absorbed files, inside the graph's root.
+      const name = symbolName ?? extractSymbolFromQuery(query);
+      const definitions = cachedGraph
+        .findSymbolsByName(name)
+        .filter((sym) => !symbolOwner || sym.owner === symbolOwner)
+        .slice(0, SOURCE_MAX_DEFINITIONS);
+      const rootDir = cachedGraph.getRootDir();
+      const sources = definitions.flatMap((sym) => {
+        const code = readSymbolExcerpt(rootDir, sym.filePath, sym.line, sym.lineCount, SOURCE_MAX_LINES);
+        if (!code) return [];
+        const shownLines = Math.min(SOURCE_MAX_LINES, sym.lineCount ?? SOURCE_MAX_LINES);
+        return [
+          {
+            name: sym.owner ? `${sym.owner}.${sym.name}` : sym.name,
+            type: sym.type,
+            file: sym.filePath,
+            line: sym.line,
+            ...(sym.lineCount !== undefined && { lineCount: sym.lineCount }),
+            ...(sym.lineCount !== undefined &&
+              sym.lineCount > shownLines && {
+                cut: `first ${shownLines} of ${sym.lineCount} lines; read the rest at ${sym.filePath}:${sym.line + shownLines}`,
+              }),
+            code,
+          },
+        ];
+      });
+      return {
+        query: `source of ${symbolOwner ? `${symbolOwner}.` : ''}${name}`,
+        sources,
+        count: sources.length,
+        ...(sources.length === 0 &&
+          (definitions.length === 0
+            ? explainEmptySymbolAnswer(name, 'find')
+            : { note: `${name} is defined but its file could not be read from the absorbed root.` })),
         ...(cacheNote && { cacheNote }),
       };
     }
@@ -12287,6 +12332,9 @@ async function handleGetAbsorbStatus(args: Record<string, unknown>): Promise<unk
 
 // ── Query Helpers ────────────────────────────────────────────────────────────
 
+const SOURCE_MAX_DEFINITIONS = 3;
+const SOURCE_MAX_LINES = 120;
+
 function inferQueryType(query: string): string {
   const q = query.toLowerCase();
   // Callees first so "callee"/"what does X call" wins before the looser caller check.
@@ -12308,6 +12356,7 @@ function inferQueryType(query: string): string {
   if (q.includes('trace') || q.includes('path')) return 'trace';
   if (q.includes('communit') || q.includes('module')) return 'communities';
   if (q.includes('stat')) return 'stats';
+  if (/\b(source|body|code) of\b|\bshow (me )?(the )?code\b|\bread\b/.test(q)) return 'source';
   if (q.includes('find') || q.includes('where') || q.includes('search')) return 'find';
   return 'find'; // default: search by name
 }

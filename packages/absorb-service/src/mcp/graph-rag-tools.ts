@@ -91,7 +91,7 @@ export const graphRagTools: Tool[] = [
   {
     name: 'holo_semantic_search',
     description:
-      'Hybrid search over an absorbed codebase. Fuses exact symbol/file names and lexical path evidence with HoloEmbed similarity, including parser-light files such as shell scripts. Returns ranked results with score receipts. Requires a prior holo_absorb_repo call in the same session.',
+      'Hybrid search over an absorbed codebase. Fuses exact symbol/file names and lexical path evidence with HoloEmbed similarity, including parser-light files such as shell scripts. Returns ranked results with score receipts. Uses the saved code map of the workspace (any session); if none exists the answer says to run holo_absorb_repo.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -896,20 +896,22 @@ function handleVisualGraphContext(args: Record<string, unknown>): Record<string,
   };
 }
 
-const EXCERPT_MAX_LINES = 20;
+const EXCERPT_MAX_LINES = 40;
 const EXCERPT_MAX_LINE_CHARS = 160;
 const EXCERPT_COUNT = 3;
 
 /**
- * A bounded excerpt of an absorbed file at a symbol: up to 20 lines from its
- * definition, each cut to 160 characters. Read only inside the graph's own
- * root (the files the graph was built from), never from an arbitrary path.
+ * A bounded excerpt of an absorbed file at a symbol: the comment block above
+ * it plus up to `maxLines` lines of the definition (40 by default), each cut
+ * to 160 characters. Read only inside the graph's own root (the files the
+ * graph was built from), never from an arbitrary path.
  */
 export function readSymbolExcerpt(
   rootDir: string,
   file: string,
   line: number,
-  lineCount?: number
+  lineCount?: number,
+  maxLines = EXCERPT_MAX_LINES
 ): string | undefined {
   if (!rootDir || !file || !(line >= 1)) return undefined;
   const root = path.resolve(rootDir);
@@ -926,7 +928,7 @@ export function readSymbolExcerpt(
     while (start > 0 && line - 1 - start < 8 && /^\s*(\/\*\*?|\*|\/\/)/.test(lines[start - 1])) {
       start--;
     }
-    const span = Math.min(EXCERPT_MAX_LINES, line - 1 - start + Math.max(1, lineCount ?? EXCERPT_MAX_LINES));
+    const span = line - 1 - start + Math.min(maxLines, Math.max(1, lineCount ?? maxLines));
     return lines
       .slice(start, start + span)
       .map((text) =>

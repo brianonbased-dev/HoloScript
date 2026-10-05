@@ -72,6 +72,7 @@ describe('briefForAgent', () => {
     expect(out.omitted).toEqual(['results beyond the first 20 of 30']);
     expect(out.followUps.map((f) => f.tool)).toEqual([
       'holo_query_codebase',
+      'holo_query_codebase',
       'holo_impact_analysis',
       'holo_query_codebase',
     ]);
@@ -156,7 +157,8 @@ describe('briefForAgent', () => {
       { query: 'find', symbolName: 'target' },
       { results: [{ name: 'target', type: 'function', filePath: 'src/a.ts', line: 1 }] }
     );
-    expect(out.followUps.slice(0, 2)).toEqual([
+    expect(out.followUps.slice(0, 3)).toEqual([
+      { tool: 'holo_query_codebase', args: { query: 'source', symbolName: 'target' }, why: 'read the code of target' },
       { tool: 'holo_query_codebase', args: { query: 'callers', symbolName: 'target' }, why: 'who calls target' },
       { tool: 'holo_impact_analysis', args: { changedSymbol: 'target' }, why: 'what breaks if target changes' },
     ]);
