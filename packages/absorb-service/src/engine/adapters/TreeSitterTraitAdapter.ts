@@ -37,6 +37,13 @@ import type {
 } from './language-traits';
 import type { ExtendedSymbolType } from '../types';
 
+function hasAncestorOfType(node: SyntaxNode, types: readonly string[]): boolean {
+  for (let current = node.parent; current; current = current.parent) {
+    if (types.includes(current.type)) return true;
+  }
+  return false;
+}
+
 export class TreeSitterTraitAdapter implements LanguageAdapter {
   readonly language: SupportedLanguage;
   readonly extensions: string[];
@@ -184,12 +191,14 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
     exportedNames: Set<string> | null
   ): void {
     const d = rule.declarators!;
+    const local = d.skipValuesInsideScopes ? hasAncestorOfType(node, d.skipValuesInsideScopes) : false;
     for (const declarator of node.namedChildren) {
       if (declarator.type !== d.declaratorType) continue;
       const name = getFieldText(declarator, d.nameField);
       const value = declarator.childForFieldName(d.valueField);
       if (!name || !value) continue;
       const isFn = d.functionValueTypes.includes(value.type);
+      if (local && !isFn) continue;
       const kind = isFn ? d.functionKind : rule.kind;
       const signature =
         isFn && d.functionSignatureTemplate

@@ -220,6 +220,15 @@ export interface DeclaratorRule {
    * only if a language needs it. Omit to emit no signature.
    */
   functionSignatureTemplate?: string;
+  /**
+   * Ancestor node types that make a declaration local, e.g. function and
+   * method bodies. A non-function declarator under one of them is not a
+   * symbol: `const i = 0` inside a function is not part of the code's surface.
+   * Measured 2026-10-05: such locals were ~72% of HoloScript's 398k symbols
+   * and most of its 1.5 GB HoloEmbed index. Function-valued declarators
+   * (local helpers) are still emitted.
+   */
+  skipValuesInsideScopes?: string[];
 }
 
 /** A call expression whose method name marks an import (e.g. Ruby `require`). */

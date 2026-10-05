@@ -70,7 +70,8 @@
         valueField: "value",
         functionValueTypes: ["arrow_function", "function_expression", "function"],
         functionKind: "function",
-        functionSignatureTemplate: "const {name} = ({field:parameters}) => ..."
+        functionSignatureTemplate: "const {name} = ({field:parameters}) => ...",
+        skipValuesInsideScopes: ["function_declaration", "generator_function_declaration", "method_definition", "arrow_function", "function_expression", "function", "generator_function", "class_static_block"]
       }
     },
     {
@@ -83,7 +84,8 @@
         valueField: "value",
         functionValueTypes: ["arrow_function", "function_expression", "function"],
         functionKind: "function",
-        functionSignatureTemplate: "const {name} = ({field:parameters}) => ..."
+        functionSignatureTemplate: "const {name} = ({field:parameters}) => ...",
+        skipValuesInsideScopes: ["function_declaration", "generator_function_declaration", "method_definition", "arrow_function", "function_expression", "function", "generator_function", "class_static_block"]
       }
     }
   ]
