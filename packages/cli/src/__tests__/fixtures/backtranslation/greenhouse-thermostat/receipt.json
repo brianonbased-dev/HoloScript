@@ -1,0 +1,227 @@
+{
+  "behaviourId": "greenhouse-thermostat",
+  "catch": {
+    "catchRate": 1,
+    "caught": 6,
+    "mutants": [
+      {
+        "attributableDivergentSituations": 18,
+        "caught": true,
+        "change": "line 11: \">=\" -> \"<\"",
+        "description": "comparison \">=\" changed to \"<\"",
+        "id": "comparison-flip#0",
+        "inDecision": true,
+        "operator": "comparison-flip",
+        "oracleDivergentSituations": 18,
+        "rawDivergentSituations": 18,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 8,
+        "caught": true,
+        "change": "line 11: \"2\" -> \"3\"",
+        "description": "number 2 changed to 3",
+        "id": "constant-change#2",
+        "inDecision": true,
+        "operator": "constant-change",
+        "oracleDivergentSituations": 8,
+        "rawDivergentSituations": 8,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 9,
+        "caught": true,
+        "change": "line 22: \"      if (target < 10 || target > 30) {\\n        return { allowed: false, outcome: \\\"target_out_of_range\\\" }\\n      }\" -> \"\"",
+        "description": "refusal removed: if (target < 10 || target > 30) { ... }",
+        "id": "drop-refusal#0",
+        "inDecision": true,
+        "operator": "drop-refusal",
+        "oracleDivergentSituations": 9,
+        "rawDivergentSituations": 9,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 20,
+        "caught": true,
+        "change": "line 3: \"false\" -> \"true\"",
+        "description": "false changed to true",
+        "id": "boolean-flip#0",
+        "inDecision": false,
+        "operator": "boolean-flip",
+        "oracleDivergentSituations": 20,
+        "rawDivergentSituations": 20,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 13,
+        "caught": true,
+        "change": "line 11: \"+\" -> \"-\"",
+        "description": "arithmetic \"+\" changed to \"-\"",
+        "id": "arith-flip#0",
+        "inDecision": true,
+        "operator": "arith-flip",
+        "oracleDivergentSituations": 13,
+        "rawDivergentSituations": 13,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 20,
+        "caught": true,
+        "change": "line 10: \"      state.lastReading = degrees\" -> \"\"",
+        "description": "statement removed: state.lastReading = degrees",
+        "id": "drop-statement#0",
+        "inDecision": false,
+        "operator": "drop-statement",
+        "oracleDivergentSituations": 20,
+        "rawDivergentSituations": 20,
+        "situations": 20
+      }
+    ],
+    "oracleVisible": 6,
+    "planted": 6
+  },
+  "checklist": {
+    "author": "Claude (Anthropic), seat claude7, session 670fb727",
+    "behaviourId": "greenhouse-thermostat",
+    "lines": [
+      {
+        "n": 1,
+        "text": "The heater starts off. The target is 20 degrees, and the last reading is 20."
+      },
+      {
+        "n": 2,
+        "text": "Every new reading is accepted and remembered as the last reading."
+      },
+      {
+        "n": 3,
+        "text": "If the heater is on and the reading is 2 or more degrees above the target, the heater turns off, and this is announced with the reading."
+      },
+      {
+        "n": 4,
+        "text": "If the heater is off and the reading is 2 or more degrees below the target, the heater turns on, and this is announced with the reading."
+      },
+      {
+        "n": 5,
+        "text": "Any other reading leaves the heater as it was. This gap stops the heater flicking on and off."
+      },
+      {
+        "n": 6,
+        "text": "After a reading, the answer says heating if the heater is now on, and idle if it is now off."
+      },
+      {
+        "n": 7,
+        "text": "A new target below 10 or above 30 degrees is refused. 10 and 30 themselves are fine."
+      },
+      {
+        "n": 8,
+        "text": "Setting the target to what it already is, is refused."
+      },
+      {
+        "n": 9,
+        "text": "Otherwise the target changes, and this is announced with the new target. Changing the target does not switch the heater by itself; the next reading decides."
+      },
+      {
+        "n": 10,
+        "text": "Asking for the status tells who asked, whether the heater is on, the target, and the last reading. Asking changes nothing."
+      },
+      {
+        "n": 11,
+        "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+      }
+    ],
+    "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/greenhouse-thermostat/original.hsplus"
+  },
+  "falseAlarms": {
+    "byClass": {
+      "b-error": 0,
+      "checklist-ambiguity": 0,
+      "real-fault": 0
+    },
+    "divergences": [],
+    "divergentSituations": 0,
+    "situations": 20
+  },
+  "generatedAt": "2026-10-05T22:59:43.740Z",
+  "interfaceCard": "Behaviour name: \"Greenhouse Thermostat\"\n\nState fields others can see: heaterOn, target, lastReading\n\nActions (each answers with allowed and outcome; outcome is one of the names listed):\n- reading(degrees) — outcomes: heating, idle\n- setTarget(target) — outcomes: target_set, target_out_of_range, target_unchanged\n\nObservations (answer only):\n- status(viewerId) — answer fields: viewer, heater_on, target, last_reading\n\nEvents (event name: payload fields):\n- heater_on: at\n- heater_off: at\n- target_changed: target\n",
+  "plainLanguageCheck": {
+    "exitCode": 0,
+    "findings": "Files with findings: 0; BLOCK-tier 0; WARN-tier 0",
+    "tool": "C:/holo-dev/ai-ecosystem/scripts/check-plain-language.mjs --profile canon --check --strict"
+  },
+  "precheck": {
+    "originalRanAllSituations": true,
+    "situationsRun": 20
+  },
+  "rebuild": {
+    "checker": "validateCanonicalSource + deterministic headless runtime admission",
+    "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/greenhouse-thermostat/exchanges",
+    "inputs": [
+      "language-reference-v2.md",
+      "interface-card.md (names only)",
+      "checklist.json (rules, rendered as numbered lines)",
+      "checker errors (repair rounds only)"
+    ],
+    "model": "grok-4.3",
+    "note": "A first recording checked with the language checker alone is kept in first-attempt-validate-only/. That checker let through code the headless runner refuses, which is why the checker now also asks the runner.",
+    "provider": "xai",
+    "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/greenhouse-thermostat/rebuilt.hsplus",
+    "recordedNotLive": true,
+    "rounds": 1,
+    "seesOriginalSource": false,
+    "validated": true
+  },
+  "runSurface": {
+    "branch": "feat/back-translation-proof (worktree, on top of b6bd26573)",
+    "commit": "b6bd2657380036ba4248701ef523a955179769b1",
+    "note": "origin/main base: .holo without a composition wrapper is still lenient (PR #509 not merged); all sources here use the composition wrapper."
+  },
+  "schema": "holoscript.back-translation-proof.v2",
+  "title": "Greenhouse Thermostat",
+  "twin": {
+    "edgeSituations": 5,
+    "excludedFields": [
+      {
+        "field": "sourceBundleHash",
+        "why": "hash of the source text itself; differs for any two files"
+      },
+      {
+        "field": "canonicalFields.actionReceiptRoot",
+        "why": "chained ledger root seeded with sourceBundleHash (ledgerGenesis/appendLedger), so it differs whenever the source text differs"
+      },
+      {
+        "field": "canonicalFields.executedScheduleHash",
+        "why": "schedule payloads carry outcomeHashes, which are chained roots seeded with sourceBundleHash"
+      },
+      {
+        "field": "actionLedger[].payload.rollbackReference.priorActionRoot",
+        "why": "chained action root, seeded with sourceBundleHash"
+      },
+      {
+        "field": "terminal.* roots, terminalCommitment, entryHash/previousHash",
+        "why": "all chained over sourceBundleHash and the manifest (which carries the probed final state)"
+      },
+      {
+        "field": "sourceRunReceipt (engine provenance, plan bytecode hash)",
+        "why": "identity of the plan program text, not behaviour"
+      }
+    ],
+    "generator": "generic: seeded random action sequences from behaviour.json (action list, parameter ranges, named edge values); every 4th situation is an edge situation",
+    "harness": "@holoscript/core/testing runTwinTest",
+    "oracleFields": [
+      "canonicalFields.canonicalSceneHash",
+      "canonicalFields.canonicalPoseHash",
+      "canonicalFields.logicalClockHash",
+      "canonicalFields.publicStateHash",
+      "canonicalFields.residentObservationHash",
+      "publicStateSnapshots[].payload",
+      "observationLedger[].payload",
+      "actionLedger[].payload (minus rollbackReference.priorActionRoot)",
+      "scheduleLedger[].payload (minus outcomeHashes)",
+      "terminal.actualCounts"
+    ],
+    "runner": "runHeadlessExperimentSources (world=model-village village.holo, plan=generated .hs per situation, behaviour=under test)",
+    "seed": 388818,
+    "situations": 20
+  },
+  "verdict": "Passes. The rebuild acted the same as the author program in all 20 situations on the first try and showed all 6 planted mistakes, including the change to the 2-degree gap that stops the heater flicking on and off."
+}

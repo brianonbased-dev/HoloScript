@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { enumerateMutants, lexSpans, selectMutants } from '../mutator';
+import { enumerateMutants, lexSpans, selectDecisionMutants, selectMutants } from '../mutator';
 import { extractFencedSource, renderChecklist } from '../receipt';
 
 const SAMPLE = `composition "Lamp" {
@@ -65,6 +65,45 @@ describe('back-translation mutator', () => {
       'state.level = state.level + step',
       'emit("raised", { step: step })',
     ]);
+  });
+
+  it('drops refusal guards and prefers decision faults', () => {
+    const guarded = `composition "Gate" {
+  state {
+    tries: 0
+  }
+  logic {
+    action open(code) {
+      if (state.tries >= 3) {
+        return { allowed: false, outcome: "locked_out" }
+      }
+      if (code == 42) {
+        return { allowed: true, outcome: "opened" }
+      } else {
+        return { allowed: false, outcome: "kept_shut_with_else" }
+      }
+    }
+  }
+}
+`;
+    const refusals = enumerateMutants(guarded).filter((m) => m.operator === 'drop-refusal');
+    // Only the plain guard; the if/else pair is not a removable guard.
+    expect(refusals).toHaveLength(1);
+    expect(refusals[0].source).not.toContain('locked_out');
+    expect(refusals[0].source).toContain('kept_shut_with_else');
+    expect(refusals[0].inDecision).toBe(true);
+
+    const picked = selectDecisionMutants(guarded, 4);
+    expect(picked.map((m) => m.id)).toEqual(selectDecisionMutants(guarded, 4).map((m) => m.id));
+    expect(picked.map((m) => m.operator)).toEqual([
+      'comparison-flip',
+      'constant-change',
+      'drop-refusal',
+      'boolean-flip',
+    ]);
+    expect(picked[0].source).toContain('state.tries < 3');
+    expect(picked[1].inDecision).toBe(true);
+    expect(picked[1].source).toContain('state.tries >= 4');
   });
 
   it('renders checklists and extracts fenced model output', () => {

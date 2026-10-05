@@ -1,0 +1,12 @@
+{
+  "id": "corner-shop",
+  "title": "Corner Shop",
+  "publicStateKeys": ["stock", "till"],
+  "minSteps": 5,
+  "maxSteps": 14,
+  "actions": [
+    { "name": "buy", "kind": "action", "weight": 3, "params": { "quantity": { "type": "int", "min": -1, "max": 7, "edges": [0, 1, 2, 3, 5, 6] }, "payment": { "type": "int", "min": 0, "max": 30, "edges": [3, 4, 8, 9, 11, 12] } } },
+    { "name": "restock", "kind": "action", "weight": 1, "params": { "amount": { "type": "int", "min": -1, "max": 9, "edges": [0, 1, 7, 8] } } },
+    { "name": "inventory", "kind": "observation", "params": { "viewerId": { "type": "enum", "values": ["clerk-1", "owner"] } } }
+  ]
+}

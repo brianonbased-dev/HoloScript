@@ -111,3 +111,77 @@ export interface BackTranslationReceipt {
   verdict: string;
   weakestLink: string;
 }
+
+// ── Slice 2: intent-based metric ──────────────────────────────────────────
+//
+// In real use there is no trusted original: the author's program may be
+// faulty and B's rebuild (from the checklist) stands for the intent. A planted
+// fault in the original is CAUGHT when B and the faulty program disagree in a
+// situation where B agrees with the correct original, so the disagreement is
+// attributable to the fault and not to B's own misreading of the checklist.
+
+export interface IntentCatchOutcome {
+  id: string;
+  operator: string;
+  description: string;
+  change: string;
+  inDecision: boolean;
+  situations: number;
+  /** Oracle sanity: original vs mutant. */
+  oracleDivergentSituations: number;
+  /** Any B-vs-mutant disagreement (includes B's own misreadings). */
+  rawDivergentSituations: number;
+  /** B-vs-mutant disagreements in situations where B agrees with the original. */
+  attributableDivergentSituations: number;
+  caught: boolean;
+}
+
+export interface BackTranslationReceiptV2 {
+  schema: 'holoscript.back-translation-proof.v2';
+  behaviourId: string;
+  title: string;
+  generatedAt: string;
+  runSurface: { branch: string; commit: string; note: string };
+  checklist: BehaviourChecklist;
+  interfaceCard: string;
+  plainLanguageCheck: { tool: string; exitCode: number | null; findings: string };
+  rebuild: {
+    provider: string;
+    model: string;
+    seesOriginalSource: false;
+    inputs: string[];
+    checker: string;
+    rounds: number;
+    validated: boolean;
+    exchangesDir: string;
+    rebuiltSourcePath: string;
+    recordedNotLive: boolean;
+    note?: string;
+  };
+  twin: {
+    harness: string;
+    runner: string;
+    generator: string;
+    situations: number;
+    edgeSituations: number;
+    seed: number;
+    oracleFields: string[];
+    excludedFields: { field: string; why: string }[];
+  };
+  precheck: { originalRanAllSituations: boolean; situationsRun: number };
+  falseAlarms: {
+    situations: number;
+    divergentSituations: number;
+    byClass: Record<DivergenceClass, number>;
+    divergences: ClassifiedDivergence[];
+  };
+  catch: {
+    planted: number;
+    oracleVisible: number;
+    caught: number;
+    /** caught / planted. */
+    catchRate: number;
+    mutants: IntentCatchOutcome[];
+  };
+  verdict: string;
+}

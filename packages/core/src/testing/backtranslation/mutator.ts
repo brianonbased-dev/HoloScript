@@ -14,7 +14,8 @@ export type MutationOperator =
   | 'constant-change'
   | 'boolean-flip'
   | 'drop-statement'
-  | 'event-rename';
+  | 'event-rename'
+  | 'drop-refusal';
 
 export const MUTATION_OPERATORS: readonly MutationOperator[] = [
   'arith-flip',
@@ -23,6 +24,7 @@ export const MUTATION_OPERATORS: readonly MutationOperator[] = [
   'boolean-flip',
   'drop-statement',
   'event-rename',
+  'drop-refusal',
 ];
 
 export interface SourceMutant {
@@ -32,6 +34,8 @@ export interface SourceMutant {
   site: number;
   /** 1-based line of the change in the original source. */
   line: number;
+  /** True when the change sits in a decision: an `if` condition or a refusal guard. */
+  inDecision: boolean;
   before: string;
   after: string;
   description: string;
@@ -214,6 +218,45 @@ function sitesFor(operator: MutationOperator, source: string, spans: Span[]): Si
       }
       return sites;
     }
+    case 'drop-refusal': {
+      // Remove a whole `if (...) { ... allowed: false ... }` guard (no else).
+      const sites: Site[] = [];
+      const codeAt = (index: number) =>
+        spans.some((sp) => sp.kind === 'code' && index >= sp.start && index < sp.end);
+      const guard = /^[ \t]*if\s*\(.*\)\s*\{[ \t]*$/gm;
+      let m: RegExpExecArray | null;
+      while ((m = guard.exec(source)) !== null) {
+        const open = m.index + m[0].lastIndexOf('{');
+        let depth = 0;
+        let close = -1;
+        for (let k = open; k < source.length; k++) {
+          if (!codeAt(k)) continue;
+          if (source[k] === '{') depth++;
+          else if (source[k] === '}') {
+            depth--;
+            if (depth === 0) {
+              close = k;
+              break;
+            }
+          }
+        }
+        if (close === -1) continue;
+        const block = source.slice(open, close + 1);
+        if (!/allowed\s*:\s*false/.test(block)) continue;
+        const after = source.slice(close + 1).match(/^\s*else\b/);
+        if (after) continue;
+        // Also skip `} else if (...) {` heads: only plain guards.
+        const lineEnd = source.indexOf('\n', close);
+        const end = lineEnd === -1 ? source.length : lineEnd + 1;
+        sites.push({
+          start: m.index,
+          end,
+          replacement: '',
+          description: `refusal removed: ${m[0].trim()} ... }`,
+        });
+      }
+      return sites;
+    }
     case 'event-rename': {
       const sites: Site[] = [];
       for (let k = 0; k < spans.length; k++) {
@@ -248,11 +291,14 @@ export function enumerateMutants(source: string): SourceMutant[] {
     sites.forEach((site, index) => {
       const mutated = source.slice(0, site.start) + site.replacement + source.slice(site.end);
       if (mutated === source) return;
+      const line = lineOf(source, site.start);
+      const lineText = source.split('\n')[line - 1] ?? '';
       out.push({
         id: `${operator}#${index}`,
         operator,
         site: index,
-        line: lineOf(source, site.start),
+        line,
+        inDecision: operator === 'drop-refusal' || /\bif\s*\(/.test(lineText),
         before: source.slice(site.start, site.end).replace(/\n$/, ''),
         after: site.replacement,
         description: site.description,
@@ -275,6 +321,38 @@ export function selectMutants(source: string, max = 5): SourceMutant[] {
     seen.add(mutant.operator);
     picked.push(mutant);
     if (picked.length >= max) break;
+  }
+  return picked;
+}
+
+/**
+ * Prefer faults in decision logic: comparison flips and off-by-one limits in
+ * `if` conditions, dropped refusal guards, then flipped booleans, arithmetic,
+ * dropped statements and renamed events. Round-robin across those groups so a
+ * small set still spreads over kinds of mistake. Deterministic.
+ */
+export function selectDecisionMutants(source: string, max = 6): SourceMutant[] {
+  const all = enumerateMutants(source);
+  const groups: SourceMutant[][] = [
+    all.filter((m) => m.operator === 'comparison-flip' && m.inDecision),
+    all.filter((m) => m.operator === 'constant-change' && m.inDecision),
+    all.filter((m) => m.operator === 'drop-refusal'),
+    all.filter((m) => m.operator === 'boolean-flip'),
+    all.filter((m) => m.operator === 'arith-flip'),
+    all.filter((m) => m.operator === 'drop-statement'),
+    all.filter((m) => m.operator === 'event-rename'),
+  ];
+  const picked: SourceMutant[] = [];
+  for (let round = 0; picked.length < max; round++) {
+    let any = false;
+    for (const group of groups) {
+      if (picked.length >= max) break;
+      const m = group[round];
+      if (!m) continue;
+      any = true;
+      picked.push(m);
+    }
+    if (!any) break;
   }
   return picked;
 }

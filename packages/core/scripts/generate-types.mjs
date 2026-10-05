@@ -7409,13 +7409,15 @@ export type MutationOperator =
   | 'constant-change'
   | 'boolean-flip'
   | 'drop-statement'
-  | 'event-rename';
+  | 'event-rename'
+  | 'drop-refusal';
 export declare const MUTATION_OPERATORS: readonly MutationOperator[];
 export interface SourceMutant {
   id: string;
   operator: MutationOperator;
   site: number;
   line: number;
+  inDecision: boolean;
   before: string;
   after: string;
   description: string;
@@ -7430,10 +7432,79 @@ export interface Span {
 export declare function lexSpans(source: string): Span[];
 export declare function enumerateMutants(source: string): SourceMutant[];
 export declare function selectMutants(source: string, max?: number): SourceMutant[];
+export declare function selectDecisionMutants(source: string, max?: number): SourceMutant[];
 export declare function renderChecklist(checklist: BehaviourChecklist): string;
 export declare function extractFencedSource(response: string): string;
-export declare function stableReceiptJson(receipt: BackTranslationReceipt): string;
+export declare function stableReceiptJson(
+  receipt: BackTranslationReceipt | BackTranslationReceiptV2
+): string;
 export declare function renderPlainSummary(receipt: BackTranslationReceipt): string;
+export interface IntentCatchOutcome {
+  id: string;
+  operator: string;
+  description: string;
+  change: string;
+  inDecision: boolean;
+  situations: number;
+  oracleDivergentSituations: number;
+  rawDivergentSituations: number;
+  attributableDivergentSituations: number;
+  caught: boolean;
+}
+export interface BackTranslationReceiptV2 {
+  schema: 'holoscript.back-translation-proof.v2';
+  behaviourId: string;
+  title: string;
+  generatedAt: string;
+  runSurface: { branch: string; commit: string; note: string };
+  checklist: BehaviourChecklist;
+  interfaceCard: string;
+  plainLanguageCheck: { tool: string; exitCode: number | null; findings: string };
+  rebuild: {
+    provider: string;
+    model: string;
+    seesOriginalSource: false;
+    inputs: string[];
+    checker: string;
+    rounds: number;
+    validated: boolean;
+    exchangesDir: string;
+    rebuiltSourcePath: string;
+    recordedNotLive: boolean;
+    note?: string;
+  };
+  twin: {
+    harness: string;
+    runner: string;
+    generator: string;
+    situations: number;
+    edgeSituations: number;
+    seed: number;
+    oracleFields: string[];
+    excludedFields: { field: string; why: string }[];
+  };
+  precheck: { originalRanAllSituations: boolean; situationsRun: number };
+  falseAlarms: {
+    situations: number;
+    divergentSituations: number;
+    byClass: Record<DivergenceClass, number>;
+    divergences: ClassifiedDivergence[];
+  };
+  catch: {
+    planted: number;
+    oracleVisible: number;
+    caught: number;
+    catchRate: number;
+    mutants: IntentCatchOutcome[];
+  };
+  verdict: string;
+}
+export declare function renderPlainSummaryV2(receipt: BackTranslationReceiptV2): string;
+export declare function renderCombinedSummary(
+  receipts: BackTranslationReceiptV2[],
+  bar: { minCatchRate: number; targetCatchRate: number },
+  verdict: string
+): string;
 `;
 
 // HoloLand sovereign trait handlers (runtime bridge)

@@ -371,19 +371,55 @@ export function validateBehaviourSource(source: string): { valid: boolean; error
   };
 }
 
+/**
+ * Slice 2 checker: the language checker PLUS admission by the deterministic
+ * headless runtime (the subset the twin test executes). Admission is static —
+ * it runs when the runtime is constructed, before any action is invoked — so
+ * its errors are checker errors, not behaviour feedback. Slice 1 showed the
+ * gap: `validate` accepts `var x = ...` and bare local assignments that the
+ * headless subset rejects.
+ */
+export function checkBehaviourSource(source: string): { valid: boolean; errors: string[] } {
+  const v = validateBehaviourSource(source);
+  const errors = [...v.errors];
+  try {
+    createDeterministicHsplusActionRuntime(source);
+  } catch (error) {
+    errors.push(`headless runtime: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return { valid: errors.length === 0, errors };
+}
+
 export const REBUILD_SYSTEM_PROMPT =
   'You write HoloScript+ (.hsplus) behaviour files. You are given a plain-language checklist of ' +
   'what one behaviour does and a language reference card. Write the behaviour file that does ' +
   'exactly what the checklist says, nothing more. Follow the reference card syntax exactly. ' +
   'Reply with the complete file in ONE fenced code block marked hsplus, and nothing else.';
 
-export function rebuildUserPrompt(checklistText: string, referenceCard: string): string {
+/** Slice 2: B also gets an interface card (names only) next to the checklist (rules only). */
+export const REBUILD_SYSTEM_PROMPT_V2 =
+  'You write HoloScript+ (.hsplus) behaviour files. You are given three things: a language ' +
+  'reference card (syntax), an interface card (the exact names to use: behaviour name, state ' +
+  'fields, actions and their inputs, outcome names, answer fields, event names and their fields), ' +
+  'and a plain-language checklist of the rules the behaviour follows. Use the names from the ' +
+  'interface card exactly. Do exactly what the checklist says, nothing more. You may add private ' +
+  'state fields of your own if the rules need them. Follow the reference card syntax exactly. ' +
+  'Reply with the complete file in ONE fenced code block marked hsplus, and nothing else.';
+
+export function rebuildUserPrompt(
+  checklistText: string,
+  referenceCard: string,
+  interfaceCard?: string
+): string {
   return [
     '## Language reference card',
     '',
     referenceCard.trim(),
     '',
-    '## Checklist (the behaviour to write)',
+    ...(interfaceCard === undefined
+      ? []
+      : ['## Interface card (names to use)', '', interfaceCard.trim(), '']),
+    interfaceCard === undefined ? '## Checklist (the behaviour to write)' : '## Checklist (the rules)',
     '',
     checklistText,
     '',
@@ -395,10 +431,11 @@ export function repairUserPrompt(
   checklistText: string,
   referenceCard: string,
   previousSource: string,
-  errors: string[]
+  errors: string[],
+  interfaceCard?: string
 ): string {
   return [
-    rebuildUserPrompt(checklistText, referenceCard),
+    rebuildUserPrompt(checklistText, referenceCard, interfaceCard),
     '',
     '## Your previous attempt',
     '',
@@ -417,24 +454,30 @@ export function repairUserPrompt(
 export async function rebuildFromChecklist(options: {
   checklistText: string;
   referenceCard: string;
+  interfaceCard?: string;
   complete: CompletionFn;
   provider: string;
   maxRepairs?: number;
+  /** Defaults to the language checker alone (slice 1). */
+  checker?: (source: string) => { valid: boolean; errors: string[] };
 }): Promise<{ exchanges: ModelExchange[]; source: string; validated: boolean }> {
+  const checker = options.checker ?? validateBehaviourSource;
   const maxRepairs = options.maxRepairs ?? 3;
+  const system =
+    options.interfaceCard === undefined ? REBUILD_SYSTEM_PROMPT : REBUILD_SYSTEM_PROMPT_V2;
   const exchanges: ModelExchange[] = [];
-  let user = rebuildUserPrompt(options.checklistText, options.referenceCard);
+  let user = rebuildUserPrompt(options.checklistText, options.referenceCard, options.interfaceCard);
   for (let round = 1; round <= 1 + maxRepairs; round++) {
-    const reply = await options.complete(REBUILD_SYSTEM_PROMPT, user);
+    const reply = await options.complete(system, user);
     const source = extractFencedSource(reply.content);
-    const validation = validateBehaviourSource(source);
+    const validation = checker(source);
     exchanges.push({
       round,
       kind: round === 1 ? 'rebuild' : 'repair',
       provider: options.provider,
       model: reply.model,
       reportedModel: reply.reportedModel,
-      prompt: { system: REBUILD_SYSTEM_PROMPT, user },
+      prompt: { system, user },
       response: reply.content,
       extractedSource: source,
       validation,
@@ -442,7 +485,13 @@ export async function rebuildFromChecklist(options: {
       at: new Date().toISOString(),
     });
     if (validation.valid) return { exchanges, source, validated: true };
-    user = repairUserPrompt(options.checklistText, options.referenceCard, source, validation.errors);
+    user = repairUserPrompt(
+      options.checklistText,
+      options.referenceCard,
+      source,
+      validation.errors,
+      options.interfaceCard
+    );
   }
   return { exchanges, source: exchanges[exchanges.length - 1].extractedSource, validated: false };
 }
