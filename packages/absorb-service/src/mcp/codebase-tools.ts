@@ -33,6 +33,7 @@ import {
   describeGraphUnavailable,
 } from './graph-rag-prerequisite';
 import {
+  appendAll,
   appendEmbeddingJournal,
   readEmbeddingJournal,
   removeEmbeddingJournal,
@@ -6539,7 +6540,7 @@ async function buildEmbeddingIndexResumably(
   let seededFromJournal = 0;
   if (journal.length > 0) {
     if (await idx.verifyReusableEmbeddings(journal)) {
-      seed.push(...journal);
+      appendAll(seed, journal);
       seededFromJournal = journal.length;
     } else {
       rejectedSeeds.push('journal: sample vectors differ from the current provider');
@@ -6571,7 +6572,7 @@ async function buildEmbeddingIndexResumably(
       });
       const entries = prior.reusableEmbeddings();
       if (await idx.verifyReusableEmbeddings(entries)) {
-        seed.push(...entries);
+        appendAll(seed, entries);
         seededFromPriorGeneration = entries.length;
         priorGenerationFile = candidate.file;
       } else {
