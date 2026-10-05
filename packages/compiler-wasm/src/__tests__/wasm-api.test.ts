@@ -1088,7 +1088,10 @@ function main(): i32 {
     const gate = (argument: string, setup = '') =>
       `${setup}  if (isKnown(${argument})) {\n    return 1\n  }\n  return 2`;
     const refusedByBoth: Array<[string, string]> = [
-      [gate('values[snapshot.count]', '  slot values: [i32; 4] = [1, 2, 3, 4]\n'), 'HS-UNKNOWN-001'],
+      [
+        gate('values[snapshot.count]', '  slot values: [i32; 4] = [1, 2, 3, 4]\n'),
+        'HS-UNKNOWN-001',
+      ],
       [gate('snapshot.count.x'), 'HS-UNKNOWN-001'],
       [gate('a.count', '  let a: i32 = 5\n'), 'HS-UNKNOWN-003'],
       [gate('snapshot.a.a.count'), 'HS-UNKNOWN-003'],
