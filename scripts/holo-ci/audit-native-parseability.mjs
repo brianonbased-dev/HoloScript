@@ -2,10 +2,11 @@
 /**
  * audit-native-parseability.mjs - BLAST language-integrity audit.
  *
- * check-native-coverage.mjs (the D.104 gate) counts .hsplus/.holo/.hs files by
- * extension only. This script quantifies the real gap: of the files that D.104
- * counts as native, how many are really valid through the same guard used by
- * corpus rows and eval gates?
+ * check-native-coverage.mjs (the D.104 gate) counts .hsplus/.holo/.hs files without
+ * parsing them, and since native-authoring-v2 it leaves descriptor twins out. This
+ * script quantifies the real gap over every native-extension file under the same
+ * root (the gate's by-extension set, twins included): how many are really valid
+ * through the same guard used by corpus rows and eval gates?
  *
  * BLAST 2/3: each row uses assertReallyValid(), so "parse clean" means:
  *   - errors.length === 0, regardless of raw success flags;
@@ -170,7 +171,9 @@ async function main() {
       '.holo': { extensionTotal: files['.holo'].length, ...results['.holo'] },
     },
     summary: {
-      totalCountedByD104: totalCounted,
+      // Every native-extension file under packages/: the D.104 gate's by-extension set,
+      // descriptor twins included (the gate's native count leaves the twins out).
+      totalByExtension: totalCounted,
       totalActuallyParseable: totalPass,
       totalFailingOrThrowing: totalFail,
       realParseablePct: Number(parseablePct.toFixed(2)),
@@ -207,7 +210,7 @@ async function main() {
   }
   console.log('');
   console.log(
-    `D.104 counts ${report.summary.totalCountedByD104} files as "native" by extension. ` +
+    `${report.summary.totalByExtension} files carry a native extension (the D.104 gate's by-extension set, twins included). ` +
       `Only ${report.summary.totalActuallyParseable} (${report.summary.realParseablePct}%) are really valid.`
   );
   console.log(`Guard rejection codes: ${JSON.stringify(report.guard.errorCounts)}`);

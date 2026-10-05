@@ -2,9 +2,11 @@
 /**
  * BLAST 1/3 — quantify the real parse-pass rate behind the D.104
  * native-coverage metric (HoloScript/scripts/holo-ci/check-native-coverage.mjs),
- * which counts .hsplus/.holo/.hs files by EXTENSION only, never attempting to
- * parse them. This script walks the IDENTICAL file set (same root, same
- * SKIP_DIRS, same NATIVE_EXT) and actually parses every file with the SAME
+ * which never attempts to parse the files it counts: it counts .hsplus/.holo/.hs
+ * files minus descriptor twins (native-authoring-v2, an upper bound). This script
+ * walks the gate's by-extension file set (same root, same SKIP_DIRS, same
+ * NATIVE_EXT: every native-extension file, twins included; the gate reports its
+ * size as filesByExtension) and actually parses every file with the SAME
  * parser every live tool uses (packages/cli's `validate`/`parse` subcommand
  * logic, mirrored in scripts/lang-audit/parse-one.mjs), reporting the real
  * pass/fail/timeout/newline-invariance breakdown.
@@ -30,8 +32,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const WORKER_PATH = path.join(__dirname, 'chunk-worker.mjs');
 
-// Identical to check-native-coverage.mjs's walk() -- same file set, so the
-// inflation comparison is apples-to-apples.
+// Same walk as check-native-coverage.mjs (root, SKIP_DIRS, NATIVE_EXT), so this sees the
+// gate's by-extension set: every native-extension file, descriptor twins included. The
+// gate's native count is that set minus the twins.
 const SKIP_DIRS = new Set([
   'node_modules',
   '.git',
@@ -118,7 +121,7 @@ function main() {
   console.log('[lang-audit] Walking packages/ for native-extension files...');
   const files = collectNativeFiles();
   console.log(
-    `[lang-audit] Found ${files.length} files (.hsplus/.holo/.hs) -- identical file set to check-native-coverage.mjs.`
+    `[lang-audit] Found ${files.length} files (.hsplus/.holo/.hs) -- the D.104 gate's by-extension set (its filesByExtension; its native count leaves descriptor twins out).`
   );
 
   const byPath = new Map();
@@ -179,7 +182,7 @@ function main() {
   const realPassRate = summary.overall.pass / summary.totalFiles;
   console.log('\n=== BLAST 1/3 parse-audit results ===');
   console.log(
-    `Total native-extension files (packages/ only, same set as D.104 metric): ${summary.totalFiles}`
+    `Total native-extension files (packages/ only, the D.104 gate's by-extension set, twins included): ${summary.totalFiles}`
   );
   for (const ext of ['.hsplus', '.holo', '.hs']) {
     const b = summary.byExt[ext] || {};
@@ -191,7 +194,7 @@ function main() {
     `Overall: pass=${summary.overall.pass} fail=${summary.overall.fail} timeout=${summary.overall.timeout} exception=${summary.overall.exception}`
   );
   console.log(
-    `REAL parse-pass rate: ${(realPassRate * 100).toFixed(2)}% (vs the extension-only D.104 metric's 87.48%, which assumes 100%)`
+    `REAL parse-pass rate: ${(realPassRate * 100).toFixed(2)}% (the D.104 gate parses nothing it counts, so it assumes 100%; for its current figure run node scripts/holo-ci/check-native-coverage.mjs or read scripts/holo-ci/native-coverage-baseline.json)`
   );
   console.log(
     `Files that flip verdict on trailing-newline presence alone (G1 EOF-DEDENT bug): ${summary.newlineNonInvariant.length}`
