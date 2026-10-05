@@ -85,8 +85,21 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   # Branch deletion — nothing to validate.
   [ "$local_sha" = "$ZERO" ] && continue
   if [ -n "$trunk" ]; then
+    # A trunk range shows what a push adds, never what it removes: a rewind of
+    # main lists nothing. So a push that is not a fast-forward is judged in full.
+    if [ "$remote_sha" != "$ZERO" ] && ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+      force_check=1
+      continue
+    fi
+    # Criss-cross merges leave two merge bases; `git diff` then warns, uses one,
+    # exits 0, and can list nothing while landing the branch changes a file.
+    if [ "$(git merge-base --all "$trunk" "$local_sha" 2>/dev/null | wc -l)" -gt 1 ]; then
+      force_check=1
+      continue
+    fi
     range="$trunk...$local_sha"
   elif [ "$remote_sha" != "$ZERO" ]; then
+    # A tree comparison: unlike a trunk range, it shows what a rewind removes.
     range="$remote_sha..$local_sha"
   else
     force_check=1
