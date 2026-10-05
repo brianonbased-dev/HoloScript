@@ -956,18 +956,84 @@ export function readSymbolLines(
   }
 }
 
+const ANSWER_CODE_LINES = 30;
+const ANSWER_CODE_SCAN_LINES = 400;
+const QUESTION_STOPWORDS = new Set([
+  'the', 'and', 'for', 'how', 'what', 'why', 'does', 'did', 'when', 'where', 'which', 'who',
+  'this', 'that', 'with', 'from', 'into', 'are', 'was', 'its', 'can', 'not', 'use', 'used',
+  'code', 'function', 'method', 'class', 'work', 'works', 'happen', 'happens',
+]);
+
+/** Lowercase word stems of a question, camelCase split, stopwords and short words dropped. */
+export function questionTerms(question: string): string[] {
+  const words = question
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w.length >= 3 && !QUESTION_STOPWORDS.has(w));
+  return [...new Set(words.map((w) => (w.length > 4 ? w.replace(/(ing|ed|es|s)$/, '') : w)))];
+}
+
+/**
+ * Pick at most `budget` lines of a long definition for the answer prompt: the
+ * opening lines (comment and signature) plus the lines that share the most
+ * words with the question, each with a line of context, gaps marked "...".
+ * A definition that fits the budget is returned whole. The first 30 lines of a
+ * long function often stop before the rule the question asks about
+ * (2026-10-05); picking by the question's words reaches it.
+ */
+export function selectLinesForQuestion(lines: string[], question: string, budget = ANSWER_CODE_LINES): string[] {
+  if (lines.length <= budget) return lines;
+  const terms = questionTerms(question);
+  const head = Math.min(8, Math.floor(budget / 3));
+  const keep = new Set<number>();
+  for (let i = 0; i < head; i++) keep.add(i);
+  if (terms.length > 0) {
+    const scored = lines
+      .map((text, i) => {
+        const lower = text.replace(/([a-z0-9])([A-Z])/g, '$1 $2').toLowerCase();
+        return { i, score: terms.filter((t) => lower.includes(t)).length };
+      })
+      .filter((x) => x.i >= head && x.score > 0)
+      .sort((a, b) => b.score - a.score || a.i - b.i);
+    for (const { i } of scored) {
+      const window = [i - 1, i, i + 1].filter((j) => j >= head && j < lines.length && !keep.has(j));
+      if (keep.size + window.length > budget) break;
+      for (const j of window) keep.add(j);
+    }
+  }
+  // Nothing matched (or room left over): fill with the following lines in order.
+  for (let i = head; keep.size < budget && i < lines.length; i++) keep.add(i);
+  const out: string[] = [];
+  let previous = -1;
+  for (const i of [...keep].sort((a, b) => a - b)) {
+    if (previous >= 0 && i > previous + 1) out.push('  ...');
+    out.push(lines[i]);
+    previous = i;
+  }
+  if (previous < lines.length - 1) out.push('  ...');
+  return out;
+}
+
 /**
  * Code for the top 3 answer-prompt results, 30 lines each, read from the
  * graph's own root. Sized for a 4096-token local model (Jetson qwen3-4b).
+ * Long definitions are cut to the lines that match the question.
  */
-function answerCodeReader(engine: GraphRAGEngine): {
+function answerCodeReader(
+  engine: GraphRAGEngine,
+  question: string
+): {
   count: number;
   read: (result: EnrichedResult) => string | undefined;
 } {
   const rootDir = engine.graph.getRootDir?.() ?? '';
   return {
     count: 3,
-    read: (r) => readSymbolExcerpt(rootDir, r.file, r.symbol.line, r.symbol.lineCount, 30),
+    read: (r) => {
+      const read = readSymbolLines(rootDir, r.file, r.symbol.line, r.symbol.lineCount, ANSWER_CODE_SCAN_LINES);
+      return read ? selectLinesForQuestion(read.lines, question).join('\n') : undefined;
+    },
   };
 }
 
@@ -1205,7 +1271,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       language,
       type,
       visualFocus,
-      codeReader: answerCodeReader(engine as GraphRAGEngine),
+      codeReader: answerCodeReader(engine as GraphRAGEngine, question),
     });
 
     // Provenance integrity guard: validate every cited file:line resolves
@@ -1315,7 +1381,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
             language,
             type,
             visualFocus,
-            codeReader: answerCodeReader(fbEngine),
+            codeReader: answerCodeReader(fbEngine, question),
           });
 
           // Provenance integrity guard (same as primary path)
