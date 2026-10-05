@@ -10,6 +10,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { CodebaseGraph } from '../CodebaseGraph';
 import { EmbeddingIndex } from '../EmbeddingIndex';
 import {
+  appendAll,
   appendEmbeddingJournal,
   readEmbeddingJournal,
   removeEmbeddingJournal,
@@ -73,6 +74,43 @@ describe('EmbeddingJournal', () => {
 
     removeEmbeddingJournal(file);
     expect(readEmbeddingJournal(file)).toEqual([]);
+  });
+});
+
+describe('journal robustness (review of #492)', () => {
+  it('appends after a torn tail without corrupting or losing the new records', () => {
+    const file = journalFile();
+    const v = (n: number) => new Float32Array([n, n, n + 0.5]);
+    appendEmbeddingJournal(file, [
+      { text: 'alpha', embedding: v(1) },
+      { text: 'beta', embedding: v(2) },
+      { text: 'gamma', embedding: v(3) },
+    ]);
+    const size = fs.statSync(file).size;
+    fs.truncateSync(file, size - 6); // crash mid-record: gamma is torn
+    appendEmbeddingJournal(file, [
+      { text: 'delta', embedding: v(4) },
+      { text: 'epsilon', embedding: v(5) },
+    ]);
+    const read = readEmbeddingJournal(file);
+    expect(read.map((e) => e.text)).toEqual(['alpha', 'beta', 'delta', 'epsilon']);
+    expect(Array.from(read[2].embedding)).toEqual([4, 4, 4.5]);
+    expect(Array.from(read[3].embedding)).toEqual([5, 5, 5.5]);
+  });
+
+  it('seeds and journals 130k entries without a spread RangeError', () => {
+    const many = Array.from({ length: 130_000 }, (_, i) => ({
+      text: `t${i}`,
+      embedding: new Float32Array([i, 1]),
+    }));
+    const seed: typeof many = [];
+    expect(() => appendAll(seed, many)).not.toThrow();
+    expect(seed).toHaveLength(130_000);
+    const file = journalFile();
+    appendEmbeddingJournal(file, many);
+    const back = readEmbeddingJournal(file);
+    expect(back).toHaveLength(130_000);
+    expect(Array.from(back[129_999].embedding)).toEqual([129_999, 1]);
   });
 });
 
