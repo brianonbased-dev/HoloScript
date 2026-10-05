@@ -1,10 +1,11 @@
 /**
- * Watch mode reports a refused chunk instead of a build (task 9a7o). Before 2026-09-29 the
- * incremental parser dropped a refused chunk with no error, and watch mode printed "Built".
+ * runWatchMode reports a refused chunk instead of a build (task 9a7o). Before 2026-09-29 the
+ * incremental parser dropped a refused chunk with no error, and this loop printed "Built". No
+ * CLI command calls runWatchMode today (see WatchCommand.ts), so no user saw that message.
  * The file watcher and the file read are replaced so no file system is touched.
  */
 import { EventEmitter } from 'node:events';
-import { describe, expect, test, vi } from 'vitest';
+import { beforeAll, describe, expect, test, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({ watchers: [] as EventEmitter[], source: '' }));
 
@@ -59,6 +60,13 @@ async function watchOnce(source: string) {
 }
 
 describe('runWatchMode (task 9a7o)', () => {
+  // The first import transforms @holoscript/core's barrel, which took about 55 s on a cold run
+  // in review: setup cost, given its own allowance rather than the 30 s each test gets.
+  beforeAll(async () => {
+    await import('../WatchCommand');
+    await import('../Reporter');
+  }, 300_000);
+
   test('a refused chunk is reported as an error with its position, not as a build', async () => {
     const { built, errors } = await watchOnce(REFUSED);
     expect(built).not.toHaveBeenCalled();

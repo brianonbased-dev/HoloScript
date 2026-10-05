@@ -2,7 +2,11 @@
  * HoloScript --watch Command
  *
  * Integrates FileWatcher + WatchReporter with the incremental parser.
- * Used by `holoscript build --watch` / `holoscript build -w`.
+ *
+ * No CLI command calls runWatchMode today: `holoscript watch` (cli.ts watchFile) reparses each
+ * save with HoloScriptCodeParser, and `holoscript build --watch` uses WatchService. This loop and
+ * its test are the incremental parser's watch path for whichever command adopts it. (This header
+ * said `build --watch` used it until 2026-10-05.)
  */
 
 import { FileWatcher, type ChangeEvent } from './Watcher';
