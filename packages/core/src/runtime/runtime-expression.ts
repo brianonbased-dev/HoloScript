@@ -18,14 +18,19 @@
  *
  * Fail-closed rules:
  *  - The text is parsed by the HoloScript parser (parseHolo); nothing is evaluated
- *    as JavaScript.
- *  - Values are read only through own data properties: nothing reaches a prototype,
- *    `__proto__` / `prototype` / `constructor` are refused, and a getter is refused,
- *    never run.
+ *    as JavaScript. Text the parser would misread (a character its lexer skips, a
+ *    leading zero) is refused first, so it stays plain text.
+ *  - The interpreter reads values only through own data properties: nothing reaches
+ *    a prototype, `__proto__` / `prototype` / `constructor` are refused, and a getter
+ *    is refused, not run.
  *  - A call names a function the caller provides (or one the context holds), and is
  *    resolved the same way; no method is looked up on a value's prototype.
  *  - Operators apply to primitives only. An object operand (other than for `===` /
- *    `!==`) is refused, so no valueOf or toString on a value ever runs.
+ *    `!==`) is refused, so no valueOf or toString runs for an operator.
+ *
+ * These hold for the interpreter's own reads. A function the caller provides is
+ * ordinary code: `JSON.stringify`, `String` or `Math.max` may still run a getter,
+ * valueOf or toString of a value passed to it, as they did before.
  */
 import { parseHolo } from '../parser/HoloCompositionParser';
 import type { HoloExpression } from '../parser/HoloCompositionTypes';
@@ -80,9 +85,11 @@ export type RuntimeExpression =
 /**
  * Why an expression was not evaluated:
  *  - `parse`: the text is not one expression (a phrase such as `30 days`);
- *  - `form`: it uses something this IR does not admit (a computed `[...]` read);
+ *  - `parse` also covers a computed `[...]` read, which the composition parser does
+ *    not keep (`items[0]` comes back as a read of ""), so `F+[[X]-X]` stays text;
+ *  - `form`: it uses something this IR does not admit (a `prototype` key);
  *  - `unknown-name`: it names something the context does not hold (`name` says what);
- *  - `not-provided`: it calls a function nobody provided (`require(...)`);
+ *  - `not-provided`: it calls something that is not a provided function (`score(1)`);
  *  - `value`: an operator or read met a value it refuses (an object, a getter).
  */
 export type RuntimeExpressionFailure = 'parse' | 'form' | 'unknown-name' | 'not-provided' | 'value';
@@ -107,12 +114,18 @@ function fail(reason: RuntimeExpressionFailure, message: string, unknownName?: s
 // =============================================================================
 
 const ACTION = 'runtime_expression';
-const CACHE_LIMIT = 2000;
+export const RUNTIME_EXPRESSION_CACHE_LIMIT = 2000;
 const parsed = new Map<string, RuntimeExpression | RuntimeExpressionError>();
+
+/** How many parses are cached; never more than RUNTIME_EXPRESSION_CACHE_LIMIT. */
+export function runtimeExpressionCacheSize(): number {
+  return parsed.size;
+}
 
 /**
  * Parse expression text into a RuntimeExpression. Throws a RuntimeExpressionError
- * (`parse` or `form`). Results are cached by text, so a hot expression is parsed once.
+ * (`parse` or `form`). Results are cached by text, so a hot expression is parsed once;
+ * a cached result is frozen, so no caller can change what the next one gets.
  */
 export function parseRuntimeExpression(source: string): RuntimeExpression {
   const hit = parsed.get(source);
@@ -120,30 +133,121 @@ export function parseRuntimeExpression(source: string): RuntimeExpression {
   if (hit) return hit;
   let result: RuntimeExpression | RuntimeExpressionError;
   try {
-    result = lowerRuntimeExpression(parseOne(source));
+    result = deepFreeze(lowerRuntimeExpression(parseOne(source)));
   } catch (error) {
     if (!(error instanceof RuntimeExpressionError)) throw error;
     result = error;
   }
-  if (parsed.size >= CACHE_LIMIT) parsed.delete(parsed.keys().next().value as string);
+  if (parsed.size >= RUNTIME_EXPRESSION_CACHE_LIMIT) {
+    parsed.delete(parsed.keys().next().value as string);
+  }
   parsed.set(source, result);
   if (result instanceof RuntimeExpressionError) throw result;
   return result;
 }
 
+function deepFreeze<T>(value: T): T {
+  if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value)) deepFreeze(child);
+  }
+  return value;
+}
+
+/**
+ * Every character the composition lexer reads outside a string. It skips any other
+ * one, so `72%` would lex as `72`. An expression is one line, so no line break.
+ */
+const LEXER_CHARACTER = /^[A-Za-z0-9_ \t{}[\]():,.=+\-*/<>!@#;?&|]$/;
+/** The escapes the lexer decodes. It reads any other `\c` as plain `c`. */
+const LEXER_ESCAPES = new Set(['n', 't', 'r', '\\', '"', "'"]);
+const CLOSING = new Map([
+  [')', '('],
+  [']', '['],
+  ['}', '{'],
+]);
+const LITERAL_WORDS = new Set(['true', 'false', 'null']);
+
+/**
+ * Refuse, as `parse`, text the composition lexer would read as something other than
+ * what it says, so it stays plain text instead of becoming a different value.
+ * Strict-mode JavaScript, which main ran this text as, refuses all of it too:
+ *  - a character the lexer skips: `72%` would be 72, `$price` would read `price`;
+ *  - `&` or `|` other than `&&` / `||`;
+ *  - a number with a leading zero, which the lexer reads as decimal: `2026-06-30`
+ *    would be 1990;
+ *  - `True`, `NULL` and the like, which the lexer reads as literals in any case;
+ *  - a string escape the lexer does not decode (`\u0041` would be "u0041"), or a
+ *    line break or missing end in a string;
+ *  - a bracket that closes nothing open, which could close the composition the text
+ *    goes into.
+ */
+function checkText(source: string): void {
+  let code = '';
+  for (let i = 0; i < source.length; i++) {
+    const char = source[i];
+    if (char === '"' || char === "'") {
+      let end = i + 1;
+      while (end < source.length && source[end] !== char) {
+        if (source[end] === '\n' || source[end] === '\r') fail('parse', 'a line break in a string');
+        if (source[end] !== '\\') {
+          end++;
+        } else if (LEXER_ESCAPES.has(source[end + 1])) {
+          end += 2;
+        } else {
+          fail('parse', 'a string escape the lexer does not decode');
+        }
+      }
+      if (end >= source.length) fail('parse', 'a string with no end');
+      code += '""';
+      i = end;
+    } else if (LEXER_CHARACTER.test(char)) {
+      code += char;
+    } else {
+      fail('parse', `"${char}" is not part of an expression`);
+    }
+  }
+  for (const run of code.match(/&+|\|+/g) ?? []) {
+    if (run.length !== 2) fail('parse', `"${run}" is not an operator here`);
+  }
+  for (const word of code.match(/[A-Za-z_]\w*|\d+(?:\.\d+)?/g) ?? []) {
+    if (/^0\d/.test(word)) fail('parse', `"${word}" starts with a zero`);
+    if (LITERAL_WORDS.has(word.toLowerCase()) && !LITERAL_WORDS.has(word)) {
+      fail('parse', `"${word}" is not a literal`);
+    }
+  }
+  // Every close must match the latest open, so the text cannot close the action it
+  // is spliced into (the parser itself accepts `x }`). An unclosed open cannot escape;
+  // the parser refuses it.
+  const open: string[] = [];
+  for (const char of code) {
+    if (char === '(' || char === '[' || char === '{') open.push(char);
+    else if (CLOSING.has(char) && open.pop() !== CLOSING.get(char)) {
+      fail('parse', `"${char}" closes nothing open`);
+    }
+  }
+}
+
 function parseOne(source: string): HoloExpression {
-  if (/[\r\n]/.test(source)) fail('parse', 'an expression is one line');
+  checkText(source);
   const result = parseHolo(
     `composition "e" {\n  logic {\n    action ${ACTION}() {\n      return ${source}\n    }\n  }\n}\n`
   );
   if (result.errors.length > 0 || !result.ast) {
     fail('parse', `not an expression: ${result.errors[0]?.message ?? 'no result'}`);
   }
-  // The text is spliced into a composition, so a stray `}` could close the action
-  // and declare something else: only the one action, holding one return, counts.
-  const ast = result.ast as unknown as Record<string, unknown>;
-  const actions = (ast.logic as { actions?: Array<{ name?: string; body?: unknown[] }> })?.actions;
-  const extra = Object.entries(ast).find(([, value]) => Array.isArray(value) && value.length > 0);
+  return returnedExpression(result.ast);
+}
+
+/**
+ * The one expression a parsed `parseOne` composition returns. checkText keeps the text
+ * from closing the action it is spliced into; this checks the result anyway: only the
+ * one action, named runtime_expression, holding one return and nothing else, counts.
+ */
+export function returnedExpression(ast: unknown): HoloExpression {
+  const root = (ast ?? {}) as Record<string, unknown>;
+  const actions = (root.logic as { actions?: Array<{ name?: string; body?: unknown[] }> })?.actions;
+  const extra = Object.entries(root).find(([, value]) => Array.isArray(value) && value.length > 0);
   const body = actions?.[0]?.body;
   const only = body?.length === 1 ? (body[0] as { type?: string; value?: HoloExpression }) : null;
   if (
@@ -171,7 +275,7 @@ export function lowerRuntimeExpression(expr: HoloExpression): RuntimeExpression 
     case 'Identifier':
       return { kind: 'Identifier', name: expr.name };
     case 'MemberExpression':
-      if (expr.computed) fail('form', 'a computed member read ([...]) is not supported');
+      if (expr.computed) fail('parse', 'the parser does not keep a computed member ([...])');
       checkKey(expr.property);
       return {
         kind: 'Member',
@@ -251,6 +355,13 @@ function ownData(object: unknown, key: string): { found: boolean; value?: unknow
   return { found: true, value: descriptor.value };
 }
 
+/** The global values an expression may name without anyone providing them. */
+const CONSTANTS = new Map<string, unknown>([
+  ['undefined', undefined],
+  ['Infinity', Infinity],
+  ['NaN', NaN],
+]);
+
 const isPrimitive = (value: unknown): boolean =>
   value === null || (typeof value !== 'object' && typeof value !== 'function');
 
@@ -264,18 +375,21 @@ export function evaluateRuntimeExpression(
   context: Readonly<Record<string, unknown>>,
   provided: Readonly<Record<string, unknown>> = {}
 ): unknown {
+  /** A name's value: the context's own, else the provided one, else a constant. */
+  const lookup = (name: string): unknown => {
+    const own = ownData(context, name);
+    if (own.found) return own.value;
+    const given = ownData(provided, name);
+    if (given.found) return given.value;
+    if (CONSTANTS.has(name)) return CONSTANTS.get(name);
+    return fail('unknown-name', `"${name}" is not defined here`, name);
+  };
   const evaluate = (node: RuntimeExpression): unknown => {
     switch (node.kind) {
       case 'Literal':
         return node.value;
-      case 'Identifier': {
-        const own = ownData(context, node.name);
-        if (own.found) return own.value;
-        const given = ownData(provided, node.name);
-        if (given.found) return given.value;
-        if (node.name === 'undefined') return undefined;
-        return fail('unknown-name', `"${node.name}" is not defined here`, node.name);
-      }
+      case 'Identifier':
+        return lookup(node.name);
       case 'Member': {
         const object = evaluate(node.object);
         if (object === null || object === undefined) {
@@ -284,17 +398,16 @@ export function evaluateRuntimeExpression(
         return ownData(object, node.property).value;
       }
       case 'Call': {
-        const args = node.arguments.map(evaluate);
+        // A name nobody holds is `unknown-name`, so `same_as("LeftHand")` stays text.
         let owner: unknown;
         let fn: unknown;
         if (node.object === null) {
-          const own = ownData(context, node.name);
-          fn = own.found ? own.value : ownData(provided, node.name).value;
+          fn = lookup(node.name);
         } else {
-          const own = ownData(context, node.object);
-          owner = own.found ? own.value : ownData(provided, node.object).value;
+          owner = lookup(node.object);
           fn = ownData(owner, node.name).value;
         }
+        const args = node.arguments.map(evaluate);
         if (typeof fn !== 'function') {
           const label = node.object === null ? node.name : `${node.object}.${node.name}`;
           fail('not-provided', `"${label}" is not a function provided here`);
@@ -376,25 +489,37 @@ export function evaluateRuntimeExpression(
   return evaluate(ir);
 }
 
-/** Names that read the host, which an expression yields `undefined` for rather than its own text. */
-function isHostName(name: string | undefined): boolean {
-  if (!name) return false;
-  return (
-    name.startsWith('__') ||
-    ['global', 'globalThis', 'window', 'self', 'process', 'require', 'module', 'exports'].includes(
-      name
-    )
-  );
-}
+/**
+ * The names main's blocklist refused (`constructor`, `prototype` and `__proto__` are
+ * refused as a `form` already). An expression naming one yields `undefined`, as on
+ * main; any other unknown name is plain text.
+ */
+const HOST_NAMES = new Set([
+  'eval',
+  'require',
+  'import',
+  'process',
+  'global',
+  'globalThis',
+  '__dirname',
+  '__filename',
+  'fs',
+  'child_process',
+  'Reflect',
+  'Proxy',
+  'Function',
+  'arguments',
+]);
 
 /**
  * Evaluate expression text the way the ReactiveState evaluators answer:
- *  - text that is not one expression, or that names something the context does not
- *    hold, is plain text: `'text'` returns it unchanged (the root evaluator, which
- *    `.hs` config values such as `storage: "postgresql+pgvector"` pass through), and
- *    `'undefined'` returns undefined;
- *  - a host name (`global`, `process`, `__dirname`, ...) or anything else that is
- *    refused yields undefined.
+ *  - text that is not one expression, that names something nobody holds, or that
+ *    calls something that cannot be called (`same_as("LeftHand")`, `1 (butler)`) is
+ *    plain text, as it was on main, where JavaScript threw for it: `'text'` returns it
+ *    unchanged (the root evaluator, which `.hs` config values such as
+ *    `storage: "postgresql+pgvector"` pass through), and `'undefined'` returns undefined;
+ *  - a name main's blocklist refused (`global`, `process`, `eval`, ...), or anything
+ *    else that is refused, yields undefined.
  * Nothing is executed as text in any case.
  */
 export function evaluateExpressionText(
@@ -409,7 +534,8 @@ export function evaluateExpressionText(
     if (!(error instanceof RuntimeExpressionError)) throw error;
     const isPlainText =
       error.reason === 'parse' ||
-      (error.reason === 'unknown-name' && !isHostName(error.unknownName));
+      error.reason === 'not-provided' ||
+      (error.reason === 'unknown-name' && !HOST_NAMES.has(error.unknownName ?? ''));
     return isPlainText && plainText === 'text' ? source : undefined;
   }
 }

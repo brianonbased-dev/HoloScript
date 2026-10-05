@@ -2490,6 +2490,11 @@ function createBuiltins(runtime: HoloScriptPlusRuntimeImpl): HSPlusBuiltins {
     },
 
     setTimeout: (callback: () => void, delay: number): number => {
+      // A browser compiles a string handler the way eval does, and an expression can
+      // reach this builtin, so only a function is scheduled.
+      if (typeof callback !== 'function') {
+        throw new TypeError('setTimeout schedules a function, not text');
+      }
       return window.setTimeout(callback, delay) as unknown as number;
     },
 
