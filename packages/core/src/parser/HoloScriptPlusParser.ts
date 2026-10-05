@@ -189,6 +189,39 @@ function structuralBraceDelta(line: string): number {
 }
 
 /**
+ * The first line of a brain's structured part, matched at COLUMN 0. A first-party agent brain
+ * may open with free-text instructions (its system prompt) before this line. That prose can
+ * itself hold an indented example (four brains quote "  #version 6.0.0" in a .holo sample), so
+ * an indented match is not a section start. The runtime's loadBrain
+ * (packages/holoscript-agent/src/brain.ts, extractSystemPromptPreamble) uses this same rule:
+ * keep the two in step.
+ */
+export const AGENT_BRAIN_SECTION_START =
+  /^(#brain|#version|#target|#mode|identity\s*\{|state\s*\{|computed\s*\{|traits\s*\[|capabilities\s*\{|directives\s*\{|behavior\s)/;
+
+/** A first-party agent brain: a `*brain.hsplus` file, or a source that declares `#brain`. */
+export function isAgentBrainSource(source: string, fileName?: string): boolean {
+  if (fileName && /brain\.hsplus(?:$|[?#])/i.test(fileName.replace(/\\/g, '/'))) return true;
+  return /^\s*#brain\s+/m.test(source);
+}
+
+/**
+ * Blank an agent brain's free-text preamble so a parser sees only its structured part. Until
+ * 2026-09-29 (task tmik) `holoscript parse` ran that prose through the grammar, and 16 of 17
+ * brains in compositions/ failed at line 1, burying any real error in their structure. Lines
+ * are blanked, not removed, so every reported line still matches the file. A brain with no
+ * column-0 section line is returned unchanged: there is nothing to skip to, and nothing is
+ * hidden. (Composition-shaped brains, `composition "X" { identity { ... } }`, open with a
+ * comment, which the grammar already skips.)
+ */
+export function blankAgentBrainPreamble(source: string): string {
+  const lines = source.split('\n');
+  const cut = lines.findIndex((line) => AGENT_BRAIN_SECTION_START.test(line));
+  if (cut <= 0) return source;
+  return [...lines.slice(0, cut).map(() => ''), ...lines.slice(cut)].join('\n');
+}
+
+/**
  * Normalize a deployable first-party agent brain into ordinary `.hsplus`.
  *
  * Contract:

@@ -927,16 +927,25 @@ async function main(): Promise<void> {
         } else if (isHsplus) {
           if (options.verbose)
             console.log(`\x1b[2m[TRACE] Importing HoloScriptPlusParser...\x1b[0m`);
-          const { HoloScriptPlusParser, preprocessAgentBrainSource } =
-            await import('@holoscript/core');
+          const {
+            HoloScriptPlusParser,
+            preprocessAgentBrainSource,
+            isAgentBrainSource,
+            blankAgentBrainPreamble,
+          } = await import('@holoscript/core');
           if (options.verbose)
             console.log(`\x1b[2m[TRACE] Parser imported. Initializing...\x1b[0m`);
-          const explicitAgentBrain = /^\s*#brain\s+/m.test(content);
+          // An agent brain's free-text preamble is its system prompt, not .hsplus (task tmik);
+          // it is blanked line for line, so reported lines still match the file.
+          const brainSource = isAgentBrainSource(content, options.input)
+            ? blankAgentBrainPreamble(content)
+            : content;
+          const explicitAgentBrain = /^\s*#brain\s+/m.test(brainSource);
           const parser = new HoloScriptPlusParser({ strict: explicitAgentBrain });
           const preparedAgentBrain = explicitAgentBrain
-            ? preprocessAgentBrainSource(content)
+            ? preprocessAgentBrainSource(brainSource)
             : undefined;
-          const parserSource = preparedAgentBrain?.source ?? content;
+          const parserSource = preparedAgentBrain?.source ?? brainSource;
           if (options.verbose) console.log(`\x1b[2m[TRACE] Starting parse...\x1b[0m`);
           const result = parser.parse(parserSource);
           parseResult = result;
@@ -1085,6 +1094,17 @@ async function main(): Promise<void> {
           errorList.forEach((err) => {
             console.error(`  Line ${err.line}:${err.column}: ${err.message}`);
           });
+          // A brain-named file without the #brain opt-in is parsed as plain .hsplus, where its
+          // #version / identity / behavior lines are errors (task tmik). Say so.
+          if (
+            isHsplus &&
+            /brain\.hsplus$/i.test(options.input.replace(/\\/g, '/')) &&
+            !/^\s*#brain\s+/m.test(content)
+          ) {
+            console.error(
+              `\n  \x1b[33mThis file is named like an agent brain but declares no "#brain <Name>" header, so it was parsed as plain .hsplus. Its #version, identity and behavior blocks are brain syntax: add "#brain <Name>" on the line before its first section. Its free-text preamble is already skipped.\x1b[0m`
+            );
+          }
           process.exit(1);
         }
       } catch (err: unknown) {

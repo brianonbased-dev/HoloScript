@@ -245,17 +245,19 @@ function extractReflect(brain: string): { criteria: string; escalateOnFail: bool
  * `behavior `). Falls back to the full file content for plain-text brains
  * (no HoloScript sections detected).
  */
-function extractSystemPromptPreamble(src: string): string {
+export function extractSystemPromptPreamble(src: string): string {
   const lines = src.split('\n');
+  // Same rule as @holoscript/core's AGENT_BRAIN_SECTION_START (keep the two in step).
   const BLOCK_START =
     /^(#brain|#version|#target|#mode|identity\s*\{|state\s*\{|computed\s*\{|traits\s*\[|capabilities\s*\{|directives\s*\{|behavior\s)/;
-  let cutLine = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (BLOCK_START.test(lines[i].trim())) {
-      cutLine = i;
-      break;
-    }
-  }
+  // A section starts at column 0. The prose may quote an indented example: four brains
+  // carry "  #version 6.0.0" in a .holo sample, and matching trimmed lines cut their prompts
+  // there, so brittney-plus, holoclaw, jetson-orin and scene-composition lost 34, 34, 27 and
+  // 7 lines of instructions (task tmik, 2026-10-04). Composition-shaped brains have no
+  // column-0 section (`composition "X" {` wraps an indented `identity {`); they keep the old
+  // trimmed match, so their prompts are unchanged.
+  let cutLine = lines.findIndex((line) => BLOCK_START.test(line));
+  if (cutLine < 0) cutLine = lines.findIndex((line) => BLOCK_START.test(line.trim()));
   if (cutLine < 0) return src; // no HoloScript sections — whole file is prompt
   return lines.slice(0, cutLine).join('\n').trimEnd();
 }

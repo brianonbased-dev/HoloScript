@@ -474,6 +474,12 @@ export interface PreparedAgentBrainSource {
   locationMap: Array<{ authoredLine: number; columnOffset: number }>;
 }
 export function preprocessAgentBrainSource(source: string): PreparedAgentBrainSource;
+/** First line of a brain's structured part, matched at column 0. */
+export const AGENT_BRAIN_SECTION_START: RegExp;
+/** A first-party agent brain: a \`*brain.hsplus\` file, or a source that declares \`#brain\`. */
+export function isAgentBrainSource(source: string, fileName?: string): boolean;
+/** Blank a brain's free-text preamble line for line, so a parser sees only its structure. */
+export function blankAgentBrainPreamble(source: string): string;
 
 export interface ParseCacheStats {
   size: number;

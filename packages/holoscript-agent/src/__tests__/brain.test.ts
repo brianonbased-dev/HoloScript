@@ -82,6 +82,50 @@ describe('loadBrain', () => {
     expect(brain.brainPath).toBe(path);
   });
 
+  it('keeps an indented example inside the prose in the prompt; a section starts at column 0', async () => {
+    // Four first-party brains quote a .holo sample ("  #version 6.0.0") in their instructions.
+    // The trimmed match cut their prompts there: brittney-plus, holoclaw, jetson-orin and
+    // scene-composition lost 34, 34, 27 and 7 lines (task tmik, 2026-10-04).
+    const EXAMPLE_BRAIN = [
+      'You write HoloScript files.',
+      'HoloScript (.holo) file format — minimal valid example:',
+      '  #version 6.0.0',
+      '  scene "ExampleScene" {',
+      '  }',
+      'After the example: ALWAYS call write_file.',
+      '',
+      '#version 6.0.0',
+      'identity {',
+      '  domain: "authoring"',
+      '}',
+      '',
+    ].join('\n');
+    const path = join(dir, 'example.hsplus');
+    writeFileSync(path, EXAMPLE_BRAIN, 'utf8');
+    const brain = await loadBrain(path);
+    expect(brain.systemPrompt).toContain('  #version 6.0.0\n  scene "ExampleScene" {');
+    expect(brain.systemPrompt.endsWith('After the example: ALWAYS call write_file.')).toBe(true);
+    expect(brain.systemPrompt).not.toContain('identity {');
+  });
+
+  it('leaves composition-shaped brains (indented identity, no column-0 section) as they were', async () => {
+    const COMPOSITION_BRAIN = [
+      '/* A composition-shaped brain. */',
+      '',
+      'composition "Wrapped" {',
+      '  identity {',
+      '    domain: "audit"',
+      '  }',
+      '}',
+      '',
+    ].join('\n');
+    const path = join(dir, 'composition.hsplus');
+    writeFileSync(path, COMPOSITION_BRAIN, 'utf8');
+    const brain = await loadBrain(path);
+    // The old trimmed rule still applies when there is no column-0 section: unchanged prompt.
+    expect(brain.systemPrompt).toBe('/* A composition-shaped brain. */\n\ncomposition "Wrapped" {');
+  });
+
   it('does not promote a direct #brain document to the system prompt', async () => {
     const directPath = join(dir, 'direct-brain.hsplus');
     writeFileSync(

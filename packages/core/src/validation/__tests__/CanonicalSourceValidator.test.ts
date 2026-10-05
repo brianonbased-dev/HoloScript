@@ -120,6 +120,64 @@ describe('canonical source diagnostic routing', () => {
     });
   });
 
+  describe('an agent brain with a free-text preamble (task tmik)', () => {
+    const preamble = [
+      'You are a reviewer. Read the diff, then call write_file.',
+      'HoloScript (.holo) file format, an example:',
+      '  #version 6.0.0',
+      '  scene "Example" {',
+      '  }',
+      '',
+    ];
+    const structured = [
+      '#brain PreambleReviewer',
+      '#version 1.0.0',
+      '',
+      'identity {',
+      '  domain: "review"',
+      '}',
+      '',
+    ];
+
+    it('reports nothing for the prose, which is the prompt, not .hsplus', () => {
+      const result = validateCanonicalSource({
+        fileName: 'compositions/preamble-reviewer-brain.hsplus',
+        source: [...preamble, ...structured].join('\n'),
+      });
+      expect(result.errors).toEqual([]);
+      expect(result.valid).toBe(true);
+    });
+
+    it('still reports a real error in the structured part, at its line in the file', () => {
+      const broken = [
+        ...preamble,
+        '#brain PreambleReviewer',
+        '#version 1.0.0',
+        '',
+        'behavior on_task {',
+        '  not_a_cognitive_verb: true',
+        '}',
+        '',
+      ];
+      const result = validateCanonicalSource({
+        fileName: 'compositions/preamble-reviewer-brain.hsplus',
+        source: broken.join('\n'),
+      });
+      expect(result.valid).toBe(false);
+      // Line 11 of the authored file holds the planted action.
+      expect(result.errors.map((e) => e.line)).toContain(preamble.length + 5);
+    });
+
+    it('does not skip leading prose in a file that is not a brain', () => {
+      const result = validateCanonicalSource({
+        fileName: 'scenes/plain.hsplus',
+        source: ['This prose is not valid .hsplus.', ...structured.slice(1)].join('\n'),
+      });
+      expect(result.valid).toBe(false);
+      expect(result.errors.some((e) => e.line === 1)).toBe(true);
+    });
+  });
+
   it('fails closed when the .hs authority is missing or violates its contract', () => {
     const unavailable = validateCanonicalSource({
       fileName: 'logic.hs',

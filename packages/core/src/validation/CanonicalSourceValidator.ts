@@ -1,6 +1,8 @@
 import { HoloCompositionParser } from '../parser/HoloCompositionParser';
 import {
   HoloScriptPlusParser,
+  blankAgentBrainPreamble,
+  isAgentBrainSource,
   preprocessAgentBrainSource,
   type AgentBrainSourceHeader,
 } from '../parser/HoloScriptPlusParser';
@@ -181,7 +183,11 @@ function validateHolo(source: string): CanonicalSourceValidationResult {
   }
 }
 
-function validateHsplus(source: string): CanonicalSourceValidationResult {
+function validateHsplus(authoredSource: string, fileName?: string): CanonicalSourceValidationResult {
+  // An agent brain's free-text preamble is its system prompt, not .hsplus (task tmik).
+  const source = isAgentBrainSource(authoredSource, fileName)
+    ? blankAgentBrainPreamble(authoredSource)
+    : authoredSource;
   let parserSource = source;
   let agentBrainHeader: AgentBrainSourceHeader | undefined;
   let agentBrainLocationMap: Array<{ authoredLine: number; columnOffset: number }> | undefined;
@@ -307,6 +313,6 @@ export function validateCanonicalSource(
 ): CanonicalSourceValidationResult {
   const surface = resolveCanonicalSourceSurface(request);
   if (surface === 'holo') return validateHolo(request.source);
-  if (surface === 'hsplus') return validateHsplus(request.source);
+  if (surface === 'hsplus') return validateHsplus(request.source, request.fileName);
   return validateHs(request.source, dependencies.validateHsDetailed);
 }

@@ -99,6 +99,9 @@ export {
   createParser,
   parse as parseHoloScriptPlus,
   preprocessAgentBrainSource,
+  AGENT_BRAIN_SECTION_START,
+  isAgentBrainSource,
+  blankAgentBrainPreamble,
   type AgentBrainSourceHeader,
   type PreparedAgentBrainSource,
 } from './parser/HoloScriptPlusParser';
