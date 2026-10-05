@@ -240,6 +240,12 @@ pub fn compile_source_to_uaal_json(source: &str) -> Result<String, UaalEmitError
 
 pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
     check_semantics(ast)?;
+    emit_checked_uaal_bytecode(ast)
+}
+
+/// The lowering itself, for an AST the checker has accepted. Tests call it directly to reach the
+/// emitter's own refusals: a backstop must refuse even what the checker refuses first.
+pub(crate) fn emit_checked_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
     reject_pending_owned_aggregate_surfaces(ast)?;
 
     let functions = collect_functions(ast)?;
@@ -1277,7 +1283,10 @@ impl<'a> UaalEmitter<'a> {
                 "`buffer(count, fill)` is valid only as the initializer of an explicitly typed owned-buffer `let` binding",
             ));
         }
-        if let Some(host) = self.host_calls.get(callee).cloned() {
+        if self.host_calls.contains_key(callee) && self.current_bindings.contains(callee) {
+            return Err(self.local_named_like_a_capability(callee));
+        }
+        if let Some(host) = self.host_call(callee).cloned() {
             return self.emit_host_capability_call(callee, &host, call);
         }
         if !self.function_names.contains(callee) {
@@ -1304,9 +1313,33 @@ impl<'a> UaalEmitter<'a> {
         self.emit_user_function_call(callee, call)
     }
 
+    /// The capability a called name means here (G21). A name bound in the current function, a
+    /// parameter or a local, is that binding and never the capability, so the emitter resolves a
+    /// called name the way the checker does: the checker refuses such a binding first
+    /// (HS-SCOPE-001), and this keeps a locally bound name from ever becoming an EXEC (claude3's
+    /// #487 review, P1-1). The call emission, the statement POP and the result type all ask here.
+    fn host_call(&self, name: &str) -> Option<&UaalHostCall> {
+        if self.current_bindings.contains(name) {
+            return None;
+        }
+        self.host_calls.get(name)
+    }
+
+    #[cold]
+    #[inline(never)]
+    fn local_named_like_a_capability(&self, name: &str) -> UaalEmitError {
+        UaalEmitError::new(format!(
+            "[HS-SCOPE-001] `{name}` is a parameter or local of function `{}` and also the name of a Holo import; compile_to_uaal calls neither a local nor a capability through a local's name, so it emits no host call",
+            self.current_function.as_deref().unwrap_or("?")
+        ))
+    }
+
     /// A Holo capability call (G21 phase 2): each argument at its declared type, left to right,
     /// then `EXEC [abi, argc]`. The host's handler pops the arguments and pushes one result, the
-    /// stack contract of the `hs.*.binary.v1` ABIs. A host with no binding refuses the call.
+    /// stack contract of the `hs.*.binary.v1` ABIs. Whether the call runs is the host's decision:
+    /// a handler that does not bind the name throws and the run ends in ERROR (the std handler
+    /// does); a VM with no EXEC handler at all refuses it only from PR #486 (until then it pushes
+    /// null). The argument count is checked here too, apart from the checker.
     fn emit_host_capability_call(
         &mut self,
         callee: &str,
@@ -3109,7 +3142,7 @@ impl<'a> UaalEmitter<'a> {
         self.function_return_types
             .get(name)
             .and_then(|annotation| annotation.as_deref())
-            .or_else(|| self.host_calls.get(name).and_then(|host| host.return_type.as_deref()))
+            .or_else(|| self.host_call(name).and_then(|host| host.return_type.as_deref()))
     }
 
     fn current_function_return_type(&self) -> Result<Option<&String>, UaalEmitError> {
@@ -3228,7 +3261,7 @@ impl<'a> UaalEmitter<'a> {
             return Ok(());
         };
         // A capability always pushes one result.
-        if self.host_calls.contains_key(&callee.name) {
+        if self.host_call(&callee.name).is_some() {
             self.emit_op(OP_POP, Vec::new());
             return Ok(());
         }

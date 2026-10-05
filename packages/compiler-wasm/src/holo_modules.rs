@@ -1202,4 +1202,507 @@ mod tests {
         // Native refuses the import as a non-relative path before any check of its own; the
         // G21 differential in wasm-api.test.ts runs holoscriptc on this program.
     }
+
+    /// The emitter alone, past the checker: what a backstop does when the checker is wrong.
+    fn emitted_past_the_checker(source: &str) -> Result<Vec<(String, u64)>, String> {
+        let ast = crate::parse_ast(source).expect("the program parses");
+        crate::uaal_emit::emit_checked_uaal_bytecode(&ast)
+            .map(|bytecode| {
+                bytecode
+                    .instructions
+                    .iter()
+                    .filter(|instruction| instruction.op_code == 0x20)
+                    .map(|instruction| {
+                        (
+                            instruction.operands[0]
+                                .as_str()
+                                .unwrap_or_default()
+                                .to_string(),
+                            instruction.operands[1].as_u64().unwrap_or(u64::MAX),
+                        )
+                    })
+                    .collect()
+            })
+            .map_err(|error| error.message)
+    }
+
+    #[test]
+    fn a_locally_bound_name_never_becomes_a_host_call() {
+        // claude3's #487 review, P1-1: UAAL looked a called name up among the imports first, so
+        // `function check(manifest_audit_passes) { return manifest_audit_passes() }` compiled to
+        // an EXEC. The checker refuses the binding (HS-SCOPE-001, #466); past the checker, the
+        // emitter resolves the name to the binding, as the checker does, and emits no EXEC.
+        for (source, function) in [
+            (format!("{ABSORB}function check(manifest_audit_passes) {{\n  return manifest_audit_passes()\n}}\n"), "check"),
+            (format!("{ABSORB}function check() {{\n  let manifest_audit_passes = 5\n  return manifest_audit_passes()\n}}\n"), "check"),
+            (format!("{ABSORB}function main(manifest_audit_passes: i32): bool {{\n  return manifest_audit_passes()\n}}\n"), "main"),
+            (format!("{FIXTURE}function check(add_one) {{\n  add_one(1)\n  return 0\n}}\n"), "check"),
+        ] {
+            let refused = emitted_past_the_checker(&source).expect_err(&source);
+            assert!(
+                refused.contains(&format!("is a parameter or local of function `{function}` and also the name of a Holo import")),
+                "{source}\n=> {refused}"
+            );
+            let checked = crate::uaal_emit::compile_source_to_uaal(&source).expect_err(&source);
+            assert!(checked.message.contains("[HS-SCOPE-001]"), "{}", checked.message);
+        }
+        // The same program without the binding still lowers to the one EXEC.
+        assert_eq!(
+            emitted_past_the_checker(AUDIT),
+            Ok(vec![(
+                "holo.absorb.manifest_audit_passes.v1".to_string(),
+                0
+            )])
+        );
+    }
+
+    #[test]
+    fn the_emitter_checks_the_argument_count_itself() {
+        // claude3's fault M6b removed this check and no test failed: the checker refuses a wrong
+        // count first (HS-ARITY-001), so only a program past the checker reaches it.
+        for (call, got) in [("add_one(1, 2)", 2), ("add_one()", 0)] {
+            let source = format!("{FIXTURE}function main(): i32 {{\n  return {call}\n}}\n");
+            let refused = emitted_past_the_checker(&source).expect_err(&source);
+            assert!(
+                refused.contains(&format!(
+                    "arity mismatch calling `add_one` in compile_to_uaal: expected 1, got {got}"
+                )),
+                "{refused}"
+            );
+        }
+    }
+
+    #[test]
+    fn an_alias_onto_a_built_in_never_compiles() {
+        // claude3's #487 review, P2-2: `add_one as load` made `load(r.count)` a field read with no
+        // EXEC, and `scale as store` as a statement compiled the built-in and then POPped the
+        // caller's value. The checker refuses such an alias (#466); end to end, nothing compiles.
+        for source in [
+            "import { add_one as load } from \"holo:fixture\"\n\nstruct R {\n  count: i32\n}\n\nfunction main(): i32 {\n  slot r: R = R(5)\n  return load(r.count)\n}\n",
+            "import { scale as store } from \"holo:fixture\"\n\nstruct R {\n  count: i32\n}\n\nfunction main(): i32 {\n  slot r: R = R(5)\n  store(r.count, 2)\n  return 109\n}\n",
+        ] {
+            let (message, ..) = refused_with(source, "HS-SCOPE-001");
+            assert!(message.contains("which is a built-in"), "{message}");
+            let compiled = crate::uaal_emit::compile_source_to_uaal(source).expect_err(source);
+            assert!(compiled.message.contains("which is a built-in"), "{}", compiled.message);
+        }
+    }
+
+    // The programs claude3's two review harnesses ran (`REVIEW_PROGRAMS`), kept apart as data.
+    include!("holo_review_programs.rs");
+
+    /// This round's programs: the escape forms, rebinding, built-in names, sources, argument
+    /// proof, the fallback form and values whose type was declared, beside claude3's lists.
+    fn round_two_programs() -> Vec<(String, String)> {
+        let mut programs = Vec::new();
+        let mut add = |id: &str, source: String| programs.push((format!("h4b {id}"), source));
+        for (id, rest) in [
+            ("lambda untyped", "function check() {\n  let g = x => manifest_audit_passes()\n  return g(0)\n}\n"),
+            ("member call typed", "function main(): bool {\n  return manifest_audit_passes.call(1, 2)\n}\n"),
+            ("on block in typed fn", "function main(): bool {\n  on_tick {\n    manifest_audit_passes()\n  }\n  return true\n}\n"),
+            ("action clause", "function main(): bool {\n  action pick(item) {\n    effect { manifest_audit_passes() }\n  }\n  return true\n}\n"),
+            ("move target", "function main(): bool {\n  move manifest_audit_passes to home\n  return true\n}\n"),
+            ("slot rebinding", "function main(): bool {\n  slot manifest_audit_passes: R = R(1)\n  return true\n}\n\nstruct R {\n  a: i32\n}\n"),
+            ("loop variable rebinding", "function check() {\n  for (manifest_audit_passes in 0..3) {\n    print(1)\n  }\n  return 0\n}\n"),
+            ("lambda parameter rebinding", "function main(): bool {\n  let g = manifest_audit_passes => 1\n  return true\n}\n"),
+            ("lambda in typed fn", "function main(): bool {\n  let g = x => manifest_audit_passes()\n  return true\n}\n"),
+            ("while test", "function main(): i32 {\n  var n: i32 = 0\n  while (manifest_audit_passes()) {\n    n = n + 1\n  }\n  return n\n}\n"),
+            ("negated", "function main(): bool {\n  return !manifest_audit_passes()\n}\n"),
+        ] {
+            add(id, format!("{ABSORB}{rest}"));
+        }
+        for name in [
+            "load",
+            "store",
+            "drop",
+            "buffer",
+            "known",
+            "unknown",
+            "isKnown",
+            "unknownReason",
+            "slice_length",
+            "u8_to_i32",
+            "i32_to_u8",
+            "abs",
+            "floor",
+            "max",
+            "min",
+            "pow",
+            "sqrt",
+        ] {
+            add(
+                &format!("alias {name}"),
+                format!("import {{ add_one as {name} }} from \"holo:fixture\"\n\nfunction main(): i32 {{\n  return {name}(1)\n}}\n"),
+            );
+        }
+        for source in [
+            " holo:absorb",
+            "holo:absorb ",
+            "\u{ff48}olo:absorb",
+            "holo:\u{0430}bsorb",
+            "crdt://holomesh/feed",
+        ] {
+            add(
+                &format!("source {source:?}"),
+                AUDIT.replace("holo:absorb\"", &format!("{source}\"")),
+            );
+        }
+        for (id, rest) in [
+            ("proven literal", "function main(): i32 {\n  return add_one(41)\n}\n"),
+            ("proven parameter arithmetic", "function main(n: i32): i32 {\n  return add_one(n * 2 + 1)\n}\n"),
+            ("proven f32 arithmetic", "function main(f: f32): f32 {\n  return scale(f * 2.0, 3)\n}\n"),
+            ("proven integer literal into f32", "function main(): f32 {\n  return scale(1, 2)\n}\n"),
+            ("proven capability result", "function main(): i32 {\n  return add_one(add_one(add_one(1)))\n}\n"),
+            ("proven typed function result", "function two(): i32 {\n  return 2\n}\n\nfunction main(): i32 {\n  return add_one(two())\n}\n"),
+            ("proven typed local", "function main(): i32 {\n  let v: i32 = 5\n  return add_one(v)\n}\n"),
+            ("statement calls", "function main(): i32 {\n  add_one(1)\n  scale(0.5, 2)\n  return 0\n}\n"),
+            ("two calls, one per branch", "function main(n: i32): i32 {\n  if (n > 0) {\n    return add_one(n)\n  }\n  return add_one(0 - n)\n}\n"),
+            ("result compared", "function main(): bool {\n  return add_one(1) < 3\n}\n"),
+            ("unproven untyped helper", "function helper() {\n  return \"x\"\n}\n\nfunction main(): i32 {\n  return add_one(helper())\n}\n"),
+            ("unproven struct", "struct P {\n  a: i32\n}\n\nfunction main(): i32 {\n  return add_one(P(1))\n}\n"),
+            ("unproven any", "function relay(v: any): i32 {\n  return add_one(v)\n}\n\nfunction main(): i32 {\n  return relay(1)\n}\n"),
+            ("unproven untyped local", "function helper() {\n  return \"x\"\n}\n\nfunction main(): i32 {\n  let v = helper()\n  return add_one(v)\n}\n"),
+            ("wrong bool", "function main(): i32 {\n  return add_one(true)\n}\n"),
+            ("wrong f64", "function main(x: f64): f32 {\n  return scale(x, 2)\n}\n"),
+            ("wrong count", "function main(): i32 {\n  return add_one(1, 2)\n}\n"),
+            // A fallback stands for its declared field only on a host that carries the tag; the
+            // checker takes the fallback's type for the expression, and UAAL refuses the form
+            // (HS-UAAL-CAP-008), so no EXEC carries it (the gap is named in What remains).
+            ("fallback form", "struct R {\n  @unknown v: f64\n}\n\nfunction main(): i32 {\n  slot r: R = R(2.5)\n  return add_one(load(r.v) ?? 0)\n}\n"),
+            // A declared type is trusted, by the checker and by the second reading below: these
+            // compile, and are the gap the spec records (Known gaps item 7).
+            ("declared local from an untyped helper", "function helper() {\n  return \"rm -rf /\"\n}\n\nfunction main(): i32 {\n  let v: i32 = helper()\n  return add_one(v)\n}\n"),
+            ("declared parameter fed by an untyped caller", "function relay(v: i32): i32 {\n  return add_one(v)\n}\n\nfunction helper() {\n  return \"x\"\n}\n\nfunction main() {\n  return relay(helper())\n}\n"),
+        ] {
+            add(id, format!("{FIXTURE}{rest}"));
+        }
+        programs
+    }
+
+    /// A capability call site of an accepted program, with what the function around it declares.
+    struct CallSite<'a> {
+        local: String,
+        abi: String,
+        params: Vec<String>,
+        arguments: &'a [AstNode],
+        /// Typed parameters and locals of the function around the call, by name.
+        names: HashMap<String, String>,
+    }
+
+    /// Every capability call site in the file's top-level functions (an accepted program has
+    /// them nowhere else), found by a plain recursive walk.
+    fn capability_sites(ast: &crate::ast::Ast) -> Vec<CallSite<'_>> {
+        let mut imports: HashMap<String, (String, String, &HostFunction)> = HashMap::new();
+        for node in &ast.body {
+            let AstNode::Import(import) = node else {
+                continue;
+            };
+            let HostSource::Module(module, declarations) = resolve_host_source(&import.source)
+            else {
+                continue;
+            };
+            for specifier in &import.specifiers {
+                if let Some(function) = declarations.functions.get(&specifier.imported) {
+                    imports.insert(
+                        specifier.local.clone(),
+                        (module.to_string(), specifier.imported.clone(), function),
+                    );
+                }
+            }
+        }
+        fn walk<'a>(
+            node: &'a AstNode,
+            imports: &HashMap<String, (String, String, &HostFunction)>,
+            names: &mut HashMap<String, String>,
+            found: &mut Vec<(String, &'a [AstNode])>,
+        ) {
+            match node {
+                AstNode::CallExpression(call) => {
+                    if let AstNode::Identifier(callee) = call.callee.as_ref() {
+                        if imports.contains_key(&callee.name) {
+                            found.push((callee.name.clone(), &call.arguments));
+                        }
+                    } else {
+                        walk(&call.callee, imports, names, found);
+                    }
+                    for argument in &call.arguments {
+                        walk(argument, imports, names, found);
+                    }
+                }
+                AstNode::VariableDeclaration(variable) => {
+                    if let Some(annotation) = &variable.type_annotation {
+                        names.insert(variable.name.clone(), annotation.clone());
+                    }
+                    walk(&variable.value, imports, names, found);
+                }
+                AstNode::StackSlotDeclaration(slot) => {
+                    names.insert(slot.name.clone(), slot.type_annotation.clone());
+                    walk(&slot.value, imports, names, found);
+                }
+                AstNode::Return(ret) => {
+                    if let Some(argument) = &ret.argument {
+                        walk(argument, imports, names, found);
+                    }
+                }
+                AstNode::Assignment(assignment) => walk(&assignment.value, imports, names, found),
+                AstNode::If(if_node) => {
+                    walk(&if_node.test, imports, names, found);
+                    for statement in if_node
+                        .consequent
+                        .iter()
+                        .chain(if_node.alternate.iter().flatten())
+                    {
+                        walk(statement, imports, names, found);
+                    }
+                }
+                AstNode::While(while_node) => {
+                    walk(&while_node.test, imports, names, found);
+                    for statement in &while_node.body {
+                        walk(statement, imports, names, found);
+                    }
+                }
+                AstNode::ForOf(for_node) => {
+                    walk(&for_node.range, imports, names, found);
+                    for statement in &for_node.body {
+                        walk(statement, imports, names, found);
+                    }
+                }
+                AstNode::LexicalScope(scope) => {
+                    for statement in &scope.body {
+                        walk(statement, imports, names, found);
+                    }
+                }
+                AstNode::BinaryExpression(binary) => {
+                    walk(&binary.left, imports, names, found);
+                    walk(&binary.right, imports, names, found);
+                }
+                AstNode::UnaryExpression(unary) => walk(&unary.argument, imports, names, found),
+                AstNode::MemberExpression(member) => walk(&member.object, imports, names, found),
+                AstNode::LambdaExpression(lambda) => walk(&lambda.body, imports, names, found),
+                AstNode::Array(array) => {
+                    for element in &array.elements {
+                        walk(element, imports, names, found);
+                    }
+                }
+                AstNode::ObjectLiteral(object) => {
+                    for property in &object.properties {
+                        walk(&property.value, imports, names, found);
+                    }
+                }
+                _ => {}
+            }
+        }
+        let mut sites = Vec::new();
+        for node in &ast.body {
+            let function = match node {
+                AstNode::Function(function) => function,
+                AstNode::Export(export) => match export.declaration.as_ref() {
+                    AstNode::Function(function) => function,
+                    _ => continue,
+                },
+                _ => continue,
+            };
+            let mut names: HashMap<String, String> = function
+                .params
+                .iter()
+                .zip(function.param_types.iter())
+                .filter_map(|(name, annotation)| Some((name.clone(), annotation.clone()?)))
+                .collect();
+            let mut found = Vec::new();
+            for statement in &function.body {
+                walk(statement, &imports, &mut names, &mut found);
+            }
+            for (local, arguments) in found {
+                let (module, imported, declared) = &imports[&local];
+                sites.push(CallSite {
+                    abi: format!("holo.{module}.{imported}.v{}", declared.version),
+                    params: declared.param_types.iter().flatten().cloned().collect(),
+                    local,
+                    arguments,
+                    names: names.clone(),
+                });
+            }
+        }
+        sites
+    }
+
+    /// A second reading of "proven of its declared type", written apart from the checker: a
+    /// literal that fits, a name the function declares with that type, arithmetic on such, a
+    /// comparison or logic for `bool`, or a call to a capability or a typed function that returns
+    /// the type. Nothing else is proven. A declared type is trusted, as the checker trusts it.
+    fn proven_by_shape(
+        argument: &AstNode,
+        expected: &str,
+        names: &HashMap<String, String>,
+        returns: &HashMap<String, String>,
+    ) -> bool {
+        let proven = |node: &AstNode, ty: &str| proven_by_shape(node, ty, names, returns);
+        match argument {
+            AstNode::Number(number) => match expected {
+                "i32" => number.value.fract() == 0.0 && number.value.abs() <= f64::from(i32::MAX),
+                "f32" | "f64" => true,
+                _ => false,
+            },
+            AstNode::Boolean(_) => expected == "bool",
+            AstNode::Identifier(identifier) => {
+                names.get(&identifier.name).map(String::as_str) == Some(expected)
+            }
+            AstNode::UnaryExpression(unary) => match unary.operator.as_str() {
+                "-" => {
+                    matches!(expected, "i32" | "f32" | "f64") && proven(&unary.argument, expected)
+                }
+                "!" => expected == "bool" && proven(&unary.argument, "bool"),
+                _ => false,
+            },
+            AstNode::BinaryExpression(binary) => match binary.operator.as_str() {
+                "+" | "-" | "*" | "/" | "%" => {
+                    matches!(expected, "i32" | "f32" | "f64")
+                        && proven(&binary.left, expected)
+                        && proven(&binary.right, expected)
+                }
+                "&&" | "||" => {
+                    expected == "bool"
+                        && proven(&binary.left, "bool")
+                        && proven(&binary.right, "bool")
+                }
+                "==" | "!=" | "<" | "<=" | ">" | ">=" => expected == "bool",
+                _ => false,
+            },
+            AstNode::CallExpression(call) => match call.callee.as_ref() {
+                AstNode::Identifier(callee) => {
+                    returns.get(&callee.name).map(String::as_str) == Some(expected)
+                }
+                _ => false,
+            },
+            _ => false,
+        }
+    }
+
+    #[test]
+    fn every_capability_program_the_checker_accepts_lowers_to_checked_execs_or_is_refused() {
+        // claude3's #487 review: the checker and the emitter apply one rule in two places, so
+        // every program the checker accepts must lower to EXECs that agree with the
+        // declarations, with arguments proven of their declared types, or be refused; and a
+        // program the checker refuses must never compile. Fed: every capability program of
+        // claude3's two review harnesses and this round's.
+        let mut programs: Vec<(String, String)> = REVIEW_PROGRAMS
+            .iter()
+            .map(|(id, source)| (id.to_string(), source.to_string()))
+            .collect();
+        programs.push((
+            "c3-466 M14 very long name".to_string(),
+            AUDIT.replace("holo:absorb\"", &format!("holo:{}\"", "a".repeat(10_000))),
+        ));
+        programs.extend(round_two_programs());
+        let (mut refused, mut accepted, mut lowered, mut execs, mut with_arguments) =
+            (0, 0, 0, 0, 0);
+        for (id, source) in &programs {
+            let compiled = crate::uaal_emit::compile_source_to_uaal(source);
+            if verdict(source).is_some() {
+                refused += 1;
+                assert!(
+                    compiled.is_err(),
+                    "{id}: the checker refuses it, so UAAL must"
+                );
+                continue;
+            }
+            accepted += 1;
+            // A refusal by the engine is an answer: it emits no EXEC at all.
+            let Ok(bytecode) = compiled else { continue };
+            lowered += 1;
+            let ast = crate::parse_ast(source).expect("an accepted program parses");
+            let sites = capability_sites(&ast);
+            let holo: Vec<(String, u64)> = bytecode
+                .instructions
+                .iter()
+                .filter(|instruction| instruction.op_code == 0x20)
+                .filter_map(|instruction| {
+                    let abi = instruction.operands[0].as_str()?;
+                    abi.starts_with("holo.").then(|| {
+                        (
+                            abi.to_string(),
+                            instruction.operands[1].as_u64().unwrap_or(u64::MAX),
+                        )
+                    })
+                })
+                .collect();
+            assert_eq!(
+                holo.len(),
+                sites.len(),
+                "{id}: one EXEC per capability call\n{source}"
+            );
+            let mut returns: HashMap<String, String> = HashMap::new();
+            for node in &ast.body {
+                let function = match node {
+                    AstNode::Function(function) => function,
+                    AstNode::Export(export) => match export.declaration.as_ref() {
+                        AstNode::Function(function) => function,
+                        _ => continue,
+                    },
+                    _ => continue,
+                };
+                if let Some(annotation) = &function.return_type {
+                    returns.insert(function.name.clone(), annotation.clone());
+                }
+            }
+            for site in &sites {
+                let declared = resolve_capability_return(&ast, &site.local);
+                returns.insert(site.local.clone(), declared);
+            }
+            for site in &sites {
+                assert!(
+                    holo.contains(&(site.abi.clone(), site.params.len() as u64)),
+                    "{id}: no EXEC {} with {} arguments in {holo:?}",
+                    site.abi,
+                    site.params.len()
+                );
+                assert_eq!(
+                    site.arguments.len(),
+                    site.params.len(),
+                    "{id}: {}",
+                    site.local
+                );
+                for (argument, expected) in site.arguments.iter().zip(&site.params) {
+                    assert!(
+                        proven_by_shape(argument, expected, &site.names, &returns),
+                        "{id}: an argument to `{}` is not proven `{expected}`\n{source}",
+                        site.local
+                    );
+                }
+                if !site.params.is_empty() {
+                    with_arguments += 1;
+                }
+            }
+            execs += holo.len();
+        }
+        // Every branch is reached: checker refusals, accepted programs UAAL refuses, and lowered
+        // calls, some of them with arguments.
+        println!("differential: {} programs, {refused} refused by the checker, {accepted} accepted, {lowered} lowered with {execs} EXECs ({with_arguments} call sites with arguments)", programs.len());
+        assert!(refused >= 60, "{refused} refused");
+        assert!(accepted > lowered, "{accepted} accepted, {lowered} lowered");
+        assert!(
+            lowered >= 25 && execs >= 30 && with_arguments >= 15,
+            "{lowered} lowered, {execs} EXECs, {with_arguments} with arguments"
+        );
+    }
+
+    /// The declared result type of the capability a file imports under `local`.
+    fn resolve_capability_return(ast: &crate::ast::Ast, local: &str) -> String {
+        for node in &ast.body {
+            let AstNode::Import(import) = node else {
+                continue;
+            };
+            let HostSource::Module(_, declarations) = resolve_host_source(&import.source) else {
+                continue;
+            };
+            for specifier in &import.specifiers {
+                if specifier.local == local {
+                    if let Some(function) = declarations.functions.get(&specifier.imported) {
+                        return function.return_type.clone().unwrap_or_default();
+                    }
+                }
+            }
+        }
+        String::new()
+    }
 }
