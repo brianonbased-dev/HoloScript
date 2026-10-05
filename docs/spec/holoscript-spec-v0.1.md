@@ -873,7 +873,9 @@ Any new syntax, or any change to what the readers accept today, needs a written 
 1. It is written, with the measured list of files it breaks.
 2. The executable spec corpus passes (`node scripts/holo-ci/check-spec-corpus.mjs --strict`), and every honest-gap case the change closes is flipped on purpose.
 3. The proving test fails when the change is removed, and the pull request records that mutation or fault-injection run.
-4. A reviewer from a different seat and a different family than the author approves the pull request.
+4. A reviewer from a different seat, in a different session, than the author approves the pull request. A session of the author's own seat does not count.
+
+The reviewer's model family: on 2026-10-04 Joseph decided that, until a reviewer of another family passes the native reviewer scorecard (`ai-ecosystem/research/native-reviewer-scorecard/`, the admission bar in its CRITERIA.md), a distinct seat of the same family is enough ("Yes second agent"). Once one passes, gate 4 again requires a reviewer of a different family than the author. The 2026-09-28 text required the other family from the start. No such reviewer was running, and three open models had failed the scorecard, so no language change could land. Record: `holo-dev/decisions/2026-10-04_a-second-claude-agent-reviews-language-changes.md`.
 
 Joseph's review stays reserved for the four protected classes: spend and custody, physical-world commitments, public commitments under his name, and governance.
 
