@@ -164,3 +164,35 @@ describe('who may name a host path', () => {
     );
   });
 });
+
+describe('absorb roots and the loopback local-custody pass (2026-10-04 custody review)', () => {
+  it('confines plural and suffix-named location keys, not only the exact list', () => {
+    expect(findHostPathViolation({ rootDirs: ['C:\Users\someone'] })).toMatchObject({
+      key: 'rootDirs',
+    });
+    expect(findHostPathViolation({ rootDirs: ['/etc'] })).toMatchObject({ key: 'rootDirs' });
+    expect(findHostPathViolation({ sourceRoot: '/root' })).toMatchObject({ key: 'sourceRoot' });
+    expect(findHostPathViolation({ worldPath: '/srv/x.hs' })).toMatchObject({ key: 'worldPath' });
+    expect(findHostPathViolation({ rootDirs: ['packages/core'] })).toBeNull();
+  });
+
+  it('a non-admin caller still cannot name an absolute rootDirs entry', () => {
+    expect(() =>
+      assertNoHostPathArgs('holo_absorb_repo', { rootDirs: ['/'] }, ['tools:codebase'])
+    ).toThrow(/"rootDirs" is an absolute or UNC path/);
+  });
+
+  it('the loopback local-custody flag may name its own disk; scopes alone never grant it', () => {
+    expect(callerMayNameHostPaths(['tools:codebase'], true)).toBe(true);
+    expect(callerMayNameHostPaths(['tools:codebase'], undefined)).toBe(false);
+    expect(callerMayNameHostPaths(['tools:codebase', 'localCustody'])).toBe(false);
+    expect(() =>
+      assertNoHostPathArgs(
+        'holo_absorb_repo',
+        { rootDir: 'C:\holo-dev\HoloRepo\HoloScript' },
+        ['tools:codebase'],
+        true
+      )
+    ).not.toThrow();
+  });
+});

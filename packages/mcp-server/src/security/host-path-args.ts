@@ -70,6 +70,30 @@ function normalizeKey(key: string): string {
 }
 
 /**
+ * A key is path-typed when it is listed above OR its name ends like one. The exact list alone let
+ * `rootDirs` (plural of a listed key) and `sourceRoot` through, so holo_absorb_repo would scan any
+ * absolute server folder for a non-admin caller (2026-10-04 custody review). Matching by ending
+ * means a new argument named like a location is confined without anyone remembering to list it.
+ */
+const HOST_PATH_KEY_SUFFIXES: readonly string[] = [
+  'dir',
+  'dirs',
+  'directory',
+  'directories',
+  'path',
+  'paths',
+  'root',
+  'roots',
+];
+
+function isHostPathKey(normalized: string): boolean {
+  return (
+    HOST_PATH_ARG_KEYS.has(normalized) ||
+    HOST_PATH_KEY_SUFFIXES.some((suffix) => normalized.endsWith(suffix))
+  );
+}
+
+/**
  * True when `value` is a file: URL as a URL parser reads it. The parser skips leading spaces and control
  * characters and drops tab and newline anywhere, so "  file:///x" and "fi<TAB>le:///x" both open /x.
  */
@@ -90,8 +114,17 @@ function stringsIn(value: unknown): string[] {
   return found;
 }
 
-/** True when the token carries an administrator scope (the only callers allowed to name host paths). */
-export function callerMayNameHostPaths(scopes: readonly string[] | undefined): boolean {
+/**
+ * True when the caller may name locations on the server's disk: an administrator scope, or the
+ * server's own loopback peer in local-custody mode (`localCustody`, set only by http-server's trusted
+ * loopback branch, never from a token or request body). A loopback caller is on the machine whose disk
+ * it names; what it may absorb is still confined by the absorb root allowlist (absorb-service).
+ */
+export function callerMayNameHostPaths(
+  scopes: readonly string[] | undefined,
+  localCustody?: boolean
+): boolean {
+  if (localCustody === true) return true;
   return !!scopes && (scopes.includes('admin:*') || scopes.includes('tools:admin'));
 }
 
@@ -129,7 +162,7 @@ export function findHostPathViolation(
   if (!args || typeof args !== 'object') return null;
   for (const [key, value] of Object.entries(args)) {
     const normalized = normalizeKey(key);
-    if (HOST_PATH_ARG_KEYS.has(normalized)) {
+    if (isHostPathKey(normalized)) {
       for (const candidate of stringsIn(value)) {
         const reason = hostPathViolation(candidate);
         if (reason) return { key, reason };
@@ -149,9 +182,10 @@ export function findHostPathViolation(
 export function assertNoHostPathArgs(
   toolName: string,
   args: Record<string, unknown> | undefined,
-  scopes: readonly string[] | undefined
+  scopes: readonly string[] | undefined,
+  localCustody?: boolean
 ): void {
-  if (callerMayNameHostPaths(scopes)) return;
+  if (callerMayNameHostPaths(scopes, localCustody)) return;
   const hit = findHostPathViolation(args);
   if (!hit) return;
   throw new Error(

@@ -212,6 +212,7 @@
     "packages/studio/src/components/assets/SplatCaptureWizard.tsx",
     "packages/studio/src/components/audio/AudioTraitPanel.tsx",
     "packages/studio/src/components/audio/AudioVisualizerPanel.tsx",
+    "packages/studio/src/components/auth/SignInCta.tsx",
     "packages/studio/src/components/auth/SignInView.tsx",
     "packages/studio/src/components/auth/UserMenu.tsx",
     "packages/studio/src/components/avatar/AvatarParamsPanel.tsx",

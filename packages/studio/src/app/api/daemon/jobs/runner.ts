@@ -353,6 +353,37 @@ async function createIsolatedWorkspace(
  * Creates a rollback snapshot of the project state before daemon execution.
  * This is a tarball of the workspace that can be restored if needed.
  */
+
+/** Count non-ignored source-ish files under a workspace copy (for empty-absorb honesty). */
+function countSourceFiles(root: string, max = 5000): number {
+  let count = 0;
+  const skip = new Set(['node_modules', '.git', 'dist', '.next', 'coverage', 'build', 'out']);
+  function walk(dir: string) {
+    if (count >= max) return;
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      if (count >= max) return;
+      if (entry.name.startsWith('.') && entry.name !== '.daemon-workspace.json') {
+        if (entry.isDirectory()) continue;
+      }
+      if (entry.isDirectory()) {
+        if (skip.has(entry.name)) continue;
+        walk(path.join(dir, entry.name));
+      } else if (entry.isFile()) {
+        if (entry.name === '.daemon-workspace.json') continue;
+        count += 1;
+      }
+    }
+  }
+  walk(root);
+  return count;
+}
+
 async function createRollbackSnapshot(workDir: string, jobId: string): Promise<string> {
   const snapshotDir = path.join(os.tmpdir(), 'holoscript-daemon', 'snapshots');
   if (!fs.existsSync(snapshotDir)) {
@@ -736,6 +767,7 @@ export async function runDaemonJob(
   }
 
   log('info', `Daemon job ${jobId} starting with profile "${profile}"`);
+  log('info', `Scanning projectPath=${projectPath}`);
   log('info', `Project DNA: ${dna.kind} (${Math.round(dna.confidence * 100)}% confidence)`);
   log(
     'info',
@@ -788,13 +820,51 @@ export async function runDaemonJob(
         `Leaf-first order: ${absorbData.leafFirstOrder.slice(0, 5).join(', ')}${absorbData.leafFirstOrder.length > 5 ? ` (+${absorbData.leafFirstOrder.length - 5} more)` : ''}`
       );
     } else {
-      log('warn', 'Absorb returned empty graph — continuing without graph intelligence');
+      const sourceFiles = countSourceFiles(workDir);
+      log(
+        'error',
+        `Absorb empty graph — projectPath=${projectPath} workDir=${workDir} sourceFilesInWorkDir=${sourceFiles}`
+      );
+      await cleanup();
+      const reason =
+        sourceFiles === 0
+          ? `Blocked: workspace copy has 0 source files (projectPath=${projectPath}, workDir=${workDir}). Verify the import landed under HOLOSCRIPT_WORKSPACES_DIR and Assign Agent passed that path.`
+          : `Blocked: Absorb returned empty graph for ${sourceFiles} files under workDir=${workDir} (projectPath=${projectPath}). Not claiming heal success.`;
+      return {
+        success: false,
+        cycles: 0,
+        filesAnalyzed: 0,
+        filesChanged: 0,
+        qualityBefore: 0,
+        qualityAfter: 0,
+        qualityDelta: 0,
+        patches: [],
+        logs,
+        summary: reason,
+        durationMs: Date.now() - startTime,
+        error: reason,
+        absorb: absorbData,
+      };
     }
   } catch (err: unknown) {
-    log(
-      'warn',
-      `Absorb phase failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`
-    );
+    const msg = err instanceof Error ? err.message : String(err);
+    log('error', `Absorb phase failed: ${msg} (projectPath=${projectPath}, workDir=${workDir})`);
+    await cleanup();
+    return {
+      success: false,
+      cycles: 0,
+      filesAnalyzed: 0,
+      filesChanged: 0,
+      qualityBefore: 0,
+      qualityAfter: 0,
+      qualityDelta: 0,
+      patches: [],
+      logs,
+      summary: `Blocked: Absorb failed — ${msg}`,
+      durationMs: Date.now() - startTime,
+      error: msg,
+      absorb: absorbData,
+    };
   }
 
   // Step 2: Rollback snapshot
@@ -1000,10 +1070,16 @@ export async function runDaemonJob(
     `Daemon job complete: ${patches.length} patches, quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}, ${durationMs}ms`
   );
 
-  const summary =
-    patches.length > 0
-      ? `Analyzed ${filesAnalyzed} type errors across ${cyclesCompleted} cycle(s). Produced ${patches.length} patch proposal(s) with quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}.`
-      : `Analyzed project in ${cyclesCompleted} cycle(s). No actionable improvements found for the "${profile}" profile.`;
+  let summary: string;
+  if (patches.length > 0) {
+    summary = `Analyzed ${filesAnalyzed} type errors across ${cyclesCompleted} cycle(s). Produced ${patches.length} patch proposal(s) with quality delta ${qualityDelta >= 0 ? '+' : ''}${qualityDelta}.`;
+  } else if (filesAnalyzed === 0 && qualityDelta === 0) {
+    summary = `Finished, nothing examined — not a heal success. (0 files analyzed, 0 patches, delta +0; projectPath=${projectPath})`;
+  } else if (qualityDelta === 0) {
+    summary = `Finished, nothing to change. (${filesAnalyzed} examined, 0 patches, delta +0)`;
+  } else {
+    summary = `Analyzed project in ${cyclesCompleted} cycle(s). No actionable improvements found for the "${profile}" profile.`;
+  }
 
   return {
     success: true,

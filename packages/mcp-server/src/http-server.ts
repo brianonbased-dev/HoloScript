@@ -907,6 +907,7 @@ async function securedToolExecutionInner(
       signingValid: true,
       signer: auth.agentId ?? auth.clientId ?? null,
       scopes: auth.scopes ?? [],
+      ...(auth.localCustody === true && { localCustody: true as const }),
     };
 
     // Execute the tool
@@ -3472,6 +3473,7 @@ const httpServer = http.createServer(async (req, res) => {
           active: true,
           scopes: ['tools:codebase'],
           agentId: 'sovereign-loopback',
+          localCustody: true,
         };
         res.setHeader('X-Auth-Mode', 'sovereign-loopback');
       }

@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import os from 'os';
 import path from 'path';
 
 export default defineConfig({
@@ -51,6 +52,9 @@ export default defineConfig({
       // production; in tests that job would race the next test's own absorb.
       // The auto-refresh test turns it back on for itself.
       ABSORB_AUTO_REFRESH_ON_QUERY: '0',
+      // Tests absorb throwaway repos under the OS temp dir and this checkout;
+      // absorb-root-policy.test.ts exercises the default and refusal paths.
+      ABSORB_ALLOWED_ROOTS: [os.tmpdir(), path.resolve(__dirname, '../..')].join(path.delimiter),
     },
   },
 });

@@ -40,6 +40,8 @@ vi.mock('@holoscript/absorb-service/credits', () => {
 
 vi.mock('@holoscript/absorb-service/engine', () => {
   const api = {
+    // These tests cover owners and credits, not the folder allowlist (absorb-scan-root.test.ts does).
+    absorbRootRefusal: () => null,
     CodebaseScanner: class {
       async scan() {
         return {
