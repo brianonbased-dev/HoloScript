@@ -38,7 +38,9 @@
  *
  * Exit codes: 0 = no new failures, 1 = new failures (regressions), 2 = setup error
  * (including: the log carries no vitest summary, so the run cannot be confirmed
- * to have happened — this gate fails CLOSED rather than reporting a false green).
+ * to have happened — this gate fails CLOSED rather than reporting a false green;
+ * and: run-vitest.mjs refused because workspace packages core's tests load are not
+ * built — its reason and build command are printed, and no receipt is written).
  */
 import { spawnSync } from 'node:child_process';
 import { lstatSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
@@ -171,6 +173,16 @@ if (fromLog) {
     process.exit(2);
   }
   out = `${proc.stdout ?? ''}\n${proc.stderr ?? ''}`;
+  // run-vitest.mjs refuses (exit 2) a full run on a workspace missing builds that core's
+  // tests load, and names what to build (board task_1786984409320_7d3l). Its output is
+  // captured above, so pass that reason through instead of the bare "no vitest summary"
+  // below. No suite ran: there is nothing to classify and no receipt is written.
+  const runnerLines = out.split(/\r?\n/).filter((line) => line.startsWith('[run-vitest] '));
+  if (proc.status === 2 && runnerLines.some((line) => line.includes('workspace not built'))) {
+    for (const line of runnerLines) console.error(line);
+    console.error('[baseline-gate] setup error: no suite ran, so no receipt was written.');
+    process.exit(2);
+  }
 }
 
 // Fail closed on an unverifiable run — see SUITE_RAN above. Without this, an
