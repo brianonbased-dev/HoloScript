@@ -89,6 +89,10 @@ const KEEP = [
   'incremental',
   'filesChanged',
   'durationMs',
+  'note',
+  'notInGraph',
+  'nearestNames',
+  'matchMode',
 ] as const;
 
 export interface FollowUp {

@@ -2353,6 +2353,38 @@ describe('holo_absorb_repo root validation', () => {
 
   }, 120_000);
 
+  it('says why an answer is empty: unknown name (with nearest names) versus defined but never called', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-empty-answer-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-empty-answer-cache-'));
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+    const built = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'stats',
+      force: true,
+    })) as { error?: string };
+    expect(built.error, JSON.stringify(built).slice(0, 300)).toBeUndefined();
+
+    const unknown = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'where is `alphaa` defined',
+    })) as { count?: number; note?: string; notInGraph?: boolean; nearestNames?: string[] };
+    expect(unknown.count).toBe(0);
+    expect(unknown.notInGraph).toBe(true);
+    expect(unknown.note).toContain('not defined anywhere in this map');
+    expect(unknown.nearestNames?.some((n) => n.startsWith('alpha ('))).toBe(true);
+
+    const uncalled = (await handleCodebaseTool('holo_query_codebase', {
+      query: 'callers',
+      symbolName: 'alpha',
+    })) as { count?: number; note?: string; notInGraph?: boolean };
+    expect(uncalled.count).toBe(0);
+    expect(uncalled.notInGraph).toBeUndefined();
+    expect(uncalled.note).toMatch(/alpha is defined \(src\/alpha\.ts:1\) and no call to it is recorded/);
+  }, 120_000);
+
   it('does not restart a refresh for a partial map the last refresh just left', async () => {
     resetCodebaseToolStateForTests();
     const repoDir = makeTinyGitRepo('holoscript-partial-loop-repo-');

@@ -10897,6 +10897,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `callers of ${symbolOwner ? `${symbolOwner}.` : ''}${name}`,
         results: callers,
         count: callers.length,
+        ...(callers.length === 0 && explainEmptySymbolAnswer(name, 'callers')),
         ...(cacheNote && { cacheNote }),
       };
     }
@@ -10959,6 +10960,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         matchMode,
         results: found,
         count: found.length,
+        ...(found.length === 0 && explainEmptySymbolAnswer(name, 'find')),
         ...(truncated && {
           truncated: true,
           note: 'Result set capped at 50; refine the query for more.',
@@ -12319,6 +12321,32 @@ function extractSymbolFromQuery(query: string): string {
     }
   }
   return words[words.length - 1] ?? '';
+}
+
+/**
+ * An empty answer an agent would read as "nothing" (foreign-user tests,
+ * 2026-10-05): say whether the name is absent from the map (with the closest
+ * names) or present with no recorded callers, and what the map cannot see.
+ */
+function explainEmptySymbolAnswer(
+  name: string,
+  kind: 'callers' | 'find'
+): { note: string; notInGraph?: true; nearestNames?: string[] } {
+  const defined = cachedGraph?.findSymbolsByName(name) ?? [];
+  if (defined.length === 0) {
+    return {
+      note: `${name} is not defined anywhere in this map, so this empty answer means "unknown name", not "unused". Check the spelling or the nearestNames.`,
+      ...nearestSymbolNames(name),
+    };
+  }
+  if (kind === 'find') return { note: `${name} is in the map but did not match this search.` };
+  const at = defined
+    .slice(0, 3)
+    .map((sym) => `${sym.filePath}:${sym.line}`)
+    .join(', ');
+  return {
+    note: `${name} is defined (${at}) and no call to it is recorded. Calls the map cannot see: through callbacks, dynamic property access, or a re-assigned reference; a class used with \`new\` or a type shows its users in holo_impact_analysis {changedSymbol} instead.`,
+  };
 }
 
 /**
