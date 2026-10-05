@@ -858,6 +858,12 @@ impl KotlinUnknownFields {
 struct EmitContext<'a> {
     int_locals: &'a [String],
     unknown_fields: &'a KotlinUnknownFields,
+    /// Declared return type of the function being emitted, when it states one.
+    return_type: Option<ValType>,
+    /// Enum and struct names, so a declared local type can be mapped like a parameter type.
+    /// Declared types of the current function's parameters, by name.
+    param_vals: &'a HashMap<String, ValType>,
+    declared: &'a KotlinDeclaredTypes<'a>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1051,9 +1057,13 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
     for e in &enums {
         blocks.push(emit_enum(e, indent));
     }
+    let fn_params = collect_fn_param_types(ast, &enum_names, &struct_names);
+    let fn_returns = collect_fn_return_types(ast, &enum_names, &struct_names);
     let declared_types = KotlinDeclaredTypes {
         enums: &enum_names,
         structs: &struct_names,
+        fn_params: &fn_params,
+        fn_returns: &fn_returns,
     };
     for node in &ast.body {
         // `export function f` lowers exactly like `function f`: Kotlin top-level funs are public
@@ -1344,6 +1354,10 @@ pub fn compile_source_to_kotlin(source: &str, indent: &str) -> Result<String, Ko
 struct KotlinDeclaredTypes<'a> {
     enums: &'a [String],
     structs: &'a [String],
+    /// Declared parameter types per top-level function name, for typing call-argument literals.
+    fn_params: &'a HashMap<String, Vec<Option<ValType>>>,
+    /// Declared return type per top-level function name.
+    fn_returns: &'a HashMap<String, ValType>,
 }
 
 fn emit_function(
@@ -1362,7 +1376,7 @@ fn emit_function(
         explicit_kotlin_param_type(annotation, declared_types.enums, declared_types.structs)
     });
     let ret = match explicit_ret {
-        Some(ty) => ty,
+        Some(ref ty) => ty.clone(),
         None => infer_return_type(
             body,
             declared_types.enums,
@@ -1371,9 +1385,25 @@ fn emit_function(
         )?,
     };
     let int_locals = collect_index_local_bindings(body);
+    let param_vals: HashMap<String, ValType> = params
+        .iter()
+        .enumerate()
+        .filter_map(|(index, p)| {
+            let ty = param_types
+                .get(index)
+                .and_then(|a| a.as_deref())
+                .and_then(|a| {
+                    explicit_kotlin_param_type(a, declared_types.enums, declared_types.structs)
+                })?;
+            Some((p.clone(), ty))
+        })
+        .collect();
     let context = EmitContext {
         int_locals: &int_locals,
         unknown_fields,
+        return_type: explicit_ret.clone(),
+        declared: declared_types,
+        param_vals: &param_vals,
     };
     let param_list = params
         .iter()
@@ -2622,8 +2652,17 @@ fn emit_statement(
     match node {
         // `let`/`const x = expr` → immutable `val`; `var x = expr` → mutable `var`.
         AstNode::VariableDeclaration(v) => {
+            let declared_local = v.type_annotation.as_deref().and_then(|annotation| {
+                explicit_kotlin_param_type(
+                    annotation,
+                    context.declared.enums,
+                    context.declared.structs,
+                )
+            });
             let value = if context.int_locals.iter().any(|n| n == &v.name) {
                 emit_int_expr(&v.value, context)?
+            } else if declared_local.is_some() {
+                emit_expr_expecting(&v.value, declared_local.as_ref(), context)?
             } else {
                 emit_expr(&v.value, context)?
             };
@@ -2681,7 +2720,11 @@ fn emit_statement(
         }
         AstNode::Return(r) => {
             match &r.argument {
-                Some(arg) => lines.push(format!("{}return {}", indent, emit_expr(arg, context)?)),
+                Some(arg) => lines.push(format!(
+                    "{}return {}",
+                    indent,
+                    emit_expr_expecting(arg, context.return_type.as_ref(), context)?
+                )),
                 None => lines.push(format!("{}return", indent)),
             }
             Ok(())
@@ -2824,8 +2867,22 @@ fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, Kotlin
             // shares this precedence (so `a - (b - c)` and `(a + b) * c` survive intact).
             let parent = precedence(&b.operator);
             let op = map_binary_operator(&b.operator)?;
-            let left = emit_operand(&b.left, parent, false, context)?;
-            let right = emit_operand(&b.right, parent, true, context)?;
+            // A bare numeric literal opposite an operand of declared Int/Long type takes that
+            // type (`add(2, 3) == 5`, not `== 5f`, which Kotlin rejects for Int vs Float).
+            let left_expected = matches!(b.left.as_ref(), AstNode::Number(_))
+                .then(|| declared_integer_type(&b.right, context))
+                .flatten();
+            let right_expected = matches!(b.right.as_ref(), AstNode::Number(_))
+                .then(|| declared_integer_type(&b.left, context))
+                .flatten();
+            let left = match left_expected {
+                Some(ty) => emit_expr_expecting(&b.left, Some(&ty), context)?,
+                None => emit_operand(&b.left, parent, false, context)?,
+            };
+            let right = match right_expected {
+                Some(ty) => emit_expr_expecting(&b.right, Some(&ty), context)?,
+                None => emit_operand(&b.right, parent, true, context)?,
+            };
             Ok(format!("{} {} {}", left, op, right))
         }
         AstNode::UnaryExpression(u) => {
@@ -2875,7 +2932,16 @@ fn emit_expr(node: &AstNode, context: &EmitContext<'_>) -> Result<String, Kotlin
                 } else {
                     c.arguments
                         .iter()
-                        .map(|arg| emit_expr(arg, context))
+                        .enumerate()
+                        .map(|(index, arg)| {
+                            let expected = context
+                                .declared
+                                .fn_params
+                                .get(&id.name)
+                                .and_then(|types| types.get(index))
+                                .and_then(|t| t.as_ref());
+                            emit_expr_expecting(arg, expected, context)
+                        })
                         .collect::<Result<Vec<_>, _>>()?
                 };
                 if let Some(builtin) = kotlin_builtin(&id.name) {
@@ -3068,6 +3134,96 @@ fn emit_range_operand(
         }
     }
     Ok(emitted)
+}
+
+/// Declared parameter types (via the shared explicit mapping) for every top-level function,
+/// exported or not, keyed by name. An unannotated or unmapped parameter is `None`.
+fn collect_fn_param_types(
+    ast: &Ast,
+    enum_names: &[String],
+    struct_names: &[String],
+) -> HashMap<String, Vec<Option<ValType>>> {
+    let mut map = HashMap::new();
+    for node in &ast.body {
+        let function = match node {
+            AstNode::Function(f) => Some(f),
+            AstNode::Export(e) => match e.declaration.as_ref() {
+                AstNode::Function(f) => Some(f),
+                _ => None,
+            },
+            _ => None,
+        };
+        if let Some(f) = function {
+            let types = f
+                .param_types
+                .iter()
+                .map(|t| {
+                    t.as_deref()
+                        .and_then(|a| explicit_kotlin_param_type(a, enum_names, struct_names))
+                })
+                .collect();
+            map.insert(f.name.clone(), types);
+        }
+    }
+    map
+}
+
+/// Declared return type for every top-level function that states one (and maps).
+fn collect_fn_return_types(
+    ast: &Ast,
+    enum_names: &[String],
+    struct_names: &[String],
+) -> HashMap<String, ValType> {
+    let mut map = HashMap::new();
+    for node in &ast.body {
+        let function = match node {
+            AstNode::Function(f) => Some(f),
+            AstNode::Export(e) => match e.declaration.as_ref() {
+                AstNode::Function(f) => Some(f),
+                _ => None,
+            },
+            _ => None,
+        };
+        if let Some(f) = function {
+            if let Some(ty) = f
+                .return_type
+                .as_deref()
+                .and_then(|a| explicit_kotlin_param_type(a, enum_names, struct_names))
+            {
+                map.insert(f.name.clone(), ty);
+            }
+        }
+    }
+    map
+}
+
+/// The statically declared integer type (`Int`/`Long`) of an operand: a typed parameter, or a call
+/// to a function with a declared integer return. Anything else is unknown (`None`).
+fn declared_integer_type(node: &AstNode, context: &EmitContext<'_>) -> Option<ValType> {
+    let ty = match node {
+        AstNode::Identifier(id) => context.param_vals.get(&id.name),
+        AstNode::CallExpression(c) => match c.callee.as_ref() {
+            AstNode::Identifier(id) => context.declared.fn_returns.get(&id.name),
+            _ => None,
+        },
+        _ => None,
+    }?;
+    matches!(ty, ValType::Int | ValType::Long).then(|| ty.clone())
+}
+
+/// Emit `node` where a value of the declared Kotlin type `expected` is required. Numeric
+/// literals take the expected form (`Int` -> `1`, `Long` -> `1L`); with no known type, or any
+/// other type, this is exactly `emit_expr`, so untyped output is unchanged.
+fn emit_expr_expecting(
+    node: &AstNode,
+    expected: Option<&ValType>,
+    context: &EmitContext<'_>,
+) -> Result<String, KotlinEmitError> {
+    match (expected, node) {
+        (Some(ValType::Int), _) => emit_int_expr(node, context),
+        (Some(ValType::Long), AstNode::Number(n)) => Ok(emit_long_literal(&n.raw)),
+        _ => emit_expr(node, context),
+    }
 }
 
 /// Emit an expression in an INTEGER context (a range bound). Numeric literals render as plain
@@ -3305,15 +3461,19 @@ mod tests {
 
     #[test]
     fn explicit_f32_return_type_is_float() {
-        let out = kotlin("function h(): f32 { return 1 }
-function f(): f32 { return h() }");
+        let out = kotlin(
+            "function h(): f32 { return 1 }
+function f(): f32 { return h() }",
+        );
         assert!(out.contains("fun f(): Float {"), "{out}");
     }
 
     #[test]
     fn explicit_bool_return_type_is_boolean() {
-        let out = kotlin("function h(): bool { return true }
-function f(): bool { return h() }");
+        let out = kotlin(
+            "function h(): bool { return true }
+function f(): bool { return h() }",
+        );
         assert!(out.contains("fun f(): Boolean {"), "{out}");
     }
 
@@ -3337,6 +3497,58 @@ function f(): Vec3 { return h() }";
 function f(): Route { return h() }";
         let out = kotlin(src);
         assert!(out.contains("fun f(): Route {"), "{out}");
+    }
+
+    #[test]
+    fn literal_return_takes_the_declared_kotlin_type() {
+        let i32_out = kotlin("function f(): i32 { return 1 }");
+        assert!(
+            i32_out.contains("fun f(): Int {\n    return 1\n  }"),
+            "{i32_out}"
+        );
+        let i64_out = kotlin("function f(): i64 { return 1 }");
+        assert!(
+            i64_out.contains("fun f(): Long {\n    return 1L\n  }"),
+            "{i64_out}"
+        );
+        let f32_out = kotlin("function f(): f32 { return 1 }");
+        assert!(
+            f32_out.contains("fun f(): Float {\n    return 1f\n  }"),
+            "{f32_out}"
+        );
+    }
+
+    #[test]
+    fn typed_call_arguments_take_the_parameter_type() {
+        let src = "function add(a: i32, b: i32): i32 { return a + b }\nfunction main(): i32 { return add(2, 3) }";
+        let out = kotlin(src);
+        assert!(out.contains("return add(2, 3)"), "{out}");
+        assert!(out.contains("return a + b"), "{out}");
+        let long =
+            kotlin("function id(a: i64): i64 { return a }\nfunction main(): i64 { return id(2) }");
+        assert!(long.contains("return id(2L)"), "{long}");
+    }
+
+    #[test]
+    fn literal_compared_with_a_typed_call_or_param_takes_its_type() {
+        let src = "function add(a: i32, b: i32): i32 { return a + b }\nfunction t(): bool { return add(2, 3) == 5 }\nfunction p(n: i32): bool { return n > 0 }";
+        let out = kotlin(src);
+        assert!(out.contains("return add(2, 3) == 5\n"), "{out}");
+        assert!(out.contains("return n > 0\n"), "{out}");
+    }
+
+    #[test]
+    fn declared_local_initializer_takes_its_type() {
+        let out = kotlin("function f(): i32 { let x: i32 = 4\n return x }");
+        assert!(out.contains("val x = 4\n"), "{out}");
+        let long = kotlin("function f(): i64 { let x: i64 = 4\n return x }");
+        assert!(long.contains("val x = 4L\n"), "{long}");
+    }
+
+    #[test]
+    fn untyped_literals_stay_float() {
+        let out = kotlin("function f() { return 1 }\nfunction g(a) { return f() }");
+        assert!(out.contains("return 1f"), "{out}");
     }
 
     #[test]

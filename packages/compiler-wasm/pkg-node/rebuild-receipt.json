@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-10-05T04:08:47Z",
+  "generatedAt": "2026-10-05T20:07:42Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "ee3b5c634e34f6bad5236a3baf972ad530519194",
+  "sourceCommit": "fe54d4172d (parent) plus the literal-typing change committed with this artifact",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
     "wasm-pack build --target nodejs --out-dir pkg-node --release"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 545447,
-    "wasmSha256": "a87f2ec34570d80662041c5481e3e21ac6c64a6e656139dfd9b1007649fd8c3f",
-    "previousWasmSha256": "f069da7892d1b3a731933e1c4d5edeacf9e2ecffd78cd38a19290330f58a5b0a",
-    "repeatBuildSha256Matched": true,
-    "note": "Rebuilt from the round-2 review fix of PR #428 (G10): every UAAL call leaves one value, a re-entrant call saves only slots read after it, aggregate slots end with their block. pkg/ (--target web) and pkg-node/ (--target nodejs) hold byte-identical WASM, and a third --target nodejs build into a scratch directory, with the crate recompiled after cargo clean of its wasm32 release artifacts, gave the same digest. Built with rustc 1.91.0, older than the 1.98.1 of the artifact on main, so about 46 KB of the growth over main is the toolchain. No version bump. The generated .js and .d.ts are byte-identical to the previous artifact and pkg-node/package.json was kept as committed."
+    "wasmBytes": 551044,
+    "wasmSha256": "333f124699d9fb991fcc83cf635bf914adb95f265b1c8284a5405b6bd066441d",
+    "previousWasmSha256": "a87f2ec34570d80662041c5481e3e21ac6c64a6e656139dfd9b1007649fd8c3f",
+    "repeatBuildSha256Matched": false,
+    "note": "Rebuilt for board task 5kf8 (Kotlin emitter: stated return types, export lowering, literals typed by declared context). pkg/ (--target web, node scripts/build-wasm.mjs) and pkg-node/ (--target nodejs) hold byte-identical WASM. No second-build repeat check was run. Generated .js/.d.ts unchanged; pkg-node/package.json kept as committed."
   }
 }
