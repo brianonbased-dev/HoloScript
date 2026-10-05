@@ -846,6 +846,7 @@ export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
 export function compilePipelineSourceToNode(source: string, options?: any): any;
+export function summarizePipelineIo(source: string): { success: boolean; envReads: string[]; hosts: string[]; dynamicHost: boolean; errors?: string[] };
 
 /**
  * Native2D — the sovereign HoloScript-native 2D/UI compiler (.holo -> @generated .tsx). Its

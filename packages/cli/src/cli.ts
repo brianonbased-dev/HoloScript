@@ -2069,6 +2069,24 @@ async function main(): Promise<void> {
         const outputPath = path.resolve(options.output || 'index.mjs');
         writeCompileOutputFile(outputPath, compiled.code);
         console.log(`\n\x1b[32m✓ Pipeline compiled to Node.js module: ${outputPath}\x1b[0m\n`);
+
+        // List the environment variables this pipeline reads and the hosts it targets,
+        // so a reviewer sees them without running it (task_1791176003202_obsc).
+        const { summarizePipelineIo } = await import('@holoscript/core/compiler/index');
+        const io = summarizePipelineIo(content);
+        if (io.success) {
+          const reads = io.envReads.length ? io.envReads.join(', ') : '(none)';
+          const hosts =
+            (io.hosts.length ? io.hosts.join(', ') : '(no static hosts)') +
+            (io.dynamicHost ? ' + host(s) from ${env.*}' : '');
+          console.log(`  reads env: ${reads}`);
+          console.log(`  sends requests to: ${hosts}`);
+          if (io.envReads.length) {
+            console.log(
+              `  to run: holoscript run ${options.input} ${io.envReads.map((n: string) => `--allow-env ${n}`).join(' ')}`
+            );
+          }
+        }
         process.exit(0);
       }
 

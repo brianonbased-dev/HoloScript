@@ -504,6 +504,32 @@ ${response.status}         // HTTP response field (http transform)
 ${source.reply_url}        // source metadata (in chained sinks)
 ```
 
+### Environment reads must be allowed at run time
+
+A pipeline file can come from someone else, so it may not read any environment
+variable it likes. When you run a compiled pipeline, you name the variables it is
+allowed to read:
+
+```
+holoscript run inventory-sync.hs --allow-env POS_API_URL --allow-env STORE_API
+```
+
+`--allow-env` is repeatable. For non-interactive runs, set a comma-separated list
+instead:
+
+```
+HOLOSCRIPT_PIPELINE_ALLOW_ENV=POS_API_URL,STORE_API holoscript run inventory-sync.hs
+```
+
+- At run start the pipeline prints one line naming the variables it reads and the
+  hosts it will send to, so you can see when an allowed secret is heading to an
+  unexpected host.
+- If the pipeline reads a variable you did not allow, it refuses the whole run —
+  before any request or file write — and names the variable and the exact flag to add.
+- `HOLOSCRIPT_MCP_URL` (the configured MCP server) is always readable without a flag.
+- `holoscript compile … --target node` lists the variables a pipeline reads, so a
+  reviewer sees them without running it.
+
 ---
 
 ## Composing a Complete Pipeline
