@@ -10684,6 +10684,8 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
 
   const previousGraphJson = args.previousGraphJson as string;
   const rootDir = args.rootDir as string;
+  const rootRefusal = typeof rootDir === 'string' ? absorbRootRefusal(rootDir) : null;
+  if (rootRefusal) return { error: 'rootDir_not_allowed', message: rootRefusal };
 
   // Deserialize previous graph
   const previousGraph = CodebaseGraph.deserialize(previousGraphJson);
@@ -10746,14 +10748,15 @@ async function handleDetectChanges(args: Record<string, unknown>): Promise<unkno
 }
 
 async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown> {
+  const driftRoot = args.rootDir;
+  const driftRootRefusal = typeof driftRoot === 'string' ? absorbRootRefusal(driftRoot) : null;
+  if (driftRootRefusal) return { error: 'rootDir_not_allowed', message: driftRootRefusal };
   const graphState = await ensureCachedGraph();
   if (!graphState.loaded) {
     return { error: ABSORB_CODEBASE_LOAD_ERROR, hint: ABSORB_HOLO_ABSORB_REPO_HINT };
   }
 
   const rootDir = args.rootDir as string;
-  const rootRefusal = typeof rootDir === 'string' ? absorbRootRefusal(rootDir) : null;
-  if (rootRefusal) return { error: 'rootDir_not_allowed', message: rootRefusal };
   const mod = await loadCodebaseModule();
   const { GitChangeDetector } = mod;
 

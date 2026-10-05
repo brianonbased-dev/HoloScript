@@ -4,6 +4,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { absorbAllowedRoots, absorbRootRefusal } from './absorb-root-policy';
 import { handleCodebaseTool } from '../mcp/codebase-tools';
+import { handleAbsorbTypescriptTool } from '../mcp/absorb-typescript-tools';
 
 function tempDir(prefix: string): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), prefix));
@@ -41,7 +42,7 @@ describe('absorb root allowlist', () => {
     expect(absorbRootRefusal(link, { ABSORB_ALLOWED_ROOTS: allowed })).not.toBeNull();
   });
 
-  it('holo_absorb_repo refuses a root outside the allowlist', async () => {
+  it('every tool that opens a caller-named folder refuses one outside the allowlist', async () => {
     const outside = tempDir('absorb-tool-outside-');
     const previous = process.env.ABSORB_ALLOWED_ROOTS;
     process.env.ABSORB_ALLOWED_ROOTS = tempDir('absorb-tool-allowed-');
@@ -51,6 +52,21 @@ describe('absorb root allowlist', () => {
         outputFormat: 'stats',
       })) as { error?: string };
       expect(absorbed.error).toBe('rootDir_not_allowed');
+
+      // Every other tool that opens a caller-named folder (2026-10-04 review).
+      const changes = (await handleCodebaseTool('holo_detect_changes', {
+        previousGraphJson: '{}',
+        rootDir: outside,
+      })) as { error?: string };
+      expect(changes.error).toBe('rootDir_not_allowed');
+      const drift = (await handleCodebaseTool('holo_detect_drift', {
+        rootDir: outside,
+      })) as { error?: string };
+      expect(drift.error).toBe('rootDir_not_allowed');
+      const transform = (await handleAbsorbTypescriptTool('absorb_suggest_holoscript_transform', {
+        rootDir: outside,
+      })) as { error?: string };
+      expect(transform.error).toBe('rootDir_not_allowed');
     } finally {
       if (previous === undefined) delete process.env.ABSORB_ALLOWED_ROOTS;
       else process.env.ABSORB_ALLOWED_ROOTS = previous;
