@@ -167,10 +167,13 @@ pub fn validate_detailed(source: &str) -> String {
 
 /// [`validate_detailed`] for source lifted out of a larger document, the way the `.hsplus` reader
 /// checks each typed function on its own. `context_json` names what the document declares, so a
-/// use of it resolves: `{"functions":[{"name":"sibling","arity":2}],"names":["Packet"]}`.
+/// use of it resolves:
+/// `{"functions":[{"name":"sibling","arity":2}],"names":["Packet"],"namespaces":["Route"]}`.
 /// `functions` are the document's functions; one listed without `arity` resolves by name and its
-/// argument count is not checked. `names` are its structs, enums and imports. Both are optional.
-/// A context that is not that JSON is refused rather than ignored.
+/// argument count is not checked. `names` are its structs and imports, which may be called.
+/// `namespaces` are its enums and modules, which are read through their members
+/// (`GameState.addScore(p)`) and never called. All three are optional. A context that is not that
+/// JSON is refused rather than ignored.
 #[wasm_bindgen]
 pub fn validate_detailed_in_context(source: &str, context_json: &str) -> String {
     match parse_check_context(context_json) {
@@ -188,15 +191,21 @@ pub fn validate_detailed_in_context(source: &str, context_json: &str) -> String 
 fn parse_check_context(
     context_json: &str,
 ) -> Result<semantic_types::ExternalDeclarations, String> {
-    const SHAPE: &str = r#"validate_detailed_in_context: the context must be {"functions":[{"name":"...","arity":N}],"names":["..."]}"#;
+    const SHAPE: &str = r#"validate_detailed_in_context: the context must be {"functions":[{"name":"...","arity":N}],"names":["..."],"namespaces":["..."]}"#;
     let value: serde_json::Value =
         serde_json::from_str(context_json).map_err(|error| format!("{SHAPE} ({error})"))?;
     let object = value.as_object().ok_or_else(|| SHAPE.to_string())?;
     let mut external = semantic_types::ExternalDeclarations::default();
-    if let Some(names) = object.get("names") {
+    for (key, set) in [
+        ("names", &mut external.names),
+        ("namespaces", &mut external.namespaces),
+    ] {
+        let Some(names) = object.get(key) else {
+            continue;
+        };
         for name in names.as_array().ok_or_else(|| SHAPE.to_string())? {
             let name = name.as_str().ok_or_else(|| SHAPE.to_string())?;
-            external.names.insert(name.to_string());
+            set.insert(name.to_string());
         }
     }
     let Some(functions) = object.get("functions") else {
@@ -716,6 +725,19 @@ function main(): any { return identity(true) }"#;
         let named = validate_detailed_in_context(constructs, r#"{"names":["Packet"]}"#);
         assert!(named.contains("\"valid\": true"), "{named}");
 
+        // Enums and modules of the document resolve through `namespaces`: read, never called.
+        let module_call = "function score(p: i32): i32 {\n  GameState.addScore(p)\n  return p\n}";
+        let unknown_module = validate_detailed(module_call);
+        assert!(unknown_module.contains("[HS-NAME-001]"), "{unknown_module}");
+        let module =
+            validate_detailed_in_context(module_call, r#"{"namespaces":["GameState"]}"#);
+        assert!(module.contains("\"valid\": true"), "{module}");
+        let called = validate_detailed_in_context(
+            "function score(p: i32): i32 {\n  return GameState(p)\n}",
+            r#"{"namespaces":["GameState"]}"#,
+        );
+        assert!(called.contains("[HS-NAME-002]"), "{called}");
+
         for malformed in [
             "",
             "[]",
@@ -724,6 +746,8 @@ function main(): any { return identity(true) }"#;
             r#"{"functions":[{"name":"sibling","arity":-1}]}"#,
             r#"{"names":"Packet"}"#,
             r#"{"names":[7]}"#,
+            r#"{"namespaces":"GameState"}"#,
+            r#"{"namespaces":[7]}"#,
         ] {
             let refused = validate_detailed_in_context(fragment, malformed);
             assert!(refused.contains("\"valid\":false"), "{malformed} => {refused}");

@@ -8277,7 +8277,8 @@ export class HoloScriptPlusParser {
 
   /**
    * What the document declares, so the Rust checker, which sees one typed function at a time,
-   * resolves calls to the document's other functions, structs, enums and imports.
+   * resolves calls to the document's other functions, structs and imports, and reads of its
+   * enums and modules.
    */
   private hsDocumentContext(): HsDocumentContext {
     if (!this.documentContext) {

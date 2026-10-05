@@ -8,7 +8,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 
-use crate::ast::{Ast, AstNode, FunctionNode, Location};
+use crate::ast::{Ast, AstNode, FunctionNode, LambdaExpression, Location, MovementDestination};
 use crate::kotlin_emit::SemanticDiagnostic;
 
 const RETURN_MISMATCH: &str = "HS-TYPE-RETURN-001";
@@ -46,8 +46,11 @@ const BUILTINS: &[&str] = &[
 pub(crate) struct ExternalDeclarations {
     /// Function name -> number of parameters, or `None` when the document does not say.
     pub(crate) functions: HashMap<String, Option<usize>>,
-    /// Other names the document declares: structs, enums and imports.
+    /// Other names the document declares that may be called: structs and imports.
     pub(crate) names: HashSet<String>,
+    /// Names that are read only through their members and never called: enums (`Route.A`) and
+    /// `.hsplus` modules (`GameState.addScore(p)`).
+    pub(crate) namespaces: HashSet<String>,
 }
 
 /// True when every path through `body` ends in `return <value>` and no `return` in it is bare.
@@ -121,21 +124,32 @@ struct FunctionSignature {
     return_type: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+/// Not `Clone` on purpose: a lambda's body sees the frames around it on the one shared stack.
+/// Copying them for each lambda made checking time grow with lambdas x visible names (the second
+/// review of PR #438 measured 18 s for 6,000 of each, against 0.15 s before G11);
+/// `checking_cost_grows_linearly_with_lambdas_and_locals` bounds it.
+#[derive(Debug)]
 struct BindingEvidence {
     declared_type: Option<String>,
     observed_type: TypeEvidence,
     mutable: bool,
-    /// The binding holds a lambda, so it may be called. Parameters and other locals may not:
-    /// the backends resolve a called name to a function, never to a value.
+    /// Every value the binding has held is a lambda, so it may be called. Parameters and other
+    /// locals may not: the backends resolve a called name to a function, never to a value.
     callable: bool,
 }
+
+/// The names one block declares. A function's visible names are a stack of these, innermost
+/// last.
+type Frame = HashMap<String, BindingEvidence>;
 
 struct TypeChecker {
     functions: HashMap<String, FunctionSignature>,
     /// Top-level names a typed function may refer to: functions, structs, enums, imports, and the
-    /// surrounding document's functions.
+    /// surrounding document's functions, names and namespaces.
     values: HashSet<String>,
+    /// The names in `values` that may be called: everything but enums and namespaces, which are
+    /// read through their members.
+    callables: HashSet<String>,
     /// Parameter counts of functions declared in this program or its surrounding document.
     arities: HashMap<String, usize>,
     /// Field counts of structs declared in this program: a constructor takes one value per field.
@@ -150,10 +164,15 @@ pub(crate) fn check_explicit_type_contracts_with(
     ast: &Ast,
     external: &ExternalDeclarations,
 ) -> Result<(), SemanticDiagnostic> {
-    let mut values = external
+    let mut callables = external
         .functions
         .keys()
         .chain(external.names.iter())
+        .cloned()
+        .collect::<HashSet<_>>();
+    let mut values = callables
+        .iter()
+        .chain(external.namespaces.iter())
         .cloned()
         .collect::<HashSet<_>>();
     let mut struct_fields = HashMap::new();
@@ -170,18 +189,22 @@ pub(crate) fn check_explicit_type_contracts_with(
         match declaration {
             AstNode::Function(function) => {
                 values.insert(function.name.clone());
+                callables.insert(function.name.clone());
                 arities.insert(function.name.clone(), function.params.len());
             }
             AstNode::StructDeclaration(structure) => {
                 values.insert(structure.name.clone());
+                callables.insert(structure.name.clone());
                 struct_fields.insert(structure.name.clone(), structure.fields.len());
             }
             AstNode::EnumDeclaration(enumeration) => {
+                // Read through its members (`Route.A`); neither backend calls an enum.
                 values.insert(enumeration.name.clone());
             }
             AstNode::Import(import) => {
                 for specifier in &import.specifiers {
                     values.insert(specifier.local.clone());
+                    callables.insert(specifier.local.clone());
                 }
             }
             _ => {}
@@ -222,6 +245,7 @@ pub(crate) fn check_explicit_type_contracts_with(
     let checker = TypeChecker {
         functions,
         values,
+        callables,
         arities,
         struct_fields,
         strict: Cell::new(false),
@@ -251,19 +275,24 @@ impl TypeChecker {
         *self.function_name.borrow_mut() = function.name.clone();
         if strict {
             let mut seen = HashSet::new();
-            for parameter in &function.params {
+            for (index, parameter) in function.params.iter().enumerate() {
                 if !seen.insert(parameter.as_str()) {
+                    // At the second occurrence, where the name is written again.
+                    let at = match function.param_locs.get(index) {
+                        Some(loc) => Some(loc.clone()),
+                        None => function.loc.clone(),
+                    };
                     return Err(diagnostic(
                         format!(
                             "[{HIDDEN_NAME}] function `{}` names parameter `{parameter}` twice; each parameter needs its own name",
                             function.name
                         ),
-                        &function.loc,
+                        &at,
                     ));
                 }
             }
         }
-        let mut function_scope = HashMap::new();
+        let mut function_scope = Frame::new();
         for (index, parameter) in function.params.iter().enumerate() {
             let declared_type = function
                 .param_types
@@ -315,7 +344,7 @@ impl TypeChecker {
         body: &[AstNode],
         function_name: &str,
         expected_return: Option<&str>,
-        scopes: &mut Vec<HashMap<String, BindingEvidence>>,
+        scopes: &mut Vec<Frame>,
     ) -> Result<(), SemanticDiagnostic> {
         for node in body {
             self.check_statement(node, function_name, expected_return, scopes)?;
@@ -328,7 +357,7 @@ impl TypeChecker {
         node: &AstNode,
         function_name: &str,
         expected_return: Option<&str>,
-        scopes: &mut Vec<HashMap<String, BindingEvidence>>,
+        scopes: &mut Vec<Frame>,
     ) -> Result<(), SemanticDiagnostic> {
         match node {
             AstNode::Return(ret) => {
@@ -422,7 +451,21 @@ impl TypeChecker {
                             // An untyped mutable binding has no stable contract after a write.
                             binding.observed_type = TypeEvidence::Unknown;
                         }
+                        // After `g = 5` the local holds a value. The checker does not follow
+                        // branches, so a local stays callable only while every value it was
+                        // given is a lambda.
+                        binding.callable = binding.callable
+                            && matches!(assignment.value.as_ref(), AstNode::LambdaExpression(_));
                     }
+                }
+            }
+            AstNode::MovementStatement(movement) if self.strict.get() => {
+                // `move <target> to <entity>` names two things. A target left out is `self`.
+                if movement.target != "self" {
+                    self.require_name(&movement.target, scopes, &movement.loc)?;
+                }
+                if let MovementDestination::EntityId(entity) = &movement.destination {
+                    self.require_name(entity, scopes, &movement.loc)?;
                 }
             }
             AstNode::CallExpression(_) => {
@@ -505,10 +548,12 @@ impl TypeChecker {
         Ok(())
     }
 
+    /// `scopes` is mutable only so a lambda can put its parameters on top of it for its body;
+    /// the stack is as it was when this returns `Ok`.
     fn infer_expression(
         &self,
         node: &AstNode,
-        scopes: &[HashMap<String, BindingEvidence>],
+        scopes: &mut Vec<Frame>,
     ) -> Result<TypeEvidence, SemanticDiagnostic> {
         match node {
             AstNode::String(_) => Ok(TypeEvidence::Known("string".to_string())),
@@ -547,26 +592,8 @@ impl TypeChecker {
                 let binding = lookup_binding(scopes, &callee.name);
                 let callable_local = binding.is_some_and(|binding| binding.callable);
                 if self.strict.get() && !callable_local {
-                    if !self.is_program_name(&callee.name) {
-                        let what = if binding.is_some() {
-                            format!(
-                                "`{}` is a value, not a function, in function `{}`",
-                                callee.name,
-                                self.function_name.borrow()
-                            )
-                        } else {
-                            format!(
-                                "unknown function `{}` called in function `{}`",
-                                callee.name,
-                                self.function_name.borrow()
-                            )
-                        };
-                        return Err(diagnostic(
-                            format!(
-                                "[{UNKNOWN_FUNCTION}] {what}; a called name must be a function or struct of this program, an import, a built-in, or a local holding a lambda"
-                            ),
-                            &call.loc,
-                        ));
+                    if !self.is_callable_name(&callee.name) {
+                        return Err(self.not_callable(&callee.name, binding.is_some(), &call.loc));
                     }
                     let got = call.arguments.len();
                     if let Some(&expected) = self.arities.get(&callee.name) {
@@ -678,29 +705,17 @@ impl TypeChecker {
             AstNode::ObjectLiteral(object) => {
                 for property in &object.properties {
                     self.infer_expression(&property.value, scopes)?;
+                    if self.strict.get() {
+                        if let Some(default) = &property.default_value {
+                            // `{ k: 1 = fallback }`: the fallback is an expression too.
+                            self.infer_expression(default, scopes)?;
+                        }
+                    }
                 }
                 Ok(TypeEvidence::Unknown)
             }
             AstNode::LambdaExpression(lambda) if self.strict.get() => {
-                let mut inner = scopes.to_vec();
-                inner.push(
-                    lambda
-                        .params
-                        .iter()
-                        .map(|parameter| {
-                            (
-                                parameter.clone(),
-                                BindingEvidence {
-                                    declared_type: None,
-                                    observed_type: TypeEvidence::Unknown,
-                                    mutable: false,
-                                    callable: false,
-                                },
-                            )
-                        })
-                        .collect(),
-                );
-                self.infer_expression(&lambda.body, &inner)?;
+                self.check_lambda_body(lambda, scopes)?;
                 Ok(TypeEvidence::Unknown)
             }
             AstNode::SpreadElement(spread) if self.strict.get() => {
@@ -711,12 +726,83 @@ impl TypeChecker {
         }
     }
 
-    /// A top-level function, struct, enum or import of this program (or of the surrounding
-    /// document), or a built-in.
+    /// A lambda's body, with the lambda's parameters in a frame on top of the shared stack. The
+    /// body is one expression and declares nothing, so the frame comes off afterwards and the
+    /// frames below are shared, not copied.
+    ///
+    /// This and [`Self::not_callable`] stay out of line: `infer_expression` recurses once per
+    /// nested expression, so whatever its own frame holds, every level pays for, and the depth
+    /// at which the WASM runs out of stack falls (a known trap, not fixed here).
+    #[inline(never)]
+    fn check_lambda_body(
+        &self,
+        lambda: &LambdaExpression,
+        scopes: &mut Vec<Frame>,
+    ) -> Result<(), SemanticDiagnostic> {
+        scopes.push(
+            lambda
+                .params
+                .iter()
+                .map(|parameter| {
+                    (
+                        parameter.clone(),
+                        BindingEvidence {
+                            declared_type: None,
+                            observed_type: TypeEvidence::Unknown,
+                            mutable: false,
+                            callable: false,
+                        },
+                    )
+                })
+                .collect(),
+        );
+        let body = self.infer_expression(&lambda.body, scopes);
+        scopes.pop();
+        body.map(|_| ())
+    }
+
+    /// HS-NAME-002 for a call to `name`, which may not be called here.
+    #[cold]
+    #[inline(never)]
+    fn not_callable(&self, name: &str, is_local: bool, loc: &Option<Location>) -> SemanticDiagnostic {
+        let function = self.function_name.borrow();
+        let what = if is_local {
+            format!("`{name}` is a value, not a function, in function `{function}`")
+        } else if self.is_program_name(name) {
+            format!("`{name}` is an enum or module, not a function, in function `{function}`")
+        } else {
+            format!("unknown function `{name}` called in function `{function}`")
+        };
+        diagnostic(
+            format!(
+                "[{UNKNOWN_FUNCTION}] {what}; a called name must be a function or struct of this program, an import, a built-in, or a local holding a lambda"
+            ),
+            loc,
+        )
+    }
+
+    /// A top-level function, struct, enum or import of this program, a function, name or
+    /// namespace of the surrounding document, or a built-in.
     fn is_program_name(&self, name: &str) -> bool {
-        self.values.contains(name)
-            || BUILTINS.contains(&name)
-            || crate::kotlin_emit::is_kotlin_builtin(name)
+        self.values.contains(name) || is_builtin(name)
+    }
+
+    /// A program name that may be called: not an enum or module.
+    fn is_callable_name(&self, name: &str) -> bool {
+        self.callables.contains(name) || is_builtin(name)
+    }
+
+    /// A bare name (not an expression node) must be visible: a `move` target or destination.
+    fn require_name(
+        &self,
+        name: &str,
+        scopes: &[Frame],
+        loc: &Option<Location>,
+    ) -> Result<(), SemanticDiagnostic> {
+        if lookup_binding(scopes, name).is_some() || self.is_program_name(name) {
+            return Ok(());
+        }
+        Err(self.unknown_name(name, loc))
     }
 
     fn unknown_name(&self, name: &str, loc: &Option<Location>) -> SemanticDiagnostic {
@@ -740,7 +826,7 @@ impl TypeChecker {
     fn require_fresh_name(
         &self,
         name: &str,
-        scopes: &[HashMap<String, BindingEvidence>],
+        scopes: &[Frame],
         loc: &Option<Location>,
     ) -> Result<(), SemanticDiagnostic> {
         if !self.strict.get() || lookup_binding(scopes, name).is_none() {
@@ -998,15 +1084,16 @@ fn is_string_evidence(evidence: &TypeEvidence) -> bool {
     matches!(evidence, TypeEvidence::Known(name) if name == "string")
 }
 
-fn lookup_binding<'a>(
-    scopes: &'a [HashMap<String, BindingEvidence>],
-    name: &str,
-) -> Option<&'a BindingEvidence> {
+fn is_builtin(name: &str) -> bool {
+    BUILTINS.contains(&name) || crate::kotlin_emit::is_kotlin_builtin(name)
+}
+
+fn lookup_binding<'a>(scopes: &'a [Frame], name: &str) -> Option<&'a BindingEvidence> {
     scopes.iter().rev().find_map(|scope| scope.get(name))
 }
 
 fn lookup_binding_mut<'a>(
-    scopes: &'a mut [HashMap<String, BindingEvidence>],
+    scopes: &'a mut [Frame],
     name: &str,
 ) -> Option<&'a mut BindingEvidence> {
     scopes
@@ -1453,9 +1540,15 @@ function main(): i32 {
 
     #[test]
     fn a_parameter_name_may_not_repeat() {
-        let (message, _, _) = reject_at("function f(a: i32, a: i32): i32 {\n  return a\n}");
+        // Reported where the name is written the second time, not at the function.
+        let (message, line, column) =
+            reject_at("function f(a: i32, a: i32): i32 {\n  return a\n}");
         assert!(message.contains(HIDDEN_NAME), "{message}");
         assert!(message.contains("names parameter `a` twice"), "{message}");
+        assert_eq!((line, column), (1, 20), "{message}");
+        let (_, line, column) =
+            reject_at("function f(\n  a: i32,\n  b: i32,\n  a: i32\n): i32 {\n  return a\n}");
+        assert_eq!((line, column), (4, 3));
         // Untyped legacy functions keep their earlier reading.
         admit("function f(a, a) {\n  return a\n}");
     }
@@ -1525,5 +1618,313 @@ function main(): i32 {
     fn unit_return_types_need_no_value() {
         admit("function f(x: i32): unit {\n  let y: i32 = x\n}");
         admit("function f(x: i32): void {\n  let y: i32 = x\n}");
+    }
+
+    // Findings of the second independent review (PR #438, claude3): four classes of fault that
+    // left every test green, one test each, then the smaller findings.
+
+    /// F2: a loop whose body returns, counted as returning. Its body may not run, and native never
+    /// counts a loop. `compile_to_uaal` has no every-path guard of its own any more, so the checker
+    /// is what keeps such a function out of UAAL bytecode.
+    #[test]
+    fn a_loop_at_the_end_never_counts_as_returning() {
+        for source in [
+            "function f(x: i32): i32 {\n  while (x > 0) {\n    return 1\n  }\n}",
+            "function f(x: i32): i32 {\n  for (i in 0..3) {\n    return i\n  }\n}",
+            "function f(x: i32): i32 {\n  if (x > 0) {\n    return 1\n  } else {\n    while (x < 0) {\n      return 2\n    }\n  }\n}",
+            "function f(x: i32): i32 {\n  scope {\n    while (x > 0) {\n      return 1\n    }\n  }\n}",
+        ] {
+            let (message, line, column) = reject_at(source);
+            assert!(message.contains(MISSING_RETURN), "{source}\n=> {message}");
+            assert_eq!((line, column), (1, 1), "{source}\n=> {message}");
+
+            let program = format!("{source}\n\nfunction main(): i32 {{\n  return f(1)\n}}");
+            let error = crate::uaal_emit::compile_source_to_uaal(&program)
+                .expect_err("compile_to_uaal must refuse a function that can end without a value");
+            assert!(
+                error.message.contains(MISSING_RETURN),
+                "{program}\n=> {}",
+                error.message
+            );
+        }
+    }
+
+    /// F3: a constructor takes exactly one value per field, too few as well as too many.
+    #[test]
+    fn a_struct_constructor_takes_exactly_one_value_per_field() {
+        let program = |values: &str| {
+            format!(
+                "struct V {{ x: i32, y: i32, z: i32 }}\n\nfunction f(): i32 {{\n  slot v: V = V({values})\n  return 1\n}}"
+            )
+        };
+        for (values, got) in [("1, 2", 2), ("", 0), ("1, 2, 3, 4", 4)] {
+            let (message, line, column) = reject_at(&program(values));
+            assert!(message.contains(ARITY_MISMATCH), "V({values})\n=> {message}");
+            assert!(
+                message.contains(&format!(
+                    "constructor `V` takes one value per field (3), got {got}"
+                )),
+                "V({values})\n=> {message}"
+            );
+            assert_eq!((line, column), (4, 15), "V({values})\n=> {message}");
+        }
+        admit(&program("1, 2, 3"));
+    }
+
+    /// F4: a name resolves wherever an expression uses it. The index in `a[nope]` was not walked.
+    #[test]
+    fn a_name_resolves_wherever_an_expression_uses_it() {
+        for statement in [
+            "return values[nope]",
+            "store(values[nope], 1)\n  return 1",
+            "return -nope",
+            "return 1 + nope",
+            "return x ?? nope",
+            "return id(nope)",
+            "return id(id(nope))",
+            "return nope.code",
+            "let xs = [1, nope]\n  return 1",
+            "let xs = [...nope]\n  return 1",
+            "let o = { k: nope }\n  return 1",
+            "let g = (a) => a + nope\n  return 1",
+            "let g = (a) => (b) => a + b + nope\n  return 1",
+            "if (nope > 0) {\n    return 1\n  }\n  return 2",
+            "while (nope) {\n  }\n  return 2",
+            "for (i in 0..nope) {\n  }\n  return 2",
+        ] {
+            let source = format!(
+                "function id(a: i32): i32 {{\n  return a\n}}\n\nfunction f(x: i32): i32 {{\n  slot values: [i32; 2] = [1, 2]\n  {statement}\n}}"
+            );
+            let (message, line, _) = reject_at(&source);
+            assert!(message.contains(UNKNOWN_NAME), "{statement}\n=> {message}");
+            assert!(
+                message.contains("unknown name `nope`"),
+                "{statement}\n=> {message}"
+            );
+            assert_eq!(line, 7, "{statement}\n=> {message}");
+        }
+    }
+
+    /// F5: a block's locals end with the block, for every kind of block. Without a frame of its
+    /// own, a `while` body's locals stayed visible after the loop.
+    #[test]
+    fn a_blocks_locals_end_with_the_block() {
+        for block in [
+            "while (n < 3) {\n    let t: i32 = n\n    n = n + 1\n  }",
+            "for (i in 0..3) {\n    let t: i32 = i\n  }",
+            "if (n > 0) {\n    let t: i32 = n\n  }",
+            "if (n > 0) {\n  } else {\n    let t: i32 = n\n  }",
+            "scope {\n    let t: i32 = n\n  }",
+        ] {
+            // Read after the block, the local is unknown.
+            let message = reject(&format!(
+                "function f(x: i32): i32 {{\n  var n: i32 = x\n  {block}\n  return t\n}}"
+            ));
+            assert!(message.contains(UNKNOWN_NAME), "{block}\n=> {message}");
+            assert!(message.contains("unknown name `t`"), "{block}\n=> {message}");
+            // Declared again after the block, it is a new local, not a hidden one.
+            admit(&format!(
+                "function f(x: i32): i32 {{\n  var n: i32 = x\n  {block}\n  let t: i32 = n\n  return t\n}}"
+            ));
+        }
+        // A loop variable ends with its loop.
+        let message = reject("function f(x: i32): i32 {\n  for (i in 0..3) {\n  }\n  return i\n}");
+        assert!(message.contains("unknown name `i`"), "{message}");
+    }
+
+    /// The spec's HS-NAME-002 covers a call to an enum: an enum, like a `.hsplus` module, is read
+    /// through its members and never called. Neither backend calls one.
+    #[test]
+    fn an_enum_or_module_is_read_through_its_members_and_never_called() {
+        let (message, line, column) =
+            reject_at("enum Route { A, B }\n\nfunction f(x: i32): i32 {\n  return Route(1)\n}");
+        assert!(message.contains(UNKNOWN_FUNCTION), "{message}");
+        assert!(
+            message.contains("`Route` is an enum or module, not a function"),
+            "{message}"
+        );
+        assert_eq!((line, column), (4, 10), "{message}");
+        admit("enum Route { A, B }\n\nfunction f(ok: bool): Route {\n  if (ok) {\n    return Route.A\n  }\n  return Route.B\n}");
+
+        // A `.hsplus` document's modules and enums arrive as namespaces.
+        let mut external = ExternalDeclarations::default();
+        external.namespaces.insert("GameState".to_string());
+        let reads =
+            parse_ast("function score(p: i32): i32 {\n  GameState.addScore(p)\n  return p\n}")
+                .expect("fixture should parse");
+        let alone = check_semantics(&reads).expect_err("alone, the module is unknown");
+        assert!(
+            alone.message.contains("unknown name `GameState`"),
+            "{}",
+            alone.message
+        );
+        check_semantics_with(&reads, &external)
+            .unwrap_or_else(|error| panic!("expected admission, got {}", error.message));
+        let calls = parse_ast("function score(p: i32): i32 {\n  return GameState(p)\n}")
+            .expect("fixture should parse");
+        let called = check_semantics_with(&calls, &external).expect_err("a module is not called");
+        assert!(
+            called
+                .message
+                .contains("`GameState` is an enum or module, not a function"),
+            "{}",
+            called.message
+        );
+    }
+
+    /// A local may be called only while every value it was given is a lambda. The checker does
+    /// not follow branches, so a value given in one branch is enough.
+    #[test]
+    fn a_local_stops_being_callable_once_it_is_given_a_value() {
+        admit("function f(a: i32): i32 {\n  var g = (x) => x + 1\n  g = (x) => x + 2\n  return g(1)\n}");
+        let (message, line, column) =
+            reject_at("function f(a: i32): i32 {\n  var g = (x) => x + 1\n  g = 5\n  return g(1)\n}");
+        assert!(message.contains(UNKNOWN_FUNCTION), "{message}");
+        assert!(message.contains("`g` is a value, not a function"), "{message}");
+        assert_eq!((line, column), (4, 10), "{message}");
+        for source in [
+            "function f(a: i32): i32 {\n  var g = (x) => x + 1\n  if (a > 0) {\n    g = 5\n  }\n  return g(1)\n}",
+            // The later lambda does not undo the value: either branch may have run.
+            "function f(a: i32): i32 {\n  var g = (x) => x + 1\n  if (a > 0) {\n    g = 5\n  } else {\n    g = (x) => x + 2\n  }\n  return g(1)\n}",
+            "function f(a: i32): i32 {\n  var g = 5\n  g = (x) => x + 2\n  return g(1)\n}",
+        ] {
+            let message = reject(source);
+            assert!(
+                message.contains("`g` is a value, not a function"),
+                "{source}\n=> {message}"
+            );
+        }
+    }
+
+    /// Names in an object literal's fallback values and in `move` statements resolve too.
+    #[test]
+    fn object_fallback_values_and_move_statements_resolve_their_names() {
+        for (body, name) in [
+            ("let o = { k: 1 = nowhere }\n  return 1", "nowhere"),
+            ("move nope to [1, 2, 3]\n  return 1", "nope"),
+            ("move to nope\n  return 1", "nope"),
+            ("move x to nope\n  return 1", "nope"),
+        ] {
+            let (message, line, _) =
+                reject_at(&format!("function f(x: i32): i32 {{\n  {body}\n}}"));
+            assert!(message.contains(UNKNOWN_NAME), "{body}\n=> {message}");
+            assert!(
+                message.contains(&format!("unknown name `{name}`")),
+                "{body}\n=> {message}"
+            );
+            assert_eq!(line, 2, "{body}\n=> {message}");
+        }
+        admit("function f(x: i32): i32 {\n  let o = { k: 1 = x }\n  return 1\n}");
+        admit("function f(x: i32, door: i32): i32 {\n  move x to door\n  move to [1, 2, 3]\n  return 1\n}");
+        // Untyped functions keep their earlier reading.
+        admit("function f(x) {\n  move nope to elsewhere\n  let o = { k: 1 = nowhere }\n  return 1\n}");
+    }
+
+    /// Columns count UTF-16 code units, the unit of a JavaScript string index and of an LSP
+    /// position: an emoji is two, a CJK character, an accented letter or a tab one.
+    #[test]
+    fn columns_count_utf16_code_units() {
+        for line in [
+            "  let s: string = \"abc\" let t: i32 = zz",
+            "  let s: string = \"日本語\" let t: i32 = zz",
+            "  let s: string = \"😀😀\" let t: i32 = zz",
+            "  let s: string = \"éé\" let t: i32 = zz",
+            "\tlet t: i32 = zz",
+        ] {
+            let at = line.find("zz").expect("fixture names zz");
+            let column = line[..at].encode_utf16().count() + 1;
+            for eol in ["\n", "\r\n"] {
+                let source = ["function f(): i32 {", line, "  return 1", "}"].join(eol);
+                let (message, actual_line, actual_column) = reject_at(&source);
+                assert!(message.contains("unknown name `zz`"), "{line:?}\n=> {message}");
+                assert_eq!(
+                    (actual_line, actual_column),
+                    (2, column),
+                    "{line:?} with {eol:?}"
+                );
+            }
+        }
+    }
+
+    /// Bytes this thread allocates, counted by the test binary's allocator, so a test can bound
+    /// the work a check does without timing it.
+    mod allocation {
+        use std::alloc::{GlobalAlloc, Layout, System};
+        use std::cell::Cell;
+
+        thread_local! {
+            static BYTES: Cell<u64> = const { Cell::new(0) };
+        }
+
+        struct Counting;
+
+        // SAFETY: every call is passed straight to `System`; the count is a side effect.
+        unsafe impl GlobalAlloc for Counting {
+            unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+                count(layout.size());
+                System.alloc(layout)
+            }
+
+            unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+                count(layout.size());
+                System.alloc_zeroed(layout)
+            }
+
+            unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+                System.dealloc(ptr, layout)
+            }
+
+            unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+                count(new_size);
+                System.realloc(ptr, layout, new_size)
+            }
+        }
+
+        fn count(bytes: usize) {
+            // An allocation while the thread's locals are being torn down is not counted.
+            let _ = BYTES.try_with(|total| total.set(total.get() + bytes as u64));
+        }
+
+        #[global_allocator]
+        static COUNTING: Counting = Counting;
+
+        pub(super) fn allocated() -> u64 {
+            BYTES.with(Cell::get)
+        }
+    }
+
+    /// The second review measured each lambda copying every binding in scope: 6,000 locals and
+    /// 6,000 lambdas took 18 s to check in the WASM build, against 0.15 s before G11. This bounds
+    /// the cost by counting the bytes a check allocates, not by timing it, so a loaded machine
+    /// cannot change the verdict: per declaration, a program sixteen times larger may cost at
+    /// most four times as much. Copying the scope for each lambda again costs sixteen times as
+    /// much per declaration here.
+    #[test]
+    fn checking_cost_grows_linearly_with_lambdas_and_locals() {
+        fn program(locals: usize) -> String {
+            let mut source = String::from("function f(x: i32): i32 {\n");
+            for i in 0..locals {
+                source.push_str(&format!("  let v{i}: i32 = x\n"));
+            }
+            for i in 0..locals {
+                source.push_str(&format!("  let g{i} = (a) => a + v{i}\n"));
+            }
+            source.push_str("  return x\n}\n");
+            source
+        }
+        fn bytes_per_declaration(locals: usize) -> f64 {
+            let ast = parse_ast(&program(locals)).expect("fixture should parse");
+            let before = allocation::allocated();
+            check_semantics(&ast)
+                .unwrap_or_else(|error| panic!("expected admission, got {}", error.message));
+            (allocation::allocated() - before) as f64 / (2 * locals) as f64
+        }
+        let small = bytes_per_declaration(250);
+        let large = bytes_per_declaration(4_000);
+        assert!(
+            large <= 4.0 * small,
+            "checking allocated {small:.0} bytes per declaration for 500 declarations and \
+             {large:.0} for 8,000: the cost grows faster than the program"
+        );
     }
 }
