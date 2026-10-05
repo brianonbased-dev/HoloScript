@@ -73,7 +73,6 @@ import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
 import { handleKolmogorovTaskScoreTool } from './tools/kolmogorov_task_score';
 import { handleCriticTool } from './critic-handler';
 import { handleFounderTool } from './founder-handler';
-import { handleDaemonLifecycleTool } from './daemon-lifecycle-tools';
 import { handlePremortemTool } from './premortem-handler';
 import {
   LEGACY_TRAIT_CATEGORY_ALIASES,
@@ -82,6 +81,7 @@ import {
 } from './trait-categories-from-core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { runForkSandboxGate, gateHoloScriptCode } from './security/fork-sandbox-gate';
+import { callerPrincipal } from './security/tool-scopes';
 import type { CapabilityManifest } from './security/sandbox-policy';
 
 /** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
@@ -586,7 +586,10 @@ export async function handleTool(
   }
 
   // All remaining holo_ tools go to the Graph tool handler
-  // (Oracle, Codebase, and Wisdom/Gotcha are now handled directly via the O(1) registry in index.ts)
+  // (Oracle, Codebase, and Wisdom/Gotcha are now handled directly via the O(1) registry in index.ts).
+  // That includes the daimōn tools: they run only through the index.ts registry, which binds the
+  // caller. handleTool's own daimōn branch sat below this line from 2026-05-18, never reached,
+  // and was removed (task mplw).
   if (name.startsWith('holo_')) {
     return handleGraphTool(name, args);
   }
@@ -852,32 +855,17 @@ export async function handleTool(
     // Slice A (research/2026-07-26_holomesh-mcp-identity-gap.md): stamp the verified
     // authenticated principal onto args so board mutation handlers can bind
     // `agent_id` to the caller instead of trusting it verbatim. Authoritative:
-    // delete any caller-supplied value first. The synthetic 'stdio-local' bridge is
-    // NOT a real principal -> stdio stays local-trust (no stamp).
+    // delete any caller-supplied value first. Only the local stdio user (no context, or
+    // the synthetic 'stdio-local' bridge) stays local-trust with no stamp. A call with no
+    // caller on the hosted server is stamped NO_CALLER_PRINCIPAL, so under
+    // HOLOMESH_BOARD_BIND_SIGNER=1 it cannot write as a named agent (task mplw).
     delete (args as Record<string, unknown>).__authAgentId;
-    const authPrincipal = effectiveSigningCtx?.signer;
-    if (typeof authPrincipal === 'string' && authPrincipal && authPrincipal !== 'stdio-local') {
+    const authPrincipal = callerPrincipal(effectiveSigningCtx);
+    if (authPrincipal !== undefined) {
       (args as Record<string, unknown>).__authAgentId = authPrincipal;
     }
     const { handleHoloMeshTool } = await import('./holomesh/index');
     return handleHoloMeshTool(name, args, effectiveSigningCtx);
-  }
-
-  // ConversationDaemon lifecycle tools (D.052 Brittney field / user daemon model)
-  if (
-    name === 'holo_create_daemon' ||
-    name === 'holo_get_daemon' ||
-    name === 'holo_update_daemon_ritual' ||
-    name === 'holo_list_daemons'
-  ) {
-    // task_1790062507560_px5q: same principal binding as the index.ts registry
-    // (the live dispatch path); 'stdio-local' is a sentinel the binder ignores.
-    const { defaultSignerMapsToCaller } = await import('./holomesh/identity/board-signer-binding');
-    const result = await handleDaemonLifecycleTool(name, args, {
-      signer: effectiveSigningCtx?.signer,
-      signerMapsToCaller: defaultSignerMapsToCaller,
-    });
-    if (result !== null) return result;
   }
 
   // Trait composition / ROS2 sync / economic contract (trait-tools.ts) — also in index.ts registry

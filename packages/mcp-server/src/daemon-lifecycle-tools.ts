@@ -58,6 +58,7 @@ import {
   type EmergenceRecord,
   type PersistedContextDelta,
 } from './daemon-emergence-store.js';
+import { NO_CALLER_PRINCIPAL } from './security/tool-scopes';
 
 // ─── In-Memory Daemon Store ─────────────────────────────────────────────────
 //
@@ -853,6 +854,21 @@ const CALLER_BOUND_TOOLS = new Set([
  */
 const OWNER_BOUND_TOOLS = new Set(['holo_observe_soul', 'holo_create_daemon']);
 
+/**
+ * Tools that create, write into or speak for a daimōn. A hosted call with no caller carries
+ * NO_CALLER_PRINCIPAL, and every such call carries the SAME one, so binding to it made
+ * "nobody" a shared owner: claude3's review of #474 (2026-10-04) watched one caller create a
+ * daimōn owned by holoscript-mcp:no-caller and a different caller rewrite it. Nobody may use
+ * these at all; reads (holo_get_daemon, holo_list_daemons) still bind as before.
+ */
+const NO_CALLER_REFUSED_TOOLS = new Set([
+  'holo_create_daemon',
+  'holo_observe_soul',
+  'holo_update_daemon_ritual',
+  'holo_daemon_turn',
+  'holo_daemon_emergence_check',
+]);
+
 /** The transport's verified principal, or null when there is none (stdio, unsigned, stdio-local). */
 function verifiedPrincipal(binding?: DaemonCallerBinding | null): string | null {
   const signer = binding?.signer;
@@ -891,6 +907,11 @@ function bindCallerToSigner(
 ): void {
   const signer = verifiedPrincipal(binding);
   if (signer === null) return;
+  if (signer === NO_CALLER_PRINCIPAL && NO_CALLER_REFUSED_TOOLS.has(name)) {
+    throw new UnauthorizedDaemonAccessError(
+      `${name} needs a caller: sign in, or send your own API key`
+    );
+  }
   if (CALLER_BOUND_TOOLS.has(name)) {
     const claimed = typeof args.callerId === 'string' ? args.callerId : '';
     if (claimed === '') args.callerId = signer;
