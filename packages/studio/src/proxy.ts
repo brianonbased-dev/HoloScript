@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 import { questProofGuardReason } from './lib/questProofGuards';
-import { callerCredentialRuleFor, classifyApiPath } from './lib/api-public-paths';
+import { callerCredentialRuleFor, classifyApiPath, publicRuleFor } from './lib/api-public-paths';
 import { SESSION_COOKIE_NAMES } from './lib/session-cookie-names';
 
 /** The header the mesh reads a caller key from. */
@@ -96,24 +96,23 @@ async function hasStudioSession(request: NextRequest): Promise<boolean> {
 }
 
 /**
- * The default for `/api/**`: a caller is required unless the path is declared
- * public in `lib/api-public-paths.ts`.
+ * The pathname with its percent-escapes decoded.
  *
- * Returns a refusal, or null to let the request through to its route — where
- * every existing per-route guard still runs. This is a floor, not a ceiling:
- * it is what a route gets when its author writes no guard at all, which was the
- * case for 164 of 236 route files when it was written.
- */
-/**
- * The pathname as the ROUTE will see it, not as it was typed.
+ * Why the gate looks at this spelling at all: a DYNAMIC segment reaches its
+ * handler decoded, so `/api/holomesh/agent/%73elf` is the `[id]` handler asked
+ * about "self". Classifying only the raw spelling would let that form walk past
+ * an `except` carve-out written as a literal — the carve-out would fail to match
+ * and the wildcard above it would answer instead, which is precisely the
+ * substitution the `self` carve-outs exist to prevent.
  *
- * Next resolves routes on the DECODED path, so `/api/holomesh/agent/%73elf`
- * and `/api/holomesh/agent/self` reach the same handler. Classifying the raw
- * spelling would let the encoded form walk straight past an `except` carve-out
- * written as a literal: the carve-out would fail to match and the wildcard
- * above it would answer instead — which is precisely the substitution the
- * `self` carve-outs exist to prevent. Decoding first makes the gate read the
- * same string the route reads.
+ * Why it cannot be the ONLY spelling: Next matches a FIXED segment against the
+ * spelling as typed. `/api/agents/fleet/%73cheduler-tick` is therefore not the
+ * tick's route at all; Next serves the sibling `[id]` route and hands it
+ * "scheduler-tick" decoded. The gate used to read only the decoded path and so
+ * admitted that request as the tick (reproduced on a real `next start` 16.3.3
+ * in the review of PR #445; an earlier version of this comment claimed Next
+ * resolves every route on the decoded path, which is true of dynamic segments
+ * and false of fixed ones).
  *
  * A malformed escape cannot be decoded; it is then classified exactly as it
  * arrived rather than waved through.
@@ -126,8 +125,36 @@ function decodedPathname(rawPathname: string): string {
   }
 }
 
+/**
+ * Do the typed and the decoded spelling of this path land on the same rules?
+ *
+ * For an escaped path the gate cannot know which handler Next will pick (see
+ * `decodedPathname`), so it must not let the escape choose the tier. A declared
+ * rule applies only when BOTH spellings resolve to it. Comparing the rule, not
+ * just its tier, also keeps `credentialHeaders` honest: a header one entry
+ * judges can never be borrowed through a spelling that matched a different one.
+ * A path with nothing escaped trivially agrees with itself.
+ */
+function spellingsAgree(rawPathname: string, pathname: string, method: string): boolean {
+  if (rawPathname === pathname) return true;
+  return (
+    publicRuleFor(rawPathname, method) === publicRuleFor(pathname, method) &&
+    callerCredentialRuleFor(rawPathname, method) === callerCredentialRuleFor(pathname, method)
+  );
+}
+
+/**
+ * The default for `/api/**`: a caller is required unless the path is declared
+ * public in `lib/api-public-paths.ts`.
+ *
+ * Returns a refusal, or null to let the request through to its route — where
+ * every existing per-route guard still runs. This is a floor, not a ceiling:
+ * it is what a route gets when its author writes no guard at all, which was the
+ * case for 164 of 236 route files when it was written.
+ */
 async function apiGate(request: NextRequest): Promise<NextResponse | null> {
-  const pathname = decodedPathname(request.nextUrl.pathname);
+  const rawPathname = request.nextUrl.pathname;
+  const pathname = decodedPathname(rawPathname);
   const method = request.method.toUpperCase();
 
   // A CORS preflight carries no cookies and no credentials by design — that is
@@ -135,10 +162,18 @@ async function apiGate(request: NextRequest): Promise<NextResponse | null> {
   // a browser before the real, credentialed request is ever sent.
   if (method === 'OPTIONS') return null;
 
-  const access = classifyApiPath(pathname, method);
+  // When the two spellings disagree the request is classified `session`: the
+  // safe default, and what a path that matched no rule gets anyway.
+  const access = spellingsAgree(rawPathname, pathname, method)
+    ? classifyApiPath(pathname, method)
+    : 'session';
   if (access === 'public') return null;
   if (access === 'caller-credential' && hasCallerCredential(request, pathname, method)) return null;
-  if (isBenchmarkRunner(request, pathname)) return null;
+  // The benchmark bypass is a declared admission too, scoped by path prefix, so
+  // it gets the same rule: BOTH spellings must sit under the prefix, or an
+  // escape (`/api/%62rittney`) would read as the benchmark's path to one reader
+  // and as a different route to the other.
+  if (isBenchmarkRunner(request, rawPathname) && isBenchmarkRunner(request, pathname)) return null;
   if (await hasStudioSession(request)) return null;
 
   return NextResponse.json(
