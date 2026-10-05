@@ -78,12 +78,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     if [ -z "$base" ]; then
       base=$(git rev-parse --verify --quiet origin/main 2>/dev/null || true)
     fi
-    # Three dots: diff from the merge-base, i.e. what THIS branch changed.
-    # Two dots compared the branch tip with the CURRENT trunk tip, so any
-    # packages/core change landed on main after the branch point read as this
-    # push's change and demanded the ~15-min core receipt (measured 2026-10-05:
-    # 1 core file by two dots, 0 by three, on a branch that never touched core).
-    if [ -n "$base" ]; then range="$base...$local_sha"; else force_check=1; continue; fi
+    if [ -n "$base" ]; then range="$base..$local_sha"; else force_check=1; continue; fi
   else
     range="$remote_sha..$local_sha"
   fi
