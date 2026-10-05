@@ -26,6 +26,7 @@
 
 // !! MUST be first import — populates process.env from .env before any module-level
 // `const X = process.env.X || ''` constants are evaluated. No-op on Railway.
+import { briefForAgent } from '@holoscript/absorb-service/mcp';
 import './utils/load-env';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -596,7 +597,8 @@ export async function _handleSingleToolLogic(
       throw new Error(`Unknown tool: ${name}`);
     }
 
-    const result = await handler(name, args || {}, signingCtx);
+    // Codebase-brain answers reach agents short, with follow-ups; detail:"full" opts out.
+    const result = briefForAgent(name, args || {}, await handler(name, args || {}, signingCtx));
 
     // Tools that returned null failed to match inside their specialized handler (should be rare with Map)
     if (result === null) {

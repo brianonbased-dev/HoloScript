@@ -93,6 +93,12 @@ export const graphRagTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        detail: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description:
+            'brief (default): a short answer with the decisive facts, what was omitted, and followUps (exact next calls). full: the complete original answer.',
+        },
         query: {
           type: 'string',
           description:
@@ -162,6 +168,12 @@ export const graphRagTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        detail: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description:
+            'brief (default): a short answer with the decisive facts, what was omitted, and followUps (exact next calls). full: the complete original answer.',
+        },
         question: {
           type: 'string',
           description:

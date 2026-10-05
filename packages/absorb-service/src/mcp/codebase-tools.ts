@@ -6025,6 +6025,12 @@ export const codebaseTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        detail: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description:
+            'brief (default): a short answer with the decisive facts, what was omitted, and followUps (exact next calls). full: the complete original answer.',
+        },
         rootDir: {
           type: 'string',
           description:
@@ -6280,6 +6286,12 @@ export const codebaseTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        detail: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description:
+            'brief (default): a short answer with the decisive facts, what was omitted, and followUps (exact next calls). full: the complete original answer.',
+        },
         query: {
           type: 'string',
           description:
@@ -6333,6 +6345,12 @@ export const codebaseTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        detail: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description:
+            'brief (default): a short answer with the decisive facts, what was omitted, and followUps (exact next calls). full: the complete original answer.',
+        },
         changedFiles: {
           type: 'array',
           items: { type: 'string' },
@@ -6397,6 +6415,12 @@ export const codebaseTools: Tool[] = [
     inputSchema: {
       type: 'object',
       properties: {
+        detail: {
+          type: 'string',
+          enum: ['brief', 'full'],
+          description:
+            'brief (default): a short answer with the decisive facts, what was omitted, and followUps (exact next calls). full: the complete original answer.',
+        },
         forceRefresh: {
           type: 'boolean',
           description:

@@ -46,3 +46,6 @@ export {
   setKnowledgeExtractionGraph,
   getActiveGraph,
 } from './knowledge-extraction-tools';
+
+// Agent-facing short answers with follow-ups (see agent-brief.ts).
+export { AGENT_BRIEF_TOOLS, briefForAgent } from './agent-brief';
