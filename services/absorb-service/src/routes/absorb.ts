@@ -45,13 +45,19 @@ const CreateProjectSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
+// One shared load of the engine for the scan route: the root check and the scan read the same module, and two scans arriving together do not each start their own import.
+let enginePromise: Promise<any> | undefined;
+const loadEngine = () => (enginePromise ??= import('@holoscript/absorb-service/engine'));
+let creditsPromise: Promise<any> | undefined;
+const loadCredits = () => (creditsPromise ??= import('@holoscript/absorb-service/credits'));
+
 // POST /scan — Scan a codebase
 router.post('/scan', async (req: Request, res: Response) => {
   try {
     const body = ScanRequestSchema.parse(req.body);
     // The scan root must sit inside the folders this server may scan; before
     // 2026-10-04 any authenticated caller could map any server directory here.
-    const { absorbRootRefusal } = await import('@holoscript/absorb-service/engine');
+    const { absorbRootRefusal } = await loadEngine();
     const rootRefusal = absorbRootRefusal(body.path);
     if (rootRefusal) {
       return res.status(403).json({ error: 'path_not_allowed', message: rootRefusal });
@@ -85,7 +91,7 @@ router.post('/scan', async (req: Request, res: Response) => {
     }
 
     // Lazy import to avoid loading heavy modules at startup
-    const engineModule = await import('@holoscript/absorb-service/engine');
+    const engineModule = await loadEngine();
     const { CodebaseScanner, CodebaseGraph } = (engineModule as any).default || engineModule;
 
     // @ts-ignore - Automatic remediation for TS18046
@@ -140,7 +146,7 @@ router.post('/scan', async (req: Request, res: Response) => {
     // predicate when the right one was already imported.
     const scanUserId = userUuid(req);
     if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
-      const creditsModule = await import('@holoscript/absorb-service/credits');
+      const creditsModule = await loadCredits();
       const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
       const userId = scanUserId;
       const opType = body.shallow ? 'absorb_shallow' : 'absorb_deep';
