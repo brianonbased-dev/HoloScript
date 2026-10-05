@@ -1,11 +1,12 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-08-04T19:33:19Z",
+  "generatedAt": "2026-10-05T06:06:22Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "580d91e32dfaff6162a51df20dfd79da737165e2",
+  "sourceCommit": "45ff26c0f38bca18bf43312159e1fb5664b5ab34",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
-    "node scripts/build-wasm.mjs (wasm-pack build --target web --out-dir pkg --release)"
+    "node scripts/build-wasm.mjs (wasm-pack build --target web --out-dir pkg --release), run as pnpm --filter @holoscript/wasm run build",
+    "wasm-pack build --target web --out-dir <temp>/g15r2-web-b --release (fresh CARGO_TARGET_DIR)"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -15,10 +16,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 526813,
-    "wasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
-    "previousWasmSha256": "3d13e4f2cce966d119300a3d5f59c980d60847559876e0d08f1f203e6cec1637",
-    "repeatBuildSha256Matched": null,
-    "note": "Regenerated from the merged compiler-artifact-refresh stack on current canon (merge of holoscript-native-compiler-artifact-refresh-v1-20260803 onto 7b00ee93d). Fresh release build with the receipted toolchain; digest pinned from the produced artifact."
+    "wasmBytes": 531848,
+    "wasmSha256": "6bc043ec7d168061ac7a7388a5b8cb906926833afe00b43224421207bb4d3480",
+    "previousWasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
+    "repeatBuildSha256Matched": true,
+    "note": "Rebuilt so the package's default entry reads frames as pkg-node/ does (claude3's review of PR #456). The previous browser build, from 580d91e32 (2026-08-04), predated G15: it read an omitted allowed_tools as [], which since G15 means no tool, while pkg-node/ read [\"*\"]. Built from 45ff26c0f; a second release build in a fresh CARGO_TARGET_DIR gave the same sha256, which is also the sha256 of pkg-node/, so both packages hold one WASM. The generated .js and .d.ts are byte-identical to the committed files; only the wasm changes. rustc 1.91.0. No version bump."
   }
 }

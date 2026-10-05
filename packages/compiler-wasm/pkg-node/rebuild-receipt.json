@@ -1,13 +1,13 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-node.rebuild-receipt.v1",
-  "generatedAt": "2026-09-29T01:16:53Z",
+  "generatedAt": "2026-10-05T06:08:57Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "35c83b36c58ea2bc3c1fe75b6b98b82087cdd95e",
+  "sourceCommit": "45ff26c0f38bca18bf43312159e1fb5664b5ab34",
   "artifactPath": "packages/compiler-wasm/pkg-node",
   "commands": [
-    "wasm-pack build --target nodejs --out-dir <temp>/g15-pkg-node-r2 --release",
-    "wasm-pack build --target nodejs --out-dir <temp>/g15-pkg-node-r2b --release (fresh CARGO_TARGET_DIR)",
-    "compare both builds with the committed pkg-node files (byte-identical; nothing copied)"
+    "wasm-pack build --target nodejs --out-dir <temp>/g15r2-node-a --release",
+    "wasm-pack build --target nodejs --out-dir <temp>/g15r2-node-b --release (fresh CARGO_TARGET_DIR)",
+    "copy holoscript_wasm_bg.wasm from g15r2-node-a into pkg-node; the generated .js, .d.ts and _bg.wasm.d.ts are byte-identical to the committed files, and pkg-node/package.json is kept"
   ],
   "toolchain": {
     "rustc": "1.91.0",
@@ -16,11 +16,11 @@
   },
   "result": {
     "rebuilt": true,
-    "artifactBytesChanged": false,
-    "wasmBytes": 527897,
-    "wasmSha256": "2f0522fa80bc04d9bc4c0da8b0222f697380b1b56fe32a71d4357bb4b7ef1a14",
+    "artifactBytesChanged": true,
+    "wasmBytes": 531848,
+    "wasmSha256": "6bc043ec7d168061ac7a7388a5b8cb906926833afe00b43224421207bb4d3480",
     "previousWasmSha256": "2f0522fa80bc04d9bc4c0da8b0222f697380b1b56fe32a71d4357bb4b7ef1a14",
     "repeatBuildSha256Matched": true,
-    "note": "Re-verified pkg-node against 35c83b36c, whose compiler-wasm change is a test module only (the shared G15 frame cases). Two release builds, the second in a fresh CARGO_TARGET_DIR, reproduced the committed artifact byte for byte, so the wasm is not re-committed and only this receipt moves. The artifact is the G15 build from c1c4c7699 (d721b1b33): an omitted allowed_tools parses to [\"*\"], a written [] stays empty, a written non-list parses to []. Its previous artifact, 905099d1b2f5dd8f70c4288f2e0ecd5af9c8f7f3e6412479507dd99f789c8d85 (481,843 bytes), was built with rustc 1.98.1; the unchanged parent source built here with rustc 1.91.0 is 527,786 bytes, so G15 adds 111 bytes and the rest is the toolchain. rustc 1.91.0. The browser build in pkg/ was not rebuilt. No version bump."
+    "note": "Built from 45ff26c0f (G15 review 2): the Rust reader now refuses a frame holding a key that looks like a frame key but is not one (allowedTools, allowed_tool), and a frame node built from such a directive without the parser permits no tool. Two release builds, the second in a fresh CARGO_TARGET_DIR, gave the same sha256, and both browser builds of the same source (pkg/) gave it too, so pkg/ and pkg-node/ now hold one WASM. rustc 1.91.0. No version bump."
   }
 }
