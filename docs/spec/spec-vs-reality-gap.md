@@ -33,7 +33,7 @@
 | G14 | `.hsplus` has its own types and checker                     | untyped bodies are raw text (JavaScript and garbage accepted); only typed-function bodies are checked; `@trait` is an "Unknown directive"                                                                                                          | ❌                                    |
 | G15 | agent frames bound tool use                                 | `allowed_tools: []` permits every tool (TS and Rust)                                                                                                                                                                                               | ❌                                    |
 | G16 | Spec v0.1 examples are machine-checked                      | all 94 fences match their verdicts, but the test checks success only, not what was kept                                                                                                                                                            | ⚠️                                    |
-| G17 | the teaching docs work                                      | 232 of 889 HoloScript examples fail or keep nothing; Holoschool lessons 07–10 mostly fail                                                                                                                                                          | ❌                                    |
+| G17 | the teaching docs work                                      | 215 of 795 HoloScript examples fail or keep nothing; Holoschool lessons 07–10 mostly fail                                                                                                                                                          | ❌                                    |
 | G18 | one file ending, one reader                                 | true for `holoscript validate` only; `parse`, `compile`, `build`, `diff` and `run` read `.hs` with other readers and accept what `validate` refuses                                                                                                | ❌                                    |
 | G19 | `.hsplus` compiles to targets, never through JavaScript     | bodies run via `new Function`; webgpu, godot and urdf compile no behavior; webgpu emits a TypeScript host                                                                                                                                          | ❌                                    |
 | G20 | the three-surface tracer is a language property             | the gate script rewrites `.hs` source and branches in TypeScript; imports are inert; an import from a missing file passes                                                                                                                          | ⚠️ **harness**                        |
@@ -76,8 +76,9 @@ UAAL VM.
 
 **Verified real.** i32 overflow wraps identically on native and UAAL (`2147483647 + 1` gives
 `-2147483648`; `65536 * 65536` gives `0`). Implicit numeric conversions and out-of-range
-literals are refused by the checker and both backends. UAAL refuses integer `/`, `%`, unary
-`-`, `!` and `??` with `HS-UAAL-CAP` codes instead of approximating them. `compiler-native` is
+literals are refused by the checker and both backends. UAAL refuses integer `/`, `%` and `??`
+with `HS-UAAL-CAP-001` instead of approximating them; it does not lower unary `!` or unary `-`
+on a name (a plain error, no code), and `-5` is a number literal and compiles. `compiler-native` is
 a real Cranelift backend with ownership forms (`&T`, `&mut T`, lifetimes, `scope`, `slot`,
 move, drop) that no other surface has; all 25 `distributions/systems/conformance` programs are
 valid. 68 of the 137 tracked `.hs` files pass `validate_detailed`, reproducing the Stage 1 notes
@@ -106,9 +107,10 @@ facade census below.
 **Facade census.** 2,232 `.hsplus` files are facade twins: a
 `// Native .hsplus surface for <file>.ts` header and one `@trait` block with `capability_tags`,
 an `@receipt` block and a median of two handlers (2,249 files carry the header). On 2026-06-25
-between 05:51 and 17:36, 117 commits added 2,266 `.hsplus` files, 2,217 of them facades; 116 of
-those commits are titled "D.104 … wave" and each also rewrote `native-coverage-baseline.json`,
-which went from 162 native files (22.6%, 2026-06-22) to 3,719 (86.2%). No generator was
+between 05:30 and 17:36, 117 commits added 2,266 `.hsplus` files, 2,217 of them facades; 116 of
+those commits also rewrote `native-coverage-baseline.json` (70 are titled "D.104 … wave"). That
+day the baseline went from 1,847 native files (75.8%) to 4,114 (87.42%); it was 162 (22.6%) on
+2026-06-22 and was reseeded to 3,719 (86.2%) on 2026-07-17. No generator was
 committed. Their handlers call 2,666 distinct functions, and 2,655 of
 them are defined nowhere (no HoloScript definition, no builtin table). Nothing loads them except
 `packages/std/src/math.hsplus` and `collections.hsplus`. They are counted by
@@ -129,7 +131,7 @@ results, split by this census:
 | "Different meaning" among both      | 1,684         | 1,682         | 2           |
 | Accepted by the TypeScript only     | 130           | 0             | 130         |
 
-Of the 202 hand-written `.hsplus` files, the Rust reader accepts 9 and the TypeScript reader 130. For `.holo`, 971 of the 1,001 files the Rust reader accepts are 20-line trait schema cards;
+Of the 238 `.hsplus` files that are not facades, the Rust reader accepts 41 (the table above). For `.holo`, 971 of the 1,001 files the Rust reader accepts are 20-line trait schema cards;
 of the 586 compositions and other `.holo` files, the Rust reader accepts 30 and the composition
 reader 511. The case for one grammar therefore rests on design (one grammar, one checker, bodies
 parsed), not on corpus acceptance: on hand-written code the Rust grammar reads far less than the
@@ -276,9 +278,10 @@ The gate replaces it with a real number from the tree.
   `.githooks/pre-commit` block like Gate 5e) is an optional follow-up; the `check:*` entry is the
   CI hook.
 - **CORRECTION 2026-09-28 — the ratio counts facades.** 2,232 facade `.hsplus` twins (facade
-  census in the 2026-09-28 audit above) raised it from 22.6% to 86.2% on 2026-06-25; nothing
-  runs them and their handlers call functions that do not exist. As enforced: 86.31%. Without
-  the facades: 71.84%. Also without 192 `.holo` trait cards nothing consumes: 68.75%. The ratchet
+  census in the 2026-09-28 audit above) raised it from 75.8% to 87.4% on 2026-06-25 (it was
+  22.6% on 2026-06-22, and was reseeded to 86.2% on 2026-07-17); nothing runs them and their
+  handlers call functions that do not exist. As enforced: 86.31%. Without the facades: 71.84%.
+  Also without 192 `.holo` trait cards nothing consumes: 69.03%. The ratchet
   (`check-native-coverage.mjs` 222–231) would fail if the facades were deleted, so today it
   rewards keeping them; its comment at line 82 ("six bulk commits") undercounts the 116
   baseline-rewriting commits of 2026-06-25.
@@ -356,20 +359,26 @@ another. This is the "fleet agents all communicating with each other" gap (MEMOR
   `null`. `function f(x: Banana): Kiwi { return x.peel() }` and
   `function f(x: number): string { return x.toFixed(2) }`: valid. `break` inside `while`: valid
   (read as a bare identifier), refused by both. `a ?? 3` on a plain `i32`: valid / refused /
-  refused. Untyped `let a = 7`: valid / `requires an explicit type` / refused. Mismatches between
+  refused. Untyped `let a = 7`: valid / `requires an explicit type` / `return a` gives 7 (UAAL
+  refuses it only in arithmetic or a comparison, `HS-UAAL-CAP-001`). Mismatches between
   two known types are caught (`add(true, false)`, `return "hello"` from `i32`). The backends
   also accept different subsets: native refuses `var` locals and loops
   (`hs-machine-v5 local i must be immutable`), UAAL runs them (sum 0..9 = 45); UAAL refuses
-  integer `/`, `%`, unary `-` and `!`, native runs them. Every checker error reports line 0,
-  column 0.
+  integer `/` and `%` and does not lower unary `-` on a name or unary `!`; native runs them.
+  Syntax errors carry a line and column; the checker's meaning errors (every `HS-TYPE-*` code,
+  assignment to an immutable or undeclared name, an unguarded `@unknown` struct field) report
+  line 0, column 0.
 - **Scope/blast:** move name, arity, return-path and scope checks into the shared checker; the
   backends keep only capability refusals. Route C in the 2026-09-27 route study would make this
   checker "the only judge of meaning", so this is the first step of that route, not a side task.
-- **STATUS — OPEN; proposal accepted under the Spec v0.1 gate rule (2026-09-28), implementation in progress:**
+- **STATUS — OPEN; proposal built in PR #438 (gates 1 to 3); gate 4 pending, so not yet accepted:**
   [`proposals/HS_Checker_Names_Calls_Returns_v1.md`](../../proposals/HS_Checker_Names_Calls_Returns_v1.md).
   Measured impact: 0 of 68 valid `.hs` files (256 typed functions) and 0 of 13 typed `.hsplus`
   functions would break, given the proposed fragment mode for the `.hsplus` bridge. The cases are
-  recorded as `g11-*` honest gaps in the spec corpus.
+  recorded as honest gaps in the spec corpus: `g11-unknown-local-001`, `g11-unknown-function-002`,
+  `g11-arity-003`, `g11-missing-return-004`, `g11-return-one-path-005`, `g11-unknown-types-006`,
+  `g11-break-identifier-007`, `g11-coalesce-plain-008`, `g11-use-after-block-009` and
+  `g11-hidden-name-010`.
 
 ## G12 — Domain words are reserved keywords in the systems grammar
 
@@ -385,7 +394,7 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
 - **Scope/blast:** contextual keywords (a keyword only in top-level declaration position) keep every
   accepted file parsing and free the words as names. It changes accepted syntax, so it goes
   through the Spec v0.1 proposal process.
-- **STATUS — OPEN.**
+- **STATUS — OPEN.** On record as honest gaps in the spec corpus: `g12-reserved-local-001` and `g12-reserved-param-002`.
 
 ## G13 — `.holo` keeps less than it accepts, beyond Spec v0.1 Known gap 1
 
@@ -396,7 +405,9 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
 - **Failing-if-broken evidence (all `valid: true`, no warning):** an object's
   `on_click { state.clicks += 1 }` becomes a property `on_click` with no value; `objetc Cube {}`
   becomes `DomainBlock { domain: "custom", keyword: "objetc" }`;
-  `function f() { this is not code at all ))) ((( }` becomes a trait named `@`;
+  `function f() { this is not code at all ))) ((( }` is dropped with `valid: true` at the root, at
+  composition level and in a `logic` block, and inside an `object` becomes a property `f` holding
+  an empty event handler;
   `world Room { object Cube { … } }` becomes
   `DomainBlock { domain: "architecture", keyword: "Room", name: "unnamed" }` — the name and the
   word `world` are gone. The runtime side is board task task_1785868122515_x7u4.
@@ -432,7 +443,7 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
   puts it in the backlog.
 - **Scope/blast:** distinguish an omitted field from an explicit empty list; warn first. Existing
   brains may rely on today's meaning, so it needs a written proposal.
-- **STATUS — OPEN; proposal accepted under the Spec v0.1 gate rule (2026-09-28):**
+- **STATUS — OPEN; proposal built in PR #456 (gates 1 to 3); gate 4 pending, so not yet accepted:**
   [`proposals/Agent_Frame_Tool_Allowlist_v1.md`](../../proposals/Agent_Frame_Tool_Allowlist_v1.md)
   — `["*"]` for every tool, `[]` for none, omitted unchanged. Measured: one file writes `[]`
   (`compositions/frame-declaration-example.hsplus`, deliberately meaning "every tool"; it migrates
@@ -458,9 +469,9 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
   the router assigns to its fence tag, and keeps its content.
 - **Real seam:** fenced blocks in `docs/holoschool`, `docs/guides`, `docs/language`, `docs/traits`,
   `docs/examples`, `docs/cookbook`, routed through `validateCanonicalSource`.
-- **Failing-if-broken evidence (measured 2026-09-28 on main a1a0a0ef6, 1,492 fences, 889 tagged
-  `holo`/`hsplus`/`hs`/`holoscript`):** 216 rejected and 16 accepted-but-empty (about 1 in 4).
-  By tag: `holo` 102/148 valid, `hsplus` 181/226, `hs` 133/242. Holoschool level 1, the newcomer
+- **Failing-if-broken evidence (measured 2026-09-28 on main a1a0a0ef6, 1,398 fences in these
+  directories, 795 tagged `holo`/`hsplus`/`hs`/`holoscript`):** 200 rejected and 15
+  accepted-but-empty (27%). By tag: `holo` 78/120 valid, `hsplus` 161/201, `hs` 100/201. Holoschool level 1, the newcomer
   path: 81 of 113 valid — lessons 00–04 all valid, 07 9/17, 08 5/17 (`object X using Template`
   is refused), 09 2/9, 10 0/2. `docs/examples/hello-world.md:7` uses `execute`, which the `.hs`
   reader refuses. `docs/language/reference-hsplus-pipeline.md` (25) and

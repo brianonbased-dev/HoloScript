@@ -114,7 +114,8 @@ authoritative for its extension.
 The `.hs` path uses stable type diagnostics for return, assignment, call
 argument, and known non-boolean logical-operand mismatches. UAAL lowering
 rejects many operations whose semantics are not preserved by the current VM ABI
-(integer `/` and `%`, unary `-` and `!`, unproven truthiness) instead of
+(integer `/` and `%`, `??`, unproven truthiness; unary `-` on a name and unary `!` are not
+lowered) instead of
 silently widening or eagerly evaluating them.
 
 **Measured exception, 2026-09-28: recursion and block scope.** `compile_to_uaal`

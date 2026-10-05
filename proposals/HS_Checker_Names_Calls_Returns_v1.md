@@ -1,6 +1,6 @@
 # `.hs` checker: names, calls and returns (G11) — v1
 
-**Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28). Implementation in progress. Originally proposed under the Spec v0.1 no-break policy
+**Status:** Proposed 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28). Built in PR #438 with gates 1 to 3 (measured breakage, corpus, switch-off run); gate 4, a reviewer of another seat in another session, pending, so not yet accepted. Originally proposed under the Spec v0.1 no-break policy
 (`docs/spec/holoscript-spec-v0.1.md`, "Any new syntax, or any change to syntax the readers accept
 today, needs a written proposal before it is built").
 **Gap:** G11 in [`docs/spec/spec-vs-reality-gap.md`](../docs/spec/spec-vs-reality-gap.md).
@@ -39,8 +39,10 @@ legacy functions keep today's reading.
 These are the rules the native backend already enforces (`hs-machine-v1`/`v5` messages) and that
 `compile_to_uaal` enforces after PR #428. The checker becomes the one place that says so first.
 
-Each new diagnostic carries the line and column of the offending node. Today every checker error
-reports line 0, column 0.
+Each new diagnostic carries the line and column of the offending node. Today syntax errors carry
+a position, but the checker's meaning errors (every `HS-TYPE-*` code, assignment to an immutable or
+undeclared name, an unguarded `@unknown` field) report line 0, column 0: only function, struct and
+enum nodes carry a location, so phase 1 adds one to statements and expressions.
 
 **Fragment mode (`.hsplus`).** The `.hsplus` reader sends each typed function to the checker on its
 own (`HoloScriptPlusParser.ts`, `checkTypedHsFunction`). It will also pass the names and argument
@@ -80,10 +82,12 @@ blocks, struct constructors, enum members (`Route.EnterWorld`), `load`/`store` o
 ## What existing files would break
 
 Measured 2026-09-28 on main `a1a0a0ef6` with the committed `pkg-node` checker and a measurement
-prototype of these rules (scratch, not product code), cross-checked against both backends:
+prototype of these rules (scratch, not product code), cross-checked against both backends. The
+prototype was never committed. The built checker (PR #438) was then measured on the tracked files
+themselves: 0 of the 68 valid `.hs` files and 0 of 2,474 `.hsplus` files change verdict.
 
 - **`.hs`: 0 of 68 valid files; 0 of their 256 typed functions.** 54 of the files compile natively
-  and 6 more through `compile_to_uaal`, and both backends enforce these rules; 5 contain no typed
+  and 8 more through `compile_to_uaal`, and both backends enforce these rules; 5 contain no typed
   functions; the last (`Routing.logic.hs`, one typed function) was inspected by hand.
 - **`.hsplus`: 0 of 13 typed functions in hand-written files**, given fragment mode. Without it, 9
   functions in `packages/secrets-broker/src/repository_identity.hsplus` would be refused, because

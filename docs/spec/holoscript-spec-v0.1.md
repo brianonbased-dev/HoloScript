@@ -868,7 +868,7 @@ A `.holo`, `.hs`, or `.hsplus` file that parses under 0.1.0 must keep parsing in
 
 Any new syntax, or any change to what the readers accept today, needs a written proposal before it is built. The proposal says what the change is, why, examples of the new form, what existing files would break (measured, not estimated), and the test that proves the claim. Proposals live in `proposals/`.
 
-**Approval is by gates, not by a person.** On 2026-09-28 Joseph said: "as long as we have our gates, rules, and tools helping agents make the right decisions and go in the right directions my approvals are a bottleneck." This replaces the 2026-09-27 rule that he approves each proposal. A proposal is approved when all four hold:
+**Approval is by gates, not by a person.** On 2026-09-28, asked to approve the G11 and G15 proposals, Joseph said: "as long as we have our gates, rules, and tools helping agents make the right decisions and go in the right directions my approvals are a bottleneck." This replaces the 2026-09-27 rule that he approves each proposal, on his condition: the gates must work. A proposal stays Proposed until all four hold for it, recorded on its pull request; a gate that cannot go red does not count. Asked on 2026-10-05 whether that covers every language change, not only those two proposals, he answered: "yes by gates not by me" (record: `holo-dev/decisions/2026-10-05_language-changes-are-approved-by-gates.md`). A proposal is approved when all four hold:
 
 1. It is written, with the measured list of files it breaks.
 2. The executable spec corpus passes (`node scripts/holo-ci/check-spec-corpus.mjs --strict`), and every honest-gap case the change closes is flipped on purpose.

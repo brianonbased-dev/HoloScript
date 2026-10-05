@@ -1,6 +1,6 @@
 # Agent frames: a way to say "no tools" (G15) — v1
 
-**Status:** Accepted 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28).
+**Status:** Proposed 2026-09-28 under the Spec v0.1 gate rule (approval by gates, not by a person; founder direction 2026-09-28). Built in PR #456 with gates 1 to 3 (measured breakage, corpus, switch-off run); gate 4, a reviewer of another seat in another session, pending, so not yet accepted. Enforcement is in TypeScript: core's frame trait, the agent loader and the MCP server's SDK transport. The Rust checker only parses frames. The server's stateless tool routes (POST /mcp, POST /tools/call) do not run the frame check yet: task_1790649717250_6fef.
 **Gap:** G15 in [`docs/spec/spec-vs-reality-gap.md`](../docs/spec/spec-vs-reality-gap.md).
 **Board:** task_1790587169083_1y5v.
 
@@ -34,7 +34,11 @@ Code seams: `packages/core/src/traits/FrameDeclarationTrait.ts` (`DEFAULT_FRAME`
 `allowed_tools: ["*"]`; the check allows a tool when the list contains `*` or the tool, and denies
 everything for an empty list) and `packages/compiler-wasm/src/ast.rs` (an omitted `allowed_tools`
 defaults to `["*"]` instead of an empty vector; the doc comment "Empty vec = all tools permitted"
-changes accordingly).
+changes accordingly). A third seam was missing here (claude3's review, 2026-10-04): the agent
+loader reads a brain's frame itself, and `packages/holoscript-agent/src/brain.ts:180` turns an
+omitted `allowed_tools` into `[]`, which `packages/mcp-server/src/tool-call-checks.ts:129` passes
+to `checkToolAllowed`. It must default an omitted list to `["*"]` too, or every brain that omits
+the field goes from every tool to none.
 
 ## Why
 
@@ -53,14 +57,19 @@ ai-ecosystem:
 - Four files list specific tools (`compositions/founder-core.hs`,
   `compositions/frame-declaration-example.hsplus` twice, `examples/three-surface-agent/agent.hsplus`,
   `packages/holoscript-agent/src/brains/holoscript-engineer.hsplus`): unchanged.
-- Every other brain omits the field: unchanged.
+- Every other brain omits the field: unchanged, once the agent loader's default changes with the
+  trait (the seam above). Without that, every one of them would lose every tool.
+- ai-ecosystem: an academy training episode copies `TrustedAnalyst` with `[]`
+  (`research/holoai-academy-v0/holoscript-native-slice-graduated.v0.jsonl:71`). It runs nothing,
+  but it teaches the old meaning; it changes to `["*"]` with the migration.
 - Tests that build a frame with `allowed_tools: []` expecting "every tool"
   (`packages/core/src/traits/__tests__/FrameDeclarationTrait.test.ts:58`) change to `["*"]`.
 
 ## The test that proves it
 
-1. A frame with `allowed_tools: []` denies every tool call, in the TypeScript trait and in the Rust
-   AST/evaluator path.
+1. A frame with `allowed_tools: []` denies every tool call, in the TypeScript trait, in the agent
+   loader and in the MCP gate. Rust only parses the field (`ast.rs`); it evaluates no frame, so
+   its test is that an omitted list parses as `["*"]`.
 2. `["*"]` allows any tool; an omitted list allows any tool; `["read"]` allows only `read`.
 3. `TrustedAnalyst` still allows every tool after its migration.
 4. Fed the old rule (empty = all), test 1 fails.

@@ -206,10 +206,10 @@ _conformance bugs against the growing authority_, not a missing spec.
 
 > **Correction, 2026-09-28 (measured).** That corpus is mostly facade twins: 2,232 `.hsplus`
 > files that only describe TypeScript files, added on 2026-06-25 (facade census in
-> [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md)). On the 202 hand-written `.hsplus`
-> files, the Rust authority accepts 9 and the TypeScript parser 130; on the 586 `.holo`
-> compositions and other non-card files, 30 and 511. The direction of this decision stands; its
-> present coverage is about 1 in 20 real `.hsplus` files, not 98%. Grammar authority (①) and
+> [`spec-vs-reality-gap.md`](./spec-vs-reality-gap.md)). Of the 238 `.hsplus` files that are not
+> facades, the Rust authority accepts 41; on the 586 `.holo` compositions and other non-card
+> files, the Rust authority accepts 30 and the TypeScript composition reader 511. The direction
+> of this decision stands; its present coverage is about 1 in 6 real `.hsplus` files, not 98%. Grammar authority (①) and
 > meaning (②, HoloMeaning) remain separate decisions: a checker attached to the grammar checks
 > source, and HoloMeaning stays the one definition of meaning (§3).
 
@@ -260,7 +260,7 @@ at the pre-commit dev floor (Gate 5g2) and in the HoloCI catalog (`language-stra
 - **§5 grammar-authority** (`check:grammar-authority`) — ✅ shipped (catalog, full profile): wires the
   existing Rust↔TS differential (`shadow-compare-rust-ts.mjs`) as a regression gate against a frozen
   baseline (`shadow-compare-results-2026-07-17.json`; authority parses **97.96%** of the 2,303-file
-  `.hsplus` corpus) and chains `check:compiler-wasm-drift` for freshness. On landing it correctly
+  `.hsplus` corpus, mostly facade twins; see the 2026-09-28 correction above) and chains `check:compiler-wasm-drift` for freshness. On landing it correctly
   surfaces a **pre-existing** stale artifact (`compiler-wasm/src` advanced past `pkg-node`) — a real
   drift needing a Rust-equipped node to rebuild; filed. The regression half (`--skip-drift`) is green.
 - **6.1 stratum tags, 6.4 bare-uAAL lint** — the remaining two; small, next.
