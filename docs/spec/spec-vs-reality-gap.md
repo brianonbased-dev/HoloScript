@@ -593,8 +593,10 @@ var`. NORTH_STAR rule 4: never hardcode domain vocabulary into core.
 - **Scope/blast:** proposal
   [`Host_Capability_Imports_v1.md`](../../proposals/Host_Capability_Imports_v1.md): `holo:<name>`
   names a capability module declared in `.hs` and embedded in the checker; named imports only;
-  codes `HS-HOST-001`–`005`; a call lowers to a UAAL `EXEC` bound per service; permission by
-  import list, a run switch and the agent's frame (after G15). First proof: HoloAbsorb's manifest
+  codes `HS-HOST-001`–`007`; a call lowers to a UAAL `EXEC` bound per service; permission by
+  import list, the operator's run switch (each run's handler table is built from it) and both the
+  file's and the running agent's frame (after G15); until a gated route exists, only pure
+  capabilities run in-process. First proof: HoloAbsorb's manifest
   audit, with no network. Measured breakage: none (no tracked file imports from `holo:`).
 - **STATUS — PHASE 1 BUILT, in review (2026-09-29; board task chz8).** The checker reads
   `holo:` imports against the embedded `holo:absorb` declarations (`HS-HOST-001`–`004`, and
