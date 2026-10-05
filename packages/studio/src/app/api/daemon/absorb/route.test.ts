@@ -135,4 +135,41 @@ describe('/api/daemon/absorb route', () => {
     const body = await res.json();
     expect(body.error).toMatch(/Failed to run absorb_run_absorb/i);
   });
+
+  it('POST reports the real MCP and HTTP failure reasons, not a generic message', async () => {
+    callMcpToolMock.mockResolvedValue({
+      ok: false,
+      data: null,
+      error: 'MCP absorb_run_absorb request failed: fetch failed',
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('upstream down', { status: 503 }))
+    );
+
+    const req = new NextRequest('http://localhost/api/daemon/absorb', {
+      method: 'POST',
+      body: JSON.stringify({ projectId: 'proj-loud' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.detail).toBe(
+      'MCP: MCP absorb_run_absorb request failed: fetch failed; HTTP 503: upstream down'
+    );
+  });
+
+  it('POST refuses a malformed JSON body with the parse error', async () => {
+    const req = new NextRequest('http://localhost/api/daemon/absorb', {
+      method: 'POST',
+      body: 'not json',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/^Invalid JSON body: /);
+    expect(callMcpToolMock).not.toHaveBeenCalled();
+  });
 });

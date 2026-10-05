@@ -120,4 +120,52 @@ describe('/api/absorb/projects/[id]/absorb route', () => {
     const body = await res.json();
     expect(body.error).toMatch(/Failed to run absorb_run_absorb/i);
   });
+
+  it('reports the real MCP and HTTP failure reasons (route + recorded job), not a generic message', async () => {
+    callMcpToolMock.mockResolvedValue({
+      ok: false,
+      data: null,
+      error: 'MCP absorb_run_absorb HTTP 401 Unauthorized: bad key',
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response('Cannot POST /api/absorb/projects/p405/absorb', { status: 404 })
+        )
+    );
+
+    const req = new NextRequest('http://localhost/api/absorb/projects/p405/absorb', {
+      method: 'POST',
+      body: JSON.stringify({ depth: 'shallow' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ id: 'p405' }) });
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.detail).toContain('MCP absorb_run_absorb HTTP 401 Unauthorized: bad key');
+    expect(body.detail).toContain('HTTP 404: Cannot POST /api/absorb/projects/p405/absorb');
+    const state = JSON.parse(
+      fs.readFileSync(path.join(tempRoot, '.absorb-projects.json'), 'utf-8')
+    ) as { projects: Array<{ absorbJobs: Array<{ status: string; error: string | null }> }> };
+    const recorded = state.projects[0].absorbJobs[0];
+    expect(recorded.status).toBe('failed');
+    expect(recorded.error).toContain('HTTP 401 Unauthorized');
+    expect(recorded.error).toContain('HTTP 404');
+    expect(recorded.error).not.toBe('MCP and HTTP absorb calls failed');
+  });
+
+  it('refuses a malformed JSON body with the parse error instead of running with defaults', async () => {
+    const req = new NextRequest('http://localhost/api/absorb/projects/p400/absorb', {
+      method: 'POST',
+      body: '{"depth":',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await POST(req, { params: Promise.resolve({ id: 'p400' }) });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toMatch(/^Invalid JSON body: /);
+    expect(callMcpToolMock).not.toHaveBeenCalled();
+  });
 });

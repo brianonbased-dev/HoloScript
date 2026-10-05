@@ -11,6 +11,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { runDaemonJob, type AbsorbGraphData } from './runner';
+import { absorbEmptyLabel } from '@/lib/daemon/honestyLabels';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
 import { getWorkspacesRoot, isInsidePath } from '@/lib/workspace/workspaceFs';
 import type {
@@ -148,6 +149,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
           communities: result.absorb.communities,
           totalFiles: result.absorb.totalFiles,
           totalSymbols: result.absorb.totalSymbols,
+          filesScanned: result.absorb.filesScanned,
           durationMs: result.absorb.durationMs,
           graphJson: result.absorb.graphJson,
           hubFiles: Object.entries(result.absorb.inDegree)
@@ -158,19 +160,18 @@ async function executeDaemonJob(jobId: string): Promise<void> {
         }
       : undefined;
 
-    const zeroDelta =
-      result.success &&
-      result.patches.length === 0 &&
-      result.qualityDelta === 0;
+    const zeroDelta = result.success && result.patches.length === 0 && result.qualityDelta === 0;
     const emptyAbsorb =
       result.success &&
       (result.absorb == null || result.absorb.totalFiles === 0) &&
       result.patches.length === 0;
     const status = result.success ? 'completed' : 'failed';
     const statusMessage = !result.success
-      ? result.error ?? result.summary
+      ? (result.error ?? result.summary)
       : emptyAbsorb
-        ? 'Blocked — Absorb empty'
+        ? result.absorb && result.absorb.filesScanned > 0
+          ? absorbEmptyLabel(result.absorb.filesScanned)
+          : 'Blocked — Absorb empty'
         : zeroDelta && result.filesAnalyzed === 0
           ? 'Finished, nothing examined'
           : zeroDelta
@@ -184,7 +185,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       statusMessage,
       updatedAt: nowIso(),
       summary: result.summary,
-      error: result.success ? undefined : result.error ?? result.summary,
+      error: result.success ? undefined : (result.error ?? result.summary),
       metrics: {
         qualityDelta: result.qualityDelta,
         qualityBefore: result.qualityBefore,
@@ -208,7 +209,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       qualityDelta: result.qualityDelta,
       filesChanged: result.filesChanged,
       patchCount: result.patches.length,
-      error: result.success ? undefined : result.error ?? result.summary,
+      error: result.success ? undefined : (result.error ?? result.summary),
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);

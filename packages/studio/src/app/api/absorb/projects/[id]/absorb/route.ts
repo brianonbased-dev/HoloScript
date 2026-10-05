@@ -8,11 +8,18 @@ import { corsHeaders } from '../../../../_lib/cors';
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params;
 
+  // An empty body means "defaults"; a malformed one is refused with the parse
+  // error instead of silently running with defaults.
   let body: Record<string, unknown> = {};
-  try {
-    body = await req.json();
-  } catch (err) {
-    console.error('[API absorb/projects/[id]/absorb] parsing request body failed:', err);
+  const rawBody = await req.text();
+  if (rawBody.trim() !== '') {
+    try {
+      body = JSON.parse(rawBody);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error('[API absorb/projects/[id]/absorb] parsing request body failed:', message);
+      return NextResponse.json({ error: `Invalid JSON body: ${message}` }, { status: 400 });
+    }
   }
 
   // POST directly to MCP tool
@@ -34,8 +41,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json(mcpResult.data);
   }
 
-  // Fallback to HTTP API
-  let httpError: unknown = null;
+  // Fallback to HTTP API. Every failure reason is kept and reported.
+  const failures: string[] = [`MCP: ${mcpResult.error ?? 'absorb_run_absorb returned no result'}`];
   try {
     const res = await fetch(`${ABSORB_BASE}/api/absorb/projects/${projectId}/absorb`, {
       method: 'POST',
@@ -57,10 +64,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
       return NextResponse.json(data);
     }
+    const text = await res.text().catch((err: unknown) => `(body unreadable: ${String(err)})`);
+    failures.push(`HTTP ${res.status}: ${text.slice(0, 300)}`);
   } catch (err) {
-    httpError = err;
-    console.error('[API absorb/projects/[id]/absorb] HTTP fallback failed:', err);
+    failures.push(`HTTP fallback threw: ${err instanceof Error ? err.message : String(err)}`);
   }
+  const failure = failures.join('; ');
+  console.error(`[API absorb/projects/[id]/absorb] absorb failed for ${projectId}: ${failure}`);
 
   recordAbsorbJob({
     projectId,
@@ -69,11 +79,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     tier: body.tier,
     request: body,
     result: null,
-    error: httpError ?? 'MCP and HTTP absorb calls failed',
+    error: failure,
   });
 
   return NextResponse.json(
-    { error: 'Failed to run absorb_run_absorb. Ensure the orchestrator is running.' },
+    {
+      error: 'Failed to run absorb_run_absorb. Ensure the orchestrator is running.',
+      detail: failure,
+    },
     { status: 502 }
   );
 }

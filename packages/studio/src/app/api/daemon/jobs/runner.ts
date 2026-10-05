@@ -3,21 +3,28 @@
  *
  * Pipeline: absorb → diagnose → validate
  *
- * Phase 0  (absorb)    — CodebaseScanner builds dependency graph of the
- *                        isolated workspace; leaf-first file ordering guides
- *                        fix candidates so hub nodes are touched last.
+ * Phase 0  (absorb)    — CodebaseScanner (in-process, from
+ *                        @holoscript/absorb-service/engine) builds the
+ *                        dependency graph of the isolated workspace; leaf-first
+ *                        file ordering guides fix candidates so hub nodes are
+ *                        touched last.
  * Phase 1  (diagnose)  — tsc + vitest + eslint baseline quality assessment.
  * Phase 2  (validate)  — Fix cycles with graph-informed candidate ordering;
  *                        re-assess after each cycle; stop on plateau.
  *
- * Safety: Each job runs in an isolated temp directory (a shallow copy of the
+ * Safety: Each job runs in an isolated temp directory (a copy of the
  * uploaded project). Patches are NEVER auto-applied; they are returned as
  * diff proposals for the user to review in the Studio UI.
+ *
+ * Failure policy: nothing in this file swallows an error. A step that decides
+ * the result (copy, absorb) fails the job with the real error text; a step
+ * that is advisory (rollback snapshot, cleanup, one file's fix) logs a warn
+ * line carrying the real error text and the job continues.
  *
  * @module daemon/runner
  */
 
-import { exec, execFile } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -30,6 +37,7 @@ import type {
   DaemonProjectDNA,
   PatchProposal,
 } from '@/lib/daemon/types';
+import { absorbEmptyLabel } from '@/lib/daemon/honestyLabels';
 
 // =============================================================================
 // ABSORB TYPES (mirrors CodebaseGraph serialized shape)
@@ -89,10 +97,15 @@ export interface AbsorbGraphData {
   durationMs: number;
   /** Serialized graph JSON (for persistence / visualization) */
   graphJson: string;
+  /**
+   * Files the scanner was handed: every non-ignored file in the workspace copy.
+   * Set even when the graph comes back empty, so "empty graph" can say how many
+   * files it looked at instead of reading like an empty repo.
+   */
+  filesScanned: number;
 }
 
 const execAsync = promisify(exec);
-const execFileAsync = promisify(execFile);
 
 export interface DaemonRunResult {
   success: boolean;
@@ -175,172 +188,159 @@ const GLOBAL_DENYLIST = [
 // =============================================================================
 
 /**
- * Phase 0: Build a dependency graph of the isolated workspace using
- * CodebaseScanner + CodebaseGraph from @holoscript/core/codebase.
+ * Phase 0: Build a dependency graph of the isolated workspace in-process with
+ * CodebaseScanner + CodebaseGraph from @holoscript/absorb-service/engine.
  *
- * Returns leaf-first file ordering and in-degree map so fix cycles
- * can target the safest (lowest-dependency) files first.
- *
- * Gracefully degrades: if @holoscript/core/codebase is unavailable (e.g.
- * build failure during CI), the function returns an empty AbsorbGraphData
- * so the rest of the pipeline continues without the graph.
+ * The scan runs inside the Studio server against the Studio filesystem. Until
+ * 2026-10-05 this POSTed the workspace path to `${ABSORB_SERVICE}/scan`. That
+ * route does not exist (the absorb service mounts POST /api/absorb/scan, behind
+ * auth), and a path on this container is not on the absorb service's disk in
+ * any case, so every HoloHeal got a 404, the error was dropped, and the job
+ * reported an empty graph. Errors now propagate: the caller fails the job with
+ * the real message instead of treating a broken scan as an empty project.
  */
-async function runAbsorbPhase(
+export async function runAbsorbPhase(
   workDir: string,
-  depth: 'shallow' | 'medium' | 'deep' = 'shallow'
-): Promise<AbsorbGraphData> {
+  filesScanned: number
+): Promise<{ graph: AbsorbGraphData; scanErrors: string[] }> {
   const absorbStart = Date.now();
+  const engine = await import('@holoscript/absorb-service/engine');
 
-  const empty: AbsorbGraphData = {
-    leafFirstOrder: [],
-    inDegree: {},
-    communities: {},
-    totalFiles: 0,
-    totalSymbols: 0,
-    durationMs: 0,
-    graphJson: '{}',
-  };
+  // Workers resolve their script next to the package's dist folder, which a
+  // bundled server chunk does not have; parse on this thread.
+  const scanner = new engine.CodebaseScanner(undefined, false);
+  const scanResult = await scanner.scan({ rootDir: workDir });
 
-  try {
-    const { ENDPOINTS } = await import('@holoscript/config');
-    const absorbUrl = ENDPOINTS.ABSORB_SERVICE;
+  const graph = new engine.CodebaseGraph();
+  graph.buildFromScanResult(scanResult);
 
-    // Delegate codebase scanning to the headless absorb-service
-    const res = await fetch(`${absorbUrl}/scan`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // In a real environment, provide an API key if required
-      },
-      body: JSON.stringify({
-        path: workDir,
-        shallow: depth === 'shallow',
-      }),
-      signal: AbortSignal.timeout(60000),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Absorb service failed with status ${res.status}`);
+  // In-degree: how many OTHER files import this one (high = hub = risky).
+  const inDegree: Record<string, number> = {};
+  for (const file of scanResult.files) {
+    if (!(file.path in inDegree)) inDegree[file.path] = 0;
+    for (const imp of file.imports ?? []) {
+      if (imp.resolvedPath) {
+        inDegree[imp.resolvedPath] = (inDegree[imp.resolvedPath] ?? 0) + 1;
+      }
     }
-
-    const data = await res.json();
-
-    // The absorb-service now computes and returns the graph topology directly
-    if (data.topology) {
-      return {
-        leafFirstOrder: data.topology.leafFirstOrder || [],
-        inDegree: data.topology.inDegree || {},
-        communities: data.topology.communities || {},
-        totalFiles: data.fileCount || 0,
-        totalSymbols: data.stats?.totalSymbols || 0,
-        durationMs: Date.now() - absorbStart,
-        graphJson: data.topology.graphJson || '{}',
-      };
-    }
-
-    return { ...empty, durationMs: Date.now() - absorbStart };
-  } catch (_err) {
-    // Core not available or scan failed — continue without graph
-    return { ...empty, durationMs: Date.now() - absorbStart };
   }
+  const leafFirstOrder = scanResult.files
+    .map((f) => f.path)
+    .sort((a, b) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
+
+  const communities: Record<string, number> = {};
+  let communityIndex = 0;
+  for (const members of graph.detectCommunities().values()) {
+    for (const filePath of members) communities[filePath] = communityIndex;
+    communityIndex += 1;
+  }
+
+  const stats = graph.getStats();
+  const scanErrors = (scanResult.stats.errors ?? []).map((e: unknown) =>
+    typeof e === 'string' ? e : JSON.stringify(e)
+  );
+
+  return {
+    graph: {
+      leafFirstOrder,
+      inDegree,
+      communities,
+      totalFiles: stats.totalFiles,
+      totalSymbols: stats.totalSymbols,
+      durationMs: Date.now() - absorbStart,
+      graphJson: graph.serialize(),
+      filesScanned,
+    },
+    scanErrors,
+  };
 }
 
 // =============================================================================
 // WORKSPACE MANAGEMENT
 // =============================================================================
 
+/** Directory names never copied into a daemon workspace (any depth). */
+const WORKSPACE_COPY_EXCLUDED_DIRS = new Set(['node_modules', '.git', 'dist', '.next']);
+
 /**
- * Creates an isolated workspace directory for the daemon to operate in.
- * This is a shallow copy: only the file listing metadata is copied; actual
- * file reads happen on-demand from the original project path.
+ * Same excludes the old rsync call used: node_modules, .git, dist, .next,
+ * *.pem, *.key, .env* (matched on the entry name at any depth).
  */
-async function createIsolatedWorkspace(
+export function isExcludedFromWorkspaceCopy(name: string): boolean {
+  return (
+    WORKSPACE_COPY_EXCLUDED_DIRS.has(name) ||
+    name.endsWith('.pem') ||
+    name.endsWith('.key') ||
+    name.startsWith('.env')
+  );
+}
+
+/**
+ * Creates an isolated workspace directory for the daemon to operate in and
+ * copies the project into it with Node's fs.promises.cp.
+ *
+ * Until 2026-10-05 the copy shelled out to rsync (robocopy on Windows). The
+ * Studio runtime image (node:20-alpine) has no rsync, the ENOENT was swallowed,
+ * and every job ran on an empty folder. The copy now uses no external binary,
+ * and any copy error rejects (after removing the partial folder) so the job
+ * fails with the real error text.
+ */
+export async function createIsolatedWorkspace(
   projectPath: string,
   jobId: string
 ): Promise<{ workDir: string; cleanup: () => Promise<void> }> {
   const tmpBase = path.join(os.tmpdir(), 'holoscript-daemon');
-  if (!fs.existsSync(tmpBase)) {
-    fs.mkdirSync(tmpBase, { recursive: true });
-  }
+  fs.mkdirSync(tmpBase, { recursive: true });
 
   const workDir = path.join(tmpBase, jobId);
-  fs.mkdirSync(workDir, { recursive: true });
+  const cleanup = async () => {
+    await fs.promises.rm(workDir, { recursive: true, force: true });
+  };
 
-  // Create a snapshot marker so we know this is a daemon workspace
-  fs.writeFileSync(
-    path.join(workDir, '.daemon-workspace.json'),
-    JSON.stringify({
-      jobId,
-      projectPath,
-      createdAt: new Date().toISOString(),
-      readonly: true,
-    }),
-    'utf-8'
-  );
-
-  // Copy project structure for analysis (skip node_modules and .git).
-  // SEC-T02: Use execFile (argv-based) instead of exec (shell-parsed). The
-  // projectPath is caller-validated upstream, but defense-in-depth demands
-  // that the child process never see a shell interpreter at all.
   try {
-    const isWindows = process.platform === 'win32';
-    if (isWindows) {
-      await execFileAsync(
-        'robocopy',
-        [
-          projectPath,
-          workDir,
-          '/E',
-          '/XD',
-          'node_modules',
-          '.git',
-          'dist',
-          '.next',
-          '/XF',
-          '*.pem',
-          '*.key',
-          '.env',
-          '/NFL',
-          '/NDL',
-          '/NJH',
-          '/NJS',
-          '/nc',
-          '/ns',
-          '/np',
-        ],
-        { timeout: 30_000 }
-      ).catch(() => {
-        // robocopy returns non-zero for success (1 = files copied), only 8+ is error
-      });
-    } else {
-      await execFileAsync(
-        'rsync',
-        [
-          '-a',
-          '--exclude=node_modules',
-          '--exclude=.git',
-          '--exclude=dist',
-          '--exclude=.next',
-          '--exclude=*.pem',
-          '--exclude=*.key',
-          '--exclude=.env*',
-          `${projectPath}/`,
-          `${workDir}/`,
-        ],
-        { timeout: 30_000 }
+    const sourceStat = await fs.promises.stat(projectPath);
+    if (!sourceStat.isDirectory()) {
+      throw new Error(`projectPath is not a directory: ${projectPath}`);
+    }
+
+    fs.mkdirSync(workDir, { recursive: true });
+
+    // Copy project for analysis. The source root itself is always copied; the
+    // filter only drops excluded entries beneath it.
+    await fs.promises.cp(projectPath, workDir, {
+      recursive: true,
+      force: true,
+      errorOnExist: false,
+      verbatimSymlinks: true,
+      filter: (src) =>
+        path.resolve(src) === path.resolve(projectPath) ||
+        !isExcludedFromWorkspaceCopy(path.basename(src)),
+    });
+
+    // Marker written after the copy so a project file of the same name cannot
+    // overwrite it.
+    fs.writeFileSync(
+      path.join(workDir, '.daemon-workspace.json'),
+      JSON.stringify({
+        jobId,
+        projectPath,
+        createdAt: new Date().toISOString(),
+        readonly: true,
+      }),
+      'utf-8'
+    );
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    try {
+      await cleanup();
+    } catch (cleanupErr: unknown) {
+      const cmsg = cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+      throw new Error(
+        `copy ${projectPath} -> ${workDir} failed: ${msg} (and removing the partial copy failed: ${cmsg})`
       );
     }
-  } catch {
-    // If copy fails, we still have the workspace dir for analysis
+    throw new Error(`copy ${projectPath} -> ${workDir} failed: ${msg}`);
   }
-
-  const cleanup = async () => {
-    try {
-      fs.rmSync(workDir, { recursive: true, force: true });
-    } catch {
-      // Best-effort cleanup
-    }
-  };
 
   return { workDir, cleanup };
 }
@@ -355,17 +355,14 @@ async function createIsolatedWorkspace(
  */
 
 /** Count non-ignored source-ish files under a workspace copy (for empty-absorb honesty). */
-function countSourceFiles(root: string, max = 5000): number {
+export function countSourceFiles(root: string, max = 5000): number {
   let count = 0;
   const skip = new Set(['node_modules', '.git', 'dist', '.next', 'coverage', 'build', 'out']);
   function walk(dir: string) {
     if (count >= max) return;
-    let entries: fs.Dirent[];
-    try {
-      entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
+    // An unreadable directory throws: a count that silently skips it would
+    // under-report what the scanner was given.
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       if (count >= max) return;
       if (entry.name.startsWith('.') && entry.name !== '.daemon-workspace.json') {
@@ -394,30 +391,23 @@ async function createRollbackSnapshot(workDir: string, jobId: string): Promise<s
 
   // Store file hashes for rollback verification
   const fileList: Array<{ path: string; size: number; mtime: string }> = [];
+  // Errors propagate to the caller, which logs them (the snapshot is advisory).
   function walk(dir: string, base: string) {
-    try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.name === 'node_modules' || entry.name === '.git') continue;
-        const fullPath = path.join(dir, entry.name);
-        const relPath = path.join(base, entry.name);
-        if (entry.isDirectory()) {
-          walk(fullPath, relPath);
-        } else {
-          try {
-            const stat = fs.statSync(fullPath);
-            fileList.push({
-              path: relPath,
-              size: stat.size,
-              mtime: stat.mtime.toISOString(),
-            });
-          } catch {
-            // Skip unreadable files
-          }
-        }
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.name === 'node_modules' || entry.name === '.git') continue;
+      const fullPath = path.join(dir, entry.name);
+      const relPath = path.join(base, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath, relPath);
+      } else {
+        const stat = fs.lstatSync(fullPath);
+        fileList.push({
+          path: relPath,
+          size: stat.size,
+          mtime: stat.mtime.toISOString(),
+        });
       }
-    } catch {
-      // Skip unreadable directories
     }
   }
 
@@ -493,6 +483,28 @@ interface QualityCheckResult {
   lintErrors: number;
   lintWarnings: number;
   compositeScore: number;
+  /** Checks that could not run or could not be read, with the real error text. */
+  issues: string[];
+}
+
+/**
+ * A tool that exits non-zero because it FOUND problems still printed its report;
+ * that output is the result. A tool that could not run at all (not installed,
+ * killed by the timeout, spawn failure) printed nothing useful: rethrow so the
+ * caller records the failure instead of scoring an empty report as clean.
+ */
+function outputOrThrow(err: unknown): { stdout: string; stderr: string } {
+  const e = (err ?? {}) as Record<string, unknown>;
+  const stdout = String(e.stdout ?? '');
+  const stderr = String(e.stderr ?? '');
+  if (e.killed || e.signal || (stdout.trim() === '' && stderr.trim() === '')) {
+    throw err instanceof Error ? err : new Error(String(err));
+  }
+  return { stdout, stderr };
+}
+
+function errText(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 async function assessQuality(workDir: string): Promise<QualityCheckResult> {
@@ -503,6 +515,7 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
     lintErrors: 0,
     lintWarnings: 0,
     compositeScore: 0,
+    issues: [],
   };
 
   // Type check
@@ -511,36 +524,33 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
       cwd: workDir,
       timeout: 120_000,
       maxBuffer: 50 * 1024 * 1024,
-    }).catch((err: unknown) => {
-      const e = err as Record<string, unknown>;
-      return { stdout: String(e.stdout ?? ''), stderr: String(e.stderr ?? '') };
-    });
+    }).catch(outputOrThrow);
     const output = String(stdout) + String(stderr);
     const tsErrors = (output.match(/error TS\d+/g) ?? []).length;
     result.typeErrors = tsErrors;
-  } catch {
+  } catch (err: unknown) {
     result.typeErrors = -1; // Unknown
+    result.issues.push(`tsc could not run: ${errText(err)}`);
   }
 
   // Test suite
   try {
-    const { stdout } = await execAsync('npx vitest run --reporter=json 2>&1', {
+    const { stdout, stderr } = await execAsync('npx vitest run --reporter=json 2>&1', {
       cwd: workDir,
       timeout: 180_000,
       maxBuffer: 50 * 1024 * 1024,
-    }).catch((err: unknown) => {
-      const e = err as Record<string, unknown>;
-      return { stdout: String(e.stdout ?? '') + String(e.stderr ?? '') };
-    });
-    const output = String(stdout);
+    }).catch(outputOrThrow);
+    const output = String(stdout) + String(stderr);
     const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
       result.testsPassed = parsed.numPassedTests ?? 0;
       result.testsTotal = parsed.numTotalTests ?? 0;
+    } else {
+      result.issues.push(`vitest printed no JSON report: ${output.trim().slice(0, 200)}`);
     }
-  } catch {
-    // Tests unavailable
+  } catch (err: unknown) {
+    result.issues.push(`vitest could not run: ${errText(err)}`);
   }
 
   // Lint
@@ -558,6 +568,8 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
     if (summaryMatch) {
       result.lintErrors = parseInt(summaryMatch[2], 10);
       result.lintWarnings = parseInt(summaryMatch[3], 10);
+    } else {
+      result.issues.push(`eslint failed without a readable summary: ${errText(err).slice(0, 200)}`);
     }
   }
 
@@ -587,6 +599,26 @@ function generatePatchId(): string {
 }
 
 /**
+ * Output the quality checks themselves write into the workspace (vitest's JSON
+ * report, eslint cache, tsc build info, coverage). These are not changes to the
+ * project. On The-Mending-Box (2026-10-05) the only "patch" a run produced was
+ * `.vitest/json/output.json`, labelled a typefix — a heal that changed nothing.
+ */
+const RUNNER_ARTIFACT_PATTERNS = [
+  '.vitest/**',
+  '**/.vitest/**',
+  '.eslintcache',
+  '**/.eslintcache',
+  '**/*.tsbuildinfo',
+  'coverage/**',
+];
+
+/** True when `relPath` is output the runner's own checks wrote. */
+export function isRunnerArtifact(relPath: string): boolean {
+  return isPathProtected(relPath, RUNNER_ARTIFACT_PATTERNS);
+}
+
+/**
  * Detects changes between the original workspace snapshot and the current
  * workspace state, producing unified diffs for each modified file.
  */
@@ -595,68 +627,75 @@ async function detectChanges(
   workDir: string,
   denyPatterns: string[],
   maxFiles: number
-): Promise<PatchProposal[]> {
+): Promise<{ patches: PatchProposal[]; skipped: string[]; artifacts: string[] }> {
   const patches: PatchProposal[] = [];
+  /** Files that could not be compared, with the real error text. */
+  const skipped: string[] = [];
+  /** New files the quality checks wrote (not project changes); reported, not proposed. */
+  const artifacts: string[] = [];
 
+  // Directory read errors propagate (the caller logs them); a single file that
+  // cannot be read is recorded in `skipped` and reported, not hidden.
   function walk(dir: string, base: string) {
-    try {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (
-          entry.name === 'node_modules' ||
-          entry.name === '.git' ||
-          entry.name === '.daemon-workspace.json'
-        )
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (
+        entry.name === 'node_modules' ||
+        entry.name === '.git' ||
+        entry.name === '.daemon-workspace.json'
+      )
+        continue;
+      const fullPath = path.join(dir, entry.name);
+      const relPath = path.join(base, entry.name).replace(/\\/g, '/');
+      if (entry.isDirectory()) {
+        walk(fullPath, relPath);
+      } else {
+        if (patches.length >= maxFiles) return;
+        if (isPathProtected(relPath, denyPatterns)) continue;
+        const originalExists = fs.existsSync(path.join(originalDir, relPath));
+        if (!originalExists && isRunnerArtifact(relPath)) {
+          artifacts.push(relPath);
           continue;
-        const fullPath = path.join(dir, entry.name);
-        const relPath = path.join(base, entry.name).replace(/\\/g, '/');
-        if (entry.isDirectory()) {
-          walk(fullPath, relPath);
-        } else {
-          if (patches.length >= maxFiles) return;
-          if (isPathProtected(relPath, denyPatterns)) continue;
+        }
 
-          const originalPath = path.join(originalDir, relPath);
-          try {
-            const newContent = fs.readFileSync(fullPath, 'utf-8');
-            if (fs.existsSync(originalPath)) {
-              const oldContent = fs.readFileSync(originalPath, 'utf-8');
-              if (oldContent !== newContent) {
-                patches.push({
-                  id: generatePatchId(),
-                  filePath: relPath,
-                  action: 'modify',
-                  diff: generateUnifiedDiff(relPath, oldContent, newContent),
-                  proposedContent: newContent,
-                  description: `Modified ${relPath}`,
-                  confidence: 0.8,
-                  category: inferPatchCategory(relPath, newContent),
-                });
-              }
-            } else {
+        const originalPath = path.join(originalDir, relPath);
+        try {
+          const newContent = fs.readFileSync(fullPath, 'utf-8');
+          if (fs.existsSync(originalPath)) {
+            const oldContent = fs.readFileSync(originalPath, 'utf-8');
+            if (oldContent !== newContent) {
               patches.push({
                 id: generatePatchId(),
                 filePath: relPath,
-                action: 'create',
-                diff: generateUnifiedDiff(relPath, '', newContent),
+                action: 'modify',
+                diff: generateUnifiedDiff(relPath, oldContent, newContent),
                 proposedContent: newContent,
-                description: `Created new file ${relPath}`,
-                confidence: 0.75,
+                description: `Modified ${relPath}`,
+                confidence: 0.8,
                 category: inferPatchCategory(relPath, newContent),
               });
             }
-          } catch {
-            // Skip binary or unreadable files
+          } else {
+            patches.push({
+              id: generatePatchId(),
+              filePath: relPath,
+              action: 'create',
+              diff: generateUnifiedDiff(relPath, '', newContent),
+              proposedContent: newContent,
+              description: `Created new file ${relPath}`,
+              confidence: 0.75,
+              category: inferPatchCategory(relPath, newContent),
+            });
           }
+        } catch (err: unknown) {
+          skipped.push(`${relPath}: ${errText(err)}`);
         }
       }
-    } catch {
-      // Skip unreadable dirs
     }
   }
 
   walk(workDir, '');
-  return patches;
+  return { patches, skipped, artifacts };
 }
 
 function inferPatchCategory(filePath: string, content: string): PatchProposal['category'] {
@@ -804,52 +843,21 @@ export async function runDaemonJob(
     };
   }
 
-  // Phase 0: Absorb — build codebase dependency graph (leaf-first ordering)
-  onProgress(7, 'Absorbing codebase graph...');
-  log('info', 'Phase 0: absorb — scanning dependency graph...');
   let absorbData: AbsorbGraphData | null = null;
-  try {
-    absorbData = await runAbsorbPhase(workDir, 'shallow');
-    if (absorbData.totalFiles > 0) {
-      log(
-        'info',
-        `Absorb complete: ${absorbData.totalFiles} files, ${absorbData.totalSymbols} symbols in ${absorbData.durationMs}ms`
-      );
-      log(
-        'info',
-        `Leaf-first order: ${absorbData.leafFirstOrder.slice(0, 5).join(', ')}${absorbData.leafFirstOrder.length > 5 ? ` (+${absorbData.leafFirstOrder.length - 5} more)` : ''}`
-      );
-    } else {
-      const sourceFiles = countSourceFiles(workDir);
-      log(
-        'error',
-        `Absorb empty graph — projectPath=${projectPath} workDir=${workDir} sourceFilesInWorkDir=${sourceFiles}`
-      );
+
+  /** Cleanup is advisory: a failure is logged with its real error, never hidden. */
+  async function cleanupLoudly(): Promise<boolean> {
+    try {
       await cleanup();
-      const reason =
-        sourceFiles === 0
-          ? `Blocked: workspace copy has 0 source files (projectPath=${projectPath}, workDir=${workDir}). Verify the import landed under HOLOSCRIPT_WORKSPACES_DIR and Assign Agent passed that path.`
-          : `Blocked: Absorb returned empty graph for ${sourceFiles} files under workDir=${workDir} (projectPath=${projectPath}). Not claiming heal success.`;
-      return {
-        success: false,
-        cycles: 0,
-        filesAnalyzed: 0,
-        filesChanged: 0,
-        qualityBefore: 0,
-        qualityAfter: 0,
-        qualityDelta: 0,
-        patches: [],
-        logs,
-        summary: reason,
-        durationMs: Date.now() - startTime,
-        error: reason,
-        absorb: absorbData,
-      };
+      return true;
+    } catch (err: unknown) {
+      log('warn', `Workspace cleanup failed for ${workDir}: ${errText(err)}`);
+      return false;
     }
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    log('error', `Absorb phase failed: ${msg} (projectPath=${projectPath}, workDir=${workDir})`);
-    await cleanup();
+  }
+
+  async function blocked(reason: string, error: string = reason): Promise<DaemonRunResult> {
+    await cleanupLoudly();
     return {
       success: false,
       cycles: 0,
@@ -860,12 +868,76 @@ export async function runDaemonJob(
       qualityDelta: 0,
       patches: [],
       logs,
-      summary: `Blocked: Absorb failed — ${msg}`,
+      summary: reason,
       durationMs: Date.now() - startTime,
-      error: msg,
+      error,
       absorb: absorbData,
     };
   }
+
+  // Phase 0: Absorb — build codebase dependency graph (leaf-first ordering)
+  onProgress(7, 'Absorbing codebase graph...');
+  log('info', 'Phase 0: absorb — scanning dependency graph (in-process)...');
+
+  // Files the scanner is handed; also the N in "Absorb empty (N files scanned)".
+  let filesScanned: number;
+  try {
+    filesScanned = countSourceFiles(workDir);
+  } catch (err: unknown) {
+    const reason = `Blocked: could not read the workspace copy at ${workDir} — ${errText(err)}`;
+    log('error', reason);
+    return blocked(reason);
+  }
+
+  if (filesScanned === 0) {
+    // The copy has nothing. Say whether the source does, so an empty copy is
+    // never reported as an import problem (or the other way round).
+    let sourceCount: string;
+    try {
+      sourceCount = String(countSourceFiles(projectPath));
+    } catch (err: unknown) {
+      sourceCount = `unreadable (${errText(err)})`;
+    }
+    const reason =
+      sourceCount === '0'
+        ? `Blocked: projectPath has 0 source files (projectPath=${projectPath}, workDir=${workDir}). Verify the import landed under HOLOSCRIPT_WORKSPACES_DIR and Assign Agent passed that path.`
+        : `Blocked: workspace copy failed — projectPath has ${sourceCount} source files but the copy has 0 (projectPath=${projectPath}, workDir=${workDir}).`;
+    log('error', reason);
+    return blocked(reason);
+  }
+
+  let scanErrors: string[] = [];
+  try {
+    const scanned = await runAbsorbPhase(workDir, filesScanned);
+    absorbData = scanned.graph;
+    scanErrors = scanned.scanErrors;
+  } catch (err: unknown) {
+    const msg = errText(err);
+    log('error', `Absorb phase failed: ${msg} (projectPath=${projectPath}, workDir=${workDir})`);
+    return blocked(`Blocked: Absorb failed — ${msg}`, msg);
+  }
+
+  if (scanErrors.length > 0) {
+    log(
+      'warn',
+      `Absorb scan reported ${scanErrors.length} file error(s): ${scanErrors.slice(0, 3).join(' | ')}`
+    );
+  }
+
+  if (absorbData.totalFiles === 0) {
+    const reason = `${absorbEmptyLabel(filesScanned)}. Absorb returned an empty graph for workDir=${workDir} (projectPath=${projectPath}). Not claiming heal success.`;
+    log('error', reason);
+    return blocked(reason);
+  }
+
+  log(
+    'info',
+    `Absorb complete: ${absorbData.totalFiles} files in graph (${filesScanned} scanned), ${absorbData.totalSymbols} symbols in ${absorbData.durationMs}ms`
+  );
+  log(
+    'info',
+    `Leaf-first order: ${absorbData.leafFirstOrder.slice(0, 5).join(', ')}${absorbData.leafFirstOrder.length > 5 ? ` (+${absorbData.leafFirstOrder.length - 5} more)` : ''}`
+  );
 
   // Step 2: Rollback snapshot
   onProgress(10, 'Creating rollback snapshot...');
@@ -891,6 +963,7 @@ export async function runDaemonJob(
       'info',
       `Baseline: score=${baselineQuality.compositeScore}, typeErrors=${baselineQuality.typeErrors}, tests=${baselineQuality.testsPassed}/${baselineQuality.testsTotal}`
     );
+    for (const issue of baselineQuality.issues) log('warn', `Baseline check: ${issue}`);
   } catch (err: unknown) {
     log('warn', `Baseline assessment partial: ${err instanceof Error ? err.message : String(err)}`);
     baselineQuality = {
@@ -900,6 +973,7 @@ export async function runDaemonJob(
       lintErrors: 0,
       lintWarnings: 0,
       compositeScore: 0,
+      issues: [errText(err)],
     };
   }
 
@@ -925,10 +999,7 @@ export async function runDaemonJob(
         cwd: workDir,
         timeout: 120_000,
         maxBuffer: 50 * 1024 * 1024,
-      }).catch((err: unknown) => {
-        const e = err as Record<string, unknown>;
-        return { stdout: String(e.stdout ?? ''), stderr: String(e.stderr ?? '') };
-      });
+      }).catch(outputOrThrow);
 
       const output = String(stdout) + String(stderr);
       const errorLines = output.split('\n').filter((l: string) => l.includes('error TS'));
@@ -1004,8 +1075,8 @@ export async function runDaemonJob(
             fixesApplied++;
             log('info', `Applied type fixes to ${file}${inDeg > 0 ? ` (in-degree=${inDeg})` : ''}`);
           }
-        } catch {
-          // Skip files that can't be read/written
+        } catch (err: unknown) {
+          log('warn', `Could not apply fixes to ${file}: ${errText(err)}`);
         }
       }
 
@@ -1025,8 +1096,9 @@ export async function runDaemonJob(
         'info',
         `Post-cycle ${cycle + 1}: score=${currentQuality.compositeScore}, typeErrors=${currentQuality.typeErrors}`
       );
-    } catch {
-      log('warn', `Quality re-assessment failed in cycle ${cycle + 1}`);
+      for (const issue of currentQuality.issues) log('warn', `Cycle ${cycle + 1} check: ${issue}`);
+    } catch (err: unknown) {
+      log('warn', `Quality re-assessment failed in cycle ${cycle + 1}: ${errText(err)}`);
     }
 
     // 4d. Check convergence
@@ -1044,19 +1116,34 @@ export async function runDaemonJob(
   log('info', 'Detecting changes and generating patches...');
   let patches: PatchProposal[] = [];
   try {
-    patches = await detectChanges(projectPath, workDir, allDenyPatterns, limits.maxFilesChanged);
+    const detected = await detectChanges(
+      projectPath,
+      workDir,
+      allDenyPatterns,
+      limits.maxFilesChanged
+    );
+    patches = detected.patches;
     log('info', `Generated ${patches.length} patch proposal(s)`);
+    if (detected.artifacts.length > 0) {
+      log(
+        'info',
+        `Ignored ${detected.artifacts.length} file(s) written by the checks themselves: ${detected.artifacts.slice(0, 3).join(', ')}`
+      );
+    }
+    if (detected.skipped.length > 0) {
+      log(
+        'warn',
+        `Could not compare ${detected.skipped.length} file(s): ${detected.skipped.slice(0, 3).join(' | ')}`
+      );
+    }
   } catch (err: unknown) {
     log('warn', `Patch detection error: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // Step 6: Cleanup
   onProgress(95, 'Cleaning up workspace...');
-  try {
-    await cleanup();
+  if (await cleanupLoudly()) {
     log('info', 'Workspace cleaned up');
-  } catch {
-    log('warn', 'Workspace cleanup failed (will be cleaned by OS temp)');
   }
 
   // Step 7: Build result
