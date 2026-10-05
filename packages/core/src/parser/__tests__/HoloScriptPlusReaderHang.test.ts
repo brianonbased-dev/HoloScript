@@ -18,7 +18,8 @@
  *    previous field, and returned with nothing consumed.
  * 3. The named-import list of `@import { ... } from "..."`, on anything but a
  *    name or a comma: a list written over several lines, a quoted name,
- *    `* as ns`.
+ *    `* as ns`, a keyword such as `state`. All are now refused with a
+ *    positioned error; none of them is read as an import list.
  * 4. A node body's `transition "x"` without `-> "target"`. Its backtrack went
  *    to before the name, and no branch after it consumes a name.
  *
@@ -254,20 +255,24 @@ describe('HoloScriptPlusParser - reader hang regression', () => {
   });
 
   describe('named import list', () => {
-    const imports = (result: HSPlusParseResult) =>
-      ((result.ast as unknown as { imports?: Array<Record<string, unknown>> }).imports ?? []).map(
-        (imp) => ({ path: imp.path, namedImports: imp.namedImports })
-      );
-
     it(
-      'finishes on a list written over several lines, and reads it',
+      'finishes on a list written over several lines, and refuses it',
       () => {
         const result = parseOrReportHang(
           ['@import {', '  A,', '  B', '} from "./x.hs"', 'orb O { }', ''].join('\n'),
           { enableTypeScriptImports: true }
         );
-        expect(result.errors).toEqual([]);
-        expect(imports(result)).toEqual([{ path: './x.hs', namedImports: ['A', 'B'] }]);
+        // This reader never accepted a list across lines (the loop hung on
+        // one). Reading it now would change the language, which needs its own
+        // proposal (docs/spec/holoscript-spec-v0.1.md, No-break policy), so it
+        // is refused: one positioned error, at the first line break.
+        expect(result.success).toBe(false);
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0].code).toBe('HSP002');
+        expect(result.errors[0].message).toContain(
+          'An @import list must be written on one line in .hsplus; a list across lines is not part of the language yet'
+        );
+        expect([result.errors[0].line, result.errors[0].column]).toEqual([1, 10]);
       },
       TEST_TIMEOUT_MS
     );
@@ -275,6 +280,7 @@ describe('HoloScriptPlusParser - reader hang regression', () => {
     it.each([
       ['@import { "Foo" } from "./x.hs"', 'STRING "Foo"'],
       ['@import { * as ns } from "./x.hs"', 'ASTERISK "*"'],
+      ['@import { state } from "./x.hs"', 'STATE "state"'],
     ])(
       'finishes on %j and reports the token it cannot read',
       (source, got) => {

@@ -2946,22 +2946,37 @@ export class HoloScriptPlusParser {
       if (this.check('LBRACE')) {
         this.advance(); // {
         namedImports = [];
-        // Every pass consumes exactly one token, so this loop always ends.
-        // It used to skip only names and commas, and spun forever on anything
-        // else: a line break in a list written over several lines, a quoted
-        // name, `* as ns`.
+        // Every pass consumes exactly one token, so this loop always ends. It
+        // used to move past names and commas only, and spun forever on
+        // anything else: a line break, a quoted name, `* as ns`, a keyword
+        // such as `state`. Each of those is now refused with a positioned
+        // error.
+        //
+        // A list across lines is refused, not read. This reader never
+        // accepted one (the loop hung on it), and accepting it would change
+        // what .hsplus accepts, which needs its own proposal first
+        // (docs/spec/holoscript-spec-v0.1.md, No-break policy).
+        let lineBreakRefused = false;
         while (!this.check('RBRACE') && !this.check('EOF')) {
           const token = this.current();
           if (token.type === 'IDENTIFIER') {
             namedImports.push(this.advance().value);
-          } else if (
-            token.type === 'COMMA' ||
-            token.type === 'NEWLINE' ||
-            token.type === 'INDENT' ||
-            token.type === 'DEDENT'
-          ) {
-            // Separators and layout. A list may span lines, as a .holo
-            // import list already may.
+          } else if (token.type === 'COMMA') {
+            this.advance();
+          } else if (token.type === 'NEWLINE') {
+            // Reported once per list; a further line break adds nothing.
+            if (!lineBreakRefused) {
+              this.error(
+                'An @import list must be written on one line in .hsplus; a list across lines is not part of the language yet (the .holo reader accepts it; a proposal would make the two agree)',
+                'HSP002'
+              );
+              lineBreakRefused = true;
+            }
+            this.advance();
+          } else if (token.type === 'INDENT' || token.type === 'DEDENT') {
+            // Zero-width markers the lexer puts at the start of a line, so
+            // after a line break refused above, or just before EOF, where
+            // the missing `}` is refused below.
             this.advance();
           } else {
             this.error(
