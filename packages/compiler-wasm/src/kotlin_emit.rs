@@ -1013,6 +1013,10 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
         .iter()
         .filter_map(|n| match n {
             AstNode::Function(f) => Some(f.name.clone()),
+            AstNode::Export(e) => match e.declaration.as_ref() {
+                AstNode::Function(f) => Some(f.name.clone()),
+                _ => None,
+            },
             _ => None,
         })
         .collect();
@@ -1052,11 +1056,22 @@ pub fn emit_functions(ast: &Ast, indent: &str) -> Result<String, KotlinEmitError
         structs: &struct_names,
     };
     for node in &ast.body {
-        if let AstNode::Function(func) = node {
+        // `export function f` lowers exactly like `function f`: Kotlin top-level funs are public
+        // by default, so the export wrapper adds nothing but must not drop the declaration.
+        let function = match node {
+            AstNode::Function(func) => Some(func),
+            AstNode::Export(export) => match export.declaration.as_ref() {
+                AstNode::Function(func) => Some(func),
+                _ => None,
+            },
+            _ => None,
+        };
+        if let Some(func) = function {
             blocks.push(emit_function(
                 &func.name,
                 &func.params,
                 &func.param_types,
+                func.return_type.as_deref(),
                 &func.body,
                 indent,
                 &declared_types,
@@ -1335,17 +1350,26 @@ fn emit_function(
     name: &str,
     params: &[String],
     param_types: &[Option<String>],
+    return_type: Option<&str>,
     body: &[AstNode],
     indent: &str,
     declared_types: &KotlinDeclaredTypes<'_>,
     unknown_fields: &KotlinUnknownFields,
 ) -> Result<String, KotlinEmitError> {
-    let ret = infer_return_type(
-        body,
-        declared_types.enums,
-        declared_types.structs,
-        unknown_fields,
-    )?;
+    // A stated return type wins and reuses the parameter mapping; only an absent (or unmapped)
+    // annotation falls back to inference from the `return` expressions.
+    let explicit_ret = return_type.and_then(|annotation| {
+        explicit_kotlin_param_type(annotation, declared_types.enums, declared_types.structs)
+    });
+    let ret = match explicit_ret {
+        Some(ty) => ty,
+        None => infer_return_type(
+            body,
+            declared_types.enums,
+            declared_types.structs,
+            unknown_fields,
+        )?,
+    };
     let int_locals = collect_index_local_bindings(body);
     let context = EmitContext {
         int_locals: &int_locals,
@@ -3263,6 +3287,71 @@ mod tests {
             "{out}"
         );
         assert!(out.contains("return text == \"\""), "{out}");
+    }
+
+    // ── Explicit return types (task 5kf8) ───────────────────────────────────────────────────────
+
+    #[test]
+    fn explicit_i32_return_type_is_int() {
+        let out = kotlin("function f(): i32 { return 1 }");
+        assert!(out.contains("fun f(): Int {"), "{out}");
+    }
+
+    #[test]
+    fn explicit_i64_return_type_is_long() {
+        let out = kotlin("function f(): i64 { return 1 }");
+        assert!(out.contains("fun f(): Long {"), "{out}");
+    }
+
+    #[test]
+    fn explicit_f32_return_type_is_float() {
+        let out = kotlin("function h(): f32 { return 1 }
+function f(): f32 { return h() }");
+        assert!(out.contains("fun f(): Float {"), "{out}");
+    }
+
+    #[test]
+    fn explicit_bool_return_type_is_boolean() {
+        let out = kotlin("function h(): bool { return true }
+function f(): bool { return h() }");
+        assert!(out.contains("fun f(): Boolean {"), "{out}");
+    }
+
+    #[test]
+    fn explicit_string_return_type_is_string() {
+        let out = kotlin(r#"function f(): string { return "a" }"#);
+        assert!(out.contains("fun f(): String {"), "{out}");
+    }
+
+    #[test]
+    fn explicit_struct_return_type_is_the_struct() {
+        let src = "struct Vec3 { x, y, z }\nfunction h(): Vec3 { return Vec3(1, 2, 3) }
+function f(): Vec3 { return h() }";
+        let out = kotlin(src);
+        assert!(out.contains("fun f(): Vec3 {"), "{out}");
+    }
+
+    #[test]
+    fn explicit_enum_return_type_is_the_enum() {
+        let src = "enum Route { A, B }\nfunction h(): Route { return Route.A }
+function f(): Route { return h() }";
+        let out = kotlin(src);
+        assert!(out.contains("fun f(): Route {"), "{out}");
+    }
+
+    #[test]
+    fn untyped_function_keeps_inferred_return_type() {
+        let out = kotlin("function f() { return 1 }");
+        assert!(out.contains("fun f(): Float {"), "{out}");
+    }
+
+    #[test]
+    fn exported_callee_is_emitted_and_typed_for_its_caller() {
+        let src = "export function f(): i32 { return 1 }\nfunction g(): i32 { return f() }";
+        let out = kotlin(src);
+        assert!(out.contains("fun f(): Int {"), "{out}");
+        assert!(out.contains("fun g(): Int {"), "{out}");
+        assert!(out.contains("return f()"), "{out}");
     }
 
     #[test]
