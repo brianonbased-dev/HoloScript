@@ -2102,4 +2102,64 @@ describe('HoloScriptPlusParser - holo: imports (G21)', () => {
     // The misspelled import is reported at the import, not again at the function.
     expect(summary(typed('manifest_audit_pases', 'audit()'))).toEqual(['1:11 HS-HOST-002']);
   });
+
+  it('refuses a function or struct of the document that stands in for a holo import', () => {
+    // Each function is checked on its own, so the stand-in was never seen (claude3's #466
+    // review, P2). The document's functions and structs now travel with the import check.
+    const stub = (declaration: string) =>
+      `@import { manifest_audit_passes } from "holo:absorb"\n\n${declaration}\n\nfunction caller(): bool {\n  return manifest_audit_passes()\n}\n`;
+    expect(summary(stub('function manifest_audit_passes(): bool {\n  return true\n}'))).toEqual([
+      '1:11 HS-SCOPE-001',
+    ]);
+    expect(summary(stub('function manifest_audit_passes() {\n  return true\n}'))).toEqual([
+      '1:11 HS-SCOPE-001',
+    ]);
+    expect(summary(stub('struct manifest_audit_passes {\n  ok: bool\n}'))).toEqual([
+      '1:11 HS-SCOPE-001',
+    ]);
+    const [error] = parse(stub('function manifest_audit_passes() {\n  return true\n}')).errors;
+    expect(error.message).toContain(
+      'the document also declares a function named `manifest_audit_passes`'
+    );
+  });
+
+  it('refuses a built-in name for a holo import once, at the import', () => {
+    const source =
+      '@import { manifest_audit_passes as load } from "holo:absorb"\n\nfunction a(): bool {\n  return true\n}\n\nfunction b(): bool {\n  return true\n}\n';
+    expect(summary(source)).toEqual(['1:11 HS-SCOPE-001']);
+    expect(parse(source).errors[0].message).toContain('which is a built-in');
+  });
+
+  it('refuses a parameter named like a holo import in a typed function', () => {
+    expect(
+      summary(
+        '@import { manifest_audit_passes } from "holo:absorb"\n\nfunction main(manifest_audit_passes: i32): bool {\n  return true\n}\n'
+      )
+    ).toEqual(['3:15 HS-SCOPE-001']);
+  });
+
+  it('routes sources the way the .hs checker reads them', () => {
+    const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+    // The CRDT stream the import resolver reads stays a file-style import, as before G21.
+    const crdt = parser.collectDocumentContext('@import { feed } from "crdt://holomesh/feed"\n');
+    expect(crdt.names).toEqual(['feed']);
+    expect(crdt.imports).toBeUndefined();
+    expect(parse(`@import { feed } from "crdt://holomesh/feed"${orb}`).errors).toEqual([]);
+    // A space around a source, or a character outside ASCII, goes to the checker, which refuses
+    // it: a lookalike of holo: would otherwise pass as a file import.
+    for (const source of [
+      ' holo:absorb',
+      'holo:absorb ',
+      '\u{ff48}olo:absorb',
+      './donn\u{e9}es.hsplus',
+    ]) {
+      expect(summary(`@import { manifest_audit_passes } from "${source}"${orb}`)).toEqual([
+        '1:2 HS-HOST-001',
+      ]);
+    }
+    expect(summary(`@import * as Absorb from " holo:absorb"${orb}`)).toEqual(['1:2 HS-HOST-001']);
+    expect(parse(`@import * as Absorb from " holo:absorb"${orb}`).errors[0].message).toContain(
+      'a character outside ASCII'
+    );
+  });
 });

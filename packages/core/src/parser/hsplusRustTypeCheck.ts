@@ -15,6 +15,12 @@ export interface RustFunctionDiagnostic {
   message: string;
   line: number;
   column: number;
+  /**
+   * A refusal of the document's imports, raised while a lifted function was checked with the
+   * document as context (the checker gives it no position there). A whole document reports each
+   * once, at the import ({@link checkHoloImports}), so the reader drops these from each function.
+   */
+  importLevel?: true;
 }
 
 interface WasmValidate {
@@ -77,6 +83,29 @@ export interface HsContextToken {
 
 /** A source with a scheme of two or more characters (`holo:`, `https:`); `C:` is a drive. */
 const SCHEME_SOURCE = /^[A-Za-z][A-Za-z0-9+.-]+:/;
+
+/** The HoloMesh CRDT stream the import resolver reads (`isCrdtImport` in ImportResolver.ts). */
+const CRDT_SOURCE = 'crdt://';
+
+/**
+ * A source no reader takes as written (G21): a space before or after it, or a character outside
+ * ASCII. Native trims a source, and a lookalike of `holo:` (a fullwidth `h`, a Cyrillic `а`)
+ * would otherwise pass as a file import whose names are taken on trust.
+ */
+function isUnreadableImportSource(source: string): boolean {
+  return source.trim() !== source || [...source].some((ch) => ch.charCodeAt(0) > 0x7f);
+}
+
+/**
+ * Whether the checker resolves an import's source itself (G21): a source with a scheme, except
+ * the `crdt://` stream the import resolver reads (left as G11 left it, its names taken on trust),
+ * and a source no reader takes as written, which the checker refuses (`HS-HOST-001`). Every other
+ * source is a file import.
+ */
+export function isCheckedImportSource(source: string): boolean {
+  if (isUnreadableImportSource(source)) return true;
+  return SCHEME_SOURCE.test(source) && !source.startsWith(CRDT_SOURCE);
+}
 
 /** The closer each opener waits for. `<` counts only while its `>` comes before the next closer. */
 const CLOSER_OF: Record<string, string> = {
@@ -196,7 +225,7 @@ function importedNames(
     if (list[k]?.value === 'from') k++;
     while (list[k]?.type === 'NEWLINE') k++;
     const source = list[k]?.type === 'STRING' ? list[k].value : undefined;
-    if (source !== undefined && SCHEME_SOURCE.test(source)) {
+    if (source !== undefined && isCheckedImportSource(source)) {
       imports.push({ source, specifiers, ...written, form: 'named' });
     } else {
       for (const specifier of specifiers) names.add(specifier.local);
@@ -226,7 +255,7 @@ function importedNames(
   const bound = alias ?? leading ?? fromPath;
   if (bound) names.add(bound);
   // `* as NS from "holo:x"` or `"holo:x"`: only named imports reach a Holo module.
-  if (path !== undefined && SCHEME_SOURCE.test(path)) {
+  if (path !== undefined && isCheckedImportSource(path)) {
     imports.push({ source: path, specifiers: [], ...written, form: 'other' });
   }
 }
@@ -531,23 +560,41 @@ export function checkHoloImports(context: HsDocumentContext): RustFunctionDiagno
       },
     ];
   }
+  // The document's functions and structs travel with each probe, so a function or struct of the
+  // document that has an import's name (a stand-in for the capability) is refused at the import,
+  // as a whole `.hs` file refuses it (HS-SCOPE-001). The imports themselves are the probe.
+  const declaredJson = JSON.stringify({
+    functions: context.functions,
+    names: context.names,
+    namespaces: context.namespaces,
+    structs: context.structs,
+  });
+  const validate = (probe: string): string =>
+    wasm.validate_detailed_in_context
+      ? wasm.validate_detailed_in_context(probe, declaredJson)
+      : wasm.validate_detailed(probe);
   const diagnostics: RustFunctionDiagnostic[] = [];
   for (const entry of imports) {
     const at = { line: entry.line ?? 1, column: entry.column ?? 1 };
+    let specifiers: HsDocumentImport['specifiers'] = entry.specifiers;
     if (entry.form !== 'named') {
-      diagnostics.push({
-        code: 'HS-HOST-001',
-        message: `[HS-HOST-001] \`${entry.source}\` is imported by name only: write \`@import { name } from "${entry.source}"\`, so the file lists every capability it uses`,
-        ...at,
-      });
-      continue;
+      if (!isUnreadableImportSource(entry.source)) {
+        diagnostics.push({
+          code: 'HS-HOST-001',
+          message: `[HS-HOST-001] \`${entry.source}\` is imported by name only: write \`@import { name } from "${entry.source}"\`, so the file lists every capability it uses`,
+          ...at,
+        });
+        continue;
+      }
+      // A source no reader takes as written is refused for what it is, whatever the form.
+      specifiers = [{ imported: 'name', local: 'name' }];
     }
-    for (const specifier of entry.specifiers) {
+    for (const specifier of specifiers) {
       const alias = specifier.local !== specifier.imported ? ` as ${specifier.local}` : '';
       const probe = `import { ${specifier.imported}${alias} } from ${JSON.stringify(entry.source)}\n`;
       let parsed: ValidateJson;
       try {
-        parsed = JSON.parse(wasm.validate_detailed(probe)) as ValidateJson;
+        parsed = JSON.parse(validate(probe)) as ValidateJson;
       } catch {
         diagnostics.push({
           code: 'HS-CHECK',
@@ -559,7 +606,8 @@ export function checkHoloImports(context: HsDocumentContext): RustFunctionDiagno
       if (parsed.valid === true) continue;
       const message = parsed.errors?.[0]?.message ?? 'The Rust checker refused this import';
       const code = codeOf(message);
-      const onName = code === 'HS-HOST-002' && specifier.line !== undefined;
+      // A refusal of one name (not declared, a built-in's name, a stand-in) lands on that name.
+      const onName = code !== 'HS-HOST-001' && specifier.line !== undefined;
       diagnostics.push({
         code,
         message,
@@ -567,7 +615,7 @@ export function checkHoloImports(context: HsDocumentContext): RustFunctionDiagno
         column: onName ? (specifier.column ?? at.column) : at.column,
       });
       // The module itself is refused: one message for it, not one per name.
-      if (code !== 'HS-HOST-002') break;
+      if (code === 'HS-HOST-001') break;
     }
   }
   return diagnostics;
@@ -634,11 +682,19 @@ export function checkTypedHsFunction(
     const message = error.message ?? 'The Rust type checker rejected this function';
     const rustLine = error.line && error.line > 0 ? error.line : 1;
     const rustColumn = error.column && error.column > 0 ? error.column : 1;
+    const code = codeOf(message);
+    // The document's imports reach the checker as context, with no position: a refusal of one of
+    // them is about the import, not this function.
+    const importLevel =
+      !error.line &&
+      !error.column &&
+      (code === 'HS-HOST-001' || code === 'HS-HOST-002' || code === 'HS-SCOPE-001');
     return {
-      code: codeOf(message),
+      code,
       message,
       line: origin.line + rustLine - 1,
       column: rustLine === 1 ? origin.column + rustColumn - 1 : rustColumn,
+      ...(importLevel ? { importLevel: true as const } : {}),
     };
   });
 }
