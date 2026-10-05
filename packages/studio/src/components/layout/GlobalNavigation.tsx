@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { SignInCta } from '@/components/auth/SignInCta';
 import {
   STUDIO_PRIMARY_NAVIGATION_ITEMS,
   STUDIO_SETTINGS_NAVIGATION_ITEM,
@@ -100,7 +101,7 @@ function SectionDivider() {
 
 export function GlobalNavigation() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   // Server-decided flag: see the session callback in lib/auth.ts. The browser
   // cannot read STUDIO_FOUNDER_*, so it must not try to answer this itself.
   const isFounder = session?.user?.isFounder === true;
@@ -130,8 +131,8 @@ export function GlobalNavigation() {
         <NavSection items={primaryItems} pathname={pathname} />
       </div>
 
-      {/* Settings — pinned footer item */}
-      <div className="p-3 border-t border-slate-800">
+      {/* Settings + Sign in — pinned footer */}
+      <div className="p-3 border-t border-slate-800 space-y-2">
         <Link
           href={STUDIO_SETTINGS_NAVIGATION_ITEM.href}
           className={`flex items-center justify-center lg:justify-start gap-3 px-3 py-2.5 rounded-xl transition group ${
@@ -146,6 +147,9 @@ export function GlobalNavigation() {
           />
           <span className="hidden lg:block text-sm">Settings</span>
         </Link>
+        {sessionStatus !== 'loading' && !session?.user && (
+          <SignInCta compact callbackUrl={pathname || '/'} />
+        )}
       </div>
     </nav>
   );

@@ -4,10 +4,14 @@ export const maxDuration = 300;
  * GET /api/connectors/activity — Real-time activity stream (SSE)
  *
  * Server-Sent Events stream for connector activity updates.
- * Clients receive events when connectors perform actions (deploy, merge PR, etc.).
+ *
+ * HONEST STATUS: nothing emits into `activityEmitter` yet (it is module-local
+ * and not exported), so this stream only sends the initial hello event plus
+ * heartbeats. The connector panel no longer subscribes; it shows local
+ * connect/disconnect activity only. Wire a real producer before re-enabling.
  *
  * Event format:
- *   data: {"serviceId":"github","action":"PR #42 merged","status":"success","timestamp":"2026-03-21T..."}
+ *   data: {"serviceId":"github","action":"Connected to github","status":"success","timestamp":"..."}
  *
  * @module api/connectors/activity
  */

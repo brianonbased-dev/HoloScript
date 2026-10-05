@@ -305,6 +305,8 @@ export async function POST(req: NextRequest) {
     const absorbProject = upsertDurableAbsorbProject({
       id,
       name: safeName,
+      ownerId:
+        typeof session.user.id === 'string' && session.user.id.trim() ? session.user.id : null,
       sourceType: 'github',
       sourceUrl: repoRef.cloneUrl,
       localPath,

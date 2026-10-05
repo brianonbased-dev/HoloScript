@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 import { Send, Globe, Box, Code2, ArrowRight, Loader2, FlaskConical, User } from 'lucide-react';
+import { SignInCta } from '@/components/auth/SignInCta';
 
 // ── Lazy-loaded heavy components ─────────────────────────────────────────────
 
@@ -250,6 +251,15 @@ function PromptHero() {
 
       {/* Sub-CTA row */}
       <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+        {status !== 'authenticated' && status !== 'loading' && (
+          <>
+            <SignInCta
+              callbackUrl="/"
+              className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-300 transition hover:bg-emerald-500/20"
+            />
+            <span className="text-white/10">·</span>
+          </>
+        )}
         <Link
           href="/start"
           className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"

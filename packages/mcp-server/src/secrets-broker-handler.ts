@@ -35,6 +35,7 @@ import {
   type RequireCapabilityOptions,
 } from './holomesh/identity/signing-middleware';
 import { interceptToolCall, type PolicyInterceptorResult } from './policy/PolicyInterceptor';
+import { isTrustedLocalCaller } from './security/tool-scopes';
 import { randomUUID } from 'crypto';
 
 // Shared in-memory lease adapter for the MCP server process.
@@ -159,16 +160,28 @@ function hasBrokerScope(signingCtx: SigningContext, capability: Capability): boo
 /**
  * Gate a secrets-broker tool call against the SigningContext.
  *
- * Returns `null` when authorized (or when no signingCtx is provided —
- * matches legacy ungated behavior). Returns a `SecretsBrokerAuthError` when
- * a signingCtx is provided but the request is not authorized for `name`.
+ * Returns `null` when authorized. With no signingCtx that is only the local
+ * user on the stdio server (the legacy ungated path, isTrustedLocalCaller). On
+ * the hosted server a missing context is a call that lost its caller, and a
+ * secrets tool refuses it (task mplw). Returns a `SecretsBrokerAuthError` when
+ * the request is not authorized for `name`.
  */
 export function gateSecretsBrokerTool(
   name: string,
   signingCtx?: SigningContext,
   options?: RequireCapabilityOptions
 ): SecretsBrokerAuthError | null {
-  if (!signingCtx) return null; // Legacy ungated path.
+  if (!signingCtx) {
+    if (isTrustedLocalCaller(signingCtx)) return null; // The local stdio user.
+    const required = SECRETS_BROKER_TOOL_CAPABILITIES[name];
+    if (!required) return null; // Tool name unknown to the gate — let downstream reject.
+    return {
+      authError: true,
+      reason: 'no caller: off the stdio server a secrets tool needs a signing context',
+      tool: name,
+      requiredCapability: required,
+    };
+  }
   const cap = SECRETS_BROKER_TOOL_CAPABILITIES[name];
   if (
     cap &&
@@ -193,9 +206,9 @@ export async function handleSecretsBrokerTool(
   signingCtx?: SigningContext,
   authOptions?: RequireCapabilityOptions
 ): Promise<unknown | null> {
-  // Authorization gate — runs only when caller threads a SigningContext.
-  // Legacy callers (current TOOL_DISPATCH_REGISTRY entries) omit this and
-  // keep working unchanged.
+  // Authorization gate. A caller without a SigningContext passes only as the
+  // local stdio user (isTrustedLocalCaller); off the stdio server it is
+  // refused (task mplw).
   const authError = gateSecretsBrokerTool(name, signingCtx, authOptions);
   if (authError) return authError;
 

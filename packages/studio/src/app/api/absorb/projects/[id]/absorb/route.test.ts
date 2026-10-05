@@ -84,15 +84,13 @@ describe('/api/absorb/projects/[id]/absorb route', () => {
   it('falls back to HTTP API when MCP result is unavailable', async () => {
     callMcpToolMock.mockResolvedValue({ ok: false, data: null });
 
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ jobId: 'job-http', status: 'running' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        })
-      )
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ jobId: 'job-http', status: 'running' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
     );
+    vi.stubGlobal('fetch', fetchMock);
 
     const req = new NextRequest('http://localhost/api/absorb/projects/p999/absorb', {
       method: 'POST',
@@ -104,6 +102,7 @@ describe('/api/absorb/projects/[id]/absorb route', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.jobId).toBe('job-http');
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/absorb/projects/p999/absorb');
   });
 
   it('returns 502 when both MCP and HTTP fallback fail', async () => {

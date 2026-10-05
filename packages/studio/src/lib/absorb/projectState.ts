@@ -33,6 +33,8 @@ export interface DurableAbsorbProject {
   absorbJobs: AbsorbJobRecord[];
   createdAt: string;
   updatedAt: string;
+  /** Signed-in Studio user id. Null on rows saved before owners were recorded. */
+  ownerId: string | null;
 }
 
 export interface UpsertDurableAbsorbProjectInput {
@@ -48,6 +50,7 @@ export interface UpsertDurableAbsorbProjectInput {
   metadata?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
+  ownerId?: string | null;
 }
 
 export interface RecordAbsorbJobInput {
@@ -151,6 +154,7 @@ function normalizeProject(value: unknown): DurableAbsorbProject | null {
     absorbJobs: jobs,
     createdAt: asString(value.createdAt ?? value.created_at, now),
     updatedAt: asString(value.updatedAt ?? value.updated_at, now),
+    ownerId: asNullableString(value.ownerId ?? value.owner_id),
   };
 }
 
@@ -185,8 +189,13 @@ function writeState(state: AbsorbProjectStateFile): void {
   fs.renameSync(tempPath, statePath);
 }
 
-export function listDurableAbsorbProjects(): DurableAbsorbProject[] {
-  return readState().projects.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+export function listDurableAbsorbProjects(ownerId?: string | null): DurableAbsorbProject[] {
+  const caller = typeof ownerId === 'string' && ownerId.trim() ? ownerId : null;
+  // No signed-in account, and any row with no stored owner, match nobody.
+  if (!caller) return [];
+  return readState()
+    .projects.filter((project) => project.ownerId === caller)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export function findDurableAbsorbProject(ref: {
@@ -217,6 +226,11 @@ export function upsertDurableAbsorbProject(
   const id = input.id ?? `local_${randomUUID()}`;
   const index = state.projects.findIndex((project) => project.id === id);
   const existing = index >= 0 ? state.projects[index] : null;
+  const requestedOwner = asNullableString(input.ownerId);
+  // A legacy row stays ownerless. Someone else's row is not rewritten.
+  if (existing && existing.ownerId !== requestedOwner) {
+    return existing;
+  }
   const project: DurableAbsorbProject = {
     id,
     name: input.name || existing?.name || 'Untitled',
@@ -234,6 +248,7 @@ export function upsertDurableAbsorbProject(
     absorbJobs: existing?.absorbJobs ?? [],
     createdAt: input.createdAt ?? existing?.createdAt ?? now,
     updatedAt: input.updatedAt ?? now,
+    ownerId: existing?.ownerId ?? requestedOwner,
   };
   if (index >= 0) {
     state.projects[index] = project;
@@ -310,6 +325,7 @@ export function recordAbsorbJob(input: RecordAbsorbJobInput): {
       absorbJobs: [],
       createdAt: now,
       updatedAt: now,
+      ownerId: null,
     });
     projectIndex = state.projects.length - 1;
   }

@@ -10,6 +10,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { logger } from '@/lib/logger';
+import { stripSecretsForPersist } from './connectorFormFields';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -335,7 +336,9 @@ export const useConnectorStore = create<ConnectorState>()(
     }),
     {
       name: 'holoscript-connectors',
-      // Only persist connections and config, not activities or SSE state
+      // Persist only non-secret config. Status is reset on reload because the
+      // credentials needed to stay connected are deliberately not persisted —
+      // the panel tells the user to re-enter secrets after a reload.
       partialize: (state) => ({
         connections: Object.fromEntries(
           Object.entries(state.connections).map(([id, conn]) => [
@@ -344,7 +347,9 @@ export const useConnectorStore = create<ConnectorState>()(
               ...conn,
               // Don't persist sensitive credentials
               credentials: {},
-              // Only persist non-sensitive config
+              // Form inputs write into `config`, so secrets typed there (tokens,
+              // private keys) must be stripped too — not just `credentials`.
+              config: stripSecretsForPersist(id as ServiceId, conn.config),
               status: 'disconnected',
               lastError: undefined,
               connectedAt: undefined,

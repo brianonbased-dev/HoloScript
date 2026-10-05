@@ -12,6 +12,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { runDaemonJob, type AbsorbGraphData } from './runner';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
+import { getWorkspacesRoot, isInsidePath } from '@/lib/workspace/workspaceFs';
 import type {
   CreateDaemonJobInput,
   DaemonAbsorbSnapshot,
@@ -40,7 +41,6 @@ interface DaemonStoreSnapshot {
 const HOME_DIR = process.env.HOME ?? process.env.USERPROFILE ?? os.homedir();
 const STORE_DIR = path.join(HOME_DIR, '.holoscript', 'studio');
 const STORE_PATH = path.join(STORE_DIR, 'daemon-jobs.json');
-const WORKSPACE_ROOT = path.join(HOME_DIR, '.holoscript', 'workspaces');
 
 const daemonJobs = new Map<string, DaemonJob>();
 const telemetryLog: DaemonTelemetryEvent[] = [];
@@ -290,10 +290,15 @@ function assertWorkspacePath(projectPath: string | undefined): string {
     throw new Error('Daemon job has no workspace path to apply patches into');
   }
 
-  const workspaceRoot = path.resolve(WORKSPACE_ROOT);
+  // Resolve the root per call so HOLOSCRIPT_WORKSPACES_DIR (e.g. a mounted
+  // volume like /data/workspaces in production) is honored, matching
+  // /api/git/* and /api/workspace/*.
+  const workspaceRoot = getWorkspacesRoot();
   const resolved = path.resolve(projectPath);
-  if (!resolved.startsWith(workspaceRoot + path.sep) && resolved !== workspaceRoot) {
-    throw new Error('Workspace path must be inside ~/.holoscript/workspaces');
+  if (!isInsidePath(workspaceRoot, resolved)) {
+    throw new Error(
+      `Workspace path must be inside the workspaces root (${workspaceRoot}; set via HOLOSCRIPT_WORKSPACES_DIR)`
+    );
   }
   if (!fs.existsSync(path.join(resolved, '.git'))) {
     throw new Error('Workspace path does not contain a git repository');
