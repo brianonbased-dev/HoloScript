@@ -20,7 +20,8 @@
  *    name or a comma: a list written over several lines, a quoted name,
  *    `* as ns`, a keyword such as `state`. All are now refused with a
  *    positioned error; none of them is read as an import list.
- * 4. A node body's `transition "x"` without `-> "target"`. Its backtrack went
+ * 4. An orb or object body's `transition "x"` without `-> "target"` (now
+ *    refused with a positioned error, not read). Its backtrack went
  *    to before the name, and no branch after it consumes a name.
  *
  * The struct-recovery tests also pin which fields survive recovery. They expect
@@ -303,29 +304,41 @@ describe('HoloScriptPlusParser - reader hang regression', () => {
       return node?.children?.[0];
     };
 
+    // In an orb or object body, main reads only the arrow form and hung on every
+    // other quoted transition, so those are refused, never read. (Main reads the
+    // block form inside a template or state_machine body; that is unchanged.)
+    const refusal = (event: string) =>
+      `Expected -> after transition "${event}": in this body a transition is written transition "${event}" -> "target"`;
+
     it.each(['orb', 'object'])(
-      'finishes on `%s O { transition "fade" }` and reports the bad token',
+      'finishes on `%s O { transition "fade" }` and refuses it',
       (keyword) => {
         const result = parseOrReportHang(`${keyword} O { transition "fade" }\n`);
         expect(result.success).toBe(false);
-        // Same report main gives a bare `state "idle"` in the same spot: the
-        // closing brace where the child block's body should be.
-        expect(result.errors[0].code).toBe('HSP101');
-        expect(result.errors[0].message).toMatch(/Unexpected token in properties: RBRACE/);
+        const primary = result.errors[0];
+        expect(primary.code).toBe('HSP001');
+        expect(primary.message).toContain(refusal('fade'));
+        // At the token where -> should be: the closing brace.
+        expect([primary.line, primary.column]).toEqual([1, keyword.length + 24]);
       },
       TEST_TIMEOUT_MS
     );
 
     it(
-      'reads `transition "name" { ... }` as a child block, like `state "name" { ... }`',
+      'refuses `transition "name" { ... }` in an orb body, and still reads what follows',
       () => {
-        const result = parseOrReportHang('orb O { transition "fade" { guard: "x" } }\n');
-        expect(result.errors).toEqual([]);
-        expect(firstChild(result)).toMatchObject({
-          type: 'transition',
-          name: 'fade',
-          properties: { guard: 'x' },
-        });
+        const result = parseOrReportHang(
+          ['orb O {', '  transition "fade" { guard: "x" }', '  color: "red"', '}', ''].join('\n')
+        );
+        expect(result.success).toBe(false);
+        expect(result.errors).toHaveLength(1);
+        expect(result.errors[0].code).toBe('HSP001');
+        expect(result.errors[0].message).toContain(refusal('fade'));
+        expect([result.errors[0].line, result.errors[0].column]).toEqual([2, 21]);
+        // Recovery moves past the refused block without swallowing the next line.
+        const orb = (result.ast as unknown as { children: Array<{ properties: Record<string, unknown> }> })
+          .children[0];
+        expect(orb.properties.color).toBe('red');
       },
       TEST_TIMEOUT_MS
     );

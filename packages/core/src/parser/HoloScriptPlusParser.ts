@@ -2388,13 +2388,20 @@ export class HoloScriptPlusParser {
                   } as unknown as HSPlusNode);
                   continue;
                 } else {
-                  // Not the `transition "event" -> "target"` form. Step back
-                  // to just after the name, where every branch below starts
-                  // (so `transition "name" { ... }` is read like any other
-                  // child block), the same way the method backtrack below
-                  // re-consumes its name. Stepping back to before the name
-                  // left `transition` unconsumed with no branch to take it,
-                  // and this loop met it again forever.
+                  // Not the `transition "event" -> "target"` form, the only
+                  // quoted transition this body has ever read. Every other
+                  // form hung here: the backtrack went to before the name,
+                  // and no branch below consumes a name. So it is refused,
+                  // not read; reading it would change what .hsplus accepts,
+                  // which needs its own proposal first
+                  // (docs/spec/holoscript-spec-v0.1.md, No-break policy).
+                  this.error(
+                    `Expected -> after transition "${event}": in this body a transition is written transition "${event}" -> "target" (the form without -> is read inside a template or state_machine, not here)`,
+                    'HSP001'
+                  );
+                  // Then step back to just after the name, where every branch
+                  // below starts, the way the method backtrack below
+                  // re-consumes its name, so recovery moves past the block.
                   this.pos = saved;
                   this.advance(); // re-consume the name
                 }
