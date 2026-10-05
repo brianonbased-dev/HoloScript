@@ -164,7 +164,12 @@ function compactLists(result: Obj, out: Obj, omitted: string[]): boolean {
     out[`${key}Total`] = value.length;
     if (value.length > LIST_LIMIT) {
       cut = true;
-      omitted.push(`${key} beyond the first ${LIST_LIMIT} of ${value.length}`);
+      omitted.push(
+        `${key} beyond the first ${LIST_LIMIT} of ${value.length}` +
+          (!ranked && tests > 0
+            ? ` (real code is listed first; ${tests} of the ${value.length} are tests or benches)`
+            : '')
+      );
     }
   }
   return cut;

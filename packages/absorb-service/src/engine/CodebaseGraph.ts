@@ -193,6 +193,8 @@ export class CodebaseGraph {
   private importedByFile: Map<string, Set<string>> = new Map();
   private normalizedFileIndex: Map<string, string> = new Map();
   private callerIndex: Map<string, CallEdge[]> = new Map(); // calleeName -> edges
+  /** Member calls (`recv.name()`) by bare member name, whatever the receiver. */
+  private memberCallerIndex: Map<string, CallEdge[]> = new Map();
   private calleeIndex: Map<string, CallEdge[]> = new Map(); // callerId -> edges
   /** eventName → edges where that event is emitted (HoloGraph) */
   private eventEmitIndex: Map<string, EventEdge[]> = new Map();
@@ -257,6 +259,7 @@ export class CodebaseGraph {
     this.importsByFile.clear();
     this.importedByFile.clear();
     this.callerIndex.clear();
+    this.memberCallerIndex.clear();
     this.calleeIndex.clear();
 
     // Index symbols
@@ -321,6 +324,12 @@ export class CodebaseGraph {
         this.callerIndex.set(key, []);
       }
       this.callerIndex.get(key)!.push(call);
+      if (call.calleeOwner) {
+        if (!this.memberCallerIndex.has(call.calleeName)) {
+          this.memberCallerIndex.set(call.calleeName, []);
+        }
+        this.memberCallerIndex.get(call.calleeName)!.push(call);
+      }
     }
 
     // HoloGraph: resolve emit/listen sites into cross-file EventEdges
@@ -510,12 +519,36 @@ export class CodebaseGraph {
   getCallersOf(symbolName: string, owner?: string): CallEdge[] {
     const key = owner ? `${owner}.${symbolName}` : symbolName;
     const qualified = this.callerIndex.get(key) ?? [];
-    if (!owner) {
-      // Without owner, key === symbolName — avoid duplicate lookup (same array twice).
-      return dedupeCallEdges(qualified);
+    const unqualified = owner ? (this.callerIndex.get(symbolName) ?? []) : [];
+    return dedupeCallEdges([...qualified, ...unqualified, ...this.getMemberCallersOf(symbolName, owner)]);
+  }
+
+  /**
+   * Member calls `recv.symbolName()` whose receiver is a variable, so the edge
+   * is keyed by the variable (`graph.getSymbolImpact`), not by the class. A
+   * caller asking for `getSymbolImpact` found none of them (foreign-user test,
+   * 2026-10-05). Receiver types are not tracked, so this matches by member
+   * name: with an owner, only in files that define or import that owner (a
+   * cheap type proxy); without one, every member call of that name, but only
+   * when the name is a method some class in the map defines.
+   */
+  getMemberCallersOf(symbolName: string, owner?: string): CallEdge[] {
+    const edges = this.memberCallerIndex.get(symbolName);
+    if (!edges?.length) return [];
+    const definitions = this.findSymbolsByName(symbolName).filter((sym) => sym.owner);
+    if (definitions.length === 0) return [];
+    const owners = new Set(owner ? [owner] : definitions.map((sym) => sym.owner!));
+    const ownerFiles = new Set<string>();
+    for (const name of owners) {
+      for (const sym of this.findSymbolsByName(name)) ownerFiles.add(sym.filePath);
     }
-    const unqualified = this.callerIndex.get(symbolName) ?? [];
-    return dedupeCallEdges([...qualified, ...unqualified]);
+    const seesOwner = (file: string): boolean =>
+      ownerFiles.has(file) ||
+      (this.importsByFile.get(file) ?? []).some(
+        (imp) =>
+          imp.isWildcard === true || (imp.namedImports ?? []).some((name) => owners.has(name))
+      );
+    return edges.filter((edge) => seesOwner(edge.filePath));
   }
 
   /**
@@ -1623,6 +1656,7 @@ export class CodebaseGraph {
     this.importedByFile.clear();
     this.normalizedFileIndex.clear();
     this.callerIndex.clear();
+    this.memberCallerIndex.clear();
     this.calleeIndex.clear();
     this.eventEmitIndex.clear();
     this.eventListenIndex.clear();

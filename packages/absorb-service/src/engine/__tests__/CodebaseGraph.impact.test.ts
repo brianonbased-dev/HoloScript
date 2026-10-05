@@ -259,3 +259,41 @@ describe('CodebaseGraph symbol impact counts importers', () => {
     expect(affected).not.toContain('src/other.ts');
   });
 });
+
+describe('CodebaseGraph callers of a method called through a variable', () => {
+  it('finds graph.getSymbolImpact() as a caller of getSymbolImpact, only where the class is visible', () => {
+    const method = {
+      name: 'getSymbolImpact',
+      owner: 'Graph',
+      type: 'method',
+      filePath: 'src/Graph.ts',
+      line: 5,
+      column: 2,
+      language: 'typescript',
+      visibility: 'public',
+    } as ScannedFile['symbols'][number];
+    const klass = { ...method, name: 'Graph', owner: undefined, type: 'class', line: 1 } as ScannedFile['symbols'][number];
+    const call = (file: string, owner: string) => ({
+      callerId: `${file}:run`,
+      calleeName: 'getSymbolImpact',
+      calleeOwner: owner,
+      filePath: file,
+      line: 3,
+      column: 0,
+    });
+    const graph = buildGraph([
+      { ...makeFile('src/Graph.ts'), symbols: [klass, method] },
+      {
+        ...makeFile('src/tools.ts', [
+          { fromFile: 'src/tools.ts', toModule: './Graph', resolvedPath: 'src/Graph.ts', namedImports: ['Graph'], line: 1 },
+        ]),
+        calls: [call('src/tools.ts', 'cachedGraph')],
+      },
+      // Same member name on an unrelated receiver in a file that never sees Graph.
+      { ...makeFile('src/unrelated.ts'), calls: [call('src/unrelated.ts', 'other')] },
+    ]);
+    expect(graph.getCallersOf('getSymbolImpact').map((edge) => edge.filePath)).toEqual(['src/tools.ts']);
+    expect(graph.getCallersOf('getSymbolImpact', 'Graph').map((edge) => edge.filePath)).toEqual(['src/tools.ts']);
+    expect([...graph.getSymbolImpact('getSymbolImpact')]).toEqual(['src/tools.ts']);
+  });
+});
