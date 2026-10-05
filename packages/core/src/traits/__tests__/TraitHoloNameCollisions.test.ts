@@ -14,8 +14,10 @@
  *     that does not even contain "transaction" (verified live: calling
  *     `explain_trait({ trait: "transaction" })` returns `Unknown trait:
  *     @transaction`). The D.104 native-authoring ratchet
- *     (scripts/holo-ci/check-native-coverage.mjs) counts these files by
- *     extension only; scripts/holo-ci/audit-native-parseability.mjs only checks
+ *     (scripts/holo-ci/check-native-coverage.mjs) counts these files as native
+ *     without parsing them or checking what reads them, so its ratio is an
+ *     upper bound (it reports trait cards like these apart, ungated);
+ *     scripts/holo-ci/audit-native-parseability.mjs only checks
  *     syntactic parseability. So the 3-way collision had zero live behavioral
  *     effect today — it is a corpus/documentation-layer bug, not a runtime one.
  *   - The REAL runtime trait-handler collision guard is
