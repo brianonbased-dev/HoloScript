@@ -999,9 +999,12 @@ impl Parser {
         self.expect(TokenType::LParen)?;
 
         let mut params = Vec::new();
+        let mut param_locs = Vec::new();
         let mut param_types = Vec::new();
         while !self.check(TokenType::RParen) && !self.is_at_end() {
+            let param_start = self.current_location();
             params.push(self.expect_identifier()?);
+            param_locs.push(self.location_from(param_start));
             let param_type = if self.check(TokenType::Colon) {
                 self.advance();
                 Some(self.parse_type_annotation()?)
@@ -1039,6 +1042,7 @@ impl Parser {
             name,
             lifetimes,
             params,
+            param_locs,
             param_types,
             return_type,
             body,

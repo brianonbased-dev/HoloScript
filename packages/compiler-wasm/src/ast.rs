@@ -550,6 +550,10 @@ pub struct FunctionNode {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub lifetimes: Vec<String>,
     pub params: Vec<String>,
+    /// Where each parameter's name is written, aligned 1:1 with `params`, so a diagnostic about
+    /// one parameter points at it. Not serialized: `parse()` output keeps its shape.
+    #[serde(skip)]
+    pub param_locs: Vec<Location>,
     /// Optional machine-level type for each parameter. Empty for legacy untyped functions so
     /// their serialized AST shape remains unchanged; otherwise aligned 1:1 with `params`.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
