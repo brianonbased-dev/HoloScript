@@ -154,12 +154,21 @@ function genMcpRuntime(): string {
     ``,
     `// A server value reads no environment variable except HOLOSCRIPT_MCP_URL, and only`,
     `// when the whole value is the configured-MCP form. Anything else is used as written.`,
-    `function resolveMcpBase(server) {`,
+    `// The result must be an absolute http(s) URL. A plain server name is not one: Node`,
+    `// throws on the relative URL it would make, but a runtime that has a base URL (a`,
+    `// browser) would send the request to the page's own origin. So it is refused here,`,
+    `// by name, before any request is built.`,
+    `function resolveMcpBase(server, stageLabel) {`,
     `  const configuredForm = HOLOSCRIPT_MCP_SERVER_FORM.exec(server);`,
-    `  if (configuredForm) {`,
-    `    return process.env.HOLOSCRIPT_MCP_URL || configuredForm[1] || HOLOSCRIPT_DEFAULT_MCP_URL;`,
+    `  const base = configuredForm`,
+    `    ? process.env.HOLOSCRIPT_MCP_URL || configuredForm[1] || HOLOSCRIPT_DEFAULT_MCP_URL`,
+    `    : server || configuredMcpUrl();`,
+    `  if (httpOrigin(base) === null) {`,
+    `    throw new Error(stageLabel + ' refused: the server ' + JSON.stringify(base) + ' is not an '`,
+    `      + 'http(s) address, so the request has nowhere to go. Give this stage a server on the '`,
+    `      + 'configured MCP server, or leave server out to use HOLOSCRIPT_MCP_URL.');`,
     `  }`,
-    `  return server || configuredMcpUrl();`,
+    `  return base;`,
     `}`,
     ``,
     `function httpOrigin(url) {`,
@@ -196,14 +205,21 @@ function genMcpRuntime(): string {
   ].join('\n');
 }
 
+type McpStageKind = 'source' | 'transform' | 'sink';
+
+/** How the generated code names an MCP stage in its errors, e.g. `MCP sink "ToolOut"`. */
+function mcpStageLabel(kind: McpStageKind, stageName: string): string {
+  return `MCP ${kind} "${stageName}"`;
+}
+
 /**
  * The address and headers of one MCP stage. The server value is embedded as a
  * JSON string literal, so nothing in it is evaluated as code or interpolated.
  */
-function genMcpRequestSetup(stageName: string, server: unknown): string[] {
+function genMcpRequestSetup(kind: McpStageKind, stageName: string, server: unknown): string[] {
   const value = String(server || DEFAULT_PIPELINE_MCP_SERVER);
   return [
-    `const ${stageName}_base = resolveMcpBase(${JSON.stringify(value)});`,
+    `const ${stageName}_base = resolveMcpBase(${JSON.stringify(value)}, ${JSON.stringify(mcpStageLabel(kind, stageName))});`,
     `const ${stageName}_url = ${stageName}_base.replace(/\\/$/, '') + '/mcp';`,
     `const ${stageName}_headers = mcpHeaders(${stageName}_url);`,
   ];
@@ -276,7 +292,7 @@ function genSource(source: PipelineSource): string {
     const toolName = String(source.properties.tool || source.name);
     const args = JSON.stringify(source.properties.args || {});
 
-    lines.push(...genMcpRequestSetup(source.name, source.properties.server));
+    lines.push(...genMcpRequestSetup('source', source.name, source.properties.server));
     lines.push(`const ${source.name}_response = await mcpFetch(${source.name}_url, {`);
     lines.push(`  method: 'POST',`);
     lines.push(`  headers: ${source.name}_headers,`);
@@ -289,7 +305,7 @@ function genSource(source: PipelineSource): string {
     lines.push(`      arguments: ${args},`);
     lines.push(`    },`);
     lines.push(`  }),`);
-    lines.push(`}, ${JSON.stringify(`MCP source "${source.name}"`)});`);
+    lines.push(`}, ${JSON.stringify(mcpStageLabel('source', source.name))});`);
     lines.push(`if (!${source.name}_response.ok) {`);
     lines.push(
       `  throw new Error(\`MCP source ${source.name} failed: \${${source.name}_response.status} \${${source.name}_response.statusText}\`);`
@@ -386,7 +402,7 @@ function genTransform(transform: PipelineTransform): string {
     const toolName = String(transform.tool || transform.name);
     const args = JSON.stringify(transform.args || {});
 
-    lines.push(...genMcpRequestSetup(transform.name, transform.server));
+    lines.push(...genMcpRequestSetup('transform', transform.name, transform.server));
     lines.push(`const ${transform.name}_response = await mcpFetch(${transform.name}_url, {`);
     lines.push(`  method: 'POST',`);
     lines.push(`  headers: ${transform.name}_headers,`);
@@ -399,7 +415,7 @@ function genTransform(transform: PipelineTransform): string {
     lines.push(`      arguments: { ...${args}, records, output },`);
     lines.push(`    },`);
     lines.push(`  }),`);
-    lines.push(`}, ${JSON.stringify(`MCP transform "${transform.name}"`)});`);
+    lines.push(`}, ${JSON.stringify(mcpStageLabel('transform', transform.name))});`);
     lines.push(`if (!${transform.name}_response.ok) {`);
     lines.push(
       `  throw new Error(\`MCP transform ${transform.name} failed: \${${transform.name}_response.status} \${${transform.name}_response.statusText}\`);`
@@ -625,7 +641,7 @@ function genSink(sink: PipelineSink): string {
     const batchSize = sink.batch?.size || 0;
     const args = JSON.stringify(sink.args || {});
 
-    lines.push(...genMcpRequestSetup(sink.name, sink.server));
+    lines.push(...genMcpRequestSetup('sink', sink.name, sink.server));
 
     lines.push(`const ${sink.name}_invoke = async (payload) => {`);
     lines.push(`  const response = await mcpFetch(${sink.name}_url, {`);
@@ -640,7 +656,7 @@ function genSink(sink: PipelineSink): string {
     lines.push(`        arguments: { ...${args}, records: payload, output },`);
     lines.push(`      },`);
     lines.push(`    }),`);
-    lines.push(`  }, ${JSON.stringify(`MCP sink "${sink.name}"`)});`);
+    lines.push(`  }, ${JSON.stringify(mcpStageLabel('sink', sink.name))});`);
     lines.push(`  if (!response.ok) {`);
     lines.push(
       `    throw new Error(\`MCP sink ${sink.name} failed: \${response.status} \${response.statusText}\`);`

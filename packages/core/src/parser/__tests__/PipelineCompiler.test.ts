@@ -294,6 +294,8 @@ describe('PipelineCompiler (parser target)', () => {
 describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
   const FAKE_KEY = 'test-key-not-real';
   const FAKE_SECRET = 'fake-secret-not-real';
+  /** This machine, as the loopback address the local MCP service listens on. */
+  const LOCAL = '127.0.0.1';
 
   type Stage = 'source' | 'transform' | 'sink';
 
@@ -320,20 +322,29 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
    * Run a generated module with a fake environment and a recording fetch. The
    * generated statements run unchanged; only `export` and the trailing auto-run
    * line are removed so the test owns the single run. No network, no real env.
+   *
+   * `page` runs it in a runtime that has a base URL, as a browser does: a relative
+   * URL is resolved against the page and recorded as the address that would be called.
+   * `calls` lets the caller read the requests even when the run throws.
    */
-  async function runGenerated(code: string, env: Record<string, string>): Promise<FetchCall[]> {
+  async function runGenerated(
+    code: string,
+    env: Record<string, string>,
+    options: { page?: string; calls?: FetchCall[] } = {}
+  ): Promise<FetchCall[]> {
     const exported = 'export async function run() {';
     const autoRun = 'run().catch(console.error);';
     expect(code).toContain(exported);
     expect(code).toContain(autoRun);
     const body = code.replace(exported, 'async function run() {').replace(autoRun, '');
 
-    const calls: FetchCall[] = [];
+    const calls: FetchCall[] = options.calls ?? [];
     const recordingFetch = async (
       url: unknown,
       init: { headers?: Record<string, string> } = {}
     ) => {
-      calls.push({ url: String(url), headers: { ...(init.headers ?? {}) } });
+      const destination = options.page ? new URL(String(url), options.page).href : String(url);
+      calls.push({ url: destination, headers: { ...(init.headers ?? {}) } });
       return {
         ok: true,
         status: 200,
@@ -369,7 +380,7 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
       expect(result.errors).toHaveLength(1);
       const [message] = result.errors!;
       expect(message).toContain(`${label} cannot use server "https://attacker.example"`);
-      expect(message).toContain('is not on this machine (localhost, 127.0.0.1, ::1)');
+      expect(message).toContain('a server on this machine is no exception');
       expect(message).toContain('the configured MCP server https://mcp.holoscript.net');
       expect(message).toContain('HOLOSCRIPT_API_KEY');
     }
@@ -386,6 +397,15 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
     ['http:', 'becomes http:/mcp, a request to host "mcp"'],
     ['attacker.example', 'neither a URL nor a plain server name'],
     ['ftp://127.0.0.1', 'not http(s)'],
+    // This machine is no exception: the local MCP service trusts any loopback caller.
+    [`http://${LOCAL}:7411`, 'a port on this machine that nothing configured'],
+    [`http://${LOCAL}:7411/`, 'the same, with a path'],
+    ['http://localhost:3000/', 'localhost, any port'],
+    ['http://[::1]:8080', 'IPv6 loopback'],
+    [
+      `\${env.HOLOSCRIPT_MCP_URL:-http://${LOCAL}:7411}`,
+      'a loopback fallback, used when nothing is configured',
+    ],
   ])('refuses %s (%s)', (server) => {
     const result = compilePipelineSourceToNode(mcpPipeline(server));
     expect(result.success).toBe(false);
@@ -422,13 +442,6 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
     ['', 'no server: the default'],
     ['${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}', 'the compiler default form'],
     ['${env.HOLOSCRIPT_MCP_URL}', 'the configured MCP URL'],
-    [
-      '${env.HOLOSCRIPT_MCP_URL:-http://127.0.0.1:7411}',
-      'configured, falling back to this machine',
-    ],
-    ['http://127.0.0.1:7411', 'loopback'],
-    ['http://localhost:3000/', 'localhost'],
-    ['http://[::1]:8080', 'IPv6 loopback'],
     ['https://mcp.holoscript.net', 'the default MCP server'],
     ['https://MCP.holoscript.net:443/v1', 'the default MCP server, other spelling'],
     ['bio-research', 'a plain server name, as in examples/pipelines'],
@@ -449,10 +462,41 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
     );
   });
 
+  it('accepts a server on this machine only when HOLOSCRIPT_MCP_URL names it: same scheme, host and port', () => {
+    // The local MCP service trusts any loopback caller, so the file gets no say in which
+    // loopback address a stage uses. Only the configured origin is accepted.
+    vi.stubEnv('HOLOSCRIPT_MCP_URL', `http://${LOCAL}:7411`);
+    for (const server of [
+      `http://${LOCAL}:7411`,
+      `http://${LOCAL}:7411/`,
+      `http://${LOCAL}:7411/v2`,
+      `HTTP://${LOCAL}:7411`,
+      '${env.HOLOSCRIPT_MCP_URL}',
+      '',
+    ]) {
+      const result = compilePipelineSourceToNode(mcpPipeline(server));
+      expect(result.errors, server).toBeUndefined();
+      expect(result.success, server).toBe(true);
+    }
+    for (const server of [
+      `http://${LOCAL}:7412`, // another port
+      `http://${LOCAL}`, // port 80
+      `https://${LOCAL}:7411`, // another scheme
+      'http://localhost:7411', // another spelling of the same machine
+      'http://[::1]:7411',
+      'http://127.0.0.2:7411',
+      `\${env.HOLOSCRIPT_MCP_URL:-http://${LOCAL}:7411}`, // a fallback is judged against the default server
+    ]) {
+      const result = compilePipelineSourceToNode(mcpPipeline(server));
+      expect(result.success, server).toBe(false);
+      expect(result.errors?.[0], server).toContain(`cannot use server ${JSON.stringify(server)}`);
+    }
+  });
+
   it('embeds the server as a string, never as code', () => {
     const code = compilePipelineSourceToNode(mcpPipeline('')).code ?? '';
     expect(code).toContain(
-      'const ToolOut_base = resolveMcpBase("${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}");'
+      'const ToolOut_base = resolveMcpBase("${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}", "MCP sink \\"ToolOut\\"");'
     );
     expect(code).not.toContain('interpolate(`${env.HOLOSCRIPT_MCP_URL');
   });
@@ -466,16 +510,20 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
   });
 
   it('sends the key to a loopback server only when the operator configured it', async () => {
-    const code = compilePipelineSourceToNode(mcpPipeline('http://127.0.0.1:7411')).code!;
+    // A loopback server compiles only while HOLOSCRIPT_MCP_URL names it...
+    vi.stubEnv('HOLOSCRIPT_MCP_URL', `http://${LOCAL}:7411`);
+    const code = compilePipelineSourceToNode(mcpPipeline(`http://${LOCAL}:7411`)).code!;
 
+    // ...and the key is decided again when the pipeline runs: run where it is not
+    // configured, the request goes there without the key.
     const unconfigured = await runGenerated(code, { HOLOSCRIPT_API_KEY: FAKE_KEY });
     expect(unconfigured).toHaveLength(1);
-    expect(unconfigured[0].url).toBe('http://127.0.0.1:7411/mcp');
+    expect(unconfigured[0].url).toBe(`http://${LOCAL}:7411/mcp`);
     expect(unconfigured[0].headers).not.toHaveProperty('x-mcp-api-key');
 
     const configured = await runGenerated(code, {
       HOLOSCRIPT_API_KEY: FAKE_KEY,
-      HOLOSCRIPT_MCP_URL: 'http://127.0.0.1:7411',
+      HOLOSCRIPT_MCP_URL: `http://${LOCAL}:7411`,
     });
     expect(configured[0].headers['x-mcp-api-key']).toBe(FAKE_KEY);
   });
@@ -487,21 +535,38 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
     const calls = await runGenerated(code, { HOLOSCRIPT_API_KEY: FAKE_KEY });
     expect(calls[0].url).toBe('https://other-mcp.example/mcp');
     expect(calls[0].headers).not.toHaveProperty('x-mcp-api-key');
-
-    // A fallback is used only while HOLOSCRIPT_MCP_URL is unset; it gets no key either.
-    const fallback = compilePipelineSourceToNode(
-      mcpPipeline('${env.HOLOSCRIPT_MCP_URL:-http://127.0.0.1:9999}')
-    ).code!;
-    const fallbackCalls = await runGenerated(fallback, { HOLOSCRIPT_API_KEY: FAKE_KEY });
-    expect(fallbackCalls[0].url).toBe('http://127.0.0.1:9999/mcp');
-    expect(fallbackCalls[0].headers).not.toHaveProperty('x-mcp-api-key');
   });
 
-  it('a plain server name gets no key', async () => {
-    const code = compilePipelineSourceToNode(mcpPipeline('bio-research')).code!;
-    const calls = await runGenerated(code, { HOLOSCRIPT_API_KEY: FAKE_KEY });
-    expect(calls[0].url).toBe('bio-research/mcp');
-    expect(calls[0].headers).not.toHaveProperty('x-mcp-api-key');
+  it('refuses a server that is not an absolute address, by name, before any request is built', async () => {
+    // A plain name such as "bio-research" would make the relative URL "bio-research/mcp".
+    // Node's fetch throws on that, but a runtime that has a base URL (a browser) resolves
+    // it against the page and would call the page's own origin. So the generated code
+    // refuses it itself, and never calls fetch.
+    const PAGE = 'https://page.example/app/';
+    for (const [stage, label] of [
+      ['source', 'MCP source "Pull"'],
+      ['transform', 'MCP transform "Enrich"'],
+      ['sink', 'MCP sink "ToolOut"'],
+    ] as const) {
+      const code = compilePipelineSourceToNode(mcpPipeline('bio-research', stage)).code!;
+      const calls: FetchCall[] = [];
+      await expect(
+        runGenerated(code, { HOLOSCRIPT_API_KEY: FAKE_KEY }, { page: PAGE, calls })
+      ).rejects.toThrow(`${label} refused: the server "bio-research" is not an http(s) address`);
+      expect(calls, `${stage}: no request may be made`).toEqual([]);
+    }
+
+    // The same refusal when HOLOSCRIPT_MCP_URL itself is not an address.
+    const configured = compilePipelineSourceToNode(mcpPipeline('')).code!;
+    const calls: FetchCall[] = [];
+    await expect(
+      runGenerated(
+        configured,
+        { HOLOSCRIPT_API_KEY: FAKE_KEY, HOLOSCRIPT_MCP_URL: 'mcp-box' },
+        { page: PAGE, calls }
+      )
+    ).rejects.toThrow('MCP sink "ToolOut" refused: the server "mcp-box" is not an http(s) address');
+    expect(calls).toEqual([]);
   });
 
   it('if the compile-time check is bypassed, the generated code still leaks nothing', async () => {
@@ -520,6 +585,24 @@ describe('PipelineCompiler — MCP servers a pipeline file may choose', () => {
       const foreignCalls = await runGenerated(foreign.code!, env);
       expect(foreignCalls[0].url).toBe('https://attacker.example/mcp');
       expect(foreignCalls[0].headers).not.toHaveProperty('x-mcp-api-key');
+
+      // A port on this machine, or a fallback to one, that is not the configured server
+      // gets no key either (the key is decided again at run time, whatever compiled it).
+      for (const [server, runEnv, expectedUrl] of [
+        [`http://${LOCAL}:7411`, env, `http://${LOCAL}:7411/mcp`],
+        [
+          `http://${LOCAL}:7411`,
+          { ...env, HOLOSCRIPT_MCP_URL: `http://${LOCAL}:7412` },
+          `http://${LOCAL}:7411/mcp`,
+        ],
+        [`\${env.HOLOSCRIPT_MCP_URL:-http://${LOCAL}:9999}`, env, `http://${LOCAL}:9999/mcp`],
+      ] as const) {
+        const compiled = unchecked(mcpPipeline(server));
+        expect(compiled.success, server).toBe(true);
+        const [call] = await runGenerated(compiled.code!, runEnv);
+        expect(call.url, server).toBe(expectedUrl);
+        expect(call.headers, server).not.toHaveProperty('x-mcp-api-key');
+      }
 
       for (const server of [
         'https://mcp.holoscript.net/${env.SOME_SECRET}',

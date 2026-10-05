@@ -190,6 +190,9 @@ describe('PipelineNodeCompiler', () => {
 // Board task task_1791176003202_obsc: the same file gets the same verdict from both
 // pipeline compilers. This one is what `holoscript run` and `compile --target node` use.
 describe('PipelineNodeCompiler — MCP servers a pipeline file may choose', () => {
+  /** This machine, as the loopback address the local MCP service listens on. */
+  const LOCAL = '127.0.0.1';
+
   function mcpPipeline(server: string): string {
     return `
       pipeline "McpServerPolicy" {
@@ -256,7 +259,7 @@ describe('PipelineNodeCompiler — MCP servers a pipeline file may choose', () =
       'https://attacker.example',
       'https://mcp.holoscript.net/${env.SOME_SECRET}',
       '${env.HOLOSCRIPT_MCP_URL:-https://attacker.example}',
-      'http://127.0.0.1:7411',
+      `http://${LOCAL}:7411`,
       'mcp-orchestrator',
       '',
     ]) {
@@ -271,8 +274,6 @@ describe('PipelineNodeCompiler — MCP servers a pipeline file may choose', () =
   it.each([
     [''],
     ['${env.HOLOSCRIPT_MCP_URL:-https://mcp.holoscript.net}'],
-    ['http://127.0.0.1:7411'],
-    ['http://localhost:3000'],
     ['https://mcp.holoscript.net'],
     ['mcp-orchestrator'],
   ])('still compiles server %j on every target', (server) => {
@@ -289,5 +290,28 @@ describe('PipelineNodeCompiler — MCP servers a pipeline file may choose', () =
     expect(compilePipelineSourceToNode(mcpPipeline('https://attacker.example')).success).toBe(
       false
     );
+  });
+
+  // This machine is no exception: the local MCP service trusts any loopback caller, so a
+  // file may not pick a loopback address. Only the configured origin is accepted.
+  it.each([
+    [`http://${LOCAL}:7411`],
+    ['http://localhost:3000'],
+    ['http://[::1]:8080'],
+    [`\${env.HOLOSCRIPT_MCP_URL:-http://${LOCAL}:7411}`],
+  ])('refuses %j when nothing configured it, on every target', (server) => {
+    for (const [target, compile] of Object.entries(targets)) {
+      const result = compile(mcpPipeline(server));
+      expect(result.success, target).toBe(false);
+      expect(result.errors?.[0], target).toContain('a server on this machine is no exception');
+    }
+  });
+
+  it('accepts a server on this machine only when HOLOSCRIPT_MCP_URL names it, on every target', () => {
+    vi.stubEnv('HOLOSCRIPT_MCP_URL', `http://${LOCAL}:7411`);
+    for (const [target, compile] of Object.entries(targets)) {
+      expect(compile(mcpPipeline(`http://${LOCAL}:7411`)).success, target).toBe(true);
+      expect(compile(mcpPipeline(`http://${LOCAL}:7412`)).success, target).toBe(false);
+    }
   });
 });

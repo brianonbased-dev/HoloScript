@@ -15,12 +15,19 @@
  *   - exactly `${env.HOLOSCRIPT_MCP_URL}` or `${env.HOLOSCRIPT_MCP_URL:-<url>}`:
  *     the configured MCP server. `<url>` is used only when HOLOSCRIPT_MCP_URL is
  *     not set, when the configured server is the default, so `<url>` must be on
- *     this machine or on the default server;
- *   - an http(s) URL on this machine: localhost, 127.0.0.1 or [::1];
- *   - an http(s) URL on the configured MCP server's origin;
+ *     the default server;
+ *   - an http(s) URL whose origin (scheme, host and port) is the configured MCP
+ *     server's origin;
  *   - a plain server name such as "bio-research" (letters, digits, "-", "_").
- *     A name has no scheme and no host, so no request can be made with it; the
+ *     A name has no scheme and no host, so no request can be made with it (the
+ *     generated code refuses it by name rather than build a relative URL); the
  *     docs define `server` as a name, and the tracked example pipelines use names.
+ *
+ * This machine gets no exception. The MCP service on this machine can trust any
+ * caller on loopback (MCP_TRUST_LOOPBACK), so a pipeline file that could name a
+ * loopback address on any port could aim a stage at that service and ship the
+ * answer out through another stage. A server on this machine is accepted only when
+ * it is the configured one: HOLOSCRIPT_MCP_URL names it, same scheme, host and port.
  *
  * Anything else is refused at compile time, by both pipeline emitters
  * (parser/PipelineCompiler.ts and compiler/PipelineNodeCompiler.ts).
@@ -45,9 +52,6 @@ export const DEFAULT_PIPELINE_MCP_SERVER =
  * uses this same pattern (PipelineCompiler.ts emits its source).
  */
 export const CONFIGURED_MCP_SERVER_FORM = /^\$\{env\.HOLOSCRIPT_MCP_URL(?::-([^${}]*))?\}$/;
-
-/** Hostnames of this machine, as the URL parser spells them. */
-const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /** A plain server name. No ':' means it can never parse as an absolute URL. */
 const SERVER_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
@@ -74,16 +78,16 @@ export function configuredMcpUrl(env: Env = process.env): string {
   return env.HOLOSCRIPT_MCP_URL || DEFAULT_PIPELINE_MCP_URL;
 }
 
-const NOT_ON_THIS_MACHINE = 'is not on this machine (localhost, 127.0.0.1, ::1)';
 const WHY =
-  'A pipeline file must not choose where your HOLOSCRIPT_API_KEY and your records go. ' +
+  'A pipeline file must not choose where your HOLOSCRIPT_API_KEY and your records go, ' +
+  'and a server on this machine is no exception. ' +
   'To use another MCP server, set HOLOSCRIPT_MCP_URL to its address.';
 
 /**
  * Where a URL would send an MCP request, judged against `trusted`: the origin of
  * the MCP server that is configured when this URL is used (null if none).
  * Returns null when allowed, 'not-a-url' when no request could be built from it,
- * or the refused origin.
+ * or the refused origin. Every origin is judged the same way, including loopback.
  */
 function locationProblem(url: string, trusted: string | null): string | null {
   let parsed: URL;
@@ -95,7 +99,6 @@ function locationProblem(url: string, trusted: string | null): string | null {
     return 'not-a-url';
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return 'not-a-url';
-  if (LOOPBACK_HOSTNAMES.has(parsed.hostname)) return null;
   if (trusted !== null && parsed.origin === trusted) return null;
   return parsed.origin;
 }
@@ -131,12 +134,12 @@ export function pipelineServerRefusal(
     if (problem === null) return null;
     if (problem === 'not-a-url') {
       return refuse(
-        `its fallback ${JSON.stringify(fallback)} is not an http(s) URL (such as http://127.0.0.1:7411).`
+        `its fallback ${JSON.stringify(fallback)} is not an http(s) URL (such as ${DEFAULT_PIPELINE_MCP_URL}).`
       );
     }
     return refuse(
       `its fallback, used when HOLOSCRIPT_MCP_URL is not set, goes to ${problem}, which ` +
-        `${NOT_ON_THIS_MACHINE} and is not the default MCP server ${DEFAULT_PIPELINE_MCP_URL}. ${WHY}`
+        `is not the default MCP server ${DEFAULT_PIPELINE_MCP_URL}. ${WHY}`
     );
   }
 
@@ -147,7 +150,7 @@ export function pipelineServerRefusal(
   if (problem === null) return null;
   if (problem === 'not-a-url') {
     return refuse(
-      'it is neither an http(s) URL (such as http://127.0.0.1:7411) nor a plain server name ' +
+      `it is neither an http(s) URL (such as ${DEFAULT_PIPELINE_MCP_URL}) nor a plain server name ` +
         '(letters, digits, "-" and "_").'
     );
   }
@@ -155,7 +158,7 @@ export function pipelineServerRefusal(
     configured === null
       ? 'the configured MCP server (HOLOSCRIPT_MCP_URL is set but is not an http(s) URL)'
       : `the configured MCP server ${configured}`;
-  return refuse(`its host ${problem} ${NOT_ON_THIS_MACHINE} and is not ${configuredLabel}. ${WHY}`);
+  return refuse(`it goes to ${problem}, which is not ${configuredLabel}. ${WHY}`);
 }
 
 /**

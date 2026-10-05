@@ -134,15 +134,21 @@ only if its `server` is:
 - left out: the configured MCP server, which is `HOLOSCRIPT_MCP_URL`, or
   `https://mcp.holoscript.net` when that is not set;
 - exactly `${env.HOLOSCRIPT_MCP_URL}` or `${env.HOLOSCRIPT_MCP_URL:-<url>}`, where
-  `<url>` is on this machine or is `https://mcp.holoscript.net`;
-- an `http` or `https` URL on this machine (`localhost`, `127.0.0.1`, `[::1]`);
-- an `http` or `https` URL on the configured MCP server;
+  `<url>` is `https://mcp.holoscript.net`;
+- an `http` or `https` URL on the configured MCP server (same scheme, host and
+  port);
 - a plain server name such as `"bio-research"` (letters, digits, `-` and `_`).
+
+A server on this machine is no exception. The MCP service on this machine can
+trust any caller on `localhost`, so a pipeline file may not pick a `localhost`,
+`127.0.0.1` or `[::1]` address or port: such a server compiles only when
+`HOLOSCRIPT_MCP_URL` is set to that same address.
 
 Anything else, including any other `${…}`, stops the compile with an error that
 names the stage and the server. When the pipeline runs, the API key goes only to
-the configured MCP server: a server on this machine gets it only when
-`HOLOSCRIPT_MCP_URL` points at it. To use a different MCP server, set
+the configured MCP server. A plain name is not an address, so a stage that has one
+cannot send a request: the generated code stops with an error that names the stage
+and the server, before it builds a request. To use a different MCP server, set
 `HOLOSCRIPT_MCP_URL`.
 
 **Filesystem source example**
