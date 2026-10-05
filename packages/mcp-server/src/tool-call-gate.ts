@@ -70,6 +70,12 @@ export interface ToolCallGateContext {
   readonly scopes?: readonly string[];
   /** Active brain frame. `null` means the metadata key was present but invalid. */
   readonly frameDeclaration?: FrameDeclaration | null;
+  /**
+   * Self-declared client label (e.g. "claude-code", "cursor"), from the
+   * x-holo-client header. Informational only: never used for authorization.
+   * Lets usage be told apart when every local caller shares one identity.
+   */
+  readonly client?: string | null;
 }
 
 // ── Check seam (FounderGate / x402 / envelope validation plug in here) ───────
@@ -127,6 +133,8 @@ export interface ToolCallReceipt {
   readonly argsSha256: string;
   /** Caller identity or null (trusted local stdio / unknown). */
   readonly caller: string | null;
+  /** Self-declared client label when the caller sent one (see ToolCallGateContext.client). */
+  readonly client?: string;
   readonly transport: 'stdio' | 'http';
   readonly sessionId?: string;
   /** ISO-8601 UTC start/end of the gated span (check + dispatch). */
@@ -314,6 +322,13 @@ function errorClassOf(error: unknown): string {
  * - A check denial throws `ToolCallGateDeniedError` without dispatching.
  * - Exactly one receipt line is written per call, on every path.
  */
+/** A short, log-safe client label, or undefined when absent or malformed. */
+export function sanitizeClientLabel(value: string | null | undefined): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return /^[A-Za-z0-9._:@/-]{1,80}$/.test(trimmed) ? trimmed : undefined;
+}
+
 export async function gateToolCall<T>(
   envelope: ToolCallEnvelope,
   ctx: ToolCallGateContext,
@@ -328,6 +343,7 @@ export async function gateToolCall<T>(
     tool: envelope.name,
     argsSha256: sha256OfCanonicalJson(envelope.args ?? {}),
     caller: ctx.callerId ?? null,
+    ...(sanitizeClientLabel(ctx.client) ? { client: sanitizeClientLabel(ctx.client)! } : {}),
     transport: ctx.transport,
     ...(ctx.sessionId !== undefined ? { sessionId: ctx.sessionId } : {}),
     startedAt: new Date(startedAtMs).toISOString(),

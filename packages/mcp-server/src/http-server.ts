@@ -123,7 +123,11 @@ import {
   publicAnonymousContext,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
-import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
+import {
+  ToolCallGateDeniedError,
+  frameDeclarationFromMcpMeta,
+  gateToolCall,
+} from './tool-call-gate';
 import { founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import { creditRouteWithoutLedger } from './security/consumer-spend-guard';
@@ -792,6 +796,50 @@ interface SecuredToolExecutionOptions {
   signingCtx?: SigningContext;
 }
 
+/**
+ * The one way an HTTP entry runs a tool: the tool-call gate (pre-dispatch
+ * checks plus one receipt per call) around securedToolExecution. Before
+ * 2026-10-05 only the SDK session handler went through the gate; the
+ * stateless POST /mcp JSON-RPC path (the one the local agent proxy uses) and
+ * the A2A task handler called securedToolExecution directly, so their calls
+ * skipped founderGateX402ToolCallCheck and left no receipt. Measured: the
+ * receipt log's last line was 2026-09-23 while agents kept calling 7411.
+ */
+async function gatedToolExecution(
+  toolName: string,
+  args: Record<string, unknown>,
+  auth: TokenIntrospection,
+  meta: {
+    client?: string | null;
+    frameDeclaration?: ReturnType<typeof frameDeclarationFromMcpMeta>;
+    sessionId?: string;
+  },
+  options?: SecuredToolExecutionOptions
+): Promise<{ result: unknown; isError: boolean }> {
+  return gateToolCall(
+    { name: toolName, args },
+    {
+      transport: 'http',
+      callerId: auth.agentId ?? auth.clientId ?? null,
+      scopes: auth.scopes,
+      ...(meta.client !== undefined ? { client: meta.client } : {}),
+      ...(meta.sessionId !== undefined ? { sessionId: meta.sessionId } : {}),
+      ...(meta.frameDeclaration !== undefined ? { frameDeclaration: meta.frameDeclaration } : {}),
+    },
+    (env) => securedToolExecution(env.name, env.args, auth, options),
+    {
+      check: founderGateX402ToolCallCheck,
+      classifyResult: (r) =>
+        r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
+    }
+  );
+}
+
+function readDeclaredClient(req: { headers: Record<string, unknown> }): string | null {
+  const value = req.headers['x-holo-client'];
+  return typeof value === 'string' ? value : null;
+}
+
 async function securedToolExecution(
   toolName: string,
   args: Record<string, unknown>,
@@ -1084,10 +1132,13 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
  */
 function a2aToolHandlerFor(auth: TokenIntrospection) {
   return async (name: string, args: Record<string, unknown>): Promise<unknown> => {
-    const { result, isError } = await securedToolExecution(name, args, auth, {
-      requestPath: '/a2a/tasks',
-      requestMethod: 'POST',
-    });
+    const { result, isError } = await gatedToolExecution(
+      name,
+      args,
+      auth,
+      {},
+      { requestPath: '/a2a/tasks', requestMethod: 'POST' }
+    );
 
     if (isError) {
       const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
@@ -3586,15 +3637,33 @@ const httpServer = http.createServer(async (req, res) => {
       if (method === 'tools/call') {
         const toolArgs = (params.arguments as Record<string, unknown>) || {};
         const tcpPeer = req.socket.remoteAddress?.replace(/^::ffff:/, '') || undefined;
-        const { result, isError } = await securedToolExecution(name, toolArgs || {}, auth, {
-          requestPath: '/mcp',
-          requestMethod: 'POST',
-          ip: clientIP,
-          tcpPeerIp: tcpPeer,
-          rawXForwardedFor: readXForwardedFor(req),
-          bearerToken: readBearerToken(req),
-          signingCtx: unwrapped.signingCtx,
-        });
+        let gated: { result: unknown; isError: boolean };
+        try {
+          gated = await gatedToolExecution(
+            name,
+            toolArgs || {},
+            auth,
+            {
+              client: readDeclaredClient(req),
+              frameDeclaration: frameDeclarationFromMcpMeta(
+                (params as { _meta?: unknown })._meta
+              ),
+            },
+            {
+              requestPath: '/mcp',
+              requestMethod: 'POST',
+              ip: clientIP,
+              tcpPeerIp: tcpPeer,
+              rawXForwardedFor: readXForwardedFor(req),
+              bearerToken: readBearerToken(req),
+              signingCtx: unwrapped.signingCtx,
+            }
+          );
+        } catch (err) {
+          if (!(err instanceof ToolCallGateDeniedError)) throw err;
+          gated = { result: { error: err.message, deniedBy: err.check }, isError: true };
+        }
+        const { result, isError } = gated;
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
