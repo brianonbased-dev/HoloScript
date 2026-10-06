@@ -288,6 +288,11 @@ export function behaviourSyndrome(run: HeadlessExperimentSourceRun): BehaviourSy
 /** First few differing JSON paths between two values (for plain reporting). */
 export function diffPaths(a: unknown, b: unknown, path = '$', out: string[] = [], max = 6): string[] {
   if (out.length >= max) return out;
+  // A key present on one side only: canonicalize rejects undefined, so report it directly.
+  if (a === undefined || b === undefined) {
+    if (a !== b) out.push(`${path}: ${JSON.stringify(a) ?? 'missing'} vs ${JSON.stringify(b) ?? 'missing'}`);
+    return out;
+  }
   if (canonicalizeHeadlessValue(a as never) === canonicalizeHeadlessValue(b as never)) return out;
   if (a && b && typeof a === 'object' && typeof b === 'object' && !Array.isArray(a) === !Array.isArray(b)) {
     const keys = Array.isArray(a)

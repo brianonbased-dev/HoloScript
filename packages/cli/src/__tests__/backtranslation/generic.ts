@@ -196,6 +196,31 @@ export function probeGenericFinalState(
   return projectKeys(state, spec.publicStateKeys);
 }
 
+/**
+ * `action:outcome` names a program returns across one situation (slice 3
+ * coverage: every outcome on the interface card must be reached by the
+ * situations, or the measurement never exercised it).
+ */
+export function genericOutcomesSeen(
+  spec: BehaviourSpec,
+  behaviourSource: string,
+  situation: GenericSituation
+): string[] {
+  const plan = parseHeadlessExperimentPlan(
+    genericPlanRecords(spec, situation, projectKeys({}, spec.publicStateKeys))
+  );
+  const runtime = createDeterministicHsplusActionRuntime(behaviourSource);
+  const seen: string[] = [];
+  for (const entry of plan.schedule) {
+    const result = runtime.invoke(entry);
+    const value = result.value as { outcome?: unknown } | null;
+    if (entry.kind === 'action' && value && typeof value.outcome === 'string') {
+      seen.push(`${entry.entrypoint}:${value.outcome}`);
+    }
+  }
+  return seen;
+}
+
 export async function runGenericSituation(
   worldSource: string,
   spec: BehaviourSpec,

@@ -1,0 +1,3 @@
+{
+  "verdict": "Before/after check only, not part of the slice-3 score. Before (slice 2): 3 of 6 mistakes shown and 18 false alarms in 20 situations, all from reading a wrong code as refused. After, with the card marking a wrong code as accepted: that misreading is gone in all three rebuilds. But the door still has 11 false alarms in 20 situations in every rebuild, from two other causes: two rebuilds answered the word none instead of the number 0 for tries left (the rule says none, so this is the rule wording, which slice 2 already saw once), and one rebuild forgot to open the door on the right code (a rebuild mistake). Mistakes shown went up to 4, 4 and 5 of 6. The card fixed the problem it was aimed at; the door rules still need rule 11 to say 0."
+}

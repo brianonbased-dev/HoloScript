@@ -1,0 +1,14 @@
+{
+  "id": "deli-counter-queue",
+  "title": "Deli Counter Queue",
+  "publicStateKeys": ["waitingNormal", "waitingPriority", "open", "nextNumber"],
+  "minSteps": 6,
+  "maxSteps": 14,
+  "actions": [
+    { "name": "join", "kind": "action", "weight": 5, "params": { "kind": { "type": "enum", "values": ["normal", "normal", "priority", "priority", "vip"] } } },
+    { "name": "serve", "kind": "action", "weight": 3, "params": {} },
+    { "name": "giveUp", "kind": "action", "weight": 1, "params": { "kind": { "type": "enum", "values": ["normal", "priority", "vip"] } } },
+    { "name": "closeJoining", "kind": "action", "weight": 0.4, "params": {} },
+    { "name": "board", "kind": "observation", "params": { "viewerId": { "type": "enum", "values": ["customer", "clerk"] } } }
+  ]
+}

@@ -1,0 +1,77 @@
+composition "Car Park Barrier" {
+  state {
+    carInside: false
+    minutes: 0
+    paid: 0
+    ticketsIssued: 0
+  }
+
+  logic {
+    action arrive() {
+      if (state.carInside) {
+        return { allowed: false, outcome: "car_already_inside" }
+      }
+      state.carInside = true
+      state.minutes = 0
+      state.paid = 0
+      state.ticketsIssued = state.ticketsIssued + 1
+      emit("ticket_issued", { ticket: state.ticketsIssued })
+      return { allowed: true, outcome: "ticket_issued" }
+    }
+
+    action wait(minutes) {
+      if (!state.carInside) {
+        return { allowed: false, outcome: "no_car" }
+      }
+      if (minutes < 1) {
+        return { allowed: false, outcome: "bad_minutes" }
+      }
+      state.minutes = state.minutes + minutes
+      return { allowed: true, outcome: "time_passed" }
+    }
+
+    action pay(coins) {
+      if (!state.carInside) {
+        return { allowed: false, outcome: "no_car" }
+      }
+      if ((state.minutes <= 30 ? 0 : (state.minutes <= 120 ? 3 : (state.minutes <= 240 ? 6 : 10))) - state.paid <= 0) {
+        return { allowed: false, outcome: "nothing_due" }
+      }
+      if (coins < 1) {
+        return { allowed: false, outcome: "no_coins" }
+      }
+      if (coins >= ((state.minutes <= 30 ? 0 : (state.minutes <= 120 ? 3 : (state.minutes <= 240 ? 6 : 10))) - state.paid)) {
+        emit("paid_in_full", { change: coins - ((state.minutes <= 30 ? 0 : (state.minutes <= 120 ? 3 : (state.minutes <= 240 ? 6 : 10))) - state.paid) })
+        state.paid = (state.minutes <= 30 ? 0 : (state.minutes <= 120 ? 3 : (state.minutes <= 240 ? 6 : 10)))
+        return { allowed: true, outcome: "paid_in_full" }
+      } else {
+        emit("part_paid", { still_owed: ((state.minutes <= 30 ? 0 : (state.minutes <= 120 ? 3 : (state.minutes <= 240 ? 6 : 10))) - state.paid) - coins })
+        state.paid = state.paid + coins
+        return { allowed: true, outcome: "part_paid" }
+      }
+    }
+
+    action leave() {
+      if (!state.carInside) {
+        return { allowed: false, outcome: "no_car" }
+      }
+      if (((state.minutes <= 30 ? 0 : (state.minutes <= 120 ? 3 : (state.minutes <= 240 ? 6 : 10))) - state.paid) > 0) {
+        return { allowed: false, outcome: "payment_due" }
+      }
+      emit("barrier_opened", { minutes_parked: state.minutes, paid: state.paid })
+      state.carInside = false
+      state.minutes = 0
+      state.paid = 0
+      return { allowed: true, outcome: "barrier_opened" }
+    }
+
+    action display(viewerId) {
+      return {
+        viewer: viewerId,
+        car_inside: state.carInside,
+        minutes: state.minutes,
+        owed: (state.minutes <= 30 ? 0 : (state.minutes <= 120 ? 3 : (state.minutes <= 240 ? 6 : 10))) - state.paid
+      }
+    }
+  }
+}

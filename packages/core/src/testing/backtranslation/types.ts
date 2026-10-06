@@ -185,3 +185,83 @@ export interface BackTranslationReceiptV2 {
   };
   verdict: string;
 }
+
+// ── Slice 3: outcome kinds on the card, new behaviours, several recordings ──
+//
+// Same intent metric as slice 2. B is called several times with the same
+// inputs (fresh calls); each recording is measured on its own, and the receipt
+// carries the spread, because one recording is not enough to state a
+// false-alarm rate.
+
+export interface RecordingMeasurement {
+  /** Recording id, e.g. `r1`. */
+  recording: string;
+  model: string;
+  rounds: number;
+  validated: boolean;
+  exchangesDir: string;
+  rebuiltSourcePath: string;
+  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  falseAlarms: {
+    situations: number;
+    divergentSituations: number;
+    byClass: Record<DivergenceClass, number>;
+    divergences: ClassifiedDivergence[];
+  };
+  catch: {
+    planted: number;
+    oracleVisible: number;
+    caught: number;
+    catchRate: number;
+    mutants: IntentCatchOutcome[];
+  };
+}
+
+export interface SpreadStat {
+  min: number;
+  max: number;
+  mean: number;
+}
+
+/** Person-facing false-alarm tolerance, stated per 20 situations. */
+export interface FalseAlarmTolerance {
+  maxPer20Situations: number;
+  why: string;
+}
+
+export interface BackTranslationReceiptV3 {
+  schema: 'holoscript.back-translation-proof.v3';
+  behaviourId: string;
+  title: string;
+  /** `measured` counts toward the slice score; `before-after` is a separate labelled check. */
+  role: 'measured' | 'before-after';
+  generatedAt: string;
+  runSurface: { branch: string; commit: string; note: string };
+  checklist: BehaviourChecklist;
+  interfaceCard: string;
+  plainLanguageCheck: { tool: string; exitCode: number | null; findings: string };
+  rebuild: {
+    provider: string;
+    seesOriginalSource: false;
+    inputs: string[];
+    checker: string;
+    maxRepairRounds: number;
+    recordedNotLive: boolean;
+  };
+  twin: {
+    harness: string;
+    runner: string;
+    generator: string;
+    situations: number;
+    edgeSituations: number;
+    seed: number;
+    oracleFields: string[];
+    excludedFields: { field: string; why: string }[];
+  };
+  precheck: { originalRanAllSituations: boolean; situationsRun: number };
+  /** Planted mistakes left out because the oracle cannot tell them from the correct program. */
+  skippedMutants: Array<{ id: string; description: string; why: string }>;
+  recordings: RecordingMeasurement[];
+  spread: { catchRate: SpreadStat; falseAlarmSituations: SpreadStat };
+  verdict: string;
+}

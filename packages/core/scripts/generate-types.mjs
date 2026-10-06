@@ -7436,7 +7436,7 @@ export declare function selectDecisionMutants(source: string, max?: number): Sou
 export declare function renderChecklist(checklist: BehaviourChecklist): string;
 export declare function extractFencedSource(response: string): string;
 export declare function stableReceiptJson(
-  receipt: BackTranslationReceipt | BackTranslationReceiptV2
+  receipt: BackTranslationReceipt | BackTranslationReceiptV2 | BackTranslationReceiptV3
 ): string;
 export declare function renderPlainSummary(receipt: BackTranslationReceipt): string;
 export interface IntentCatchOutcome {
@@ -7503,6 +7503,117 @@ export declare function renderPlainSummaryV2(receipt: BackTranslationReceiptV2):
 export declare function renderCombinedSummary(
   receipts: BackTranslationReceiptV2[],
   bar: { minCatchRate: number; targetCatchRate: number },
+  verdict: string
+): string;
+export type OutcomeKind = 'accepted' | 'refused';
+export interface InterfaceOutcome {
+  name: string;
+  kind: OutcomeKind;
+}
+export interface InterfaceAction {
+  name: string;
+  params: string[];
+  outcomes: InterfaceOutcome[];
+  extraAnswerFields?: Array<{ outcome: string; fields: string[] }>;
+}
+export interface InterfaceObservation {
+  name: string;
+  params: string[];
+  answerFields: string[];
+}
+export interface InterfaceEvent {
+  name: string;
+  fields: string[];
+}
+export interface InterfaceCardSpec {
+  title: string;
+  publicState: string[];
+  actions: InterfaceAction[];
+  observations: InterfaceObservation[];
+  events: InterfaceEvent[];
+}
+export declare const OUTCOME_KIND_LEGEND: string;
+export declare function renderInterfaceCard(spec: InterfaceCardSpec): string;
+export declare function outcomeKindsFromSource(source: string): Map<string, Set<OutcomeKind>>;
+export declare function interfaceCardKindMismatches(spec: InterfaceCardSpec, source: string): string[];
+export interface RecordingMeasurement {
+  recording: string;
+  model: string;
+  rounds: number;
+  validated: boolean;
+  exchangesDir: string;
+  rebuiltSourcePath: string;
+  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  falseAlarms: {
+    situations: number;
+    divergentSituations: number;
+    byClass: Record<DivergenceClass, number>;
+    divergences: ClassifiedDivergence[];
+  };
+  catch: {
+    planted: number;
+    oracleVisible: number;
+    caught: number;
+    catchRate: number;
+    mutants: IntentCatchOutcome[];
+  };
+}
+export interface SpreadStat {
+  min: number;
+  max: number;
+  mean: number;
+}
+export interface FalseAlarmTolerance {
+  maxPer20Situations: number;
+  why: string;
+}
+export interface BackTranslationReceiptV3 {
+  schema: 'holoscript.back-translation-proof.v3';
+  behaviourId: string;
+  title: string;
+  role: 'measured' | 'before-after';
+  generatedAt: string;
+  runSurface: { branch: string; commit: string; note: string };
+  checklist: BehaviourChecklist;
+  interfaceCard: string;
+  plainLanguageCheck: { tool: string; exitCode: number | null; findings: string };
+  rebuild: {
+    provider: string;
+    seesOriginalSource: false;
+    inputs: string[];
+    checker: string;
+    maxRepairRounds: number;
+    recordedNotLive: boolean;
+  };
+  twin: {
+    harness: string;
+    runner: string;
+    generator: string;
+    situations: number;
+    edgeSituations: number;
+    seed: number;
+    oracleFields: string[];
+    excludedFields: { field: string; why: string }[];
+  };
+  precheck: { originalRanAllSituations: boolean; situationsRun: number };
+  skippedMutants: Array<{ id: string; description: string; why: string }>;
+  recordings: RecordingMeasurement[];
+  spread: { catchRate: SpreadStat; falseAlarmSituations: SpreadStat };
+  verdict: string;
+}
+export declare function spreadOf(values: number[]): SpreadStat;
+export declare function withinFalseAlarmTolerance(
+  m: Pick<RecordingMeasurement, 'falseAlarms'>,
+  tolerance: FalseAlarmTolerance
+): boolean;
+export declare function renderPlainSummaryV3(
+  receipt: BackTranslationReceiptV3,
+  tolerance: FalseAlarmTolerance
+): string;
+export declare function renderCombinedSummaryV3(
+  receipts: BackTranslationReceiptV3[],
+  bar: { minCatchRate: number; targetCatchRate: number },
+  tolerance: FalseAlarmTolerance,
   verdict: string
 ): string;
 `;

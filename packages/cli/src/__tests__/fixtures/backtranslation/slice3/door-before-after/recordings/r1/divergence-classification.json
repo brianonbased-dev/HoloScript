@@ -1,0 +1,7 @@
+[
+  {
+    "classification": "checklist-ambiguity",
+    "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+    "pathPatterns": ["^\\$\\.canonical\\.residentObservationHash$", "^\\$\\.observations\\[\\d+\\]\\.observation\\.tries_left$"]
+  }
+]

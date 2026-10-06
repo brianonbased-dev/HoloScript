@@ -1,0 +1,14 @@
+{
+  "id": "car-park-barrier",
+  "title": "Car Park Barrier",
+  "publicStateKeys": ["carInside", "minutes", "paid", "ticketsIssued"],
+  "minSteps": 5,
+  "maxSteps": 14,
+  "actions": [
+    { "name": "arrive", "kind": "action", "weight": 3, "params": {} },
+    { "name": "wait", "kind": "action", "weight": 3, "params": { "minutes": { "type": "int", "min": 0, "max": 150, "edges": [0, 1, 30, 31, 90, 120, 121, 240] } } },
+    { "name": "pay", "kind": "action", "weight": 3, "params": { "coins": { "type": "int", "min": -1, "max": 12, "edges": [-1, 0, 1, 2, 3, 6, 10] } } },
+    { "name": "leave", "kind": "action", "weight": 1, "params": {} },
+    { "name": "display", "kind": "observation", "params": { "viewerId": { "type": "enum", "values": ["driver", "attendant"] } } }
+  ]
+}

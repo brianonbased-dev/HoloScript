@@ -1,0 +1,3 @@
+{
+  "verdict": "Passes both bars. All three rebuilds showed all 6 planted mistakes and raised no false alarms in 20 situations. A late return was rebuilt as accepted every time, which is the kind of point the slice-2 door got wrong; the card now says so. One more planted mistake (a fine above 1 instead of above 0) was left out because fines only come in steps of 2, so it acts exactly like the correct program and no check could ever show it. The three rebuilds were nearly identical, so the spread here says little about how much rebuilds vary."
+}

@@ -139,6 +139,48 @@ export async function measureBehaviour(options: {
   };
 }
 
+/**
+ * Slice 3: decision-first mutants, skipping any the oracle cannot tell apart
+ * from the original in these situations (an equivalent mutant, e.g. `fine > 0`
+ * -> `fine > 1` when fines only come in steps of 2, can never be caught, so it
+ * would measure the mutator, not the method). The order is the same
+ * round-robin as selectDecisionMutants (a larger max only extends the list), so
+ * this is the first `max` visible mutants of that order. Skipped ones are
+ * returned for the receipt.
+ */
+export async function selectOracleVisibleMutants(options: {
+  spec: BehaviourSpec;
+  run: Run;
+  originalSource: string;
+  pool: SourceMutant[];
+  max: number;
+  situations: number;
+  seed: number;
+}): Promise<{ mutants: SourceMutant[]; skipped: Array<{ id: string; description: string; why: string }> }> {
+  const mutants: SourceMutant[] = [];
+  const skipped: Array<{ id: string; description: string; why: string }> = [];
+  for (const mutant of options.pool) {
+    if (mutants.length >= options.max) break;
+    const om = await twinGeneric({
+      spec: options.spec,
+      name: `${options.spec.id}:original-vs-${mutant.id}`,
+      run: options.run,
+      a: { name: 'original', source: options.originalSource },
+      b: { name: mutant.id, source: mutant.source },
+      situations: options.situations,
+      seed: options.seed,
+    });
+    if (om.divergences.length > 0) mutants.push(mutant);
+    else
+      skipped.push({
+        id: mutant.id,
+        description: mutant.description,
+        why: `acts exactly like the correct program in all ${options.situations} situations`,
+      });
+  }
+  return { mutants, skipped };
+}
+
 /** Classify each false-alarm divergence by rules; unmatched ones stay 'unclassified'. */
 export function classifyDivergences(
   divergences: Divergence[],
