@@ -67,7 +67,7 @@ export class ExistingWorkspaceImportError extends Error {
   }
 }
 
-const DEFAULT_PROFILE_PATHS = [
+export const DEFAULT_PROFILE_PATHS = [
   '.holoscript/workspace-import.json',
   '.holoscript/workspace-profile.json',
   'workspace-import.json',
