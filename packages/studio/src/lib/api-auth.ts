@@ -13,6 +13,7 @@ import { eq } from 'drizzle-orm';
 import { authOptions } from './auth';
 import { SESSION_COOKIE_NAMES } from './session-cookie-names';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
+import { isInviteAllowlistedToken } from './inviteAllowlist';
 import { getDb } from '../db/client';
 import { users as usersTable } from '../db/schema';
 
@@ -57,6 +58,10 @@ export async function getSession() {
     }
   }
   if (!token) return null;
+  // Invite-only (lib/inviteAllowlist.ts): getServerSession above already
+  // returns null for a non-allowlisted token, and this raw decode must not
+  // hand that session back.
+  if (!isInviteAllowlistedToken(token)) return null;
 
   // The identity fields founder recognition is allowed to read. The display
   // NAME is deliberately absent: whoever signs in chooses it freely.
