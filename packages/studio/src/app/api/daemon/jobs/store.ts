@@ -12,6 +12,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { runDaemonJob, type AbsorbGraphData } from './runner';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
+import { getWorkspacesRoot, isInsidePath } from '@/lib/workspace/workspaceFs';
 import type {
   CreateDaemonJobInput,
   DaemonAbsorbSnapshot,
@@ -40,7 +41,6 @@ interface DaemonStoreSnapshot {
 const HOME_DIR = process.env.HOME ?? process.env.USERPROFILE ?? os.homedir();
 const STORE_DIR = path.join(HOME_DIR, '.holoscript', 'studio');
 const STORE_PATH = path.join(STORE_DIR, 'daemon-jobs.json');
-const WORKSPACE_ROOT = path.join(HOME_DIR, '.holoscript', 'workspaces');
 
 const daemonJobs = new Map<string, DaemonJob>();
 const telemetryLog: DaemonTelemetryEvent[] = [];
@@ -158,13 +158,33 @@ async function executeDaemonJob(jobId: string): Promise<void> {
         }
       : undefined;
 
+    const zeroDelta =
+      result.success &&
+      result.patches.length === 0 &&
+      result.qualityDelta === 0;
+    const emptyAbsorb =
+      result.success &&
+      (result.absorb == null || result.absorb.totalFiles === 0) &&
+      result.patches.length === 0;
+    const status = result.success ? 'completed' : 'failed';
+    const statusMessage = !result.success
+      ? result.error ?? result.summary
+      : emptyAbsorb
+        ? 'Blocked — Absorb empty'
+        : zeroDelta && result.filesAnalyzed === 0
+          ? 'Finished, nothing examined'
+          : zeroDelta
+            ? 'Finished, nothing to change'
+            : result.summary || 'Complete';
+
     setDaemonJob(jobId, {
       ...final,
-      status: 'completed',
-      progress: 100,
-      statusMessage: 'Complete',
+      status,
+      progress: result.success ? 100 : final.progress,
+      statusMessage,
       updatedAt: nowIso(),
       summary: result.summary,
+      error: result.success ? undefined : result.error ?? result.summary,
       metrics: {
         qualityDelta: result.qualityDelta,
         qualityBefore: result.qualityBefore,
@@ -180,7 +200,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
     });
 
     emitTelemetry({
-      eventType: 'job_completed',
+      eventType: result.success ? 'job_completed' : 'job_failed',
       jobId,
       timestamp: nowIso(),
       profile: job.profile,
@@ -188,6 +208,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       qualityDelta: result.qualityDelta,
       filesChanged: result.filesChanged,
       patchCount: result.patches.length,
+      error: result.success ? undefined : result.error ?? result.summary,
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
@@ -290,10 +311,15 @@ function assertWorkspacePath(projectPath: string | undefined): string {
     throw new Error('Daemon job has no workspace path to apply patches into');
   }
 
-  const workspaceRoot = path.resolve(WORKSPACE_ROOT);
+  // Resolve the root per call so HOLOSCRIPT_WORKSPACES_DIR (e.g. a mounted
+  // volume like /data/workspaces in production) is honored, matching
+  // /api/git/* and /api/workspace/*.
+  const workspaceRoot = getWorkspacesRoot();
   const resolved = path.resolve(projectPath);
-  if (!resolved.startsWith(workspaceRoot + path.sep) && resolved !== workspaceRoot) {
-    throw new Error('Workspace path must be inside ~/.holoscript/workspaces');
+  if (!isInsidePath(workspaceRoot, resolved)) {
+    throw new Error(
+      `Workspace path must be inside the workspaces root (${workspaceRoot}; set via HOLOSCRIPT_WORKSPACES_DIR)`
+    );
   }
   if (!fs.existsSync(path.join(resolved, '.git'))) {
     throw new Error('Workspace path does not contain a git repository');

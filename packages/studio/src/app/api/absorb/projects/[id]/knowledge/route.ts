@@ -74,7 +74,7 @@ async function callAbsorbRest(
   body: string
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   try {
-    const res = await fetch(`${ABSORB_BASE}/api/projects/${projectId}/knowledge`, {
+    const res = await fetch(`${ABSORB_BASE}/api/absorb/projects/${projectId}/knowledge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

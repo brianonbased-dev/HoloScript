@@ -29,7 +29,11 @@ import { createXRStore, XR } from '@react-three/xr';
 import { useXRLocomotion, AgentAvatar } from '@holoscript/xr-embodiment/react';
 import { MATERIAL_PRESETS } from '@holoscript/core';
 import type { R3FNode } from '@holoscript/core';
-import { WebSurfaceRenderer, resolveWebSurfaceConfig } from '@holoscript/r3f-renderer';
+import {
+  WebSurfaceRenderer,
+  resolveWebSurfaceConfig,
+  resolveEnvironmentPreset,
+} from '@holoscript/r3f-renderer';
 import { useScenePipeline } from '@/hooks/useScenePipeline';
 import {
   buildAdaptivePlatformLayerReceipt,
@@ -328,7 +332,10 @@ function EmbedNodeRenderer({
       );
     case 'Environment':
       return (
-        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+        <Environment
+          preset={resolveEnvironmentPreset(props)}
+          background={props.background ?? false}
+        />
       );
     case 'fog':
       return null;

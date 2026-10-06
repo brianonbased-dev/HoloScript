@@ -73,7 +73,6 @@ import { handleEstimateTaskDurationTool } from './tools/estimate_task_duration';
 import { handleKolmogorovTaskScoreTool } from './tools/kolmogorov_task_score';
 import { handleCriticTool } from './critic-handler';
 import { handleFounderTool } from './founder-handler';
-import { handleDaemonLifecycleTool } from './daemon-lifecycle-tools';
 import { handlePremortemTool } from './premortem-handler';
 import {
   LEGACY_TRAIT_CATEGORY_ALIASES,
@@ -83,6 +82,7 @@ import {
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { runForkSandboxGate, gateHoloScriptCode } from './security/fork-sandbox-gate';
 import { callerMayReachPrivateNetwork } from './security/outbound-url-guard';
+import { assertReentrantToolAuthorized, callerPrincipal } from './security/tool-scopes';
 import type { CapabilityManifest } from './security/sandbox-policy';
 
 /** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
@@ -303,6 +303,23 @@ function validationUnavailableReceipt(
 const ALL_TRAITS: readonly string[] = VR_TRAITS;
 
 /**
+ * Run a tool on behalf of another tool (an execute_workflow step, a batch_tool_call child) as the
+ * real caller. Its scopes are re-checked for THIS tool, since Gate 2 saw only the outer one. It
+ * goes through the canonical dispatcher with the caller's context, never as a context-less call,
+ * which handleTool turns into stdio-local admin:* on a server holding HOLOSCRIPT_API_KEY.
+ */
+async function runReentrantTool(
+  via: string,
+  toolName: string,
+  toolArgs: Record<string, unknown>,
+  signingCtx?: SigningContext
+): Promise<unknown> {
+  assertReentrantToolAuthorized(toolName, signingCtx, via);
+  const { executeReentrantTool } = await import('./index');
+  return executeReentrantTool(toolName, toolArgs, signingCtx);
+}
+
+/**
  * Main handler dispatcher for all tools
  */
 /**
@@ -338,12 +355,20 @@ export async function handleTool(
   //
   // Stdio transport design (see index.ts comment at line ~284): the stdio MCP
   // transport is "trusted local process" and never carries HTTP auth headers,
-  // so signingCtx is always undefined there. Bridge: if the process has a
-  // valid HOLOSCRIPT_API_KEY in env (the same key that grants admin:* via the
-  // OAuth2 provider) synthesize admin:* scopes so the gate honours that trust.
-  // Explicit source overrides are externally-originated lanes and must not
-  // inherit the stdio-local admin bridge.
-  const allowLocalAdminBridge = !subjectSourceOverride && process.env['HOLOSCRIPT_API_KEY'];
+  // so signingCtx is always undefined there. Bridge: if this process IS the
+  // stdio server (index.ts main() sets HOLOSCRIPT_MCP_TRANSPORT to 'stdio') and
+  // has a valid HOLOSCRIPT_API_KEY in env (the same key that grants admin:* via
+  // the OAuth2 provider), synthesize admin:* scopes so the gate honours that
+  // trust. The key alone is not enough: the hosted server holds it too, and
+  // there a missing context means a call re-entered from inside the server lost
+  // its caller (a workflow step, a batch child, a health probe). That call ran
+  // as admin:* until task x5ku; it now carries no scopes, so every gate treats
+  // it as nobody. Explicit source overrides are externally-originated lanes and
+  // must not inherit the stdio-local admin bridge either.
+  const allowLocalAdminBridge =
+    !subjectSourceOverride &&
+    process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio' &&
+    process.env['HOLOSCRIPT_API_KEY'];
   const effectiveSigningCtx: SigningContext | undefined =
     signingCtx ??
     (allowLocalAdminBridge
@@ -356,6 +381,10 @@ export async function handleTool(
       : undefined);
 
   const capabilityManifest = asCapabilityManifest(args.capabilityManifest ?? args.manifest);
+  // A manifest arrives in the caller's own arguments and nothing signs it yet, so its
+  // declared trust tier is believed only on the local stdio path: no caller context and
+  // no external lane (task_1790596867936_tyax). Everyone else's reads as 'unverified'.
+  const declaredAttestationTrusted = !signingCtx && !subjectSourceOverride;
   const gateResult = await runForkSandboxGate(
     {
       kind: 'mcp_tool',
@@ -367,6 +396,7 @@ export async function handleTool(
     {
       toolName: name,
       grantedScopes: effectiveSigningCtx?.scopes ?? [],
+      declaredAttestationTrusted,
     }
   );
   if (!gateResult.allowed) {
@@ -385,11 +415,15 @@ export async function handleTool(
   // For tools that ingest HoloScript code, additionally gate the code payload
   const codePayload = args.code ?? args.content ?? args.holoscript ?? args.source;
   if (typeof codePayload === 'string' && codePayload.length > 0) {
+    // The same caller as the tool gate above: the local stdio user's bridge counts here too. It
+    // read the raw context until task wrn7, so the local user passed the tool gate and was then
+    // refused its own code. The bridge exists only on the stdio server (x5ku).
     const codeGate = await gateHoloScriptCode(codePayload, {
       source: 'unknown',
       toolName: name,
-      grantedScopes: signingCtx?.scopes ?? [],
+      grantedScopes: effectiveSigningCtx?.scopes ?? [],
       manifest: capabilityManifest,
+      declaredAttestationTrusted,
     });
     if (!codeGate.allowed) {
       return {
@@ -482,12 +516,17 @@ export async function handleTool(
       // absent. Falls back to this switch only when nothing has been installed.
       const { getToolHealthDispatcher } = await import('./tooling-discovery-tools');
       const installed = getToolHealthDispatcher();
-      const result = await handleToolingDiscoveryTool(
-        name,
-        args,
-        allTools,
-        installed ?? ((toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx))
-      );
+      // batch_tool_call and get_tool_health run tools the CALLER names, so each runs as the caller.
+      // The installed dispatcher passes no context, and here that meant stdio-local admin:* for every
+      // one: a tools:read caller's health probe ran holo_read_file and holo_secrets_resolve (#407
+      // pre-review). A probe of a tool this caller may not run reports "not permitted", not a fault.
+      const runsCallerNamedTools = name === 'batch_tool_call' || name === 'get_tool_health';
+      const via = name === 'batch_tool_call' ? 'Batch inner tool' : 'Health probe';
+      const dispatch = runsCallerNamedTools
+        ? (toolName: string, toolArgs: Record<string, unknown>) =>
+            runReentrantTool(via, toolName, toolArgs, effectiveSigningCtx)
+        : (installed ?? ((toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx)));
+      const result = await handleToolingDiscoveryTool(name, args, allTools, dispatch);
       if (result !== null) return result;
       break;
     }
@@ -586,7 +625,10 @@ export async function handleTool(
   }
 
   // All remaining holo_ tools go to the Graph tool handler
-  // (Oracle, Codebase, and Wisdom/Gotcha are now handled directly via the O(1) registry in index.ts)
+  // (Oracle, Codebase, and Wisdom/Gotcha are now handled directly via the O(1) registry in index.ts).
+  // That includes the daimōn tools: they run only through the index.ts registry, which binds the
+  // caller. handleTool's own daimōn branch sat below this line from 2026-05-18, never reached,
+  // and was removed (task mplw).
   if (name.startsWith('holo_')) {
     return handleGraphTool(name, args, {
       trustedCaller: isTrustedCaller(signingCtx, subjectSourceOverride),
@@ -773,8 +815,10 @@ export async function handleTool(
   ) {
     const { handleAgentOrchestrationTool } = await import('./agent-orchestration-tools');
     // Wire a real tool executor so execute_workflow steps actually invoke MCP tools
-    // (previously every step returned a dry-run stub). Steps run with the caller's
-    // signing context; guard against execute_workflow re-entering itself.
+    // (previously every step returned a dry-run stub). Each step runs as the caller, re-checked
+    // for its own tool (Gate 2 saw only execute_workflow, which needs tools:write), through the
+    // canonical dispatcher: handleTool's switch answered "Unknown graph tool" for holo_write_file.
+    // Guard against execute_workflow re-entering itself.
     const workflowToolExecutor = async (
       toolName: string,
       toolArgs: Record<string, unknown>
@@ -782,7 +826,7 @@ export async function handleTool(
       if (toolName === 'execute_workflow') {
         throw new Error('execute_workflow cannot be nested as a workflow step (recursion guard)');
       }
-      return handleTool(toolName, toolArgs, effectiveSigningCtx);
+      return runReentrantTool('Workflow step', toolName, toolArgs, effectiveSigningCtx);
     };
     return handleAgentOrchestrationTool(name, args, workflowToolExecutor);
   }
@@ -854,32 +898,17 @@ export async function handleTool(
     // Slice A (research/2026-07-26_holomesh-mcp-identity-gap.md): stamp the verified
     // authenticated principal onto args so board mutation handlers can bind
     // `agent_id` to the caller instead of trusting it verbatim. Authoritative:
-    // delete any caller-supplied value first. The synthetic 'stdio-local' bridge is
-    // NOT a real principal -> stdio stays local-trust (no stamp).
+    // delete any caller-supplied value first. Only the local stdio user (no context, or
+    // the synthetic 'stdio-local' bridge) stays local-trust with no stamp. A call with no
+    // caller on the hosted server is stamped NO_CALLER_PRINCIPAL, so under
+    // HOLOMESH_BOARD_BIND_SIGNER=1 it cannot write as a named agent (task mplw).
     delete (args as Record<string, unknown>).__authAgentId;
-    const authPrincipal = effectiveSigningCtx?.signer;
-    if (typeof authPrincipal === 'string' && authPrincipal && authPrincipal !== 'stdio-local') {
+    const authPrincipal = callerPrincipal(effectiveSigningCtx);
+    if (authPrincipal !== undefined) {
       (args as Record<string, unknown>).__authAgentId = authPrincipal;
     }
     const { handleHoloMeshTool } = await import('./holomesh/index');
     return handleHoloMeshTool(name, args, effectiveSigningCtx);
-  }
-
-  // ConversationDaemon lifecycle tools (D.052 Brittney field / user daemon model)
-  if (
-    name === 'holo_create_daemon' ||
-    name === 'holo_get_daemon' ||
-    name === 'holo_update_daemon_ritual' ||
-    name === 'holo_list_daemons'
-  ) {
-    // task_1790062507560_px5q: same principal binding as the index.ts registry
-    // (the live dispatch path); 'stdio-local' is a sentinel the binder ignores.
-    const { defaultSignerMapsToCaller } = await import('./holomesh/identity/board-signer-binding');
-    const result = await handleDaemonLifecycleTool(name, args, {
-      signer: effectiveSigningCtx?.signer,
-      signerMapsToCaller: defaultSignerMapsToCaller,
-    });
-    if (result !== null) return result;
   }
 
   // Trait composition / ROS2 sync / economic contract (trait-tools.ts) — also in index.ts registry

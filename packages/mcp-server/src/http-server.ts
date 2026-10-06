@@ -120,6 +120,7 @@ import { getClient as getHoloMeshOrchestratorClient } from './holomesh/orchestra
 import { applyEdgeSafeSseHeaders } from './holomesh/sse-edge-headers';
 import {
   extractAndVerifySigning,
+  publicAnonymousContext,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
 import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
@@ -144,7 +145,6 @@ import {
   resolveProvenAgentId,
 } from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
-import { startCiPublicWorker } from './ci-public-worker';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
 import { loadNativeAgentCompositions } from './holomesh/agent/loader';
@@ -902,12 +902,19 @@ async function securedToolExecutionInner(
       }
     }
 
-    const signingCtx: SigningContext = options?.signingCtx ?? {
-      signedRequest: false,
-      signingValid: true,
-      signer: auth.agentId ?? auth.clientId ?? null,
-      scopes: auth.scopes ?? [],
-    };
+    // Gate 2 above judged the FINAL auth. /mcp upgrades auth after it unwraps a signed body (the
+    // anonymous free tier, sovereign loopback), so a signed context captured before that holds the
+    // older scopes. The dispatcher re-checks every tool against this context: it must see what
+    // Gate 2 saw, or it refuses what Gate 2 allowed (#407 pre-review).
+    const signingCtx: SigningContext = options?.signingCtx
+      ? mergeSigningContextScopes(options.signingCtx, auth)
+      : {
+          signedRequest: false,
+          signingValid: true,
+          signer: auth.agentId ?? auth.clientId ?? null,
+          scopes: auth.scopes ?? [],
+          ...(auth.localCustody === true && { localCustody: true as const }),
+        };
 
     // Execute the tool
     try {
@@ -3472,6 +3479,7 @@ const httpServer = http.createServer(async (req, res) => {
           active: true,
           scopes: ['tools:codebase'],
           agentId: 'sovereign-loopback',
+          localCustody: true,
         };
         res.setHeader('X-Auth-Mode', 'sovereign-loopback');
       }
@@ -4288,7 +4296,8 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      const result = await _handleSingleToolLogic(tool, args);
+      // An explicit anonymous caller, never "no context" (task x5ku).
+      const result = await _handleSingleToolLogic(tool, args, publicAnonymousContext());
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(result));
     } catch (err) {
@@ -4862,11 +4871,6 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
   } catch (e) {
     console.warn('[HoloMesh] durable attestation init failed (continuing empty):', e);
   }
-
-  // Drain ci-public lane on Railway's spare CPU (zero marginal cost co-location).
-  startCiPublicWorker().catch(() => {
-    /* non-fatal */
-  });
 
   // Rehydrate the daimōn emergence corpus (D.053) from durable storage so the
   // in-memory soul-observation / daemon Maps survive restart. Additive; never

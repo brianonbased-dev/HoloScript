@@ -11,7 +11,7 @@
  * with tools:write alone could therefore run any locally-published tool -- including one
  * needing tools:admin -- at full trust.
  */
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -79,12 +79,36 @@ describe('holomesh_invoke_tool runs the target tool as the real caller', () => {
     const manifest = publishLocalWriteFileManifest();
     const target = join(WORK, 'stdio-wrote.txt');
 
-    const res = await invoke(manifest.id, target, undefined);
+    const res = await onTransport('stdio', () => invoke(manifest.id, target, undefined));
 
     expect(res.isError).toBeFalsy();
     expect(existsSync(target)).toBe(true);
   });
+
+  // task mplw: off the stdio server "no signingCtx" is a call that lost its caller inside the
+  // server, not the local user, so the target tool is checked against no scopes.
+  it('over HTTP, no signingCtx is nobody: holo_write_file is refused and nothing is written', async () => {
+    const manifest = publishLocalWriteFileManifest();
+    const target = join(WORK, 'http-nobody.txt');
+
+    const res = await onTransport('http', () => invoke(manifest.id, target, undefined));
+
+    expect(existsSync(target)).toBe(false);
+    expect(res.content?.[0]?.text ?? '').toMatch(/authorization denied|insufficient scope/i);
+  });
 });
+
+/** Run `body` with HOLOSCRIPT_MCP_TRANSPORT set to `transport`, then restore it. */
+async function onTransport<T>(transport: string, body: () => Promise<T>): Promise<T> {
+  const saved = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  process.env.HOLOSCRIPT_MCP_TRANSPORT = transport;
+  try {
+    return await body();
+  } finally {
+    if (saved === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = saved;
+  }
+}
 
 // claude2 (distinct seat, reviewing this exact vector) confirmed against production that
 // gateSecretsBrokerTool's own "no signingCtx -> legacy ungated" branch also matches the
@@ -120,5 +144,64 @@ describe('the same fix also covers the secrets broker (holo_secrets_resolve, cri
     )) as { content?: Array<{ text?: string }>; isError?: boolean };
     const text = res.content?.[0]?.text ?? '';
     expect(text).toMatch(/authorization denied|insufficient scope/i);
+  });
+});
+
+// The dispatcher's step 0 refuses these calls too, so every test above stays green when the mesh
+// invoker's own check is deleted (#407 receipt, measured). These replace the dispatcher with a
+// recorder: they fail if the mesh invoker stops refusing by itself. Kept last in the file, because
+// they reset the module registry.
+describe('the mesh invoker refuses by itself, before the dispatcher runs anything', () => {
+  async function invokeBehindRecorder(signingCtx: unknown) {
+    const dispatched: string[] = [];
+    vi.resetModules();
+    vi.doMock('../../index', () => ({
+      executeReentrantTool: async (toolName: string) => {
+        dispatched.push(toolName);
+        return { success: true };
+      },
+    }));
+    try {
+      const registry = await import('../mesh-tool-registry');
+      const manifest = registry.publishMeshToolManifest(
+        registry.buildMeshToolManifest(
+          {
+            tool_name: 'holo_write_file',
+            description: 'test manifest for holo_write_file',
+            capability_tags: ['write', 'file'],
+            allow_transitive_invocation: true,
+          },
+          publisher
+        )
+      );
+      const outcome = await registry
+        .invokePublishedMeshTool(
+          manifest,
+          { filePath: join(WORK, 'never.txt'), content: 'PLANTED-VIA-MESH-INVOKE' },
+          { allowHighRisk: true, signingCtx: signingCtx as never }
+        )
+        .then(
+          (value) => ({ value, error: undefined }),
+          (error: Error) => ({ value: undefined, error })
+        );
+      return { dispatched, ...outcome };
+    } finally {
+      vi.doUnmock('../../index');
+      vi.resetModules();
+    }
+  }
+
+  it('a tools:write-only caller is refused holo_write_file at the mesh, and nothing is dispatched', async () => {
+    const { dispatched, error } = await invokeBehindRecorder(TOOLS_WRITE_ONLY);
+
+    expect(dispatched).toEqual([]);
+    expect(error?.message).toMatch(/^Mesh-invoked tool authorization denied for "holo_write_file"/);
+  });
+
+  it('control: an admin caller passes the mesh check and reaches the recorded dispatcher', async () => {
+    const { dispatched, error } = await invokeBehindRecorder(ADMIN);
+
+    expect(error).toBeUndefined();
+    expect(dispatched).toEqual(['holo_write_file']);
   });
 });

@@ -38,11 +38,14 @@ describe('daemon job store patch application', () => {
   let tempHome: string;
   let savedHome: string | undefined;
   let savedUserProfile: string | undefined;
+  let savedWorkspacesDir: string | undefined;
 
   beforeEach(() => {
     vi.resetModules();
     savedHome = process.env.HOME;
     savedUserProfile = process.env.USERPROFILE;
+    savedWorkspacesDir = process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
     tempHome = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-store-test-'));
     process.env.HOME = tempHome;
     process.env.USERPROFILE = tempHome;
@@ -60,11 +63,17 @@ describe('daemon job store patch application', () => {
     } else {
       process.env.USERPROFILE = savedUserProfile;
     }
+    if (savedWorkspacesDir === undefined) {
+      delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    } else {
+      process.env.HOLOSCRIPT_WORKSPACES_DIR = savedWorkspacesDir;
+    }
     fs.rmSync(tempHome, { recursive: true, force: true });
   });
 
-  function createWorkspace(): string {
-    const workspacePath = path.join(tempHome, '.holoscript', 'workspaces', 'project-1');
+  function createWorkspace(
+    workspacePath: string = path.join(tempHome, '.holoscript', 'workspaces', 'project-1')
+  ): string {
     fs.mkdirSync(path.join(workspacePath, 'src'), { recursive: true });
     runGit(workspacePath, ['init']);
     runGit(workspacePath, ['config', 'user.email', 'studio@example.test']);
@@ -147,6 +156,59 @@ describe('daemon job store patch application', () => {
     );
     expect(fs.existsSync(path.join(tempHome, '.holoscript', 'workspaces', 'outside.ts'))).toBe(
       false
+    );
+  }, 30_000);
+
+  it('honors HOLOSCRIPT_WORKSPACES_DIR for workspaces outside ~/.holoscript/workspaces', async () => {
+    // Production mounts imported repos on a volume (e.g. /data/workspaces/ws-…/Repo)
+    // rather than under $HOME; apply-patches must accept that root.
+    const volumeRoot = path.join(tempHome, 'data', 'workspaces');
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = volumeRoot;
+    const workspacePath = createWorkspace(path.join(volumeRoot, 'ws-test', 'HoloScript'));
+    writeStoreSnapshot(
+      baseJob(workspacePath, {
+        id: 'patch-1',
+        filePath: 'src/app.ts',
+        action: 'modify',
+        diff: null,
+        proposedContent: 'export const value = 3;\n',
+        description: 'Update value',
+        confidence: 0.9,
+        category: 'typefix',
+      })
+    );
+
+    const { applyPatchesToWorkspaceBranch } = await import('./store');
+    const result = applyPatchesToWorkspaceBranch('dj-test', ['patch-1']);
+
+    expect(result.commitHash).toMatch(/^[a-f0-9]+$/);
+    expect(result.pushRequest.workspacePath).toBe(workspacePath);
+    expect(fs.readFileSync(path.join(workspacePath, 'src', 'app.ts'), 'utf8')).toBe(
+      'export const value = 3;\n'
+    );
+  }, 30_000);
+
+  it('rejects workspaces outside HOLOSCRIPT_WORKSPACES_DIR when it is set', async () => {
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = path.join(tempHome, 'data', 'workspaces');
+    // Lives under the legacy ~/.holoscript/workspaces default, which no longer applies.
+    const workspacePath = createWorkspace();
+    writeStoreSnapshot(
+      baseJob(workspacePath, {
+        id: 'patch-1',
+        filePath: 'src/app.ts',
+        action: 'modify',
+        diff: null,
+        proposedContent: 'export const value = 4;\n',
+        description: 'Update value',
+        confidence: 0.9,
+        category: 'typefix',
+      })
+    );
+
+    const { applyPatchesToWorkspaceBranch } = await import('./store');
+
+    expect(() => applyPatchesToWorkspaceBranch('dj-test', ['patch-1'])).toThrow(
+      /inside the workspaces root/i
     );
   }, 30_000);
 });

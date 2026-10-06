@@ -2,7 +2,7 @@ import axios from 'axios';
 import * as crypto from 'crypto';
 import type { Tool } from '@modelcontextprotocol/sdk/types.js';
 import {
-  authorizeToolCall,
+  assertReentrantToolAuthorized,
   getToolRiskLevel,
   getToolScopes,
   type ToolRiskLevel,
@@ -573,8 +573,8 @@ export function meshToolManifestFromKnowledgeContent(content: string): MeshToolM
  * (including one needing tools:admin) at full trust (task_1790204588326_myvj) --
  * the same class of gap batch_tool_call's children are already re-checked for
  * (index.ts assertBatchInnerToolAuthorized). An absent signingCtx is the trusted
- * local stdio path, which never reaches here with a caller-supplied tool name it
- * didn't already trust.
+ * local user only on the stdio server (isTrustedLocalCaller). On the hosted server
+ * it is a call that lost its caller, so it is checked against no scopes (task mplw).
  */
 async function defaultLocalInvoker(
   toolName: string,
@@ -584,20 +584,20 @@ async function defaultLocalInvoker(
   if (toolName === 'holomesh_invoke_tool') {
     throw new Error('holomesh_invoke_tool cannot recursively invoke itself');
   }
-  if (signingCtx) {
-    const authorization = authorizeToolCall(toolName, signingCtx.scopes ?? []);
-    if (!authorization.authorized) {
-      throw new Error(
-        `Mesh-invoked tool authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
-      );
-    }
-  }
+  // The shared re-entry check (#407), which asks isTrustedLocalCaller (#474): no context is the
+  // local user only on the stdio server; on the hosted server it is nobody, checked against no scopes.
+  assertReentrantToolAuthorized(toolName, signingCtx, 'Mesh-invoked tool');
   // index.ts's own dispatch registry (categories like selfImproveTools) sits in front of
   // handlers.ts's handleTool and covers tools handleTool alone does not recognize;
   // _handleSingleToolLogic falls back to handleTool itself for everything else, so this
   // reaches the same tools handleTool did plus the ones only index.ts's registry knows.
-  const { _handleSingleToolLogic } = await import('../index');
-  return _handleSingleToolLogic(toolName, args, signingCtx);
+  // executeReentrantTool, not _handleSingleToolLogic directly: the dispatcher answers in
+  // MCP envelopes, and a mesh caller reads the tool's own result, as it did from handleTool.
+  // Handing it the envelope made every result look foreign (twin-earth-federation's canary
+  // read result.success as undefined) and let a failed tool report success: true
+  // (task_1790624609802_798r). A failure now throws, as a direct call's does.
+  const { executeReentrantTool } = await import('../index');
+  return executeReentrantTool(toolName, args, signingCtx);
 }
 
 export async function invokePublishedMeshTool(

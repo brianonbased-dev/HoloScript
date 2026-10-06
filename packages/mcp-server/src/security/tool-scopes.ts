@@ -869,6 +869,42 @@ export interface AuthorizationResult {
 }
 
 /**
+ * Is a caller with NO signing context the local user? Only when this process IS the stdio server
+ * (index.ts main() sets HOLOSCRIPT_MCP_TRANSPORT = 'stdio'): stdio never carries HTTP auth, so its
+ * one caller is the person who launched it. On the hosted server a missing context means a call
+ * lost its caller inside the server (a workflow step, a batch child, a probe), and that caller is
+ * nobody. Every "no context" branch asks this, rather than assuming (tasks x5ku, mplw).
+ */
+export function isTrustedLocalCaller(signingCtx: unknown): boolean {
+  return (
+    (signingCtx === undefined || signingCtx === null) &&
+    process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio'
+  );
+}
+
+/** The principal of a caller that has none, off the stdio server. It owns nothing. */
+export const NO_CALLER_PRINCIPAL = 'holoscript-mcp:no-caller';
+
+/**
+ * Who to bind a call to, for board agent ids, daemon owners and spend buckets. It is the
+ * caller's signer when it has one. It is `undefined` ("local trust") only for the local user of
+ * the stdio server: no context there, or handleTool's 'stdio-local' bridge, which exists only on
+ * stdio. Everyone else without a signer, a context-less call on the hosted server or a context
+ * whose signer is empty, is NO_CALLER_PRINCIPAL. So a binding refuses to act for a named agent
+ * or owner on its behalf (task mplw).
+ */
+export function callerPrincipal(
+  signingCtx: { signer?: string | null } | undefined | null
+): string | undefined {
+  const signer = signingCtx?.signer;
+  if (signer === 'stdio-local') {
+    return process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio' ? undefined : NO_CALLER_PRINCIPAL;
+  }
+  if (typeof signer === 'string' && signer !== '') return signer;
+  return isTrustedLocalCaller(signingCtx) ? undefined : NO_CALLER_PRINCIPAL;
+}
+
+/**
  * Gate 2: Authorize a tool invocation against the authenticated token's scopes.
  *
  * @param toolName - The MCP tool being invoked
@@ -922,6 +958,29 @@ export function authorizeToolCall(
     grantedScopes: tokenScopes,
     riskLevel: getToolRiskLevel(toolName),
   };
+}
+
+/**
+ * Authorize a tool dispatched from INSIDE another tool -- a batch child, a workflow step, a
+ * mesh-invoked tool -- against the ORIGINAL caller's scopes. Gate 2 checked only the outer tool's
+ * name, and the inner one may need more: execute_workflow needs tools:write, and its steps may name
+ * a tools:admin tool. No context is the local user only on the stdio server (isTrustedLocalCaller);
+ * on the hosted server a call with no context lost its caller and is checked against no scopes
+ * (task mplw, #474; claude3's P2-2 on #407). Throws, naming the tool and the scopes it needs
+ * (task_1790204588326_myvj).
+ */
+export function assertReentrantToolAuthorized(
+  toolName: string,
+  signingCtx: { scopes?: readonly string[] } | undefined | null,
+  via = 'Inner tool'
+): void {
+  if (isTrustedLocalCaller(signingCtx)) return;
+  const authorization = authorizeToolCall(toolName, [...(signingCtx?.scopes ?? [])]);
+  if (!authorization.authorized) {
+    throw new Error(
+      `${via} authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
+    );
+  }
 }
 
 /**
