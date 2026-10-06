@@ -37,7 +37,7 @@ import {
   STUDIO_API_TOOL_NAMES,
   WORKSPACE_FS_TOOL_NAMES,
 } from '@/lib/brittney/StudioAPITools';
-import { resolveWorkspaceFsRoot } from '@/lib/workspace/workspaceFs';
+import { resolveCallerWorkspacePath } from '@/lib/workspace/workspaceOwner';
 import { MCP_TOOLS, MCP_TOOL_NAMES } from '@/lib/brittney/MCPTools';
 import { HS_AUTHORING_TOOLS, HS_AUTHORING_TOOL_NAMES } from '@/lib/brittney/HsAuthoringTools';
 import { SIMULATION_TOOLS } from '@/lib/brittney/SimulationTools';
@@ -290,12 +290,11 @@ export async function POST(request: NextRequest) {
     // Workspace agency: validate the client-supplied workspace path once and
     // keep only the resolved form. Invalid/absent paths leave the workspace_*
     // tools in their fail-soft "no active workspace" mode rather than erroring
-    // the whole chat turn.
-    let workspaceFsPath: string | null = null;
-    if (typeof bodyWorkspacePath === 'string' && bodyWorkspacePath.trim()) {
-      const validatedWorkspace = resolveWorkspaceFsRoot(bodyWorkspacePath.trim());
-      if (validatedWorkspace.ok) workspaceFsPath = validatedWorkspace.resolved;
-    }
+    // the whole chat turn. The path must be inside a workspace the CALLER
+    // owns: `auth` comes from requireAuthOrApiKey, so for a `bk_` API-key
+    // caller `auth.user.id` is the key's owning user and the same owner rule
+    // applies — another account's workspace resolves to null here.
+    const workspaceFsPath: string | null = resolveCallerWorkspacePath(auth, bodyWorkspacePath);
     const sessionId =
       typeof bodySessionId === 'string' && bodySessionId.length > 0
         ? bodySessionId

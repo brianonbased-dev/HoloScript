@@ -30,6 +30,7 @@ import path from 'path';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../../_lib/cors';
 import { getWorkspacesRoot } from '@/lib/workspace/workspaceFs';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
 
 const execFileAsync = promisify(execFile);
 
@@ -76,6 +77,17 @@ export async function GET(request: NextRequest) {
         entries: [],
       },
       { status: 403 }
+    );
+  }
+
+  // P0 2026-10-05: containment is not ownership. The workspace must belong
+  // to the caller; anything else (missing, ownerless, another account's) gets
+  // one uniform answer. Blame then runs against the realpathed workspace.
+  const owned = assertWorkspaceOwner(auth, workspacePath);
+  if (!owned.ok) {
+    return NextResponse.json(
+      { ok: false, error: owned.error, entries: [] },
+      { status: owned.status }
     );
   }
 

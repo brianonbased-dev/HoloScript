@@ -16,7 +16,9 @@
  *   content?: string        file content (write only, ≤512KB)
  * }
  *
- * Guards: session auth, workspaces-root containment, no '..'/absolute/
+ * Guards: session auth, workspaces-root containment, workspace OWNERSHIP
+ * (the caller's user id must own the workspace's registry row; every op —
+ * list, read, write, move, delete, mkdir — goes through it), no '..'/absolute/
  * flag-like paths, `.git/` off-limits, symlink-escape re-check, size caps,
  * no-clobber move, delete limited to files and empty directories.
  */
@@ -26,11 +28,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
-import {
-  resolveWorkspaceFsRoot,
-  resolveInsideWorkspace,
-  validateWorkspaceRelativePath,
-} from '@/lib/workspace/workspaceFs';
+import { resolveInsideWorkspace, validateWorkspaceRelativePath } from '@/lib/workspace/workspaceFs';
+import { resolveOwnedWorkspaceFsRoot } from '@/lib/workspace/workspaceOwner';
 
 const READ_MAX_BYTES = 256 * 1024;
 const WRITE_MAX_CHARS = 512 * 1024;
@@ -66,7 +65,8 @@ export async function POST(req: NextRequest) {
     return bad(`Unknown op "${body.op}" — expected list|read|write|move|delete|mkdir`);
   }
 
-  const workspace = resolveWorkspaceFsRoot(body.workspacePath);
+  // Containment AND ownership, before any op touches the filesystem.
+  const workspace = resolveOwnedWorkspaceFsRoot(body.workspacePath, session);
   if (!workspace.ok) {
     return bad(workspace.error, workspace.status);
   }

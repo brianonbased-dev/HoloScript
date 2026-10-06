@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const validated = resolveWorkspaceGitPath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath, session);
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
@@ -60,6 +60,11 @@ export async function GET(req: NextRequest) {
   }
   if (!fs.existsSync(targetPath) || !fs.statSync(targetPath).isDirectory()) {
     return NextResponse.json({ error: 'path is not a directory' }, { status: 400 });
+  }
+  // A symlink inside the (owned) clone must not list a directory outside it,
+  // e.g. another account's workspace next door.
+  if (!isInsidePath(validated.resolved, fs.realpathSync(targetPath))) {
+    return NextResponse.json({ error: 'path must stay inside the workspace' }, { status: 400 });
   }
 
   const entries = fs

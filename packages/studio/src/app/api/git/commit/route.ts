@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
   const { workspacePath, message, files, author } = body;
 
-  const validated = resolveWorkspaceGitPath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath, session);
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
