@@ -1,0 +1,38 @@
+{
+  "machine": "Car park barrier",
+  "kinds": { "accepted": "", "refused": "Refused." },
+  "steps": {
+    "arrive": "A driver arrives at the barrier.",
+    "wait": "The car stays {minutes} {minutes:minute|minutes}.",
+    "pay": { "default": "The driver puts in {coins} {coins:coin|coins}.", "when": { "coins=0": "The driver presses pay with no coins." } },
+    "leave": "The driver tries to leave.",
+    "display": "The {viewerId} looks at the screen."
+  },
+  "outcomes": {
+    "arrive.ticket_issued": "The car goes in.",
+    "arrive.car_already_inside": "A car is already inside.",
+    "wait.time_passed": "It counts the time.",
+    "wait.no_car": "There is no car inside.",
+    "wait.bad_minutes": "That is less than 1 minute.",
+    "pay.paid_in_full": "Paid in full.",
+    "pay.part_paid": "Part paid.",
+    "pay.no_car": "There is no car inside.",
+    "pay.nothing_due": "Nothing is owed.",
+    "pay.no_coins": "No coins went in.",
+    "leave.barrier_opened": "The barrier opens.",
+    "leave.no_car": "There is no car inside.",
+    "leave.payment_due": "Money is still owed."
+  },
+  "events": {
+    "ticket_issued": "It gives ticket number {ticket}.",
+    "paid_in_full": "It gives back {change} {change:coin|coins} in change.",
+    "part_paid": "It says {still_owed} still owed.",
+    "barrier_opened": "It says {minutes_parked} {minutes_parked:minute|minutes} parked and {paid} paid."
+  },
+  "observations": {
+    "display": "The screen shows {car_inside?a car inside|no car inside}, {minutes} {minutes:minute|minutes} and {owed} owed."
+  },
+  "state": "Inside, it now has {carInside?a car in|no car in}, {minutes} {minutes:minute|minutes} and {paid} paid.",
+  "values": {},
+  "avoid": { "pay.coins": [-1] }
+}
