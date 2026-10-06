@@ -18,8 +18,7 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 
 import { corsHeaders } from '../../_lib/cors';
 import {
@@ -36,8 +35,6 @@ const GITHUB_API_BASE_URL = (
 ).replace(/\/+$/, '');
 
 const GITHUB_API_VERSION = process.env.GITHUB_API_VERSION || '2022-11-28';
-
-const execFileAsync = promisify(execFile);
 
 type GitHubRole = 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown';
 
@@ -166,25 +163,25 @@ export async function POST(req: NextRequest) {
   try {
     // Stage files (or all)
     const addArgs = body.files?.length ? ['--', ...body.files] : ['--', '.'];
-    await execFileAsync('git', ['add', ...addArgs], { cwd, env });
+    await runGit(['add', ...addArgs], { cwd, env });
 
     // Commit if needed
-    const { stdout: statusOut } = await execFileAsync('git', ['status', '--porcelain'], {
+    const { stdout: statusOut } = await runGit(['status', '--porcelain'], {
       cwd,
       env,
     });
 
     let commitSha: string | null = null;
     if (statusOut.trim()) {
-      await execFileAsync('git', ['commit', '-m', body.message], { cwd, env });
-      const { stdout: shaOut } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd, env });
+      await runGit(['commit', '-m', body.message], { cwd, env });
+      const { stdout: shaOut } = await runGit(['rev-parse', 'HEAD'], { cwd, env });
       commitSha = shaOut.trim();
     }
 
     // Resolve branch
     let branch = body.branch;
     if (!branch) {
-      const { stdout: bOut } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+      const { stdout: bOut } = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], {
         cwd,
         env,
       });
@@ -192,7 +189,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve remote and determine permission role
-    const { stdout: remoteOut } = await execFileAsync('git', ['remote', 'get-url', remote], {
+    const { stdout: remoteOut } = await runGit(['remote', 'get-url', remote], {
       cwd,
       env,
     });
@@ -219,20 +216,20 @@ export async function POST(req: NextRequest) {
     // Inject token into remote URL for HTTPS pushes
     if (originalRemoteUrl.startsWith('https://github.com/')) {
       const authed = originalRemoteUrl.replace('https://', `https://${token}@`);
-      await execFileAsync('git', ['remote', 'set-url', remote, authed], { cwd, env });
+      await runGit(['remote', 'set-url', remote, authed], { cwd, env });
     }
 
     // Push
     const pushArgs = ['push', remote, branch];
     if (force) pushArgs.push('--force');
-    const { stdout: pushStdout, stderr: pushStderr } = await execFileAsync('git', pushArgs, {
+    const { stdout: pushStdout, stderr: pushStderr } = await runGit(pushArgs, {
       cwd,
       env,
     });
 
     // Restore clean remote URL
     if (originalRemoteUrl && originalRemoteUrl.startsWith('https://github.com/')) {
-      await execFileAsync('git', ['remote', 'set-url', remote, originalRemoteUrl], { cwd, env });
+      await runGit(['remote', 'set-url', remote, originalRemoteUrl], { cwd, env });
     }
 
     return NextResponse.json({
@@ -248,7 +245,7 @@ export async function POST(req: NextRequest) {
     // best-effort remote URL cleanup
     try {
       if (originalRemoteUrl) {
-        await execFileAsync('git', ['remote', 'set-url', remote, originalRemoteUrl], { cwd, env });
+        await runGit(['remote', 'set-url', remote, originalRemoteUrl], { cwd, env });
       }
     } catch {
       // ignore cleanup error

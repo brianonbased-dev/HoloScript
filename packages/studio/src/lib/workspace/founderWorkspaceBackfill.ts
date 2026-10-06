@@ -1,4 +1,4 @@
-import { execFile } from 'child_process';
+import { runGit } from '@/lib/git/safeGit';
 import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -369,18 +369,9 @@ function collectGitHubReposFromText(content: string): Array<{ owner: string; rep
 
 function readGitRemote(rootPath: string): Promise<string | null> {
   return new Promise((resolve) => {
-    execFile(
-      'git',
-      ['-C', rootPath, 'config', '--get', 'remote.origin.url'],
-      { timeout: 10_000 },
-      (err, stdout) => {
-        if (err) {
-          resolve(null);
-          return;
-        }
-        const value = String(stdout ?? '').trim();
-        resolve(value || null);
-      }
+    runGit(['-C', rootPath, 'config', '--get', 'remote.origin.url'], { timeout: 10_000 }).then(
+      ({ stdout }) => resolve(stdout.trim() || null),
+      () => resolve(null)
     );
   });
 }

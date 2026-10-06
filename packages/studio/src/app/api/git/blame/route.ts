@@ -24,15 +24,12 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 import path from 'path';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../../_lib/cors';
 import { getWorkspacesRoot } from '@/lib/workspace/workspaceFs';
 import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
-
-const execFileAsync = promisify(execFile);
 
 function isInside(root: string, target: string): boolean {
   const rel = path.relative(root, target);
@@ -123,8 +120,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { stdout } = await execFileAsync(
-      'git',
+    const { stdout } = await runGit(
       ['blame', '--porcelain', '-L', `${startLine},${endLine}`, '--', absPath],
       { cwd: resolvedWorkspace }
     );

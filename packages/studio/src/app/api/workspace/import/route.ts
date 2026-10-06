@@ -15,7 +15,8 @@ import { authOptions } from '@/lib/auth';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import { execFile, type ExecFileOptions } from 'child_process';
+import type { ExecFileOptions } from 'child_process';
+import { runGit } from '@/lib/git/safeGit';
 import { randomUUID } from 'crypto';
 import {
   buildConversionCandidates,
@@ -123,15 +124,7 @@ function execGit(
   args: string[],
   options: ExecFileOptions = {}
 ): Promise<{ stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    execFile('git', args, options, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve({ stdout: String(stdout ?? ''), stderr: String(stderr ?? '') });
-    });
-  });
+  return runGit(args, options);
 }
 
 function publicCloneError(err: unknown): { error: string; code?: string; hint: string } {

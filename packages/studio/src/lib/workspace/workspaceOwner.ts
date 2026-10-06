@@ -32,7 +32,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { findDurableAbsorbProject, type DurableAbsorbProject } from '../absorb/projectState';
-import { getWorkspacesRoot } from './workspaceFs';
+import { getWorkspacesRoot, hasGitMetadataSegment } from './workspaceFs';
 
 /** Anything carrying the caller's user id: a NextAuth session or a requireAuth* result. */
 export interface WorkspaceOwnerIdentity {
@@ -144,6 +144,12 @@ export function assertWorkspaceOwner(
   if (!project || project.id !== workspaceId) return refuse();
   if (!project.ownerId || project.ownerId !== callerId) return refuse();
   if (!rowLivesInWorkspace(project, workspaceId, realRoot, configuredRoot)) return refuse();
+  // P0b: a workspace path (files root, git cwd, daemon projectPath, scan root)
+  // may never be, or sit inside, repo metadata: `<ws>/repo/.git` or a symlink
+  // to it would make every relative path below it a .git write.
+  if (hasGitMetadataSegment(path.relative(path.join(realRoot, workspaceId), realTarget))) {
+    return refuse();
+  }
 
   return {
     ok: true,

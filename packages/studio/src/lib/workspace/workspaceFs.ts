@@ -35,6 +35,22 @@ export function isInsidePath(parent: string, child: string): boolean {
 // `resolveOwnedWorkspaceFsRoot(workspacePath, session)` from ./workspaceOwner,
 // which adds the ownership check, so no caller can silently skip it.
 
+/**
+ * True when a path segment names a `.git` directory. Case-insensitive and
+ * ignoring trailing dots/spaces, so `.GIT` or `.git.` on a case-folding or
+ * Windows filesystem counts too. `.gitignore` or `my.git.txt` do not.
+ */
+function isGitMetadataSegment(segment: string): boolean {
+  return segment.replace(/[. ]+$/, '').toLowerCase() === '.git';
+}
+
+/** True when any segment of `relativePath` is a `.git` directory (any depth). */
+export function hasGitMetadataSegment(relativePath: string): boolean {
+  return relativePath.split(/[\\/]+/).some(isGitMetadataSegment);
+}
+
+export const GIT_METADATA_ERROR = '.git is managed by the git APIs and is off-limits to file ops';
+
 export type RelativePathValidation = { ok: true; relative: string } | { ok: false; error: string };
 
 /**
@@ -69,8 +85,8 @@ export function validateWorkspaceRelativePath(
   if (segments.some((segment) => segment === '..' || segment === '')) {
     return { ok: false, error: 'path must stay inside the workspace (no ".." segments)' };
   }
-  if (segments[0] === '.git') {
-    return { ok: false, error: '.git is managed by the git APIs and is off-limits to file ops' };
+  if (segments.some(isGitMetadataSegment)) {
+    return { ok: false, error: GIT_METADATA_ERROR };
   }
   return { ok: true, relative: normalized };
 }
@@ -171,6 +187,11 @@ export function resolveInsideWorkspace(
   } catch {
     return { ok: false, error: 'path could not be resolved' };
   }
+  // P0b: .git is refused by where the path LANDS, not by its text. A clone can
+  // carry `gitalias -> .git`; writing `gitalias/config` used to overwrite
+  // .git/config (core.fsmonitor => command execution on the next git status).
+  const gitMetadata = { ok: false as const, error: GIT_METADATA_ERROR };
+  if (hasGitMetadataSegment(path.relative(workspaceRoot, absolute))) return gitMetadata;
   const escape = {
     ok: false as const,
     error: 'path resolves outside the workspace (symlink escape)',
@@ -192,7 +213,9 @@ export function resolveInsideWorkspace(
     probe = parent;
   }
   try {
-    if (!isInsidePath(realRoot, fs.realpathSync(probe))) return escape;
+    const realProbe = fs.realpathSync(probe);
+    if (!isInsidePath(realRoot, realProbe)) return escape;
+    if (hasGitMetadataSegment(path.relative(realRoot, realProbe))) return gitMetadata;
   } catch (err) {
     // Only a dangling (or looping) symlink ancestor gets here; step 3 decides.
     if (errorCode(err) !== 'ENOENT' && errorCode(err) !== 'ELOOP') {
@@ -205,6 +228,7 @@ export function resolveInsideWorkspace(
     return { ok: false, error: 'path could not be resolved (symlink loop)' };
   }
   if (!isInsidePath(realRoot, landing)) return escape;
+  if (hasGitMetadataSegment(path.relative(realRoot, landing))) return gitMetadata;
 
   return { ok: true, absolute };
 }
