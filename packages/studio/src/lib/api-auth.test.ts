@@ -47,6 +47,14 @@ describe('getSession JWT fallback', () => {
     cookiesStub.mockResolvedValue({ getAll: () => [{ name: 'next-auth.session-token', value: 'x' }] });
   });
 
+  it('returns null for a valid token that is not on the invite allowlist', async () => {
+    // Invite-only (lib/inviteAllowlist.ts): getServerSession is null for this
+    // token, so this raw-token fallback must not hand the session back.
+    tokenIs({ sub: 'other', provider: 'github', providerAccountId: '9009', githubUsername: 'x' });
+
+    expect(await getSession()).toBeNull();
+  });
+
   it('carries the provider, its account id and the verified-email claim', async () => {
     tokenIs({
       sub: 'user-1',
@@ -84,13 +92,18 @@ describe('getSession JWT fallback', () => {
     expect((await getSession())?.user.isFounder).toBe(true);
   });
 
-  it('recognises the founder on a Google token that never carried emailVerified', async () => {
+  it('refuses a Google token outright now that sign-in is invite-only and GitHub-only', async () => {
+    // Before the invite-only P0 (lib/inviteAllowlist.ts) this asserted founder
+    // recognition through STUDIO_FOUNDER_EMAILS on a Google token. Production
+    // has no Google provider, and a non-GitHub session is now no session.
     tokenIs({ sub: 'user-1', provider: 'google', email: FOUNDER_EMAIL });
 
-    expect((await getSession())?.user.isFounder).toBe(true);
+    expect(await getSession()).toBeNull();
   });
 
   it('says not-founder for an ordinary session', async () => {
+    // Allowlisted as an admin (invite-only sign-in), but not the founder.
+    vi.stubEnv('ADMIN_GITHUB_USERNAMES', 'octocat');
     tokenIs({
       sub: 'user-2',
       provider: 'github',
@@ -223,7 +236,14 @@ describe('requireFounder', () => {
   });
 
   it('refuses an ordinary session with 403', async () => {
-    tokenIs({ sub: 'user-2', provider: 'github', providerAccountId: '999999999' });
+    // Allowlisted as an admin (invite-only sign-in), but not the founder.
+    vi.stubEnv('ADMIN_GITHUB_USERNAMES', 'octocat');
+    tokenIs({
+      sub: 'user-2',
+      provider: 'github',
+      providerAccountId: '999999999',
+      githubUsername: 'octocat',
+    });
 
     const result = await requireFounder();
 
@@ -233,7 +253,15 @@ describe('requireFounder', () => {
 
   it('refuses everyone when no founder is configured', async () => {
     vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', '');
-    tokenIs({ sub: 'user-1', provider: 'github', providerAccountId: FOUNDER_GITHUB_ID });
+    // An admin keeps a session (invite-only sign-in) but is never the founder.
+    // With the admin list empty too, the session itself is refused (401).
+    vi.stubEnv('ADMIN_GITHUB_USERNAMES', 'octocat');
+    tokenIs({
+      sub: 'user-1',
+      provider: 'github',
+      providerAccountId: FOUNDER_GITHUB_ID,
+      githubUsername: 'octocat',
+    });
 
     const result = await requireFounder();
 
