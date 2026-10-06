@@ -1,0 +1,7 @@
+You answered 10 questions.
+On the 10 where we knew the answer, you chose right 0 times.
+You caught 0 of 8 planted faults.
+On the 2 you answered where a copy built from the rules disagreed, you sided with the rules 0 times.
+You said "Not sure" 10 times.
+You took about 30 seconds each.
+The answer key was sealed before you saw the questions, and it was not changed.
