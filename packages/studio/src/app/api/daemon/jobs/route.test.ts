@@ -55,6 +55,8 @@ describe('/api/daemon/jobs route', () => {
 
     const res = await GET(new Request('http://localhost/api/daemon/jobs'));
     expect(res.status).toBe(200);
+    // Scoped to the signed-in caller, never the whole store.
+    expect(listDaemonJobsMock).toHaveBeenCalledWith('user-test-1');
     const body = await res.json();
     expect(body.jobs).toHaveLength(1);
     expect(body.jobs[0].id).toBe('dj-1');
@@ -163,6 +165,8 @@ describe('/api/daemon/jobs route', () => {
       expect.objectContaining({
         projectId: 'project-1',
         profile: 'balanced',
+        // The job is owned by the signed-in caller.
+        userId: 'user-test-1',
       })
     );
   });

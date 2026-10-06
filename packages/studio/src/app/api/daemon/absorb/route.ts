@@ -19,13 +19,18 @@ export async function POST(req: NextRequest) {
   let body: Record<string, unknown> = {};
   const rawBody = await req.text();
   if (rawBody.trim() !== '') {
+    let parsed: unknown;
     try {
-      body = JSON.parse(rawBody);
+      parsed = JSON.parse(rawBody);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error('[API daemon/absorb] parsing request body failed:', message);
       return NextResponse.json({ error: `Invalid JSON body: ${message}` }, { status: 400 });
     }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return NextResponse.json({ error: 'JSON body must be an object' }, { status: 400 });
+    }
+    body = parsed as Record<string, unknown>;
   }
 
   const mcpResult = await callMcpTool('absorb_run_absorb', {
@@ -94,8 +99,11 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(
     {
-      error: 'Failed to run absorb_run_absorb. Ensure the orchestrator is running.',
-      detail: failure,
+      // The upstream text stays in the server log and the job record; the
+      // client gets a short reason, never raw upstream bodies.
+      error:
+        'Absorb could not run: the absorb service did not answer. Details are in the server log.',
+      reason: 'absorb_upstream_failed',
     },
     { status: 502 }
   );

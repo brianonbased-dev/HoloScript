@@ -12,6 +12,18 @@
  * Phase 2  (validate)  — Fix cycles with graph-informed candidate ordering;
  *                        re-assess after each cycle; stop on plateau.
  *
+ * Phases 1-2 run the repository's own tools, i.e. the user's code (vitest and
+ * eslint load repo config and test files). They are OFF unless the operator
+ * sets HOLOHEAL_RUN_REPO_TOOLS to exactly "true" or "1"; by default a job ends
+ * after Absorb + patch proposal and says "Absorb done, checks skipped (sandbox
+ * not enabled)". When on, tools run with `npx --no-install` and a scrubbed
+ * environment (no Studio secrets). A real sandbox (separate container) is the
+ * follow-up.
+ *
+ * Confinement: projectPath must resolve (realpath) strictly inside the Studio
+ * workspaces root; there is no process.cwd() fallback. Symlinks are never
+ * copied or followed. Copy and scan are capped in files, bytes and time.
+ *
  * Safety: Each job runs in an isolated temp directory (a copy of the
  * uploaded project). Patches are NEVER auto-applied; they are returned as
  * diff proposals for the user to review in the Studio UI.
@@ -24,8 +36,7 @@
  * @module daemon/runner
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { execFile } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -37,7 +48,8 @@ import type {
   DaemonProjectDNA,
   PatchProposal,
 } from '@/lib/daemon/types';
-import { absorbEmptyLabel } from '@/lib/daemon/honestyLabels';
+import { absorbEmptyLabel, CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
+import { checkProjectPath } from '@/lib/daemon/projectPathPolicy';
 
 // =============================================================================
 // ABSORB TYPES (mirrors CodebaseGraph serialized shape)
@@ -105,8 +117,6 @@ export interface AbsorbGraphData {
   filesScanned: number;
 }
 
-const execAsync = promisify(exec);
-
 export interface DaemonRunResult {
   success: boolean;
   /** Total cycles executed */
@@ -133,6 +143,8 @@ export interface DaemonRunResult {
   error?: string;
   /** Absorb graph data (null when core unavailable) */
   absorb: AbsorbGraphData | null;
+  /** True when the repo-tool phases were skipped because HOLOHEAL_RUN_REPO_TOOLS is off. */
+  checksSkipped?: boolean;
 }
 
 const PROFILE_LIMITS: Record<DaemonProfile, DaemonJobLimits> = {
@@ -184,6 +196,110 @@ const GLOBAL_DENYLIST = [
 ];
 
 // =============================================================================
+// REPO TOOLS GATE + LIMITS
+// =============================================================================
+
+/**
+ * Running tsc / vitest / eslint in a user's repo executes that repo's code
+ * (configs, test files, plugins). Off unless the operator sets
+ * HOLOHEAL_RUN_REPO_TOOLS to exactly "true" or "1". Not set anywhere by default.
+ */
+export function repoToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  const v = env.HOLOHEAL_RUN_REPO_TOOLS;
+  return v === 'true' || v === '1';
+}
+
+function fmtMs(ms: number): string {
+  return ms >= 1000 ? `${Math.round(ms / 1000)} s` : `${ms} ms`;
+}
+
+function envPositiveInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === '') return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+}
+
+/** Copy and scan caps. Overridable by env (not set anywhere by default). */
+export function holoHealLimits() {
+  return {
+    copyMaxFiles: envPositiveInt('HOLOHEAL_COPY_MAX_FILES', 20_000),
+    copyMaxBytes: envPositiveInt('HOLOHEAL_COPY_MAX_BYTES', 500 * 1024 * 1024),
+    copyTimeoutMs: envPositiveInt('HOLOHEAL_COPY_TIMEOUT_MS', 120_000),
+    scanTimeoutMs: envPositiveInt('HOLOHEAL_SCAN_TIMEOUT_MS', 120_000),
+    scanMaxFiles: envPositiveInt('HOLOHEAL_SCAN_MAX_FILES', 10_000),
+  };
+}
+
+/**
+ * Environment for a repo tool when the operator has turned tools on: PATH and
+ * nothing secret. The Studio process env (API keys, DATABASE_URL, NEXTAUTH
+ * secret, GitHub OAuth secrets, Railway token, ...) is never passed down.
+ */
+export function scrubbedToolEnv(workDir: string): NodeJS.ProcessEnv {
+  return {
+    PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin',
+    HOME: workDir,
+    CI: '1',
+    NODE_ENV: 'test',
+    NO_UPDATE_NOTIFIER: '1',
+    npm_config_update_notifier: 'false',
+  };
+}
+
+/**
+ * Run one repo tool via `npx --no-install` (never downloads a package) with the
+ * scrubbed env. Rejects like exec does: the error carries stdout/stderr.
+ */
+function runRepoTool(
+  workDir: string,
+  toolArgs: string[],
+  timeoutMs: number,
+  maxBuffer: number
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      'npx',
+      ['--no-install', ...toolArgs],
+      { cwd: workDir, env: scrubbedToolEnv(workDir), timeout: timeoutMs, maxBuffer },
+      (err, stdout, stderr) => {
+        if (err) {
+          reject(
+            Object.assign(err, { stdout: String(stdout ?? ''), stderr: String(stderr ?? '') })
+          );
+        } else {
+          resolve({ stdout: String(stdout ?? ''), stderr: String(stderr ?? '') });
+        }
+      }
+    );
+  });
+}
+
+/**
+ * Resolve a file named by tool output (e.g. a tsc error path) to a write target
+ * inside workDir, or null. Refuses absolute paths, `..` escapes, symlinks, and
+ * anything whose real parent directory is outside the real workDir.
+ */
+export function safeWorkDirTarget(workDir: string, relFile: string): string | null {
+  if (!relFile || path.isAbsolute(relFile)) return null;
+  const realWork = fs.realpathSync.native(workDir);
+  const target = path.resolve(realWork, relFile);
+  const rel = path.relative(realWork, target);
+  if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) return null;
+  let st: fs.Stats;
+  try {
+    st = fs.lstatSync(target);
+  } catch {
+    return null; // nothing to fix there
+  }
+  if (!st.isFile()) return null; // symlink, dir, device: never written through
+  const realParent = fs.realpathSync.native(path.dirname(target));
+  const relParent = path.relative(realWork, realParent);
+  if (relParent.startsWith('..') || path.isAbsolute(relParent)) return null;
+  return target;
+}
+
+// =============================================================================
 // ABSORB PHASE — codebase graph intelligence
 // =============================================================================
 
@@ -204,12 +320,35 @@ export async function runAbsorbPhase(
   filesScanned: number
 ): Promise<{ graph: AbsorbGraphData; scanErrors: string[] }> {
   const absorbStart = Date.now();
+  const limits = holoHealLimits();
   const engine = await import('@holoscript/absorb-service/engine');
 
+  // #483's shared policy, with the daemon temp root as the ONLY allowed root
+  // (passed as an argument; no process env is read or changed): the engine is
+  // only ever pointed at a server-made workspace copy.
+  const refusal = engine.absorbRootRefusal(workDir, { ABSORB_ALLOWED_ROOTS: daemonTmpBase() });
+  if (refusal) throw new Error(`refusing to scan outside the daemon workspace root: ${workDir}`);
+
   // Workers resolve their script next to the package's dist folder, which a
-  // bundled server chunk does not have; parse on this thread.
+  // bundled server chunk does not have; parse on this thread. The signal is
+  // checked between discovery and parse batches.
   const scanner = new engine.CodebaseScanner(undefined, false);
-  const scanResult = await scanner.scan({ rootDir: workDir });
+  const signal = AbortSignal.timeout(limits.scanTimeoutMs);
+  let scanResult: _AbsorbScanResult;
+  try {
+    scanResult = (await scanner.scan({
+      rootDir: workDir,
+      maxFiles: limits.scanMaxFiles,
+      signal,
+    })) as _AbsorbScanResult;
+  } catch (err: unknown) {
+    if (signal.aborted) {
+      throw new Error(
+        `scan timed out after ${fmtMs(limits.scanTimeoutMs)} (cap HOLOHEAL_SCAN_TIMEOUT_MS)`
+      );
+    }
+    throw err;
+  }
 
   const graph = new engine.CodebaseGraph();
   graph.buildFromScanResult(scanResult);
@@ -275,6 +414,20 @@ export function isExcludedFromWorkspaceCopy(name: string): boolean {
   );
 }
 
+/** Parent of every daemon workspace copy: <tmp>/holoscript-daemon. */
+export function daemonTmpBase(): string {
+  return path.join(os.tmpdir(), 'holoscript-daemon');
+}
+
+export interface IsolatedWorkspace {
+  workDir: string;
+  cleanup: () => Promise<void>;
+  /** Symlinks found in the project: never copied, never followed ("rel -> target"). */
+  skippedSymlinks: string[];
+  copiedFiles: number;
+  copiedBytes: number;
+}
+
 /**
  * Creates an isolated workspace directory for the daemon to operate in and
  * copies the project into it with Node's fs.promises.cp.
@@ -284,12 +437,26 @@ export function isExcludedFromWorkspaceCopy(name: string): boolean {
  * and every job ran on an empty folder. The copy now uses no external binary,
  * and any copy error rejects (after removing the partial folder) so the job
  * fails with the real error text.
+ *
+ * Safety (Mapping BLOCK B2, 2026-10-05):
+ *  - projectPath is checked with checkProjectPath (realpath strictly inside the
+ *    workspaces root) before anything is created, and the copy reads from the
+ *    resolved real path;
+ *  - symlinks are skipped (lstat in the filter; dereference:false), recorded
+ *    in skippedSymlinks, and never followed;
+ *  - the copy stops with an honest error past copyMaxFiles / copyMaxBytes /
+ *    copyTimeoutMs (checked per entry).
  */
 export async function createIsolatedWorkspace(
   projectPath: string,
   jobId: string
-): Promise<{ workDir: string; cleanup: () => Promise<void> }> {
-  const tmpBase = path.join(os.tmpdir(), 'holoscript-daemon');
+): Promise<IsolatedWorkspace> {
+  const decision = checkProjectPath(projectPath);
+  if (!decision.ok) throw new Error(`projectPath refused: ${decision.reason}`);
+  const source = decision.realPath;
+  const limits = holoHealLimits();
+
+  const tmpBase = daemonTmpBase();
   fs.mkdirSync(tmpBase, { recursive: true });
 
   const workDir = path.join(tmpBase, jobId);
@@ -297,8 +464,13 @@ export async function createIsolatedWorkspace(
     await fs.promises.rm(workDir, { recursive: true, force: true });
   };
 
+  const skippedSymlinks: string[] = [];
+  let copiedFiles = 0;
+  let copiedBytes = 0;
+  const deadline = Date.now() + limits.copyTimeoutMs;
+
   try {
-    const sourceStat = await fs.promises.stat(projectPath);
+    const sourceStat = await fs.promises.stat(source);
     if (!sourceStat.isDirectory()) {
       throw new Error(`projectPath is not a directory: ${projectPath}`);
     }
@@ -306,15 +478,51 @@ export async function createIsolatedWorkspace(
     fs.mkdirSync(workDir, { recursive: true });
 
     // Copy project for analysis. The source root itself is always copied; the
-    // filter only drops excluded entries beneath it.
-    await fs.promises.cp(projectPath, workDir, {
+    // filter drops excluded names and every symlink, and enforces the caps.
+    await fs.promises.cp(source, workDir, {
       recursive: true,
       force: true,
       errorOnExist: false,
+      dereference: false,
       verbatimSymlinks: true,
-      filter: (src) =>
-        path.resolve(src) === path.resolve(projectPath) ||
-        !isExcludedFromWorkspaceCopy(path.basename(src)),
+      filter: async (src) => {
+        if (path.resolve(src) === source) return true;
+        if (isExcludedFromWorkspaceCopy(path.basename(src))) return false;
+        if (Date.now() > deadline) {
+          throw new Error(
+            `copy took longer than ${fmtMs(limits.copyTimeoutMs)} (cap HOLOHEAL_COPY_TIMEOUT_MS)`
+          );
+        }
+        const st = await fs.promises.lstat(src);
+        if (st.isSymbolicLink()) {
+          let target = '?';
+          try {
+            target = await fs.promises.readlink(src);
+          } catch (err: unknown) {
+            target = `unreadable link: ${errText(err)}`;
+          }
+          skippedSymlinks.push(`${path.relative(source, src)} -> ${target}`);
+          return false;
+        }
+        if (st.isFile()) {
+          copiedFiles += 1;
+          copiedBytes += st.size;
+          if (copiedFiles > limits.copyMaxFiles) {
+            throw new Error(
+              `project has more than ${limits.copyMaxFiles} files (cap HOLOHEAL_COPY_MAX_FILES)`
+            );
+          }
+          if (copiedBytes > limits.copyMaxBytes) {
+            throw new Error(
+              `project is larger than ${limits.copyMaxBytes} bytes (cap HOLOHEAL_COPY_MAX_BYTES)`
+            );
+          }
+        } else if (!st.isDirectory()) {
+          skippedSymlinks.push(`${path.relative(source, src)} (not a regular file; skipped)`);
+          return false;
+        }
+        return true;
+      },
     });
 
     // Marker written after the copy so a project file of the same name cannot
@@ -342,7 +550,7 @@ export async function createIsolatedWorkspace(
     throw new Error(`copy ${projectPath} -> ${workDir} failed: ${msg}`);
   }
 
-  return { workDir, cleanup };
+  return { workDir, cleanup, skippedSymlinks, copiedFiles, copiedBytes };
 }
 
 // =============================================================================
@@ -520,11 +728,12 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
 
   // Type check
   try {
-    const { stdout, stderr } = await execAsync('npx tsc --noEmit --pretty false 2>&1', {
-      cwd: workDir,
-      timeout: 120_000,
-      maxBuffer: 50 * 1024 * 1024,
-    }).catch(outputOrThrow);
+    const { stdout, stderr } = await runRepoTool(
+      workDir,
+      ['tsc', '--noEmit', '--pretty', 'false'],
+      120_000,
+      50 * 1024 * 1024
+    ).catch(outputOrThrow);
     const output = String(stdout) + String(stderr);
     const tsErrors = (output.match(/error TS\d+/g) ?? []).length;
     result.typeErrors = tsErrors;
@@ -535,11 +744,12 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
 
   // Test suite
   try {
-    const { stdout, stderr } = await execAsync('npx vitest run --reporter=json 2>&1', {
-      cwd: workDir,
-      timeout: 180_000,
-      maxBuffer: 50 * 1024 * 1024,
-    }).catch(outputOrThrow);
+    const { stdout, stderr } = await runRepoTool(
+      workDir,
+      ['vitest', 'run', '--reporter=json'],
+      180_000,
+      50 * 1024 * 1024
+    ).catch(outputOrThrow);
     const output = String(stdout) + String(stderr);
     const jsonMatch = output.match(/\{[\s\S]*"numTotalTests"[\s\S]*\}/);
     if (jsonMatch) {
@@ -555,11 +765,12 @@ async function assessQuality(workDir: string): Promise<QualityCheckResult> {
 
   // Lint
   try {
-    await execAsync('npx eslint . --max-warnings 0 --format json 2>&1', {
-      cwd: workDir,
-      timeout: 60_000,
-      maxBuffer: 10 * 1024 * 1024,
-    });
+    await runRepoTool(
+      workDir,
+      ['eslint', '.', '--max-warnings', '0', '--format', 'json'],
+      60_000,
+      10 * 1024 * 1024
+    );
     // Clean lint
   } catch (err: unknown) {
     const e = err as Record<string, unknown>;
@@ -813,6 +1024,32 @@ export async function runDaemonJob(
     `Limits: ${limits.maxCycles} cycles, ${limits.maxFilesChanged} max files, ${limits.timeoutMs}ms timeout`
   );
 
+  const toolsOn = repoToolsEnabled();
+  const hhLimits = holoHealLimits();
+
+  // Step 0: Confinement. Every caller (API route, Brittney, HoloDaemon) passes
+  // through here; there is no cwd fallback.
+  const decision = checkProjectPath(projectPath);
+  if (!decision.ok) {
+    const reason = `Blocked: projectPath refused — ${decision.reason}`;
+    log('error', reason);
+    return {
+      success: false,
+      cycles: 0,
+      filesAnalyzed: 0,
+      filesChanged: 0,
+      qualityBefore: 0,
+      qualityAfter: 0,
+      qualityDelta: 0,
+      patches: [],
+      logs,
+      summary: reason,
+      durationMs: Date.now() - startTime,
+      error: reason,
+      absorb: null,
+    };
+  }
+
   // Step 1: Create isolated workspace
   onProgress(5, 'Creating isolated workspace...');
   let workDir: string;
@@ -822,7 +1059,16 @@ export async function runDaemonJob(
     const ws = await createIsolatedWorkspace(projectPath, jobId);
     workDir = ws.workDir;
     cleanup = ws.cleanup;
-    log('info', `Workspace created at ${workDir}`);
+    log(
+      'info',
+      `Workspace created at ${workDir} (${ws.copiedFiles} files, ${Math.round(ws.copiedBytes / 1024)} KB copied)`
+    );
+    if (ws.skippedSymlinks.length > 0) {
+      log(
+        'warn',
+        `Skipped ${ws.skippedSymlinks.length} symlink(s)/special file(s) — not copied, not followed: ${ws.skippedSymlinks.slice(0, 10).join(' | ')}${ws.skippedSymlinks.length > 10 ? ` (+${ws.skippedSymlinks.length - 10} more)` : ''}`
+      );
+    }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     log('error', `Failed to create workspace: ${msg}`);
@@ -882,9 +1128,15 @@ export async function runDaemonJob(
   // Files the scanner is handed; also the N in "Absorb empty (N files scanned)".
   let filesScanned: number;
   try {
-    filesScanned = countSourceFiles(workDir);
+    filesScanned = countSourceFiles(workDir, hhLimits.scanMaxFiles + 1);
   } catch (err: unknown) {
     const reason = `Blocked: could not read the workspace copy at ${workDir} — ${errText(err)}`;
+    log('error', reason);
+    return blocked(reason);
+  }
+
+  if (filesScanned > hhLimits.scanMaxFiles) {
+    const reason = `Blocked: project too large to scan — more than ${hhLimits.scanMaxFiles} files in the copy (cap HOLOHEAL_SCAN_MAX_FILES). Not scanning a partial project.`;
     log('error', reason);
     return blocked(reason);
   }
@@ -924,8 +1176,15 @@ export async function runDaemonJob(
     );
   }
 
+  if (absorbData.totalFiles === 0 && scanErrors.length > 0) {
+    // Every file errored: that is a failed Absorb, not an empty project.
+    const msg = `the scanner reported ${scanErrors.length} error(s) and built no graph: ${scanErrors.slice(0, 3).join(' | ')}`;
+    log('error', `Absorb phase failed: ${msg}`);
+    return blocked(`Blocked: Absorb failed — ${msg}`, msg);
+  }
+
   if (absorbData.totalFiles === 0) {
-    const reason = `${absorbEmptyLabel(filesScanned)}. Absorb returned an empty graph for workDir=${workDir} (projectPath=${projectPath}). Not claiming heal success.`;
+    const reason = `${absorbEmptyLabel(filesScanned)}. The scanner was handed ${filesScanned} file(s) (the workspace copy), reported 0 errors, and built no graph (workDir=${workDir}, projectPath=${projectPath}). Not claiming heal success.`;
     log('error', reason);
     return blocked(reason);
   }
@@ -938,6 +1197,44 @@ export async function runDaemonJob(
     'info',
     `Leaf-first order: ${absorbData.leafFirstOrder.slice(0, 5).join(', ')}${absorbData.leafFirstOrder.length > 5 ? ` (+${absorbData.leafFirstOrder.length - 5} more)` : ''}`
   );
+
+  // B1: without a sandbox, stop here. Phases 1-2 would run the repo's own
+  // tools (its code) inside the Studio server.
+  if (!toolsOn) {
+    log(
+      'info',
+      "Repo checks skipped: tsc / vitest / eslint and auto-fixes run the repository's own code, and no sandbox is enabled (HOLOHEAL_RUN_REPO_TOOLS is off)."
+    );
+    onProgress(85, 'Generating patch proposals...');
+    let proposals: PatchProposal[] = [];
+    try {
+      proposals = (
+        await detectChanges(decision.realPath, workDir, allDenyPatterns, limits.maxFilesChanged)
+      ).patches;
+    } catch (err: unknown) {
+      log('warn', `Patch detection error: ${errText(err)}`);
+    }
+    onProgress(95, 'Cleaning up workspace...');
+    if (await cleanupLoudly()) log('info', 'Workspace cleaned up');
+    onProgress(100, 'Complete');
+    const summary = `${CHECKS_SKIPPED_LABEL}. Absorb built a graph of ${absorbData.totalFiles} file(s) from ${filesScanned} in the copy; repo checks and auto-fixes did not run because they would execute this repository's code on the Studio server. ${proposals.length} patch proposal(s). Not a heal.`;
+    log('info', summary);
+    return {
+      success: true,
+      cycles: 0,
+      filesAnalyzed: 0,
+      filesChanged: proposals.length,
+      qualityBefore: 0,
+      qualityAfter: 0,
+      qualityDelta: 0,
+      patches: proposals,
+      logs,
+      summary,
+      durationMs: Date.now() - startTime,
+      absorb: absorbData,
+      checksSkipped: true,
+    };
+  }
 
   // Step 2: Rollback snapshot
   onProgress(10, 'Creating rollback snapshot...');
@@ -995,11 +1292,12 @@ export async function runDaemonJob(
 
     // 4a. List type errors
     try {
-      const { stdout, stderr } = await execAsync('npx tsc --noEmit --pretty false 2>&1', {
-        cwd: workDir,
-        timeout: 120_000,
-        maxBuffer: 50 * 1024 * 1024,
-      }).catch(outputOrThrow);
+      const { stdout, stderr } = await runRepoTool(
+        workDir,
+        ['tsc', '--noEmit', '--pretty', 'false'],
+        120_000,
+        50 * 1024 * 1024
+      ).catch(outputOrThrow);
 
       const output = String(stdout) + String(stderr);
       const errorLines = output.split('\n').filter((l: string) => l.includes('error TS'));
@@ -1038,9 +1336,16 @@ export async function runDaemonJob(
       let fixesApplied = 0;
       for (const [file, errors] of fixEntries) {
         if (fixesApplied >= limits.maxFilesChanged) break;
-        const fullPath = path.join(workDir, file);
-        if (!fs.existsSync(fullPath)) continue;
         if (isPathProtected(file, allDenyPatterns)) continue;
+        // Writes stay inside workDir: no absolute / `..` / symlinked targets.
+        const fullPath = safeWorkDirTarget(workDir, file);
+        if (!fullPath) {
+          log(
+            'warn',
+            `Refused fix target outside the workspace copy (or not a regular file): ${file}`
+          );
+          continue;
+        }
 
         // Warn when touching hub nodes (high in-degree = many dependents)
         const inDeg = absorbData?.inDegree[file] ?? 0;
@@ -1117,7 +1422,7 @@ export async function runDaemonJob(
   let patches: PatchProposal[] = [];
   try {
     const detected = await detectChanges(
-      projectPath,
+      decision.realPath,
       workDir,
       allDenyPatterns,
       limits.maxFilesChanged

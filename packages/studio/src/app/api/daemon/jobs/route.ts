@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ telemetry: getTelemetrySummary() });
   }
 
-  return NextResponse.json({ jobs: listDaemonJobs() });
+  return NextResponse.json({ jobs: listDaemonJobs(auth.user.id) });
 }
 
 export async function POST(request: NextRequest) {
@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
     projectDna: body.projectDna as unknown as CreateDaemonJobInput['projectDna'],
     projectPath: body.projectPath,
     customLimits: body.customLimits as CreateDaemonJobInput['customLimits'],
+    userId: auth.user.id,
   });
 
   return NextResponse.json({ job: created }, { status: 201 });

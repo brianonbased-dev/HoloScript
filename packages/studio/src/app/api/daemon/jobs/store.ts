@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { runDaemonJob, type AbsorbGraphData } from './runner';
-import { absorbEmptyLabel } from '@/lib/daemon/honestyLabels';
+import { absorbEmptyLabel, CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
 import { getWorkspacesRoot, isInsidePath } from '@/lib/workspace/workspaceFs';
 import type {
@@ -118,7 +118,9 @@ async function executeDaemonJob(jobId: string): Promise<void> {
   });
   emitTelemetry({ eventType: 'job_started', jobId, timestamp: now, profile: job.profile });
 
-  const projectPath = job.projectPath || process.cwd();
+  // No fallback: a job without a workspace path is refused by the runner
+  // (it used to scan process.cwd(), i.e. the Studio deployment tree).
+  const projectPath = job.projectPath ?? '';
 
   try {
     const result = await runDaemonJob(
@@ -168,15 +170,17 @@ async function executeDaemonJob(jobId: string): Promise<void> {
     const status = result.success ? 'completed' : 'failed';
     const statusMessage = !result.success
       ? (result.error ?? result.summary)
-      : emptyAbsorb
-        ? result.absorb && result.absorb.filesScanned > 0
-          ? absorbEmptyLabel(result.absorb.filesScanned)
-          : 'Blocked — Absorb empty'
-        : zeroDelta && result.filesAnalyzed === 0
-          ? 'Finished, nothing examined'
-          : zeroDelta
-            ? 'Finished, nothing to change'
-            : result.summary || 'Complete';
+      : result.checksSkipped
+        ? CHECKS_SKIPPED_LABEL
+        : emptyAbsorb
+          ? result.absorb && result.absorb.filesScanned > 0
+            ? absorbEmptyLabel(result.absorb.filesScanned)
+            : 'Blocked — Absorb empty'
+          : zeroDelta && result.filesAnalyzed === 0
+            ? 'Finished, nothing examined'
+            : zeroDelta
+              ? 'Finished, nothing to change'
+              : result.summary || 'Complete';
 
     setDaemonJob(jobId, {
       ...final,
@@ -198,6 +202,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       patches: result.patches,
       logs: result.logs,
       absorb: absorbSnapshot,
+      checksSkipped: result.checksSkipped === true ? true : undefined,
     });
 
     emitTelemetry({
@@ -269,12 +274,20 @@ export function createDaemonJob(input: CreateDaemonJobInput): DaemonJob {
   return created;
 }
 
-export function listDaemonJobs(): DaemonJob[] {
-  return Array.from(daemonJobs.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+/**
+ * Jobs belong to the signed-in user who created them. Every read is scoped to
+ * the caller; a job with no recorded owner is visible to no one.
+ */
+export function listDaemonJobs(userId: string): DaemonJob[] {
+  return Array.from(daemonJobs.values())
+    .filter((job) => job.userId !== undefined && job.userId === userId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function getDaemonJob(id: string): DaemonJob | null {
-  return daemonJobs.get(id) ?? null;
+/** The job, or null when it does not exist OR belongs to someone else. */
+export function getDaemonJob(id: string, userId: string): DaemonJob | null {
+  const job = daemonJobs.get(id);
+  return job && job.userId !== undefined && job.userId === userId ? job : null;
 }
 
 export function getJobPatches(jobId: string): PatchProposal[] {

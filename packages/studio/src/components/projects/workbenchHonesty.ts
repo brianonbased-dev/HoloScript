@@ -5,7 +5,7 @@ import {
   workspaceAgentStatus,
   workspaceBuildStatus,
 } from './workspaceOverview';
-import { absorbEmptyLabel } from '@/lib/daemon/honestyLabels';
+import { absorbEmptyLabel, CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
 
 export type HonestyTone = 'ready' | 'blocked' | 'degraded' | 'idle' | 'running' | 'neutral';
 
@@ -238,6 +238,23 @@ export function describeJobOutcome(job: DaemonJob): JobOutcomeView {
         ? `Absorb built no graph from ${filesScanned} scanned files. Not a heal success — refresh Absorb or check the files are a supported language.`
         : 'Absorb returned an empty graph. Not a heal success — refresh Absorb or verify the workspace path.',
       tone: 'blocked',
+      showProgressPercent: false,
+      patches,
+      filesAnalyzed,
+      qualityDelta,
+      absorbFiles,
+      details,
+    };
+  }
+
+  // Absorb ran, the repo's own tools did not (no sandbox). Grey, never green.
+  if (job.checksSkipped && patches === 0) {
+    return {
+      headline: CHECKS_SKIPPED_LABEL,
+      honesty:
+        job.summary ??
+        "Repo checks and auto-fixes did not run: they would execute this repository's code on the Studio server. Not a heal.",
+      tone: 'degraded',
       showProgressPercent: false,
       patches,
       filesAnalyzed,

@@ -175,6 +175,8 @@ export interface DaemonJob {
   error?: string;
   /** GitHub-resolved user ID who initiated this job */
   userId?: string;
+  /** Repo checks (tsc/vitest/eslint) were skipped: no sandbox (HOLOHEAL_RUN_REPO_TOOLS off). */
+  checksSkipped?: boolean;
   /** Codebase graph snapshot from Phase 0 absorb. Available once job completes. */
   absorb?: DaemonAbsorbSnapshot;
 }

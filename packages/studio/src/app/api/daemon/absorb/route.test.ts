@@ -133,10 +133,11 @@ describe('/api/daemon/absorb route', () => {
     const res = await POST(req);
     expect(res.status).toBe(502);
     const body = await res.json();
-    expect(body.error).toMatch(/Failed to run absorb_run_absorb/i);
+    expect(body.error).toMatch(/Absorb could not run/i);
   });
 
-  it('POST reports the real MCP and HTTP failure reasons, not a generic message', async () => {
+  it('POST logs the real MCP and HTTP failure reasons server-side and returns only a short reason', async () => {
+    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     callMcpToolMock.mockResolvedValue({
       ok: false,
       data: null,
@@ -156,9 +157,32 @@ describe('/api/daemon/absorb route', () => {
     const res = await POST(req);
     expect(res.status).toBe(502);
     const body = await res.json();
-    expect(body.detail).toBe(
-      'MCP: MCP absorb_run_absorb request failed: fetch failed; HTTP 503: upstream down'
-    );
+    // Client: short reason, no upstream text.
+    expect(body.reason).toBe('absorb_upstream_failed');
+    expect(body.detail).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain('upstream down');
+    expect(JSON.stringify(body)).not.toContain('fetch failed');
+    // Server log: the full reasons.
+    expect(
+      consoleErr.mock.calls.some((c) =>
+        String(c[0]).includes(
+          'MCP: MCP absorb_run_absorb request failed: fetch failed; HTTP 503: upstream down'
+        )
+      )
+    ).toBe(true);
+    consoleErr.mockRestore();
+  });
+
+  it('POST refuses a JSON body that is not an object (null) with 400, not a 500', async () => {
+    const req = new NextRequest('http://localhost/api/daemon/absorb', {
+      method: 'POST',
+      body: 'null',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe('JSON body must be an object');
+    expect(callMcpToolMock).not.toHaveBeenCalled();
   });
 
   it('POST refuses a malformed JSON body with the parse error', async () => {
