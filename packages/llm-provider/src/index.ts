@@ -345,7 +345,22 @@ export {
   resolveLocalFleet,
   embedAcrossFleet,
   cosineSimilarity,
+  resolveSovereignDevicesDir,
 } from './fleet-router';
+// Every device registered through Studio / HoloShell that serves a text model and is up
+// right now, ordered local → fleet (holo_ask_codebase routes its answer model through this).
+export {
+  listRegisteredInferenceCapabilities,
+  probeRegisteredInferenceDevices,
+} from './registered-inference-devices';
+export type {
+  RegisteredDeviceTier,
+  RegisteredInferenceCapability,
+  RegisteredInferenceRoute,
+  RegisteredInferenceSkip,
+  RegisteredInferenceProbe,
+  RegisteredInferenceOptions,
+} from './registered-inference-devices';
 export type {
   FleetNode,
   FleetBackend,
