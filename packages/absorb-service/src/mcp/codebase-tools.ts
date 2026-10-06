@@ -30,6 +30,7 @@ import {
   readSymbolLines,
   setGraphRAGState,
 } from './graph-rag-tools';
+import { CODE_READ_REFUSED, codeReadAllowed } from './code-read-access';
 import {
   ABSORB_HOLO_ABSORB_REPO_HINT,
   describeGraphUnavailable,
@@ -10990,6 +10991,11 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
       // Read a symbol's code (task_1791211408192_rz9m): tester agents located
       // the right function but could not read it, because file reads need the
       // admin scope. This reads only absorbed files, inside the graph's root.
+      // Only for callers that may read code (code-read-access.ts): on the
+      // hosted server the graph and its roots are shared between callers.
+      if (!codeReadAllowed()) {
+        return { error: 'code_read_not_allowed', queryType: 'source', message: CODE_READ_REFUSED };
+      }
       const name = symbolName ?? extractSymbolFromQuery(query);
       const definitions = cachedGraph
         .findSymbolsByName(name)

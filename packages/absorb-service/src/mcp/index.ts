@@ -39,6 +39,12 @@ export {
   isGraphRAGReady,
   handleGraphRagTool,
 } from './graph-rag-tools';
+export {
+  CODE_READ_REFUSED,
+  codeReadAllowed,
+  runWithCodeReadAccess,
+  setCodeReadDefault,
+} from './code-read-access';
 export { oracleTools, handleOracleTool } from './oracle-tools';
 export {
   knowledgeExtractionTools,

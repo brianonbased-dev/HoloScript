@@ -38,7 +38,12 @@ import { handleEditHoloTool } from './edit-holo-tools';
 import { runCompileFanout } from './compileFanout.js';
 import { TRAIT_DOCS, SYNTAX_DOCS, EXAMPLES } from './documentation';
 import { EXAMPLE_CATALOG, EXAMPLE_INVENTORY, PUBLIC_LINK_POLICIES } from './examples-catalog';
-import { handleCodebaseTool, handleGraphRagTool } from '@holoscript/absorb-service/mcp';
+import {
+  handleCodebaseTool,
+  handleGraphRagTool,
+  runWithCodeReadAccess,
+} from '@holoscript/absorb-service/mcp';
+import { callerMayReadCode } from './security/host-path-args';
 import { handleGraphTool } from './graph-tools';
 import { handleIDETool } from './ide-tools';
 import { handleBrittneyLiteTool } from './brittney-lite';
@@ -323,6 +328,21 @@ function isTrustedCaller(
 }
 
 export async function handleTool(
+  name: string,
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext,
+  subjectSourceOverride?: import('./security/sandbox-policy').SandboxSubjectSource
+): Promise<unknown> {
+  // Each call carries its own answer to "may this caller read source code"
+  // (absorb-service code-read-access): the local stdio user, loopback local
+  // custody or an admin scope. An externally-sourced lane never may.
+  const mayReadCode = !subjectSourceOverride && callerMayReadCode(signingCtx);
+  return runWithCodeReadAccess(mayReadCode, () =>
+    handleToolForCaller(name, args, signingCtx, subjectSourceOverride)
+  );
+}
+
+async function handleToolForCaller(
   name: string,
   args: Record<string, unknown>,
   signingCtx?: SigningContext,

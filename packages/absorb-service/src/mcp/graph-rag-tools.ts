@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
+import { codeReadAllowed } from './code-read-access';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
 import {
@@ -1121,8 +1122,9 @@ async function buildExtractiveCodebaseAnswer(options: {
   // Tester agents (2026-10-05) got names and line numbers but no way to read
   // what the code does, so "how does X work" stayed unanswered.
   // Quoted only when the citations resolved to real spans in the graph.
-  const rootDir = guard.passed ? (engine.graph.getRootDir?.() ?? '') : '';
-  const excerpts = (guard.passed ? context : [])
+  const quote = guard.passed && codeReadAllowed();
+  const rootDir = quote ? (engine.graph.getRootDir?.() ?? '') : '';
+  const excerpts = (quote ? context : [])
     .slice(0, EXCERPT_COUNT)
     .map((r) => {
       const code = readSymbolExcerpt(rootDir, r.file, r.symbol.line, r.symbol.lineCount);
@@ -1335,7 +1337,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       language,
       type,
       visualFocus,
-      codeReader: answerCodeReader(engine as GraphRAGEngine, question),
+      codeReader: codeReadAllowed() ? answerCodeReader(engine as GraphRAGEngine, question) : undefined,
     });
 
     // Provenance integrity guard: validate every cited file:line resolves
@@ -1451,7 +1453,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
             language,
             type,
             visualFocus,
-            codeReader: answerCodeReader(fbEngine, question),
+            codeReader: codeReadAllowed() ? answerCodeReader(fbEngine, question) : undefined,
           });
 
           // Provenance integrity guard (same as primary path)

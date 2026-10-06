@@ -129,6 +129,24 @@ export function callerMayNameHostPaths(
 }
 
 /**
+ * True when the caller may read source code through the codebase tools (`source` queries and code in
+ * `holo_ask_codebase` answers): the same callers that may name the server's disk, plus the local user of
+ * the stdio server (no context, stdio transport). A customer key with only `tools:codebase` may not: on
+ * the hosted server the absorbed graph and its roots are shared between callers (claude6, #501/#513).
+ */
+export function callerMayReadCode(
+  signingCtx: { scopes?: readonly string[]; localCustody?: boolean } | undefined | null
+): boolean {
+  if (
+    (signingCtx === undefined || signingCtx === null) &&
+    process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio'
+  ) {
+    return true;
+  }
+  return callerMayNameHostPaths(signingCtx?.scopes, signingCtx?.localCustody);
+}
+
+/**
  * Why `value` is not a plain relative path, or null when it is one. Refuses: NUL, `file:` URLs, drive
  * prefixes (`C:\x`, `C:x`), UNC and device prefixes, absolute POSIX paths, `~` expansion, and any `..` segment.
  */

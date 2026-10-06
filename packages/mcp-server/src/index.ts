@@ -26,7 +26,6 @@
 
 // !! MUST be first import — populates process.env from .env before any module-level
 // `const X = process.env.X || ''` constants are evaluated. No-op on Railway.
-import { briefForAgent } from '@holoscript/absorb-service/mcp';
 import './utils/load-env';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -97,7 +96,8 @@ import {
   isTrustedLocalCaller,
   registerKnownTools,
 } from './security/tool-scopes';
-import { assertNoHostPathArgs } from './security/host-path-args';
+import { assertNoHostPathArgs, callerMayReadCode } from './security/host-path-args';
+import { briefForAgent, runWithCodeReadAccess } from '@holoscript/absorb-service/mcp';
 import {
   gateToolCall,
   classifyMcpEnvelopeResult,
@@ -566,8 +566,20 @@ async function executeBatchInnerTool(
   }
 }
 
-// Implementation of executeSingleTool logic previously bound above
+// Implementation of executeSingleTool logic previously bound above.
+// Every call runs with its own answer to "may this caller read source code"
+// (code-read-access in absorb-service), so nested calls inherit the caller's.
 export async function _handleSingleToolLogic(
+  name: string,
+  args: Record<string, unknown>,
+  signingCtx?: SigningContext
+) {
+  return runWithCodeReadAccess(callerMayReadCode(signingCtx), () =>
+    handleSingleToolLogicForCaller(name, args, signingCtx)
+  );
+}
+
+async function handleSingleToolLogicForCaller(
   name: string,
   args: Record<string, unknown>,
   signingCtx?: SigningContext
