@@ -34,6 +34,25 @@ vi.mock('os', () => ({
   homedir: vi.fn(() => '/home/user'),
 }));
 
+// Ownership is exercised on a real filesystem in
+// lib/workspace/__tests__/workspaceOwner.p0.test.ts; this suite mocks fs, so
+// it stubs the owner decision and asserts the route honours it.
+const { assertWorkspaceOwnerMock } = vi.hoisted(() => ({
+  assertWorkspaceOwnerMock: vi.fn((_session: unknown, fsPath: string) => ({
+    ok: true,
+    resolved: fsPath,
+    workspaceDir: fsPath,
+    workspaceId: 'ws-1',
+    project: {},
+  })),
+}));
+vi.mock('@/lib/workspace/workspaceOwner', () => ({
+  assertWorkspaceOwner: assertWorkspaceOwnerMock,
+}));
+vi.mock('@/lib/workspace/workspaceFs', () => ({
+  resolveInsideWorkspace: vi.fn(() => ({ ok: true, absolute: '/unused' })),
+}));
+
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
@@ -78,6 +97,26 @@ describe('POST /api/workspace/paper-opt-in', () => {
     const req = makeReq({ workspaceId: 'ws-1', localPath: '/etc/passwd' });
     const res = await POST(req);
     expect(res.status).toBe(403);
+  });
+
+  it('refuses a workspace the caller does not own and writes nothing', async () => {
+    (getServerSession as ReturnType<typeof vi.fn>).mockResolvedValue({ user: { id: 'u2' } });
+    assertWorkspaceOwnerMock.mockReturnValueOnce({
+      ok: false,
+      error: 'Workspace not found or not accessible',
+      status: 404,
+    } as never);
+    const res = await POST(
+      makeReq({ workspaceId: 'ws-1', localPath: '/home/user/.holoscript/workspaces/ws-1/repo' })
+    );
+    expect(res.status).toBe(404);
+    expect((await res.json()).error).toBe('Workspace not found or not accessible');
+    expect(fs.writeFileSync).not.toHaveBeenCalled();
+    expect(fs.mkdirSync).not.toHaveBeenCalled();
+    expect(assertWorkspaceOwnerMock).toHaveBeenCalledWith(
+      { user: { id: 'u2' } },
+      expect.stringContaining('/ws-1/repo')
+    );
   });
 
   it('creates research artifacts and returns opted-in state', async () => {

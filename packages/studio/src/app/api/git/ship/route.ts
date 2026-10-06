@@ -41,8 +41,11 @@ const execFileAsync = promisify(execFile);
 
 type GitHubRole = 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown';
 
-function allowedWorkspacePath(workspacePath: string): string | null {
-  const validated = resolveWorkspaceGitPath(workspacePath);
+function allowedWorkspacePath(
+  workspacePath: string,
+  owner: Parameters<typeof resolveWorkspaceGitPath>[1]
+): string | null {
+  const validated = resolveWorkspaceGitPath(workspacePath, owner);
   return validated.ok ? validated.resolved : null;
 }
 
@@ -129,7 +132,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath, message' }, { status: 400 });
   }
 
-  const cwd = allowedWorkspacePath(body.workspacePath);
+  const cwd = allowedWorkspacePath(body.workspacePath, session);
   if (!cwd) {
     return NextResponse.json(
       { error: 'workspacePath must be a git repo under ~/.holoscript/workspaces' },

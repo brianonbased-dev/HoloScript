@@ -3,7 +3,8 @@
  * /api/workspace/build, and the Brittney route's workspacePath injection.
  *
  * Trust model mirrors /api/git/_shared: every operation is confined to
- * workspace clones under ~/.holoscript/workspaces (HOLOSCRIPT_WORKSPACES_DIR).
+ * workspace clones under ~/.holoscript/workspaces (HOLOSCRIPT_WORKSPACES_DIR)
+ * AND to a workspace the caller owns (./workspaceOwner.ts).
  * Unlike the git resolver, a `.git` directory is NOT required — scaffolded
  * (not-yet-committed) workspaces are valid file-op targets too.
  */
@@ -28,28 +29,11 @@ export function isInsidePath(parent: string, child: string): boolean {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
-export type WorkspaceFsResolution =
-  { ok: true; resolved: string } | { ok: false; error: string; status: number };
-
-/**
- * Validate an absolute workspace path: must resolve inside the workspaces
- * root and exist as a directory.
- */
-export function resolveWorkspaceFsRoot(workspacePath: string): WorkspaceFsResolution {
-  const root = getWorkspacesRoot();
-  const resolved = path.resolve(workspacePath);
-  if (!isInsidePath(root, resolved)) {
-    return {
-      ok: false,
-      error: 'workspacePath must be inside ~/.holoscript/workspaces',
-      status: 403,
-    };
-  }
-  if (!fs.existsSync(resolved) || !fs.statSync(resolved).isDirectory()) {
-    return { ok: false, error: 'workspacePath does not exist', status: 400 };
-  }
-  return { ok: true, resolved };
-}
+// The containment-only `resolveWorkspaceFsRoot(workspacePath)` that used to
+// live here was removed on purpose (P0 2026-10-05): containment proves a path
+// is under the SHARED root, not that the caller owns it. Use
+// `resolveOwnedWorkspaceFsRoot(workspacePath, session)` from ./workspaceOwner,
+// which adds the ownership check, so no caller can silently skip it.
 
 export type RelativePathValidation = { ok: true; relative: string } | { ok: false; error: string };
 

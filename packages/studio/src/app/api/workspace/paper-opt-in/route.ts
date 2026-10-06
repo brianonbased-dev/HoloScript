@@ -29,6 +29,9 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
+import { resolveInsideWorkspace } from '@/lib/workspace/workspaceFs';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
+
 import { corsHeaders } from '../../_lib/cors';
 
 const HOLOMESH_API_URL =
@@ -218,12 +221,36 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'localPath is outside workspace root' }, { status: 403 });
   }
 
-  if (!fs.existsSync(resolvedLocalPath)) {
-    return NextResponse.json({ error: 'Workspace path does not exist' }, { status: 404 });
+  // P0 2026-10-05: containment is not ownership. Only the workspace's owner
+  // may write research artifacts into it. Missing, ownerless and another
+  // account's workspace all get the same 404, so existence is not disclosed.
+  const owned = assertWorkspaceOwner(session, resolvedLocalPath);
+  if (!owned.ok) {
+    return NextResponse.json({ error: owned.error }, { status: owned.status });
+  }
+  const ownedLocalPath = owned.resolved;
+  // A cloned repo can ship its own `research`/`memory` symlinks. Every write
+  // target must still resolve inside this workspace after symlinks, or the
+  // writes below would land in whatever the link points at.
+  for (const relativeTarget of [
+    'research',
+    'memory',
+    'research/paper-cell.json',
+    'research/d011-checklist.json',
+    'research/evidence-refs.json',
+    'research/paper-unlock-state.json',
+    'memory/research-packet.json',
+  ]) {
+    if (!resolveInsideWorkspace(ownedLocalPath, relativeTarget).ok) {
+      return NextResponse.json(
+        { error: 'Workspace research paths must stay inside the workspace' },
+        { status: 400 }
+      );
+    }
   }
 
-  const researchDir = path.join(resolvedLocalPath, 'research');
-  const memoryDir = path.join(resolvedLocalPath, 'memory');
+  const researchDir = path.join(ownedLocalPath, 'research');
+  const memoryDir = path.join(ownedLocalPath, 'memory');
   try {
     fs.mkdirSync(researchDir, { recursive: true });
     fs.mkdirSync(memoryDir, { recursive: true });
@@ -239,7 +266,7 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
-  const workspaceName = path.basename(resolvedLocalPath);
+  const workspaceName = path.basename(ownedLocalPath);
   const statePath = path.join(researchDir, 'paper-unlock-state.json');
   const existingState = readExistingPaperUnlockState(statePath);
 

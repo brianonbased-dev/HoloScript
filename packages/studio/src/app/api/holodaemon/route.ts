@@ -22,6 +22,7 @@ import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { listDaemonJobs, getTelemetrySummary, createDaemonJob } from '@/app/api/daemon/jobs/store';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
 import type { DaemonProfile } from '@/lib/daemon/types';
 import {
   HOLO_DAEMON_MISSIONS,
@@ -194,6 +195,21 @@ export async function POST(request: Request) {
   }
 
   if (body.action === 'start') {
+    // P0 2026-10-05: a HoloHeal run copies and later patches projectPath, so it
+    // must name a workspace the caller OWNS. The runner's realpath confinement
+    // (#515, lib/daemon/projectPathPolicy.ts) still applies on top of this.
+    // No path is refused here rather than queued: there is no cwd fallback.
+    if (typeof body.projectPath !== 'string' || body.projectPath.trim() === '') {
+      return NextResponse.json(
+        { error: 'projectPath is required: HoloHeal only runs on a workspace you own' },
+        { status: 400 }
+      );
+    }
+    const owned = assertWorkspaceOwner(auth, body.projectPath);
+    if (!owned.ok) {
+      return NextResponse.json({ error: owned.error }, { status: owned.status });
+    }
+
     const mission = getHoloDaemonMission(body.missionProfile);
     const profile = body.profile ?? mission.defaultMode;
     const daemonAgent = buildHoloDaemonAgentConfig({

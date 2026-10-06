@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const validated = resolveWorkspaceGitPath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath, session);
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
