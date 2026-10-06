@@ -158,7 +158,8 @@ scene.add(directionalLight);
       sz = scale.z || 1;
     }
 
-    // Rotation handling
+    // Rotation handling. HoloScript rotation is in degrees (GLTFPipeline and
+    // the Unity generator treat it so); three.js Euler angles are radians.
     const rotation = props.rotation;
     let rx = 0,
       ry = 0,
@@ -243,7 +244,8 @@ scene.add(directionalLight);
     code += `const ${name} = new THREE.Mesh(${name}_geometry, ${name}_material);\n`;
     code += `${name}.position.set(${px}, ${py}, ${pz});\n`;
     if (rx !== 0 || ry !== 0 || rz !== 0) {
-      code += `${name}.rotation.set(${rx}, ${ry}, ${rz});\n`;
+      const toRad = Math.PI / 180;
+      code += `${name}.rotation.set(${rx * toRad}, ${ry * toRad}, ${rz * toRad});\n`;
     }
     code += `${name}.castShadow = true;\n`;
     code += `${name}.receiveShadow = true;\n`;
