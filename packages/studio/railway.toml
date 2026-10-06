@@ -4,7 +4,7 @@
 
 [build]
 dockerfilePath = "packages/studio/Dockerfile"
-watchPatterns = ["packages/studio/**", "packages/core/**"]
+watchPatterns = ["packages/studio/**", "packages/core/**", "packages/absorb-service/**"]
 
 [deploy]
 healthcheckPath = "/api/health"

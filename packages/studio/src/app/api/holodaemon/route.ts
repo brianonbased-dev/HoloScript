@@ -17,6 +17,7 @@ export const maxDuration = 300;
  */
 
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -86,8 +87,10 @@ async function loadCompositionSource(): Promise<{
 // ---------------------------------------------------------------------------
 
 export async function GET() {
-  const jobs = listDaemonJobs();
-  const telemetry = getTelemetrySummary();
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+  const jobs = listDaemonJobs(auth.user.id);
+  const telemetry = getTelemetrySummary(auth.user.id);
   const composition = await loadCompositionSource();
 
   const runningJobs = jobs.filter((j) => j.status === 'running');
@@ -171,6 +174,8 @@ export async function GET() {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
   let body: {
     action: 'start' | 'stop';
     profile?: DaemonProfile;
@@ -200,7 +205,7 @@ export async function POST(request: Request) {
     });
 
     // Check if a job is already running
-    const jobs = listDaemonJobs();
+    const jobs = listDaemonJobs(auth.user.id);
     const running = jobs.find((j) => j.status === 'running');
     if (running) {
       return NextResponse.json(
@@ -231,13 +236,14 @@ export async function POST(request: Request) {
         daemonAgent,
       },
       projectPath: body.projectPath,
+      userId: auth.user.id,
     });
 
     return NextResponse.json({ job }, { status: 201 });
   }
 
   if (body.action === 'stop') {
-    const jobs = listDaemonJobs();
+    const jobs = listDaemonJobs(auth.user.id);
     const running = jobs.find((j) => j.status === 'running');
 
     if (!running) {
