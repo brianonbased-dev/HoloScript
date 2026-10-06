@@ -250,6 +250,11 @@ function requestPinned(url: URL, init: RequestInit, opts: OutboundGuardOptions):
   });
 }
 
+/** Credentials that must not be sent to a different origin than the one they were meant for. */
+const CROSS_ORIGIN_STRIPPED_HEADERS = ['authorization', 'cookie', 'proxy-authorization'];
+/** Headers that describe a request body, dropped when a redirect turns the request into a GET. */
+const BODY_HEADERS = ['content-type', 'content-length', 'content-encoding'];
+
 /**
  * fetch() for a caller-supplied URL: checks the destination, connects only to addresses that
  * pass the same check, and follows redirects by hand, checking each hop the same way, so a
@@ -262,12 +267,32 @@ export async function fetchPublicHttp(
 ): Promise<Response> {
   const maxRedirects = opts.maxRedirects ?? 5;
   let current = raw;
+  // Headers (any init form: object, Headers, array pairs), method and body are carried hop to hop
+  // and changed the way a browser changes them: a credential never follows a redirect to another
+  // origin, and 301/302/303 turn a POST into a GET with no body.
+  let hopInit: RequestInit = { ...init, headers: new Headers(init.headers) };
+  let previousOrigin: string | undefined;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const url = await assertPublicHttpUrl(current, opts);
-    const res = await requestPinned(url, init, opts);
+    if (previousOrigin !== undefined && url.origin !== previousOrigin) {
+      const stripped = new Headers(hopInit.headers);
+      for (const name of CROSS_ORIGIN_STRIPPED_HEADERS) stripped.delete(name);
+      hopInit = { ...hopInit, headers: stripped };
+    }
+    previousOrigin = url.origin;
+    const res = await requestPinned(url, hopInit, opts);
     const location = res.headers.get('location');
     if (res.status >= 300 && res.status < 400 && location) {
       await res.body?.cancel().catch(() => {});
+      const method = (hopInit.method ?? 'GET').toUpperCase();
+      const toGet =
+        (res.status === 303 && method !== 'GET' && method !== 'HEAD') ||
+        ((res.status === 301 || res.status === 302) && method === 'POST');
+      if (toGet) {
+        const stripped = new Headers(hopInit.headers);
+        for (const name of BODY_HEADERS) stripped.delete(name);
+        hopInit = { ...hopInit, method: 'GET', body: undefined, headers: stripped };
+      }
       current = new URL(location, url).toString();
       continue;
     }

@@ -169,6 +169,155 @@ describe('fetchPublicHttp redirects', () => {
   });
 });
 
+interface Seen {
+  method: string;
+  headers: Record<string, string | string[] | undefined>;
+  body: string;
+}
+
+/** A loopback server that records every request it receives, then answers per path. */
+async function recorder(
+  respond: (path: string) => { status: number; headers?: Record<string, string>; body?: string }
+): Promise<{ base: string; seen: Seen[] }> {
+  const seen: Seen[] = [];
+  const server: Server = createServer((req, res) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => chunks.push(c));
+    req.on('end', () => {
+      seen.push({
+        method: req.method ?? '',
+        headers: req.headers,
+        body: Buffer.concat(chunks).toString('utf8'),
+      });
+      const out = respond(req.url ?? '/');
+      res.writeHead(out.status, out.headers ?? {});
+      res.end(out.body ?? '');
+    });
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  const base = `http://127.0.0.1:${port}`;
+  servers.push({
+    base,
+    hits: () => seen.length,
+    close: () => new Promise<void>((resolve) => server.close(() => resolve())),
+  });
+  return { base, seen };
+}
+
+// Loopback is not public, so these tests say every address is fine; the redirect handling is what
+// is under test, not the address check (covered above). Two ports are two origins.
+const loopbackOk = { isAllowedAddress: () => true };
+
+describe('fetchPublicHttp redirects and credentials', () => {
+  const CREDS = { Authorization: 'Bearer X', Cookie: 'sid=1', 'X-Keep': 'yes' };
+
+  it.each([
+    ['an object', () => CREDS],
+    ['a Headers', () => new Headers(CREDS)],
+    ['array pairs', () => Object.entries(CREDS)],
+  ])(
+    'does not send Authorization or Cookie to another origin after a 302 (%s)',
+    async (_name, make) => {
+      const other = await recorder(() => ({ status: 200, body: 'ok' }));
+      const first = await recorder(() => ({
+        status: 302,
+        headers: { location: `${other.base}/x` },
+      }));
+      const res = await fetchPublicHttp(
+        `${first.base}/start`,
+        { headers: make() as HeadersInit },
+        loopbackOk
+      );
+      expect(res.status).toBe(200);
+      expect(first.seen[0].headers.authorization).toBe('Bearer X');
+      expect(first.seen[0].headers.cookie).toBe('sid=1');
+      expect(other.seen).toHaveLength(1);
+      expect(other.seen[0].headers.authorization).toBeUndefined();
+      expect(other.seen[0].headers.cookie).toBeUndefined();
+      expect(other.seen[0].headers['x-keep']).toBe('yes');
+    }
+  );
+
+  it('drops Proxy-Authorization cross-origin, whatever the header case', async () => {
+    const other = await recorder(() => ({ status: 200 }));
+    const first = await recorder(() => ({ status: 302, headers: { location: `${other.base}/x` } }));
+    await fetchPublicHttp(
+      `${first.base}/start`,
+      { headers: { 'PROXY-AUTHORIZATION': 'Basic abc', aUtHoRiZaTiOn: 'Bearer X' } },
+      loopbackOk
+    );
+    expect(other.seen[0].headers['proxy-authorization']).toBeUndefined();
+    expect(other.seen[0].headers.authorization).toBeUndefined();
+  });
+
+  it('keeps Authorization and Cookie across a same-origin 302', async () => {
+    const one = await recorder((path) =>
+      path === '/start' ? { status: 302, headers: { location: '/next' } } : { status: 200 }
+    );
+    await fetchPublicHttp(`${one.base}/start`, { headers: CREDS }, loopbackOk);
+    expect(one.seen.map((r) => r.headers.authorization)).toEqual(['Bearer X', 'Bearer X']);
+    expect(one.seen[1].headers.cookie).toBe('sid=1');
+  });
+
+  it('turns a POST with a body into a body-less GET after a 303', async () => {
+    const other = await recorder(() => ({ status: 200 }));
+    const first = await recorder(() => ({ status: 303, headers: { location: `${other.base}/x` } }));
+    await fetchPublicHttp(
+      `${first.base}/start`,
+      { method: 'POST', body: '{"a":1}', headers: { ...CREDS, 'Content-Type': 'application/json' } },
+      loopbackOk
+    );
+    expect(first.seen[0].method).toBe('POST');
+    expect(first.seen[0].body).toBe('{"a":1}');
+    expect(other.seen[0].method).toBe('GET');
+    expect(other.seen[0].body).toBe('');
+    expect(other.seen[0].headers['content-type']).toBeUndefined();
+    expect(other.seen[0].headers['content-length']).toBeUndefined();
+  });
+
+  it('a same-origin 303 also becomes a body-less GET, credentials kept', async () => {
+    const one = await recorder((path) =>
+      path === '/start' ? { status: 303, headers: { location: '/next' } } : { status: 200 }
+    );
+    await fetchPublicHttp(
+      `${one.base}/start`,
+      { method: 'POST', body: 'x', headers: CREDS },
+      loopbackOk
+    );
+    expect(one.seen[1].method).toBe('GET');
+    expect(one.seen[1].body).toBe('');
+    expect(one.seen[1].headers.authorization).toBe('Bearer X');
+  });
+
+  it('keeps POST and body across a cross-origin 307 but drops the credentials', async () => {
+    const other = await recorder(() => ({ status: 200 }));
+    const first = await recorder(() => ({ status: 307, headers: { location: `${other.base}/x` } }));
+    await fetchPublicHttp(
+      `${first.base}/start`,
+      { method: 'POST', body: '{"a":1}', headers: { ...CREDS, 'Content-Type': 'application/json' } },
+      loopbackOk
+    );
+    expect(other.seen[0].method).toBe('POST');
+    expect(other.seen[0].body).toBe('{"a":1}');
+    expect(other.seen[0].headers['content-type']).toBe('application/json');
+    expect(other.seen[0].headers.authorization).toBeUndefined();
+    expect(other.seen[0].headers.cookie).toBeUndefined();
+  });
+
+  it('keeps POST and body across a 308, and a 302 turns a POST into a GET', async () => {
+    const other = await recorder(() => ({ status: 200 }));
+    const f308 = await recorder(() => ({ status: 308, headers: { location: `${other.base}/x` } }));
+    await fetchPublicHttp(`${f308.base}/s`, { method: 'POST', body: 'b' }, loopbackOk);
+    expect(other.seen[0].method).toBe('POST');
+    expect(other.seen[0].body).toBe('b');
+    const f302 = await recorder(() => ({ status: 302, headers: { location: `${other.base}/y` } }));
+    await fetchPublicHttp(`${f302.base}/s`, { method: 'POST', body: 'b' }, loopbackOk);
+    expect(other.seen[1].method).toBe('GET');
+    expect(other.seen[1].body).toBe('');
+  });
+});
+
 describe('fetchPublicHttp connects only to an address it checked', () => {
   it('a name that answers public to the check and private to the connection (DNS rebinding) is refused before it connects', async () => {
     const server = await standIn(() => ({ status: 200, body: 'internal' }));
