@@ -1,5 +1,19 @@
 # North Star -- HoloScript
 
+Anyone can help build powerful realities, but no one is forced to live inside a reality they cannot understand, question, or change.
+
+HoloScript helps people turn intentions into worlds, and turns those worlds back into evidence people can understand, question, and change.
+
+HoloScript is a contract for executable intent: claims rise only as evidence rises, and "unknown" is a legitimate answer. AI proposes and implements; humans decide what was meant.
+
+**Five commitments.** These are commitments, not shipped features: where tooling does not deliver one yet (for example, challenging behavior without reading code), it is a goal.
+
+1. Nothing silently disappears.
+2. Nothing claims more than it proves.
+3. Nothing consequential acts beyond its declared power.
+4. No one needs to read code to challenge behavior.
+5. The system learns humility as it grows.
+
 **Role**: General-purpose semantic systems programming language and its sovereign compiler/runtime stack.
 **Upstream oracle**: `~/.ai-ecosystem/NORTH_STAR.md` (read that for decision trees, workflow patterns, cost thresholds)
 **No local STRATEGY.md or SYSTEM_MAP.md**: ratified-directions and system-map content live upstream at `~/.ai-ecosystem/STRATEGY.md` and `~/.ai-ecosystem/SYSTEM_MAP.md` — cross-repo citations naming those files unqualified mean the ai-ecosystem repo, not this one.
@@ -91,7 +105,7 @@ a question the substrate answers. Full doctrine + reasoning:
 5. **Simulation-first.** Digital twin before physical twin. Every feature.
 6. **Sovereign > bridge.** New capabilities go in sovereign compilers. When that path is not ready, an outside tool ships only as a labelled bridge (**Label the bridge** above).
 7. **Systems-language ratchet.** Never constrain the language to scenes, descriptions, or external-runtime wrappers; move semantics and execution into owned language/runtime layers.
-8. **Commit to main.** All agents, all changes. Pre-commit hook is the gate.
+8. **Every change is a pull request.** All agents, all changes. Release merges after `release-gate/pass`; seats never merge.
 9. **Stage explicitly.** `git add <file>`, never `git add -A` or `git add .`
 
 ## Key paths
