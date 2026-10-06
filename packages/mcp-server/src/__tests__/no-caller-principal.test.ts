@@ -62,10 +62,11 @@ const TEMP_DATA_DIR = mkdtempSync(join(tmpdir(), 'no-caller-principal-'));
 process.env.HOLOMESH_DATA_DIR = TEMP_DATA_DIR;
 
 const { _handleSingleToolLogic } = await import('../index');
+const { handleDaemonLifecycleTool } = await import('../daemon-lifecycle-tools');
 const { handleTool } = await import('../handlers');
 const { callerPrincipal, NO_CALLER_PRINCIPAL } = await import('../security/tool-scopes');
 const { publicAnonymousContext } = await import('../holomesh/identity/signing-middleware');
-const { resetSubmitLedger } = await import('../holo-ci-tools');
+const { resetSubmitLedger, handleHoloCiTool } = await import('../holo-ci-tools');
 
 beforeEach(() => {
   fetchCalls.length = 0;
@@ -118,37 +119,41 @@ describe('callerPrincipal', () => {
 describe('holo_ci_dispatch through the registry', () => {
   const fullSubmit = () => ({ sha: 'a'.repeat(40), profile: 'full', dryRun: false });
 
-  it('a hosted call with no caller, or the anonymous caller, meets the restricted tier', async () => {
+  // Since #407, dispatch checks the caller's scopes for every tool, so a hosted call with no caller
+  // (no scopes) or the anonymous caller (tools:read) is refused before holo_ci_dispatch runs. The
+  // tool's own no-caller check (#474) stays behind it; the second test calls the tool directly.
+  it('a hosted call with no caller, or the anonymous caller, is refused before the tool runs', async () => {
     process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
-    const contextless = payloadOf(await _handleSingleToolLogic('holo_ci_dispatch', fullSubmit()));
-    expect(contextless.ok).toBe(false);
-    expect(contextless.tierDenied).toBe(true);
-
-    const anonymous = payloadOf(
-      await _handleSingleToolLogic('holo_ci_dispatch', fullSubmit(), publicAnonymousContext())
-    );
-    expect(anonymous.ok).toBe(false);
-    expect(anonymous.tierDenied).toBe(true);
+    for (const args of [fullSubmit(), { sha: 'b'.repeat(40), profile: 'quick', dryRun: false }, { sha: 'b'.repeat(40), profile: 'quick' }]) {
+      for (const ctx of [undefined, publicAnonymousContext()]) {
+        const refused = await _handleSingleToolLogic('holo_ci_dispatch', args, ctx);
+        expect((refused as { isError?: boolean }).isError).toBe(true);
+        expect(String(payloadOf(refused).error)).toMatch(/authorization denied/);
+      }
+    }
     expect(orchestratorCalls()).toEqual([]);
   });
 
-  it('a hosted call with no caller cannot spend at all: not even the quick profile', async () => {
+  it("behind dispatch, the tool's own check still gives nobody no tier and no spend, not even the quick profile", async () => {
     // The restricted tier left one quick submit a day, in ONE bucket every no-caller call
     // shared, so the spend belonged to no one (claude3's review of #474).
-    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
-    const quick = { sha: 'b'.repeat(40), profile: 'quick', dryRun: false };
-    for (const ctx of [undefined, publicAnonymousContext()]) {
-      const refused = payloadOf(await _handleSingleToolLogic('holo_ci_dispatch', quick, ctx));
-      expect(refused.ok).toBe(false);
-      expect(refused.noCaller).toBe(true);
-      expect(refused.dryRunPreview).toBeTruthy();
-    }
-    expect(orchestratorCalls()).toEqual([]);
-
-    // A preview still works for nobody, and spends nothing.
-    const preview = payloadOf(
-      await _handleSingleToolLogic('holo_ci_dispatch', { sha: 'b'.repeat(40), profile: 'quick' })
-    );
+    const full = (await handleHoloCiTool('holo_ci_dispatch', fullSubmit(), NO_CALLER_PRINCIPAL)) as Record<string, unknown>;
+    expect(full.ok).toBe(false);
+    expect(full.tierDenied).toBe(true);
+    const quick = (await handleHoloCiTool(
+      'holo_ci_dispatch',
+      { sha: 'b'.repeat(40), profile: 'quick', dryRun: false },
+      NO_CALLER_PRINCIPAL
+    )) as Record<string, unknown>;
+    expect(quick.ok).toBe(false);
+    expect(quick.noCaller).toBe(true);
+    expect(quick.dryRunPreview).toBeTruthy();
+    // A preview, asked of the tool itself, still works for nobody and spends nothing.
+    const preview = (await handleHoloCiTool(
+      'holo_ci_dispatch',
+      { sha: 'b'.repeat(40), profile: 'quick' },
+      NO_CALLER_PRINCIPAL
+    )) as Record<string, unknown>;
     expect(preview.dryRun).toBe(true);
     expect(orchestratorCalls()).toEqual([]);
   });
@@ -190,19 +195,26 @@ describe("a daimōn's rituals, through the registry and through handleTool", () 
     await createOwned('mplw-ritual-registry');
     process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
 
+    // Refused at dispatch (no scopes, #407) or, past it, by the daimōn binding (#474).
     const unnamed = await _handleSingleToolLogic(
       'holo_update_daemon_ritual',
       update('mplw-ritual-registry')
     );
     expect((unnamed as { isError?: boolean }).isError).toBe(true);
-    expect(String(payloadOf(unnamed).error)).toMatch(/needs a caller/);
+    expect(String(payloadOf(unnamed).error)).toMatch(/authorization denied|needs a caller/);
 
     const posing = await _handleSingleToolLogic(
       'holo_update_daemon_ritual',
       update('mplw-ritual-registry', 'owner-mplw')
     );
     expect((posing as { isError?: boolean }).isError).toBe(true);
-    expect(String(payloadOf(posing).error)).toMatch(/needs a caller/);
+    expect(String(payloadOf(posing).error)).toMatch(/authorization denied|needs a caller/);
+
+    // Behind dispatch, the binding itself still refuses nobody, named owner or not.
+    for (const args of [update('mplw-ritual-registry'), update('mplw-ritual-registry', 'owner-mplw')]) {
+      await expect(handleDaemonLifecycleTool('holo_update_daemon_ritual', args, { signer: NO_CALLER_PRINCIPAL }))
+        .rejects.toThrow(/needs a caller/);
+    }
 
     const anonymous = await _handleSingleToolLogic(
       'holo_update_daemon_ritual',
@@ -228,10 +240,17 @@ describe("a daimōn's rituals, through the registry and through handleTool", () 
       for (const ctx of [undefined, publicAnonymousContext()]) {
         const refused = await _handleSingleToolLogic(tool, { ...args }, ctx);
         expect((refused as { isError?: boolean }).isError, tool).toBe(true);
-        expect(String(payloadOf(refused).error), tool).toMatch(/needs a caller/);
+        expect(String(payloadOf(refused).error), tool).toMatch(/authorization denied|needs a caller/);
       }
+      // Behind dispatch (#407), the binding (#474) still refuses nobody.
+      await expect(handleDaemonLifecycleTool(tool, { ...args }, { signer: NO_CALLER_PRINCIPAL }), tool)
+        .rejects.toThrow(/needs a caller/);
     }
-    // Reads still bind as before: listing is not refused, and nobody owns nothing.
+    // Reads: on the hosted server nobody holds no scope, so dispatch refuses even a list; the
+    // stdio user lists, and nobody owns nothing.
+    const hostedList = await _handleSingleToolLogic('holo_list_daemons', {});
+    expect((hostedList as { isError?: boolean }).isError).toBe(true);
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
     const listed = await _handleSingleToolLogic('holo_list_daemons', {});
     expect((listed as { isError?: boolean }).isError).not.toBe(true);
   });

@@ -33,6 +33,7 @@ export {
 // Tool Scope Mapping (Gate 2)
 export {
   authorizeToolCall,
+  assertReentrantToolAuthorized,
   getToolRiskLevel,
   getToolScopes,
   getToolsForScope,

@@ -908,13 +908,19 @@ async function securedToolExecutionInner(
       }
     }
 
-    const signingCtx: SigningContext = options?.signingCtx ?? {
-      signedRequest: false,
-      signingValid: true,
-      signer: auth.agentId ?? auth.clientId ?? null,
-      scopes: auth.scopes ?? [],
-      ...(auth.localCustody === true && { localCustody: true as const }),
-    };
+    // Gate 2 above judged the FINAL auth. /mcp upgrades auth after it unwraps a signed body (the
+    // anonymous free tier, sovereign loopback), so a signed context captured before that holds the
+    // older scopes. The dispatcher re-checks every tool against this context: it must see what
+    // Gate 2 saw, or it refuses what Gate 2 allowed (#407 pre-review).
+    const signingCtx: SigningContext = options?.signingCtx
+      ? mergeSigningContextScopes(options.signingCtx, auth)
+      : {
+          signedRequest: false,
+          signingValid: true,
+          signer: auth.agentId ?? auth.clientId ?? null,
+          scopes: auth.scopes ?? [],
+          ...(auth.localCustody === true && { localCustody: true as const }),
+        };
 
     // Execute the tool
     try {

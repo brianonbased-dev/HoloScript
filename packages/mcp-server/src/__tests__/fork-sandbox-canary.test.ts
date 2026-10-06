@@ -506,7 +506,8 @@ describe('canary: with no caller context, only the stdio server is trusted as ad
   it('CANARY-X006: each anonymous caller is a fresh object, so one call cannot widen the next', () => {
     const first = publicAnonymousContext();
     first.scopes!.push('admin:*');
-    expect(publicAnonymousContext().scopes).toEqual([]);
+    // tools:read only: the scope of the anonymous tier's own tools (claude3's P1-2 on #407).
+    expect(publicAnonymousContext().scopes).toEqual(['tools:read']);
   });
 
   // Why POST /api/public/tool passes this caller instead of none: with no context, a manifest's

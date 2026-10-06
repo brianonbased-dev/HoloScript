@@ -86,7 +86,7 @@ import {
 } from './trait-categories-from-core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { runForkSandboxGate, gateHoloScriptCode } from './security/fork-sandbox-gate';
-import { callerPrincipal } from './security/tool-scopes';
+import { assertReentrantToolAuthorized, callerPrincipal } from './security/tool-scopes';
 import type { CapabilityManifest } from './security/sandbox-policy';
 
 /** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
@@ -307,6 +307,23 @@ function validationUnavailableReceipt(
 const ALL_TRAITS: readonly string[] = VR_TRAITS;
 
 /**
+ * Run a tool on behalf of another tool (an execute_workflow step, a batch_tool_call child) as the
+ * real caller. Its scopes are re-checked for THIS tool, since Gate 2 saw only the outer one. It
+ * goes through the canonical dispatcher with the caller's context, never as a context-less call,
+ * which handleTool turns into stdio-local admin:* on a server holding HOLOSCRIPT_API_KEY.
+ */
+async function runReentrantTool(
+  via: string,
+  toolName: string,
+  toolArgs: Record<string, unknown>,
+  signingCtx?: SigningContext
+): Promise<unknown> {
+  assertReentrantToolAuthorized(toolName, signingCtx, via);
+  const { executeReentrantTool } = await import('./index');
+  return executeReentrantTool(toolName, toolArgs, signingCtx);
+}
+
+/**
  * Main handler dispatcher for all tools
  */
 /**
@@ -520,12 +537,17 @@ async function handleToolForCaller(
       // absent. Falls back to this switch only when nothing has been installed.
       const { getToolHealthDispatcher } = await import('./tooling-discovery-tools');
       const installed = getToolHealthDispatcher();
-      const result = await handleToolingDiscoveryTool(
-        name,
-        args,
-        allTools,
-        installed ?? ((toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx))
-      );
+      // batch_tool_call and get_tool_health run tools the CALLER names, so each runs as the caller.
+      // The installed dispatcher passes no context, and here that meant stdio-local admin:* for every
+      // one: a tools:read caller's health probe ran holo_read_file and holo_secrets_resolve (#407
+      // pre-review). A probe of a tool this caller may not run reports "not permitted", not a fault.
+      const runsCallerNamedTools = name === 'batch_tool_call' || name === 'get_tool_health';
+      const via = name === 'batch_tool_call' ? 'Batch inner tool' : 'Health probe';
+      const dispatch = runsCallerNamedTools
+        ? (toolName: string, toolArgs: Record<string, unknown>) =>
+            runReentrantTool(via, toolName, toolArgs, effectiveSigningCtx)
+        : (installed ?? ((toolName, toolArgs) => handleTool(toolName, toolArgs, signingCtx)));
+      const result = await handleToolingDiscoveryTool(name, args, allTools, dispatch);
       if (result !== null) return result;
       break;
     }
@@ -814,8 +836,10 @@ async function handleToolForCaller(
   ) {
     const { handleAgentOrchestrationTool } = await import('./agent-orchestration-tools');
     // Wire a real tool executor so execute_workflow steps actually invoke MCP tools
-    // (previously every step returned a dry-run stub). Steps run with the caller's
-    // signing context; guard against execute_workflow re-entering itself.
+    // (previously every step returned a dry-run stub). Each step runs as the caller, re-checked
+    // for its own tool (Gate 2 saw only execute_workflow, which needs tools:write), through the
+    // canonical dispatcher: handleTool's switch answered "Unknown graph tool" for holo_write_file.
+    // Guard against execute_workflow re-entering itself.
     const workflowToolExecutor = async (
       toolName: string,
       toolArgs: Record<string, unknown>
@@ -823,7 +847,7 @@ async function handleToolForCaller(
       if (toolName === 'execute_workflow') {
         throw new Error('execute_workflow cannot be nested as a workflow step (recursion guard)');
       }
-      return handleTool(toolName, toolArgs, effectiveSigningCtx);
+      return runReentrantTool('Workflow step', toolName, toolArgs, effectiveSigningCtx);
     };
     return handleAgentOrchestrationTool(name, args, workflowToolExecutor);
   }
