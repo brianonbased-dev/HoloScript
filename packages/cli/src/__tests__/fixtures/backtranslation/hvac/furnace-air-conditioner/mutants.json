@@ -1,0 +1,46 @@
+[
+  {
+    "id": "swing-off-by-one",
+    "description": "heat waits one degree too long: comes on at the setting minus the swing minus 1",
+    "edits": [
+      {
+        "find": "if (room <= state.setPoint - state.swing) {",
+        "replace": "if (room <= state.setPoint - state.swing - 1) {"
+      }
+    ]
+  },
+  {
+    "id": "wait-7-not-5",
+    "description": "compressor waits 7 minutes instead of 5",
+    "edits": [
+      {
+        "find": "state.minutesSinceCompressorStopped >= 5",
+        "replace": "state.minutesSinceCompressorStopped >= 7"
+      }
+    ]
+  },
+  {
+    "id": "fan-on-auto-swapped",
+    "description": "fan auto and fan on swapped: auto always runs, on runs only with heat or cooling",
+    "edits": [
+      {
+        "find": "fan_running: state.fan == \"on\" ||",
+        "replace": "fan_running: state.fan == \"auto\" ||"
+      }
+    ]
+  },
+  {
+    "id": "heat-cool-swapped",
+    "description": "heat mode and cool mode swapped",
+    "edits": [
+      {
+        "find": "if (state.mode == \"heat\" || state.mode == \"auto\") {",
+        "replace": "if (state.mode == \"cool\" || state.mode == \"auto\") {"
+      },
+      {
+        "find": "if ((state.mode == \"cool\" || state.mode == \"auto\") && !state.heatCall) {",
+        "replace": "if ((state.mode == \"heat\" || state.mode == \"auto\") && !state.heatCall) {"
+      }
+    ]
+  }
+]

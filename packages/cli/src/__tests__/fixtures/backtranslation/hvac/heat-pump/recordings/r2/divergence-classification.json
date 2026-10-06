@@ -1,0 +1,39 @@
+[
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      2,
+      5,
+      7,
+      14,
+      18,
+      32,
+      35,
+      39
+    ],
+    "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+  },
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      12
+    ],
+    "rationale": "With no strips fitted, the rebuild gives no heat at all even with the outdoor temperature well above the cut-off. \"No heat runs\" belongs only to the cut-off rule."
+  },
+  {
+    "classification": "checklist-ambiguity",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      23
+    ],
+    "rationale": "Below the outdoor cut-off, with the room only 2 degrees below the setting: the correct program runs the strips as the only heat whenever heat is called for (his rule 7); the rebuild still waits for 3 degrees below (his rule 6). Both rules are his and the wording allows both readings. Not a fair question; a word for him to settle."
+  }
+]

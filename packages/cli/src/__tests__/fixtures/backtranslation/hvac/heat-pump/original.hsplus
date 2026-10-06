@@ -1,0 +1,173 @@
+composition "Heat Pump" {
+  state {
+    mode: "off"
+    setPoint: 70
+    swing: 1
+    fan: "auto"
+    room: 70
+    outdoor: 40
+    backup: "on"
+    cutoff: 25
+    heating: false
+    backupHeating: false
+    cooling: false
+    waiting: false
+    minutesSinceCompressorStopped: 60
+    heatCall: false
+    coolCall: false
+  }
+
+  logic {
+    action setMode(mode) {
+      if (mode != "heat" && mode != "cool" && mode != "auto" && mode != "off") {
+        return { allowed: false, outcome: "unknown_mode" }
+      }
+      state.mode = mode
+      return { allowed: true, outcome: "mode_set" }
+    }
+
+    action setTemperature(degrees) {
+      if (degrees < 50 || degrees > 90) {
+        return { allowed: false, outcome: "out_of_range" }
+      }
+      state.setPoint = degrees
+      return { allowed: true, outcome: "temperature_set" }
+    }
+
+    action setSwing(degrees) {
+      if (degrees < 1 || degrees > 3) {
+        return { allowed: false, outcome: "bad_swing" }
+      }
+      state.swing = degrees
+      return { allowed: true, outcome: "swing_set" }
+    }
+
+    action setFan(setting) {
+      if (setting != "auto" && setting != "on") {
+        return { allowed: false, outcome: "unknown_fan" }
+      }
+      state.fan = setting
+      return { allowed: true, outcome: "fan_set" }
+    }
+
+    action setBackup(setting) {
+      if (setting != "none" && setting != "off" && setting != "on") {
+        return { allowed: false, outcome: "unknown_backup" }
+      }
+      state.backup = setting
+      return { allowed: true, outcome: "backup_set" }
+    }
+
+    action setCutoff(degrees) {
+      if (degrees < 0 || degrees > 50) {
+        return { allowed: false, outcome: "out_of_range" }
+      }
+      state.cutoff = degrees
+      return { allowed: true, outcome: "cutoff_set" }
+    }
+
+    action reading(room, outdoor, minutes) {
+      if (minutes < 0) {
+        return { allowed: false, outcome: "bad_minutes" }
+      }
+      if (!state.heating && !state.cooling) {
+        state.minutesSinceCompressorStopped += minutes
+      }
+      state.room = room
+      state.outdoor = outdoor
+      state.waiting = false
+      if (state.mode == "heat" || state.mode == "auto") {
+        if (state.heatCall) {
+          if (room >= state.setPoint) {
+            state.heatCall = false
+          }
+        } else {
+          if (room <= state.setPoint - state.swing) {
+            state.heatCall = true
+          }
+        }
+      } else {
+        state.heatCall = false
+      }
+      if ((state.mode == "cool" || state.mode == "auto") && !state.heatCall) {
+        if (state.coolCall) {
+          if (room <= state.setPoint) {
+            state.coolCall = false
+          }
+        } else {
+          if (room >= state.setPoint + state.swing) {
+            state.coolCall = true
+          }
+        }
+      } else {
+        state.coolCall = false
+      }
+      if (state.heatCall) {
+        if (outdoor < state.cutoff) {
+          if (state.heating) {
+            state.heating = false
+            state.minutesSinceCompressorStopped = 0
+          }
+          state.backupHeating = state.backup == "on"
+        } else {
+          if (!state.heating) {
+            if (state.minutesSinceCompressorStopped >= 7) {
+              state.heating = true
+            } else {
+              state.waiting = true
+            }
+          }
+          state.backupHeating = state.backup == "on" && room <= state.setPoint - 3
+        }
+      } else {
+        if (state.heating) {
+          state.heating = false
+          state.minutesSinceCompressorStopped = 0
+        }
+        state.backupHeating = false
+      }
+      if (state.coolCall) {
+        if (!state.cooling) {
+          if (state.minutesSinceCompressorStopped >= 7) {
+            state.cooling = true
+          } else {
+            state.waiting = true
+          }
+        }
+      } else {
+        if (state.cooling) {
+          state.cooling = false
+          state.minutesSinceCompressorStopped = 0
+        }
+      }
+      if (state.backupHeating) {
+        return { allowed: true, outcome: "backup_heating" }
+      }
+      if (state.heating) {
+        return { allowed: true, outcome: "heating" }
+      }
+      if (state.cooling) {
+        return { allowed: true, outcome: "cooling" }
+      }
+      if (state.waiting) {
+        return { allowed: true, outcome: "waiting" }
+      }
+      return { allowed: true, outcome: "idle" }
+    }
+
+    action status(viewerId) {
+      return {
+        viewer: viewerId,
+        mode: state.mode,
+        set_to: state.setPoint,
+        room: state.room,
+        outdoor: state.outdoor,
+        heat_on: state.heating,
+        backup_heat_on: state.backupHeating,
+        cool_on: state.cooling,
+        fan_running: state.fan == "on" || state.heating || state.cooling || state.backupHeating,
+        waiting: state.waiting
+      }
+    }
+  }
+}

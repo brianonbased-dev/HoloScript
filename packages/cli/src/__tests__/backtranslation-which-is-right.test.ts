@@ -5,6 +5,9 @@
  *   corepack pnpm --filter @holoscript/cli exec vitest run \
  *     src/__tests__/backtranslation-which-is-right.test.ts
  *
+ * Text rounds are retired for the founder; these run only with BACKTRANS_ROUND_STYLE=text.
+ * Picture rounds: backtranslation-moment-round.test.ts.
+ *
  * Founder rounds (opt-in, talk to the running ai-ecosystem dashboard on 3401):
  *   BACKTRANS_PUBLISH_ROUND=1   build a round with a fresh random seed, seal its
  *                               answer key under fixtures/.../which-is-right/rounds/<id>/,
@@ -267,7 +270,11 @@ describe('which is right — receipt', () => {
   });
 });
 
-describe.runIf(process.env.BACKTRANS_PUBLISH_ROUND === '1')('which is right — publish a founder round', () => {
+// Text rounds are retired for the founder (round 1: 10/10 "Not sure", "read like a multi-choice
+// math test"). They publish only on request; picture rounds live in backtranslation-moment-round.test.ts.
+const TEXT_ROUNDS = process.env.BACKTRANS_ROUND_STYLE === 'text';
+
+describe.runIf(TEXT_ROUNDS && process.env.BACKTRANS_PUBLISH_ROUND === '1')('which is right — publish a founder round', () => {
   it('seals a fresh round and pushes it to the dashboard', async () => {
     const seed = randomInt(1, 2 ** 31);
     const round = buildRound({ seed });
@@ -279,7 +286,7 @@ describe.runIf(process.env.BACKTRANS_PUBLISH_ROUND === '1')('which is right — 
   }, 300_000);
 });
 
-describe.runIf(process.env.BACKTRANS_COLLECT_ROUND === '1')('which is right — collect a founder round', () => {
+describe.runIf(TEXT_ROUNDS && process.env.BACKTRANS_COLLECT_ROUND === '1')('which is right — collect a founder round', () => {
   it('reads his answers, checks the seal, grades and writes the receipt', async () => {
     const live = await collectAnswers();
     const dir = path.join(ROUNDS_ROOT, live.roundId);

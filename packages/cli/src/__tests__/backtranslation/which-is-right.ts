@@ -498,7 +498,7 @@ export function sha256(data: string | Buffer): string {
   return createHash('sha256').update(data).digest('hex');
 }
 
-export function keyFileBytes(key: AnswerKey): string {
+export function keyFileBytes(key: unknown): string {
   return `${JSON.stringify(key, null, 2)}\n`;
 }
 
@@ -509,15 +509,24 @@ export interface RoundRecord {
   keySha256: string;
   keySealedAt: string;
   questionsSha256: string;
-  publicRound: PublicRound;
+  publicRound: SealableRound;
   published?: { to: string; at: string; dashboardKeySha256: string };
+}
+
+/** Any round the dashboard can show: text questions (PublicRound) or picture moments. */
+export interface SealableRound {
+  schema: string;
+  roundId: string;
+  keySha256: string;
+  questionsSha256: string;
+  questions: ReadonlyArray<object>;
 }
 
 /**
  * Writes answer-key.json FIRST, then round.json carrying its sha256. Nothing is
  * published until both exist; the publisher sends only round.publicRound.
  */
-export function sealRound(dir: string, built: { publicRound: PublicRound; key: AnswerKey }): RoundRecord {
+export function sealRound(dir: string, built: { publicRound: SealableRound; key: { roundId: string } }): RoundRecord {
   mkdirSync(dir, { recursive: true });
   const keyPath = path.join(dir, 'answer-key.json');
   if (existsSync(keyPath)) throw new Error(`a sealed key already exists in ${dir}; a round is sealed once`);
@@ -551,7 +560,7 @@ export function readRecord(dir: string): RoundRecord {
  * dashboard stored when the round was published (an independent copy: editing
  * the key and the record together still fails against the dashboard's hash).
  */
-export function verifySeal(dir: string, dashboardKeySha256?: string | null): { ok: boolean; problems: string[]; key: AnswerKey } {
+export function verifySeal<K = AnswerKey>(dir: string, dashboardKeySha256?: string | null): { ok: boolean; problems: string[]; key: K } {
   const record = readRecord(dir);
   const raw = readFileSync(path.join(dir, record.keyFile));
   const now = sha256(raw);
@@ -561,7 +570,7 @@ export function verifySeal(dir: string, dashboardKeySha256?: string | null): { o
     problems.push('the answer key does not match the hash recorded at publish time');
   if (dashboardKeySha256 !== undefined && dashboardKeySha256 !== null && now !== dashboardKeySha256)
     problems.push('the answer key does not match the hash the dashboard stored when the round was published');
-  return { ok: problems.length === 0, problems, key: JSON.parse(raw.toString('utf8')) as AnswerKey };
+  return { ok: problems.length === 0, problems, key: JSON.parse(raw.toString('utf8')) as K };
 }
 
 // ---------------------------------------------------------------------------
@@ -584,9 +593,9 @@ async function dashboardFetch(url: string, init?: RequestInit): Promise<Response
 }
 
 /** A question he cannot judge (no rules, or no steps) must never reach the screen. */
-export function roundProblems(round: PublicRound): string[] {
+export function roundProblems(round: SealableRound): string[] {
   const problems: string[] = [];
-  for (const q of round.questions) {
+  for (const q of round.questions as PublicQuestion[]) {
     if (!Array.isArray(q.rules) || q.rules.length === 0 || q.rules.some((r) => typeof r !== 'string' || !r.trim()))
       problems.push(`question ${q.n} has no rules saying how the machine should work`);
     if (!Array.isArray(q.steps) || q.steps.length === 0) problems.push(`question ${q.n} has no steps`);
@@ -596,10 +605,10 @@ export function roundProblems(round: PublicRound): string[] {
 
 export async function publishRound(
   dir: string,
-  options: { url?: string; replace?: boolean } = {}
+  options: { url?: string; replace?: boolean; validate?: (round: SealableRound) => string[] } = {}
 ): Promise<RoundRecord> {
   const record = readRecord(dir);
-  const missing = roundProblems(record.publicRound);
+  const missing = (options.validate ?? roundProblems)(record.publicRound);
   if (missing.length) throw new Error(`refusing to publish: ${missing.join('; ')}`);
   const seal = verifySeal(dir);
   if (!seal.ok) throw new Error(`refusing to publish: ${seal.problems.join('; ')}`);

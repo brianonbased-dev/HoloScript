@@ -10,7 +10,8 @@
  * Slice 3: BACKTRANS_SLICE=3 records fresh rebuilds of the slice-3 targets
  * (cards with outcome kinds) into slice3/<id>/recordings/<rN>/. Optional:
  * BACKTRANS_LIVE_BEHAVIOURS=<ids> (default: all slice-3 targets),
- * BACKTRANS_RECORDINGS=r1,r2,r3 (default). An existing recording is never
+ * BACKTRANS_RECORDINGS=r1,r2,r3 (default). BACKTRANS_SLICE=hvac records the two
+ * heating and cooling behaviours (fixtures/backtranslation/hvac) the same way. An existing recording is never
  * overwritten unless BACKTRANS_OVERWRITE=1, so a rerun does not re-spend.
  *
  * Calls xAI Grok through @holoscript/llm-provider's XAIAdapter (no tools, no
@@ -31,13 +32,15 @@ import {
 import {
   SLICE3_MAX_REPAIRS,
   SLICE3_RECORDINGS,
+  HVAC_TARGETS,
   SLICE3_TARGETS,
   recordingDir,
   slice3Inputs,
 } from './backtranslation/slice3';
 
 const live = process.env.BACKTRANS_LIVE === '1';
-const slice3 = process.env.BACKTRANS_SLICE === '3';
+const slice3 = process.env.BACKTRANS_SLICE === '3' || process.env.BACKTRANS_SLICE === 'hvac';
+const hvac = process.env.BACKTRANS_SLICE === 'hvac';
 const fixtureRoot = path.join(__dirname, 'fixtures/backtranslation');
 const MODEL = process.env.BACKTRANS_XAI_MODEL ?? 'grok-4.3';
 const BEHAVIOURS = (
@@ -135,7 +138,7 @@ describe.skipIf(!live || !slice3)('back-translation LIVE rebuild, slice 3 (xAI, 
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
-  const targets = SLICE3_TARGETS.filter((t) => !wanted || wanted.includes(t.id));
+  const targets = (hvac ? HVAC_TARGETS : SLICE3_TARGETS).filter((t) => !wanted || wanted.includes(t.id));
   for (const target of targets) {
     for (const recording of recordings) {
       it(

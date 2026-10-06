@@ -1,0 +1,147 @@
+{
+  "id": "furnace-air-conditioner",
+  "title": "Furnace And Air Conditioner",
+  "publicStateKeys": [
+    "mode",
+    "setPoint",
+    "swing",
+    "fan",
+    "room",
+    "heating",
+    "cooling",
+    "waiting",
+    "minutesSinceCompressorStopped"
+  ],
+  "minSteps": 6,
+  "maxSteps": 18,
+  "actions": [
+    {
+      "name": "setMode",
+      "kind": "action",
+      "weight": 1.5,
+      "params": {
+        "mode": {
+          "type": "enum",
+          "values": [
+            "heat",
+            "heat",
+            "cool",
+            "cool",
+            "auto",
+            "off",
+            "dry"
+          ]
+        }
+      }
+    },
+    {
+      "name": "setTemperature",
+      "kind": "action",
+      "weight": 1,
+      "params": {
+        "degrees": {
+          "type": "int",
+          "min": 60,
+          "max": 80,
+          "edges": [
+            49,
+            50,
+            68,
+            70,
+            72,
+            90,
+            91
+          ]
+        }
+      }
+    },
+    {
+      "name": "setSwing",
+      "kind": "action",
+      "weight": 1,
+      "params": {
+        "degrees": {
+          "type": "int",
+          "min": 0,
+          "max": 4,
+          "edges": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      }
+    },
+    {
+      "name": "setFan",
+      "kind": "action",
+      "weight": 1,
+      "params": {
+        "setting": {
+          "type": "enum",
+          "values": [
+            "auto",
+            "on",
+            "on",
+            "high"
+          ]
+        }
+      }
+    },
+    {
+      "name": "reading",
+      "kind": "action",
+      "weight": 8,
+      "params": {
+        "room": {
+          "type": "int",
+          "min": 60,
+          "max": 80,
+          "edges": [
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74
+          ]
+        },
+        "minutes": {
+          "type": "int",
+          "min": -1,
+          "max": 9,
+          "edges": [
+            -1,
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "status",
+      "kind": "observation",
+      "params": {
+        "viewerId": {
+          "type": "enum",
+          "values": [
+            "owner",
+            "technician"
+          ]
+        }
+      }
+    }
+  ]
+}

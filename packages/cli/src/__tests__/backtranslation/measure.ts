@@ -45,6 +45,12 @@ export interface ClassificationRule {
   pathPatterns: string[];
   /** For thrown runs: regex source the error message must match. */
   errorPattern?: string;
+  /**
+   * Only these situation numbers (optional). State differences show up as
+   * hashes, so two different misreadings can share the same paths; listing the
+   * situations a person checked keeps each classification honest.
+   */
+  iterations?: number[];
 }
 
 export interface BehaviourMeasurement {
@@ -59,6 +65,15 @@ export interface BehaviourMeasurement {
   catchRate: number;
 }
 
+/**
+ * A planted fault to measure: an operator-made mutant, or a named fault written
+ * by hand (HVAC slice: the faults the founder named), which has no operator site.
+ */
+export type MeasuredMutant = Omit<SourceMutant, 'operator' | 'site'> & {
+  operator: SourceMutant['operator'] | 'named';
+  site?: number;
+};
+
 export function meetsCatchBar(m: Pick<BehaviourMeasurement, 'catchRate'>): boolean {
   return m.catchRate >= CATCH_BAR.minCatchRate;
 }
@@ -68,7 +83,7 @@ export async function measureBehaviour(options: {
   run: Run;
   originalSource: string;
   rebuiltSource: string;
-  mutants: SourceMutant[];
+  mutants: MeasuredMutant[];
   situations: number;
   seed: number;
   oracle?: Syndromer;
@@ -202,7 +217,8 @@ export function classifyDivergences(
     const rule = rules.find(
       (r) =>
         paths.every((p) => r.pathPatterns.some((pattern) => new RegExp(pattern).test(p))) &&
-        (r.errorPattern === undefined || new RegExp(r.errorPattern).test(thrown))
+        (r.errorPattern === undefined || new RegExp(r.errorPattern).test(thrown)) &&
+        (r.iterations === undefined || r.iterations.includes(d.iteration))
     );
     return rule
       ? {

@@ -1,0 +1,128 @@
+{
+  "title": "Furnace And Air Conditioner",
+  "publicState": [
+    "mode",
+    "setPoint",
+    "swing",
+    "fan",
+    "room",
+    "heating",
+    "cooling",
+    "waiting",
+    "minutesSinceCompressorStopped"
+  ],
+  "actions": [
+    {
+      "name": "setMode",
+      "params": [
+        "mode"
+      ],
+      "outcomes": [
+        {
+          "name": "mode_set",
+          "kind": "accepted"
+        },
+        {
+          "name": "unknown_mode",
+          "kind": "refused"
+        }
+      ]
+    },
+    {
+      "name": "setTemperature",
+      "params": [
+        "degrees"
+      ],
+      "outcomes": [
+        {
+          "name": "temperature_set",
+          "kind": "accepted"
+        },
+        {
+          "name": "out_of_range",
+          "kind": "refused"
+        }
+      ]
+    },
+    {
+      "name": "setSwing",
+      "params": [
+        "degrees"
+      ],
+      "outcomes": [
+        {
+          "name": "swing_set",
+          "kind": "accepted"
+        },
+        {
+          "name": "bad_swing",
+          "kind": "refused"
+        }
+      ]
+    },
+    {
+      "name": "setFan",
+      "params": [
+        "setting"
+      ],
+      "outcomes": [
+        {
+          "name": "fan_set",
+          "kind": "accepted"
+        },
+        {
+          "name": "unknown_fan",
+          "kind": "refused"
+        }
+      ]
+    },
+    {
+      "name": "reading",
+      "params": [
+        "room",
+        "minutes"
+      ],
+      "outcomes": [
+        {
+          "name": "heating",
+          "kind": "accepted"
+        },
+        {
+          "name": "cooling",
+          "kind": "accepted"
+        },
+        {
+          "name": "waiting",
+          "kind": "accepted"
+        },
+        {
+          "name": "idle",
+          "kind": "accepted"
+        },
+        {
+          "name": "bad_minutes",
+          "kind": "refused"
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "name": "status",
+      "params": [
+        "viewerId"
+      ],
+      "answerFields": [
+        "viewer",
+        "mode",
+        "set_to",
+        "room",
+        "heat_on",
+        "cool_on",
+        "fan_running",
+        "waiting"
+      ]
+    }
+  ],
+  "events": []
+}
