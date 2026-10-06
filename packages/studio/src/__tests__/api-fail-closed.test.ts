@@ -734,8 +734,18 @@ describe('a signed-in visitor is admitted — the check nothing else in this fil
   const SECRET = 'test-secret-for-gate-decisions';
   const COOKIE_NAMES = ['__Secure-next-auth.session-token', 'next-auth.session-token'];
 
+  // Sign-in is invite-only (lib/inviteAllowlist.ts), so the admitted session
+  // is an allowlisted GitHub one. The refusal of a signed but NOT allowlisted
+  // session is covered in src/__tests__/invite-only-proxy.test.ts.
+  beforeEach(() => {
+    vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', '1001');
+  });
+
   async function sessionCookie(secret: string): Promise<string> {
-    return encode({ token: { sub: 'user-1', name: 'Signed In' }, secret });
+    return encode({
+      token: { sub: 'user-1', name: 'Signed In', provider: 'github', providerAccountId: '1001' },
+      secret,
+    });
   }
 
   it('lets a real session through on a session-tier path, under either cookie name', async () => {
