@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
   // GET /api/daemon/jobs?view=telemetry — return telemetry summary
   if (view === 'telemetry') {
-    return NextResponse.json({ telemetry: getTelemetrySummary() });
+    return NextResponse.json({ telemetry: getTelemetrySummary(auth.user.id) });
   }
 
   return NextResponse.json({ jobs: listDaemonJobs(auth.user.id) });

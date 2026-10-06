@@ -45,6 +45,7 @@ describe('/api/daemon/surface route', () => {
   it("lists only the signed-in caller's jobs and refuses anonymous callers", async () => {
     await GET(new Request('http://localhost/api/daemon/surface'));
     expect(listDaemonJobsMock).toHaveBeenCalledWith('user-test-1');
+    expect(getTelemetrySummaryMock).toHaveBeenCalledWith('user-test-1');
     const { NextResponse } = await import('next/server');
     requireAuthMock.mockResolvedValueOnce(
       NextResponse.json({ error: 'Authentication required' }, { status: 401 })

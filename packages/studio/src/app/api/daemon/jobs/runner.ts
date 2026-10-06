@@ -37,6 +37,7 @@
  */
 
 import { execFile } from 'child_process';
+import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -50,6 +51,7 @@ import type {
 } from '@/lib/daemon/types';
 import { absorbEmptyLabel, CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
 import { checkProjectPath } from '@/lib/daemon/projectPathPolicy';
+import { confinedReader, readConfinedRegularFile } from '@/lib/daemon/confinedRead';
 
 // =============================================================================
 // ABSORB TYPES (mirrors CodebaseGraph serialized shape)
@@ -203,6 +205,12 @@ const GLOBAL_DENYLIST = [
  * Running tsc / vitest / eslint in a user's repo executes that repo's code
  * (configs, test files, plugins). Off unless the operator sets
  * HOLOHEAL_RUN_REPO_TOOLS to exactly "true" or "1". Not set anywhere by default.
+ *
+ * KEEP THIS OFF until repo tools run in a separate container. The scrubbed env
+ * below only keeps secrets out of the child's own environment: the tools still
+ * run as the same uid as Studio, so repo code can read Studio's secrets from
+ * /proc/$PPID/environ and can read every user's /data/workspaces. Turning this
+ * on in the Studio container is a secrets leak and a cross-tenant read.
  */
 export function repoToolsEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   const v = env.HOLOHEAL_RUN_REPO_TOOLS;
@@ -340,6 +348,11 @@ export async function runAbsorbPhase(
       rootDir: workDir,
       maxFiles: limits.scanMaxFiles,
       signal,
+      // B3: every file the scanner reads goes through the confined,
+      // no-follow reader (regular files inside workDir only).
+      readFile: confinedReader(workDir, 1024 * 1024),
+      // The copy has no .git; don't spawn git to look for one.
+      respectGitIgnore: false,
     })) as _AbsorbScanResult;
   } catch (err: unknown) {
     if (signal.aborted) {
@@ -494,6 +507,18 @@ export async function createIsolatedWorkspace(
           );
         }
         const st = await fs.promises.lstat(src);
+        if (!st.isSymbolicLink()) {
+          // B3: a parent directory swapped for a symlink mid-copy would make
+          // `src` resolve outside the project; never copy from there.
+          const realSrc = await fs.promises.realpath(src);
+          const relReal = path.relative(source, realSrc);
+          if (relReal.startsWith('..') || path.isAbsolute(relReal)) {
+            skippedSymlinks.push(
+              `${path.relative(source, src)} (resolves outside the project; skipped)`
+            );
+            return false;
+          }
+        }
         if (st.isSymbolicLink()) {
           let target = '?';
           try {
@@ -525,6 +550,13 @@ export async function createIsolatedWorkspace(
       },
     });
 
+    // B3: the copy must hold only regular files and directories. Anything else
+    // that got in (e.g. an entry swapped for a symlink between the filter's
+    // lstat and the copy) is removed before anything reads the copy.
+    for (const removed of removeNonRegularEntries(workDir)) {
+      skippedSymlinks.push(`${removed} (found in the copy; removed)`);
+    }
+
     // Marker written after the copy so a project file of the same name cannot
     // overwrite it.
     fs.writeFileSync(
@@ -551,6 +583,26 @@ export async function createIsolatedWorkspace(
   }
 
   return { workDir, cleanup, skippedSymlinks, copiedFiles, copiedBytes };
+}
+
+/**
+ * Remove every symlink / FIFO / device / socket under `root` (lstat-based;
+ * nothing is followed). Returns the relative paths removed.
+ */
+export function removeNonRegularEntries(root: string): string[] {
+  const removed: string[] = [];
+  function walk(dir: string) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (!entry.isFile()) {
+        fs.rmSync(full, { force: true });
+        removed.push(path.relative(root, full));
+      }
+    }
+  }
+  walk(root);
+  return removed;
 }
 
 // =============================================================================
@@ -822,6 +874,9 @@ const RUNNER_ARTIFACT_PATTERNS = [
   '**/.eslintcache',
   '**/*.tsbuildinfo',
   'coverage/**',
+  // npm writes its logs/cache under HOME, which is workDir for repo tools.
+  '.npm/**',
+  '**/.npm/**',
 ];
 
 /** True when `relPath` is output the runner's own checks wrote. */
@@ -830,17 +885,83 @@ export function isRunnerArtifact(relPath: string): boolean {
 }
 
 /**
- * Detects changes between the original workspace snapshot and the current
- * workspace state, producing unified diffs for each modified file.
+ * Immutable baseline of the workspace copy, taken BEFORE any repo tool runs
+ * (Mapping/Release BLOCK B3). Patches are diffs of the copy against this
+ * baseline; the live original project (decision.realPath) is never re-read
+ * after the copy, because it is user-writable while the job runs.
  */
-async function detectChanges(
-  originalDir: string,
+export interface BaselineSnapshot {
+  /** Private directory holding the baseline bytes (outside the copy). */
+  dir: string;
+  /** relPath -> sha256 of the content at snapshot time (held in memory). */
+  hashes: Map<string, string>;
+  /** Entries not captured (non-regular, unreadable), with the reason. */
+  skipped: string[];
+}
+
+function sha256(content: string): string {
+  return createHash('sha256').update(content, 'utf-8').digest('hex');
+}
+
+const SNAPSHOT_SKIP_DIRS = new Set(['node_modules', '.git']);
+
+/**
+ * Read every regular file of the copy (lstat-classified, opened O_NOFOLLOW and
+ * verified on the handle via readConfinedRegularFile) and store its bytes in
+ * `snapshotDir` plus its sha256 in memory. Symlinks and special files are
+ * skipped and reported, never followed.
+ */
+export function takeBaselineSnapshot(workDir: string, snapshotDir: string): BaselineSnapshot {
+  const hashes = new Map<string, string>();
+  const skipped: string[] = [];
+  fs.mkdirSync(snapshotDir, { recursive: true, mode: 0o700 });
+  function walk(dir: string, base: string) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (SNAPSHOT_SKIP_DIRS.has(entry.name) || entry.name === '.daemon-workspace.json') continue;
+      const relPath = path.join(base, entry.name).replace(/\\/g, '/');
+      if (entry.isDirectory()) {
+        walk(path.join(dir, entry.name), relPath);
+        continue;
+      }
+      if (!entry.isFile()) {
+        skipped.push(`${relPath}: not a regular file (not captured)`);
+        continue;
+      }
+      const r = readConfinedRegularFile(workDir, relPath);
+      if (!r.ok) {
+        skipped.push(`${relPath}: ${r.reason}`);
+        continue;
+      }
+      const dest = path.join(snapshotDir, relPath);
+      fs.mkdirSync(path.dirname(dest), { recursive: true, mode: 0o700 });
+      fs.writeFileSync(dest, r.content, { encoding: 'utf-8', mode: 0o600, flag: 'wx' });
+      hashes.set(relPath, sha256(r.content));
+    }
+  }
+  walk(workDir, '');
+  return { dir: snapshotDir, hashes, skipped };
+}
+
+/**
+ * Diff the workspace copy against the baseline snapshot taken before the
+ * tools ran, producing unified diffs for each modified or created file.
+ *
+ * - Only lstat-regular files of the copy are compared; symlinks and special
+ *   files are reported in `skipped`, never read.
+ * - Every read goes through readConfinedRegularFile (confined, O_NOFOLLOW,
+ *   verified on the open handle).
+ * - Baseline content is accepted only if its sha256 still matches the hash
+ *   recorded in memory at snapshot time.
+ * - The live original project is not an input: it is never read here.
+ */
+export async function detectChanges(
+  baseline: BaselineSnapshot,
   workDir: string,
   denyPatterns: string[],
   maxFiles: number
 ): Promise<{ patches: PatchProposal[]; skipped: string[]; artifacts: string[] }> {
   const patches: PatchProposal[] = [];
-  /** Files that could not be compared, with the real error text. */
+  /** Files that could not be compared, with the real reason. */
   const skipped: string[] = [];
   /** New files the quality checks wrote (not project changes); reported, not proposed. */
   const artifacts: string[] = [];
@@ -860,48 +981,57 @@ async function detectChanges(
       const relPath = path.join(base, entry.name).replace(/\\/g, '/');
       if (entry.isDirectory()) {
         walk(fullPath, relPath);
-      } else {
-        if (patches.length >= maxFiles) return;
-        if (isPathProtected(relPath, denyPatterns)) continue;
-        const originalExists = fs.existsSync(path.join(originalDir, relPath));
-        if (!originalExists && isRunnerArtifact(relPath)) {
-          artifacts.push(relPath);
-          continue;
-        }
-
-        const originalPath = path.join(originalDir, relPath);
-        try {
-          const newContent = fs.readFileSync(fullPath, 'utf-8');
-          if (fs.existsSync(originalPath)) {
-            const oldContent = fs.readFileSync(originalPath, 'utf-8');
-            if (oldContent !== newContent) {
-              patches.push({
-                id: generatePatchId(),
-                filePath: relPath,
-                action: 'modify',
-                diff: generateUnifiedDiff(relPath, oldContent, newContent),
-                proposedContent: newContent,
-                description: `Modified ${relPath}`,
-                confidence: 0.8,
-                category: inferPatchCategory(relPath, newContent),
-              });
-            }
-          } else {
-            patches.push({
-              id: generatePatchId(),
-              filePath: relPath,
-              action: 'create',
-              diff: generateUnifiedDiff(relPath, '', newContent),
-              proposedContent: newContent,
-              description: `Created new file ${relPath}`,
-              confidence: 0.75,
-              category: inferPatchCategory(relPath, newContent),
-            });
-          }
-        } catch (err: unknown) {
-          skipped.push(`${relPath}: ${errText(err)}`);
-        }
+        continue;
       }
+      if (!entry.isFile()) {
+        skipped.push(`${relPath}: not a regular file in the copy (symlink or special; not read)`);
+        continue;
+      }
+      if (patches.length >= maxFiles) return;
+      if (isPathProtected(relPath, denyPatterns)) continue;
+
+      const expected = baseline.hashes.get(relPath);
+      if (expected === undefined && isRunnerArtifact(relPath)) {
+        artifacts.push(relPath);
+        continue;
+      }
+      const now = readConfinedRegularFile(workDir, relPath);
+      if (!now.ok) {
+        skipped.push(`${relPath}: copy ${now.reason}`);
+        continue;
+      }
+      const newContent = now.content;
+      if (expected === undefined) {
+        patches.push({
+          id: generatePatchId(),
+          filePath: relPath,
+          action: 'create',
+          diff: generateUnifiedDiff(relPath, '', newContent),
+          proposedContent: newContent,
+          description: `Created new file ${relPath}`,
+          confidence: 0.75,
+          category: inferPatchCategory(relPath, newContent),
+        });
+        continue;
+      }
+      if (sha256(newContent) === expected) continue; // unchanged
+      const old = readConfinedRegularFile(baseline.dir, relPath);
+      if (!old.ok || sha256(old.content) !== expected) {
+        skipped.push(
+          `${relPath}: baseline snapshot ${!old.ok ? old.reason : 'changed since it was taken (refused)'}`
+        );
+        continue;
+      }
+      patches.push({
+        id: generatePatchId(),
+        filePath: relPath,
+        action: 'modify',
+        diff: generateUnifiedDiff(relPath, old.content, newContent),
+        proposedContent: newContent,
+        description: `Modified ${relPath}`,
+        confidence: 0.8,
+        category: inferPatchCategory(relPath, newContent),
+      });
     }
   }
 
@@ -1205,15 +1335,14 @@ export async function runDaemonJob(
       'info',
       "Repo checks skipped: tsc / vitest / eslint and auto-fixes run the repository's own code, and no sandbox is enabled (HOLOHEAL_RUN_REPO_TOOLS is off)."
     );
-    onProgress(85, 'Generating patch proposals...');
-    let proposals: PatchProposal[] = [];
-    try {
-      proposals = (
-        await detectChanges(decision.realPath, workDir, allDenyPatterns, limits.maxFilesChanged)
-      ).patches;
-    } catch (err: unknown) {
-      log('warn', `Patch detection error: ${errText(err)}`);
-    }
+    // B3: nothing ran that could change the copy, so there is nothing to
+    // diff. The original tree is NOT re-read: it is live and user-writable,
+    // and comparing against it is how a swapped symlink leaked server files.
+    const proposals: PatchProposal[] = [];
+    log(
+      'info',
+      'Patch proposals: none. No check or fix ran, so the copy is unchanged; the original files are not re-read.'
+    );
     onProgress(95, 'Cleaning up workspace...');
     if (await cleanupLoudly()) log('info', 'Workspace cleaned up');
     onProgress(100, 'Complete');
@@ -1234,6 +1363,33 @@ export async function runDaemonJob(
       absorb: absorbData,
       checksSkipped: true,
     };
+  }
+
+  // B3: immutable baseline of the copy BEFORE any repo tool runs. Patches are
+  // diffs against this, never against the live original project.
+  const baselineDir = `${workDir}.baseline`;
+  const removeWorkDir = cleanup;
+  cleanup = async () => {
+    await removeWorkDir();
+    await fs.promises.rm(baselineDir, { recursive: true, force: true });
+  };
+  let baseline: BaselineSnapshot;
+  try {
+    baseline = takeBaselineSnapshot(workDir, baselineDir);
+    log(
+      'info',
+      `Baseline snapshot of the copy: ${baseline.hashes.size} file(s) captured before any tool ran`
+    );
+    if (baseline.skipped.length > 0) {
+      log(
+        'warn',
+        `Baseline snapshot skipped ${baseline.skipped.length} entr(y/ies): ${baseline.skipped.slice(0, 10).join(' | ')}`
+      );
+    }
+  } catch (err: unknown) {
+    const reason = `Blocked: could not snapshot the workspace copy before running checks — ${errText(err)}`;
+    log('error', reason);
+    return blocked(reason);
   }
 
   // Step 2: Rollback snapshot
@@ -1354,7 +1510,12 @@ export async function runDaemonJob(
         }
 
         try {
-          let content = fs.readFileSync(fullPath, 'utf-8');
+          const current = readConfinedRegularFile(workDir, fullPath);
+          if (!current.ok) {
+            log('warn', `Refused to read fix target ${file}: ${current.reason}`);
+            continue;
+          }
+          let content = current.content;
           let changed = false;
 
           // Fix TS7006: Parameter implicitly has 'any' type
@@ -1376,7 +1537,16 @@ export async function runDaemonJob(
           }
 
           if (changed) {
-            fs.writeFileSync(fullPath, content, 'utf-8');
+            // O_NOFOLLOW: a symlink swapped in since the check is not written through.
+            const wfd = fs.openSync(
+              fullPath,
+              fs.constants.O_WRONLY | fs.constants.O_TRUNC | (fs.constants.O_NOFOLLOW ?? 0)
+            );
+            try {
+              fs.writeFileSync(wfd, content, 'utf-8');
+            } finally {
+              fs.closeSync(wfd);
+            }
             fixesApplied++;
             log('info', `Applied type fixes to ${file}${inDeg > 0 ? ` (in-degree=${inDeg})` : ''}`);
           }
@@ -1422,7 +1592,7 @@ export async function runDaemonJob(
   let patches: PatchProposal[] = [];
   try {
     const detected = await detectChanges(
-      decision.realPath,
+      baseline,
       workDir,
       allDenyPatterns,
       limits.maxFilesChanged
@@ -1438,7 +1608,7 @@ export async function runDaemonJob(
     if (detected.skipped.length > 0) {
       log(
         'warn',
-        `Could not compare ${detected.skipped.length} file(s): ${detected.skipped.slice(0, 3).join(' | ')}`
+        `Could not compare ${detected.skipped.length} file(s): ${detected.skipped.slice(0, 10).join(' | ')}`
       );
     }
   } catch (err: unknown) {

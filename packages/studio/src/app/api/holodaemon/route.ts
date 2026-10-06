@@ -90,7 +90,7 @@ export async function GET() {
   const auth = await requireAuth();
   if (auth instanceof NextResponse) return auth;
   const jobs = listDaemonJobs(auth.user.id);
-  const telemetry = getTelemetrySummary();
+  const telemetry = getTelemetrySummary(auth.user.id);
   const composition = await loadCompositionSource();
 
   const runningJobs = jobs.filter((j) => j.status === 'running');

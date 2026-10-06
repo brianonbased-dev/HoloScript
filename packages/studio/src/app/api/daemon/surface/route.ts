@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const kind: DaemonSurfaceKind = kindParam === 'orchestration' ? 'orchestration' : 'dashboard';
 
   const jobs = listDaemonJobs(auth.user.id);
-  const telemetry = getTelemetrySummary();
+  const telemetry = getTelemetrySummary(auth.user.id);
 
   try {
     const surface = await loadDaemonSurface(kind, jobs, telemetry);

@@ -7,17 +7,22 @@ import type { DaemonProjectDNA } from '@/lib/daemon/types';
 
 // The in-process Absorb engine is replaced per test: each test decides what
 // the scanner returns or throws. absorbRootRefusal is the REAL #483 policy.
+type ScanOpts = {
+  rootDir: string;
+  maxFiles?: number;
+  signal?: AbortSignal;
+  readFile?: (p: string) => Promise<string>;
+  respectGitIgnore?: boolean;
+};
 const engineState = vi.hoisted(() => ({
-  scan: null as
-    | null
-    | ((rootDir: string, options: { maxFiles?: number; signal?: AbortSignal }) => Promise<unknown>),
-  lastOptions: null as null | { rootDir: string; maxFiles?: number; signal?: AbortSignal },
+  scan: null as null | ((rootDir: string, options: ScanOpts) => Promise<unknown>),
+  lastOptions: null as null | ScanOpts,
 }));
 
 vi.mock('@holoscript/absorb-service/engine', async () => {
   const policy = await import('../../../../../../absorb-service/src/engine/absorb-root-policy');
   class CodebaseScanner {
-    async scan(options: { rootDir: string; maxFiles?: number; signal?: AbortSignal }) {
+    async scan(options: ScanOpts) {
       engineState.lastOptions = options;
       if (!engineState.scan) throw new Error('test did not configure the scanner');
       return engineState.scan(options.rootDir, options);
@@ -84,6 +89,9 @@ import * as childProcess from 'child_process';
 import {
   countSourceFiles,
   createIsolatedWorkspace,
+  detectChanges,
+  removeNonRegularEntries,
+  takeBaselineSnapshot,
   isExcludedFromWorkspaceCopy,
   isRunnerArtifact,
   repoToolsEnabled,
@@ -94,6 +102,7 @@ import {
 import { describeJobOutcome } from '@/components/projects/workbenchHonesty';
 import { CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
 import { checkProjectPath } from '@/lib/daemon/projectPathPolicy';
+import { confinedReadHooks, readConfinedRegularFile } from '@/lib/daemon/confinedRead';
 import type { DaemonJob } from '@/lib/daemon/types';
 
 const DNA: DaemonProjectDNA = {
@@ -458,10 +467,16 @@ describe('daemon runner — copy, absorb, honesty, confinement, no user code', (
 
     // Only the exact strings "true" and "1" turn tools on.
     for (const v of [undefined, '', 'yes', 'TRUE', 'on', '0', 'false', ' true']) {
-      expect(repoToolsEnabled({ HOLOHEAL_RUN_REPO_TOOLS: v } as NodeJS.ProcessEnv)).toBe(false);
+      expect(repoToolsEnabled({ HOLOHEAL_RUN_REPO_TOOLS: v } as unknown as NodeJS.ProcessEnv)).toBe(
+        false
+      );
     }
-    expect(repoToolsEnabled({ HOLOHEAL_RUN_REPO_TOOLS: 'true' } as NodeJS.ProcessEnv)).toBe(true);
-    expect(repoToolsEnabled({ HOLOHEAL_RUN_REPO_TOOLS: '1' } as NodeJS.ProcessEnv)).toBe(true);
+    expect(
+      repoToolsEnabled({ HOLOHEAL_RUN_REPO_TOOLS: 'true' } as unknown as NodeJS.ProcessEnv)
+    ).toBe(true);
+    expect(repoToolsEnabled({ HOLOHEAL_RUN_REPO_TOOLS: '1' } as unknown as NodeJS.ProcessEnv)).toBe(
+      true
+    );
   });
 
   it('B1: the UI says "Absorb done, checks skipped (sandbox not enabled)" — grey, never green', async () => {
@@ -653,5 +668,296 @@ describe('daemon runner — copy, absorb, honesty, confinement, no user code', (
       engine.absorbRootRefusal(path.join(daemonRoot, 'run_x'), { ABSORB_ALLOWED_ROOTS: daemonRoot })
     ).toBeNull();
     expect(engine.absorbRootRefusal(project, { ABSORB_ALLOWED_ROOTS: daemonRoot })).not.toBeNull();
+  });
+
+  // ---------------------------------------------------------------- B3
+  /** Fake Studio env file outside the root (stands in for /proc/self/environ). */
+  const FAKE_ENV =
+    'DATABASE_URL=postgres://b3-leak@db\nNEXTAUTH_SECRET=b3-leak-nextauth\nANTHROPIC_API_KEY=sk-b3-leak\n';
+  const LEAK_MARKERS = ['b3-leak', 'sk-b3-leak', 'PATH='];
+  const hasProcEnviron = fs.existsSync('/proc/self/environ');
+
+  /** A scanner that reads every regular file through the runner-provided reader. */
+  const readingScanner = (seen: string[]) => async (rootDir: string, options: ScanOpts) => {
+    const files: Array<{ path: string; imports: never[] }> = [];
+    const errors: Array<{ file: string; error: string }> = [];
+    const walk = (dir: string) => {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) walk(full);
+        else files.push({ path: path.relative(rootDir, full), imports: [] });
+      }
+    };
+    walk(rootDir);
+    for (const f of files) {
+      try {
+        seen.push(await options.readFile!(path.join(rootDir, f.path)));
+      } catch (err: unknown) {
+        errors.push({ file: f.path, error: String(err) });
+      }
+    }
+    return { files, stats: { errors } };
+  };
+
+  it('B3 (a): tools off — the d/e symlink swap after "Workspace created" leaks nothing; no diff is computed', async () => {
+    writeFile(outside, 'environ', FAKE_ENV);
+    writeFile(project, 'd/a.txt', 'hello from d\n');
+    fs.mkdirSync(path.join(project, 'e'));
+    fs.symlinkSync(path.join(outside, 'environ'), path.join(project, 'e', 'a.txt'));
+    if (hasProcEnviron) {
+      writeFile(project, 'f/env.txt', 'hello from f\n');
+      fs.mkdirSync(path.join(project, 'g'));
+      fs.symlinkSync('/proc/self/environ', path.join(project, 'g', 'env.txt'));
+    }
+    writeFile(project, 'b.txt', 'original b\n');
+    const seen: string[] = [];
+    engineState.scan = readingScanner(seen);
+    const opened: string[] = [];
+    confinedReadHooks.beforeOpen = (candidate) => opened.push(candidate);
+
+    const result = await runDaemonJob(project, 'quick', DNA, (_p, message) => {
+      if (!message.startsWith('Workspace created')) return;
+      // The exploit: two `move`s through /api/workspace/files while the job runs.
+      fs.renameSync(path.join(project, 'd'), path.join(project, 'd2'));
+      fs.renameSync(path.join(project, 'e'), path.join(project, 'd'));
+      if (hasProcEnviron) {
+        fs.renameSync(path.join(project, 'f'), path.join(project, 'f2'));
+        fs.renameSync(path.join(project, 'g'), path.join(project, 'f'));
+      }
+      // A legitimate edit too: any original-vs-copy diff would now show up.
+      fs.writeFileSync(path.join(project, 'b.txt'), 'edited b\n');
+    });
+
+    // Nothing from the secret file or /proc/self/environ anywhere in the result.
+    const out = JSON.stringify({
+      patches: result.patches,
+      logs: result.logs,
+      absorb: result.absorb,
+      seen,
+    });
+    for (const marker of LEAK_MARKERS) expect(out).not.toContain(marker);
+    expect(result.success).toBe(true);
+    expect(result.checksSkipped).toBe(true);
+    // No comparison happened at all (b.txt changed in the original, yet 0 proposals).
+    expect(result.patches).toEqual([]);
+    expect(result.summary).toContain('0 patch proposal(s)');
+    expect(
+      result.logs.some((l) =>
+        /Patch proposals: none\..*original files are not re-read/.test(l.message)
+      )
+    ).toBe(true);
+
+    expect(totalSpawns()).toBe(0);
+    // The live original is never opened after the copy (only the copy is read).
+    confinedReadHooks.beforeOpen = undefined;
+    expect(opened.filter((p) => p.startsWith(project + path.sep))).toEqual([]);
+    expect(opened.length).toBeGreaterThan(0);
+  });
+
+  it('B3 (b): tools on — same /proc/self/environ + d/e swap race: diffs come from the pre-tool snapshot, never the live original; links in the copy are not read', async () => {
+    process.env.HOLOHEAL_RUN_REPO_TOOLS = 'true';
+    writeFile(outside, 'environ', FAKE_ENV);
+    writeFile(project, 'src/a.ts', 'export const f = (x) => x;\n');
+    writeFile(project, 'd/a.txt', 'hello from d\n');
+    fs.mkdirSync(path.join(project, 'e'));
+    fs.symlinkSync(path.join(outside, 'environ'), path.join(project, 'e', 'a.txt'));
+    if (hasProcEnviron) {
+      writeFile(project, 'f/env.txt', 'hello from f\n');
+      fs.mkdirSync(path.join(project, 'g'));
+      fs.symlinkSync('/proc/self/environ', path.join(project, 'g', 'env.txt'));
+    }
+    engineState.scan = oneFileGraph;
+    const opened: string[] = [];
+    confinedReadHooks.beforeOpen = (candidate) => opened.push(candidate);
+    proc.execFileImpl = (_file, args, opts, cb) => {
+      if (args[1] !== 'tsc') return cb(null, '', '');
+      if (!fs.existsSync(path.join(opts.cwd, 'leak.txt'))) {
+        // Repo code (or a racing user) changes copied files so diffs are due...
+        fs.writeFileSync(path.join(opts.cwd, 'd', 'a.txt'), 'changed d in the copy\n');
+        if (hasProcEnviron) {
+          fs.writeFileSync(path.join(opts.cwd, 'f', 'env.txt'), 'changed f in the copy\n');
+        }
+        // ...and plants links in the copy.
+        fs.symlinkSync(path.join(outside, 'environ'), path.join(opts.cwd, 'leak.txt'));
+        fs.symlinkSync(path.join(outside), path.join(opts.cwd, 'linkdir'));
+        if (hasProcEnviron) fs.symlinkSync('/proc/self/environ', path.join(opts.cwd, 'env.txt'));
+      }
+      cb(
+        Object.assign(new Error('tsc exit 2'), { code: 2 }),
+        "src/a.ts(1,18): error TS7006: Parameter 'x' implicitly has an 'any' type.",
+        ''
+      );
+    };
+
+    let result: Awaited<ReturnType<typeof runDaemonJob>>;
+    try {
+      result = await runDaemonJob(project, 'quick', DNA, (_p, message) => {
+        if (!message.startsWith('Workspace created')) return;
+        // The exploit: swap d/e (and f/g) in the LIVE original while the job runs.
+        fs.renameSync(path.join(project, 'd'), path.join(project, 'd2'));
+        fs.renameSync(path.join(project, 'e'), path.join(project, 'd'));
+        if (hasProcEnviron) {
+          fs.renameSync(path.join(project, 'f'), path.join(project, 'f2'));
+          fs.renameSync(path.join(project, 'g'), path.join(project, 'f'));
+        }
+      });
+    } finally {
+      confinedReadHooks.beforeOpen = undefined;
+    }
+
+    const out = JSON.stringify({ patches: result.patches, logs: result.logs });
+    for (const marker of LEAK_MARKERS) expect(out).not.toContain(marker);
+    const expectedPatches = hasProcEnviron
+      ? ['modify d/a.txt', 'modify f/env.txt', 'modify src/a.ts']
+      : ['modify d/a.txt', 'modify src/a.ts'];
+    expect(result.patches.map((p) => `${p.action} ${p.filePath}`).sort()).toEqual(expectedPatches);
+    // Old content is the pre-tool snapshot of the copy, not the swapped original.
+    const dPatch = result.patches.find((p) => p.filePath === 'd/a.txt')!;
+    expect(dPatch.diff).toContain('-hello from d');
+    expect(dPatch.diff).toContain('+changed d in the copy');
+    // The live original is never opened after the copy.
+    expect(opened.filter((p) => p.startsWith(project + path.sep))).toEqual([]);
+    expect(
+      result.logs.some((l) =>
+        /Baseline snapshot of the copy: \d+ file\(s\) captured before any tool ran/.test(l.message)
+      )
+    ).toBe(true);
+    const compareLog = result.logs.find((l) => /Could not compare/.test(l.message))?.message ?? '';
+    expect(compareLog).toMatch(/leak\.txt: not a regular file in the copy/);
+    // The baseline directory is removed with the copy.
+    const daemonTmp = path.join(process.env.TMPDIR!, 'holoscript-daemon');
+    expect(fs.readdirSync(daemonTmp).filter((n) => n.startsWith('run_'))).toEqual([]);
+
+    // Unit level: snapshot + diff, links skipped, tampered baseline refused.
+    const wd = path.join(tmpRoot, 'tmp', 'wd-b');
+    writeFile(wd, 'same.txt', 'v1\n');
+    writeFile(wd, 'tamper.txt', 't1\n');
+    fs.symlinkSync(path.join(outside, 'environ'), path.join(wd, 'pre-link.txt'));
+    const base = takeBaselineSnapshot(wd, path.join(tmpRoot, 'tmp', 'wd-b.baseline'));
+    expect([...base.hashes.keys()].sort()).toEqual(['same.txt', 'tamper.txt']);
+    expect(base.skipped.join('\n')).toMatch(/pre-link\.txt: not a regular file/);
+    fs.writeFileSync(path.join(wd, 'same.txt'), 'v2\n');
+    fs.writeFileSync(path.join(wd, 'tamper.txt'), 't2\n');
+    fs.writeFileSync(path.join(base.dir, 'tamper.txt'), FAKE_ENV); // tool rewrites the baseline
+    fs.symlinkSync(path.join(outside, 'environ'), path.join(wd, 'link.txt'));
+    const d = await detectChanges(base, wd, [], 10);
+    expect(JSON.stringify(d)).not.toContain('b3-leak');
+    expect(d.patches.map((p) => p.filePath)).toEqual(['same.txt']);
+    expect(d.skipped.join('\n')).toMatch(/link\.txt: not a regular file in the copy/);
+    expect(d.skipped.join('\n')).toMatch(/pre-link\.txt: not a regular file in the copy/);
+    expect(d.skipped.join('\n')).toMatch(
+      /tamper\.txt: baseline snapshot changed since it was taken/
+    );
+  });
+
+  it('B3 (c): a directory swapped for a symlink between the check and the open is refused (handle identity)', () => {
+    const root = path.join(tmpRoot, 'tmp', 'root-c');
+    writeFile(root, 'sub/a.txt', 'inside\n');
+    writeFile(outside, 'sub/a.txt', FAKE_ENV);
+    confinedReadHooks.beforeOpen = () => {
+      fs.renameSync(path.join(root, 'sub'), path.join(root, 'sub-old'));
+      fs.symlinkSync(path.join(outside, 'sub'), path.join(root, 'sub'));
+    };
+    try {
+      const r = readConfinedRegularFile(root, 'sub/a.txt');
+      expect(r.ok).toBe(false);
+      expect(JSON.stringify(r)).not.toContain('b3-leak');
+      if (!r.ok)
+        expect(r.reason).toMatch(
+          /changed between the check and the open|outside the confinement root/
+        );
+    } finally {
+      confinedReadHooks.beforeOpen = undefined;
+    }
+  });
+
+  it('B3 (c): a file swapped for a symlink between the check and the open is refused by O_NOFOLLOW', () => {
+    const root = path.join(tmpRoot, 'tmp', 'root-c2');
+    writeFile(root, 'a.txt', 'inside\n');
+    writeFile(outside, 'environ', FAKE_ENV);
+    confinedReadHooks.beforeOpen = () => {
+      fs.unlinkSync(path.join(root, 'a.txt'));
+      fs.symlinkSync(path.join(outside, 'environ'), path.join(root, 'a.txt'));
+    };
+    try {
+      const r = readConfinedRegularFile(root, 'a.txt');
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.reason).toBe('symlink swapped in before open (O_NOFOLLOW)');
+    } finally {
+      confinedReadHooks.beforeOpen = undefined;
+    }
+    // The plain cases.
+    writeFile(root, 'ok.txt', 'fine\n');
+    expect(readConfinedRegularFile(root, 'ok.txt')).toMatchObject({ ok: true, content: 'fine\n' });
+    expect(readConfinedRegularFile(root, 'nope.txt')).toMatchObject({ ok: false, missing: true });
+    expect(readConfinedRegularFile(root, '../outside/environ')).toMatchObject({
+      ok: false,
+      missing: false,
+    });
+    expect(readConfinedRegularFile(root, path.join(outside, 'environ'))).toMatchObject({
+      ok: false,
+    });
+    expect(readConfinedRegularFile(root, 'a.txt')).toMatchObject({
+      ok: false,
+      reason: 'symlink (not followed, not read)',
+    });
+  });
+
+  it('B3: the scanner reads only through the confined reader, never spawns git, and the copy holds no links', async () => {
+    writeFile(outside, 'environ', FAKE_ENV);
+    engineState.scan = oneFileGraph;
+    await runDaemonJob(project, 'quick', DNA, () => {});
+    const opts = engineState.lastOptions!;
+    expect(opts.respectGitIgnore).toBe(false);
+    expect(typeof opts.readFile).toBe('function');
+    // The reader refuses a link and anything outside the copy.
+    const wd = path.join(tmpRoot, 'tmp', 'wd-scan');
+    writeFile(wd, 'a.md', 'ok');
+    fs.symlinkSync(path.join(outside, 'environ'), path.join(wd, 'l.md'));
+    const { confinedReader } = await import('@/lib/daemon/confinedRead');
+    const read = confinedReader(wd);
+    await expect(read(path.join(wd, 'a.md'))).resolves.toBe('ok');
+    await expect(read(path.join(wd, 'l.md'))).rejects.toThrow(/symlink/);
+    await expect(read(path.join(outside, 'environ'))).rejects.toThrow(/outside/);
+    // Post-copy sweep: anything that is not a regular file or directory is removed.
+    expect(removeNonRegularEntries(wd)).toEqual(['l.md']);
+    expect(fs.existsSync(path.join(wd, 'l.md'))).toBe(false);
+  });
+
+  it('B3: a parent directory swapped for a symlink mid-copy does not pull outside files into the copy', async () => {
+    writeFile(project, 'd/a.txt', 'inside\n');
+    writeFile(outside, 'od/a.txt', FAKE_ENV);
+    const realLstat = fs.promises.lstat.bind(fs.promises);
+    const target = path.join(project, 'd', 'a.txt');
+    let swapped = false;
+    vi.spyOn(fs.promises, 'lstat').mockImplementation((async (
+      p: fs.PathLike,
+      ...rest: unknown[]
+    ) => {
+      if (!swapped && String(p) === target) {
+        swapped = true;
+        fs.renameSync(path.join(project, 'd'), path.join(project, 'd-old'));
+        fs.symlinkSync(path.join(outside, 'od'), path.join(project, 'd'));
+      }
+      return (realLstat as (...a: unknown[]) => Promise<fs.Stats>)(p, ...rest);
+    }) as typeof fs.promises.lstat);
+
+    const ws = await createIsolatedWorkspace(project, 'run_swap_copy');
+    try {
+      expect(swapped).toBe(true);
+      const copied = listFiles(ws.workDir).map((f) =>
+        fs.readFileSync(path.join(ws.workDir, f), 'utf-8')
+      );
+      expect(copied.join('\n')).not.toContain('b3-leak');
+      expect(ws.skippedSymlinks.join('\n')).toMatch(
+        /d\/a\.txt \(resolves outside the project; skipped\)/
+      );
+    } finally {
+      await ws.cleanup();
+    }
+  });
+
+  it('B3: runner artifacts include .npm logs written under HOME=workDir', () => {
+    expect(isRunnerArtifact('.npm/_logs/2026-10-05-debug-0.log')).toBe(true);
   });
 });

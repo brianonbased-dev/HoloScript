@@ -508,12 +508,19 @@ export function recordPatchAction(
   }
 }
 
-export function getTelemetrySummary(): DaemonTelemetrySummary {
-  const jobs = Array.from(daemonJobs.values());
+/**
+ * Telemetry for ONE user: only their jobs and only events of their jobs. The
+ * event log is global (it carries other users' error text and paths), so it is
+ * never returned unfiltered.
+ */
+export function getTelemetrySummary(userId: string): DaemonTelemetrySummary {
+  const jobs = listDaemonJobs(userId);
+  const ownJobIds = new Set(jobs.map((j) => j.id));
+  const ownEvents = telemetryLog.filter((e) => ownJobIds.has(e.jobId));
   const completed = jobs.filter((j) => j.status === 'completed');
   const failed = jobs.filter((j) => j.status === 'failed');
   const totalPatches = completed.reduce((sum, j) => sum + (j.patches?.length ?? 0), 0);
-  const appliedPatches = telemetryLog.filter((e) => e.eventType === 'patch_applied').length;
+  const appliedPatches = ownEvents.filter((e) => e.eventType === 'patch_applied').length;
   const avgDelta =
     completed.length > 0
       ? completed.reduce((sum, j) => sum + (j.metrics?.qualityDelta ?? 0), 0) / completed.length
@@ -534,6 +541,6 @@ export function getTelemetrySummary(): DaemonTelemetrySummary {
     avgQualityDelta: Math.round(avgDelta * 100) / 100,
     avgDurationMs: Math.round(avgDuration),
     profileUsage,
-    recentEvents: telemetryLog.slice(-50),
+    recentEvents: ownEvents.slice(-50),
   };
 }

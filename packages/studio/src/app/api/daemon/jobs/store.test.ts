@@ -291,6 +291,43 @@ describe('daemon job store — tenant scoping and no cwd fallback', () => {
     expect(store.getDaemonJob('dj-legacy', 'user-B')).toBeNull();
   });
 
+  it("telemetry is per user: B's summary has no events, counts, error text or paths from A's jobs", async () => {
+    const storeDir = path.join(tempHome, '.holoscript', 'studio');
+    fs.mkdirSync(storeDir, { recursive: true });
+    const ts = new Date().toISOString();
+    fs.writeFileSync(
+      path.join(storeDir, 'daemon-jobs.json'),
+      JSON.stringify({
+        jobs: [job('dj-a', 'user-A'), job('dj-b', 'user-B'), job('dj-legacy')],
+        telemetryLog: [
+          {
+            eventType: 'job_failed',
+            jobId: 'dj-a',
+            timestamp: ts,
+            error: 'A-SECRET /data/workspaces/ws-A/private',
+          },
+          { eventType: 'patch_applied', jobId: 'dj-a', timestamp: ts, patchCount: 1 },
+          { eventType: 'job_failed', jobId: 'dj-legacy', timestamp: ts, error: 'LEGACY-SECRET' },
+          { eventType: 'job_completed', jobId: 'dj-b', timestamp: ts },
+        ],
+      }),
+      'utf8'
+    );
+    const store = await import('./store');
+
+    const b = store.getTelemetrySummary('user-B');
+    expect(b.totalJobs).toBe(1);
+    expect(b.appliedPatches).toBe(0);
+    expect(b.recentEvents.map((e) => e.jobId)).toEqual(['dj-b']);
+    expect(JSON.stringify(b)).not.toContain('A-SECRET');
+    expect(JSON.stringify(b)).not.toContain('ws-A');
+    expect(JSON.stringify(b)).not.toContain('LEGACY-SECRET');
+    // Positive control: A sees A's own events.
+    const a = store.getTelemetrySummary('user-A');
+    expect(a.recentEvents.map((e) => e.jobId)).toEqual(['dj-a', 'dj-a']);
+    expect(a.appliedPatches).toBe(1);
+  });
+
   it('a job created without projectPath fails with "no projectPath" — it never scans process.cwd()', async () => {
     // Make the server cwd a perfectly valid workspace: a cwd fallback would scan it.
     const cwdWorkspace = path.join(tempHome, 'workspaces', 'ws-cwd');

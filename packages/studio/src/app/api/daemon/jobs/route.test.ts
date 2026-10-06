@@ -70,6 +70,8 @@ describe('/api/daemon/jobs route', () => {
     const body = await res.json();
     expect(body.telemetry.totalJobs).toBe(3);
     expect(body.telemetry.completedJobs).toBe(2);
+    // Telemetry is scoped to the caller, never the global event log.
+    expect(getTelemetrySummaryMock).toHaveBeenCalledWith('user-test-1');
   });
 
   it('POST returns 400 on invalid JSON body', async () => {
