@@ -179,9 +179,10 @@ export interface StoredClient {
    * True when the registering request proved nothing: no agent key or signed
    * manifest, and not a loopback peer on a server whose registration is
    * loopback-only. Such a client's `tools:execute` is issued as `tools:write`
-   * only (see scopesIssuedTo). Absent means trusted, which is what every client
-   * stored before this field existed was: they were all registered while the
-   * door was loopback-only.
+   * only (see scopesIssuedTo). Absent means trusted. The mark only tightens: a
+   * rewrite of the same client never clears it (both backends). The Postgres
+   * backend marks rows that predate the field as unproven, because nothing
+   * recorded how they registered and some registered through an open door.
    */
   registeredUnproven?: boolean;
   /**
@@ -447,11 +448,16 @@ export class InMemoryTokenStore implements TokenStoreBackend {
   async setClient(client: StoredClient): Promise<void> {
     // Same rule as the Postgres backend: a missing lastUsedAt starts the idle
     // clock at the write, and a rewrite never moves the clock back.
-    const previous = this.clients.get(client.clientId)?.lastUsedAt;
+    const stored = this.clients.get(client.clientId);
+    const previous = stored?.lastUsedAt;
     const written = client.lastUsedAt ?? Date.now();
     this.clients.set(client.clientId, {
       ...client,
       lastUsedAt: previous !== undefined ? Math.max(previous, written) : written,
+      // An unproven mark is never cleared by a rewrite (zkdg).
+      ...(stored?.registeredUnproven || client.registeredUnproven
+        ? { registeredUnproven: true }
+        : {}),
     });
   }
 

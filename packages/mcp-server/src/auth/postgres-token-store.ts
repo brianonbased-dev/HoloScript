@@ -93,9 +93,13 @@ ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS agent_id TEXT;
 ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS last_used_at BIGINT NOT NULL
   DEFAULT ((extract(epoch FROM now()) * 1000)::bigint);
 -- A registration that proved nothing (board task zkdg): its tools:execute is
--- issued as tools:write only. Rows that predate the column read FALSE, which is
--- what they were: every one was registered while the door was loopback-only.
-ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS registered_unproven BOOLEAN NOT NULL DEFAULT FALSE;
+-- issued as tools:write only. Rows that predate the column read TRUE: nothing
+-- recorded how they registered, and the hosted store holds clients made while
+-- its door was open to anyone (1000 rows, 2026-03-25..06-28, 180 holding
+-- tools:execute, measured by claude12 on 2026-10-07). Unknown provenance fails
+-- closed; a client that can prove itself registers again and is trusted. Every
+-- insert below passes the value, so the default only ever lands on old rows.
+ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS registered_unproven BOOLEAN NOT NULL DEFAULT TRUE;
 
 CREATE TABLE IF NOT EXISTS oauth_revoked_chains (
   chain_id   TEXT PRIMARY KEY,
@@ -364,7 +368,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
          redirect_uris = EXCLUDED.redirect_uris, scopes = EXCLUDED.scopes,
          created_at = EXCLUDED.created_at, client_type = EXCLUDED.client_type,
          rate_limit = EXCLUDED.rate_limit, agent_id = EXCLUDED.agent_id,
-         registered_unproven = EXCLUDED.registered_unproven,
+         registered_unproven = oauth_clients.registered_unproven OR EXCLUDED.registered_unproven,
          last_used_at = GREATEST(oauth_clients.last_used_at, EXCLUDED.last_used_at)`,
       [
         client.clientId,

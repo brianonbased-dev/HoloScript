@@ -113,3 +113,34 @@ describe('tools:execute for a client that proved nothing at sign-up (zkdg)', () 
     expect(await scopeGateVerdict(CODEBASE_TOOL, token)).toBe(true);
   });
 });
+
+describe('the mark is made at registration, not read from the door later (zkdg, claude12)', () => {
+  it('registered while the door was open, token taken after it closed: still tools:write only', async () => {
+    process.env[FLAG] = '1';
+    const registered = await server.request('POST', '/oauth/register', {
+      body: {
+        client_name: 'open-then-closed-probe',
+        redirect_uris: ['https://client.test/callback'],
+        scope: SCOPE,
+        token_endpoint_auth_method: 'client_secret_post',
+        grant_types: ['client_credentials'],
+      },
+    });
+    expect(registered.status, JSON.stringify(registered.body)).toBe(201);
+
+    delete process.env[FLAG]; // the operator closes the door again
+
+    const issued = await server.request('POST', '/oauth/token', {
+      body: {
+        grant_type: 'client_credentials',
+        client_id: registered.body.client_id,
+        client_secret: registered.body.client_secret,
+        scope: SCOPE,
+      },
+    });
+    expect(issued.status, JSON.stringify(issued.body)).toBe(200);
+    const granted = String(issued.body.scope ?? '').split(' ');
+    expect(granted).not.toContain('tools:execute');
+    expect(await scopeGateVerdict(CODEBASE_TOOL, issued.body.access_token as string)).toBe(false);
+  });
+});

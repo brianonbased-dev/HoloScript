@@ -213,3 +213,14 @@ describe('an unproven registration keeps its narrowed tools:execute', () => {
     }
   });
 });
+
+describe('the unproven mark only tightens (zkdg)', () => {
+  it('a rewrite of the same client without the mark does not clear it', async () => {
+    const store = storeOver(new InMemoryTokenStore());
+    const clientId = 'hsc_sticky_unproven';
+    const clientSecret = 'sticky-secret';
+    await store.registerClient({ ...REGISTRATION, clientId, clientSecret, registeredUnproven: true });
+    await store.registerClient({ ...REGISTRATION, clientId, clientSecret });
+    expect((await store.getClient(clientId))?.registeredUnproven).toBe(true);
+  });
+});
