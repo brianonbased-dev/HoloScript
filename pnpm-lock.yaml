@@ -58,8 +58,8 @@ overrides:
   ethers>ws: 8.21.0
   viem>ws: 8.21.0
   isows>ws: 8.21.0
-  undici: 8.9.0
-  jsdom@28.1.0>undici: 7.29.0
+  undici: 8.10.2
+  jsdom@28.1.0>undici: 7.29.1
   node-gyp>undici: 6.28.1
   flatted: '>=3.4.2'
   rollup: '>=4.59.0'
@@ -87,7 +87,8 @@ overrides:
   vite: '>=7.3.2'
   drizzle-orm: '>=0.45.2'
   basic-ftp: '>=5.3.1'
-  fast-uri: 4.1.3
+  fast-uri: 4.1.4
+  morgan: '>=1.12.1'
   fast-xml-builder: '>=1.1.7'
   sharp: 0.35.4
   tar: 7.5.21
@@ -4120,8 +4121,8 @@ importers:
         specifier: ^0.314.0
         version: 0.314.0(react@19.2.8)
       morgan:
-        specifier: ^1.10.0
-        version: 1.12.0
+        specifier: '>=1.12.1'
+        version: 1.12.1
       postprocessing:
         specifier: ^6.39.1
         version: 6.39.4(three@0.182.0)
@@ -10649,8 +10650,8 @@ packages:
   fast-sha256@1.3.0:
     resolution: {integrity: sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==}
 
-  fast-uri@4.1.3:
-    resolution: {integrity: sha512-7+72G6vLt7jjNas8SmSATx2qeyRIjxeqO3i4IkmDTxlqYZRKANhOe1bnovcp4WZmvsYrp60WyqPyHqgRiX0yXw==}
+  fast-uri@4.1.4:
+    resolution: {integrity: sha512-dODXrIxlS9JSdgAnhIUKOosKV1oMtU2VtVw87QRaHzyl5jxO290Ii5tEZfCfzfWNHi3jKWwBSdQj0qIyshdZdQ==}
 
   fastq@1.20.3:
     resolution: {integrity: sha512-XKv5nnLs6nLF71NgiKJLIZFLkPyIEuOselLG7ujZnGrRfQK8HpvY+WqKhAJUAdLomwVHErVS4LfxFlPq0/FTAw==}
@@ -12382,8 +12383,8 @@ packages:
   monaco-editor@0.55.1:
     resolution: {integrity: sha512-jz4x+TJNFHwHtwuV9vA9rMujcZRb0CEilTEwG2rRSpe/A7Jdkuj8xPKttCgOh+v/lkHy7HsZ64oj+q3xoAFl9A==}
 
-  morgan@1.12.0:
-    resolution: {integrity: sha512-OHpTRQwn2ezasILW8iKe+Yww1XsfWsZIpUOLF7RDb2g5GwO3trPaRwi7+8BDiJ7HFx2Kg2mfUdCBcVhwYlOz2g==}
+  morgan@1.12.1:
+    resolution: {integrity: sha512-tljKC0ex20AjO58Ob/eZ53JloycbVswbVNCHx6V6VLGzqt/w8dIynVGL0G8qVjNKwiA7sYSogCrN6QtJ82IV+g==}
     engines: {node: '>= 0.8.0'}
 
   mri@1.2.0:
@@ -12461,7 +12462,7 @@ packages:
   native-fetch@4.0.2:
     resolution: {integrity: sha512-4QcVlKFtv2EYVS5MBgsGX5+NWKtbDbIECdUXDBGDMAZXq3Jkv9zf+y8iS7Ub8fEdga3GpYeazp9gauNqXHJOCg==}
     peerDependencies:
-      undici: 8.9.0
+      undici: 8.10.2
 
   natural-compare@1.4.0:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
@@ -14772,12 +14773,12 @@ packages:
     resolution: {integrity: sha512-zWpdTVD54H48CIybL0rWQ3ukpb9d23wM7eH5RtfdmeP70cWHNjtfo7P4vZX+5CoDcO53J4Pu5uXp7lNfjc6DRA==}
     engines: {node: '>=18.17'}
 
-  undici@7.29.0:
-    resolution: {integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==}
+  undici@7.29.1:
+    resolution: {integrity: sha512-RYONW2MeafgYlkVOKYKkA/Ag7BmXqgIWCa8t1m0JcxrQg9pI9lEqRhAOruOBCbAohOa/gkCF+iPi9hrgvTzu6Q==}
     engines: {node: '>=20.18.1'}
 
-  undici@8.9.0:
-    resolution: {integrity: sha512-aWZpUj7XoGonMClx4gdDRfgBjqeA+F473aDmROQQbM9n6PRfK/u1q/a0X4wMTgcHfT8H6fpbt98PFuDUwFg2YA==}
+  undici@8.10.2:
+    resolution: {integrity: sha512-/y4/bH9YNU5hi9NIrpOuvGXFcxrj3CMrV+/AYpowAYTpHn8gX/XPFjNy766FPoYY0miQhdW977JFWKGNhBdwyQ==}
     engines: {node: '>=22.19.0'}
 
   unified@11.0.5:
@@ -16309,7 +16310,7 @@ snapshots:
       discord-api-types: 0.38.55
       magic-bytes.js: 1.13.1
       tslib: 2.8.1
-      undici: 8.9.0
+      undici: 8.10.2
     optional: true
 
   '@discordjs/util@1.2.0':
@@ -20548,7 +20549,7 @@ snapshots:
   ajv@8.20.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 4.1.3
+      fast-uri: 4.1.4
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -21026,7 +21027,7 @@ snapshots:
       parse5: 7.3.0
       parse5-htmlparser2-tree-adapter: 7.1.0
       parse5-parser-stream: 7.1.2
-      undici: 8.9.0
+      undici: 8.10.2
       whatwg-mimetype: 4.0.0
 
   chokidar@3.6.0:
@@ -21613,7 +21614,7 @@ snapshots:
       lodash.snakecase: 4.1.1
       magic-bytes.js: 1.13.1
       tslib: 2.8.1
-      undici: 8.9.0
+      undici: 8.10.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -21624,9 +21625,9 @@ snapshots:
   dns-over-http-resolver@2.1.3:
     dependencies:
       debug: 4.4.3
-      native-fetch: 4.0.2(undici@8.9.0)
+      native-fetch: 4.0.2(undici@8.10.2)
       receptacle: 1.3.2
-      undici: 8.9.0
+      undici: 8.10.2
     transitivePeerDependencies:
       - supports-color
     optional: true
@@ -22386,7 +22387,7 @@ snapshots:
 
   fast-sha256@1.3.0: {}
 
-  fast-uri@4.1.3: {}
+  fast-uri@4.1.4: {}
 
   fastq@1.20.3:
     dependencies:
@@ -23553,7 +23554,7 @@ snapshots:
       saxes: 6.0.0
       symbol-tree: 3.2.4
       tough-cookie: 6.0.2
-      undici: 7.29.0
+      undici: 7.29.1
       w3c-xmlserializer: 5.0.0
       webidl-conversions: 8.0.1
       whatwg-mimetype: 5.0.0
@@ -24501,7 +24502,7 @@ snapshots:
       dompurify: 3.4.14
       marked: 14.0.0
 
-  morgan@1.12.0:
+  morgan@1.12.1:
     dependencies:
       basic-auth: 2.0.1
       debug: 2.6.9
@@ -24566,9 +24567,9 @@ snapshots:
       node-fetch: 2.7.0(encoding@0.1.13)
     optional: true
 
-  native-fetch@4.0.2(undici@8.9.0):
+  native-fetch@4.0.2(undici@8.10.2):
     dependencies:
-      undici: 8.9.0
+      undici: 8.10.2
     optional: true
 
   natural-compare@1.4.0: {}
@@ -27323,9 +27324,9 @@ snapshots:
 
   undici@6.28.1: {}
 
-  undici@7.29.0: {}
+  undici@7.29.1: {}
 
-  undici@8.9.0: {}
+  undici@8.10.2: {}
 
   unified@11.0.5:
     dependencies:
