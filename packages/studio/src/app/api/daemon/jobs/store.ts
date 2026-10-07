@@ -6,14 +6,18 @@
  * concrete patch proposals that users can review and apply through Studio.
  */
 
-import { execFileSync } from 'child_process';
+import { runGitSync } from '@/lib/git/safeGit';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { runDaemonJob, type AbsorbGraphData } from './runner';
 import { absorbEmptyLabel, CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
-import { getWorkspacesRoot, isInsidePath } from '@/lib/workspace/workspaceFs';
+import {
+  getWorkspacesRoot,
+  isInsidePath,
+  resolveInsideWorkspace,
+} from '@/lib/workspace/workspaceFs';
 import type {
   CreateDaemonJobInput,
   DaemonAbsorbSnapshot,
@@ -299,9 +303,8 @@ export function getJobLogs(jobId: string): DaemonLogEntry[] {
 }
 
 function runGit(cwd: string, args: string[]): string {
-  return execFileSync('git', args, {
+  return runGitSync(args, {
     cwd,
-    encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();
 }
@@ -354,6 +357,12 @@ function assertPatchTarget(
   const relativePath = path.relative(workspacePath, absolute);
   if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
     throw new Error(`Patch target escapes workspace: ${filePath}`);
+  }
+  // P0b: where the write LANDS must stay inside the workspace and outside
+  // .git (a `gitalias -> .git` or an outside symlink in the clone).
+  const inside = resolveInsideWorkspace(workspacePath, relativePath);
+  if (!inside.ok) {
+    throw new Error(`Patch target refused (${inside.error}): ${filePath}`);
   }
   return { absolute, relative: relativePath.replace(/\\/g, '/') };
 }

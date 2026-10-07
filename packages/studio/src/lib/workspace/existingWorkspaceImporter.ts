@@ -1,4 +1,4 @@
-import { execFile } from 'child_process';
+import { runGit } from '@/lib/git/safeGit';
 import { createHash } from 'crypto';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -317,16 +317,9 @@ function emptyCounts(): Record<ExistingWorkspaceArtifactCategory, number> {
   };
 }
 
-function execGit(rootPath: string, args: string[]): Promise<string> {
-  return new Promise((resolve, reject) => {
-    execFile('git', ['-C', rootPath, ...args], { timeout: 10_000 }, (err, stdout) => {
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(String(stdout ?? '').trim());
-    });
-  });
+async function execGit(rootPath: string, args: string[]): Promise<string> {
+  const { stdout } = await runGit(['-C', rootPath, ...args], { timeout: 10_000 });
+  return stdout.trim();
 }
 
 async function readGitState(

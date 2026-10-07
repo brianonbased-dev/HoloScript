@@ -8,12 +8,10 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 
 import { corsHeaders } from '../../_lib/cors';
 import { resolveWorkspaceGitPath } from '../_shared';
-const execFileAsync = promisify(execFile);
 
 export async function GET(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
@@ -36,9 +34,9 @@ export async function GET(req: NextRequest) {
 
   try {
     const [statusResult, branchResult, logResult] = await Promise.all([
-      execFileAsync('git', ['status', '--porcelain=v2', '--branch'], { cwd: resolved }),
-      execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: resolved }),
-      execFileAsync('git', ['log', '--oneline', '-10'], { cwd: resolved }),
+      runGit(['status', '--porcelain=v2', '--branch'], { cwd: resolved }),
+      runGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: resolved }),
+      runGit(['log', '--oneline', '-10'], { cwd: resolved }),
     ]);
 
     const lines = statusResult.stdout.split('\n').filter(Boolean);

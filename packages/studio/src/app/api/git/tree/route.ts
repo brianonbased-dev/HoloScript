@@ -13,6 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
+import { GIT_METADATA_ERROR, hasGitMetadataSegment } from '@/lib/workspace/workspaceFs';
 import { isInsidePath, normalizeWorkspaceRelativePath, resolveWorkspaceGitPath } from '../_shared';
 
 interface TreeEntry {
@@ -63,8 +64,17 @@ export async function GET(req: NextRequest) {
   }
   // A symlink inside the (owned) clone must not list a directory outside it,
   // e.g. another account's workspace next door.
-  if (!isInsidePath(validated.resolved, fs.realpathSync(targetPath))) {
+  const realTarget = fs.realpathSync(targetPath);
+  if (!isInsidePath(validated.resolved, realTarget)) {
     return NextResponse.json({ error: 'path must stay inside the workspace' }, { status: 400 });
+  }
+  // P0b: never list repo metadata, whether named directly or reached through
+  // a symlink such as `gitalias -> .git`.
+  if (
+    hasGitMetadataSegment(relativePath) ||
+    hasGitMetadataSegment(path.relative(validated.resolved, realTarget))
+  ) {
+    return NextResponse.json({ error: GIT_METADATA_ERROR }, { status: 400 });
   }
 
   const entries = fs
