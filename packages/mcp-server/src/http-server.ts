@@ -809,7 +809,7 @@ function statelessToolGateMode(): 'enforce' | 'observe' {
 }
 
 /**
- * POST /mcp (tools/call), POST /tools/call and POST /a2a/tasks run the founder authority routing on the tool name
+ * POST /mcp (tools/call), POST /tools/call, POST /a2a/tasks and POST /a2a (JSON-RPC a2a.sendMessage) run the founder authority routing on the tool name
  * and the caller's active frame from `_meta`, with one receipt per call. Scope is not checked
  * here: securedToolExecution's triple gate checks it, answers a shortfall in its own shape and
  * writes it to the audit log, exactly as before this gate existed. A refusal (enforce mode)
@@ -1126,15 +1126,23 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
  * admin:* on the belief that the HTTP layer had already authenticated the
  * caller, but the /a2a routes never did, so a caller with no credentials
  * ran any registered tool as admin.
+ *
+ * `route` names the entry point it serves: its path is what the audit log files the call
+ * under, and `meta` is the caller's `_meta` on that route (the body's on POST /a2a/tasks,
+ * the JSON-RPC params' on POST /a2a, as on POST /mcp). Both are required so a route cannot
+ * borrow another's label or silently drop the frame its caller declared.
  */
-function a2aToolHandlerFor(auth: TokenIntrospection, meta?: unknown) {
+function a2aToolHandlerFor(
+  auth: TokenIntrospection,
+  route: { path: '/a2a' | '/a2a/tasks'; meta: unknown }
+) {
   return async (name: string, args: Record<string, unknown>): Promise<unknown> => {
     // The same gate, with the same HOLOSCRIPT_STATELESS_TOOL_GATE switch, as POST /mcp and
     // POST /tools/call (#463). A refusal (enforce) becomes a failed task before any dispatch.
     let gated: { result: unknown; isError: boolean };
     try {
-      gated = await gatedStatelessToolExecution(name, args, auth, meta, {
-        requestPath: '/a2a/tasks',
+      gated = await gatedStatelessToolExecution(name, args, auth, route.meta, {
+        requestPath: route.path,
         requestMethod: 'POST',
       });
     } catch (gateError) {
@@ -1881,7 +1889,10 @@ const httpServer = http.createServer(async (req, res) => {
       // Handle the JSON-RPC request with the caller's own scopes
       const response = await handleJsonRpcRequest(
         parsed.request,
-        a2aToolHandlerFor(a2aCaller),
+        a2aToolHandlerFor(a2aCaller, {
+          path: '/a2a',
+          meta: (parsed.request.params as { _meta?: unknown } | undefined)?._meta,
+        }),
         agentCardBuilder
       );
 
@@ -2984,7 +2995,10 @@ const httpServer = http.createServer(async (req, res) => {
       const task = createTask(request);
       const executed = await executeTask(
         task,
-        a2aToolHandlerFor(a2aCaller, (body as { _meta?: unknown })._meta)
+        a2aToolHandlerFor(a2aCaller, {
+          path: '/a2a/tasks',
+          meta: (body as { _meta?: unknown })._meta,
+        })
       );
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -5012,7 +5026,7 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
     // Once, so a deploy's log says which way the switch actually landed (#463 pre-review).
     console.info(
-      `   Tool-call gate on POST /mcp, POST /tools/call and POST /a2a/tasks: ${statelessToolGateMode()} ` +
+      `   Tool-call gate on POST /mcp, POST /tools/call, POST /a2a/tasks and POST /a2a: ${statelessToolGateMode()} ` +
         `(HOLOSCRIPT_STATELESS_TOOL_GATE=${JSON.stringify(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE ?? '')})`
     );
     console.info(
