@@ -624,6 +624,7 @@ export {
   compilePipelineToPython,
   compilePipelineSourceToNode,
   compilePipelineSourceToPython,
+  summarizePipelineIo,
 } from './PipelineNodeCompiler';
 export type {
   PipelineCompileTarget,
