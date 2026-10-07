@@ -21,7 +21,9 @@
  */
 import { describe, expect, it } from 'vitest';
 import { InMemoryTokenStore, TokenStore } from '../token-store';
-import { agentIdBindingAllowed } from '../oauth2-provider';
+import { agentIdBindingAllowed, prepareClientForUse } from '../oauth2-provider';
+import { registrationProvedNothing } from '../../security/proven-agent-id';
+import { OAuth21Service, resetOAuth21Service } from '../../security/oauth21';
 
 /** cleanupIntervalMs 0: no timer, so the suite never holds the event loop open. */
 function storeOver(backend: InMemoryTokenStore): TokenStore {
@@ -120,5 +122,94 @@ describe('the client agent binding is durable', () => {
     await store.registerClient({ ...REGISTRATION, clientId, clientSecret });
 
     expect((await store.getClient(clientId))?.agentId).toBeUndefined();
+  });
+});
+
+// ── An unproven registration stays unproven across a deploy (board task zkdg) ──
+
+describe('an unproven registration keeps its narrowed tools:execute', () => {
+  const EXECUTE = { ...REGISTRATION, scopes: ['tools:read', 'tools:execute'] };
+
+  it('decides "proved nothing" only for an unproven, non-loopback-on-a-closed-door registrant', () => {
+    const decide = (provenAgentId: string | undefined, loopback: boolean, open: boolean) =>
+      registrationProvedNothing({
+        provenAgentId,
+        registrarIsLoopback: loopback,
+        remoteRegistrationAllowed: open,
+      });
+    expect(decide(undefined, true, false)).toBe(false); // this host, door closed
+    expect(decide(undefined, true, true)).toBe(true); // door open: a proxy makes everyone loopback
+    expect(decide(undefined, false, true)).toBe(true); // a remote stranger
+    expect(decide('agent_owner', false, true)).toBe(false); // proved an agent key
+    expect(decide('agent_owner', true, true)).toBe(false);
+  });
+
+  it('the durable store issues tools:write, not tools:execute, to an unproven client, before and after a deploy', async () => {
+    const backend = new InMemoryTokenStore();
+    const { clientId } = await storeOver(backend).registerClient({
+      ...EXECUTE,
+      registeredUnproven: true,
+    });
+
+    const redeployed = storeOver(backend);
+    expect((await redeployed.getClient(clientId))?.registeredUnproven).toBe(true);
+    const { accessToken, refreshToken } = await redeployed.issueTokenPair({
+      clientId,
+      scopes: ['tools:read', 'tools:execute'],
+    });
+    expect(accessToken.scopes).toEqual(['tools:read', 'tools:write']);
+    expect(refreshToken.scopes).toEqual(['tools:read', 'tools:write']);
+  });
+
+  it('a trusted client is untouched', async () => {
+    const store = storeOver(new InMemoryTokenStore());
+    const { clientId } = await store.registerClient(EXECUTE);
+    expect((await store.getClient(clientId))?.registeredUnproven).toBeUndefined();
+    const { accessToken } = await store.issueTokenPair({
+      clientId,
+      scopes: ['tools:read', 'tools:execute'],
+    });
+    expect(accessToken.scopes).toEqual(['tools:read', 'tools:execute']);
+  });
+
+  it('the legacy registry, rehydrated after a deploy, still narrows the grant it issues', async () => {
+    const backend = new InMemoryTokenStore();
+    const clientId = 'hsc_unproven_after_deploy';
+    const clientSecret = 'unproven-secret';
+    await storeOver(backend).registerClient({
+      ...EXECUTE,
+      clientId,
+      clientSecret,
+      registeredUnproven: true,
+    });
+
+    // The deploy wiped the in-memory registry; the token endpoint rehydrates it first.
+    resetOAuth21Service();
+    const memory = new OAuth21Service({
+      tokenSecret: 'test-secret-that-is-at-least-32-bytes-long-for-hmac',
+      migrationMode: 'strict',
+    });
+    const durable = storeOver(backend);
+    try {
+      await prepareClientForUse(
+        {
+          memory,
+          durable: {
+            noteClientUse: (id: string) => durable.noteClientUse(id),
+            getClient: (id: string) => durable.getClient(id),
+          } as Parameters<typeof prepareClientForUse>[0]['durable'],
+        },
+        clientId
+      );
+      const issued = memory.exchangeClientCredentials({
+        clientId,
+        clientSecret,
+        scopes: ['tools:read', 'tools:execute'],
+      });
+      expect(issued.scope).toBe('tools:read tools:write');
+      expect(memory.introspect(issued.access_token).scopes).toEqual(['tools:read', 'tools:write']);
+    } finally {
+      resetOAuth21Service();
+    }
   });
 });

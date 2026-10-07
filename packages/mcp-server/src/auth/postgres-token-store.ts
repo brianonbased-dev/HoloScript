@@ -92,6 +92,10 @@ ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS agent_id TEXT;
 -- IF NOT EXISTS makes it a no-op.
 ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS last_used_at BIGINT NOT NULL
   DEFAULT ((extract(epoch FROM now()) * 1000)::bigint);
+-- A registration that proved nothing (board task zkdg): its tools:execute is
+-- issued as tools:write only. Rows that predate the column read FALSE, which is
+-- what they were: every one was registered while the door was loopback-only.
+ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS registered_unproven BOOLEAN NOT NULL DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS oauth_revoked_chains (
   chain_id   TEXT PRIMARY KEY,
@@ -329,7 +333,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async getClient(clientId: string): Promise<StoredClient | undefined> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      `SELECT client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at
+      `SELECT client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at, registered_unproven
        FROM oauth_clients WHERE client_id = $1`,
       [clientId]
     );
@@ -345,6 +349,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
       clientType: r.client_type as 'confidential' | 'public',
       rateLimit: r.rate_limit,
       ...(r.agent_id ? { agentId: r.agent_id as string } : {}),
+      ...(r.registered_unproven === true ? { registeredUnproven: true } : {}),
       lastUsedAt: Number(r.last_used_at),
     };
   }
@@ -352,13 +357,14 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async setClient(client: StoredClient): Promise<void> {
     await this.ensureSchema();
     await this.pool.query(
-      `INSERT INTO oauth_clients (client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO oauth_clients (client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at, registered_unproven)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (client_id) DO UPDATE SET
          client_secret_hash = EXCLUDED.client_secret_hash, client_name = EXCLUDED.client_name,
          redirect_uris = EXCLUDED.redirect_uris, scopes = EXCLUDED.scopes,
          created_at = EXCLUDED.created_at, client_type = EXCLUDED.client_type,
          rate_limit = EXCLUDED.rate_limit, agent_id = EXCLUDED.agent_id,
+         registered_unproven = EXCLUDED.registered_unproven,
          last_used_at = GREATEST(oauth_clients.last_used_at, EXCLUDED.last_used_at)`,
       [
         client.clientId,
@@ -372,6 +378,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
         client.agentId ?? null,
         // A client handed over without a last use starts its idle clock now.
         client.lastUsedAt ?? Date.now(),
+        client.registeredUnproven === true,
       ]
     );
   }

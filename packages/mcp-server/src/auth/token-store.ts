@@ -176,6 +176,15 @@ export interface StoredClient {
    */
   agentId?: string;
   /**
+   * True when the registering request proved nothing: no agent key or signed
+   * manifest, and not a loopback peer on a server whose registration is
+   * loopback-only. Such a client's `tools:execute` is issued as `tools:write`
+   * only (see scopesIssuedTo). Absent means trusted, which is what every client
+   * stored before this field existed was: they were all registered while the
+   * door was loopback-only.
+   */
+  registeredUnproven?: boolean;
+  /**
    * Last time this client was registered or issued a token (ms). This is the
    * only record of use: token rows are deleted within a minute of expiring, so
    * their absence proves nothing past a day. A backend that is handed a client
@@ -183,6 +192,27 @@ export interface StoredClient {
    * earlier.
    */
   lastUsedAt?: number;
+}
+
+/**
+ * The scopes a token may actually carry for this client (board task zkdg).
+ *
+ * The public scope `tools:execute` expands (SCOPE_BRIDGE) to tools:write +
+ * tools:codebase + tools:browser: absorbing and querying this server's own
+ * repositories and driving a browser on it. That is right for a client whose
+ * registration proved who it is, and wrong for one that proved nothing, which
+ * is what anyone gets once OAUTH_ALLOW_REMOTE_REGISTRATION opens the door. So an
+ * unproven client's `tools:execute` is issued as the internal `tools:write`
+ * (which expandScopes passes through as is), and the token response reports the
+ * scope actually granted (RFC 6749 section 3.3). Every token issuer calls this at
+ * the moment of issuance, where the client record is in hand.
+ */
+export function scopesIssuedTo(
+  client: { registeredUnproven?: boolean } | undefined,
+  scopes: string[]
+): string[] {
+  if (!client?.registeredUnproven || !scopes.includes('tools:execute')) return scopes;
+  return [...new Set(scopes.map((s) => (s === 'tools:execute' ? 'tools:write' : s)))];
 }
 
 // ── Backend Interface ────────────────────────────────────────────────────────
@@ -693,17 +723,18 @@ export class TokenStore {
     chainId?: string;
   }): Promise<{ accessToken: StoredAccessToken; refreshToken: StoredRefreshToken }> {
     const chainId = params.chainId || randomUUID();
+    const scopes = scopesIssuedTo(await this.backend.getClient(params.clientId), params.scopes);
 
     const accessToken = await this.createAccessToken({
       clientId: params.clientId,
-      scopes: params.scopes,
+      scopes,
       agentId: params.agentId,
       dpopThumbprint: params.dpopThumbprint,
     });
 
     const refreshToken = await this.createRefreshToken({
       clientId: params.clientId,
-      scopes: params.scopes,
+      scopes,
       chainId,
       agentId: params.agentId,
     });
@@ -789,6 +820,8 @@ export class TokenStore {
      * registry.
      */
     agentId?: string;
+    /** The registration proved nothing (see StoredClient.registeredUnproven). */
+    registeredUnproven?: boolean;
   }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     const maxClients = params.maxClients || DEFAULT_MAX_CLIENTS;
     const now = Date.now();
@@ -842,6 +875,7 @@ export class TokenStore {
         rateLimit: params.rateLimit || 60,
         lastUsedAt: now,
         ...(params.agentId ? { agentId: params.agentId } : {}),
+        ...(params.registeredUnproven ? { registeredUnproven: true } : {}),
       });
     } catch (err) {
       // Any clients retired above are already gone. Say which, so the caller
