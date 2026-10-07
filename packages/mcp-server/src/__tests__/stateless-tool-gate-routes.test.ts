@@ -72,7 +72,7 @@ const mcpError = (reply: Reply) =>
 describe('the stateless tool routes run the tool-call gate (real server)', () => {
   it('the server states the mode it landed on, once, at startup', () => {
     expect(bootLines).toContain(
-      'Tool-call gate on POST /mcp and POST /tools/call: observe (HOLOSCRIPT_STATELESS_TOOL_GATE="")'
+      'Tool-call gate on POST /mcp, POST /tools/call and POST /a2a/tasks: observe (HOLOSCRIPT_STATELESS_TOOL_GATE="")'
     );
   });
 
@@ -138,5 +138,54 @@ describe('the stateless tool routes run the tool-call gate (real server)', () =>
     );
     expect(rest.status, JSON.stringify(rest.body)).toBe(500);
     expect(rest.body.deniedBy).toBeUndefined();
+  });
+
+  describe('POST /a2a/tasks runs the same gate and the same switch', () => {
+    const viaA2a = (skillId: string, args: unknown, meta?: unknown) =>
+      server.request('POST', '/a2a/tasks', {
+        token: REAL_SERVER_ADMIN_KEY,
+        body: { skillId, arguments: args, ...(meta ? { _meta: meta } : {}) },
+      });
+    const state = (r: Reply) => (r.body.status as { state?: string } | undefined)?.state;
+    const text = (r: Reply) => JSON.stringify(r.body);
+
+    it('enforce: a founder-class tool is refused before dispatch (failed task naming the gate)', async () => {
+      process.env.HOLOSCRIPT_STATELESS_TOOL_GATE = 'enforce';
+      const r = await viaA2a('transfer_custody_authority', {});
+      expect(state(r), text(r)).toBe('failed');
+      expect(text(r)).toContain('Refused by the tool-call gate');
+      expect(text(r)).toContain('founder-gate-exact-four');
+    });
+
+    it('enforce: a call outside the caller frame (_meta) is refused too', async () => {
+      process.env.HOLOSCRIPT_STATELESS_TOOL_GATE = 'enforce';
+      const r = await viaA2a('parse_hs', PARSE_ARGS, frameAllowing(['compile_holoscript']));
+      expect(state(r), text(r)).toBe('failed');
+      expect(text(r)).toContain('frame-declaration');
+    });
+
+    it('enforce control: an ordinary allowed tool still runs', async () => {
+      process.env.HOLOSCRIPT_STATELESS_TOOL_GATE = 'enforce';
+      const r = await viaA2a('parse_hs', PARSE_ARGS);
+      expect(state(r), text(r)).toBe('completed');
+      expect(text(r)).not.toContain('tool-call gate');
+    });
+
+    it('observe (default): the founder-class call is not refused by the gate, and the log says what enforce would refuse', async () => {
+      const warn = vi.spyOn(console, 'warn');
+      const r = await viaA2a('transfer_custody_authority', {});
+      expect(text(r)).not.toContain('Refused by the tool-call gate');
+      const logged = warn.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(logged).toContain('[ToolCallGate] observe: would deny "transfer_custody_authority"');
+    });
+
+    it('observe (default): a call outside the frame runs and the observe line appears', async () => {
+      const warn = vi.spyOn(console, 'warn');
+      const r = await viaA2a('parse_hs', PARSE_ARGS, frameAllowing(['compile_holoscript']));
+      expect(state(r), text(r)).toBe('completed');
+      const logged = warn.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(logged).toContain('[ToolCallGate] observe: would deny "parse_hs"');
+      expect(logged).toContain('(check: frame-declaration)');
+    });
   });
 });
