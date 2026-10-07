@@ -29,6 +29,22 @@ import {
   selectAutomationTask,
   type TaskLane,
 } from './automation-lane.js';
+import {
+  TaskDenylist,
+  assessTaskFit,
+  buildTaskPrompt,
+  classifyExecutionError,
+  ContextOverflowError,
+  estimatePromptTokens,
+  estimateTokens,
+  failureCooldownMs,
+  fetchLocalFit,
+  isClaimCapExceededError,
+  routeTagFor,
+  type FailureKind,
+  type FitVerdict,
+  type LocalFit,
+} from './handoff.js';
 import type {
   AgentIdentity,
   BoardTask,
@@ -111,7 +127,30 @@ export interface AgentRunnerOptions {
     tick: number;
     agentId: string;
   }) => Promise<{ target: string; written: number; deduped: number; outcome: string } | null>;
+  /**
+   * Hand-off fix (ii): per-task failure denylist. The composition root (index.ts)
+   * passes a disk-backed one ($HOLOSCRIPT_AGENT_STATE_DIR/task-denylist.json) so a
+   * restart doesn't re-grab failed work; absent → in-memory only.
+   */
+  denylist?: TaskDenylist;
+  /**
+   * Hand-off fix (v): local-model fit source (n_ctx). Absent → for non-hosted
+   * providers, GET {HOLOSCRIPT_AGENT_FIT_LLM_BASE_URL ?? HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL}/props
+   * (cached 10 min), falling back to HOLOSCRIPT_AGENT_NUM_CTX. Hosted providers are
+   * never fit-checked unless HOLOSCRIPT_AGENT_FIT_CHECK=1; =0 disables it everywhere.
+   */
+  localFit?: () => Promise<LocalFit | null>;
 }
+
+/** Providers whose context is large and enforced server-side; no edge fit check. */
+const HOSTED_PROVIDERS = new Set(['anthropic', 'openai', 'gemini', 'xai', 'openrouter', 'mock']);
+
+export type ClaimPlanEntry = {
+  task: BoardTask;
+  decision: 'would-claim' | 'skip';
+  reason?: string;
+  verdict?: FitVerdict;
+};
 
 export class AgentRunner {
   private stopped = false;
@@ -152,14 +191,35 @@ export class AgentRunner {
   // from THIS runner's own claim candidates for the cooldown window, never
   // hidden from logs/board.
   private capabilityMismatchCooldown = new Map<string, number>();
+  // ── Hand-off fix 2026-10-07 (hw-handoff/holoscript-agent-handoff-fix-proposal-20261005.md)
+  // (ii) failure denylist (7d default, longer than the 24h claim-TTL reaper).
+  private readonly denylist: TaskDenylist;
+  // (iv) claim-cap backoff: after a 403 claim_cap_exceeded (or when this agent already
+  // holds >= cap claims) skip claiming until this epoch ms instead of re-throwing into
+  // runForever's tick-error every minute.
+  private claimCapBackoffUntil = 0;
+  private selfAgentId: string | null | undefined; // undefined = not looked up yet
+  // (v) cached local fit (n_ctx) and the fit resolved for the current tick.
+  private fitCache: { at: number; fit: LocalFit | null } | null = null;
+  private currentFit: LocalFit | null = null;
 
-  constructor(private readonly opts: AgentRunnerOptions) {}
+  static readonly CLAIM_CAP_BACKOFF_MS = 15 * 60_000;
+  static readonly FIT_CACHE_MS = 10 * 60_000;
+
+  constructor(private readonly opts: AgentRunnerOptions) {
+    this.denylist =
+      opts.denylist ??
+      new TaskDenylist(null, (message) =>
+        (opts.logger ?? (() => undefined))({ ev: 'denylist-error', message })
+      );
+  }
 
   /** Cooldown window after a 403 capability_mismatch before retrying the same task ID. */
   private static readonly CAPABILITY_MISMATCH_COOLDOWN_MS = 15 * 60_000; // 15 minutes
 
   /** True when `taskId` is still within its post-capability_mismatch cooldown window. */
   private isCoolingDown(taskId: string, now = Date.now()): boolean {
+    if (this.denylist.isDenied(taskId, now)) return true;
     const until = this.capabilityMismatchCooldown.get(taskId);
     if (until === undefined) return false;
     if (now >= until) {
@@ -257,15 +317,74 @@ export class AgentRunner {
       }
     }
 
+    // (iv) Claim-cap backoff: skip claiming entirely while backing off.
+    if (Date.now() < this.claimCapBackoffUntil) {
+      log({ ev: 'claim-cap-backoff', untilMs: this.claimCapBackoffUntil });
+      return {
+        action: 'no-claimable-task',
+        spentUsd: costGuard.getState().spentUsd,
+        remainingUsd: costGuard.getRemainingUsd(),
+        message: `claim cap; backing off until ${new Date(this.claimCapBackoffUntil).toISOString()}`,
+      };
+    }
+
     const tasks = await mesh.getOpenTasks();
+
+    // (iv) Pre-check held claims against the cap before picking (backoff card item b).
+    const held = await this.countHeldClaims(tasks);
+    const claimCap = AgentRunner.claimCap();
+    if (held !== null && held >= claimCap) {
+      this.claimCapBackoffUntil = Date.now() + AgentRunner.CLAIM_CAP_BACKOFF_MS;
+      log({ ev: 'claim-cap-held', held, claimCap });
+      return {
+        action: 'no-claimable-task',
+        spentUsd: costGuard.getState().spentUsd,
+        remainingUsd: costGuard.getRemainingUsd(),
+        message: `holding ${held} claims (cap ${claimCap}); not claiming more`,
+      };
+    }
+
     // Exclude tasks currently in their post-capability_mismatch cooldown window
     // (see startCapabilityMismatchCooldown below) from THIS tick's candidate
     // pool. The task itself is untouched on the board/log — getOpenTasks()
     // still returns it and `open` below counts it — it is only skipped as a
     // claim candidate until the cooldown elapses.
     const now = Date.now();
-    const claimable = tasks.filter((t) => !this.isCoolingDown(t.id, now));
-    const skippedForCooldown = tasks.length - claimable.length;
+    const notCooling = tasks.filter((t) => !this.isCoolingDown(t.id, now));
+    const skippedForCooldown = tasks.length - notCooling.length;
+    // (v) Pre-claim fit check: never claim what can't fit 60% of the local n_ctx.
+    // Unfit tasks stay open on the board for a laptop/fleet worker.
+    this.currentFit = await this.resolveLocalFit();
+    let claimable = notCooling;
+    if (this.currentFit) {
+      const overheadTokens = this.fitOverheadTokens();
+      const unfit: Array<Record<string, unknown>> = [];
+      claimable = notCooling.filter((t) => {
+        if (t.status !== 'open' || t.claimedBy) return true; // pickClaimableTask drops these
+        const v = assessTaskFit(t, this.currentFit!, {
+          overheadTokens,
+          capabilityTags: brain.capabilityTags,
+        });
+        if (!v.fit)
+          unfit.push({
+            taskId: t.id,
+            est: v.estTokens,
+            budget: v.budget,
+            reason: v.reason,
+            detail: v.detail,
+            route: v.route,
+          });
+        return v.fit;
+      });
+      if (unfit.length) {
+        log({
+          ev: 'claim-skip-unfit',
+          nCtx: this.currentFit.nCtx,
+          count: unfit.length,
+          tasks: unfit.slice(0, 10),
+        });
+      }
+    }
     let target = pickClaimableTask(claimable, brain.capabilityTags);
     let lane: TaskLane = 'capability';
 
@@ -374,6 +493,22 @@ export class AgentRunner {
           message: `capability_mismatch on ${target.id}; cooling down ${AgentRunner.CAPABILITY_MISMATCH_COOLDOWN_MS / 60_000}min`,
         };
       }
+      if (isClaimCapExceededError(err)) {
+        // (iv) 403 claim_cap_exceeded used to re-throw here → runForever tick-error
+        // every minute (the h2fv loop). Back off instead.
+        this.claimCapBackoffUntil = Date.now() + AgentRunner.CLAIM_CAP_BACKOFF_MS;
+        log({
+          ev: 'claim-cap-backoff-start',
+          taskId: target.id,
+          backoffMs: AgentRunner.CLAIM_CAP_BACKOFF_MS,
+        });
+        return {
+          action: 'no-claimable-task',
+          spentUsd: costGuard.getState().spentUsd,
+          remainingUsd: costGuard.getRemainingUsd(),
+          message: 'claim cap; backing off',
+        };
+      }
       throw err;
     }
 
@@ -388,6 +523,7 @@ export class AgentRunner {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         const reason = `automation-lane execution error: ${message}`.slice(0, 400);
+        this.denylist.add(target.id, classifyExecutionError(err), reason, failureCooldownMs());
         await this.blockAutomationTask(mesh, target.id, reason, log);
         log({
           ev: 'automation-lane-failure',
@@ -405,7 +541,23 @@ export class AgentRunner {
         };
       }
     }
-    return this.runClaimedTask(execCtx);
+    // (iii) Every other lane: an execution error (llama 400 context overflow, provider
+    // timeout, tool crash) used to propagate to runForever's generic tick-error catch
+    // and leave the task claimed. Release it with a reason + denylist it instead.
+    try {
+      return await this.runClaimedTask(execCtx);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const kind = classifyExecutionError(err);
+      await this.releaseWithReason(mesh, target, kind, message, log);
+      return {
+        action: 'errored',
+        taskId: target.id,
+        spentUsd: costGuard.getState().spentUsd,
+        remainingUsd: costGuard.getRemainingUsd(),
+        message: `${kind}: ${message}`.slice(0, 400),
+      };
+    }
   }
 
   /**
@@ -633,6 +785,7 @@ export class AgentRunner {
         finalText = finalText || `[tool-loop hit ${MAX_TOOL_ITERS}-iter cap before final text]`;
         break;
       }
+      this.guardPrompt(messages, activeTools);
       const resp = await provider.complete(
         {
           messages,
@@ -731,6 +884,7 @@ export class AgentRunner {
           'Call write_file NOW. Embed ALL data from the tool result above into the content. ' +
           'Do NOT output any text — your ONLY valid response is a write_file tool call.',
       });
+      this.guardPrompt(messages, activeTools);
       const reResp = await provider.complete(
         { messages, maxTokens: 8192, temperature: 0.0, tools: activeTools },
         identity.llmModel
@@ -795,6 +949,7 @@ export class AgentRunner {
           'Call write_file NOW. Put the caption from vision_analyze into the JSON content field. ' +
           'Do NOT output text — your ONLY valid response is a write_file tool call.',
       });
+      this.guardPrompt(messages, activeTools);
       const vwResp = await provider.complete(
         { messages, maxTokens: 8192, temperature: 0.0, tools: activeTools },
         identity.llmModel
@@ -930,14 +1085,25 @@ export class AgentRunner {
         const reason =
           `automation-lane: no verifiable artifact produced (toolsCalled=[${[...toolsCalled].join(',')}], ` +
           `productiveCallCount=${productiveCallCount}); refusing to fabricate evidence`;
+        this.denylist.add(target.id, 'no_artifact', reason, failureCooldownMs());
         await this.blockAutomationTask(mesh, target.id, reason, log);
         log({ ev: 'automation-lane-failure', taskId: target.id, exitCode: 1, kind: 'no-artifact' });
+      } else {
+        // (iii) Hand-off fix: the old comment here handed the release to a
+        // "supervisor/heartbeat-rejoin" that does not exist, so the task sat claimed
+        // until the 24h reaper and was then re-grabbed within a minute. Release it now
+        // with a reason, denylist it (7d), and route it to a laptop/fleet worker.
+        await this.releaseWithReason(
+          mesh,
+          target,
+          'no_artifact',
+          `no-artifact gate (toolsCalled=[${[...toolsCalled].join(',')}], productiveCallCount=${productiveCallCount}, iters=${iters})`,
+          log
+        );
       }
-      // Best-effort: leave the task in claimed state so the supervisor can either
-      // re-tick or release it via heartbeat-rejoin. We deliberately do NOT post
-      // a "fake-done" message on the board, do NOT post a CAEL record, and do NOT
-      // call the cost guard's recordUsage — the run produced no artifact and
-      // should not bill the budget for a hallucinated tick.
+      // We deliberately do NOT post a "fake-done" message on the board, do NOT post
+      // a CAEL record, and do NOT call the cost guard's recordUsage — the run
+      // produced no artifact and should not bill the budget for a hallucinated tick.
       return {
         action: 'no-artifact',
         taskId: target.id,
@@ -993,6 +1159,7 @@ export class AgentRunner {
           `automation-lane: run self-declared failure with no commit (writes=${trackedWrites}, ` +
           `failureWrites=${failureDeclaredWrites}, finalTextDeclaresFailure=${finalTextDeclaresFailure}); ` +
           'parking instead of closing as done';
+        this.denylist.add(target.id, 'no_artifact', reason, failureCooldownMs());
         await this.blockAutomationTask(mesh, target.id, reason, log);
         log({
           ev: 'automation-lane-failure',
@@ -1000,6 +1167,15 @@ export class AgentRunner {
           exitCode: 1,
           kind: 'failure-artifact',
         });
+      } else {
+        // (iii) Release on first failure — same rationale as the no-artifact branch.
+        await this.releaseWithReason(
+          mesh,
+          target,
+          'no_artifact',
+          `self-declared failure with no commit (writes=${trackedWrites}, failureWrites=${failureDeclaredWrites}, finalTextDeclaresFailure=${finalTextDeclaresFailure})`,
+          log
+        );
       }
       return {
         action: 'failure-artifact',
@@ -1138,6 +1314,14 @@ export class AgentRunner {
         taskId: target.id,
         reason: reflectVerdict.reason.slice(0, 120),
       });
+      // (iii) "Escalate to the fleet" now actually frees the claim for the fleet.
+      await this.releaseWithReason(
+        mesh,
+        target,
+        'exec_error',
+        `reflect gate failed: ${reflectVerdict.reason.slice(0, 200)}`,
+        log
+      );
       return {
         action: 'reflect-escalate',
         taskId: target.id,
@@ -1194,6 +1378,208 @@ export class AgentRunner {
       spentUsd: cost.spentUsd,
       remainingUsd: cost.remainingUsd,
     };
+  }
+
+  // ── Hand-off fix helpers (2026-10-07) ─────────────────────────────────────
+
+  /** HOLOSCRIPT_AGENT_CLAIM_CAP (default 5, mirrors server HOLOMESH_CLAIM_CAP). */
+  static claimCap(env: NodeJS.ProcessEnv = process.env): number {
+    const n = Number(env.HOLOSCRIPT_AGENT_CLAIM_CAP);
+    return Number.isFinite(n) && n > 0 ? n : 5;
+  }
+
+  /**
+   * (i)+(ii)+(iii) Release a failed task: denylist it locally (so this agent never
+   * re-grabs it, even after a restart when the denylist is disk-backed), try to tag
+   * it with the route (`ctx-16k+` / `laptop-or-fleet`; the server only lets the
+   * owner or task creator update tags, so a 403 is logged and ignored), then post
+   * the reason and reopen it. Never throws — a failed release is logged loudly and
+   * the denylist still keeps this agent off the task.
+   */
+  private async releaseWithReason(
+    mesh: HolomeshClient,
+    task: BoardTask,
+    kind: FailureKind,
+    detail: string,
+    log: (event: Record<string, unknown>) => void
+  ): Promise<void> {
+    const route = routeTagFor(kind);
+    const reason =
+      `[${this.opts.identity.handle}] ${kind}: ${detail}`.slice(0, 380) + ` [route:${route}]`;
+    this.denylist.add(task.id, kind, reason, failureCooldownMs());
+    if (process.env.HOLOSCRIPT_AGENT_RELEASE_TAG_UPDATE !== '0') {
+      const tags = task.tags ?? [];
+      if (!tags.includes(route)) {
+        try {
+          await mesh.updateTask(task.id, { tags: [...tags, route] });
+          log({ ev: 'release-tagged', taskId: task.id, route });
+        } catch (err) {
+          log({
+            ev: 'release-tag-skipped',
+            taskId: task.id,
+            route,
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+    }
+    try {
+      const r = await mesh.releaseTask(task.id, reason);
+      log({ ev: 'released', taskId: task.id, kind, route, messaged: r?.messaged ?? null });
+    } catch (err) {
+      log({
+        ev: 'release-failed',
+        taskId: task.id,
+        kind,
+        route,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  /**
+   * Claims this agent already holds, from the board snapshot (claimed + claimedBy ==
+   * self). Self id comes from /me once per process. null = unknown (fail open: the
+   * server's 403 claim_cap_exceeded → backoff path still applies).
+   */
+  private async countHeldClaims(tasks: BoardTask[]): Promise<number | null> {
+    const claimed = tasks.filter((t) => t.status === 'claimed' && t.claimedBy);
+    if (claimed.length === 0) return 0;
+    if (this.selfAgentId === undefined) {
+      try {
+        this.selfAgentId = (await this.opts.mesh.whoAmI()).agentId || null;
+      } catch {
+        this.selfAgentId = null;
+      }
+    }
+    if (!this.selfAgentId) return null;
+    return claimed.filter((t) => t.claimedBy === this.selfAgentId).length;
+  }
+
+  private fitCheckEnabled(): boolean {
+    const flag = process.env.HOLOSCRIPT_AGENT_FIT_CHECK;
+    if (flag === '0') return false;
+    if (flag === '1') return true;
+    if (this.opts.localFit) return true;
+    return !HOSTED_PROVIDERS.has(String(this.opts.identity.llmProvider));
+  }
+
+  /** (v) n_ctx of the local model, cached FIT_CACHE_MS. null → no fit check this tick. */
+  private async resolveLocalFit(now = Date.now()): Promise<LocalFit | null> {
+    if (!this.fitCheckEnabled()) return null;
+    if (this.fitCache && now - this.fitCache.at < AgentRunner.FIT_CACHE_MS)
+      return this.fitCache.fit;
+    let fit: LocalFit | null = null;
+    try {
+      fit = this.opts.localFit
+        ? await this.opts.localFit()
+        : await fetchLocalFit(
+            process.env.HOLOSCRIPT_AGENT_FIT_LLM_BASE_URL ??
+              process.env.HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL ??
+              'http://localhost:8080'
+          );
+    } catch {
+      fit = null;
+    }
+    this.fitCache = { at: now, fit };
+    return fit;
+  }
+
+  /** Tokens every request carries besides the task text: system prompt + tool schemas. */
+  private fitOverheadTokens(): number {
+    const { brain } = this.opts;
+    let toolChars = 0;
+    try {
+      toolChars = JSON.stringify(resolveActiveTools(brain).tools).length;
+    } catch {
+      toolChars = 0;
+    }
+    return estimateTokens(brain.systemPrompt ?? '') + estimateTokens(toolChars);
+  }
+
+  /** (v) Refuse to send a prompt over 90% of n_ctx; the tick wrapper releases ctx_overflow. */
+  private guardPrompt(messages: readonly LLMMessage[], tools: unknown): void {
+    const fit = this.currentFit;
+    if (!fit) return;
+    const est = estimatePromptTokens(messages, tools);
+    if (est > fit.nCtx * 0.9) throw new ContextOverflowError(est, fit.nCtx);
+  }
+
+  /**
+   * Read-only claim plan (dry-run): exactly the filters tick() applies before
+   * claiming — denylist/cooldown, held-claim cap, fit check, capability scoring —
+   * with NO board writes. Returns every open task with would-claim/skip + reason,
+   * ordered as pickClaimableTask would pick them.
+   */
+  async planClaims(
+    tasks: BoardTask[],
+    opts: { heldClaims?: number } = {}
+  ): Promise<{
+    fit: LocalFit | null;
+    heldClaims: number | null;
+    claimCap: number;
+    entries: ClaimPlanEntry[];
+  }> {
+    const { brain } = this.opts;
+    const fit = await this.resolveLocalFit();
+    const heldClaims = opts.heldClaims ?? (await this.countHeldClaims(tasks));
+    const claimCap = AgentRunner.claimCap();
+    const capped = heldClaims !== null && heldClaims >= claimCap;
+    const overheadTokens = fit ? this.fitOverheadTokens() : 0;
+    const entries: ClaimPlanEntry[] = [];
+    const now = Date.now();
+    let remaining = capped ? 0 : claimCap - (heldClaims ?? 0);
+    const candidates: BoardTask[] = [];
+    for (const t of tasks) {
+      if (t.status !== 'open' || t.claimedBy) continue;
+      const deny = this.denylist.get(t.id, now);
+      if (deny) {
+        entries.push({ task: t, decision: 'skip', reason: `denylisted (${deny.kind})` });
+        continue;
+      }
+      if (fit) {
+        const v = assessTaskFit(t, fit, { overheadTokens, capabilityTags: brain.capabilityTags });
+        if (!v.fit) {
+          entries.push({
+            task: t,
+            decision: 'skip',
+            reason: `${v.reason}: ${v.detail}`,
+            verdict: v,
+          });
+          continue;
+        }
+      }
+      candidates.push(t);
+    }
+    // Repeatedly apply the runner's own picker so ordering matches live behaviour.
+    let pool = candidates.slice();
+    while (pool.length) {
+      const pick = pickClaimableTask(pool, brain.capabilityTags);
+      if (!pick) break;
+      pool = pool.filter((t) => t !== pick);
+      const verdict = fit
+        ? assessTaskFit(pick, fit, { overheadTokens, capabilityTags: brain.capabilityTags })
+        : undefined;
+      if (remaining > 0) {
+        entries.push({ task: pick, decision: 'would-claim', verdict });
+        remaining--;
+      } else {
+        entries.push({
+          task: pick,
+          decision: 'skip',
+          reason: `claim cap (${claimCap}) reached`,
+          verdict,
+        });
+      }
+    }
+    for (const t of pool) {
+      entries.push({
+        task: t,
+        decision: 'skip',
+        reason: 'capability: no tag/keyword match for this brain',
+      });
+    }
+    return { fit, heldClaims, claimCap, entries };
   }
 
   /**
@@ -1760,20 +2146,6 @@ export class AgentRunner {
     const msg = err instanceof Error ? err.message : String(err);
     return / 403:/.test(msg) && /unsigned/i.test(msg);
   }
-}
-
-function buildTaskPrompt(task: BoardTask): string {
-  return [
-    `Board task to execute: ${task.id}`,
-    `Title: ${task.title}`,
-    `Priority: ${task.priority}`,
-    `Tags: ${(task.tags ?? []).join(', ')}`,
-    '',
-    'Description:',
-    task.description ?? '(no description)',
-    '',
-    'Produce the deliverable: call write_file (or bash with a build command) to create all required output files FIRST. Apply your brain composition rules — anti-patterns, decision loop, and scope tier all bind. After calling the tool(s), return a short plain-text summary of what you did for posting to /room.',
-  ].join('\n');
 }
 
 function sleep(ms: number): Promise<void> {
