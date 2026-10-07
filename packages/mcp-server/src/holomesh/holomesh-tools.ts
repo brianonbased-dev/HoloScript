@@ -811,21 +811,34 @@ async function handlePublishTool(
     );
     let synced = 0;
     let remoteError: string | undefined;
+    let orchestrator:
+      { accepted: boolean; status: number | null; reason: string | null } | undefined;
 
     if (client) {
       try {
-        synced = await client.contributeKnowledge([manifestKnowledgeEntry(manifest, client)]);
+        const outcome = await client.contributeKnowledgeDetailed([
+          manifestKnowledgeEntry(manifest, client),
+        ]);
+        synced = outcome.synced;
+        orchestrator = {
+          accepted: outcome.accepted,
+          status: outcome.status,
+          reason: outcome.reason,
+        };
       } catch (err: unknown) {
         remoteError = err instanceof Error ? err.message : String(err);
       }
     }
 
+    // The manifest is published in this server's own registry whatever the orchestrator does, so
+    // this stays a success; `orchestrator` says whether the knowledge copy landed too (task xzgt).
     return {
       success: true,
       meshToolId: manifest.id,
       manifestHash: manifest.attestation.manifestHash,
       synced,
       manifest,
+      ...(orchestrator ? { orchestrator } : {}),
       ...(remoteError ? { remoteError } : {}),
     };
   } catch (err: unknown) {
@@ -1292,13 +1305,22 @@ async function handleContribute(
       createdAt: new Date().toISOString(),
     };
 
-    const synced = await client.contributeKnowledge([entry]);
+    const outcome = await client.contributeKnowledgeDetailed([entry]);
+    if (!outcome.accepted) {
+      // This tool keeps no copy of its own, so a refused write stored nothing: success:true with
+      // synced:0 read as saved (task xzgt). Named by status and reason, never the orchestrator's text.
+      return {
+        success: false,
+        error: outcome.status === null ? 'orchestrator_unreachable' : 'orchestrator_refused',
+        orchestrator: { accepted: false, status: outcome.status, reason: outcome.reason },
+      };
+    }
 
     return {
       success: true,
       entryId,
       provenanceHash,
-      synced,
+      synced: outcome.synced,
       type: entryType,
     };
   } catch (err: unknown) {
