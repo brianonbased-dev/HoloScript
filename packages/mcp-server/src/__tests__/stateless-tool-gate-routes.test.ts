@@ -16,6 +16,7 @@ import {
   type RealHttpServer,
   type Reply,
 } from './real-http-server-harness';
+import { getAuditLogger } from '../security/audit-log';
 
 const FRAME_KEY = 'holoscript.dev/frame-declaration';
 const frameAllowing = (tools: string[]) => ({
@@ -72,7 +73,7 @@ const mcpError = (reply: Reply) =>
 describe('the stateless tool routes run the tool-call gate (real server)', () => {
   it('the server states the mode it landed on, once, at startup', () => {
     expect(bootLines).toContain(
-      'Tool-call gate on POST /mcp, POST /tools/call and POST /a2a/tasks: observe (HOLOSCRIPT_STATELESS_TOOL_GATE="")'
+      'Tool-call gate on POST /mcp, POST /tools/call, POST /a2a/tasks and POST /a2a: observe (HOLOSCRIPT_STATELESS_TOOL_GATE="")'
     );
   });
 
@@ -186,6 +187,75 @@ describe('the stateless tool routes run the tool-call gate (real server)', () =>
       const logged = warn.mock.calls.map((c) => String(c[0])).join('\n');
       expect(logged).toContain('[ToolCallGate] observe: would deny "parse_hs"');
       expect(logged).toContain('(check: frame-declaration)');
+    });
+  });
+
+  describe('POST /a2a (JSON-RPC a2a.sendMessage) runs the same gate, with the frame from params._meta', () => {
+    let rpcId = 100;
+    const viaA2aRpc = (skillId: string, args: unknown, meta?: unknown) =>
+      server.request('POST', '/a2a', {
+        token: REAL_SERVER_ADMIN_KEY,
+        body: {
+          jsonrpc: '2.0',
+          id: ++rpcId,
+          method: 'a2a.sendMessage',
+          params: {
+            message: { role: 'user', parts: [{ type: 'text', text: `run ${skillId}` }] },
+            skillId,
+            arguments: args,
+            ...(meta ? { _meta: meta } : {}),
+          },
+        },
+      });
+    const state = (r: Reply) =>
+      ((r.body.result as { status?: { state?: string } } | undefined)?.status)?.state;
+    const text = (r: Reply) => JSON.stringify(r.body);
+    const auditedPaths = (tool: string) =>
+      getAuditLogger()
+        .query({ toolName: tool, limit: 100_000 })
+        .entries.map((e) => (e.request as { path?: string } | undefined)?.path);
+
+    it('enforce: a founder-class tool is refused before dispatch', async () => {
+      process.env.HOLOSCRIPT_STATELESS_TOOL_GATE = 'enforce';
+      const r = await viaA2aRpc('transfer_custody_authority', {});
+      expect(state(r), text(r)).toBe('failed');
+      expect(text(r)).toContain('Refused by the tool-call gate');
+      expect(text(r)).toContain('founder-gate-exact-four');
+    });
+
+    it('enforce: a call outside the frame declared in params._meta is refused', async () => {
+      process.env.HOLOSCRIPT_STATELESS_TOOL_GATE = 'enforce';
+      const r = await viaA2aRpc('parse_hs', PARSE_ARGS, frameAllowing(['compile_holoscript']));
+      expect(state(r), text(r)).toBe('failed');
+      expect(text(r)).toContain('frame-declaration');
+    });
+
+    it('enforce control: a call inside its declared frame still runs', async () => {
+      process.env.HOLOSCRIPT_STATELESS_TOOL_GATE = 'enforce';
+      const r = await viaA2aRpc('parse_hs', PARSE_ARGS, frameAllowing(['parse_hs']));
+      expect(state(r), text(r)).toBe('completed');
+      expect(text(r)).not.toContain('tool-call gate');
+    });
+
+    it('observe (default): a call outside the frame runs and the observe line appears', async () => {
+      const warn = vi.spyOn(console, 'warn');
+      const r = await viaA2aRpc('parse_hs', PARSE_ARGS, frameAllowing(['compile_holoscript']));
+      expect(state(r), text(r)).toBe('completed');
+      const logged = warn.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(logged).toContain('[ToolCallGate] observe: would deny "parse_hs"');
+      expect(logged).toContain('(check: frame-declaration)');
+    });
+
+    it('the audit log files each A2A call under the route it came in on', async () => {
+      const tool = 'validate_holoscript';
+      await viaA2aRpc(tool, PARSE_ARGS);
+      await server.request('POST', '/a2a/tasks', {
+        token: REAL_SERVER_ADMIN_KEY,
+        body: { skillId: tool, arguments: PARSE_ARGS },
+      });
+      const paths = auditedPaths(tool);
+      expect(paths, JSON.stringify(paths)).toContain('/a2a');
+      expect(paths, JSON.stringify(paths)).toContain('/a2a/tasks');
     });
   });
 });
