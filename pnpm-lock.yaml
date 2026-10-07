@@ -1936,12 +1936,18 @@ importers:
       '@playwright/test':
         specifier: ^1.58.2
         version: 1.62.1
+      '@types/express':
+        specifier: ^5.0.0
+        version: 5.0.6
       '@types/node':
         specifier: ^24.10.1
         version: 24.13.3
       '@types/pg':
         specifier: ^8.11.6
         version: 8.23.1
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
       '@vitest/coverage-v8':
         specifier: ^4.1.5
         version: 4.1.11(vitest@4.1.11)
