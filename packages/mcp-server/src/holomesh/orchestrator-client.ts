@@ -28,8 +28,12 @@ export interface KnowledgeSyncOutcome {
   reason: string | null;
 }
 
-/** A POST to the orchestrator that has not finished in this long counts as unreachable. */
-function orchestratorPostTimeoutMs(): number {
+/**
+ * A request to the orchestrator (any POST or GET, the body included) that has not finished in this
+ * long counts as unreachable. HOLOMESH_ORCHESTRATOR_POST_TIMEOUT_MS sets it; the name predates the
+ * GETs and the heartbeat using it too (task_1790588649622_mbp7).
+ */
+function orchestratorRequestTimeoutMs(): number {
   const configured = Number(process.env.HOLOMESH_ORCHESTRATOR_POST_TIMEOUT_MS);
   return Number.isFinite(configured) && configured > 0 ? configured : 15_000;
 }
@@ -466,10 +470,18 @@ export class HoloMeshOrchestratorClient {
     return crypto.createHash('sha256').update(content).digest('hex');
   }
 
+  /** GET and parse, or null. Bounded like every other request: an answer that never comes, or stops
+   * mid-body, used to hold a peer lookup or an inbox read forever. */
   private async get(path: string): Promise<any> {
     try {
-      const res = await fetch(`${this.baseUrl}${path}`, { headers: this.headers });
-      if (!res.ok) return null;
+      const res = await fetch(`${this.baseUrl}${path}`, {
+        headers: this.headers,
+        signal: AbortSignal.timeout(orchestratorRequestTimeoutMs()),
+      });
+      if (!res.ok) {
+        await discardBody(res);
+        return null;
+      }
       return await res.json();
     } catch {
       return null;
@@ -494,7 +506,7 @@ export class HoloMeshOrchestratorClient {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(orchestratorPostTimeoutMs()),
+        signal: AbortSignal.timeout(orchestratorRequestTimeoutMs()),
       });
     } catch (error) {
       return { ok: false, status: null, answer: undefined, failure: transportFailure(error) };
@@ -520,7 +532,7 @@ export class HoloMeshOrchestratorClient {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(orchestratorPostTimeoutMs()),
+        signal: AbortSignal.timeout(orchestratorRequestTimeoutMs()),
       });
       if (!res.ok) {
         await discardBody(res);
@@ -532,13 +544,18 @@ export class HoloMeshOrchestratorClient {
     }
   }
 
+  /** POST for the heartbeat, a message, a subscription or a broadcast: whether the orchestrator said
+   * yes. A silent orchestrator used to hold these forever; they now give up with the others. The
+   * answer's body is never used, so it is released instead of held open. */
   private async postOk(path: string, body: Record<string, unknown>): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(orchestratorRequestTimeoutMs()),
       });
+      await discardBody(res);
       return res.ok;
     } catch {
       return false;
