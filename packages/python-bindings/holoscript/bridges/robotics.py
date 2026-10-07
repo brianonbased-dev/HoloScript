@@ -17,7 +17,17 @@ Usage:
 import sys
 import json
 from typing import Dict, Any, List
-import roslibpy
+from .._deps import require as _require
+
+
+class _LazyRoslibpy:
+    """Imports roslibpy on first use so a clean install can still import this module."""
+
+    def __getattr__(self, name):
+        return getattr(_require(("roslibpy",), "robotics")["roslibpy"], name)
+
+
+roslibpy = _LazyRoslibpy()
 
 class ROS2Bridge:
     """ROS2 runtime bridge for HoloScript robotics"""
