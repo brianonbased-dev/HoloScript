@@ -40,6 +40,7 @@ import { z } from 'zod';
 import { messagingTools, handleMessagingTool } from './messaging';
 import { resolveSecretWithLease, VaultLeaseError } from './identity/vault-lease-registry';
 import type { SigningContext } from './identity/signing-middleware';
+import { assertReentrantToolAuthorized } from '../security/tool-scopes';
 import { notificationTools, handleNotificationTool } from './notifications';
 import { threadTools, handleThreadTool } from './threads';
 import { searchTools, handleSearchTool } from './search';
@@ -700,7 +701,7 @@ export async function handleHoloMeshTool(
     if (meshArgsHavePageExtract(args)) {
       const extractClient = hasHoloMeshKey() ? getOrCreateClient() : null;
       if (name === 'holomesh_contribute') return handleContribute(extractClient, args);
-      return handleFeedSource(extractClient, args);
+      return handleFeedSource(extractClient, args, signingCtx);
     }
   }
 
@@ -740,7 +741,7 @@ export async function handleHoloMeshTool(
     case 'holomesh_query_spatial':
       return handleQuerySpatial(client, args);
     case 'holomesh_feed_source':
-      return handleFeedSource(client, args);
+      return handleFeedSource(client, args, signingCtx);
     case 'holomesh_wallet_status':
       return handleWalletStatus();
     case 'holomesh_gossip_sync':
@@ -1514,11 +1515,30 @@ async function handleQuerySpatial(
 
 async function handleFeedSource(
   client: HoloMeshOrchestratorClient | null,
-  args: Record<string, unknown> = {}
+  args: Record<string, unknown> = {},
+  signingCtx?: SigningContext
 ) {
+  const hasExtract = meshArgsHavePageExtract(args) || hasCrawlShape(args);
+  if (hasExtract) {
+    // holomesh_feed_source is a tools:read tool, but with a page extract it WRITES that extract
+    // into world state, the same act as holomesh_contribute. So the write half asks for what
+    // contribute needs (tools:write), checked against the original caller's scopes the way #407
+    // checks a re-entered tool. Only the local stdio user, with no signing context, passes
+    // without scopes (isTrustedLocalCaller); on the hosted server a read token is refused.
+    try {
+      assertReentrantToolAuthorized('holomesh_contribute', signingCtx, 'Page extract write');
+    } catch (err: unknown) {
+      return {
+        error: 'insufficient_scope',
+        required: ['tools:write'],
+        message: `holomesh_feed_source only reads with a read-only token; writing a page extract needs tools:write. ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      };
+    }
+  }
   try {
     const agentId = client?.getAgentId() || process.env.HOLOMESH_AGENT_ID || 'did:agent:local';
-    const hasExtract = meshArgsHavePageExtract(args) || hasCrawlShape(args);
     const worldStatePath = hasExtract
       ? process.env.HOLOMESH_WORLD_STATE_PATH || undefined
       : process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';
