@@ -54,6 +54,16 @@ want consumers to opt in without a core release.
 
 ## Scope
 
-This layer rejects. It does not touch the other two silences in core:
-`HoloScriptValidator.validate()` still returns `[]` for any source, and
-`compileToWASM` still emits identical bytes for valid, garbage and empty input.
+This layer rejects. The validator behind `holoscript validate`, the
+`validate_holoscript` tool and the LSP (`validateCanonicalSource` in core)
+gives the same accept-or-refuse verdict on every file in `corpus/`;
+`src/validation/__tests__/rejection-corpus.test.ts` holds it to that.
+`HoloScriptValidator` reports what the legacy `.hs` code parser finds and is
+deprecated in favour of `validateCanonicalSource`.
+
+`compileToWASM` does depend on its input: one object and two objects compile
+to different output (measured 2026-10-07 with compositions from `parseHolo`).
+Garbage and empty input give the same bytes only because both parse to an
+empty composition, which this layer and the canonical validator refuse first.
+Pass the composition (`parseHolo(src).ast`), not the source string or the
+parse result, or every call compiles an empty composition.

@@ -1,5 +1,0 @@
-@
-
-object Ball {
-  position: [0, 1, 0]
-}

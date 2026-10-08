@@ -52,7 +52,7 @@ minor release; renaming or removing one is a major release.
 | `HS1004` | error | Tokens exist, nothing parsed into the composition | `this is not holo at all` |
 | `HS1005` | error | A trait with no name, including `@` alone | `{{{@@@` |
 | `HS1006` | warning (both modes; error with `unknownTraits: "error"`) | Trait is in no known vocabulary | `@nope_xyz` |
-| `HS1007` | error | The parser's own error, carried through unchanged | `object Cube { position: [0, 1, 0]` |
+| `HS1007` | error | The parser's own error, carried through (the parser's own code is kept when it has one, e.g. HS1005; not repeated on a token this layer already flagged) | `object Cube { position: [0, 1, 0]` |
 | `HS1008` | warning | The parser's own warning, carried through | — |
 | `HS1009` | error | Source was not a string | `parse(42)` |
 | `HS1010` | error | The tokenizer or parser threw | — |

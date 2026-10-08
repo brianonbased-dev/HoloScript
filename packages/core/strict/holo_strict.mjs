@@ -187,7 +187,16 @@ export function analyze(source, deps, options = {}) {
     return { ast: null, diagnostics };
   }
   for (const err of parsed.errors || []) {
-    push(diag("HS1007", "error", messageOf(err), anchors.fromParser(err)));
+    const where = anchors.fromParser(err);
+    // The checks above already put an error on this token (an unclosed "{", a
+    // nameless "@"); the parser's report of the same token adds nothing.
+    if (diagnostics.some((d) => d.severity === "error" && d.line === where.line && d.column === where.column)) {
+      continue;
+    }
+    // The parser names some findings with a contract code itself (HS1005 for a
+    // nameless "@"); keep it. Everything else is carried as HS1007.
+    const code = typeof err?.code === "string" && /^HS1\d{3}$/.test(err.code) ? err.code : "HS1007";
+    push(diag(code, "error", messageOf(err), where));
   }
   for (const warn of parsed.warnings || []) {
     push(diag("HS1008", "warning", messageOf(warn), anchors.fromParser(warn)));
