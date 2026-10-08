@@ -1,0 +1,259 @@
+{
+  "$comment": "The corpus the strict layer is held to. valid/: small hand-written files, accepted with the object count shown. real/: verbatim copies of real repo files (path in `from`, copied at f55538f48), each accepted with no error diagnostics; they guard against rejecting the language as it is actually written. warns/: accepted by strict mode, with exactly the warnings listed (an unknown trait is a warning, not grounds to refuse). invalid/: rejected with exactly the error diagnostics listed, each at a 1-based line and column.",
+  "valid": [
+    {
+      "file": "valid/object-basic.holo",
+      "objects": 1
+    },
+    {
+      "file": "valid/object-traits.holo",
+      "objects": 1
+    },
+    {
+      "file": "valid/two-objects.holo",
+      "objects": 2
+    },
+    {
+      "file": "valid/composition.holo",
+      "objects": 1
+    },
+    {
+      "file": "valid/group.holo",
+      "objects": 0
+    },
+    {
+      "file": "valid/import-and-comment.holo",
+      "objects": 1
+    },
+    {
+      "file": "valid/import-semicolon.holo",
+      "objects": 1
+    }
+  ],
+  "real": [
+    {
+      "file": "real/examples__quickstart__1-floating-cyan-orb.holo",
+      "from": "examples/quickstart/1-floating-cyan-orb.holo",
+      "covers": "quickstart"
+    },
+    {
+      "file": "real/examples__quickstart__1-floating-cyan-orb.refreshed.holo",
+      "from": "examples/quickstart/1-floating-cyan-orb.refreshed.holo",
+      "covers": "quickstart"
+    },
+    {
+      "file": "real/examples__quickstart__2-red-cube-teal-button.holo",
+      "from": "examples/quickstart/2-red-cube-teal-button.holo",
+      "covers": "quickstart"
+    },
+    {
+      "file": "real/examples__quickstart__3-ball-ramp-with-bouncy-spheres.holo",
+      "from": "examples/quickstart/3-ball-ramp-with-bouncy-spheres.holo",
+      "covers": "quickstart"
+    },
+    {
+      "file": "real/examples__quickstart__4-networked-spheres.holo",
+      "from": "examples/quickstart/4-networked-spheres.holo",
+      "covers": "quickstart"
+    },
+    {
+      "file": "real/examples__quickstart__5-color-button-panel.holo",
+      "from": "examples/quickstart/5-color-button-panel.holo",
+      "covers": "quickstart"
+    },
+    {
+      "file": "real/examples__quickstart__test_diagnostics.holo",
+      "from": "examples/quickstart/test_diagnostics.holo",
+      "covers": "quickstart; environment and lights"
+    },
+    {
+      "file": "real/benchmarks__scenarios__01-basic-scene__basic-scene.holo",
+      "from": "benchmarks/scenarios/01-basic-scene/basic-scene.holo",
+      "covers": "composition with metadata and a scene block (was HS1004)"
+    },
+    {
+      "file": "real/packages__studio__src__lib__studio__describe-it__describe_it_first_run.holo",
+      "from": "packages/studio/src/lib/studio/describe-it/describe_it_first_run.holo",
+      "covers": "scenes"
+    },
+    {
+      "file": "real/examples__edge__public-holon-node.holo",
+      "from": "examples/edge/public-holon-node.holo",
+      "covers": "metadata only (was HS1004)"
+    },
+    {
+      "file": "real/packages__core__src__traits__semantic-2d__particle_feedback.holo",
+      "from": "packages/core/src/traits/semantic-2d/particle_feedback.holo",
+      "covers": "@trait definition (was HS1004 + HS1006)"
+    },
+    {
+      "file": "real/packages__core__src__traits__motion_reduced.holo",
+      "from": "packages/core/src/traits/motion_reduced.holo",
+      "covers": "@trait definition with ui block and = defaults"
+    },
+    {
+      "file": "real/packages__core__src__traits__spatial_panel.holo",
+      "from": "packages/core/src/traits/spatial_panel.holo",
+      "covers": "@trait definition, the deriveTraitSchema example"
+    },
+    {
+      "file": "real/examples__agents__distributed-npc-state.holo",
+      "from": "examples/agents/distributed-npc-state.holo",
+      "covers": "JS-style import ending in ; (was HS1003)"
+    },
+    {
+      "file": "real/examples__three-surface-agent__main.holo",
+      "from": "examples/three-surface-agent/main.holo",
+      "covers": "imports, logic, state"
+    },
+    {
+      "file": "real/examples__landing_2d.holo",
+      "from": "examples/landing_2d.holo",
+      "covers": "@theme, a keyword after @ (was HS1005); Native2D panel traits"
+    },
+    {
+      "file": "real/examples__showcase__multi-domain.holo",
+      "from": "examples/showcase/multi-domain.holo",
+      "covers": "@telemetry, a keyword after @ (was HS1005); domain blocks"
+    },
+    {
+      "file": "real/packages__core__src__theming__theme.holo",
+      "from": "packages/core/src/theming/theme.holo",
+      "covers": "root-level @theme"
+    },
+    {
+      "file": "real/packages__framework__src__behavior__state.holo",
+      "from": "packages/framework/src/behavior/state.holo",
+      "covers": "@state"
+    },
+    {
+      "file": "real/packages__studio__holo-pages__pipeline__page.holo",
+      "from": "packages/studio/holo-pages/pipeline/page.holo",
+      "covers": "root-level @page"
+    },
+    {
+      "file": "real/packages__studio__src__lib__studio__panels__lod.holo",
+      "from": "packages/studio/src/lib/studio/panels/lod.holo",
+      "covers": "Native2D panel vocabulary (buildKnownTraitSet)"
+    },
+    {
+      "file": "real/examples__presets__space.holo",
+      "from": "examples/presets/space.holo",
+      "covers": "custom domain blocks, environment, lights"
+    },
+    {
+      "file": "real/packages__animation-presets__templates__combat.holo",
+      "from": "packages/animation-presets/templates/combat.holo",
+      "covers": "templates"
+    },
+    {
+      "file": "real/benchmarks__cross-compilation__compositions__13-aerospace.holo",
+      "from": "benchmarks/cross-compilation/compositions/13-aerospace.holo",
+      "covers": "spatial groups (was HS1006 for VR_TRAITS names)"
+    },
+    {
+      "file": "real/packages__core__src____tests____fixtures__hs-core-barrier-world.holo",
+      "from": "packages/core/src/__tests__/fixtures/hs-core-barrier-world.holo",
+      "covers": "contract, connections, state machines"
+    },
+    {
+      "file": "real/examples__platforms__unreal-scene.holo",
+      "from": "examples/platforms/unreal-scene.holo",
+      "covers": "audio"
+    },
+    {
+      "file": "real/packages__studio__public__scenes__lotus-pond.holo",
+      "from": "packages/studio/public/scenes/lotus-pond.holo",
+      "covers": "timelines"
+    },
+    {
+      "file": "real/examples__norm-lifecycle__cultural-governance.holo",
+      "from": "examples/norm-lifecycle/cultural-governance.holo",
+      "covers": "norms and metanorms"
+    },
+    {
+      "file": "real/examples__domain-starters__industrial-iot__industrial-iot-starter.holo",
+      "from": "examples/domain-starters/industrial-iot/industrial-iot-starter.holo",
+      "covers": "actions"
+    }
+  ],
+  "warns": [
+    {
+      "file": "warns/unknown-trait.holo",
+      "objects": 1,
+      "warnings": [
+        ["HS1006", 3, 3]
+      ]
+    },
+    {
+      "file": "warns/composition-2d-canvas.holo",
+      "objects": 1,
+      "warnings": [
+        ["HS1006", 2, 3]
+      ]
+    }
+  ],
+  "invalid": [
+    {
+      "file": "invalid/empty.holo",
+      "errors": [
+        ["HS1001", 1, 1]
+      ]
+    },
+    {
+      "file": "invalid/braces-and-ats.holo",
+      "errors": [
+        ["HS1002", 1, 1],
+        ["HS1002", 1, 2],
+        ["HS1002", 1, 3],
+        ["HS1005", 1, 4],
+        ["HS1005", 1, 5]
+      ]
+    },
+    {
+      "file": "invalid/unclosed-object.holo",
+      "errors": [
+        ["HS1002", 1, 13],
+        ["HS1007", 3, 1]
+      ]
+    },
+    {
+      "file": "invalid/stray-close-brace.holo",
+      "errors": [
+        ["HS1002", 4, 1]
+      ]
+    },
+    {
+      "file": "invalid/after-multiline-string.holo",
+      "errors": [
+        ["HS1002", 6, 1]
+      ]
+    },
+    {
+      "file": "invalid/sql.holo",
+      "errors": [
+        ["HS1003", 1, 8],
+        ["HS1004", 1, 1]
+      ]
+    },
+    {
+      "file": "invalid/prose.holo",
+      "errors": [
+        ["HS1003", 1, 24],
+        ["HS1004", 1, 1]
+      ]
+    },
+    {
+      "file": "invalid/json-not-holo.holo",
+      "errors": [
+        ["HS1004", 1, 1]
+      ]
+    },
+    {
+      "file": "invalid/at-without-name.holo",
+      "errors": [
+        ["HS1005", 1, 1]
+      ]
+    }
+  ]
+}

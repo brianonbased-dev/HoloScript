@@ -1,0 +1,8 @@
+object Floor {
+  position: [0, 0, 0]
+}
+
+object Lamp {
+  position: [1, 2, 0]
+  @grabbable
+}
