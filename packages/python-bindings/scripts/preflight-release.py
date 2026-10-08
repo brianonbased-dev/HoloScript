@@ -9,7 +9,11 @@ extras, which is what a user gets, not against the source tree with dev deps pre
 
 Usage (the publish scripts do this for you):
     python -m venv /tmp/pf && /tmp/pf/bin/pip install dist/holoscript-*.whl
-    /tmp/pf/bin/python scripts/preflight-release.py [--expect 6.0.8]
+    /tmp/pf/bin/python -I scripts/preflight-release.py [--expect 6.0.8]
+
+-I (isolated mode) keeps PYTHONPATH, the user site and the script's own folder off
+sys.path. Without it, an exported PYTHONPATH can put the source tree ahead of the
+installed wheel. The script refuses to grade anything but an installed copy either way.
 
 Exit 0 means every claim held. Exit 1 lists what failed; do not publish.
 
@@ -23,10 +27,54 @@ import argparse
 import inspect
 import json
 import os
+import site
 import sys
+import sysconfig
 import tempfile
 
 FAILS: list[str] = []
+_ABSENT = object()
+
+#: Every bridge module the wheel ships. capabilities() may only call a bridge
+#: implemented if it is one of these.
+SHIPPED_BRIDGES = ("alphafold", "medical", "narupa", "radio_astronomy", "robotics", "scientific")
+
+
+def _norm(path: str) -> str:
+    return os.path.normcase(os.path.realpath(path))
+
+
+def _is_under(path: str, root: str) -> bool:
+    try:
+        return os.path.commonpath([path, root]) == root
+    except ValueError:  # different drives on Windows
+        return False
+
+
+def install_location_problem(module_file: str) -> str | None:
+    """Why ``module_file`` is not an installed copy in this interpreter, or None.
+
+    Pre-flight exists to catch what only the built wheel gets wrong (6.0.7 died on a
+    clean install, not in the source tree). Grading the source tree and calling it the
+    artifact is the failure this refuses: the module must live in a site-packages
+    directory of sys.prefix, and not inside the package this script came from.
+    """
+    here = _norm(module_file)
+    own_package = _norm(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
+    if _is_under(here, own_package):
+        return f"it was imported from the source tree this script belongs to ({here})"
+    prefix = _norm(sys.prefix)
+    candidates = set(site.getsitepackages([sys.prefix]))
+    for key in ("purelib", "platlib"):
+        candidates.add(sysconfig.get_path(key))
+    site_dirs = sorted({_norm(p) for p in candidates if p} - {prefix})
+    site_dirs = [d for d in site_dirs if _is_under(d, prefix)]
+    if not any(_is_under(here, d) for d in site_dirs):
+        return (
+            f"it was imported from {here}, which is not in a site-packages directory of "
+            f"this interpreter's prefix ({prefix}; looked in: {', '.join(site_dirs) or 'none'})"
+        )
+    return None
 
 
 def check(name, fn, want=None):
@@ -48,6 +96,18 @@ def main() -> int:
     opts = ap.parse_args()
 
     import holoscript as hs
+
+    problem = install_location_problem(hs.__file__)
+    if problem:
+        print(
+            "REFUSED: pre-flight grades the installed wheel, and the holoscript it imported "
+            f"is not one: {problem}.\n"
+            "Install the wheel into a clean venv and run this with that venv's interpreter "
+            "in isolated mode, from outside the source tree:\n"
+            "    <venv python> -I scripts/preflight-release.py --expect <version>\n"
+            "Nothing was checked. Do not publish on this run."
+        )
+        return 1
 
     print(f"pre-flight for holoscript {hs.__version__} (installed at {os.path.dirname(hs.__file__)})\n")
     if opts.expect:
@@ -93,12 +153,24 @@ def main() -> int:
     check("capabilities() declares validate unimplemented", lambda: caps["not_implemented"]["validate"], "6.1.0")
     check("capabilities() claims no grammar while there is none", lambda: caps["grammar"] is None)
     check("capabilities() survives JSON, so an agent can branch on it", lambda: bool(json.dumps(caps)))
+    def implemented_names():
+        impl = caps["implemented"]
+        names = set(impl) | set(impl["bridges"]) | set(impl["cognition"])
+        names |= {f"bridges.{b}" for b in impl["bridges"]} | {f"cognition.{c}" for c in impl["cognition"]}
+        return names
+
+    def not_implemented_names():
+        names = set(caps["not_implemented"])
+        return names | {n.split(".", 1)[1] for n in names if "." in n}
+
     check(
         "capabilities() never lists a name as both implemented and not",
-        lambda: sorted(
-            (set(caps["implemented"]) | set(caps["implemented"]["bridges"]) | set(caps["implemented"]["cognition"]))
-            & set(caps["not_implemented"])
-        ),
+        lambda: sorted(implemented_names() & not_implemented_names()),
+        [],
+    )
+    check(
+        "every bridge capabilities() calls implemented is a module the wheel ships",
+        lambda: sorted(set(caps["implemented"]["bridges"]) - set(SHIPPED_BRIDGES)),
         [],
     )
     check(
@@ -131,8 +203,118 @@ def main() -> int:
                 return f"{type(exc).__name__}: {exc}"
         return go
 
-    for mod in ("alphafold", "robotics", "narupa", "scientific", "radio_astronomy"):
-        check(f"bridges.{mod} imports with no extras installed", imports(f"holoscript.bridges.{mod}"))
+    for mod in SHIPPED_BRIDGES:
+        if mod != "medical":
+            check(f"bridges.{mod} imports with no extras installed", imports(f"holoscript.bridges.{mod}"))
+
+    # --- alphafold is a stub, so it must not be called implemented ----------------
+    # Through the first 6.0.8 draft, capabilities() listed alphafold as implemented and
+    # said the local path only needed a ColabFold install. It never returns a structure.
+    # Force the local path with ColabFold "present": if it ever starts working, this
+    # check fails and tells you to move alphafold back to implemented.
+    def alphafold_local_fails_with_colabfold_present():
+        from holoscript.bridges.alphafold import AlphaFoldBridge
+
+        bridge = AlphaFoldBridge()
+        bridge.colabfold_available = True  # pretend ColabFold is installed
+        got = bridge.predict_structure({"sequence": "MKTAYIAKQRQ", "mode": "local"})
+        if got.get("status") != "failed":
+            return (
+                f"the local ColabFold path returned status {got.get('status')!r}; if it really "
+                "works now, move alphafold to implemented and rewrite this check"
+            )
+        return True
+
+    check("bridges.alphafold: the local path fails even with ColabFold present", alphafold_local_fails_with_colabfold_present)
+
+    def alphafold_api_fails_closed_without_key():
+        from holoscript.bridges.alphafold import AlphaFoldBridge
+
+        bridge = AlphaFoldBridge()
+        bridge.api_key = None  # never reach the network from pre-flight
+        return bridge.predict_structure({"sequence": "MKTAYIAKQRQ"}).get("status") == "failed"
+
+    check("bridges.alphafold: the API path fails closed without a key", alphafold_api_fails_closed_without_key)
+
+    def alphafold_not_claimed():
+        if "alphafold" in caps["implemented"]["bridges"]:
+            return "capabilities() lists alphafold under implemented.bridges, but no path in it returns a structure"
+        if "bridges.alphafold" not in caps["not_implemented"]:
+            return "capabilities() does not list bridges.alphafold under not_implemented"
+        return True
+
+    check("capabilities() lists alphafold as not implemented, not as implemented", alphafold_not_claimed)
+
+    # --- what a bridge does when its dependency is missing (README and guide claim) --
+    # medical raises ImportError at import (checked above); these import fine and report
+    # the missing dependency in the result they return, naming the install line.
+    # scientific and narupa need a package no extra installs, which limits must say.
+    def reports_missing(dep, call, status, install_line, limit_word=None):
+        def go():
+            # Block the import (a None entry in sys.modules makes it raise) so the
+            # missing-dependency path is what runs, even if the package is present.
+            saved = sys.modules.get(dep, _ABSENT)
+            sys.modules[dep] = None
+            try:
+                got = call()
+            finally:
+                if saved is _ABSENT:
+                    del sys.modules[dep]
+                else:
+                    sys.modules[dep] = saved
+            if got.get("status") != status:
+                return f"returned status {got.get('status')!r}, want {status!r}: {got!r}"
+            if install_line not in json.dumps(got):
+                return f"result does not name {install_line!r}: {got!r}"
+            if limit_word is not None and limit_word not in caps["limits"].get(call.__name__, ""):
+                return f"capabilities()['limits'][{call.__name__!r}] does not mention {limit_word!r}"
+            return True
+        return go
+
+    def robotics():
+        from holoscript.bridges.robotics import ROS2Bridge
+
+        return ROS2Bridge().connect()
+
+    def scientific():
+        from holoscript.bridges.scientific import AutoDockBridge
+
+        return AutoDockBridge().run_docking(
+            {"protein_pdb": "r.pdb", "ligand_mol": "l.mol", "box_center": [0, 0, 0], "box_size": [1, 1, 1]}
+        )
+
+    def narupa():
+        from holoscript.bridges.narupa import NarupaBridge
+
+        return NarupaBridge().start_server({"pdb_path": "missing.pdb"})
+
+    def alphafold():
+        from holoscript.bridges.alphafold import AlphaFoldBridge
+
+        # A key makes it reach for requests, which a clean install does not have; the
+        # lazy import raises before any network call.
+        return AlphaFoldBridge(api_key="preflight-not-a-key").predict_structure({"sequence": "MKTAYIAKQRQ"})
+
+    check(
+        "bridges.robotics without roslibpy: status failed, names the install line",
+        reports_missing("roslibpy", robotics, "failed", "pip install 'holoscript[robotics]'"),
+    )
+    check(
+        "bridges.alphafold without requests: status failed, names the install line",
+        reports_missing("requests", alphafold, "failed", "pip install 'holoscript[alphafold]'"),
+    )
+    check(
+        "bridges.scientific without vina: status failed, names pip install vina, limits say so",
+        reports_missing("vina", scientific, "failed", "pip install vina", "vina"),
+    )
+    check(
+        "bridges.narupa without nanover: status error, names nanover-server, limits say so",
+        reports_missing("nanover", narupa, "error", "nanover-server", "nanover-server"),
+    )
+    check(
+        "capabilities() states the medical bridge's gaps",
+        lambda: all(w in caps["limits"].get("medical", "") for w in ("dicom_to_mesh", "extract_3d_volume")),
+    )
 
     # --- every surface capabilities() calls implemented must actually work --------
     claimed = (caps.get("implemented") or {}).get("cognition") or []
