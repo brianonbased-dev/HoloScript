@@ -13,6 +13,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // captured LLMCompletionRequests (used to assert past-threads prompt injection).
 const h = vi.hoisted(() => ({
   chunks: [] as Array<Record<string, unknown>>,
+  // Set to a wake time (seconds) to make the provider report a cold Brittney box.
+  warmingEta: null as number | null,
   captured: [] as Array<{
     messages: Array<{ role: string; content: unknown }>;
     tools?: Array<{ name: string }>;
@@ -67,7 +69,14 @@ vi.mock('@/lib/brittney/provider', () => ({
   resolveBrittneyProvider: () => {
     throw new Error('sync resolve not used in tests');
   },
-  resolveBrittneyProviderAsync: async () => ({
+  resolveBrittneyProviderAsync: async () => {
+    if (h.warmingEta !== null) {
+      throw Object.assign(new Error('SOVEREIGN_WARMING: Brittney is waking up.'), {
+        code: 'SOVEREIGN_WARMING',
+        etaSeconds: h.warmingEta,
+      });
+    }
+    return {
     provider: {
       streamCompletion: (request: {
         messages: Array<{ role: string; content: unknown }>;
@@ -86,7 +95,8 @@ vi.mock('@/lib/brittney/provider', () => ({
     model: 'test-model',
     maxTokens: 1000,
     providerName: 'anthropic',
-  }),
+    };
+  },
 }));
 
 import { POST } from './route';
@@ -129,6 +139,7 @@ beforeEach(() => {
   delete process.env.BRITTNEY_OPERATOR_TRANSPORT;
   h.chunks.length = 0;
   h.captured.length = 0;
+  h.warmingEta = null;
   (globalThis as { __brittneyConversations__?: Map<string, unknown> }).__brittneyConversations__ =
     new Map();
   (globalThis as { __brittneyMessages__?: Map<string, unknown> }).__brittneyMessages__ = new Map();
@@ -365,5 +376,20 @@ describe('POST /api/brittney write-through', () => {
     expect(prompt).toContain('Discussed the solar panel layout');
     // …but the ACTIVE thread is excluded from its own recall block.
     expect(prompt).not.toContain('Beta thread opening question xyz');
+  });
+});
+
+describe('a cold Brittney box is a wait, not an error', () => {
+  it('sends a `warming` event with the wake time before the plain-text error', async () => {
+    mockSession('user-warm');
+    h.warmingEta = 1200;
+    const res = await POST(chatReq({ messages: [{ role: 'user', content: 'hi' }] }));
+    const events = await readEvents(res);
+    expect(events[0]).toEqual({
+      type: 'warming',
+      payload: { etaSeconds: 1200, message: 'SOVEREIGN_WARMING: Brittney is waking up.' },
+    });
+    // Older clients (the wizard, bk_ customers) still read one plain sentence.
+    expect(events.map((e) => e.type)).toEqual(['warming', 'error', 'done']);
   });
 });

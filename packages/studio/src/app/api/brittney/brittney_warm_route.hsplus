@@ -1,0 +1,10 @@
+// @brittney_warm_route — Brittney wake route: records demand so her serving box is rented before the first message.
+//
+// Native .hsplus surface for studio/src/app/api/brittney/warm/route.ts.
+
+@trait brittney_warm_route {
+  capability_tags: ["brittney_warm_route", "brittney_wake_on_signin", "studio_brittney_demand", "studio"]
+  @on_spawn => { emit("brittney_warm_route_ready", {}) }
+  @on_post(request) => { return wake_brittney(request) }
+  @receipt brittney_warm_route_config { type: "BrittneyWarmRouteReceipt"; timestamp: now() }
+}

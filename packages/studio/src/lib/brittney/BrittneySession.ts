@@ -26,6 +26,9 @@ export interface AssistantStreamEvent {
     | 'operator_receipt'
     | 'conversation'
     | 'persisted'
+    // 'warming': Brittney's box is cold and being rented; payload { etaSeconds, message }.
+    // The server follows it with an 'error' carrying the same sentence for older clients.
+    | 'warming'
     | 'error'
     | 'done';
   payload: unknown;

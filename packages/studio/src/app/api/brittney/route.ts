@@ -236,6 +236,19 @@ export async function POST(request: NextRequest) {
         );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        // Matched by its code, not instanceof, so a test that mocks the provider module
+        // without the error class still reaches this branch (BrittneyWarmingError).
+        const warming = err as { code?: unknown; etaSeconds?: unknown };
+        if (warming?.code === 'SOVEREIGN_WARMING' && typeof warming.etaSeconds === 'number') {
+          // A cold box is not an error. `warming` lets the chat panel show a "waking up"
+          // notice and resend on its own; clients that only know `error` still get the
+          // same plain sentence.
+          return sseResponse([
+            { type: 'warming', payload: { etaSeconds: warming.etaSeconds, message: msg } },
+            { type: 'error', payload: msg },
+            { type: 'done', payload: null },
+          ]);
+        }
         return sseResponse([
           { type: 'error', payload: msg },
           { type: 'done', payload: null },

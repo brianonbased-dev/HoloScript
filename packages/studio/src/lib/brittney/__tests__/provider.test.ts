@@ -14,7 +14,11 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { FrontierFallbackRefusedError, HostedOllamaRefusedError } from '@holoscript/llm-provider';
-import { resolveBrittneyProvider, resolveBrittneyProviderAsync } from '../provider';
+import {
+  recordBrittneyDemand,
+  resolveBrittneyProvider,
+  resolveBrittneyProviderAsync,
+} from '../provider';
 
 /** Every env name the resolution reads, so a developer's shell cannot leak into a test. */
 const PROVIDER_ENV = [
@@ -457,6 +461,40 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
     process.env.BRITTNEY_PROVIDER = 'fleet';
     stubResolve({ status: 'cold' });
     await expect(resolveBrittneyProviderAsync()).rejects.toThrow(/warming/i);
+  });
+
+  it('the cold-fleet refusal carries a wake time, so the panel can say "waking up"', async () => {
+    process.env.BRITTNEY_PROVIDER = 'fleet';
+    process.env.BRITTNEY_WAKE_ETA_S = '900';
+    stubResolve({ status: 'cold' });
+    await expect(resolveBrittneyProviderAsync()).rejects.toMatchObject({
+      code: 'SOVEREIGN_WARMING',
+      etaSeconds: 900,
+    });
+    delete process.env.BRITTNEY_WAKE_ETA_S;
+  });
+
+  it('recordBrittneyDemand asks /serve/resolve once and runs no chat', async () => {
+    process.env.BRITTNEY_FLEET_MODEL = 'qwen3:14b';
+    process.env.BRITTNEY_FLEET_ORCH_URL = 'https://orch.test/';
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ status: 'cold' }) }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(recordBrittneyDemand()).resolves.toBe('waking');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://orch.test/serve/resolve?model=qwen3%3A14b');
+  });
+
+  it('recordBrittneyDemand: warm, unreachable, and not the fleet', async () => {
+    process.env.BRITTNEY_FLEET_MODEL = 'qwen3:14b';
+    stubResolve({ status: 'warm', url: 'http://1.2.3.4:40188' });
+    await expect(recordBrittneyDemand()).resolves.toBe('warm');
+    stubResolve({}, false);
+    await expect(recordBrittneyDemand()).resolves.toBe('unreachable');
+    delete process.env.BRITTNEY_FLEET_MODEL;
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(recordBrittneyDemand()).resolves.toBe('not_fleet');
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('auto-detects fleet when BRITTNEY_FLEET_MODEL set and no explicit provider', async () => {

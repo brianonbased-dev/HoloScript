@@ -1,0 +1,9 @@
+// @use_brittney_wake — wakes Brittney when her panel opens and shows a calm "waking up" notice until she answers.
+//
+// Native .hsplus surface for studio/src/hooks/useBrittneyWake.ts.
+
+@trait use_brittney_wake {
+  capability_tags: ["use_brittney_wake", "brittney_wake_on_panel_open", "brittney_waking_notice", "studio"]
+  @on_spawn => { emit("use_brittney_wake_ready", {}) }
+  @receipt use_brittney_wake_config { type: "UseBrittneyWakeReceipt"; timestamp: now() }
+}

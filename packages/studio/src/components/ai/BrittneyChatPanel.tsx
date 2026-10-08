@@ -46,6 +46,7 @@ import { useHistoryStore, setNextHistoryLabel } from '@/lib/historyStore';
 import { StudioEvents } from '@/lib/analytics';
 import { useAssistantVoice } from '@/hooks/useBrittneyVoice';
 import { useUnifiedBrittneyHistory } from '@/hooks/useUnifiedBrittneyHistory';
+import { useBrittneyWake, wakeNoticeText } from '@/hooks/useBrittneyWake';
 import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
 import { useAgentStore } from '@/lib/stores/agentStore';
 import { useOrchestrationStore } from '@/lib/orchestrationStore';
@@ -437,6 +438,10 @@ export function BrittneyChatPanel() {
   // status so we offer an actionable sign-in CTA instead.
   const { status: sessionStatus } = useSession();
   const isUnauthenticated = sessionStatus === 'unauthenticated';
+  // Brittney is rented on demand (founder 2026-10-08). Opening the panel wakes her; a turn
+  // that finds her cold is held here and sent by itself once she answers.
+  const { state: wakeState, markWaking } = useBrittneyWake(sessionStatus === 'authenticated');
+  const [heldMessage, setHeldMessage] = useState<string | null>(null);
   const selectedId = useEditorStore((s) => s.selectedObjectId);
   const selectedName = useEditorStore((s) => s.selectedObjectName);
   const nodes = useSceneGraphStore((s) => s.nodes);
@@ -744,8 +749,12 @@ export function BrittneyChatPanel() {
     };
   }, []);
 
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
+  /**
+   * Send one turn. `resend` replays a turn held while Brittney was waking: its user
+   * message is already on screen, in the history and in the local cache.
+   */
+  const sendText = useCallback(async (rawText: string, resend = false) => {
+    const text = rawText.trim();
     if (!text || isThinking) return;
     // SEC-T03: the assistant requires an authenticated session. Surface an
     // actionable sign-in prompt rather than firing a request that 401s.
@@ -762,7 +771,7 @@ export function BrittneyChatPanel() {
       ]);
       return;
     }
-    setInput('');
+    if (!resend) setInput('');
 
     StudioEvents.brittneyPromptSent(text.length);
 
@@ -775,15 +784,19 @@ export function BrittneyChatPanel() {
 
     // Add user message to chat
     const userMsgId = userTimestamp.toString();
-    setChatMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
-    persistMessage(
-      { role: 'user', content: text, timestamp: userTimestamp },
-      { localOnly: serverPersistIntent }
-    );
+    if (!resend) {
+      setChatMessages((m) => [...m, { id: userMsgId, role: 'user', text }]);
+      persistMessage(
+        { role: 'user', content: text, timestamp: userTimestamp },
+        { localOnly: serverPersistIntent }
+      );
+    }
 
-    // Build updated LLM history
-    const updatedHistory: AssistantMessage[] = [...llmHistory, { role: 'user', content: text }];
-    setLlmHistory(updatedHistory);
+    // Build updated LLM history (a held turn's user message is already its last entry)
+    const updatedHistory: AssistantMessage[] = resend
+      ? llmHistory
+      : [...llmHistory, { role: 'user', content: text }];
+    if (!resend) setLlmHistory(updatedHistory);
     setIsThinking(true);
 
     // Build rich assistant context: workspace/repo state first, scene source second.
@@ -828,6 +841,8 @@ export function BrittneyChatPanel() {
     // confirmation that this turn is persisted server-side. Stays false on
     // crash/old-server so the legacy client upload path takes over.
     let conversationConfirmed = false;
+    // Set when the server says Brittney's box is cold (`warming`): the turn is held, not failed.
+    let warmingEtaSeconds: number | null = null;
 
     try {
       const storeActions = getStoreActions();
@@ -936,6 +951,10 @@ export function BrittneyChatPanel() {
                 : msg
             )
           );
+        } else if (event.type === 'warming') {
+          const eta = (event.payload as { etaSeconds?: unknown } | null)?.etaSeconds;
+          warmingEtaSeconds = typeof eta === 'number' ? eta : 0;
+          break;
         } else if (event.type === 'error') {
           accumulatedText = `Sorry, I hit an error: ${event.payload}`;
           const segments = buildChatSegments(accumulatedText, toolResults);
@@ -966,6 +985,16 @@ export function BrittneyChatPanel() {
           msg.id === assistantMsgId ? { ...msg, text: accumulatedText, segments } : msg
         )
       );
+    }
+
+    if (warmingEtaSeconds !== null) {
+      // Cold box: no error bubble. Drop the empty reply, hold the turn, and let the waking
+      // notice say how long; the effect below sends it when she is ready.
+      setChatMessages((m) => m.filter((msg) => msg.id !== assistantMsgId));
+      setHeldMessage(text);
+      markWaking(warmingEtaSeconds);
+      setIsThinking(false);
+      return;
     }
 
     // Finalize message
@@ -1024,7 +1053,6 @@ export function BrittneyChatPanel() {
       speak(accumulatedText);
     }
   }, [
-    input,
     isThinking,
     isUnauthenticated,
     sessionStatus,
@@ -1059,7 +1087,19 @@ export function BrittneyChatPanel() {
     getStoreActions,
     persistMessage,
     speak,
+    markWaking,
   ]);
+
+  const handleSend = useCallback(() => sendText(input), [sendText, input]);
+
+  // Brittney answered: send the turn that was held while she woke.
+  useEffect(() => {
+    if (wakeState.phase !== 'ready' || heldMessage === null || isThinking) return;
+    setHeldMessage(null);
+    void sendText(heldMessage, true);
+  }, [wakeState.phase, heldMessage, isThinking, sendText]);
+
+  const wakeNotice = wakeNoticeText(wakeState, Date.now(), heldMessage !== null);
 
   const handleConfirmToolResult = useCallback(
     (messageId: string, resultIndex: number) => {
@@ -1162,9 +1202,11 @@ export function BrittneyChatPanel() {
       <div className="flex shrink-0 items-center gap-2.5 border-b border-studio-border px-4 py-2">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
-            isThinking ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'
+            isThinking || wakeState.phase === 'waking'
+              ? 'bg-yellow-400 animate-pulse'
+              : 'bg-green-400'
           }`}
-          aria-label={isThinking ? 'Thinking' : 'Ready'}
+          aria-label={isThinking ? 'Thinking' : wakeState.phase === 'waking' ? 'Waking up' : 'Ready'}
         />
         {sessionStatus === 'authenticated' && (
           <ConversationSwitcher
@@ -1204,6 +1246,18 @@ export function BrittneyChatPanel() {
           </button>
         </div>
       </div>
+
+      {/* Waking notice — a cold box is a short wait, never an error */}
+      {wakeNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="brittney-wake-notice"
+          className="shrink-0 border-b border-studio-border bg-studio-accent/10 px-4 py-2 text-xs text-studio-text"
+        >
+          {wakeNotice}
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto space-y-3 p-4">

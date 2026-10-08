@@ -282,6 +282,20 @@ export function buildAuthOptions(): NextAuthOptions {
         return session;
       },
     },
+    events: {
+      /**
+       * Wake Brittney when someone signs in (founder 2026-10-08: she is no longer
+       * always-on). Records demand with the orchestrator so her box is being rented
+       * while the person looks around. Loaded lazily so the provider stack never
+       * enters this module's import graph, and never awaited or allowed to throw:
+       * a sign-in must not wait on, or fail because of, the GPU fleet.
+       */
+      signIn({ user }) {
+        void import('./brittney/wake')
+          .then((m) => m.wakeBrittneyOnSignIn(user?.id))
+          .catch(() => undefined);
+      },
+    },
     pages: {
       signIn: '/auth/signin',
     },

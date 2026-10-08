@@ -300,6 +300,9 @@ function resolveOllama(host: string | undefined): ResolvedBrittneyProvider {
 
 const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 
+/** Measured rent-to-ready time of a cold Brittney box (see brittneyWakeEtaSeconds). */
+const DEFAULT_WAKE_ETA_S = 20 * 60;
+
 /**
  * Resolve Brittney against the sovereign serving fleet (P.008) — the MOST native
  * backend. The serving box's IP:port is EPHEMERAL across scale-to-zero, so we resolve
@@ -316,28 +319,98 @@ const FLEET_DEFAULT_ORCH = 'https://mcp-orchestrator-production-45f9.up.railway.
  * FLEET_INFERENCE_KEY (= the box's SERVE_API_KEY), BRITTNEY_FLEET_RESOLVE_KEY (or
  * HOLOSCRIPT_API_KEY) for the `/serve/resolve` x-mcp-api-key.
  */
-async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
+function fleetSettings(): { orch: string; model: string; resolveKey: string } {
   const orch = (
     process.env.BRITTNEY_FLEET_ORCH_URL ||
     process.env.MCP_ORCHESTRATOR_URL ||
     FLEET_DEFAULT_ORCH
   ).replace(/\/$/, '');
   const model = process.env.BRITTNEY_FLEET_MODEL || FLEET_DEFAULT_MODEL;
-  const bearer = process.env.FLEET_INFERENCE_KEY || process.env.SERVE_INFERENCE_KEY;
   const resolveKey = process.env.BRITTNEY_FLEET_RESOLVE_KEY || process.env.HOLOSCRIPT_API_KEY || '';
+  return { orch, model, resolveKey };
+}
 
-  let warmUrl: string | undefined;
+/**
+ * Ask the orchestrator's `/serve/resolve` for the fleet model. The GET itself is what the
+ * serving autoscaler counts as demand (mcp-orchestrator serveRoutes), so every call keeps a
+ * warm box or starts a cold one. `reached` is false on a network error or a non-2xx answer.
+ */
+async function askFleetResolve(): Promise<{ reached: boolean; warmUrl?: string }> {
+  const { orch, model, resolveKey } = fleetSettings();
   try {
     const r = await fetch(`${orch}/serve/resolve?model=${encodeURIComponent(model)}`, {
       headers: resolveKey ? { 'x-mcp-api-key': resolveKey } : {},
     });
-    if (r.ok) {
-      const body = (await r.json()) as { status?: string; url?: string };
-      if (body.status === 'warm' && body.url) warmUrl = body.url;
-    }
+    if (!r.ok) return { reached: false };
+    const body = (await r.json()) as { status?: string; url?: string };
+    return body.status === 'warm' && body.url
+      ? { reached: true, warmUrl: body.url }
+      : { reached: true };
   } catch {
-    // network error → treated as cold (fall back) below
+    return { reached: false };
   }
+}
+
+/** True when Brittney's chat path would use the raw fleet (/serve/resolve) lane. */
+function fleetIsConfigured(explicit: BrittneyProviderName | undefined): boolean {
+  if ((!explicit || explicit === 'fleet' || explicit === 'serverless') && resolveServerless()) {
+    return false;
+  }
+  return (
+    explicit === 'fleet' ||
+    (!explicit && Boolean(process.env.BRITTNEY_FLEET_MODEL || process.env.FLEET_INFERENCE_KEY))
+  );
+}
+
+/**
+ * How long a cold Brittney box takes to answer, in seconds, for the "waking up" notice.
+ * BRITTNEY_WAKE_ETA_S overrides; the default is the measured rent-to-ready time.
+ */
+export function brittneyWakeEtaSeconds(): number {
+  const fromEnv = Number(process.env.BRITTNEY_WAKE_ETA_S);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : DEFAULT_WAKE_ETA_S;
+}
+
+export type BrittneyDemandStatus = 'warm' | 'waking' | 'not_fleet' | 'unreachable';
+
+/**
+ * Record that someone may talk to Brittney soon, without running a chat or spending credits:
+ * one `/serve/resolve` GET, which the serving autoscaler counts as demand, so a box that was
+ * released for idleness gets rented again. Returns what the orchestrator said:
+ *   warm        — a box is up and answering
+ *   waking      — demand recorded; the autoscaler will rent a box
+ *   not_fleet   — this Studio does not use the fleet lane, so there is nothing to wake
+ *   unreachable — the orchestrator did not answer
+ */
+export async function recordBrittneyDemand(): Promise<BrittneyDemandStatus> {
+  const explicit = process.env.BRITTNEY_PROVIDER as BrittneyProviderName | undefined;
+  if (!fleetIsConfigured(explicit)) return 'not_fleet';
+  const { reached, warmUrl } = await askFleetResolve();
+  if (!reached) return 'unreachable';
+  return warmUrl ? 'warm' : 'waking';
+}
+
+/**
+ * Thrown when the fleet is cold and nothing else may answer. The message still starts with
+ * SOVEREIGN_WARMING for callers that match on text; `etaSeconds` lets the chat panel show a
+ * "waking up" notice instead of an error.
+ */
+export class BrittneyWarmingError extends Error {
+  readonly code = 'SOVEREIGN_WARMING';
+  constructor(readonly etaSeconds: number) {
+    super(
+      `SOVEREIGN_WARMING: Brittney is waking up and should be ready in about ` +
+        `${Math.max(1, Math.round(etaSeconds / 60))} minutes. Your message started her; ` +
+        `send it again then.`
+    );
+    this.name = 'BrittneyWarmingError';
+  }
+}
+
+async function resolveFleet(): Promise<ResolvedBrittneyProvider> {
+  const { model } = fleetSettings();
+  const bearer = process.env.FLEET_INFERENCE_KEY || process.env.SERVE_INFERENCE_KEY;
+  const { warmUrl } = await askFleetResolve();
 
   if (!warmUrl) {
     throw new Error(
@@ -427,11 +500,7 @@ export async function resolveBrittneyProviderAsync(
     if (serverless) return serverless;
   }
 
-  const fleetConfigured =
-    explicit === 'fleet' ||
-    (!explicit && Boolean(process.env.BRITTNEY_FLEET_MODEL || process.env.FLEET_INFERENCE_KEY));
-
-  if (fleetConfigured) {
+  if (fleetIsConfigured(explicit)) {
     try {
       return await resolveFleet();
     } catch {
@@ -461,11 +530,7 @@ export async function resolveBrittneyProviderAsync(
         }
         return upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));
       }
-      throw new Error(
-        'SOVEREIGN_WARMING: Brittney is warming up — the sovereign serving box was ' +
-          'scaled to zero and is spinning up now (your message bumped demand). Retry ' +
-          'in ~1 minute. Sovereign-only by founder policy.'
-      );
+      throw new BrittneyWarmingError(brittneyWakeEtaSeconds());
     }
   }
   return upgradeOllamaByDiscovery(resolveBrittneyProvider(byok));

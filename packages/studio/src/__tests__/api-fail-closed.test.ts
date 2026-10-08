@@ -176,6 +176,16 @@ describe('the /api default is closed', () => {
     expect((await anonymous('/api/brittney', 'POST')).status).toBe(401);
   });
 
+  it('keeps the Brittney wake route on the session floor, even for a bk_ key', async () => {
+    // /api/brittney/warm can rent a GPU box, and it carries no bk_ contract, so the
+    // `/api/brittney/**` rule carves it out: a header alone never reaches it.
+    const key = { authorization: 'Bearer bk_a_customers_own_key' };
+    expect((await anonymous('/api/brittney/warm', 'POST', key)).status).toBe(401);
+    expect((await anonymous('/api/brittney/warm', 'POST')).status).toBe(401);
+    // The carve-out is exactly that path: the chat endpoint still admits the key.
+    expect((await anonymous('/api/brittney', 'POST', key)).status).not.toBe(401);
+  });
+
   it('still runs for /api at all — the gate is useless if the matcher skips it', () => {
     // The matcher excluded `api` until 2026-09-15. If that exclusion ever comes
     // back, every assertion above keeps passing while production is wide open,
