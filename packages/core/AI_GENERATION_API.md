@@ -2,13 +2,13 @@
 
 **Package**: `@holoscript/framework`, not `@holoscript/core`. Every name on this page is imported from `@holoscript/framework` (source: `packages/framework/src/ai/`). The AI layer moved out of core in A.011.02c; this page stayed behind and still imported from core until 2026-10-07, which led one agent to report that `HoloScriptGenerator` existed nowhere.
 
-**Tests**: 122 passing in 5 files under `packages/framework/src/ai/__tests__/` (run 2026-10-07; see [Testing](#testing)). None of them calls a live model API (they use stand-in adapters or test only configuration), so validation against live APIs is still open (see [Next Steps](#next-steps)).
+**Tests**: 135 passing in the 5 files below, in `packages/framework/src/ai/__tests__/` (run 2026-10-08; see [Testing](#testing)). None of them calls a live model API (they use stand-in adapters or test only configuration), so validation against live APIs is still open (see [Next Steps](#next-steps)).
 
-**Validation: not done today.** The parser this layer uses is a stand-in: `HoloScriptPlusParser` in `packages/framework/src/ai/HoloScriptGenerator.ts` returns `{ success: true, errors: [] }` for any text. So `parseResult.success` is always true, `validateBatch` marks every input valid, and auto-fix never runs. Until that is fixed, check generated code yourself with `parseHolo` from `@holoscript/core` or the strict layer in `packages/core/strict` (codes HS1001-HS1010).
+**Validation.** `HoloScriptGenerator` and `validateBatch` check generated code with core's canonical validator, `validateCanonicalSource({ source, surface: 'holo' })`: the `.holo` parser, plus the strict layer's refusals for what the parser used to accept silently (HS1001 empty, HS1002 unbalanced, HS1003 a token that cannot start a top-level item, HS1004 nothing parsed, HS1005 a trait with no name). A refused result has `parseResult.success === false` and errors that lead with their code, and auto-fix runs when the adapter has `fixHoloScript`. Until 2026-10-08 this layer used a stand-in parser that called any text valid.
 
 This document is a guide to the AI-guided HoloScript generation API in `@holoscript/framework`, which turns natural language descriptions into HoloScript code.
 
-> Not the same path as the MCP `generate_object` / `generate_scene` tools. Those go through `@holoscript/llm-provider` (`generateHoloScript` on a provider adapter), whose system prompt (`HOLOSCRIPT_SYSTEM_PROMPT`) shows a parse-tested `composition "Name" { ... }` program. The framework adapters on this page send their own prompt.
+> Not the same path as the MCP `generate_object` / `generate_scene` tools. Those go through `@holoscript/llm-provider` (`generateHoloScript` on a provider adapter), whose system prompt (`HOLOSCRIPT_SYSTEM_PROMPT`) shows a parse-tested `composition "Name" { ... }` program. Since 2026-10-08 the framework adapters on this page send that same prompt.
 
 ---
 
@@ -89,7 +89,7 @@ Natural Language Prompt
         ↓
   Generated Code (HoloScript)
         ↓
-   HoloScriptPlusParser
+   validateCanonicalSource (.holo parser + strict refusals)
         ↓
    Parse Result (AST)
         ↓
@@ -104,13 +104,13 @@ Natural Language Prompt
 
 ### Key Components
 
-| Component                | Purpose                         | Status                    |
-| ------------------------ | ------------------------------- | ------------------------- |
-| **AIAdapter**            | Interface for AI providers      | ✅ 9 implementations      |
-| **HoloScriptGenerator**  | High-level generation API       | ✅ Complete               |
-| **HoloScriptPlusParser** | Parse & validate generated code | ⚠️ Stub: always "success" |
-| **ErrorRecovery**        | Auto-fix broken code            | ⚠️ Never triggered        |
-| **Sessions**             | Track generation history        | ✅ Implemented            |
+| Component                   | Purpose                         | Status                    |
+| --------------------------- | ------------------------------- | ------------------------- |
+| **AIAdapter**               | Interface for AI providers      | ✅ 9 implementations      |
+| **HoloScriptGenerator**     | High-level generation API       | ✅ Complete               |
+| **validateCanonicalSource** | Parse & validate generated code | ✅ Refuses non-HoloScript |
+| **ErrorRecovery**           | Auto-fix broken code            | ✅ Runs on refused output |
+| **Sessions**                | Track generation history        | ✅ Implemented            |
 
 ---
 
@@ -176,10 +176,10 @@ const result = await generator.generate(
 
 - Generates code up to `maxAttempts` times
 - Checks confidence against `minConfidence` threshold
-- Auto-fixes if enabled and the parse reports errors, which today it never does
-- "Parses" with `HoloScriptPlusParser({ strict: false })`, a stand-in that returns success for
-  any text. `parseResult.success` is therefore always true and says nothing about the code;
-  check it with `parseHolo` or the strict layer (`packages/core/strict`) instead.
+- Checks the code with `validateCanonicalSource({ source, surface: 'holo' })`; refused code has
+  `parseResult.success === false` and errors such as `HS1004: Nothing in this source parsed into a composition.`
+- Auto-fixes if enabled, the check refused the code and the adapter has `fixHoloScript`; an
+  adapter without it gets the refused code back marked invalid
 - Fetches explanation if generation succeeds
 - Records in session history
 
@@ -649,17 +649,17 @@ pnpm --filter @holoscript/framework exec vitest run src/ai/__tests__/HoloScriptG
 
 ### Test Coverage
 
-Counted from a run on 2026-10-07. Re-run the command above rather than trusting these numbers
+Counted from a run on 2026-10-08. Re-run the command above rather than trusting these numbers
 as they age.
 
 | File                          | Tests   | Status         |
 | ----------------------------- | ------- | -------------- |
-| `HoloScriptGenerator.test.ts` | 14      | ✅ Passing     |
+| `HoloScriptGenerator.test.ts` | 23      | ✅ Passing     |
 | `AIAdapter.test.ts`           | 14      | ✅ Passing     |
 | `AIAdapter.prod.test.ts`      | 23      | ✅ Passing     |
-| `adapters.test.ts`            | 30      | ✅ Passing     |
+| `adapters.test.ts`            | 34      | ✅ Passing     |
 | `adapters.prod.test.ts`       | 41      | ✅ Passing     |
-| **Total**                     | **122** | ✅ **Passing** |
+| **Total**                     | **135** | ✅ **Passing** |
 
 ### Mock Adapter for Testing
 
@@ -713,5 +713,5 @@ describe('GenerationLogic', () => {
 ---
 
 **Last Updated**: 2026-10-07 (imports moved to `@holoscript/framework`, test counts re-run)  
-**Status**: Generation works; validation is a stand-in that always says "success" (see the top of this page); tested without live model APIs  
+**Status**: Generation and validation work; tested without live model APIs  
 **Maintainer**: AI Development Team

@@ -57,3 +57,17 @@ want consumers to opt in without a core release.
 This layer rejects. It does not touch the other two silences in core:
 `HoloScriptValidator.validate()` still returns `[]` for any source, and
 `compileToWASM` still emits identical bytes for valid, garbage and empty input.
+
+## Who uses it
+
+Since 2026-10-08, core's canonical validator, `validateCanonicalSource` for the
+`.holo` surface, runs `holo_strict.mjs` over the parse it already has whenever the
+parser itself reports no error, and keeps the refusals HS1001-HS1005, HS1009 and
+HS1010. So `validate_holoscript` (MCP), `holoscript validate`, the LSP and the
+framework's `HoloScriptGenerator` refuse empty, unbalanced and non-HoloScript text
+instead of calling it valid. HS1006 (unknown trait) is left to callers that hold
+the full trait vocabulary; the MCP tool adds its own. One difference from
+`parseStrict`: an explicitly declared but empty composition (`composition "A" {}`)
+stays valid there, as it always was, because whether an empty program is valid is
+still an open grammar decision; HS1004 is kept for sources that never declare a
+root. `holo_strict.d.mts` types the pure layer for TypeScript importers.

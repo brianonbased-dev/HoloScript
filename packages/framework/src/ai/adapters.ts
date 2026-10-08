@@ -26,6 +26,7 @@ import {
   LocalLLMAdapter as LLMOllamaAdapter,
   LOCAL_DEFAULT_MODEL,
   checkHostedOllama,
+  HOLOSCRIPT_SYSTEM_PROMPT,
 } from '@holoscript/llm-provider';
 /** Shape of API error responses from AI providers. */
 interface APIErrorResponse {
@@ -45,40 +46,12 @@ export type {
 // System Prompt for HoloScript Generation
 // ============================================================================
 
-const HOLOSCRIPT_SYSTEM_PROMPT = `You are a HoloScript expert. HoloScript is a visual flow language for VR/AR world creation.
-
-Generate valid HoloScript code following this syntax:
-
-COMPOSITIONS:
-composition "Scene Name" {
-  environment { skybox: "sky_day", ambient: 0.5 }
-
-  template "ObjectType" {
-    state { property: value }
-    action doSomething() { }
-  }
-
-  spatial_group "GroupName" {
-    object "Object1" { position: [x, y, z] }
-    object "Object2" using "ObjectType" { position: [x, y, z] }
-  }
-
-  logic {
-    on_event { action() }
-    every(1000) { periodic_action() }
-  }
-}
-
-SHAPES: cube, sphere, cylinder, cone, plane, torus, capsule, pyramid, prism, hexagon, octahedron, icosahedron, ring, tube, spiral, stairs, arch, dome, wedge, ramp
-
-TRAITS: @grabbable, @throwable, @hoverable, @interactive, @collidable, @animatable, @networked
-
-RULES:
-1. Use descriptive object names
-2. Position objects logically in 3D space (y is up)
-3. Include templates for reusable objects
-4. Add logic for interactivity
-5. Output ONLY valid HoloScript code, no explanations unless asked`;
+// Every adapter here sends HOLOSCRIPT_SYSTEM_PROMPT from @holoscript/llm-provider: the
+// one prompt whose programs are parse-tested (packages/mcp-server/src/__tests__/
+// generator-prompt-parse.test.ts) and measured (Qwen3-4B 14/14, Gemini 3.1 Pro 42/42
+// on the author_holo tasks, 2026-10-08). Until then this file kept its own prompt,
+// whose sample program failed the parser at `every(1000)` and named @animatable,
+// a trait core does not declare.
 
 // ============================================================================
 // OpenAI Adapter

@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./index.mjs",
   "exports": { ".": "./index.mjs", "./layer": "./holo_strict.mjs" },
-  "files": ["index.mjs", "holo_strict.mjs", "corpus", "ERROR_CONTRACT.md", "README.md"],
+  "files": ["index.mjs", "holo_strict.mjs", "holo_strict.d.mts", "corpus", "ERROR_CONTRACT.md", "README.md"],
   "scripts": { "test": "node --test test/corpus.test.mjs" },
   "peerDependencies": { "@holoscript/core": ">=8.7.0" },
   "license": "MIT",

@@ -1,4 +1,5 @@
-import { HoloCompositionParser } from '../parser/HoloCompositionParser';
+import { HoloCompositionParser, tokenizeHoloSource } from '../parser/HoloCompositionParser';
+import { analyze as analyzeHoloRefusals } from '../../strict/holo_strict.mjs';
 import {
   HoloScriptPlusParser,
   preprocessAgentBrainSource,
@@ -151,11 +152,70 @@ export function resolveCanonicalSourceSurface(
   );
 }
 
+/**
+ * Strict-layer codes that say something the parser did not (packages/core/strict,
+ * ERROR_CONTRACT.md): empty source, unbalanced delimiter, a token that cannot start
+ * a top-level item, nothing parsed, a trait with no name, not a string, a throw.
+ * HS1007/HS1008 only repeat the parser's own errors and warnings; HS1006 (unknown
+ * trait) is left to callers that hold the full trait vocabulary.
+ */
+const HOLO_REFUSAL_CODES = new Set([
+  'HS1001',
+  'HS1002',
+  'HS1003',
+  'HS1004',
+  'HS1005',
+  'HS1009',
+  'HS1010',
+]);
+
+/** True when the first token after any blank lines and comments is `composition`. */
+function declaresCompositionRoot(source: string): boolean {
+  const first = tokenizeHoloSource(source).find((t) => t.type !== 'NEWLINE');
+  return first?.type === 'COMPOSITION';
+}
+
+/**
+ * The .holo parser never refuses: `{{{@@@`, an SQL statement, JSON, prose and an
+ * empty file all parse "successfully" into an empty composition. When the parser
+ * reports no error, run the strict layer over the same parse and keep its
+ * refusals, so `valid` means the source is HoloScript and not merely that the
+ * parser did not throw. Sources the parser already rejects are left as they were.
+ *
+ * One refusal is narrowed. The strict layer also reports HS1004 for an explicitly
+ * declared but empty composition (`composition "A" {}`), which this validator has
+ * always called valid. Whether an empty program is valid is a grammar decision
+ * still open in ERROR_CONTRACT.md, so it is not made here: HS1004 is kept only for
+ * sources that never declared a composition root.
+ */
+function holoRefusals(source: string, parsed: unknown): CanonicalDiagnostic[] {
+  const { diagnostics } = analyzeHoloRefusals(source, {
+    tokenizeHoloSource,
+    parseHolo: () => parsed,
+  });
+  const refusals = diagnostics.filter(
+    (d) => d.severity === 'error' && HOLO_REFUSAL_CODES.has(d.code)
+  );
+  const keep =
+    refusals.some((d) => d.code === 'HS1004') && declaresCompositionRoot(source)
+      ? refusals.filter((d) => d.code !== 'HS1004')
+      : refusals;
+  return keep.map((d) => ({
+    severity: 'error' as const,
+    code: d.code,
+    message: d.message,
+    line: d.line,
+    column: d.column,
+    ...(d.hint ? { suggestion: d.hint } : {}),
+  }));
+}
+
 function validateHolo(source: string): CanonicalSourceValidationResult {
   try {
     const result = new HoloCompositionParser().parse(source);
     const errors = normalizeDiagnosticList(result.errors, 'error');
     const warnings = normalizeDiagnosticList(result.warnings, 'warning');
+    if (errors.length === 0) errors.push(...holoRefusals(source, result));
     return {
       valid: result.success === true && errors.length === 0,
       surface: 'holo',

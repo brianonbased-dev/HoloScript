@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
+import { readdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
+import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
 import {
   resolveCanonicalSourceSurface,
   validateCanonicalSource,
@@ -51,6 +54,65 @@ describe('canonical source diagnostic routing', () => {
     });
     expect(result.ast).toBeDefined();
     expect(validateHsDetailed).not.toHaveBeenCalled();
+  });
+
+  // The .holo parser parses all of these "successfully" into an empty composition.
+  // Until 2026-10-08 this validator passed that verdict on, so validate_holoscript,
+  // `holoscript validate`, the LSP and the framework generator all called them valid.
+  it.each([
+    ['empty source', '', 'HS1001'],
+    ['symbol noise', '{{{@@@', 'HS1005'],
+    ['an SQL statement', 'SELECT * FROM users;', 'HS1003'],
+    ['JSON', '{"scene": {"objects": []}}', 'HS1004'],
+    ['prose', 'this is not holo at all', 'HS1004'],
+  ])('refuses %s, which the parser alone accepts', (_label, source, code) => {
+    const result = validateCanonicalSource({ surface: 'holo', source });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((e) => e.code)).toContain(code);
+    for (const e of result.errors) {
+      expect(e.line).toBeGreaterThanOrEqual(1);
+      expect(e.column).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it('keeps an explicitly declared empty composition valid, as it always was', () => {
+    // The strict layer alone refuses this with HS1004; whether an empty program is
+    // valid is an open grammar decision (strict/ERROR_CONTRACT.md), not this one's.
+    for (const source of ['composition "A" {}', '// draft\ncomposition "A" {\n}\n']) {
+      expect(validateCanonicalSource({ surface: 'holo', source })).toMatchObject({
+        valid: true,
+        errors: [],
+      });
+    }
+    // The word alone is not a root: prose that mentions it is still refused.
+    const prose = validateCanonicalSource({ surface: 'holo', source: 'A composition of things' });
+    expect(prose.valid).toBe(false);
+  });
+
+  it('leaves a source the parser already rejects with only the parser errors', () => {
+    const unbalanced = 'composition "Open" {\n  object "A" { geometry: "cube" }\n';
+    const parserOnly = new HoloCompositionParser().parse(unbalanced);
+    expect(parserOnly.errors.length).toBeGreaterThan(0);
+
+    const result = validateCanonicalSource({ surface: 'holo', source: unbalanced });
+    expect(result.valid).toBe(false);
+    expect(result.errors).toHaveLength(parserOnly.errors.length);
+    expect(result.errors.every((e) => !String(e.code ?? '').startsWith('HS10'))).toBe(true);
+  });
+
+  it('still accepts real programs: every file in the strict layer must-accept corpus', () => {
+    const corpus = path.resolve(__dirname, '../../../strict/corpus/real');
+    const files = readdirSync(corpus).filter((f) => f.endsWith('.holo'));
+    expect(files.length).toBeGreaterThan(10);
+    for (const file of files) {
+      const result = validateCanonicalSource({
+        surface: 'holo',
+        source: readFileSync(path.join(corpus, file), 'utf8'),
+      });
+      expect({ file, errors: result.errors }).toEqual({ file, errors: [] });
+      expect(result.valid).toBe(true);
+    }
   });
 
   it('preprocesses an explicit #brain and routes it through HoloScriptPlusParser', () => {

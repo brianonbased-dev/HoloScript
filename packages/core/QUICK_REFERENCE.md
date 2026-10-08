@@ -161,8 +161,8 @@ const validation = validateBatch(codes);
 console.log('Valid:', validation.filter((v) => v.valid).length);
 ```
 
-> Today `validateBatch` (and the generator's own parse step) uses a stand-in parser that
-> reports every input valid. Check code with `parseHolo` from `@holoscript/core` instead.
+> `validateBatch` and the generator's own check use `validateCanonicalSource` from
+> `@holoscript/core`, which refuses empty, unbalanced and non-HoloScript text.
 
 ---
 

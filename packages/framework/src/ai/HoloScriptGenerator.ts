@@ -11,16 +11,33 @@
  */
 
 import type { AIAdapter } from './AIAdapter';
-class HoloScriptPlusParser {
-  constructor(_opts?: { strict?: boolean }) {}
-  parse(_code: string): any {
-    return { success: true, errors: [], ast: {} };
-  }
-}
-
-import type { HSPlusCompileResult } from '@holoscript/core';
+import { validateCanonicalSource, type HSPlusCompileResult } from '@holoscript/core';
 import { GenerationCache } from './GenerationCache';
 import { GenerationAnalytics } from './GenerationAnalytics';
+
+/**
+ * Check generated code with core's canonical .holo validator: the parser, plus the
+ * strict layer's refusals for what the parser accepts silently (empty source,
+ * unbalanced delimiters, non-HoloScript text, nothing parsed).
+ *
+ * Until 2026-10-08 this was a local stand-in whose parse() returned success for any
+ * text, so every generation passed, validateBatch marked everything valid and
+ * auto-fix never ran. Error messages lead with their code so a fix prompt can say
+ * exactly what was wrong.
+ */
+function checkHolo(code: string): HSPlusCompileResult {
+  const result = validateCanonicalSource({ source: code, surface: 'holo' });
+  return {
+    success: result.valid,
+    errors: result.errors.map((e) => ({
+      message: e.code ? `${e.code}: ${e.message}` : e.message,
+      line: e.line ?? 1,
+      column: e.column ?? 1,
+    })),
+    warnings: result.warnings,
+    composition: result.ast,
+  };
+}
 
 // =============================================================================
 // TYPES
@@ -79,7 +96,6 @@ export interface GenerationSession {
 // =============================================================================
 
 export class HoloScriptGenerator {
-  private parser: HoloScriptPlusParser;
   private currentSession?: GenerationSession;
   private sessionCounter = 0;
   private cache: GenerationCache;
@@ -87,7 +103,6 @@ export class HoloScriptGenerator {
   private cacheEnabled: boolean = true;
 
   constructor(enableCache: boolean = true) {
-    this.parser = new HoloScriptPlusParser({ strict: false });
     this.cache = new GenerationCache();
     this.analytics = new GenerationAnalytics();
     this.cacheEnabled = enableCache;
@@ -143,7 +158,7 @@ export class HoloScriptGenerator {
           timestamp: new Date(),
         });
 
-        const parseResult = this.parser.parse(cachedEntry.code);
+        const parseResult = checkHolo(cachedEntry.code);
         const generated: GeneratedCode = {
           holoScript: cachedEntry.code,
           aiConfidence: 1.0,
@@ -211,22 +226,26 @@ export class HoloScriptGenerator {
         }
 
         // Parse the generated code
-        const parseResult = this.parser.parse(result.holoScript);
+        const parseResult = checkHolo(result.holoScript);
 
         let holoScript = result.holoScript;
         let wasFixed = false;
 
-        // Auto-fix if enabled and parsing failed
-        if (!parseResult.success && s.config.autoFix && attempts < s.config.maxAttempts) {
-          if (!s.adapter.fixHoloScript) {
-            throw new Error(`Adapter "${s.adapter.name}" does not support fixHoloScript`);
-          }
+        // Auto-fix if enabled, parsing failed and the adapter can fix. An adapter
+        // without fixHoloScript keeps the refused code and its errors; throwing here
+        // would replace the real parse errors with "does not support fixHoloScript".
+        if (
+          !parseResult.success &&
+          s.config.autoFix &&
+          attempts < s.config.maxAttempts &&
+          s.adapter.fixHoloScript
+        ) {
           const fixResult = await s.adapter.fixHoloScript(
             result.holoScript,
             parseResult.errors.map((e: any) => e.message)
           );
 
-          const fixedParseResult = this.parser.parse(fixResult.holoScript);
+          const fixedParseResult = checkHolo(fixResult.holoScript);
 
           // If fixed version is better, use it
           if (
@@ -236,7 +255,7 @@ export class HoloScriptGenerator {
             holoScript = fixResult.holoScript;
             wasFixed = true;
             // Re-parse with fixed code
-            const reparseResult = this.parser.parse(holoScript);
+            const reparseResult = checkHolo(holoScript);
             generated = {
               holoScript,
               aiConfidence: result.confidence ?? 0,
@@ -353,7 +372,7 @@ export class HoloScriptGenerator {
     const optimized = await s.adapter.optimizeHoloScript(code, targetPlatform);
 
     // Parse optimized code
-    const parseResult = this.parser.parse(optimized.holoScript);
+    const parseResult = checkHolo(optimized.holoScript);
 
     return {
       holoScript: optimized.holoScript,
@@ -374,7 +393,7 @@ export class HoloScriptGenerator {
     }
 
     // Parse current code to find errors
-    const parseResult = this.parser.parse(code);
+    const parseResult = checkHolo(code);
     const errors = parseResult.errors.map((e: any) => e.message);
 
     if (errors.length === 0) {
@@ -394,7 +413,7 @@ export class HoloScriptGenerator {
     const fixed = await s.adapter.fixHoloScript(code, errors);
 
     // Parse fixed code
-    const fixedParseResult = this.parser.parse(fixed.holoScript);
+    const fixedParseResult = checkHolo(fixed.holoScript);
 
     return {
       holoScript: fixed.holoScript,
@@ -562,15 +581,13 @@ export async function generateBatch(
 }
 
 /**
- * Validate batch of generated code
+ * Validate batch of generated code with core's canonical .holo validator
  */
 export function validateBatch(
   codes: string[]
 ): Array<{ code: string; valid: boolean; errors: number }> {
-  const parser = new HoloScriptPlusParser({ strict: false });
-
   return codes.map((code) => {
-    const result = parser.parse(code);
+    const result = checkHolo(code);
     return {
       code,
       valid: result.success,
