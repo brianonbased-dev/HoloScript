@@ -235,9 +235,50 @@ describe('fetchPublicHttp redirects and credentials', () => {
       expect(other.seen).toHaveLength(1);
       expect(other.seen[0].headers.authorization).toBeUndefined();
       expect(other.seen[0].headers.cookie).toBeUndefined();
-      expect(other.seen[0].headers['x-keep']).toBe('yes');
+      // Any header not on the short list of harmless ones may be a credential, so it stays behind.
+      expect(other.seen[0].headers['x-keep']).toBeUndefined();
     }
   );
+
+  it('does not send x-api-key or x-mcp-api-key to another origin; Accept and User-Agent still go', async () => {
+    const other = await recorder(() => ({ status: 200 }));
+    const first = await recorder(() => ({ status: 302, headers: { location: `${other.base}/x` } }));
+    await fetchPublicHttp(
+      `${first.base}/start`,
+      {
+        headers: {
+          'x-api-key': 'K',
+          'X-MCP-API-Key': 'M',
+          authorization: 'Bearer X',
+          accept: 'application/json',
+          'user-agent': 'holo-test',
+        },
+      },
+      loopbackOk
+    );
+    expect(first.seen[0].headers['x-api-key']).toBe('K');
+    expect(first.seen[0].headers['x-mcp-api-key']).toBe('M');
+    expect(other.seen).toHaveLength(1);
+    expect(other.seen[0].headers['x-api-key']).toBeUndefined();
+    expect(other.seen[0].headers['x-mcp-api-key']).toBeUndefined();
+    expect(other.seen[0].headers.authorization).toBeUndefined();
+    expect(other.seen[0].headers.accept).toBe('application/json');
+    expect(other.seen[0].headers['user-agent']).toBe('holo-test');
+  });
+
+  it('keeps x-api-key across a same-origin 302', async () => {
+    const one = await recorder((path) =>
+      path === '/start' ? { status: 302, headers: { location: '/next' } } : { status: 200 }
+    );
+    await fetchPublicHttp(`${one.base}/start`, { headers: { 'x-api-key': 'K' } }, loopbackOk);
+    expect(one.seen.map((r) => r.headers['x-api-key'])).toEqual(['K', 'K']);
+  });
+
+  it('always asks for an uncompressed body, even when the caller asks for gzip', async () => {
+    const one = await recorder(() => ({ status: 200 }));
+    await fetchPublicHttp(`${one.base}/x`, { headers: { 'Accept-Encoding': 'gzip' } }, loopbackOk);
+    expect(one.seen[0].headers['accept-encoding']).toBe('identity');
+  });
 
   it('drops Proxy-Authorization cross-origin, whatever the header case', async () => {
     const other = await recorder(() => ({ status: 200 }));

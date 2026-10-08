@@ -219,8 +219,9 @@ function requestPinned(url: URL, init: RequestInit, opts: OutboundGuardOptions):
     return Promise.reject(new Error('fetchPublicHttp: a request body must be a string or bytes'));
   }
   const headers = new Headers(init.headers);
-  // fetch() would decompress a gzip body; this request does not, so ask for none.
-  if (!headers.has('accept-encoding')) headers.set('accept-encoding', 'identity');
+  // fetch() would decompress a gzip body; this request does not, so always ask for none. A caller
+  // asking for gzip would otherwise get compressed bytes back read as text.
+  headers.set('accept-encoding', 'identity');
   const outgoing: Record<string, string> = {};
   headers.forEach((value, name) => {
     outgoing[name] = value;
@@ -250,8 +251,21 @@ function requestPinned(url: URL, init: RequestInit, opts: OutboundGuardOptions):
   });
 }
 
-/** Credentials that must not be sent to a different origin than the one they were meant for. */
-const CROSS_ORIGIN_STRIPPED_HEADERS = ['authorization', 'cookie', 'proxy-authorization'];
+/**
+ * The only caller headers sent on to a different origin than the one they were meant for. Any
+ * other header may be a credential (Authorization, Cookie, and also x-api-key, x-mcp-api-key or
+ * whatever a manifest names), so a cross-origin hop drops everything not listed. The body headers
+ * stay for a 307/308, which keeps the body; a redirect that turns into a GET drops them below.
+ */
+const CROSS_ORIGIN_KEPT_HEADERS = new Set([
+  'accept',
+  'accept-encoding',
+  'accept-language',
+  'user-agent',
+  'content-type',
+  'content-length',
+  'content-encoding',
+]);
 /** Headers that describe a request body, dropped when a redirect turns the request into a GET. */
 const BODY_HEADERS = ['content-type', 'content-length', 'content-encoding'];
 
@@ -268,16 +282,18 @@ export async function fetchPublicHttp(
   const maxRedirects = opts.maxRedirects ?? 5;
   let current = raw;
   // Headers (any init form: object, Headers, array pairs), method and body are carried hop to hop
-  // and changed the way a browser changes them: a credential never follows a redirect to another
-  // origin, and 301/302/303 turn a POST into a GET with no body.
+  // and changed the way a browser changes them, but stricter: only CROSS_ORIGIN_KEPT_HEADERS
+  // follow a redirect to another origin, and 301/302/303 turn a POST into a GET with no body.
   let hopInit: RequestInit = { ...init, headers: new Headers(init.headers) };
   let previousOrigin: string | undefined;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const url = await assertPublicHttpUrl(current, opts);
     if (previousOrigin !== undefined && url.origin !== previousOrigin) {
-      const stripped = new Headers(hopInit.headers);
-      for (const name of CROSS_ORIGIN_STRIPPED_HEADERS) stripped.delete(name);
-      hopInit = { ...hopInit, headers: stripped };
+      const kept = new Headers();
+      new Headers(hopInit.headers).forEach((value, name) => {
+        if (CROSS_ORIGIN_KEPT_HEADERS.has(name)) kept.set(name, value);
+      });
+      hopInit = { ...hopInit, headers: kept };
     }
     previousOrigin = url.origin;
     const res = await requestPinned(url, hopInit, opts);
