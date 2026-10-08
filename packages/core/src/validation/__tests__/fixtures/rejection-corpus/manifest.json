@@ -1,0 +1,29 @@
+{
+  "$comment": "Files the canonical .holo validator must accept (valid) or refuse (invalid). rejection-corpus.test.ts runs every file through validateCanonicalSource with surface 'holo'.",
+  "$adopted": "Written by claude-cowork for its strict layer (holo_strict.mjs, 2026-10-06) and adopted here unchanged, except that unknown-trait.holo moved to acceptedWithWarning. The 'expect' codes are that layer's error contract and stay as documentation; the test asserts a code only where the canonical path emits one (HS1001 for empty.holo, HS1005 for at-without-name.holo).",
+  "grammar": "@holoscript/core@8.7.0",
+  "valid": [
+    { "file": "valid/object-basic.holo", "objects": 1 },
+    { "file": "valid/object-traits.holo", "objects": 1 },
+    { "file": "valid/two-objects.holo", "objects": 2 },
+    { "file": "valid/composition.holo", "objects": 1 },
+    { "file": "valid/group.holo", "objects": 0 },
+    { "file": "valid/import-and-comment.holo", "objects": 1 }
+  ],
+  "invalid": [
+    { "file": "invalid/empty.holo", "expect": ["HS1001"] },
+    { "file": "invalid/braces-and-ats.holo", "expect": ["HS1002", "HS1005"] },
+    { "file": "invalid/unclosed-object.holo", "expect": ["HS1002"] },
+    { "file": "invalid/stray-close-brace.holo", "expect": ["HS1002"] },
+    { "file": "invalid/sql.holo", "expect": ["HS1003", "HS1004"] },
+    { "file": "invalid/prose.holo", "expect": ["HS1004"] },
+    { "file": "invalid/json-not-holo.holo", "expect": ["HS1004"] },
+    { "file": "invalid/at-without-name.holo", "expect": ["HS1005"] }
+  ],
+  "acceptedWithWarning": {
+    "$comment": "The canonical validator is tolerant about trait names: it accepts this file, and validate_holoscript adds an 'unknown-trait' warning (mcp-server handlers.ts, checked against buildKnownTraitSet()). Whether a strict mode should make an unknown trait an error (the strict layer's HS1006) is still open.",
+    "files": [
+      { "file": "invalid/unknown-trait.holo", "strictExpect": ["HS1006"] }
+    ]
+  }
+}
