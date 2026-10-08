@@ -33,11 +33,20 @@ import {
 
 const require = createRequire(import.meta.url);
 
+/** True when `manifest` is @holoscript/core's package.json, not just any package with a dist/. */
+function isCorePackage(manifest) {
+  try {
+    return JSON.parse(readFileSync(manifest, "utf8")).name === "@holoscript/core";
+  } catch {
+    return false;
+  }
+}
+
 /** Find the core: this package when the layer lives inside it, else the installed one. */
 function findCoreRoot() {
   // strict/ sits inside packages/core, so ../dist is the parser we were built against.
   const inRepo = join(dirname(fileURLToPath(import.meta.url)), "..");
-  if (existsSync(join(inRepo, "dist")) && existsSync(join(inRepo, "package.json"))) return inRepo;
+  if (existsSync(join(inRepo, "dist")) && isCorePackage(join(inRepo, "package.json"))) return inRepo;
   try {
     return dirname(require.resolve("@holoscript/core/package.json"));
   } catch {

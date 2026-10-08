@@ -7,7 +7,7 @@
   "exports": { ".": "./index.mjs", "./layer": "./holo_strict.mjs" },
   "files": ["index.mjs", "holo_strict.mjs", "corpus", "ERROR_CONTRACT.md", "README.md"],
   "scripts": { "test": "node --test test/corpus.test.mjs" },
-  "peerDependencies": { "@holoscript/core": ">=8.0.0" },
+  "peerDependencies": { "@holoscript/core": ">=8.7.0" },
   "license": "MIT",
   "keywords": ["holoscript", "parser", "validation", "diagnostics"],
   "publishConfig": { "access": "public" }
