@@ -14,7 +14,7 @@ composition "Furnace And Air Conditioner" {
   }
 
   logic {
-    action setMode(mode) {
+    action setMode(mode) accepted(mode_set) refused(unknown_mode) {
       if (mode != "heat" && mode != "cool" && mode != "auto" && mode != "off") {
         return { allowed: false, outcome: "unknown_mode" }
       }
@@ -22,7 +22,7 @@ composition "Furnace And Air Conditioner" {
       return { allowed: true, outcome: "mode_set" }
     }
 
-    action setTemperature(degrees) {
+    action setTemperature(degrees) accepted(temperature_set) refused(out_of_range) {
       if (degrees < 50 || degrees > 90) {
         return { allowed: false, outcome: "out_of_range" }
       }
@@ -30,7 +30,7 @@ composition "Furnace And Air Conditioner" {
       return { allowed: true, outcome: "temperature_set" }
     }
 
-    action setSwing(degrees) {
+    action setSwing(degrees) accepted(swing_set) refused(bad_swing) {
       if (degrees < 1 || degrees > 3) {
         return { allowed: false, outcome: "bad_swing" }
       }
@@ -38,7 +38,7 @@ composition "Furnace And Air Conditioner" {
       return { allowed: true, outcome: "swing_set" }
     }
 
-    action setFan(setting) {
+    action setFan(setting) accepted(fan_set) refused(unknown_fan) {
       if (setting != "auto" && setting != "on") {
         return { allowed: false, outcome: "unknown_fan" }
       }
@@ -46,7 +46,7 @@ composition "Furnace And Air Conditioner" {
       return { allowed: true, outcome: "fan_set" }
     }
 
-    action reading(room, minutes) {
+    action reading(room, minutes) accepted(heating, cooling, waiting, idle) refused(bad_minutes) {
       if (minutes < 0) {
         return { allowed: false, outcome: "bad_minutes" }
       }

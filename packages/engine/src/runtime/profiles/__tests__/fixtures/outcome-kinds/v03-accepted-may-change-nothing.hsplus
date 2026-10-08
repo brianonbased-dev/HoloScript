@@ -1,0 +1,18 @@
+composition "Counter Check" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action check(level) accepted(fine, low) refused(bad_level) {
+      if (level < 0) {
+        return { allowed: false, outcome: "bad_level" }
+      }
+      if (level < 3) {
+        return { allowed: true, outcome: "low" }
+      }
+      return { allowed: true, outcome: "fine" }
+    }
+  }
+}

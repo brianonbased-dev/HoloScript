@@ -7,7 +7,7 @@ composition "Car Park Barrier" {
   }
 
   logic {
-    action arrive() {
+    action arrive() accepted(ticket_issued) refused(car_already_inside) {
       if (state.carInside) {
         return { allowed: false, outcome: "car_already_inside" }
       }
@@ -19,7 +19,7 @@ composition "Car Park Barrier" {
       return { allowed: true, outcome: "ticket_issued" }
     }
 
-    action wait(minutes) {
+    action wait(minutes) accepted(time_passed) refused(no_car, bad_minutes) {
       if (!state.carInside) {
         return { allowed: false, outcome: "no_car" }
       }
@@ -30,7 +30,7 @@ composition "Car Park Barrier" {
       return { allowed: true, outcome: "time_passed" }
     }
 
-    action pay(coins) {
+    action pay(coins) accepted(paid_in_full, part_paid) refused(no_car, nothing_due, no_coins) {
       if (!state.carInside) {
         return { allowed: false, outcome: "no_car" }
       }
@@ -54,7 +54,7 @@ composition "Car Park Barrier" {
       return { allowed: true, outcome: "part_paid" }
     }
 
-    action leave() {
+    action leave() accepted(barrier_opened) refused(no_car, payment_due) {
       if (!state.carInside) {
         return { allowed: false, outcome: "no_car" }
       }

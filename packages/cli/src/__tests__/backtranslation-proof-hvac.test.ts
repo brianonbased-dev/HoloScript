@@ -15,7 +15,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { interfaceCardKindMismatches } from '@holoscript/core/testing';
+import { interfaceCardKindMismatches, renderInterfaceCard } from '@holoscript/core/testing';
 import {
   GENERIC_SEED,
   generateGenericSituation,
@@ -23,7 +23,7 @@ import {
   makeGenericRunner,
   twinGeneric,
 } from './backtranslation/generic';
-import { checkBehaviourSource } from './backtranslation/pipeline';
+import { checkBehaviourSource, faultsTheCheckerRefuses } from './backtranslation/pipeline';
 import { classifyDivergences, measureBehaviour, type BehaviourMeasurement } from './backtranslation/measure';
 import { HVAC_TARGETS, loadNamedMutants, loadRecordings, slice3Inputs } from './backtranslation/slice3';
 
@@ -39,7 +39,8 @@ const loaded = HVAC_TARGETS.map((target) => {
   return {
     target,
     ...inputs,
-    mutants: loadNamedMutants(target, inputs.originalSource),
+    mutants: loadNamedMutants(target, inputs.plantableSource),
+    declaredMutants: loadNamedMutants(target, inputs.originalSource),
     recordings: loadRecordings(target),
     run: makeGenericRunner(worldSource, inputs.spec),
   };
@@ -71,11 +72,19 @@ describe('back-translation proof — heating and cooling, from the founder\'s ru
         expect(checkBehaviourSource(l.originalSource)).toEqual({ valid: true, errors: [] });
       });
 
-      it('the card on disk is the rendered interface.json, and its outcome kinds match the program', () => {
+      it('the card on disk is the rendered interface.json, and the card derived from the outcomes the program declares is identical', () => {
         expect(readFileSync(path.join(l.target.dir, 'interface-card.md'), 'utf8')).toBe(l.interfaceCard);
+        expect(l.derivedInterfaceSpec).toEqual(l.interfaceSpec);
+        expect(renderInterfaceCard(l.derivedInterfaceSpec)).toBe(l.interfaceCard);
         expect(interfaceCardKindMismatches(l.interfaceSpec, l.originalSource)).toEqual([]);
         expect(l.interfaceSpec.publicState).toEqual(l.spec.publicStateKeys);
         expect(l.referenceCard).not.toContain(l.spec.title);
+      });
+
+      it('named faults are planted in what the program does; with its outcome lists kept, the checker refuses none of them', () => {
+        // The founder's named faults are wrong behaviour on real equipment, not
+        // contract slips, so all of them must still reach a rebuild comparison.
+        expect(faultsTheCheckerRefuses(l.mutants, l.declaredMutants)).toEqual([]);
       });
 
       it('the situations reach every reading answer on the card', () => {

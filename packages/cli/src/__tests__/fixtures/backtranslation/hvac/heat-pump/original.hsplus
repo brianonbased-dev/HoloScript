@@ -18,7 +18,7 @@ composition "Heat Pump" {
   }
 
   logic {
-    action setMode(mode) {
+    action setMode(mode) accepted(mode_set) refused(unknown_mode) {
       if (mode != "heat" && mode != "cool" && mode != "auto" && mode != "off") {
         return { allowed: false, outcome: "unknown_mode" }
       }
@@ -26,7 +26,7 @@ composition "Heat Pump" {
       return { allowed: true, outcome: "mode_set" }
     }
 
-    action setTemperature(degrees) {
+    action setTemperature(degrees) accepted(temperature_set) refused(out_of_range) {
       if (degrees < 50 || degrees > 90) {
         return { allowed: false, outcome: "out_of_range" }
       }
@@ -34,7 +34,7 @@ composition "Heat Pump" {
       return { allowed: true, outcome: "temperature_set" }
     }
 
-    action setSwing(degrees) {
+    action setSwing(degrees) accepted(swing_set) refused(bad_swing) {
       if (degrees < 1 || degrees > 3) {
         return { allowed: false, outcome: "bad_swing" }
       }
@@ -42,7 +42,7 @@ composition "Heat Pump" {
       return { allowed: true, outcome: "swing_set" }
     }
 
-    action setFan(setting) {
+    action setFan(setting) accepted(fan_set) refused(unknown_fan) {
       if (setting != "auto" && setting != "on") {
         return { allowed: false, outcome: "unknown_fan" }
       }
@@ -50,7 +50,7 @@ composition "Heat Pump" {
       return { allowed: true, outcome: "fan_set" }
     }
 
-    action setBackup(setting) {
+    action setBackup(setting) accepted(backup_set) refused(unknown_backup) {
       if (setting != "none" && setting != "off" && setting != "on") {
         return { allowed: false, outcome: "unknown_backup" }
       }
@@ -58,7 +58,7 @@ composition "Heat Pump" {
       return { allowed: true, outcome: "backup_set" }
     }
 
-    action setCutoff(degrees) {
+    action setCutoff(degrees) accepted(cutoff_set) refused(out_of_range) {
       if (degrees < 0 || degrees > 50) {
         return { allowed: false, outcome: "out_of_range" }
       }
@@ -66,7 +66,7 @@ composition "Heat Pump" {
       return { allowed: true, outcome: "cutoff_set" }
     }
 
-    action reading(room, outdoor, minutes) {
+    action reading(room, outdoor, minutes) accepted(backup_heating, heating, cooling, waiting, idle) refused(bad_minutes) {
       if (minutes < 0) {
         return { allowed: false, outcome: "bad_minutes" }
       }

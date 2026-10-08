@@ -1,0 +1,16 @@
+composition "Wrong Kind" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action rent(count) accepted(rented) refused(fine_unpaid) {
+      if (state.fineOwed > 0) {
+        return { allowed: true, outcome: "fine_unpaid" }
+      }
+      state.bikesOut += count
+      return { allowed: true, outcome: "rented" }
+    }
+  }
+}

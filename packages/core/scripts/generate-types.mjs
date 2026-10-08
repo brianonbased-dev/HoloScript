@@ -572,6 +572,51 @@ export function validateCanonicalSource(
   dependencies?: CanonicalSourceValidationDependencies
 ): CanonicalSourceValidationResult;
 
+// Action outcome contracts (src/parser/ActionOutcomes.ts):
+// action rent(n) accepted(rented) refused(over_limit) { ... }
+export type OutcomeKind = 'accepted' | 'refused';
+export type HoloOutcomeKind = OutcomeKind;
+export interface HoloOutcomeDeclaration {
+  name: string;
+  kind: OutcomeKind;
+  loc?: { line: number; column: number; offset?: number };
+}
+export type OutcomeDiagnosticCode = 'HSP500' | 'HSP501' | 'HSP502' | 'HSP503' | 'HSP504' | 'HSP505' | 'HSP506';
+export const OUTCOME_DIAGNOSTIC_CODES: Readonly<Record<OutcomeDiagnosticCode, string>>;
+export const OUTCOME_KINDS: readonly OutcomeKind[];
+export interface OutcomeDiagnostic {
+  code: OutcomeDiagnosticCode;
+  severity: 'error' | 'warning';
+  action: string;
+  message: string;
+  line?: number;
+  column?: number;
+}
+export interface OutcomeCheckAction {
+  name: string;
+  outcomes?: readonly HoloOutcomeDeclaration[];
+  body: readonly HoloStatement[] | null;
+  bodyError?: string;
+  loc?: { line: number; column: number; offset?: number };
+}
+export interface ActionAnswer {
+  line?: number;
+  column?: number;
+  literal: boolean;
+  keys: string[];
+  allowed?: boolean;
+  outcome?: string;
+  hasAllowedKey: boolean;
+  hasOutcomeKey: boolean;
+}
+export function checkActionOutcomes(actions: readonly OutcomeCheckAction[]): OutcomeDiagnostic[];
+export function listActionAnswers(body: readonly HoloStatement[]): ActionAnswer[];
+export function forEachStatement(
+  body: readonly HoloStatement[],
+  visit: (statement: HoloStatement) => void
+): void;
+export function isDecisionAnswer(answer: ActionAnswer): boolean;
+
 export class HoloScriptCodeParser {
   parse(source: string): ParseResult;
   parseExpression(source: string): any;
@@ -7536,6 +7581,13 @@ export declare const OUTCOME_KIND_LEGEND: string;
 export declare function renderInterfaceCard(spec: InterfaceCardSpec): string;
 export declare function outcomeKindsFromSource(source: string): Map<string, Set<OutcomeKind>>;
 export declare function interfaceCardKindMismatches(spec: InterfaceCardSpec, source: string): string[];
+export declare function interfaceCardSpecFromSource(
+  source: string,
+  options: { publicState: readonly string[] }
+): InterfaceCardSpec;
+export declare function declaredOutcomesFromSource(
+  source: string
+): Map<string, InterfaceOutcome[] | undefined>;
 export interface RecordingMeasurement {
   recording: string;
   model: string;

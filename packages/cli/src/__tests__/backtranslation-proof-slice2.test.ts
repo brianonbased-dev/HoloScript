@@ -34,7 +34,12 @@ import {
   makeGenericRunner,
   type BehaviourSpec,
 } from './backtranslation/generic';
-import { EXCLUDED_FIELDS, ORACLE_FIELDS, checkBehaviourSource } from './backtranslation/pipeline';
+import {
+  EXCLUDED_FIELDS,
+  ORACLE_FIELDS,
+  checkBehaviourSource,
+  withoutOutcomeDeclarations,
+} from './backtranslation/pipeline';
 import {
   BLIND_ORACLE,
   CATCH_BAR,
@@ -102,7 +107,7 @@ async function measured(b: LoadedBehaviour): Promise<BehaviourMeasurement> {
       run: b.run,
       originalSource: b.originalSource,
       rebuiltSource: b.rebuiltSource,
-      mutants: selectDecisionMutants(b.originalSource, MUTANTS_PER_BEHAVIOUR),
+      mutants: selectDecisionMutants(withoutOutcomeDeclarations(b.originalSource), MUTANTS_PER_BEHAVIOUR),
       situations: GENERIC_SITUATIONS,
       seed: GENERIC_SEED,
     });
@@ -192,7 +197,7 @@ describe('back-translation proof slice 2 — behaviours with real decisions', ()
           run: b.run,
           originalSource: b.originalSource,
           rebuiltSource: b.rebuiltSource,
-          mutants: selectDecisionMutants(b.originalSource, MUTANTS_PER_BEHAVIOUR),
+          mutants: selectDecisionMutants(withoutOutcomeDeclarations(b.originalSource), MUTANTS_PER_BEHAVIOUR),
           situations: GENERIC_SITUATIONS,
           seed: GENERIC_SEED,
           oracle: BLIND_ORACLE,

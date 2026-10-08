@@ -1,0 +1,19 @@
+composition "Undeclared Outcome" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action rent(count) accepted(rented) refused(over_limit) {
+      if (count > 9) {
+        return { allowed: false, outcome: "over_limit" }
+      }
+      if (count > 2) {
+        return { allowed: false, outcome: "too_many" }
+      }
+      state.bikesOut += count
+      return { allowed: true, outcome: "rented" }
+    }
+  }
+}

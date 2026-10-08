@@ -15,13 +15,13 @@ composition "Model Village Deterministic Behavior" {
       }
     }
 
-    action contribute(amount) {
+    action contribute(amount) accepted(water_added) {
       state.water = state.water + amount
       emit("water_added", { amount: amount })
       return { allowed: true, outcome: "water_added" }
     }
 
-    action reject() {
+    action reject() refused(blocked_without_world_mutation) {
       return { allowed: false, outcome: "blocked_without_world_mutation" }
     }
   }

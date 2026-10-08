@@ -386,7 +386,7 @@ export function buildRound(options: { seed: number; createdAt?: string; salt?: s
     };
     // Measured mutants only: the ones the slice-3 receipt planted and the check showed.
     const measured = receipt.recordings[0].catch.mutants.filter((m) => m.caught);
-    const pool = selectDecisionMutants(inputs.originalSource, 24).filter((m) =>
+    const pool = selectDecisionMutants(inputs.plantableSource, 24).filter((m) =>
       measured.some((x) => x.id === m.id)
     );
     const want = PLANTED_PER_BEHAVIOUR[target.id] ?? 0;

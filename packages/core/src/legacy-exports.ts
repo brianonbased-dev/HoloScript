@@ -125,6 +125,21 @@ export {
   parseHoloStrict,
   parseHoloPartial,
 } from './parser/HoloCompositionParser';
+// Action outcome contracts: accepted/refused outcome kinds declared on actions
+// (`action rent(n) accepted(rented) refused(over_limit) { ... }`), checked by both parsers.
+export {
+  checkActionOutcomes,
+  listActionAnswers,
+  forEachStatement,
+  isDecisionAnswer,
+  OUTCOME_DIAGNOSTIC_CODES,
+  OUTCOME_KINDS,
+  type ActionAnswer,
+  type OutcomeCheckAction,
+  type OutcomeDiagnostic,
+  type OutcomeDiagnosticCode,
+  type OutcomeKind,
+} from './parser/ActionOutcomes';
 export {
   resolveCanonicalSourceSurface,
   validateCanonicalSource,
@@ -154,6 +169,8 @@ export type {
   HoloCameraProperty,
   HoloLogic,
   HoloAction,
+  HoloOutcomeDeclaration,
+  HoloOutcomeKind,
   HoloEventHandler,
   HoloStatement,
   HoloExpression,

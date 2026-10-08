@@ -8,12 +8,21 @@
  *
  * State changes and emitted events are transactional: an invocation commits
  * only after its result and expected action decision validate.
+ *
+ * Outcome kinds: an action may declare its outcomes in its header
+ * (`action rent(count) accepted(rented) refused(over_limit) { ... }`). Both
+ * parsers run the shared checker (core parser/ActionOutcomes.ts) at admission,
+ * so this runtime refuses exactly what `holoscript validate` refuses; each
+ * invocation then also checks its answer against the declaration. Declarations
+ * do not change what an admitted program computes, so the subset ids are
+ * unchanged.
  */
 import { HoloScriptPlusParser, parseHolo } from '@holoscript/core';
 import type {
   HoloAction,
   HoloAssignment,
   HoloExpression,
+  HoloOutcomeKind,
   HoloStatement,
 } from '@holoscript/core/parser/HoloCompositionTypes';
 import {
@@ -155,10 +164,15 @@ interface HsplusNodeLike {
   body?: unknown;
 }
 
+/** accepted: answers allowed: true, may change state. refused: allowed: false, changes nothing. */
+export type DeclaredOutcomeKind = HoloOutcomeKind;
+
 interface RawHsplusAction {
   name: string;
   params: string[];
   body: string;
+  /** Declared outcomes from the HoloScript+ parser, in the order written. */
+  outcomes?: Array<{ name: string; kind: DeclaredOutcomeKind }>;
 }
 
 interface RawHsplusTrait {
@@ -398,11 +412,41 @@ function extractRawActions(nodes: HsplusNodeLike[]): Map<string, RawHsplusAction
       }
       if (actions.has(name)) fail(`duplicate action "${name}"`);
       assertNoComputedStateAccess(body, name);
-      actions.set(name, { name, params: [...params], body });
+      const outcomes = readRawOutcomes(candidate.outcomes, name);
+      actions.set(name, { name, params: [...params], body, ...(outcomes ? { outcomes } : {}) });
     }
   }
   if (actions.size === 0) fail('source must declare at least one logic action');
   return actions;
+}
+
+function readRawOutcomes(
+  value: unknown,
+  actionName: string
+): Array<{ name: string; kind: DeclaredOutcomeKind }> | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.length === 0) {
+    fail(`action "${actionName}" has malformed outcome declarations`);
+  }
+  return value.map((entry, index) => {
+    if (
+      !isRecord(entry) ||
+      typeof entry.name !== 'string' ||
+      !IDENTIFIER.test(entry.name) ||
+      DANGEROUS_KEYS.has(entry.name) ||
+      (entry.kind !== 'accepted' && entry.kind !== 'refused')
+    ) {
+      fail(`action "${actionName}" outcome declaration ${index} is malformed`);
+    }
+    return { name: entry.name, kind: entry.kind };
+  });
+}
+
+/** Declared outcomes as a comparable value (null when none are declared). */
+function outcomeSignature(
+  outcomes: ReadonlyArray<{ name: string; kind: string }> | undefined
+): Array<{ name: string; kind: string }> | null {
+  return outcomes ? outcomes.map(({ name, kind }) => ({ name, kind })) : null;
 }
 
 function topLevelHsplusNodes(root: unknown): HsplusNodeLike[] {
@@ -1117,6 +1161,17 @@ function validateActions(
   if (canonicalizeHeadlessValue(rawSignature) !== canonicalizeHeadlessValue(structuredSignature)) {
     fail('HoloScript+ and structured parser action signatures disagree');
   }
+  for (const action of actions.values()) {
+    const raw = rawActions.get(action.name);
+    if (
+      canonicalizeHeadlessValue(outcomeSignature(raw?.outcomes)) !==
+      canonicalizeHeadlessValue(outcomeSignature(action.outcomes))
+    ) {
+      fail(
+        `HoloScript+ and structured parser outcome declarations disagree for action "${action.name}"`
+      );
+    }
+  }
   return actions;
 }
 
@@ -1450,11 +1505,38 @@ function stateChanged(before: HeadlessJsonObject, after: HeadlessJsonObject): bo
   return canonicalizeHeadlessValue(before) !== canonicalizeHeadlessValue(after);
 }
 
+/**
+ * The per-invocation half of the outcome contract: an action that declares its
+ * outcomes may only answer with one of them, with `allowed` matching its kind.
+ * (Admission already proved this from the source; this catches anything that
+ * slips past the static reading.)
+ */
+export function assertAnswerMatchesDeclaration(
+  actionName: string,
+  outcome: string,
+  allowed: boolean,
+  declared: ReadonlyMap<string, DeclaredOutcomeKind>
+): void {
+  const kind = declared.get(outcome);
+  if (!kind) {
+    const list = [...declared].map(([name, k]) => `${name} (${k})`).join(', ');
+    fail(
+      `action "${actionName}" answered with outcome "${outcome}", which it does not declare (declared: ${list})`
+    );
+  }
+  if (allowed !== (kind === 'accepted')) {
+    fail(
+      `action "${actionName}" answered "${outcome}" with allowed: ${allowed}, but "${outcome}" is declared ${kind}`
+    );
+  }
+}
+
 function validateActionDecision(
   entry: HeadlessExperimentScheduleEntry,
   value: HeadlessJsonValue,
   changed: boolean,
-  emittedEvents: readonly HeadlessJsonValue[]
+  emittedEvents: readonly HeadlessJsonValue[],
+  declared?: ReadonlyMap<string, DeclaredOutcomeKind>
 ): boolean {
   if (entry.kind === 'observation') {
     if (changed) fail(`observation "${entry.scheduleEntryId}" attempted to mutate state`);
@@ -1470,6 +1552,9 @@ function validateActionDecision(
   if (typeof value.outcome !== 'string' || value.outcome.length === 0) {
     fail(`action "${entry.entrypoint}" result.outcome must be a non-empty string`);
   }
+  if (declared) {
+    assertAnswerMatchesDeclaration(entry.entrypoint, value.outcome, value.allowed, declared);
+  }
   if (!value.allowed && (changed || emittedEvents.length > 0)) {
     fail(`denied action "${entry.entrypoint}" attempted a state change or event`);
   }
@@ -1484,6 +1569,8 @@ function validateActionDecision(
 
 export class DeterministicHsplusActionRuntime {
   private readonly actions: ReadonlyMap<string, HoloAction>;
+  /** Declared outcome kinds per action (only actions that declare them). */
+  private readonly declaredOutcomes: ReadonlyMap<string, ReadonlyMap<string, DeclaredOutcomeKind>>;
   private readonly initial: HeadlessJsonObject;
   private readonly numericBuiltins: boolean;
   private readonly localBindings: boolean;
@@ -1555,8 +1642,24 @@ export class DeterministicHsplusActionRuntime {
       hostNamespaces,
       this.nullCoalescing
     );
+    this.declaredOutcomes = new Map(
+      [...this.actions.values()]
+        .filter((action) => action.outcomes !== undefined)
+        .map((action) => [
+          action.name,
+          new Map(action.outcomes!.map((outcome) => [outcome.name, outcome.kind])),
+        ])
+    );
     this.initial = cloneObject(structuredState, 'initial state');
     this.state = cloneObject(this.initial, 'runtime state');
+  }
+
+  /** Declared outcomes of an action, in the order written (undefined when it declares none). */
+  declaredOutcomesOf(
+    actionName: string
+  ): Array<{ name: string; kind: DeclaredOutcomeKind }> | undefined {
+    const declared = this.declaredOutcomes.get(actionName);
+    return declared ? [...declared].map(([name, kind]) => ({ name, kind })) : undefined;
   }
 
   get subsetId(): string {
@@ -1610,7 +1713,13 @@ export class DeterministicHsplusActionRuntime {
     const value = toStrictJson(flow.value, `${action.name} result`);
     const after = cloneObject(workingState, `${action.name} post-state`);
     const changed = stateChanged(before, after);
-    const shouldCommit = validateActionDecision(entry, value, changed, emittedEvents);
+    const shouldCommit = validateActionDecision(
+      entry,
+      value,
+      changed,
+      emittedEvents,
+      this.declaredOutcomes.get(action.name)
+    );
     if (shouldCommit) this.state = after;
 
     return {

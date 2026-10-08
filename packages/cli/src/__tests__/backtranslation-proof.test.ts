@@ -34,6 +34,7 @@ import {
   makeCachedRunner,
   twinBehaviours,
   validateBehaviourSource,
+  withoutOutcomeDeclarations,
 } from './backtranslation/pipeline';
 
 const testDir = __dirname;
@@ -103,7 +104,7 @@ describe('back-translation proof — model-village behaviour', () => {
   it(
     'every planted fault is caught by at least one situation',
     async () => {
-      const mutants = selectMutants(originalSource, 5);
+      const mutants = selectMutants(withoutOutcomeDeclarations(originalSource), 5);
       expect(mutants.length).toBe(5);
       for (const mutant of mutants) {
         const result = await twinBehaviours({
@@ -180,7 +181,7 @@ describe('back-translation proof — model-village behaviour', () => {
 
         // Faults (recomputed so the receipt carries per-mutant detail).
         const mutantOutcomes: MutantOutcome[] = [];
-        for (const mutant of selectMutants(originalSource, 5)) {
+        for (const mutant of selectMutants(withoutOutcomeDeclarations(originalSource), 5)) {
           const r = await twinBehaviours({
             name: `original-vs-${mutant.id}`,
             run,

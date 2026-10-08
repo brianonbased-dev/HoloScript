@@ -5,7 +5,7 @@ composition "Corner Shop" {
   }
 
   logic {
-    action buy(quantity, payment) {
+    action buy(quantity, payment) accepted(sold) refused(nothing_to_buy, not_enough_stock, not_enough_money) {
       if (quantity < 1) {
         return { allowed: false, outcome: "nothing_to_buy" }
       }
@@ -25,7 +25,7 @@ composition "Corner Shop" {
       }
     }
 
-    action restock(amount) {
+    action restock(amount) accepted(restocked) refused(nothing_to_add, shelf_full) {
       if (amount < 1) {
         return { allowed: false, outcome: "nothing_to_add" }
       }

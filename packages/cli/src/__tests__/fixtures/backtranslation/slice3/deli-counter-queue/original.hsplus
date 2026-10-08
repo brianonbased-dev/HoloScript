@@ -8,7 +8,7 @@ composition "Deli Counter Queue" {
   }
 
   logic {
-    action join(kind) {
+    action join(kind) accepted(joined, joined_bumping_normal) refused(counter_closed, unknown_kind, queue_full) {
       if (!state.open) {
         return { allowed: false, outcome: "counter_closed" }
       }
@@ -36,7 +36,7 @@ composition "Deli Counter Queue" {
       return { allowed: true, outcome: "joined" }
     }
 
-    action serve() {
+    action serve() accepted(served_priority, served_normal) refused(nobody_waiting) {
       if (state.waitingNormal + state.waitingPriority == 0) {
         return { allowed: false, outcome: "nobody_waiting" }
       }
@@ -52,7 +52,7 @@ composition "Deli Counter Queue" {
       return { allowed: true, outcome: "served_normal" }
     }
 
-    action giveUp(kind) {
+    action giveUp(kind) accepted(left_queue) refused(unknown_kind, none_of_that_kind) {
       if (kind != "normal" && kind != "priority") {
         return { allowed: false, outcome: "unknown_kind" }
       }
@@ -71,7 +71,7 @@ composition "Deli Counter Queue" {
       return { allowed: true, outcome: "left_queue" }
     }
 
-    action closeJoining() {
+    action closeJoining() accepted(closed) refused(already_closed) {
       if (!state.open) {
         return { allowed: false, outcome: "already_closed" }
       }

@@ -383,7 +383,7 @@ export function momentCandidates(iterations = 200): MomentCandidate[] {
   for (const target of HVAC_TARGETS) {
     const inputs = slice3Inputs(target);
     const title = TITLES[target.id];
-    for (const m of loadNamedMutants(target, inputs.originalSource)) {
+    for (const m of loadNamedMutants(target, inputs.plantableSource)) {
       const found = findMoments({
         target,
         spec: inputs.spec,
