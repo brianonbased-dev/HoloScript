@@ -9,7 +9,17 @@
  *   1. Test selection — the test files the change can reach through the
  *      import graph, instead of every test in the touched packages. When no
  *      authoritative graph exists (or the traversal was cut short) it falls
- *      back to "every test in the touched packages" and says so.
+ *      back to "every test in the touched packages" and says so. Selecting too
+ *      FEW tests is the dangerous failure, so whatever the graph cannot place
+ *      keeps a whole suite, with the reason in `tests.fullSuitePackages`:
+ *        - a deleted (or renamed-away) code file the graph no longer holds —
+ *          the files that imported it cannot be listed;
+ *        - a changed code file the graph has no node for;
+ *        - any changed non-code file (fixture, snapshot, data, manifest,
+ *          lockfile, config) — tests read those without an import edge;
+ *        - test/build config with a code extension (vitest.config.ts, ...);
+ *      and such a file outside every package keeps EVERY test in the repo.
+ *      Only prose (Markdown outside test/fixture directories) is inert.
  *   2. Forgotten callers — for each exported symbol whose declaration line
  *      changed, the call sites in files the change did NOT touch.
  *   3. Reviewer brief — a short plain-text summary of 1 and 2.
@@ -72,7 +82,13 @@ export interface ForgottenCallerEntry {
   change: ChangedSymbol['change'];
   /** Callers in untouched files that also import the changed file (graph-confirmed). */
   confirmed: CallerSite[];
-  /** Untouched-file call sites that only match by name (could be another symbol). */
+  /**
+   * Untouched-file call sites that only match by name: the graph does not link
+   * the file to the change (it may be another symbol of the same name, or an
+   * import the graph does not follow: by package name, or of a deleted file).
+   */
+  nameOnly: CallerSite[];
+  /** nameOnly.length (kept for consumers of the first schema). */
   nameOnlyCount: number;
 }
 
@@ -92,7 +108,11 @@ export interface ChangeImpactReport {
     selected: string[];
     /** Every test file in the packages the change or its reach touches. */
     fullSet: string[];
-    /** Packages whose whole suite stays selected, with why. */
+    /**
+     * Packages whose whole suite stays selected, with why. `pkg` is the
+     * package directory, or `.` (REPO_SCOPE) for a change outside every
+     * package, which keeps every test in the repo.
+     */
     fullSuitePackages: Array<{ pkg: string; reason: string }>;
   };
   callers: {
@@ -107,14 +127,50 @@ export interface ChangeImpactReport {
 }
 
 const TEST_FILE_RE = /(?:^|\/)(?:__tests__\/.*\.[cm]?[jt]sx?|[^/]+\.(?:test|spec)\.[cm]?[jt]sx?)$/;
+/** A test file the runner runs on its own; nothing imports one, so it needs no reach. */
+const RUNNABLE_TEST_RE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
 const CODE_FILE_RE = /\.(?:[cm]?[jt]sx?)$/;
 const DECLARATION_FILE_RE = /\.d\.[cm]?ts$/;
-/** Non-code files whose change can alter how a whole package's tests behave. */
+/**
+ * Files whose change can alter how a whole package's tests behave although no
+ * import edge points at them: manifests, lockfiles, and compiler / test-runner
+ * config and setup. The code-extension ones need this rule — the graph holds a
+ * vitest.config.ts as a node, but nothing imports it, so its reach is empty.
+ */
 const PACKAGE_WIDE_FILE_RE =
-  /(?:^|\/)(?:package\.json|tsconfig[^/]*\.json|vitest\.config\.[cm]?[jt]s|vitest\.setup\.[cm]?[jt]s|vite\.config\.[cm]?[jt]s)$/;
+  /(?:^|\/)(?:package\.json|package-lock\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|yarn\.lock|\.npmrc|tsconfig[^/]*\.json|(?:vite|vitest|jest|tsup|babel)(?:\.[\w-]+)*\.config\.[cm]?[jt]s|vitest\.(?:workspace|setup|shared)[^/]*\.[cm]?[jt]s)$/;
+/** Prose. Inert unless it sits where tests keep their inputs (see TEST_DATA_DIR_RE). */
+const INERT_FILE_RE = /\.(?:md|mdx|markdown|rst)$/i;
+const TEST_DATA_DIR_RE =
+  /(?:^|\/)(?:__tests__|__fixtures__|__snapshots__|fixtures?|tests?|testdata|test-data|golden)\//i;
+/** fullSuitePackages scope for a change outside every package: every test in the repo. */
+export const REPO_SCOPE = '.';
 
 export function isTestFile(file: string): boolean {
   return TEST_FILE_RE.test(toPosix(file));
+}
+
+/** A change that cannot alter any test outcome: prose outside test/fixture directories. */
+export function isInertFile(file: string): boolean {
+  const posix = toPosix(file);
+  return INERT_FILE_RE.test(posix) && !TEST_DATA_DIR_RE.test(posix);
+}
+
+/**
+ * Parse `git diff --name-status --no-renames -z`. With --no-renames a rename
+ * arrives as `D old` + `A new`, so the old path (which other files may still
+ * import) is not hidden behind the new name.
+ */
+export function parseNameStatus(output: string): Array<{ status: string; file: string }> {
+  const parts = output.split('\0');
+  const out: Array<{ status: string; file: string }> = [];
+  for (let i = 0; i + 1 < parts.length; i += 2) {
+    const status = parts[i].trim();
+    const file = parts[i + 1];
+    if (!status || !file) continue;
+    out.push({ status: status[0], file: toPosix(file) });
+  }
+  return out;
 }
 
 function toPosix(p: string): string {
@@ -353,7 +409,7 @@ function workspaceDependents(
 
 export function renderReviewerBrief(report: Omit<ChangeImpactReport, 'brief'>): string {
   const lines: string[] = [];
-  const pkgList = report.touchedPackages.length ? report.touchedPackages.join(', ') : 'none';
+  const pkgList = report.touchedPackages.length ? report.touchedPackages.join(', ') : 'no package';
   lines.push(`Change since ${report.since}: ${report.changedFiles.length} file(s) in ${pkgList}.`);
   if (report.mode === 'graph') {
     const scope =
@@ -373,30 +429,46 @@ export function renderReviewerBrief(report: Omit<ChangeImpactReport, 'brief'>): 
     );
   }
   for (const full of report.tests.fullSuitePackages) {
-    lines.push(`  Whole suite kept for ${full.pkg}: ${full.reason}`);
+    const scope =
+      full.pkg === REPO_SCOPE ? 'every package (the change is outside them all)' : full.pkg;
+    lines.push(`  Whole suite kept for ${scope}: ${full.reason}`);
   }
   if (!report.callers.available) {
     lines.push(`Callers: not checked — ${report.callers.reason ?? 'no graph'}.`);
   } else if (report.callers.changedSymbols.length === 0) {
     lines.push('Callers: no exported function, class or method changed its declaration.');
   } else {
-    const flagged = report.callers.forgotten.filter((f) => f.confirmed.length > 0);
-    lines.push(
-      `Callers: ${report.callers.changedSymbols.length} exported declaration(s) changed; ${flagged.length} still have callers in files this change did not touch.`
-    );
-    for (const entry of flagged.slice(0, 10)) {
-      const where = entry.confirmed
+    const sites = (list: CallerSite[], total: number) => {
+      const where = list
         .slice(0, 3)
         .map((c) => `${c.file}:${c.line}`)
         .join(', ');
-      const more = entry.confirmed.length > 3 ? ` (+${entry.confirmed.length - 3} more)` : '';
-      lines.push(`  CHECK ${entry.symbol} (${entry.change}) — called from ${where}${more}`);
+      return total > 3 ? `${where} (+${total - 3} more)` : where;
+    };
+    const flagged = report.callers.forgotten.filter((f) => f.confirmed.length > 0);
+    const nameOnly = report.callers.forgotten.filter((f) => f.nameOnlyCount > 0);
+    const possible =
+      nameOnly.length > 0 ? `; ${nameOnly.length} have possible callers matched by name only` : '';
+    lines.push(
+      `Callers: ${report.callers.changedSymbols.length} exported declaration(s) changed; ${flagged.length} still have callers in files this change did not touch${possible}.`
+    );
+    for (const entry of flagged.slice(0, 10)) {
+      lines.push(
+        `  CHECK ${entry.symbol} (${entry.change}) — called from ${sites(entry.confirmed, entry.confirmed.length)}`
+      );
+    }
+    for (const entry of nameOnly.slice(0, 10)) {
+      lines.push(
+        `  NAME-ONLY ${entry.symbol} (${entry.change}) — called by name from ${sites(entry.nameOnly ?? [], entry.nameOnlyCount)}; the graph does not link those files to the change (another symbol of that name, or an import it does not follow: by package name, or of a deleted file)`
+      );
     }
   }
   if (report.untracedDependents.length > 0) {
     const shown = report.untracedDependents.slice(0, 8).join(', ');
     const more =
-      report.untracedDependents.length > 8 ? ` and ${report.untracedDependents.length - 8} more` : '';
+      report.untracedDependents.length > 8
+        ? ` and ${report.untracedDependents.length - 8} more`
+        : '';
     lines.push(
       `Not traced: ${report.untracedDependents.length} other package(s) use a touched package by name (${shown}${more}); the graph does not follow those imports.`
     );
@@ -483,16 +555,20 @@ export async function analyzeChangeImpact(
   const range = diffRangeArgs(options.since);
 
   // ── What changed ──────────────────────────────────────────────────────────
-  const changedFiles = deps
-    .git(['diff', '--name-only', ...range])
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .map(toPosix);
-  const existing = changedFiles.filter((f) => deps.fileExists(path.join(repoRoot, f)));
+  // --no-renames: a rename is the delete of the old path plus the add of the
+  // new one. Under rename detection git lists only the new name, and the files
+  // that still import the old path would lose their tests.
+  const changes = parseNameStatus(
+    deps.git(['diff', '--name-status', '--no-renames', '-z', ...range])
+  );
+  const changedFiles = Array.from(new Set(changes.map((c) => c.file)));
+  const deletedKeys = new Set(changes.filter((c) => c.status === 'D').map((c) => key(c.file)));
+  const isDeleted = (f: string) => deletedKeys.has(key(f));
+  const present = changedFiles.filter((f) => !isDeleted(f));
   const diff = deps.git([
     'diff',
     '-U0',
+    '--no-renames',
     ...range,
     '--',
     '*.ts',
@@ -516,9 +592,15 @@ export async function analyzeChangeImpact(
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
-    .map(toPosix);
+    .map(toPosix)
+    // An unstaged delete is still in the index; never hand the runner a missing file.
+    .filter((f) => !isDeleted(f));
   const testsInPackage = (pkg: string) =>
-    trackedFiles.filter((f) => f.startsWith(`${pkg}/`) && isTestFile(f) && pkgOf(f) === pkg);
+    pkg === REPO_SCOPE
+      ? trackedFiles.filter((f) => isTestFile(f))
+      : trackedFiles.filter((f) => f.startsWith(`${pkg}/`) && isTestFile(f) && pkgOf(f) === pkg);
+  const testsIn = (scopes: Iterable<string>) =>
+    Array.from(new Set(Array.from(scopes).flatMap(testsInPackage))).sort();
   const allPackageDirs = Array.from(
     new Set(
       trackedFiles
@@ -534,8 +616,36 @@ export async function analyzeChangeImpact(
     deps.readFile
   );
 
+  // ── Whole suites the graph cannot narrow (true with or without a graph) ───
+  // A test can read a fixture, snapshot or data file, and a manifest, lockfile
+  // or runner config changes how every test runs — none of that is an import
+  // edge. Such a change keeps its package's whole suite; outside every package
+  // it keeps every test in the repo. Unsure means more tests, never fewer.
+  const fullSuite = new Map<string, string>();
+  const keepSuite = (f: string, why: string) => {
+    const pkg = pkgOf(f);
+    const scope = pkg ?? REPO_SCOPE;
+    if (fullSuite.has(scope)) return;
+    fullSuite.set(
+      scope,
+      pkg ? why : `${why}; it is outside every package, so every test in the repo is kept`
+    );
+  };
+  for (const f of changedFiles) {
+    if (isInertFile(f)) continue;
+    if (PACKAGE_WIDE_FILE_RE.test(f)) {
+      keepSuite(f, `${f} changed (manifest, lockfile, or test/build config)`);
+    } else if (!CODE_FILE_RE.test(f)) {
+      keepSuite(
+        f,
+        `${f} changed and is not code the graph can trace (a test may read it as data, fixture or snapshot)`
+      );
+    }
+  }
+  const fullSuiteEntries = () => Array.from(fullSuite, ([pkg, reason]) => ({ pkg, reason }));
+
   const fallback = (reason: string, cacheNote?: string): ChangeImpactReport => {
-    const fullSet = Array.from(new Set(touchedPackages.flatMap(testsInPackage))).sort();
+    const fullSet = testsIn([...touchedPackages, ...fullSuite.keys()]);
     const partial: Omit<ChangeImpactReport, 'brief'> = {
       schema: 'holoscript.change-impact.v1',
       repoRoot,
@@ -548,7 +658,7 @@ export async function analyzeChangeImpact(
       touchedPackages,
       affectedFiles: [],
       affectedCount: 0,
-      tests: { selected: fullSet, fullSet, fullSuitePackages: [] },
+      tests: { selected: fullSet, fullSet, fullSuitePackages: fullSuiteEntries() },
       callers: {
         available: false,
         reason: 'needs the codebase graph',
@@ -568,16 +678,18 @@ export async function analyzeChangeImpact(
     if (!absorb.ok) return fallback(`absorb refresh failed: ${absorb.error}`);
   }
 
-  if (existing.length === 0) {
-    return fallback('no changed file exists in the working tree to trace');
+  if (changedFiles.length === 0) {
+    return fallback(`no file changed since ${options.since}`);
   }
-  if (existing.length > 1000) {
-    return fallback(`${existing.length} changed files exceed the 1000-file impact limit`);
+  if (changedFiles.length > 1000) {
+    return fallback(`${changedFiles.length} changed files exceed the 1000-file impact limit`);
   }
 
+  // Deleted paths are asked too: a graph absorbed before the delete still
+  // holds the file, and its reach is exactly the files that imported it.
   const impact = asRecord(
     await deps.handleCodebaseTool('holo_impact_analysis', {
-      changedFiles: existing.map((f) => toPosix(path.join(repoRoot, f))),
+      changedFiles: changedFiles.map((f) => toPosix(path.join(repoRoot, f))),
       maxAffectedFiles: 20_000,
     })
   );
@@ -619,28 +731,25 @@ export async function analyzeChangeImpact(
   }
   const affectedKeys = new Set(Array.from(affectedRel, (f) => key(f)));
 
-  // Changed files the graph has no node for: a changed code/config file we
-  // cannot trace keeps its whole package suite.
+  // Changed code files the graph has no node for: their reach is unknown, so
+  // their package keeps its whole suite. A deleted file is the common case — a
+  // graph absorbed after the delete has no node for it, and the files that
+  // still import it are not linked to anything.
   const unresolved = new Set(
     (Array.isArray(impact.unresolvedChangedFiles) ? impact.unresolvedChangedFiles : []).map((f) =>
       key(toRel(String(f)))
     )
   );
-  const fullSuitePackages = new Map<string, string>();
   for (const f of changedFiles) {
-    const pkg = pkgOf(f);
-    if (!pkg || isTestFile(f)) continue;
-    const exists = deps.fileExists(path.join(repoRoot, f));
-    if (PACKAGE_WIDE_FILE_RE.test(f)) {
-      if (!fullSuitePackages.has(pkg)) fullSuitePackages.set(pkg, `${f} changed (package-wide file)`);
-    } else if (
-      exists &&
-      CODE_FILE_RE.test(f) &&
-      !DECLARATION_FILE_RE.test(f) &&
-      unresolved.has(key(f))
-    ) {
-      if (!fullSuitePackages.has(pkg)) fullSuitePackages.set(pkg, `${f} is not in the graph`);
-    }
+    if (isInertFile(f) || !CODE_FILE_RE.test(f) || PACKAGE_WIDE_FILE_RE.test(f)) continue;
+    // A *.test / *.spec file runs on its own when present; nothing imports one.
+    if (RUNNABLE_TEST_RE.test(f) || !unresolved.has(key(f))) continue;
+    keepSuite(
+      f,
+      isDeleted(f)
+        ? `${f} was deleted and the graph no longer holds it, so the files that imported it cannot be listed`
+        : `${f} is not in the graph`
+    );
   }
 
   const affectedPackages = new Set(touchedPackages);
@@ -648,14 +757,17 @@ export async function analyzeChangeImpact(
     const pkg = pkgOf(f);
     if (pkg) affectedPackages.add(pkg);
   }
-  const fullSet = Array.from(new Set(Array.from(affectedPackages).flatMap(testsInPackage))).sort();
+  const fullSet = testsIn([...affectedPackages, ...fullSuite.keys()]);
   const selected = new Set<string>();
   for (const f of affectedRel) if (isTestFile(f)) selected.add(f);
-  for (const f of existing) {
+  for (const f of present) {
     if (isTestFile(f)) selected.add(f);
     else for (const t of conventionTestsFor(f, repoRoot, deps.fileExists)) selected.add(t);
   }
-  for (const pkg of fullSuitePackages.keys()) for (const t of testsInPackage(pkg)) selected.add(t);
+  for (const t of testsIn(fullSuite.keys())) selected.add(t);
+  // The reach of a deleted file (from a graph absorbed before the delete) can
+  // include deleted tests; the runner must not be handed missing files.
+  for (const f of Array.from(selected)) if (isDeleted(f)) selected.delete(f);
 
   // ── Forgotten callers ─────────────────────────────────────────────────────
   const changedKeys = new Set(changedFiles.map((f) => key(f)));
@@ -678,7 +790,7 @@ export async function analyzeChangeImpact(
     }
     const edges = Array.isArray(result.results) ? result.results : [];
     const confirmed: CallerSite[] = [];
-    let nameOnlyCount = 0;
+    const nameOnly: CallerSite[] = [];
     const seenSites = new Set<string>();
     for (const raw of edges) {
       const edge = asRecord(raw);
@@ -687,22 +799,21 @@ export async function analyzeChangeImpact(
       const site = `${rel}:${String(edge.line ?? '')}`;
       if (seenSites.has(site)) continue;
       seenSites.add(site);
-      if (affectedKeys.has(key(rel))) {
-        confirmed.push({
-          file: rel,
-          line: Number(edge.line ?? 0),
-          callerId: String(edge.callerId ?? ''),
-        });
-      } else {
-        nameOnlyCount++;
-      }
+      (affectedKeys.has(key(rel)) ? confirmed : nameOnly).push({
+        file: rel,
+        line: Number(edge.line ?? 0),
+        callerId: String(edge.callerId ?? ''),
+      });
     }
+    const bySite = (a: CallerSite, b: CallerSite) =>
+      a.file.localeCompare(b.file) || a.line - b.line;
     forgotten.push({
       symbol: sym.owner ? `${sym.owner}.${sym.name}` : sym.name,
       file: sym.file,
       change: sym.change,
-      confirmed: confirmed.sort((a, b) => a.file.localeCompare(b.file) || a.line - b.line),
-      nameOnlyCount,
+      confirmed: confirmed.sort(bySite),
+      nameOnly: nameOnly.sort(bySite),
+      nameOnlyCount: nameOnly.length,
     });
   }
 
@@ -721,7 +832,7 @@ export async function analyzeChangeImpact(
     tests: {
       selected: Array.from(selected).sort(),
       fullSet,
-      fullSuitePackages: Array.from(fullSuitePackages, ([pkg, reason]) => ({ pkg, reason })),
+      fullSuitePackages: fullSuiteEntries(),
     },
     callers: {
       available: callersAvailable,

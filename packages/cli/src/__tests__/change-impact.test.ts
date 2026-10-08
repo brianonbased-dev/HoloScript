@@ -3,7 +3,9 @@ import {
   absorbAndWait,
   analyzeChangeImpact,
   extractChangedExportedSymbols,
+  isInertFile,
   isTestFile,
+  parseNameStatus,
   type ChangeImpactDeps,
 } from '../commands/change-impact';
 import { parseArgs } from '../args';
@@ -27,7 +29,10 @@ const FILES = [
 
 const MANIFESTS: Record<string, string> = {
   'packages/a/package.json': JSON.stringify({ name: '@x/a' }),
-  'packages/b/package.json': JSON.stringify({ name: '@x/b', dependencies: { '@x/a': 'workspace:*' } }),
+  'packages/b/package.json': JSON.stringify({
+    name: '@x/b',
+    dependencies: { '@x/a': 'workspace:*' },
+  }),
 };
 
 const DIFF = [
@@ -50,6 +55,7 @@ function makeDeps(overrides: Partial<ChangeImpactDeps> = {}): ChangeImpactDeps {
   return {
     git: (args) => {
       if (args[0] === 'ls-files') return FILES.join('\n');
+      if (args[0] === 'diff' && args[1] === '--name-status') return 'M\0packages/a/src/math.ts\0';
       if (args[0] === 'diff' && args[1] === '--name-only') return 'packages/a/src/math.ts\n';
       if (args[0] === 'diff' && args[1] === '-U0') return DIFF;
       throw new Error(`unexpected git ${args.join(' ')}`);
@@ -118,6 +124,9 @@ describe('impact --since: HoloCI change report from the codebase graph', () => {
     expect(add?.confirmed).toEqual([
       { file: 'packages/a/src/uses-math.ts', line: 12, callerId: 'u' },
     ]);
+    expect(add?.nameOnly).toEqual([
+      { file: 'packages/a/src/unrelated.ts', line: 4, callerId: 'z' },
+    ]);
     expect(add?.nameOnlyCount).toBe(1);
     expect(report.callers.forgotten.map((f) => f.symbol)).toContain('Calc.total');
   });
@@ -129,6 +138,11 @@ describe('impact --since: HoloCI change report from the codebase graph', () => {
     expect(report.brief).toContain('2 of 4 test file(s)');
     expect(report.brief).toContain('CHECK add (signature)');
     expect(report.brief).toContain('packages/a/src/uses-math.ts:12');
+    // A same-name call the graph cannot link is shown too, labelled as name-only.
+    expect(report.brief).toContain('1 have possible callers matched by name only');
+    expect(report.brief).toContain(
+      'NAME-ONLY add (signature) — called by name from packages/a/src/unrelated.ts:4'
+    );
     // pkg-b imports pkg-a by name — the graph cannot see that; the brief must say so.
     expect(report.untracedDependents).toEqual(['packages/b']);
     expect(report.brief).toContain('Not traced: 1 other package(s)');
@@ -223,7 +237,9 @@ describe('impact --since: HoloCI change report from the codebase graph', () => {
   it('reads the graph cache only — absorbs first just with --refresh', async () => {
     const deps = makeDeps();
     await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD~1' }, deps);
-    const called = (deps.handleCodebaseTool as ReturnType<typeof vi.fn>).mock.calls.map((c) => c[0]);
+    const called = (deps.handleCodebaseTool as ReturnType<typeof vi.fn>).mock.calls.map(
+      (c) => c[0]
+    );
     expect(called).not.toContain('holo_absorb_repo');
 
     const refreshDeps = makeDeps();
@@ -236,6 +252,328 @@ describe('impact --since: HoloCI change report from the codebase graph', () => {
       'holo_absorb_repo',
       expect.objectContaining({ force: false })
     );
+  });
+});
+
+/**
+ * A second repo whose git mock keeps real git semantics, so a report built on
+ * the wrong git output goes red: `diff --name-only` (rename detection on, git's
+ * default) lists only a rename's NEW path; `diff --name-status --no-renames -z`
+ * lists `D old` + `A new`. The graph mock answers impact queries by walking
+ * `importers` from the files the graph holds; every other changed path comes
+ * back unresolved, exactly as the absorb handler reports it.
+ */
+const REPO2 = [
+  'package.json',
+  'pnpm-lock.yaml',
+  'tsconfig.base.json',
+  'vitest.workspace.ts',
+  'README.md',
+  'packages/a/package.json',
+  'packages/a/README.md',
+  'packages/a/vitest.config.ts',
+  'packages/a/src/helper.ts',
+  'packages/a/src/uses-helper.ts',
+  'packages/a/src/unrelated.ts',
+  'packages/a/src/__tests__/fixture.test.ts',
+  'packages/a/src/__tests__/fixtures/data.json',
+  'packages/a/src/__tests__/fixtures/expected.md',
+  'packages/a/src/__tests__/unrelated.test.ts',
+  'packages/a/src/__tests__/uses-helper.test.ts',
+  'packages/b/package.json',
+  'packages/b/src/index.ts',
+  'packages/b/src/__tests__/b.test.ts',
+];
+const A_TESTS = [
+  'packages/a/src/__tests__/fixture.test.ts',
+  'packages/a/src/__tests__/unrelated.test.ts',
+  'packages/a/src/__tests__/uses-helper.test.ts',
+];
+const ALL_TESTS = [...A_TESTS, 'packages/b/src/__tests__/b.test.ts'].sort();
+/** Reverse imports as the graph records them: file -> files that import it. */
+const IMPORTERS: Record<string, string[]> = {
+  'packages/a/src/helper.ts': ['packages/a/src/uses-helper.ts'],
+  'packages/a/src/uses-helper.ts': ['packages/a/src/__tests__/uses-helper.test.ts'],
+  'packages/a/src/unrelated.ts': ['packages/a/src/__tests__/unrelated.test.ts'],
+};
+const CODE_NODES = REPO2.filter((f) => /\.ts$/.test(f));
+
+type Repo2Change =
+  { status: 'M' | 'A' | 'D'; file: string } | { status: 'R'; from: string; file: string };
+
+function repo2(opts: {
+  changes: Repo2Change[];
+  /** Files the graph holds (default: the code files after the change, i.e. a fresh absorb). */
+  graphNodes?: string[];
+  /** The `git diff -U0` text; `renamedDiff` is what git prints WITHOUT --no-renames. */
+  diff?: string;
+  renamedDiff?: string;
+  callers?: Record<string, Array<{ file: string; line: number }>>;
+  noGraph?: boolean;
+}): ChangeImpactDeps {
+  const tree = new Set(REPO2);
+  for (const c of opts.changes) {
+    if (c.status === 'D') tree.delete(c.file);
+    if (c.status === 'A') tree.add(c.file);
+    if (c.status === 'R') {
+      tree.delete(c.from);
+      tree.add(c.file);
+    }
+  }
+  const nodes = new Set(opts.graphNodes ?? Array.from(tree).filter((f) => /\.ts$/.test(f)));
+  const abs = (f: string) => `${ROOT}/${f}`;
+  const rel = (p: string) => p.replace(/\\/g, '/').replace(/^[A-Za-z]:\/repo\//i, '');
+  return {
+    git: (args) => {
+      if (args[0] === 'ls-files') return Array.from(tree).sort().join('\n');
+      if (args[0] === 'diff' && args[1] === '--name-only') {
+        return opts.changes.map((c) => `${c.file}\n`).join('');
+      }
+      if (
+        args[0] === 'diff' &&
+        args[1] === '--name-status' &&
+        args.includes('--no-renames') &&
+        args.includes('-z')
+      ) {
+        return opts.changes
+          .map((c) =>
+            c.status === 'R' ? `D\0${c.from}\0A\0${c.file}\0` : `${c.status}\0${c.file}\0`
+          )
+          .join('');
+      }
+      if (args[0] === 'diff' && args[1] === '-U0') {
+        return args.includes('--no-renames')
+          ? (opts.diff ?? '')
+          : (opts.renamedDiff ?? opts.diff ?? '');
+      }
+      throw new Error(`unexpected git ${args.join(' ')}`);
+    },
+    fileExists: (p) => tree.has(rel(p)),
+    readFile: (p) => {
+      const r = rel(p);
+      if (MANIFESTS[r]) return MANIFESTS[r];
+      throw new Error(`no file ${r}`);
+    },
+    handleCodebaseTool: vi.fn(async (name: string, args: Record<string, unknown>) => {
+      if (opts.noGraph) return { error: 'No codebase graph available' };
+      if (name === 'holo_impact_analysis') {
+        const requested = (args.changedFiles as string[]).map(rel);
+        const unresolved = requested.filter((f) => !nodes.has(f));
+        const reach = new Set(requested.filter((f) => nodes.has(f)));
+        const queue = Array.from(reach);
+        while (queue.length > 0) {
+          for (const importer of IMPORTERS[queue.shift()!] ?? []) {
+            if (nodes.has(importer) && !reach.has(importer)) {
+              reach.add(importer);
+              queue.push(importer);
+            }
+          }
+        }
+        return {
+          impactByCommunity: { c1: Array.from(reach, abs) },
+          unresolvedChangedFiles: unresolved.map(abs),
+          communityGroupingComplete: true,
+          traversal: {
+            complete: unresolved.length === 0,
+            truncationReasons: unresolved.length > 0 ? ['changed_file_not_indexed'] : [],
+          },
+        };
+      }
+      if (name === 'holo_query_codebase') {
+        const sites = opts.callers?.[String(args.symbolName)] ?? [];
+        return {
+          results: sites.map((s, i) => ({
+            callerId: `c${i}`,
+            filePath: abs(s.file),
+            line: s.line,
+          })),
+        };
+      }
+      throw new Error(`unexpected tool ${name}`);
+    }),
+  };
+}
+
+const HELPER_DELETED_DIFF = [
+  'diff --git a/packages/a/src/helper.ts b/packages/a/src/helper.ts',
+  'deleted file mode 100644',
+  '--- a/packages/a/src/helper.ts',
+  '+++ /dev/null',
+  '@@ -1,3 +0,0 @@',
+  '-export function helper(): number {',
+  '-  return 1;',
+  '-}',
+].join('\n');
+
+describe('impact --since: a deleted or renamed file keeps the tests of files that still import it', () => {
+  it('a deleted file the graph no longer holds keeps its package suite (with the reason)', async () => {
+    const deps = repo2({
+      changes: [
+        { status: 'D', file: 'packages/a/src/helper.ts' },
+        { status: 'M', file: 'packages/a/src/unrelated.ts' },
+      ],
+      diff: HELPER_DELETED_DIFF,
+      callers: { helper: [{ file: 'packages/a/src/uses-helper.ts', line: 2 }] },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.mode).toBe('graph');
+    // uses-helper.ts still imports ./helper: its test must run.
+    expect(report.tests.selected).toContain('packages/a/src/__tests__/uses-helper.test.ts');
+    expect(report.tests.selected).toEqual(A_TESTS);
+    expect(report.tests.fullSuitePackages).toEqual([
+      {
+        pkg: 'packages/a',
+        reason:
+          'packages/a/src/helper.ts was deleted and the graph no longer holds it, so the files that imported it cannot be listed',
+      },
+    ]);
+    // The caller the graph lost is shown, labelled as name-only.
+    expect(report.brief).toContain(
+      'NAME-ONLY helper (removed) — called by name from packages/a/src/uses-helper.ts:2'
+    );
+  });
+
+  it('a graph absorbed before the delete still holds the file: its importers are affected', async () => {
+    const deps = repo2({
+      changes: [{ status: 'D', file: 'packages/a/src/helper.ts' }],
+      graphNodes: CODE_NODES, // includes helper.ts
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.mode).toBe('graph');
+    expect(report.affectedFiles).toContain('packages/a/src/uses-helper.ts');
+    expect(report.tests.selected).toEqual(['packages/a/src/__tests__/uses-helper.test.ts']);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+  });
+
+  it('a rename is a delete plus an add: the old path keeps the tests of files importing it', async () => {
+    const deps = repo2({
+      changes: [
+        { status: 'R', from: 'packages/a/src/helper.ts', file: 'packages/a/src/helper2.ts' },
+      ],
+      // With rename detection git prints no hunks for a pure rename.
+      renamedDiff: [
+        'diff --git a/packages/a/src/helper.ts b/packages/a/src/helper2.ts',
+        'similarity index 100%',
+        'rename from packages/a/src/helper.ts',
+        'rename to packages/a/src/helper2.ts',
+      ].join('\n'),
+      diff: [
+        HELPER_DELETED_DIFF,
+        'diff --git a/packages/a/src/helper2.ts b/packages/a/src/helper2.ts',
+        'new file mode 100644',
+        '--- /dev/null',
+        '+++ b/packages/a/src/helper2.ts',
+        '@@ -0,0 +1,3 @@',
+        '+export function helper(): number {',
+        '+  return 1;',
+        '+}',
+      ].join('\n'),
+      callers: { helper: [{ file: 'packages/a/src/uses-helper.ts', line: 2 }] },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.changedFiles).toEqual(['packages/a/src/helper.ts', 'packages/a/src/helper2.ts']);
+    expect(report.tests.selected).toEqual(A_TESTS);
+    expect(report.tests.fullSuitePackages[0]?.reason).toContain(
+      'packages/a/src/helper.ts was deleted'
+    );
+    expect(report.callers.changedSymbols).toEqual([
+      { name: 'helper', kind: 'function', file: 'packages/a/src/helper.ts', change: 'removed' },
+    ]);
+  });
+});
+
+describe('impact --since: what the graph cannot place keeps a whole suite', () => {
+  it('a changed fixture (data a test reads, not imports) keeps its package suite', async () => {
+    const deps = repo2({
+      changes: [{ status: 'M', file: 'packages/a/src/__tests__/fixtures/data.json' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.mode).toBe('graph');
+    expect(report.tests.selected).toEqual(A_TESTS);
+    expect(report.tests.fullSuitePackages).toEqual([
+      {
+        pkg: 'packages/a',
+        reason:
+          'packages/a/src/__tests__/fixtures/data.json changed and is not code the graph can trace (a test may read it as data, fixture or snapshot)',
+      },
+    ]);
+  });
+
+  it.each(['pnpm-lock.yaml', 'tsconfig.base.json', 'vitest.workspace.ts'])(
+    'a root %s (outside every package) keeps every test in the repo',
+    async (file) => {
+      const deps = repo2({ changes: [{ status: 'M', file }] });
+      const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+      expect(report.mode).toBe('graph');
+      expect(report.tests.selected).toEqual(ALL_TESTS);
+      expect(report.tests.fullSet).toEqual(ALL_TESTS);
+      expect(report.tests.fullSuitePackages).toEqual([
+        {
+          pkg: '.',
+          reason: `${file} changed (manifest, lockfile, or test/build config); it is outside every package, so every test in the repo is kept`,
+        },
+      ]);
+      expect(report.brief).toContain('4 of 4 test file(s)');
+      expect(report.brief).toContain('Whole suite kept for every package');
+    }
+  );
+
+  it('without a graph, a root lockfile change still keeps every test (not "0 of 0")', async () => {
+    const deps = repo2({ changes: [{ status: 'M', file: 'pnpm-lock.yaml' }], noGraph: true });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.mode).toBe('package-fallback');
+    expect(report.tests.selected).toEqual(ALL_TESTS);
+    expect(report.tests.fullSuitePackages.map((f) => f.pkg)).toEqual(['.']);
+  });
+
+  it('a runner config the graph holds but nothing imports keeps its package suite', async () => {
+    // vitest.config.ts is a graph node with no importers: its reach selects no
+    // test. Only the package-wide rule keeps the suite.
+    for (const file of ['packages/a/vitest.config.ts', 'packages/a/package.json']) {
+      const deps = repo2({ changes: [{ status: 'M', file }] });
+      const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+      expect(report.tests.selected).toEqual(A_TESTS);
+      expect(report.tests.fullSuitePackages).toEqual([
+        { pkg: 'packages/a', reason: `${file} changed (manifest, lockfile, or test/build config)` },
+      ]);
+    }
+  });
+
+  it('prose is inert, unless it sits with test fixtures', async () => {
+    const prose = repo2({
+      changes: [
+        { status: 'M', file: 'README.md' },
+        { status: 'M', file: 'packages/a/README.md' },
+      ],
+    });
+    const inert = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, prose);
+    expect(inert.tests.fullSuitePackages).toEqual([]);
+    expect(inert.tests.selected).toEqual([]);
+
+    const fixture = repo2({
+      changes: [{ status: 'M', file: 'packages/a/src/__tests__/fixtures/expected.md' }],
+    });
+    const kept = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, fixture);
+    expect(kept.tests.selected).toEqual(A_TESTS);
+    expect(isInertFile('docs/guide.md')).toBe(true);
+    expect(isInertFile('packages/a/test/golden/out.md')).toBe(false);
+  });
+});
+
+describe('parseNameStatus', () => {
+  it('reads -z output, keeping a delete and an add apart', () => {
+    expect(parseNameStatus('D\0src/old.ts\0A\0src/new.ts\0M\0a b/c.json\0')).toEqual([
+      { status: 'D', file: 'src/old.ts' },
+      { status: 'A', file: 'src/new.ts' },
+      { status: 'M', file: 'a b/c.json' },
+    ]);
   });
 });
 
@@ -341,7 +679,15 @@ describe('isTestFile', () => {
 
 describe('impact --since argument parsing', () => {
   it('parses --since, --refresh and --brief on impact', () => {
-    const opts = parseArgs(['impact', '--since', 'origin/main', '--dir', '.', '--refresh', '--brief']);
+    const opts = parseArgs([
+      'impact',
+      '--since',
+      'origin/main',
+      '--dir',
+      '.',
+      '--refresh',
+      '--brief',
+    ]);
     expect(opts.command).toBe('impact');
     expect(opts.absorbSince).toBe('origin/main');
     expect(opts.impactRefresh).toBe(true);
