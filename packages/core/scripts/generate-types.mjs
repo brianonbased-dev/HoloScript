@@ -572,6 +572,23 @@ export function validateCanonicalSource(
   dependencies?: CanonicalSourceValidationDependencies
 ): CanonicalSourceValidationResult;
 
+export class HoloScriptCodeParser {
+  parse(source: string): ParseResult;
+  parseExpression(source: string): any;
+  parseBlock(source: string): any[];
+  getErrors(): any[];
+}
+
+export function parse(source: string, options?: any): ParseResult;
+export function parseHolo(source: string, options?: any): any;
+export function parseHoloStrict(source: string): any;
+export function parseHoloScriptPlus(
+  source: string,
+  options?: HSPlusParserOptions
+): HSPlusParseResult;
+export const holoFactory: any;
+export function generateHoloSource(ast: any): string;
+
 // Rule-conflict check (validation/RuleConflictChecker.ts): two rules that apply
 // at once and set the same state to different values, decided only by order.
 export type RuleJson = string | number | boolean | null | RuleJson[] | { [key: string]: RuleJson };
@@ -627,23 +644,6 @@ export function ruleConflictDiagnostics(
   input: { source: string; ast?: any },
   options?: RuleConflictOptions
 ): RuleConflictDiagnostic[];
-
-export class HoloScriptCodeParser {
-  parse(source: string): ParseResult;
-  parseExpression(source: string): any;
-  parseBlock(source: string): any[];
-  getErrors(): any[];
-}
-
-export function parse(source: string, options?: any): ParseResult;
-export function parseHolo(source: string, options?: any): any;
-export function parseHoloStrict(source: string): any;
-export function parseHoloScriptPlus(
-  source: string,
-  options?: HSPlusParserOptions
-): HSPlusParseResult;
-export const holoFactory: any;
-export function generateHoloSource(ast: any): string;
 
 // uAAL cognitive front-end bridge (G3): HoloComposition behavior -> UAAL bytecode.
 export class UaalBehaviorCompiler {
