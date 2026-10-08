@@ -50,6 +50,57 @@ composition "Game" {
 }
 ```
 
+## Outcome kinds on actions
+
+An action inside `logic { }` can say which answers it gives, and what kind each answer is:
+
+- **accepted**: the answer has `allowed: true`. The action may change state and announce events.
+- **refused**: the answer has `allowed: false`. The action changes nothing and announces nothing.
+
+Write the lists after the action's inputs. Each list is optional, and they can come in either order or sit on their own lines:
+
+```hsplus
+composition "Bike Share" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action rent(count) accepted(rented) refused(fine_unpaid, bad_count, over_limit) {
+      if (state.fineOwed > 0) {
+        return { allowed: false, outcome: "fine_unpaid" }
+      }
+      if (count < 1) {
+        return { allowed: false, outcome: "bad_count" }
+      }
+      if (state.bikesOut + count > 2) {
+        return { allowed: false, outcome: "over_limit" }
+      }
+      state.bikesOut += count
+      emit("bikes_rented", { count: count })
+      return { allowed: true, outcome: "rented" }
+    }
+  }
+}
+```
+
+The checker reads the action's own statements and refuses the file when:
+
+| Code     | When                                                                                                                                               |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HSP500` | A list is written twice, is empty, names an outcome twice, names one outcome as both kinds, or writes a name in quotes.                            |
+| `HSP501` | An answer names an outcome the action does not declare.                                                                                            |
+| `HSP502` | An answer's `allowed` does not match its outcome's kind (for example `allowed: true` with a refused outcome).                                      |
+| `HSP503` | A refused outcome is answered after the action changed state or announced an event on the way there.                                               |
+| `HSP504` | An answer cannot be checked: it is not an object written in place, `allowed` is not written as `true` or `false`, or `outcome` depends on a value. |
+| `HSP505` | One action in the `logic` block declares its outcomes and another action that answers with `allowed`/`outcome` does not.                           |
+| `HSP506` | (warning) A declared outcome is never answered. The file is still valid.                                                                           |
+
+An `outcome` may also be a choice between quoted names, such as `outcome: degrees < 18 ? "heating" : "idle"`; the checker treats it as every name it can be. An action that declares no outcomes, in a `logic` block where no action declares them, is read exactly as before.
+
+`holoscript validate`, the `.holo` reader, and the deterministic headless runtime all run the same checker, so they accept and refuse the same files. The runtime also checks each answer as it happens. A program that declares its outcomes is enough to write its back-translation interface card (`interfaceCardSpecFromSource` in `@holoscript/core/testing`); the card no longer has to be written by hand.
+
 ## Computed Values
 
 Derive values from state:
@@ -293,6 +344,7 @@ composition "TargetPractice" {
 
 - **State**: Reactive data that triggers updates
 - **Actions**: Functions that modify state
+- **Outcome kinds**: Each action answer declared accepted (may change state) or refused (changes nothing), checked before anything runs
 - **Computed**: Derived values from state
 - **Watch**: Side effects on state changes
 - **Bind**: Connect UI to state reactively

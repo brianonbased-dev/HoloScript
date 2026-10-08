@@ -20,23 +20,6 @@ composition "Bike Share Account" {
       return { allowed: true, outcome: "rented" }
     }
 
-    action giveBack(hoursLate) accepted(returned, returned_late) refused(nothing_out, bad_hours) {
-      if (state.bikesOut < 1) {
-        return { allowed: false, outcome: "nothing_out" }
-      }
-      if (hoursLate < 0) {
-        return { allowed: false, outcome: "bad_hours" }
-      }
-      state.bikesOut -= 1
-      if (hoursLate > 0) {
-        state.fineOwed = state.fineOwed + hoursLate * 2 > 10 ? 10 : state.fineOwed + hoursLate * 2
-        emit("returned_late", { hours_late: hoursLate, fine_owed: state.fineOwed })
-        return { allowed: true, outcome: "returned_late" }
-      }
-      emit("returned", { now_out: state.bikesOut })
-      return { allowed: true, outcome: "returned" }
-    }
-
     action payFine(amount) accepted(fine_paid) refused(nothing_owed, not_enough) {
       if (state.fineOwed == 0) {
         return { allowed: false, outcome: "nothing_owed" }
@@ -50,12 +33,7 @@ composition "Bike Share Account" {
     }
 
     action account(viewerId) {
-      return {
-        viewer: viewerId,
-        bikes_out: state.bikesOut,
-        fine_owed: state.fineOwed,
-        can_rent: state.fineOwed == 0 && state.bikesOut < 2
-      }
+      return { viewer: viewerId, bikes_out: state.bikesOut, fine_owed: state.fineOwed }
     }
   }
 }

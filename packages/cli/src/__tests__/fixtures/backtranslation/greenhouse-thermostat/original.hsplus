@@ -6,7 +6,7 @@ composition "Greenhouse Thermostat" {
   }
 
   logic {
-    action reading(degrees) {
+    action reading(degrees) accepted(heating, idle) {
       state.lastReading = degrees
       if (state.heaterOn && degrees >= state.target + 2) {
         state.heaterOn = false
@@ -18,7 +18,7 @@ composition "Greenhouse Thermostat" {
       return { allowed: true, outcome: state.heaterOn ? "heating" : "idle" }
     }
 
-    action setTarget(target) {
+    action setTarget(target) accepted(target_set) refused(target_out_of_range, target_unchanged) {
       if (target < 10 || target > 30) {
         return { allowed: false, outcome: "target_out_of_range" }
       }

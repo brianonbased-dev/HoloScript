@@ -138,6 +138,12 @@ import type {
 import { parsePipeline as parsePipelineSource } from './PipelineParser';
 import { TypoDetector } from './TypoDetector';
 import { ErrorRecovery } from './ErrorRecovery';
+import {
+  checkActionOutcomes,
+  isOutcomeKindWord,
+  outcomeDeclarationsFromGroups,
+  type OutcomeClauseGroup,
+} from './ActionOutcomes';
 
 // W1-T2: Token types, keywords, and lexer extracted to composition/ subdirectory.
 // Re-exported here for backward compatibility — all consumers still import from
@@ -219,6 +225,9 @@ export class HoloCompositionParser {
   private warnings: HoloParseWarning[] = [];
   private options: HoloParserOptions;
   private parseContext: string[] = []; // Track parsing context for better errors
+  /** Every action parsed in this run, and the sibling groups (logic blocks) they belong to. */
+  private parsedActions: HoloAction[] = [];
+  private actionGroups: HoloAction[][] = [];
   /**
    * Error-recovery / suggestion engine seeded with the injected `knownTraits`
    * union (the SSOT shared with the LSP and linter). When `options.knownTraits`
@@ -256,6 +265,8 @@ export class HoloCompositionParser {
   parse(source: string): HoloParseResult {
     this.errors = [];
     this.warnings = [];
+    this.parsedActions = [];
+    this.actionGroups = [];
     const lexer = new HoloLexer(source);
     this.tokens = lexer.tokenize();
     this.pos = 0;
@@ -271,6 +282,8 @@ export class HoloCompositionParser {
         // Parse as implicit composition (no wrapper)
         ast = this.parseImplicitComposition();
       }
+
+      this.checkOutcomeContracts();
 
       return {
         success: this.errors.length === 0,
@@ -2738,6 +2751,7 @@ export class HoloCompositionParser {
     }
 
     this.expect('RBRACE');
+    this.actionGroups.push(actions);
     return {
       loc: { start: startLoc, end: this.currentLocation() },
       type: 'Logic',
@@ -2752,6 +2766,7 @@ export class HoloCompositionParser {
     this.expect('ACTION');
     const name = this.expectIdentifier();
     const parameters = this.parseParameterList();
+    const outcomeGroups = this.parseOutcomeClauses();
     let body: HoloStatement[] = [];
     if (this.check('LBRACE')) {
       this.advance(); // consume {
@@ -2759,7 +2774,7 @@ export class HoloCompositionParser {
       body = this.parseStatementBlock();
       this.expect('RBRACE');
     }
-    return {
+    const action: HoloAction = {
       loc: { start: startLoc, end: this.currentLocation() },
       type: 'Action',
       name,
@@ -2767,6 +2782,111 @@ export class HoloCompositionParser {
       body,
       async: isAsync,
     };
+    if (outcomeGroups.length > 0) {
+      const { outcomes, problems } = outcomeDeclarationsFromGroups(name, outcomeGroups);
+      action.outcomes = outcomes;
+      for (const problem of problems) {
+        this.errors.push({
+          message: `HSP500: ${problem.message}`,
+          code: 'HSP500',
+          loc: problem.loc ?? startLoc,
+          severity: 'error',
+        });
+      }
+    }
+    this.parsedActions.push(action);
+    return action;
+  }
+
+  /**
+   * Outcome lists after an action's inputs: `accepted(a, b) refused(c)`, in
+   * either order, each on the header line or its own line. Stops (consuming
+   * nothing) when the next word is not `accepted(` / `refused(`.
+   */
+  private parseOutcomeClauses(): OutcomeClauseGroup[] {
+    const groups: OutcomeClauseGroup[] = [];
+    for (;;) {
+      let k = 0;
+      while (this.peek(k).type === 'NEWLINE') k++;
+      const word = this.peek(k);
+      if (
+        word.type !== 'IDENTIFIER' ||
+        !isOutcomeKindWord(word.value) ||
+        this.peek(k + 1).type !== 'LPAREN'
+      ) {
+        return groups;
+      }
+      this.skipNewlines();
+      const kindToken = this.advance();
+      this.advance(); // (
+      const group: OutcomeClauseGroup = {
+        kind: kindToken.value as OutcomeClauseGroup['kind'],
+        names: [],
+        loc: { line: kindToken.line, column: kindToken.column },
+      };
+      this.skipNewlines();
+      while (!this.check('RPAREN') && !this.isAtEnd()) {
+        const token = this.current();
+        if (token.type === 'COMMA' || token.type === 'NEWLINE') {
+          this.advance();
+          continue;
+        }
+        if (token.type === 'IDENTIFIER' || this.isKeywordAsIdentifierType(token.type)) {
+          group.names.push({ name: token.value, loc: { line: token.line, column: token.column } });
+          this.advance();
+          continue;
+        }
+        // A quoted or otherwise odd name: keep it so the shared check names it.
+        group.names.push({
+          name: token.value,
+          loc: { line: token.line, column: token.column },
+          quoted: token.type === 'STRING',
+        });
+        this.advance();
+      }
+      this.expect('RPAREN');
+      groups.push(group);
+    }
+  }
+
+  /**
+   * Run the shared outcome checker over every action parsed in this run: each
+   * logic block as one group (so a block that declares outcomes on one action
+   * must declare them on every decision action), every other action alone.
+   */
+  private checkOutcomeContracts(): void {
+    const grouped = new Set<HoloAction>();
+    const groups: HoloAction[][] = [];
+    for (const group of this.actionGroups) {
+      groups.push(group);
+      for (const action of group) grouped.add(action);
+    }
+    for (const action of this.parsedActions) {
+      if (!grouped.has(action) && action.outcomes !== undefined) groups.push([action]);
+    }
+    for (const group of groups) {
+      if (!group.some((action) => action.outcomes !== undefined)) continue;
+      const diagnostics = checkActionOutcomes(
+        group.map((action) => ({
+          name: action.name,
+          outcomes: action.outcomes,
+          body: action.body,
+          loc: action.loc?.start,
+        }))
+      );
+      for (const diagnostic of diagnostics) {
+        const loc =
+          diagnostic.line === undefined
+            ? undefined
+            : { line: diagnostic.line, column: diagnostic.column ?? 1 };
+        const message = `${diagnostic.code}: ${diagnostic.message}`;
+        if (diagnostic.severity === 'warning') {
+          this.warnings.push({ message, code: diagnostic.code, loc });
+        } else {
+          this.errors.push({ message, code: diagnostic.code, loc, severity: 'error' });
+        }
+      }
+    }
   }
 
   private parseParameterList(): HoloParameter[] {

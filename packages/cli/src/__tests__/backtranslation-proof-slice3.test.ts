@@ -26,6 +26,7 @@ import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   interfaceCardKindMismatches,
+  renderInterfaceCard,
   renderCombinedSummaryV3,
   renderPlainSummaryV3,
   selectDecisionMutants,
@@ -44,7 +45,12 @@ import {
   genericOutcomesSeen,
   makeGenericRunner,
 } from './backtranslation/generic';
-import { EXCLUDED_FIELDS, ORACLE_FIELDS, checkBehaviourSource } from './backtranslation/pipeline';
+import {
+  EXCLUDED_FIELDS,
+  ORACLE_FIELDS,
+  checkBehaviourSource,
+  faultsTheCheckerRefuses,
+} from './backtranslation/pipeline';
 import {
   BLIND_ORACLE,
   CATCH_BAR,
@@ -55,6 +61,8 @@ import {
   type BehaviourMeasurement,
 } from './backtranslation/measure';
 import {
+  CARD_DERIVATION_DIFFERENCES,
+  derivedCardMatchesRecorded,
   FALSE_ALARM_TOLERANCE,
   SLICE3_MAX_REPAIRS,
   SLICE3_RECORDINGS,
@@ -89,7 +97,7 @@ function mutantsFor(l: Loaded): ReturnType<typeof selectOracleVisibleMutants> {
       spec: l.spec,
       run: l.run,
       originalSource: l.originalSource,
-      pool: selectDecisionMutants(l.originalSource, 4 * MUTANTS_PER_BEHAVIOUR),
+      pool: selectDecisionMutants(l.plantableSource, 4 * MUTANTS_PER_BEHAVIOUR),
       max: MUTANTS_PER_BEHAVIOUR,
       situations: GENERIC_SITUATIONS,
       seed: GENERIC_SEED,
@@ -126,9 +134,18 @@ describe('back-translation proof slice 3 — outcome kinds on the card, new beha
         expect(checkBehaviourSource(l.originalSource)).toEqual({ valid: true, errors: [] });
       });
 
-      it('the card on disk is the rendered interface.json, and its outcome kinds match the correct program', () => {
+      it('the card on disk is the rendered interface.json; the card derived from the outcomes the program declares matches it', () => {
         const onDisk = readFileSync(path.join(l.target.dir, 'interface-card.md'), 'utf8');
         expect(onDisk).toBe(l.interfaceCard);
+        const { recordedWithDifference } = derivedCardMatchesRecorded(
+          l.target.id,
+          l.derivedInterfaceSpec,
+          l.interfaceSpec
+        );
+        expect(l.derivedInterfaceSpec).toEqual(recordedWithDifference);
+        if (!CARD_DERIVATION_DIFFERENCES[l.target.id]) {
+          expect(renderInterfaceCard(l.derivedInterfaceSpec)).toBe(onDisk);
+        }
         expect(interfaceCardKindMismatches(l.interfaceSpec, l.originalSource)).toEqual([]);
         expect(l.interfaceSpec.title).toBe(l.spec.title);
         expect(l.interfaceSpec.publicState).toEqual(l.spec.publicStateKeys);
@@ -140,6 +157,16 @@ describe('back-translation proof slice 3 — outcome kinds on the card, new beha
         // The reference card example must not share the behaviour's name.
         expect(l.referenceCard).not.toContain(l.spec.title);
       });
+
+      it(
+        'faults are planted in what the program does; with its outcome lists kept, the checker refuses these before they run',
+        async () => {
+          const planted = (await mutantsFor(l)).mutants;
+          const declared = selectDecisionMutants(l.originalSource, 4 * MUTANTS_PER_BEHAVIOUR);
+          expect(faultsTheCheckerRefuses(planted, declared)).toEqual(CHECKER_REFUSES[l.target.id] ?? []);
+        },
+        900_000
+      );
 
       it('the situations reach every outcome on the card, and at least 5 are edge situations', () => {
         const seen = new Set<string>();
@@ -307,6 +334,17 @@ const UNREACHED: Record<string, string[]> = {
   // Slice-2 situations for the door (kept unchanged for the before/after
   // check) never clear a lockout with the right manager code.
   'door-before-after': ['resetLockout:lockout_cleared'],
+};
+
+/**
+ * Planted faults that contradict the program's own outcome lists once the
+ * program declares them (board task_1791419247017_jri7). They are still
+ * measured as slice 3 recorded them (planted in the program without its lists),
+ * but in real use the checker would refuse them before any rebuild is needed.
+ */
+const CHECKER_REFUSES: Record<string, string[]> = {
+  // Flips the fine_unpaid refusal to allowed: true; fine_unpaid is declared refused (HSP502).
+  'bike-share-account': ['boolean-flip#0'],
 };
 
 function readCombinedVerdict(): {

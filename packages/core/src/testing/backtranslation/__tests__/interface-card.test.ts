@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  declaredOutcomesFromSource,
   interfaceCardKindMismatches,
+  interfaceCardSpecFromSource,
   outcomeKindsFromSource,
   renderInterfaceCard,
   type InterfaceCardSpec,
@@ -80,6 +82,81 @@ describe('back-translation interface card', () => {
     expect(interfaceCardKindMismatches(wrong, SOURCE)).toEqual([
       'push: outcome already_open is marked refused but the program returns it as accepted',
       'outcome too_weak is returned but not on the card',
+    ]);
+  });
+
+  it('derives the whole card from a program that declares its outcomes (task_1791419247017_jri7)', () => {
+    const declared = `composition "Gate" {
+  state {
+    open: false
+    pushes: 0
+  }
+  logic {
+    action push(force) accepted(opened, already_open) refused(too_weak) {
+      if (force < 1) {
+        return { allowed: false, outcome: "too_weak" }
+      }
+      if (state.open) {
+        return { allowed: true, outcome: "already_open" }
+      }
+      state.open = true
+      emit("gate_opened", { force: force })
+      return { allowed: true, outcome: "opened", by: force }
+    }
+    action look(viewerId) {
+      return { viewer: viewerId, open: state.open }
+    }
+  }
+}
+`;
+    const derived = interfaceCardSpecFromSource(declared, { publicState: ['open'] });
+    expect(derived).toEqual({ ...SPEC, publicState: ['open'] });
+    expect(renderInterfaceCard(derived)).toBe(renderInterfaceCard(SPEC));
+    expect(declaredOutcomesFromSource(declared).get('look')).toBeUndefined();
+
+    // The card's kinds are now read from the declarations, action by action.
+    expect(interfaceCardKindMismatches(SPEC, declared)).toEqual([]);
+    const wrong: InterfaceCardSpec = {
+      ...SPEC,
+      actions: [
+        {
+          ...SPEC.actions[0],
+          outcomes: [
+            { name: 'opened', kind: 'accepted' },
+            { name: 'already_open', kind: 'refused' },
+          ],
+        },
+      ],
+    };
+    expect(interfaceCardKindMismatches(wrong, declared)).toEqual([
+      'push: outcome already_open is marked refused but the program declares it accepted',
+      'push: outcome too_weak is declared but not on the card',
+    ]);
+  });
+
+  it('orders derived events by the outcomes that announce them', () => {
+    const source = `composition "Queue" {
+  state {
+    waiting: 0
+  }
+  logic {
+    action join(kind) accepted(joined, joined_bumping) {
+      if (kind == "priority") {
+        emit("bumped", { kind: kind })
+        emit("ticket_taken", { kind: kind })
+        return { allowed: true, outcome: "joined_bumping" }
+      }
+      state.waiting += 1
+      emit("ticket_taken", { kind: kind, number: state.waiting })
+      return { allowed: true, outcome: "joined" }
+    }
+  }
+}
+`;
+    const derived = interfaceCardSpecFromSource(source, { publicState: ['waiting'] });
+    expect(derived.events).toEqual([
+      { name: 'ticket_taken', fields: ['kind', 'number'] },
+      { name: 'bumped', fields: ['kind'] },
     ]);
   });
 

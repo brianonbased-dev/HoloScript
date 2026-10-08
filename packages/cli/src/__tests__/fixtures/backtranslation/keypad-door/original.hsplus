@@ -7,7 +7,7 @@ composition "Keypad Door" {
   }
 
   logic {
-    action enterCode(code) {
+    action enterCode(code) accepted(unlocked, wrong_code, wrong_code_now_locked_out) refused(locked_out, already_open) {
       if (state.lockedOut) {
         return { allowed: false, outcome: "locked_out" }
       }
@@ -30,7 +30,7 @@ composition "Keypad Door" {
       return { allowed: true, outcome: "wrong_code" }
     }
 
-    action lockDoor() {
+    action lockDoor() accepted(locked) refused(already_locked) {
       if (state.locked) {
         return { allowed: false, outcome: "already_locked" }
       }
@@ -39,7 +39,7 @@ composition "Keypad Door" {
       return { allowed: true, outcome: "locked" }
     }
 
-    action resetLockout(managerCode) {
+    action resetLockout(managerCode) accepted(lockout_cleared) refused(not_locked_out, wrong_manager_code) {
       if (!state.lockedOut) {
         return { allowed: false, outcome: "not_locked_out" }
       }

@@ -395,6 +395,47 @@ export function checkBehaviourSource(source: string): { valid: boolean; errors: 
   return { valid: errors.length === 0, errors };
 }
 
+const OUTCOME_DECLARATION_HEADER =
+  /^([ \t]*action [A-Za-z_$][\w$]*\([^)\n]*\))((?:[ \t]+(?:accepted|refused)\([^)\n]*\))+)([ \t]*\{)/gm;
+
+/**
+ * The program with the outcome lists taken off its action headers
+ * (`action rent(count) accepted(rented) refused(over_limit) {` becomes
+ * `action rent(count) {`). Only header lines change, so line numbers, mutation
+ * sites and mutant ids are the same as in the declaring program.
+ *
+ * Planted faults are made from this copy. The proof measures whether a rebuild
+ * shows a fault in what the program DOES, exactly as slices 1-3 recorded. A
+ * fault that contradicts the program's own declaration (a refusal flipped to
+ * allowed: true) never reaches a rebuild in real use — the checker refuses it
+ * first — so those are counted separately (faultsTheCheckerRefuses).
+ */
+export function withoutOutcomeDeclarations(source: string): string {
+  return source.replace(OUTCOME_DECLARATION_HEADER, '$1$3');
+}
+
+/**
+ * Of the given planted faults (made from withoutOutcomeDeclarations(source)),
+ * the ids the checker refuses when the same change is made to the declaring
+ * program. `declaredFaults` are the same faults made from the declaring
+ * program (same ids).
+ */
+export function faultsTheCheckerRefuses(
+  planted: ReadonlyArray<{ id: string; source: string }>,
+  declaredFaults: ReadonlyArray<{ id: string; source: string }>
+): string[] {
+  const refused: string[] = [];
+  for (const fault of planted) {
+    const declared = declaredFaults.find((d) => d.id === fault.id);
+    if (!declared) throw new Error(`no declaring-program counterpart for fault ${fault.id}`);
+    if (withoutOutcomeDeclarations(declared.source) !== fault.source) {
+      throw new Error(`fault ${fault.id} differs from its declaring-program counterpart beyond the headers`);
+    }
+    if (!checkBehaviourSource(declared.source).valid) refused.push(fault.id);
+  }
+  return refused;
+}
+
 export const REBUILD_SYSTEM_PROMPT =
   'You write HoloScript+ (.hsplus) behaviour files. You are given a plain-language checklist of ' +
   'what one behaviour does and a language reference card. Write the behaviour file that does ' +

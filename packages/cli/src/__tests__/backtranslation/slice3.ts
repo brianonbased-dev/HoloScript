@@ -4,8 +4,12 @@
  *
  *   fixtures/backtranslation/slice3/<id>/
  *     original.hsplus, behaviour.json, checklist.json   (measured behaviours)
- *     interface.json        names + outcome kinds (the card's source)
+ *     interface.json        names + outcome kinds, as written by hand when B was run
  *     interface-card.md     the exact card text B saw (rendered from interface.json)
+ *   original.hsplus now declares each action's outcomes (accepted(...) /
+ *   refused(...)), so the card can be derived from source
+ *   (interfaceCardSpecFromSource). Replay keeps the recorded card as what B saw
+ *   and asserts the derived card matches it (see CARD_DERIVATION_DIFFERENCES).
  *     recordings/<rN>/      one fresh agent-B rebuild each:
  *       exchanges/round-K.json, rebuilt.hsplus, rebuild-status.json,
  *       divergence-classification.json
@@ -18,12 +22,14 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
+  interfaceCardSpecFromSource,
   renderInterfaceCard,
   type BehaviourChecklist,
   type InterfaceCardSpec,
   type ModelExchange,
 } from '@holoscript/core/testing';
 import type { BehaviourSpec } from './generic';
+import { withoutOutcomeDeclarations } from './pipeline';
 import type { ClassificationRule, MeasuredMutant } from './measure';
 
 export const FIXTURE_ROOT = path.join(__dirname, '..', 'fixtures', 'backtranslation');
@@ -100,6 +106,42 @@ export function loadNamedMutants(target: Slice3Target, originalSource: string): 
   }));
 }
 
+/**
+ * Where the card derived from source differs from the hand-written card B saw.
+ * Derived cards list events in the order of the outcomes that announce them.
+ * The deli program declares "joined" before "joined_bumping_normal"; "joined"
+ * announces ticket_taken and "joined_bumping_normal" announces bumped (then
+ * ticket_taken), so the derived card lists ticket_taken first, where the
+ * hand-written card listed bumped first. Same events, same fields, same
+ * outcome kinds; only the order of two lines. All other cards are identical.
+ */
+export const CARD_DERIVATION_DIFFERENCES: Record<string, { eventOrder: string[]; why: string }> = {
+  'deli-counter-queue': {
+    eventOrder: ['ticket_taken', 'bumped', 'now_serving', 'gave_up', 'joining_closed'],
+    why: 'derived cards list events in the order of the outcomes that announce them; the hand-written card had bumped before ticket_taken',
+  },
+};
+
+/** The derived card, with any recorded difference applied, must equal the card B saw. */
+export function derivedCardMatchesRecorded(
+  targetId: string,
+  derived: InterfaceCardSpec,
+  recorded: InterfaceCardSpec
+): { derivedEventOrder: string[]; recordedWithDifference: InterfaceCardSpec } {
+  const difference = CARD_DERIVATION_DIFFERENCES[targetId];
+  const recordedWithDifference: InterfaceCardSpec = difference
+    ? {
+        ...recorded,
+        events: difference.eventOrder.map((name) => {
+          const event = recorded.events.find((e) => e.name === name);
+          if (!event) throw new Error(`${targetId}: recorded card has no event ${name}`);
+          return event;
+        }),
+      }
+    : recorded;
+  return { derivedEventOrder: derived.events.map((e) => e.name), recordedWithDifference };
+}
+
 export const SLICE3_RECORDINGS = ['r1', 'r2', 'r3'] as const;
 export const SLICE3_MAX_REPAIRS = 3;
 
@@ -116,8 +158,13 @@ export const FALSE_ALARM_TOLERANCE = {
 export function slice3Inputs(target: Slice3Target): {
   spec: BehaviourSpec;
   originalSource: string;
+  /** original.hsplus without its outcome lists: planted faults are made from this (see withoutOutcomeDeclarations). */
+  plantableSource: string;
   checklist: BehaviourChecklist;
+  /** interface.json: the card agent B was shown. */
   interfaceSpec: InterfaceCardSpec;
+  /** The card derived from original.hsplus (declared outcomes) plus the host's public state list. */
+  derivedInterfaceSpec: InterfaceCardSpec;
   interfaceCard: string;
   referenceCard: string;
 } {
@@ -125,11 +172,17 @@ export function slice3Inputs(target: Slice3Target): {
   const interfaceSpec = JSON.parse(
     readFileSync(path.join(target.dir, 'interface.json'), 'utf8')
   ) as InterfaceCardSpec;
+  const spec = JSON.parse(fromSource('behaviour.json')) as BehaviourSpec;
+  const originalSource = fromSource('original.hsplus');
   return {
-    spec: JSON.parse(fromSource('behaviour.json')) as BehaviourSpec,
-    originalSource: fromSource('original.hsplus'),
+    spec,
+    originalSource,
+    plantableSource: withoutOutcomeDeclarations(originalSource),
     checklist: JSON.parse(fromSource('checklist.json')) as BehaviourChecklist,
     interfaceSpec,
+    derivedInterfaceSpec: interfaceCardSpecFromSource(originalSource, {
+      publicState: spec.publicStateKeys,
+    }),
     interfaceCard: renderInterfaceCard(interfaceSpec),
     // Same reference card as slice 2: its example (a library shelf) shares no
     // domain with any slice-3 behaviour.

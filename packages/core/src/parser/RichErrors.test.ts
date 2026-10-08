@@ -615,7 +615,9 @@ describe('HSPLUS_ERROR_CODES', () => {
     expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP900');
   });
 
-  it('keeps the thirteen codes the parser can raise', () => {
+  // HSP500-HSP506 added 2026-10-07 for action outcome contracts (parser/ActionOutcomes.ts,
+  // board task_1791419247017_jri7); both parsers raise them.
+  it('keeps the twenty codes the parser can raise', () => {
     expect(Object.keys(HSPLUS_ERROR_CODES).sort()).toEqual(
       [
         'HSP001',
@@ -631,6 +633,13 @@ describe('HSPLUS_ERROR_CODES', () => {
         'HSP200',
         'HSP201',
         'HSP300',
+        'HSP500',
+        'HSP501',
+        'HSP502',
+        'HSP503',
+        'HSP504',
+        'HSP505',
+        'HSP506',
       ].sort()
     );
   });
