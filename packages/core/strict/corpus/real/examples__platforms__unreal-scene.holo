@@ -1,0 +1,174 @@
+// Unreal Engine 5 Scene Example
+// Compile: holoscript compile unreal-scene.holo --target unreal
+// Output: C++ Actor classes with Blueprint support
+
+composition "Unreal VR Experience" {
+  environment {
+    skybox: "hdri_industrial"
+    ambient_light: 0.4
+    post_process: {
+      bloom: 1.2
+      exposure: 1.0
+      ambient_occlusion: true
+    }
+  }
+
+  // === Player Start ===
+  object "PlayerStart" {
+    @spawn_point
+    position: [0, 0, 100]
+    rotation: [0, 0, 0]
+  }
+
+  // === Physics Playground ===
+  spatial_group "PhysicsObjects" {
+    object "WoodenCrate" {
+      @physics
+      @collidable
+      @grabbable
+      geometry: "cube"
+      position: [200, 0, 50]
+      scale: [50, 50, 50]
+      material: "M_Wood"
+      physics: {
+        mass: 25.0
+        friction: 0.6
+        restitution: 0.2
+      }
+    }
+
+    object "MetalBarrel" {
+      @physics
+      @collidable
+      @grabbable
+      geometry: "cylinder"
+      position: [300, 0, 50]
+      scale: [40, 60, 40]
+      material: "M_Metal_Rusty"
+      physics: {
+        mass: 50.0
+        friction: 0.4
+        restitution: 0.3
+      }
+    }
+
+    object "BouncyBall" {
+      @physics
+      @collidable
+      @throwable
+      geometry: "sphere"
+      position: [250, 0, 100]
+      scale: [30, 30, 30]
+      color: "#ff3300"
+      physics: {
+        mass: 5.0
+        restitution: 0.9
+      }
+    }
+  }
+
+  // === Interactive Elements ===
+  object "ControlPanel" {
+    @clickable
+    geometry: "model/control_panel.fbx"
+    position: [0, 0, 0]
+    scale: [1, 1, 1]
+    
+    state {
+      activated: false
+      power_level: 0
+    }
+
+    on_click: {
+      this.state.activated = !this.state.activated
+      if (this.state.activated) {
+        play_sound("panel_activate.wav")
+        emit("panel_activated")
+      }
+    }
+  }
+
+  object "HologramDisplay" {
+    @emissive
+    @animated
+    geometry: "plane"
+    position: [0, 150, -100]
+    scale: [200, 112.5, 1]
+    material: "M_Hologram"
+    emission: 3.0
+
+    animation "float" {
+      property: "position.z"
+      from: -100
+      to: -95
+      duration: 2000
+      loop: infinite
+      easing: "easeInOut"
+    }
+  }
+
+  // === Niagara Particles ===
+  object "SteamVent" {
+    @particle_emitter
+    position: [400, 0, 0]
+    particle_system: "NS_Steam"
+    auto_activate: true
+  }
+
+  object "SparkEmitter" {
+    @particle_emitter
+    position: [400, 100, 0]
+    particle_system: "NS_Sparks"
+    auto_activate: false
+    trigger_on: "panel_activated"
+  }
+
+  // === Lighting ===
+  light "SunLight" {
+    type: "directional"
+    color: "#fff5e6"
+    intensity: 5.0
+    rotation: [-45, 45, 0]
+    cast_shadows: true
+    shadow_resolution: 2048
+  }
+
+  light "FillLight" {
+    type: "sky"
+    color: "#8899bb"
+    intensity: 1.0
+  }
+
+  light "WarningLight" {
+    type: "point"
+    color: "#ff3300"
+    intensity: 2000
+    position: [400, 200, 0]
+    range: 500
+    
+    animation "pulse" {
+      property: "intensity"
+      from: 1000
+      to: 3000
+      duration: 500
+      loop: infinite
+    }
+  }
+
+  // === Audio ===
+  audio "AmbientMachinery" {
+    source: "ambient_industrial.wav"
+    volume: 0.4
+    loop: true
+    spatial: false
+  }
+
+  audio "SteamHiss" {
+    source: "steam_loop.wav"
+    position: [400, 50, 0]
+    volume: 0.6
+    loop: true
+    spatial: true
+    attenuation: 500
+  }
+}
