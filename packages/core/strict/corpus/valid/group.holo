@@ -1,0 +1,5 @@
+group Props {
+  object Box {
+    position: [0, 0, 0]
+  }
+}
