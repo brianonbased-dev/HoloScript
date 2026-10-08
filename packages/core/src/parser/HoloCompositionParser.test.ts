@@ -87,6 +87,22 @@ describe('HoloCompositionParser', () => {
       expect(bare.ast?.zones?.map((z) => z.name)).toEqual(['Lobby']);
     });
 
+    it('ends a file-level statement at `;`, as a composition body does', () => {
+      const source = 'import "./shared.holo";\n\nobject Crate {\n  position: [2, 0, 0]\n}\n';
+      for (const result of [parseHolo(source), parseHolo(`composition "C" {\n${source}}\n`)]) {
+        expect(result.errors).toEqual([]);
+        expect(result.success).toBe(true);
+        expect(result.ast?.imports).toHaveLength(1);
+        expect(result.ast?.objects.map((o) => o.name)).toEqual(['Crate']);
+      }
+    });
+
+    it('still reports a `;` with no statement before it at file level', () => {
+      const result = parseHolo(';\nobject Crate {\n  position: [2, 0, 0]\n}\n');
+      expect(result.success).toBe(false);
+      expect(result.errors[0].message).toMatch(/file level: SEMICOLON/);
+    });
+
     it('still parses a valid wrapperless file cleanly', () => {
       const result = parseHolo('object "Ball" {\n  position: [0, 1, 0]\n}\n');
       expect(result.success).toBe(true);
@@ -1423,8 +1439,7 @@ describe('HoloCompositionParser', () => {
 
 // A trait marker `@` with no name after it used to parse cleanly: `@` alone was a
 // trait named "", `@` before a newline a trait named "\n", and `@` before `}` ate
-// the brace as its name. Code HS1005 matches the rejection corpus
-// (src/validation/__tests__/fixtures/rejection-corpus/manifest.json).
+// the brace as its name. Code HS1005 is from packages/core/strict/ERROR_CONTRACT.md.
 describe('Trait marker with no name (HS1005)', () => {
   const MESSAGE = '`@` is not followed by a trait name.';
   const SUGGESTION = 'Write a trait as @name, for example @grabbable.';

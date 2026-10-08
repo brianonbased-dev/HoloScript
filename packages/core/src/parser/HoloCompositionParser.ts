@@ -568,7 +568,9 @@ export class HoloCompositionParser {
           );
           this.advance();
         }
-        this.skipNewlines();
+        // A `;` ends a statement here as it does in a composition body
+        // (`import "./x.holo";` is how real files write it).
+        this.skipStatementSeparators();
       } catch (err) {
         if (!this.options.tolerant) throw err;
         // A sub-parser threw instead of reporting; keep its message rather than
@@ -4050,9 +4052,9 @@ export class HoloCompositionParser {
   }
 
   /**
-   * Record HS1005 for an '@' with no trait name after it (the code the rejection corpus in
-   * src/validation/__tests__/fixtures/rejection-corpus/manifest.json expects). The location is the '@' token itself, the same place the strict layer
-   * reports it. Throws in non-tolerant mode, like error().
+   * Record HS1005 (packages/core/strict/ERROR_CONTRACT.md) for an '@' with no trait name
+   * after it. The location is the '@' token itself, the same place the strict layer reports
+   * it. Throws in non-tolerant mode, like error().
    */
   private reportMissingTraitName(): void {
     const previous = this.tokens[this.pos - 1];
