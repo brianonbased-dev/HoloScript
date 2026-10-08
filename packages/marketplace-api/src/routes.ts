@@ -20,7 +20,8 @@ interface AuthenticatedRequest extends Request {
  * Uses the same @holoscript/auth package as graphql-api for consistent
  * JWT verification across both APIs.
  */
-const sharedAuth = new AuthService();
+/** JWT signature check for marketplace routes. Secret is `JWT_SECRET` via AuthService. */
+export const sharedAuth = new AuthService();
 
 // =============================================================================
 // VALIDATION SCHEMAS
