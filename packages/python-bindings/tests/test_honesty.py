@@ -57,6 +57,16 @@ def test_capabilities_tells_the_truth():
     assert caps["grammar"] is None, "set this to the core grammar version when 6.1.0 ships"
 
 
+def test_nothing_is_both_implemented_and_not():
+    """6.0.8's first draft listed render under cognition AND not_implemented."""
+    caps = holoscript.capabilities()
+    implemented = set(caps["implemented"]) | set(caps["implemented"]["bridges"]) | set(
+        caps["implemented"]["cognition"]
+    )
+    both = implemented & set(caps["not_implemented"])
+    assert not both, f"claimed both implemented and not: {sorted(both)}"
+
+
 def test_exports_match_what_is_implemented():
     """Nothing is exported that the package cannot do."""
     for name in ("generate", "render", "share", "HoloScript"):

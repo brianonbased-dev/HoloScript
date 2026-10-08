@@ -1,278 +1,152 @@
 # Python Bindings Guide
 
-HoloScript provides Python bindings for parsing, validating, and generating VR scenes from Python.
+The `holoscript` package on PyPI carries scientific tooling into HoloScript —
+DICOM imaging, protein structure, radio astronomy, ROS 2 and molecular docking —
+plus the decision surfaces under `holoscript.cognition`.
+
+**It does not parse HoloScript yet.** In 6.0.8, `parse()` and `validate()` raise
+`NotImplementedError`. Through 6.0.7 they returned success for any non-empty
+string, including text that is not HoloScript at all. Real parsing is planned for
+6.1.0, on the same grammar the npm package uses. Until then, parse with
+[`@holoscript/core`](https://www.npmjs.com/package/@holoscript/core) and check
+the result: core is permissive and can return an empty composition for text that
+is not HoloScript.
+
+An earlier version of this guide documented `parse_holo`, `parse_hsplus`,
+`explain_trait`, `suggest_traits`, `generate_object` and `generate_scene`. None of
+those were ever in the Python package.
 
 ## Installation
 
+Python 3.10 or newer. On 3.8 and 3.9, pip keeps installing 6.0.7.
+
 ```bash
-pip install holoscript
+pip install holoscript                    # bridges only, no heavy dependencies
+pip install 'holoscript[medical]'         # DICOM imaging
+pip install 'holoscript[alphafold]'       # protein structure prediction
+pip install 'holoscript[astronomy]'       # radio astronomy
+pip install 'holoscript[robotics]'        # ROS 2
+pip install 'holoscript[scientific]'      # molecular docking (AutoDock)
+pip install 'holoscript[all]'             # everything
 ```
 
-**Requirements:**
+Importing a bridge without its extra raises `ImportError` naming the install
+line. It never ends your process.
 
-- Python 3.8+
-- Works on Windows, macOS, and Linux
-
-## Quick Start
+## Ask the package what it does
 
 ```python
-from holoscript import parse, validate, suggest_traits
+import holoscript
 
-# Parse HoloScript code
-result = parse('''
-composition "My Scene" {
-  object "Cube" @grabbable {
-    geometry: "cube"
-    color: "#ff0000"
-  }
-}
-''')
-
-print(f"Objects: {result.objects}")
-print(f"Traits: {result.traits}")
-
-# Validate
-validation = validate(result.ast)
-if validation.valid:
-    print("✅ Code is valid!")
+print(holoscript.__version__)
+print(holoscript.capabilities())
 ```
 
-## API Reference
+`capabilities()` is the machine-readable answer. Agents and scripts should branch
+on it rather than on this page:
 
-### Parsing
+- `implemented` — what works: `list_traits`, the six bridges, the cognition
+  surfaces.
+- `limits` — implemented, with a stated gap (the AlphaFold API path is a stub
+  that fails closed; the synchrotron formula is a placeholder).
+- `not_implemented` — top-level functions that do not exist yet, with the
+  release they are planned for (`None` means unscheduled).
 
-#### `parse(code: str, format: str = "auto") -> ParseResult`
+Every `implemented` entry is checked against the installed wheel before a
+release is uploaded (`packages/python-bindings/scripts/preflight-release.py`).
 
-Parse HoloScript source code into an AST.
+## API
 
-**Parameters:**
+### `parse(code)` / `validate(code)`
 
-- `code`: Source code string
-- `format`: Format hint - `"hs"`, `"hsplus"`, `"holo"`, or `"auto"` (default)
-
-**Returns:** `ParseResult` with:
-
-- `success: bool` - Whether parsing succeeded
-- `ast: dict` - Abstract syntax tree
-- `errors: list[ParseError]` - Parse errors
-- `warnings: list[ParseError]` - Parse warnings
-- `format: str` - Detected format
-- `objects: list[str]` - Object names found
-- `traits: list[str]` - Traits used
+Raise `NotImplementedError` with a message naming the planned release and where
+to parse today.
 
 ```python
-from holoscript import parse
-
-# Auto-detect format
-result = parse(code)
-
-# Force specific format
-result = parse(code, format="holo")
-```
-
-#### `parse_holo(code: str) -> ParseResult`
-
-Parse `.holo` composition code specifically.
-
-#### `parse_hsplus(code: str) -> ParseResult`
-
-Parse `.hs` or `.hsplus` code specifically.
-
----
-
-### Validation
-
-#### `validate(code: str) -> ValidationResult`
-
-Validate HoloScript code for syntax errors and issues.
-
-**Returns:** `ValidationResult` with:
-
-- `valid: bool` - Whether code is valid
-- `errors: list[ValidationError]` - Validation errors
-- `warnings: list[ValidationError]` - Warnings
-
-```python
-from holoscript import validate
-
-result = validate(code)
-if not result.valid:
-    for error in result.errors:
-        print(f"Line {error.line}: {error.message}")
-        if error.suggestion:
-            print(f"  💡 {error.suggestion}")
-```
-
----
-
-### Traits
-
-#### `list_traits(category: str = "all") -> dict`
-
-List available VR traits.
-
-**Parameters:**
-
-- `category`: Filter by category or `"all"` for all traits
-
-**Categories:**
-
-- `interaction` - @grabbable, @throwable, @clickable, etc.
-- `physics` - @collidable, @physics, @rigid, etc.
-- `visual` - @glowing, @emissive, @transparent, etc.
-- `networking` - @networked, @synced, @persistent, etc.
-- `behavior` - @stackable, @attachable, @equippable, etc.
-- `spatial` - @anchor, @tracked, @world_locked, etc.
-- `audio` - @spatial_audio, @ambient, @voice_activated
-- `state` - @state, @reactive, @observable, @computed
-
-```python
-from holoscript import list_traits
-
-# All traits
-all_traits = list_traits()
-
-# Only interaction traits
-interaction = list_traits("interaction")
-```
-
-#### `explain_trait(trait: str) -> dict`
-
-Get detailed documentation for a trait.
-
-**Returns:** Dictionary with:
-
-- `name`: Trait name
-- `category`: Category
-- `description`: What the trait does
-- `example`: Code example
-
-```python
-from holoscript import explain_trait
-
-info = explain_trait("grabbable")
-print(info["description"])
-print(info["example"])
-```
-
-#### `suggest_traits(description: str) -> list[dict]`
-
-Get AI-powered trait suggestions based on a description.
-
-**Returns:** List of suggestions with:
-
-- `trait`: Trait name
-- `confidence`: 0.0-1.0 confidence score
-- `reason`: Why this trait is suggested
-
-```python
-from holoscript import suggest_traits
-
-suggestions = suggest_traits("A ball that can be picked up and thrown")
-for s in suggestions:
-    print(f"{s['trait']} ({s['confidence']:.0%}): {s['reason']}")
-```
-
----
-
-### Generation
-
-#### `generate_object(name: str, description: str, geometry: str = "cube") -> GeneratedObject`
-
-Generate a HoloScript object from a description.
-
-```python
-from holoscript import generate_object
-
-obj = generate_object(
-    name="MagicOrb",
-    description="A glowing composition that floats and can be grabbed",
-    geometry="sphere"
-)
-print(obj.code)
-```
-
-#### `generate_scene(name: str, description: str, object_count: int = 3) -> GeneratedScene`
-
-Generate a complete HoloScript scene.
-
-```python
-from holoscript import generate_scene
-
-scene = generate_scene(
-    name="Forest Clearing",
-    description="A peaceful forest clearing with trees and a stream",
-    object_count=5
-)
-print(scene.code)
-```
-
----
-
-## Jupyter Notebook
-
-See `examples/holoscript_tutorial.ipynb` for an interactive tutorial.
-
-## Error Handling
-
-```python
-from holoscript import parse, ParseError
-
 try:
-    result = parse(code)
-    if not result.success:
-        for error in result.errors:
-            print(f"Error at line {error.line}: {error.message}")
-except Exception as e:
-    print(f"Unexpected error: {e}")
+    holoscript.parse(source)
+except NotImplementedError as exc:
+    print(exc)
 ```
 
-## AI Agent Integration
+### `list_traits()`
 
-For AI agents (Grok, Claude, ChatGPT), use this pattern:
+Returns a static five-name snapshot, not the trait registry. Of the five, only
+`@grabbable` is in the core registry. For the real registry, use the npm package
+or the MCP server.
 
-````python
-from holoscript import parse, validate, generate_scene
+## Domain bridges
 
-def handle_vr_request(user_prompt: str) -> str:
-    """Generate VR scene from natural language."""
+### Medical — DICOM
 
-    # Generate scene
-    scene = generate_scene(
-        name="Generated Scene",
-        description=user_prompt
-    )
+```python
+from holoscript.bridges.medical import DICOMBridge
 
-    # Validate
-    result = validate(scene.code)
-
-    if result.valid:
-        return f"""Here's your VR scene:
-
-\```holo
-{scene.code}
-\```
-
-Objects: {', '.join(scene.objects)}
-Traits: {', '.join(scene.traits)}
-"""
-    else:
-        errors = '\n'.join(e.message for e in result.errors)
-        return f"Generated code has issues:\n{errors}"
+bridge = DICOMBridge()
+image = bridge.load_dicom("/path/to/scan.dcm")
+volume = bridge.extract_3d_volume("/path/to/dicom/")
 ```
 
-## Type Stubs
+Requires `pydicom` and `numpy` (`pip install 'holoscript[medical]'`).
 
-For full type checking support, install the type stubs:
+### AlphaFold — protein structure
 
-```bash
-pip install holoscript[types]
+```python
+from holoscript.bridges.alphafold import AlphaFoldBridge
+
+bridge = AlphaFoldBridge(api_key="your_key")
+result = bridge.predict_structure({
+    "sequence": "MKFLILLFNILCLFPVLAADNHGVS",
+    "job_name": "demo",
+})
 ```
 
-## Related Links
+`predict_multimer()` handles complexes. The AlphaFold API path is a stub: without
+an API key it fails closed with a clear error rather than reaching the network.
 
-- [HoloScript Documentation](https://holoscript.net/docs)
-- [Playground](https://holoscript.net/playground)
-- [GitHub Repository](https://github.com/brianonbased-dev/HoloScript)
-- [MCP Server](./mcp-server) - For tool-based AI integration
-````
+### Astronomy — radio telescope data
+
+```python
+from holoscript.bridges.radio_astronomy import calculate_synchrotron
+
+flux = calculate_synchrotron({"magnetic_field_gauss": 1e-4, "frequency_hz": 1.4e9})
+```
+
+The synchrotron calculation is a placeholder formula.
+
+### Robotics — ROS 2
+
+```python
+from holoscript.bridges.robotics import ROS2Bridge
+
+bridge = ROS2Bridge("ws://localhost:9090")
+bridge.connect()
+bridge.publish_joint_command("/joint_states", {"position": [0, 0.5, 1.0]})
+```
+
+Requires `roslibpy`.
+
+### Scientific — molecular docking
+
+```python
+from holoscript.bridges.scientific import AutoDockBridge
+
+results = AutoDockBridge().run_docking({"protein_pdb": "receptor.pdb", "ligand_mol": "compound.mol"})
+```
+
+Without AutoDock Vina installed this returns a `status: failed` dict rather than
+raising.
+
+## Cognition
+
+```python
+from holoscript.cognition import record_decision, read_log, render
+```
+
+Records decisions with their causes to a shared log and renders the log as SVG.
+
+## Related links
+
+- [Package README on PyPI](https://pypi.org/project/holoscript/)
+- [GitHub repository](https://github.com/brianonbased-dev/HoloScript)
+- [MCP Server](./mcp-server) — compilation, rendering and deployment as tools

@@ -3,8 +3,8 @@
 6.0.8 is an honesty release. The HoloScript parser is not implemented in the
 Python package, and this version stops pretending it is: ``parse`` and
 ``validate`` raise instead of returning success for any input. Real parsing
-lands in 6.1.0, compiled from the same grammar ``@holoscript/core`` uses, so
-the two runtimes cannot drift.
+is planned for 6.1.0, built on the strict rejection layer for the grammar
+``@holoscript/core`` uses, so the two runtimes cannot drift.
 
 What works today: the domain bridges under ``holoscript.bridges`` and the
 decision surfaces under ``holoscript.cognition``. Ask the package what it
@@ -20,9 +20,11 @@ __version__ = "6.0.8"
 #: Where parsing actually lives until 6.1.0 ships.
 _NO_PARSER = (
     "HoloScript parsing is not implemented in the Python package "
-    "(holoscript {version}). It lands in 6.1.0, compiled from the same grammar "
+    "(holoscript {version}). It is planned for 6.1.0, on the same grammar "
     "as @holoscript/core. Until then, parse with the npm package "
-    "@holoscript/core, or call the hosted compiler. "
+    "@holoscript/core, or call the hosted compiler -- and check what comes back: "
+    "core is permissive and can return an empty composition for text that is "
+    "not HoloScript. "
     "See holoscript.capabilities() for what this version does implement."
 ).format(version=__version__)
 
@@ -84,9 +86,14 @@ def list_traits() -> List[str]:
 def capabilities() -> Dict[str, Any]:
     """Machine-readable truth about this build.
 
-    Agents and CI should branch on this rather than on the README. The release
-    pipeline diffs it against the previous release, so a capability cannot
-    appear or vanish without a changelog line.
+    Agents and CI should branch on this rather than on the README. Every
+    entry under ``implemented`` must have a check in scripts/preflight-release.py,
+    which runs against the installed wheel before any upload; a claim with no
+    check behind it is how 6.0.7 shipped.
+
+    ``not_implemented`` names top-level functions. ``scene_render`` is rendering a
+    HoloScript scene, which nothing here does; ``holoscript.cognition.render``
+    (an SVG of a decision log) is implemented and listed under ``cognition``.
     """
     return {
         "version": __version__,
@@ -103,11 +110,16 @@ def capabilities() -> Dict[str, Any]:
             ],
             "cognition": ["record_decision", "read_log", "render"],
         },
+        "limits": {
+            "alphafold": "predict_structure via the AlphaFold API is a stub that fails closed; "
+            "the ColabFold path needs a local ColabFold install",
+            "radio_astronomy": "calculate_synchrotron is a placeholder formula",
+        },
         "not_implemented": {
             "parse": "6.1.0",
             "validate": "6.1.0",
             "generate": None,
-            "render": None,
+            "scene_render": None,
             "share": None,
         },
     }

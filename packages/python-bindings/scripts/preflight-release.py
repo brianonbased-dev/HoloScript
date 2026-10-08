@@ -94,6 +94,14 @@ def main() -> int:
     check("capabilities() claims no grammar while there is none", lambda: caps["grammar"] is None)
     check("capabilities() survives JSON, so an agent can branch on it", lambda: bool(json.dumps(caps)))
     check(
+        "capabilities() never lists a name as both implemented and not",
+        lambda: sorted(
+            (set(caps["implemented"]) | set(caps["implemented"]["bridges"]) | set(caps["implemented"]["cognition"]))
+            & set(caps["not_implemented"])
+        ),
+        [],
+    )
+    check(
         "capabilities() states the list_traits registry mismatch",
         lambda: "@grabbable" in caps["implemented"]["list_traits"] and "registry" in caps["implemented"]["list_traits"],
     )

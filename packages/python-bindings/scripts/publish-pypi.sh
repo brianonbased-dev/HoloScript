@@ -42,6 +42,7 @@ if [ "${1:-}" = "--skip-build" ]; then
   echo "== build == (skipped, checking dist/ as it stands)"
 else
   echo "== build =="
+  rm -f dist/holoscript-6.0.8*   # a failed build must not leave a stale wheel behind
   python3 -m build
 fi
 python3 -m twine check dist/holoscript-6.0.8*
@@ -92,5 +93,5 @@ else:
 PY
 
 echo
-echo "Published and verified. Now yank the version that lied:"
-echo '  python3 -m twine yank holoscript 6.0.7 --reason "parse/validate returned success for any input; use 6.0.8"'
+echo "Published and verified."
+echo "Do not yank 6.0.7 on its own: 6.0.8 needs Python 3.10+, so 3.8/3.9 users would fall back to 6.0.6, which has the same fake parser."

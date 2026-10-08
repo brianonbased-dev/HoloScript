@@ -8,9 +8,14 @@ decision surfaces under `holoscript.cognition`.
 **Parsing is not in this package yet.** `parse()` and `validate()` raise
 `NotImplementedError` in 6.0.8. Through 6.0.7 they returned success for any
 non-empty string, including text that is not HoloScript at all. Real parsing
-lands in 6.1.0, compiled from the same grammar the npm package uses, so Python
-and JavaScript cannot disagree about what valid HoloScript is. Until then,
-parse with [`@holoscript/core`](https://www.npmjs.com/package/@holoscript/core).
+is planned for 6.1.0, on the same grammar the npm package uses, so Python and
+JavaScript cannot disagree about what valid HoloScript is. Until then, parse
+with [`@holoscript/core`](https://www.npmjs.com/package/@holoscript/core) and
+check the result: core is permissive and can return an empty composition for
+text that is not HoloScript.
+
+**Python 3.10 or newer.** 6.0.8 drops 3.8 and 3.9, which are past end of life
+and were never tested here. On those versions pip keeps installing 6.0.7.
 
 The README you see on [pypi.org/project/holoscript](https://pypi.org/project/holoscript/)
 comes from this file in the published wheel and sdist.
@@ -44,8 +49,8 @@ it rather than on this README.
 
 | Not here | Where it is | When |
 | --- | --- | --- |
-| `parse`, `validate` | `@holoscript/core` on npm | 6.1.0 |
-| `generate`, `render`, `share` | not shipped anywhere yet | unscheduled |
+| `parse`, `validate` | `@holoscript/core` on npm (permissive) | planned for 6.1.0 |
+| `generate`, scene rendering, `share` | not shipped anywhere yet | unscheduled |
 | Full trait registry | `@holoscript/core` | with 6.1.0 |
 
 `list_traits()` returns a static five-name snapshot, not the registry. Of those
@@ -58,10 +63,11 @@ trusting a number written here.
 ### Medical — DICOM Bridge
 
 ```python
-from holoscript.bridges.medical import load_dicom_series, extract_volume
+from holoscript.bridges.medical import DICOMBridge
 
-series = load_dicom_series("/path/to/dicom/")
-volume = extract_volume(series)
+bridge = DICOMBridge()
+image = bridge.load_dicom("/path/to/scan.dcm")
+volume = bridge.extract_3d_volume("/path/to/dicom/")
 ```
 
 Requires: `pydicom`, `numpy` (`pip install 'holoscript[medical]'`)
