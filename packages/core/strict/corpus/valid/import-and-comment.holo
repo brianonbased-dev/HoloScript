@@ -1,0 +1,6 @@
+// shared props live next door
+import "./shared.holo"
+
+object Crate {
+  position: [2, 0, 0]
+}

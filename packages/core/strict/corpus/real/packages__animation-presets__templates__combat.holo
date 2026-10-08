@@ -1,0 +1,28 @@
+/**
+ * Combat Animation Presets — .holo templates
+ *
+ * Combat-related character actions mapped to canonical Mixamo clips.
+ * Fast wind-ups, strikes, and recovery timings for responsive feedback.
+ */
+
+// ---------------------------------------------------------------------------
+// Attack
+// ---------------------------------------------------------------------------
+
+template "AttackPreset" {
+  @animated {
+    name: "attack"
+    description: "Melee attack swing. Fast wind-up, strike, and recovery. Plays once with no loop for responsive combat feel."
+    category: "combat"
+    duration: 0.8
+    delay: 0
+    easing: "ease-out"
+    loop: false
+    blend_weight: 1.0
+    speed: 1.2
+    clip: "Sword And Shield Attack"
+    pack: "Combat"
+    alternatives: ["Punch", "Kick", "Slash", "Great Sword Slash", "Standing Melee Attack Downward"]
+    tags: ["combat", "melee", "one-shot", "action"]
+  }
+}

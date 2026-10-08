@@ -1,0 +1,4 @@
+object Ball {
+  position: [0, 1, 0]
+  @nope_xyz
+}

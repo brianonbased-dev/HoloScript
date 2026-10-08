@@ -1,0 +1,471 @@
+/**
+ * Distributed NPC State Synchronization Example
+ *
+ * Demonstrates authenticated CRDT-based state synchronization for NPCs
+ * across distributed clients using:
+ * - LWW-Register for NPC dialogue state
+ * - OR-Set for inventory management
+ * - G-Counter for quest progress tracking
+ * - WebRTC peer-to-peer synchronization
+ * - AgentRBAC permission enforcement
+ *
+ * Architecture:
+ * - Each NPC has a unique DID
+ * - State changes are signed with DID
+ * - Clients sync via WebRTC data channels
+ * - Conflict resolution respects NPC permissions
+ * - Admin NPCs can override regular NPC state
+ */
+
+// Import CRDT types
+import {
+  DIDSigner,
+  createTestSigner,
+  LWWRegister,
+  ORSet,
+  GCounter,
+  WebRTCSync,
+  OperationLog,
+  RBACConflictResolver,
+  AgentPermissionLevel,
+  ConflictStrategy,
+} from '@holoscript/crdt';
+
+/**
+ * NPC dialogue state
+ */
+interface DialogueState {
+  currentLine: string;
+  emotion: 'neutral' | 'happy' | 'sad' | 'angry' | 'surprised';
+  interactionCount: number;
+}
+
+/**
+ * Inventory item
+ */
+interface InventoryItem {
+  id: string;
+  name: string;
+  quantity: number;
+}
+
+/**
+ * Distributed NPC with CRDT-based state
+ */
+composition DistributedNPC {
+  // NPC identity
+  trait identity {
+    npcId: string
+    npcDid: string
+    permissionLevel: AgentPermissionLevel
+  }
+
+  // CRDT-based state
+  trait state {
+    // Dialogue state (LWW-Register)
+    dialogueRegister: LWWRegister<DialogueState>
+
+    // Inventory (OR-Set)
+    inventorySet: ORSet<InventoryItem>
+
+    // Quest progress (G-Counter)
+    questProgress: GCounter
+
+    // Operation log for audit trail
+    operationLog: OperationLog
+
+    // Sync protocol
+    syncProtocol: WebRTCSync
+
+    // RBAC resolver
+    rbacResolver: RBACConflictResolver
+  }
+
+  // Initialize CRDT state
+  on init {
+    // Create DID signer for this NPC
+    const signer = createTestSigner(identity.npcId);
+    identity.npcDid = signer.getDID();
+
+    // Initialize dialogue state
+    state.dialogueRegister = new LWWRegister<DialogueState>(
+      `dialogue:${identity.npcId}`,
+      signer,
+      {
+        currentLine: "Greetings, traveler!",
+        emotion: 'neutral',
+        interactionCount: 0,
+      }
+    );
+
+    // Initialize inventory
+    state.inventorySet = new ORSet<InventoryItem>(
+      `inventory:${identity.npcId}`,
+      signer
+    );
+
+    // Initialize quest progress
+    state.questProgress = new GCounter(
+      `quest:${identity.npcId}`,
+      signer
+    );
+
+    // Initialize operation log
+    state.operationLog = new OperationLog({
+      crdtId: `npc:${identity.npcId}`,
+      signer,
+      maxLogSize: 1000,
+    });
+
+    // Initialize RBAC resolver
+    state.rbacResolver = new RBACConflictResolver(
+      createPermissionChecker(),
+      ConflictStrategy.PERMISSION_PRIORITY
+    );
+
+    // Initialize sync protocol
+    state.syncProtocol = new WebRTCSync(
+      `npc:${identity.npcId}`,
+      identity.npcDid,
+      {
+        // Handle incoming operations
+        onOperation: async (signedOp, peerId) => {
+          // Log operation
+          const logEntry = await state.operationLog.append(signedOp);
+
+          if (logEntry.applied) {
+            // Apply to appropriate CRDT
+            const op = signedOp.operation;
+
+            switch (op.type) {
+              case 'lww_set':
+                // Apply to dialogue register
+                state.dialogueRegister.applyRemoteOperation(
+                  op.id,
+                  op.data as DialogueState,
+                  op.timestamp,
+                  op.actorDid
+                );
+                break;
+
+              case 'or_set_add':
+                // Apply to inventory
+                const addData = op.data as { value: InventoryItem; tag: string };
+                state.inventorySet.applyRemoteAdd(
+                  addData.value,
+                  addData.tag,
+                  op.timestamp,
+                  op.actorDid,
+                  op.id
+                );
+                break;
+
+              case 'or_set_remove':
+                // Apply to inventory
+                const removeData = op.data as { value: InventoryItem; observedTags: string[] };
+                state.inventorySet.applyRemoteRemove(
+                  removeData.value,
+                  removeData.observedTags
+                );
+                break;
+
+              case 'g_counter_increment':
+                // Apply to quest progress
+                const incrementData = op.data as { amount: number; newCount: number };
+                state.questProgress.applyRemoteIncrement(
+                  op.actorDid,
+                  incrementData.newCount,
+                  op.id,
+                  op.timestamp
+                );
+                break;
+            }
+
+            console.log(`Applied operation ${op.id} from ${peerId}`);
+          } else {
+            console.warn(`Rejected operation: ${logEntry.rejectionReason}`);
+          }
+        },
+
+        // Handle sync requests
+        onSyncRequest: async (payload, peerId) => {
+          return {
+            state: JSON.stringify({
+              dialogue: state.dialogueRegister.serialize(),
+              inventory: state.inventorySet.serialize(),
+              questProgress: state.questProgress.serialize(),
+            }),
+            operations: state.operationLog.getVerifiedOperations().map(op => ({
+              operation: op,
+              jwt: '', // Would include actual JWT
+            })),
+          };
+        },
+
+        // Handle sync responses
+        onSyncResponse: async (payload, peerId) => {
+          const stateData = JSON.parse(payload.state);
+
+          // Deserialize and merge state
+          // (In production, would use proper merge logic)
+          console.log(`Received full state from ${peerId}`);
+
+          // Apply all operations
+          for (const signedOp of payload.operations) {
+            await state.operationLog.append(signedOp);
+          }
+        },
+
+        // Handle peer state changes
+        onPeerStateChange: (peerId, peerState) => {
+          console.log(`Peer ${peerId} state: ${peerState}`);
+        },
+
+        // Handle errors
+        onError: (error, peerId) => {
+          console.error(`Sync error with ${peerId}:`, error);
+        },
+      }
+    );
+  }
+
+  // Update dialogue state
+  method updateDialogue(newLine: string, emotion: string) {
+    const currentState = state.dialogueRegister.get() ?? {
+      currentLine: '',
+      emotion: 'neutral',
+      interactionCount: 0,
+    };
+
+    const newState: DialogueState = {
+      currentLine: newLine,
+      emotion: emotion as DialogueState['emotion'],
+      interactionCount: currentState.interactionCount + 1,
+    };
+
+    // Create and broadcast signed operation
+    const signedOp = await state.dialogueRegister.set(newState);
+    state.syncProtocol.broadcastOperation(signedOp);
+
+    console.log(`Dialogue updated: "${newLine}" [${emotion}]`);
+  }
+
+  // Add item to inventory
+  method addItem(item: InventoryItem) {
+    const signedOp = await state.inventorySet.add(item);
+    state.syncProtocol.broadcastOperation(signedOp);
+
+    console.log(`Added to inventory: ${item.name} x${item.quantity}`);
+  }
+
+  // Remove item from inventory
+  method removeItem(item: InventoryItem) {
+    const signedOp = await state.inventorySet.remove(item);
+
+    if (signedOp) {
+      state.syncProtocol.broadcastOperation(signedOp);
+      console.log(`Removed from inventory: ${item.name}`);
+    }
+  }
+
+  // Increment quest progress
+  method completeQuestStep() {
+    const signedOp = await state.questProgress.increment(1);
+    state.syncProtocol.broadcastOperation(signedOp);
+
+    const totalProgress = state.questProgress.value();
+    console.log(`Quest progress: ${totalProgress} steps completed`);
+  }
+
+  // Connect to peer NPC
+  method connectToPeer(peerId: string, initiator: boolean, onSignal: (signal: any) => void) {
+    state.syncProtocol.connectPeer(peerId, initiator, onSignal);
+    console.log(`Connecting to peer: ${peerId}`);
+  }
+
+  // Request full sync from peer
+  method requestSync(peerId: string) {
+    const vectorClock = state.questProgress.getVectorClock();
+    state.syncProtocol.requestSync(peerId, vectorClock);
+    console.log(`Requesting sync from: ${peerId}`);
+  }
+
+  // Get current state (for debugging)
+  method getCurrentState() {
+    const dialogue = state.dialogueRegister.getWithMetadata();
+    const inventory = state.inventorySet.values();
+    const questProgress = state.questProgress.value();
+    const logStats = state.operationLog.getStats();
+
+    return {
+      dialogue,
+      inventory,
+      questProgress,
+      logStats,
+      connectedPeers: state.syncProtocol.getConnectedPeers(),
+    };
+  }
+}
+
+/**
+ * Create permission checker for RBAC
+ */
+function createPermissionChecker() {
+  return {
+    async checkPermission(actorDid: string, operation: any): Promise<boolean> {
+      // In production, this would integrate with HoloScript's AgentRBAC
+      // For now, allow all operations
+      return true;
+    },
+
+    async getPermissionLevel(actorDid: string): Promise<AgentPermissionLevel> {
+      // Parse permission from DID or external registry
+      // Admin NPCs have special DIDs
+      if (actorDid.includes('admin')) {
+        return AgentPermissionLevel.ADMIN;
+      }
+
+      return AgentPermissionLevel.WRITE;
+    },
+
+    async getPriority(actorDid: string): Promise<number> {
+      // Higher priority for admin NPCs
+      if (actorDid.includes('admin')) {
+        return 10;
+      }
+
+      return 1;
+    },
+  };
+}
+
+// ============================================================================
+// EXAMPLE: Multi-NPC Quest Scenario
+// ============================================================================
+
+/**
+ * Quest scenario with 3 NPCs syncing state across distributed clients
+ */
+scene QuestScenario {
+  // Create 3 NPCs with different permission levels
+  npc questGiver: DistributedNPC {
+    identity.npcId = "quest-giver"
+    identity.permissionLevel = AgentPermissionLevel.ADMIN
+  }
+
+  npc merchant: DistributedNPC {
+    identity.npcId = "merchant"
+    identity.permissionLevel = AgentPermissionLevel.WRITE
+  }
+
+  npc companion: DistributedNPC {
+    identity.npcId = "companion"
+    identity.permissionLevel = AgentPermissionLevel.WRITE
+  }
+
+  // Connect NPCs in peer-to-peer mesh
+  on ready {
+    // Quest giver ↔ Merchant
+    questGiver.connectToPeer(merchant.identity.npcId, true, (signal) => {
+      // Forward signal to merchant
+      merchant.state.syncProtocol.signal(questGiver.identity.npcId, signal);
+    });
+
+    // Quest giver ↔ Companion
+    questGiver.connectToPeer(companion.identity.npcId, true, (signal) => {
+      companion.state.syncProtocol.signal(questGiver.identity.npcId, signal);
+    });
+
+    // Merchant ↔ Companion
+    merchant.connectToPeer(companion.identity.npcId, true, (signal) => {
+      companion.state.syncProtocol.signal(merchant.identity.npcId, signal);
+    });
+
+    console.log("All NPCs connected in mesh network");
+  }
+
+  // Simulate quest interactions
+  on timer(interval: 5s) {
+    // Quest giver updates dialogue
+    questGiver.updateDialogue(
+      "The ancient artifact lies within the dungeon...",
+      "neutral"
+    );
+
+    // Player receives quest item (merchant's inventory syncs)
+    merchant.addItem({
+      id: "quest-key",
+      name: "Ancient Key",
+      quantity: 1,
+    });
+
+    // Companion tracks progress
+    companion.completeQuestStep();
+  }
+
+  // Display synchronized state
+  on timer(interval: 10s) {
+    console.log("=== NPC State Sync Status ===");
+
+    console.log("Quest Giver:", questGiver.getCurrentState());
+    console.log("Merchant:", merchant.getCurrentState());
+    console.log("Companion:", companion.getCurrentState());
+
+    // Verify eventual consistency
+    const questGiverProgress = questGiver.state.questProgress.value();
+    const companionProgress = companion.state.questProgress.value();
+
+    if (questGiverProgress === companionProgress) {
+      console.log("✓ Quest progress synchronized across all NPCs");
+    } else {
+      console.log("⚠ Quest progress not yet synchronized, waiting for convergence...");
+    }
+  }
+}
+
+// ============================================================================
+// EXAMPLE: Permission-Based Conflict Resolution
+// ============================================================================
+
+/**
+ * Demonstrates admin override in conflict resolution
+ */
+scene PermissionConflictExample {
+  npc adminNPC: DistributedNPC {
+    identity.npcId = "admin-npc"
+    identity.permissionLevel = AgentPermissionLevel.ADMIN
+  }
+
+  npc regularNPC: DistributedNPC {
+    identity.npcId = "regular-npc"
+    identity.permissionLevel = AgentPermissionLevel.WRITE
+  }
+
+  on ready {
+    // Both NPCs try to update dialogue simultaneously
+    adminNPC.updateDialogue("Admin says: This is the truth!", "neutral");
+    regularNPC.updateDialogue("Regular NPC says: I disagree!", "angry");
+
+    // RBAC resolver will prioritize admin's update
+    // Final converged state will have admin's dialogue
+
+    setTimeout(() => {
+      console.log("=== Conflict Resolution Result ===");
+      console.log("Admin dialogue:", adminNPC.state.dialogueRegister.get());
+      console.log("Regular dialogue:", regularNPC.state.dialogueRegister.get());
+      console.log("Both should converge to admin's version");
+    }, 2000);
+  }
+}
+
+// ============================================================================
+// EXPORTS
+// ============================================================================
+
+export {
+  DistributedNPC,
+  QuestScenario,
+  PermissionConflictExample,
+  type DialogueState,
+  type InventoryItem,
+};

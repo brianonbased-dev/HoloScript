@@ -1,0 +1,6 @@
+object Note {
+  text: "line one
+line two"
+  position: [0, 1, 0]
+}
+}
