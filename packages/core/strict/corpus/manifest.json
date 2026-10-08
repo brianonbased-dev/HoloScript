@@ -1,0 +1,23 @@
+{
+  "$comment": "One corpus, two runtimes. Node runs it through holo_strict.mjs; Python runs the same files through the WASM build. Both must agree with this file, and with each other.",
+  "grammar": "@holoscript/core@8.7.0",
+  "valid": [
+    { "file": "valid/object-basic.holo", "objects": 1 },
+    { "file": "valid/object-traits.holo", "objects": 1 },
+    { "file": "valid/two-objects.holo", "objects": 2 },
+    { "file": "valid/composition.holo", "objects": 1 },
+    { "file": "valid/group.holo", "objects": 0 },
+    { "file": "valid/import-and-comment.holo", "objects": 1 }
+  ],
+  "invalid": [
+    { "file": "invalid/empty.holo", "expect": ["HS1001"] },
+    { "file": "invalid/braces-and-ats.holo", "expect": ["HS1002", "HS1005"] },
+    { "file": "invalid/unclosed-object.holo", "expect": ["HS1002"] },
+    { "file": "invalid/stray-close-brace.holo", "expect": ["HS1002"] },
+    { "file": "invalid/sql.holo", "expect": ["HS1003", "HS1004"] },
+    { "file": "invalid/prose.holo", "expect": ["HS1004"] },
+    { "file": "invalid/json-not-holo.holo", "expect": ["HS1004"] },
+    { "file": "invalid/at-without-name.holo", "expect": ["HS1005"] },
+    { "file": "invalid/unknown-trait.holo", "expect": ["HS1006"] }
+  ]
+}

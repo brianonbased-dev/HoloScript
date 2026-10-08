@@ -342,3 +342,8 @@ research/paper-18-motion-sesl/trace-*.jsonl
 # above; these are the two things that were not.
 packages/python-bindings/holoscript-6.0.8/
 *.bak-2026*
+
+# The python-honesty CI gate builds its own venv in the workspace root. Untracked, it
+# would show in `git status --porcelain` and make scripts/publish-pypi.* refuse to
+# publish -- a gate breaking the lane it exists to protect.
+.ci-venv-*/
