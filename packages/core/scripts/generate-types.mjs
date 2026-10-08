@@ -589,6 +589,62 @@ export function parseHoloScriptPlus(
 export const holoFactory: any;
 export function generateHoloSource(ast: any): string;
 
+// Rule-conflict check (validation/RuleConflictChecker.ts): two rules that apply
+// at once and set the same state to different values, decided only by order.
+export type RuleJson = string | number | boolean | null | RuleJson[] | { [key: string]: RuleJson };
+export type RuleConflictKind = 'conflict' | 'priority-mismatch';
+export interface RuleConflictSide {
+  label?: string;
+  line: number;
+  writeLine: number;
+  value: RuleJson;
+  effect: string;
+}
+export interface RuleConflictWitness {
+  state: Record<string, RuleJson>;
+  args: Record<string, RuleJson>;
+  shown: Array<{ name: string; value: RuleJson; given: boolean }>;
+}
+export interface RuleConflict {
+  kind: RuleConflictKind;
+  action: string;
+  target: string;
+  first: RuleConflictSide;
+  second: RuleConflictSide;
+  witness: RuleConflictWitness;
+  declared?: { winner: string; loser: string; line: number };
+  message: string;
+  suggestion: string;
+}
+export interface RuleConflictReport {
+  conflicts: RuleConflict[];
+  skipped: Array<{ action: string; reason: string }>;
+  checkedActions: string[];
+  unconfirmed: number;
+}
+export interface RuleConflictOptions {
+  maxPathsPerAction?: number;
+  maxSolverSteps?: number;
+}
+export interface RuleConflictDiagnostic {
+  severity: 'warning';
+  code: 'RULE-CONFLICT' | 'RULE-PRIORITY-MISMATCH';
+  message: string;
+  line: number;
+  column: number;
+  suggestion: string;
+}
+export function findRuleConflicts(source: string, options?: RuleConflictOptions): RuleConflictReport;
+export function findRuleConflictsInComposition(
+  ast: any,
+  source: string,
+  options?: RuleConflictOptions
+): RuleConflictReport;
+export function ruleConflictDiagnostics(
+  input: { source: string; ast?: any },
+  options?: RuleConflictOptions
+): RuleConflictDiagnostic[];
+
 // uAAL cognitive front-end bridge (G3): HoloComposition behavior -> UAAL bytecode.
 export class UaalBehaviorCompiler {
   compile(

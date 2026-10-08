@@ -1,0 +1,202 @@
+// Heat pump, written one rule per block from the founder's checklist
+// (fixtures/backtranslation/hvac/heat-pump/checklist.json; rule numbers below are
+// that file's line numbers — lines 14 and 15 are his rules 6 and 7).
+// Same behaviour as hvac/heat-pump/original.hsplus, except that here the order of
+// rules 14 and 15 is the only thing that decides which one wins below the cut-off.
+// Nobody decided that: this copy must make the rule-conflict check report it.
+composition "Heat Pump" {
+  state {
+    mode: "off"
+    setPoint: 70
+    swing: 1
+    fan: "auto"
+    room: 70
+    outdoor: 40
+    backup: "on"
+    cutoff: 25
+    heating: false
+    backupHeating: false
+    cooling: false
+    waiting: false
+    minutesSinceCompressorStopped: 60
+    heatCall: false
+    coolCall: false
+  }
+
+  logic {
+    action setMode(mode) {
+      // rule 2
+      if (mode != "heat" && mode != "cool" && mode != "auto" && mode != "off") {
+        return { allowed: false, outcome: "unknown_mode" }
+      }
+      state.mode = mode
+      return { allowed: true, outcome: "mode_set" }
+    }
+
+    action setTemperature(degrees) {
+      // rule 3
+      if (degrees < 50 || degrees > 90) {
+        return { allowed: false, outcome: "out_of_range" }
+      }
+      state.setPoint = degrees
+      return { allowed: true, outcome: "temperature_set" }
+    }
+
+    action setSwing(degrees) {
+      // rule 4
+      if (degrees < 1 || degrees > 3) {
+        return { allowed: false, outcome: "bad_swing" }
+      }
+      state.swing = degrees
+      return { allowed: true, outcome: "swing_set" }
+    }
+
+    action setFan(setting) {
+      // rule 5
+      if (setting != "auto" && setting != "on") {
+        return { allowed: false, outcome: "unknown_fan" }
+      }
+      state.fan = setting
+      return { allowed: true, outcome: "fan_set" }
+    }
+
+    action setBackup(setting) {
+      // rule 6
+      if (setting != "none" && setting != "off" && setting != "on") {
+        return { allowed: false, outcome: "unknown_backup" }
+      }
+      state.backup = setting
+      return { allowed: true, outcome: "backup_set" }
+    }
+
+    action setCutoff(degrees) {
+      // rule 7
+      if (degrees < 0 || degrees > 50) {
+        return { allowed: false, outcome: "out_of_range" }
+      }
+      state.cutoff = degrees
+      return { allowed: true, outcome: "cutoff_set" }
+    }
+
+    action reading(room, outdoor, minutes) {
+      // rule 8: a reading with fewer than 0 minutes is refused
+      if (minutes < 0) {
+        return { allowed: false, outcome: "bad_minutes" }
+      }
+      // rule 8: while the compressor is not running, the minutes passed are added
+      if (!state.heating && !state.cooling) {
+        state.minutesSinceCompressorStopped += minutes
+      }
+      state.room = room
+      state.outdoor = outdoor
+      state.waiting = false
+      // rules 9, 11 and 12: is heat called for?
+      if (state.mode == "heat" || state.mode == "auto") {
+        if (state.heatCall) {
+          if (room >= state.setPoint) {
+            state.heatCall = false
+          }
+        } else {
+          if (room <= state.setPoint - state.swing) {
+            state.heatCall = true
+          }
+        }
+      } else {
+        state.heatCall = false
+      }
+      // rules 10, 11 and 12: is cooling called for? Never both at once.
+      if ((state.mode == "cool" || state.mode == "auto") && !state.heatCall) {
+        if (state.coolCall) {
+          if (room <= state.setPoint) {
+            state.coolCall = false
+          }
+        } else {
+          if (room >= state.setPoint + state.swing) {
+            state.coolCall = true
+          }
+        }
+      } else {
+        state.coolCall = false
+      }
+      // rule 13: the compressor heats when heat is called for, once its 7 minutes are up
+      // (not below the outdoor cut-off: the cut-off rule says the compressor does not heat)
+      if (state.heatCall && outdoor >= state.cutoff) {
+        if (!state.heating) {
+          if (state.minutesSinceCompressorStopped >= 7) {
+            state.heating = true
+          } else {
+            state.waiting = true
+          }
+        }
+      }
+      // rule 13: when heat is no longer called for, the compressor turns off
+      if (!state.heatCall) {
+        if (state.heating) {
+          state.heating = false
+          state.minutesSinceCompressorStopped = 0
+        }
+      }
+      // rule 14: backup heat strips, only when the backup setting is on, while heat is called for:
+      // on at 3 or more degrees below the setting, off at less than 3 below
+      if (state.heatCall) {
+        state.backupHeating = state.backup == "on" && room <= state.setPoint - 3
+      } else {
+        state.backupHeating = false
+      }
+      // rule 15: below the outdoor cut-off, heat comes only from the backup strips;
+      // the compressor does not heat, and if it was heating it turns off
+      if (state.heatCall && outdoor < state.cutoff) {
+        if (state.heating) {
+          state.heating = false
+          state.minutesSinceCompressorStopped = 0
+        }
+        state.backupHeating = state.backup == "on"
+      }
+      // rules 10 and 13: the compressor cools when cooling is called for, once its 7 minutes are up
+      if (state.coolCall) {
+        if (!state.cooling) {
+          if (state.minutesSinceCompressorStopped >= 7) {
+            state.cooling = true
+          } else {
+            state.waiting = true
+          }
+        }
+      } else {
+        if (state.cooling) {
+          state.cooling = false
+          state.minutesSinceCompressorStopped = 0
+        }
+      }
+      // rule 17: the answer, first match wins
+      if (state.backupHeating) {
+        return { allowed: true, outcome: "backup_heating" }
+      }
+      if (state.heating) {
+        return { allowed: true, outcome: "heating" }
+      }
+      if (state.cooling) {
+        return { allowed: true, outcome: "cooling" }
+      }
+      if (state.waiting) {
+        return { allowed: true, outcome: "waiting" }
+      }
+      return { allowed: true, outcome: "idle" }
+    }
+
+    action status(viewerId) {
+      // rule 18
+      return {
+        viewer: viewerId,
+        mode: state.mode,
+        set_to: state.setPoint,
+        room: state.room,
+        outdoor: state.outdoor,
+        heat_on: state.heating,
+        backup_heat_on: state.backupHeating,
+        cool_on: state.cooling,
+        fan_running: state.fan == "on" || state.heating || state.cooling || state.backupHeating,
+        waiting: state.waiting
+      }
+    }
+  }
+}

@@ -1,0 +1,91 @@
+// Car park barrier (fixtures/backtranslation/slice3/car-park-barrier/original.hsplus)
+// with ONE planted rule, for the rule-conflict check. Rule numbers are that
+// fixture's checklist.json lines; the planted rule is a new rule 15:
+// "paying 10 coins or more always counts as 10 paid". It overlaps rule 9 (paying
+// at least what is owed makes the amount paid the full price) and comes first,
+// so rule 9 silently wins. The check must report this pair and nothing else.
+composition "Car Park Barrier" {
+  state {
+    carInside: false
+    minutes: 0
+    paid: 0
+    ticketsIssued: 0
+  }
+
+  logic {
+    action arrive() {
+      if (state.carInside) {
+        return { allowed: false, outcome: "car_already_inside" }
+      }
+      state.carInside = true
+      state.minutes = 0
+      state.paid = 0
+      state.ticketsIssued += 1
+      emit("ticket_issued", { ticket: state.ticketsIssued })
+      return { allowed: true, outcome: "ticket_issued" }
+    }
+
+    action wait(minutes) {
+      if (!state.carInside) {
+        return { allowed: false, outcome: "no_car" }
+      }
+      if (minutes < 1) {
+        return { allowed: false, outcome: "bad_minutes" }
+      }
+      state.minutes += minutes
+      return { allowed: true, outcome: "time_passed" }
+    }
+
+    action pay(coins) {
+      if (!state.carInside) {
+        return { allowed: false, outcome: "no_car" }
+      }
+      if ((state.minutes <= 30 ? 0 : state.minutes <= 120 ? 3 : state.minutes <= 240 ? 6 : 10) - state.paid <= 0) {
+        return { allowed: false, outcome: "nothing_due" }
+      }
+      if (coins < 1) {
+        return { allowed: false, outcome: "no_coins" }
+      }
+      // rule 15 (planted): paying 10 coins or more always counts as 10 paid
+      if (coins >= 10) {
+        state.paid = 10
+      }
+      // rule 9: paying at least what is owed pays it off
+      if (coins >= (state.minutes <= 30 ? 0 : state.minutes <= 120 ? 3 : state.minutes <= 240 ? 6 : 10) - state.paid) {
+        emit("paid_in_full", {
+          change: coins - ((state.minutes <= 30 ? 0 : state.minutes <= 120 ? 3 : state.minutes <= 240 ? 6 : 10) - state.paid)
+        })
+        state.paid = state.minutes <= 30 ? 0 : state.minutes <= 120 ? 3 : state.minutes <= 240 ? 6 : 10
+        return { allowed: true, outcome: "paid_in_full" }
+      }
+      state.paid += coins
+      emit("part_paid", {
+        still_owed: (state.minutes <= 30 ? 0 : state.minutes <= 120 ? 3 : state.minutes <= 240 ? 6 : 10) - state.paid
+      })
+      return { allowed: true, outcome: "part_paid" }
+    }
+
+    action leave() {
+      if (!state.carInside) {
+        return { allowed: false, outcome: "no_car" }
+      }
+      if ((state.minutes <= 30 ? 0 : state.minutes <= 120 ? 3 : state.minutes <= 240 ? 6 : 10) - state.paid > 0) {
+        return { allowed: false, outcome: "payment_due" }
+      }
+      emit("barrier_opened", { minutes_parked: state.minutes, paid: state.paid })
+      state.carInside = false
+      state.minutes = 0
+      state.paid = 0
+      return { allowed: true, outcome: "barrier_opened" }
+    }
+
+    action display(viewerId) {
+      return {
+        viewer: viewerId,
+        car_inside: state.carInside,
+        minutes: state.minutes,
+        owed: (state.minutes <= 30 ? 0 : state.minutes <= 120 ? 3 : state.minutes <= 240 ? 6 : 10) - state.paid
+      }
+    }
+  }
+}

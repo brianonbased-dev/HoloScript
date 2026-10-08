@@ -136,6 +136,19 @@ export {
   type CanonicalSourceValidationResult,
   type CanonicalValidator,
 } from './validation/CanonicalSourceValidator';
+export {
+  findRuleConflicts,
+  findRuleConflictsInComposition,
+  ruleConflictDiagnostics,
+  type RuleConflict,
+  type RuleConflictDiagnostic,
+  type RuleConflictKind,
+  type RuleConflictOptions,
+  type RuleConflictReport,
+  type RuleConflictSide,
+  type RuleConflictWitness,
+  type RuleJson,
+} from './validation/RuleConflictChecker';
 export { factory as holoFactory } from './parser/HoloCompositionFactory';
 export { generateHoloSource } from './parser/HoloCompositionGenerator';
 export type {
