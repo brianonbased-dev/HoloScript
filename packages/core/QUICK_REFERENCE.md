@@ -162,7 +162,8 @@ console.log('Valid:', validation.filter((v) => v.valid).length);
 ```
 
 > `validateBatch` and the generator's own check use `validateCanonicalSource` from
-> `@holoscript/core`, which refuses empty, unbalanced and non-HoloScript text.
+> `@holoscript/core`, which refuses empty, unbalanced and wholly non-HoloScript text. It
+> does not yet catch prose around an otherwise valid program (board task ge7y).
 
 ---
 

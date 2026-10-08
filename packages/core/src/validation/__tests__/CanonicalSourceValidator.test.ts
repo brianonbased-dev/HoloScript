@@ -90,6 +90,16 @@ describe('canonical source diagnostic routing', () => {
     expect(prose.valid).toBe(false);
   });
 
+  it.each([
+    'composition "A" { , }',
+    'composition "A" { foo bar baz }',
+    'composition "A" {} DROP TABLE users',
+    'composition "A" {} hello world',
+  ])('does not waive "nothing parsed" for junk inside or after an empty root: %s', (source) => {
+    const result = validateCanonicalSource({ surface: 'holo', source });
+    expect(result.valid).toBe(false);
+  });
+
   it('leaves a source the parser already rejects with only the parser errors', () => {
     const unbalanced = 'composition "Open" {\n  object "A" { geometry: "cube" }\n';
     const parserOnly = new HoloCompositionParser().parse(unbalanced);

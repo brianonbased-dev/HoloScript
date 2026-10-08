@@ -169,10 +169,17 @@ const HOLO_REFUSAL_CODES = new Set([
   'HS1010',
 ]);
 
-/** True when the first token after any blank lines and comments is `composition`. */
-function declaresCompositionRoot(source: string): boolean {
-  const first = tokenizeHoloSource(source).find((t) => t.type !== 'NEWLINE');
-  return first?.type === 'COMPOSITION';
+/**
+ * True only for an explicitly declared, truly empty program: `composition "A" {}`
+ * or `composition {}`, with nothing else but blank lines and comments. Anything
+ * inside the braces or after them keeps HS1004.
+ */
+function isDeclaredEmptyComposition(source: string): boolean {
+  const types = tokenizeHoloSource(source)
+    .map((t) => t.type)
+    .filter((type) => type !== 'NEWLINE' && type !== 'EOF');
+  const shape = types[1] === 'STRING' ? types.slice(0, 1).concat(types.slice(2)) : types;
+  return shape.join(' ') === 'COMPOSITION LBRACE RBRACE';
 }
 
 /**
@@ -185,8 +192,8 @@ function declaresCompositionRoot(source: string): boolean {
  * One refusal is narrowed. The strict layer also reports HS1004 for an explicitly
  * declared but empty composition (`composition "A" {}`), which this validator has
  * always called valid. Whether an empty program is valid is a grammar decision
- * still open in ERROR_CONTRACT.md, so it is not made here: HS1004 is kept only for
- * sources that never declared a composition root.
+ * still open in ERROR_CONTRACT.md, so it is not made here: HS1004 is waived only for
+ * that exact empty shape, never for junk inside or after the braces.
  */
 function holoRefusals(source: string, parsed: unknown): CanonicalDiagnostic[] {
   const { diagnostics } = analyzeHoloRefusals(source, {
@@ -197,7 +204,7 @@ function holoRefusals(source: string, parsed: unknown): CanonicalDiagnostic[] {
     (d) => d.severity === 'error' && HOLO_REFUSAL_CODES.has(d.code)
   );
   const keep =
-    refusals.some((d) => d.code === 'HS1004') && declaresCompositionRoot(source)
+    refusals.some((d) => d.code === 'HS1004') && isDeclaredEmptyComposition(source)
       ? refusals.filter((d) => d.code !== 'HS1004')
       : refusals;
   return keep.map((d) => ({

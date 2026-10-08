@@ -4,7 +4,7 @@
 
 **Tests**: 135 passing in the 5 files below, in `packages/framework/src/ai/__tests__/` (run 2026-10-08; see [Testing](#testing)). None of them calls a live model API (they use stand-in adapters or test only configuration), so validation against live APIs is still open (see [Next Steps](#next-steps)).
 
-**Validation.** `HoloScriptGenerator` and `validateBatch` check generated code with core's canonical validator, `validateCanonicalSource({ source, surface: 'holo' })`: the `.holo` parser, plus the strict layer's refusals for what the parser used to accept silently (HS1001 empty, HS1002 unbalanced, HS1003 a token that cannot start a top-level item, HS1004 nothing parsed, HS1005 a trait with no name). A refused result has `parseResult.success === false` and errors that lead with their code, and auto-fix runs when the adapter has `fixHoloScript`. Until 2026-10-08 this layer used a stand-in parser that called any text valid.
+**Validation.** `HoloScriptGenerator` and `validateBatch` check generated code with core's canonical validator, `validateCanonicalSource({ source, surface: 'holo' })`: the `.holo` parser, plus the strict layer's refusals for what the parser used to accept silently (HS1001 empty, HS1002 unbalanced, HS1003 a token that cannot start a top-level item, HS1004 nothing parsed, HS1005 a trait with no name). A refused result has `parseResult.success === false` and errors that lead with their code, and auto-fix runs when the adapter has `fixHoloScript`. It does not yet catch prose or a code fence around an otherwise valid program (`Here you go:` before it, `Let me know…` after it): the parser drops that text silently, which is board task ge7y ("no parser drops input silently"). The framework adapters strip code fences before checking. Until 2026-10-08 this layer used a stand-in parser that called any text valid.
 
 This document is a guide to the AI-guided HoloScript generation API in `@holoscript/framework`, which turns natural language descriptions into HoloScript code.
 
@@ -104,13 +104,13 @@ Natural Language Prompt
 
 ### Key Components
 
-| Component                   | Purpose                         | Status                    |
-| --------------------------- | ------------------------------- | ------------------------- |
-| **AIAdapter**               | Interface for AI providers      | ✅ 9 implementations      |
-| **HoloScriptGenerator**     | High-level generation API       | ✅ Complete               |
-| **validateCanonicalSource** | Parse & validate generated code | ✅ Refuses non-HoloScript |
-| **ErrorRecovery**           | Auto-fix broken code            | ✅ Runs on refused output |
-| **Sessions**                | Track generation history        | ✅ Implemented            |
+| Component                   | Purpose                         | Status                                                                                           |
+| --------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **AIAdapter**               | Interface for AI providers      | ✅ 9 implementations                                                                             |
+| **HoloScriptGenerator**     | High-level generation API       | ✅ Complete                                                                                      |
+| **validateCanonicalSource** | Parse & validate generated code | ✅ Refuses empty, unbalanced and wholly non-HoloScript text; ⚠️ not prose around a valid program |
+| **ErrorRecovery**           | Auto-fix broken code            | ✅ Runs on refused output                                                                        |
+| **Sessions**                | Track generation history        | ✅ Implemented                                                                                   |
 
 ---
 
@@ -713,5 +713,5 @@ describe('GenerationLogic', () => {
 ---
 
 **Last Updated**: 2026-10-07 (imports moved to `@holoscript/framework`, test counts re-run)  
-**Status**: Generation and validation work; tested without live model APIs  
+**Status**: Generation and validation work (validation misses prose around a valid program; see the top of this page); tested without live model APIs  
 **Maintainer**: AI Development Team

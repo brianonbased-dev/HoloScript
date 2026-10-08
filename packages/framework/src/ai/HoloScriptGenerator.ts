@@ -264,6 +264,21 @@ export class HoloScriptGenerator {
               attempts,
             };
 
+            // Record the fixed generation too: this branch was unreachable while the
+            // parser was a stand-in, so it never reached analytics.
+            this.analytics.recordMetric({
+              promptLength: prompt.length,
+              codeLength: holoScript.length,
+              confidence: result.confidence ?? 0,
+              parseSuccess: reparseResult.success,
+              errorCount: parseResult.errors.length,
+              wasFixed,
+              responseTimeMs,
+              attemptsNeeded: attempts,
+              adapterName: s.adapter.name,
+              timestamp: new Date(),
+            });
+
             // Cache successful result
             if (this.cacheEnabled && reparseResult.success) {
               this.cache.set(prompt, holoScript, result.confidence ?? 0, s.adapter.name);

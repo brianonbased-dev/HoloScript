@@ -69,5 +69,6 @@ instead of calling it valid. HS1006 (unknown trait) is left to callers that hold
 the full trait vocabulary; the MCP tool adds its own. One difference from
 `parseStrict`: an explicitly declared but empty composition (`composition "A" {}`)
 stays valid there, as it always was, because whether an empty program is valid is
-still an open grammar decision; HS1004 is kept for sources that never declare a
-root. `holo_strict.d.mts` types the pure layer for TypeScript importers.
+still an open grammar decision; HS1004 is waived only for that exact empty shape.
+Neither layer yet catches prose around an otherwise valid program: the parser
+drops it silently (board task ge7y). `holo_strict.d.mts` types the pure layer for TypeScript importers.

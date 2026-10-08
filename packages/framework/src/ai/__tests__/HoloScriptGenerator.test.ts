@@ -172,6 +172,11 @@ describe('the generator checks what the model wrote', () => {
     expect(result.wasFixed).toBe(true);
     expect(result.parseResult.success).toBe(true);
     expect(result.holoScript).toBe(HOLOSCRIPT_EXAMPLE_PROGRAM);
+    // The fixed generation reaches analytics as a fixed error, and stats count it.
+    const analytics = gen.getAnalytics();
+    expect(analytics.aggregateMetrics.totalGenerations).toBe(1);
+    expect(analytics.errorPatterns.find((p) => p.errorType === 'fixed')?.frequency).toBe(1);
+    expect(gen.getStats()).toMatchObject({ successCount: 1, fixedCount: 1 });
   });
 
   it('returns refused output marked invalid when the adapter cannot fix, instead of a misleading throw', async () => {
