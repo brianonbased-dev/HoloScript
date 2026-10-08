@@ -24,20 +24,34 @@ function graphAfter(traits: TraitApplication[]): string {
 describe('DistributedTransformGraph canonical state hash (97yq)', () => {
   it('hashes one composition one way when the context keys arrive in a different order', () => {
     const ordered: TraitApplication[] = [
-      { name: 'physics', config: { mass: 2 }, context: { authorityLevel: 50, agentId: 'agent-x', opId: 'op-1' } },
+      {
+        name: 'physics',
+        config: { mass: 2 },
+        context: { authorityLevel: 50, agentId: 'agent-x', opId: 'op-1' },
+      },
     ];
     const reordered: TraitApplication[] = [
-      { name: 'physics', config: { mass: 2 }, context: { opId: 'op-1', agentId: 'agent-x', authorityLevel: 50 } },
+      {
+        name: 'physics',
+        config: { mass: 2 },
+        context: { opId: 'op-1', agentId: 'agent-x', authorityLevel: 50 },
+      },
     ];
     expect(graphAfter(ordered)).toBe(graphAfter(reordered));
   });
 
   it('hashes one composition one way when a nested value object has a different key order', () => {
-    const a: TraitApplication[] = [{ name: 'style', config: { theme: { primary: 'red', accent: 'blue' } } }];
-    const b: TraitApplication[] = [{ name: 'style', config: { theme: { accent: 'blue', primary: 'red' } } }];
+    const a: TraitApplication[] = [
+      { name: 'style', config: { theme: { primary: 'red', accent: 'blue' } } },
+    ];
+    const b: TraitApplication[] = [
+      { name: 'style', config: { theme: { accent: 'blue', primary: 'red' } } },
+    ];
     expect(graphAfter(a)).toBe(graphAfter(b));
     // ...and a genuinely different value still hashes differently.
-    const c: TraitApplication[] = [{ name: 'style', config: { theme: { accent: 'green', primary: 'red' } } }];
+    const c: TraitApplication[] = [
+      { name: 'style', config: { theme: { accent: 'green', primary: 'red' } } },
+    ];
     expect(graphAfter(a)).not.toBe(graphAfter(c));
   });
 
@@ -55,7 +69,9 @@ describe('DistributedTransformGraph canonical state hash (97yq)', () => {
     expect(canonicalProvenanceJson(protoA)).toBe('{"__proto__":{"secret":"AAA"},"a":2}');
     expect(canonicalProvenanceJson(protoA)).not.toBe(canonicalProvenanceJson(protoB));
     expect(canonicalProvenanceJson({ n: new Number(1) })).toBe('{"n":1}');
-    expect(canonicalProvenanceJson({ n: new Number(1) })).not.toBe(canonicalProvenanceJson({ n: new Number(2) }));
+    expect(canonicalProvenanceJson({ n: new Number(1) })).not.toBe(
+      canonicalProvenanceJson({ n: new Number(2) })
+    );
     const cycle: Record<string, unknown> = { a: 1 };
     cycle.self = cycle;
     expect(() => canonicalProvenanceJson(cycle)).toThrow(TypeError);
@@ -91,8 +107,14 @@ describe('DistributedTransformGraph re-merges nodes from their leaf contribution
   it('the same leaf seen by two nodes is one fact', () => {
     const nodeA = sumGraph('node-a');
     const nodeB = sumGraph('node-b');
-    nodeA.localCompose([{ name: 'a', config: { load: 0.1 } }, { name: 'b', config: { load: 0.2 } }]);
-    nodeB.localCompose([{ name: 'a', config: { load: 0.1 } }, { name: 'c', config: { load: 0.3 } }]);
+    nodeA.localCompose([
+      { name: 'a', config: { load: 0.1 } },
+      { name: 'b', config: { load: 0.2 } },
+    ]);
+    nodeB.localCompose([
+      { name: 'a', config: { load: 0.1 } },
+      { name: 'c', config: { load: 0.3 } },
+    ]);
     nodeA.receiveRemoteState(nodeB.exportLocalState()!);
     const merged = nodeA.mergeActiveNodes().composition;
     expect(merged.provenance.load.source).toBe('a+b+c');

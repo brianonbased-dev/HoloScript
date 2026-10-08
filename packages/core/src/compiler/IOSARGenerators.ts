@@ -546,7 +546,11 @@ export function generateInfoPlist(compiler: IOSCompiler, composition: HoloCompos
 /** An object's scale read as its size in meters: a number is uniform, [x,y,z] per axis. */
 function sizeFromScale(scale: HoloValue | undefined): [number, number, number] | undefined {
   if (typeof scale === 'number' && Number.isFinite(scale)) return [scale, scale, scale];
-  if (Array.isArray(scale) && scale.length >= 3 && scale.slice(0, 3).every((v) => typeof v === 'number')) {
+  if (
+    Array.isArray(scale) &&
+    scale.length >= 3 &&
+    scale.slice(0, 3).every((v) => typeof v === 'number')
+  ) {
     return [scale[0] as number, scale[1] as number, scale[2] as number];
   }
   return undefined;
@@ -569,7 +573,10 @@ export function compileObjectFactory(compiler: IOSCompiler, obj: HoloObjectDecl)
   // Geometry, sized from scale. The size lives in the geometry (node.scale stays 1), the way
   // the Android emitter passes it to SceneView. The old fixed 0.1 m base times node.scale made
   // an object of scale s 0.1*s across, ten times smaller than on Quest, the web and Android.
-  const geometry = compiler.getSceneKitGeometry(meshType, sizeFromScale(compiler.findObjProp(obj, 'scale')));
+  const geometry = compiler.getSceneKitGeometry(
+    meshType,
+    sizeFromScale(compiler.findObjProp(obj, 'scale'))
+  );
   compiler.emit(`let geometry = ${geometry}`);
   compiler.emit('');
 
@@ -603,7 +610,6 @@ export function compileObjectFactory(compiler: IOSCompiler, obj: HoloObjectDecl)
   if (pos && Array.isArray(pos)) {
     compiler.emit(`node.position = SCNVector3(${pos[0]}, ${pos[1]}, ${pos[2]})`);
   }
-
 
   const rot = compiler.findObjProp(obj, 'rotation');
   if (rot && Array.isArray(rot)) {

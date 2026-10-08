@@ -21,9 +21,8 @@ import { join } from 'node:path';
 // touch the real data directory.
 process.env.HOLOMESH_DATA_DIR = mkdtempSync(join(tmpdir(), 'proven-agent-id-'));
 
-const { agentKeyStore, FOUNDER_AGENT_ID, keyRegistry, SEEDABLE_KEY_ENV_VARS } = await import(
-  '../../holomesh/state'
-);
+const { agentKeyStore, FOUNDER_AGENT_ID, keyRegistry, SEEDABLE_KEY_ENV_VARS } =
+  await import('../../holomesh/state');
 const {
   AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR,
   AGENT_ID_RESERVED_ERROR,

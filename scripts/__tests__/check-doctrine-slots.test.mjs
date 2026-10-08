@@ -77,7 +77,11 @@ function runFromHome({
     const root = join(home, '.ai-ecosystem');
     mkdirSync(root);
     if (workload !== undefined) {
-      writeFileSync(join(root, '.holo-ci-last-workload'), JSON.stringify(workload, null, 2), 'utf8');
+      writeFileSync(
+        join(root, '.holo-ci-last-workload'),
+        JSON.stringify(workload, null, 2),
+        'utf8'
+      );
     }
   }
   if (danglingLane) {
@@ -236,7 +240,10 @@ const DEFAULT_ROOT_MARKS = /\.ai-ecosystem exists, which marks this machine as a
 {
   const result = runFromHome({ homeAs: 'too-long' });
   assert.equal(result.status, 1, result.stdout);
-  assert.match(result.stderr, /cannot inspect the home directory: ERR_SYSTEM_ERROR\. This gate cannot tell/);
+  assert.match(
+    result.stderr,
+    /cannot inspect the home directory: ERR_SYSTEM_ERROR\. This gate cannot tell/
+  );
   assert.doesNotMatch(result.stderr, STACK_FRAME);
 }
 
@@ -253,7 +260,12 @@ if (process.platform !== 'win32' && process.getuid?.() !== 0) {
 }
 
 // A blank variable is unset, as the checkout's own root resolver treats it.
-for (const name of ['AI_ECOSYSTEM_ROOT', 'HOLOMESH_ROOT', 'HOLOCI_WORKLOAD_PATH', 'AI_ECOSYSTEM_DIR']) {
+for (const name of [
+  'AI_ECOSYSTEM_ROOT',
+  'HOLOMESH_ROOT',
+  'HOLOCI_WORKLOAD_PATH',
+  'AI_ECOSYSTEM_DIR',
+]) {
   const result = runFromHome({ env: { [name]: '   ' } });
   assert.equal(result.status, 0, `${name}: ${result.stderr || result.stdout}`);
   assert.match(result.stdout, /no dispatch lane is marked for this user/, name);
@@ -282,12 +294,18 @@ withBreadcrumb({ requiredSlots: [] }, (path) => {
   const missing = join(tmpdir(), 'doctrine-slots-missing.json');
   const flagFirst = runFromHome({
     args: ['--workload', path],
-    env: { HOLOCI_WORKLOAD_PATH: missing, AI_ECOSYSTEM_ROOT: join(tmpdir(), 'doctrine-slots-no-such-root') },
+    env: {
+      HOLOCI_WORKLOAD_PATH: missing,
+      AI_ECOSYSTEM_ROOT: join(tmpdir(), 'doctrine-slots-no-such-root'),
+    },
   });
   assert.equal(flagFirst.status, 0, flagFirst.stderr || flagFirst.stdout);
   assert.match(flagFirst.stdout, /registered no doctrine slots/);
   const variableFirst = runFromHome({
-    env: { HOLOCI_WORKLOAD_PATH: path, AI_ECOSYSTEM_ROOT: join(tmpdir(), 'doctrine-slots-no-such-root') },
+    env: {
+      HOLOCI_WORKLOAD_PATH: path,
+      AI_ECOSYSTEM_ROOT: join(tmpdir(), 'doctrine-slots-no-such-root'),
+    },
   });
   assert.equal(variableFirst.status, 0, variableFirst.stderr || variableFirst.stdout);
   assert.match(variableFirst.stdout, /registered no doctrine slots/);
@@ -295,7 +313,9 @@ withBreadcrumb({ requiredSlots: [] }, (path) => {
 
 // The default path still enforces registrations, not just the --workload path.
 {
-  const result = runFromHome({ workload: { requiredSlots: ['localPreflight'], localPreflight: null } });
+  const result = runFromHome({
+    workload: { requiredSlots: ['localPreflight'], localPreflight: null },
+  });
   assert.equal(result.status, 1, result.stdout);
   assert.match(result.stderr, /DOCTRINE VIOLATION: localPreflight null/);
 }
@@ -308,8 +328,16 @@ for (const [label, options, named] of [
   ['AI_ECOSYSTEM_ROOT', { env: { AI_ECOSYSTEM_ROOT: MISSING_ROOT } }, /AI_ECOSYSTEM_ROOT=/],
   ['HOLOMESH_ROOT', { env: { HOLOMESH_ROOT: MISSING_ROOT } }, /HOLOMESH_ROOT=/],
   ['--workload', { args: ['--workload', MISSING_FILE] }, /--workload /],
-  ['HOLOCI_WORKLOAD_PATH', { env: { HOLOCI_WORKLOAD_PATH: MISSING_FILE } }, /HOLOCI_WORKLOAD_PATH=/],
-  ['HOLO_CI_WORKLOAD_PATH', { env: { HOLO_CI_WORKLOAD_PATH: MISSING_FILE } }, /HOLO_CI_WORKLOAD_PATH=/],
+  [
+    'HOLOCI_WORKLOAD_PATH',
+    { env: { HOLOCI_WORKLOAD_PATH: MISSING_FILE } },
+    /HOLOCI_WORKLOAD_PATH=/,
+  ],
+  [
+    'HOLO_CI_WORKLOAD_PATH',
+    { env: { HOLO_CI_WORKLOAD_PATH: MISSING_FILE } },
+    /HOLO_CI_WORKLOAD_PATH=/,
+  ],
   ['AI_ECOSYSTEM_DIR', { env: { AI_ECOSYSTEM_DIR: MISSING_ROOT } }, /AI_ECOSYSTEM_DIR=/],
 ]) {
   const result = runFromHome(options);

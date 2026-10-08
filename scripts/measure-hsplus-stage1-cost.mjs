@@ -109,7 +109,9 @@ function wasmInRequireCache() {
 async function checkerLoaded() {
   try {
     const mod = await import('../packages/core/src/parser/hsplusRustTypeCheck.ts');
-    return typeof mod.hsplusRustCheckerLoaded === 'function' ? mod.hsplusRustCheckerLoaded() : false;
+    return typeof mod.hsplusRustCheckerLoaded === 'function'
+      ? mod.hsplusRustCheckerLoaded()
+      : false;
   } catch {
     return false;
   }

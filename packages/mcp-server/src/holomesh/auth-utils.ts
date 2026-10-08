@@ -153,8 +153,7 @@ export function resolveFromSignedManifest(
     ) {
       return null;
     }
-    const issuedAt: number | undefined =
-      typeof rawIssuedAt === 'number' ? rawIssuedAt : undefined;
+    const issuedAt: number | undefined = typeof rawIssuedAt === 'number' ? rawIssuedAt : undefined;
 
     const payload = JSON.stringify({
       id: manifest.id,

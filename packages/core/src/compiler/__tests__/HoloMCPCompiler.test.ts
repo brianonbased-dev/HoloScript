@@ -619,62 +619,66 @@ describe('HoloMCPCompiler P3 — startup evaluator gate', () => {
     expect(code).toContain("contractEnforcement: 'startup-gate'");
   });
 
-  it('emitted TypeScript with P3 guards passes tsc --noEmit --strict (P3 gate)', { timeout: 120_000 }, () => {
-    const __dir = fileURLToPath(new URL('.', import.meta.url));
-    const tscBin = resolve(__dir, '../../../../../node_modules/typescript/bin/tsc');
+  it(
+    'emitted TypeScript with P3 guards passes tsc --noEmit --strict (P3 gate)',
+    { timeout: 120_000 },
+    () => {
+      const __dir = fileURLToPath(new URL('.', import.meta.url));
+      const tscBin = resolve(__dir, '../../../../../node_modules/typescript/bin/tsc');
 
-    const composition = makeEmptyComposition({
-      objects: [
-        makeObject('Arm', [makeTrait('urdf_robot', { scale: 1.0, segments: 3 })]),
-        makeObject('Brain', [
-          makeTrait('llm_agent', {
-            tools: [
-              {
-                name: 'plan',
-                description: 'Plan a motion trajectory',
-                parameters: {
-                  goal: { type: 'string', description: 'Target position', required: true },
-                  steps: { type: 'number', description: 'Max steps', required: false },
+      const composition = makeEmptyComposition({
+        objects: [
+          makeObject('Arm', [makeTrait('urdf_robot', { scale: 1.0, segments: 3 })]),
+          makeObject('Brain', [
+            makeTrait('llm_agent', {
+              tools: [
+                {
+                  name: 'plan',
+                  description: 'Plan a motion trajectory',
+                  parameters: {
+                    goal: { type: 'string', description: 'Target position', required: true },
+                    steps: { type: 'number', description: 'Max steps', required: false },
+                  },
                 },
-              },
-            ],
-          }),
-        ]),
-      ],
-    });
-
-    const code = compiler.compileModule(composition, '');
-    const tmpFile = join(tmpdir(), `holo-mcp-p3-gate-${Date.now()}.ts`);
-    writeFileSync(tmpFile, code, 'utf8');
-
-    try {
-      execFileSync(
-        process.execPath,
-        [
-          tscBin,
-          '--noEmit',
-          '--strict',
-          '--target',
-          'ES2020',
-          '--lib',
-          'ES2020',
-          '--module',
-          'commonjs',
-          '--moduleResolution',
-          'node',
-          '--skipLibCheck',
-          tmpFile,
+              ],
+            }),
+          ]),
         ],
-        { encoding: 'utf8' }
-      );
-    } finally {
+      });
+
+      const code = compiler.compileModule(composition, '');
+      const tmpFile = join(tmpdir(), `holo-mcp-p3-gate-${Date.now()}.ts`);
+      writeFileSync(tmpFile, code, 'utf8');
+
       try {
-        unlinkSync(tmpFile);
-      } catch {
-        /* ok */
+        execFileSync(
+          process.execPath,
+          [
+            tscBin,
+            '--noEmit',
+            '--strict',
+            '--target',
+            'ES2020',
+            '--lib',
+            'ES2020',
+            '--module',
+            'commonjs',
+            '--moduleResolution',
+            'node',
+            '--skipLibCheck',
+            tmpFile,
+          ],
+          { encoding: 'utf8' }
+        );
+      } finally {
+        try {
+          unlinkSync(tmpFile);
+        } catch {
+          /* ok */
+        }
       }
     }
-  });
+  );
 });
 
 // ─── P5: @param annotation layer ─────────────────────────────────────────────
@@ -807,54 +811,58 @@ describe('HoloMCPCompiler P5 — @param annotation layer', () => {
     expect(tools[0].inputSchema.required).toContain('mode');
   });
 
-  it('emitted TypeScript with annotated required params passes tsc --noEmit --strict (P5 gate)', { timeout: 120_000 }, () => {
-    const __dir = fileURLToPath(new URL('.', import.meta.url));
-    const tscBin = resolve(__dir, '../../../../../node_modules/typescript/bin/tsc');
+  it(
+    'emitted TypeScript with annotated required params passes tsc --noEmit --strict (P5 gate)',
+    { timeout: 120_000 },
+    () => {
+      const __dir = fileURLToPath(new URL('.', import.meta.url));
+      const tscBin = resolve(__dir, '../../../../../node_modules/typescript/bin/tsc');
 
-    const composition = makeEmptyComposition({
-      objects: [
-        makeAnnotatedObject(
-          'Arm',
-          {
-            goal: { type: 'string', description: 'Target position', required: true },
-            steps: { type: 'number', description: 'Max steps', required: false },
-          },
-          'planner',
-          { goal: '', steps: 10 }
-        ),
-      ],
-    });
-
-    const code = compiler.compileModule(composition, '');
-    const tmpFile = join(tmpdir(), `holo-mcp-p5-gate-${Date.now()}.ts`);
-    writeFileSync(tmpFile, code, 'utf8');
-
-    try {
-      execFileSync(
-        process.execPath,
-        [
-          tscBin,
-          '--noEmit',
-          '--strict',
-          '--target',
-          'ES2020',
-          '--lib',
-          'ES2020',
-          '--module',
-          'commonjs',
-          '--moduleResolution',
-          'node',
-          '--skipLibCheck',
-          tmpFile,
+      const composition = makeEmptyComposition({
+        objects: [
+          makeAnnotatedObject(
+            'Arm',
+            {
+              goal: { type: 'string', description: 'Target position', required: true },
+              steps: { type: 'number', description: 'Max steps', required: false },
+            },
+            'planner',
+            { goal: '', steps: 10 }
+          ),
         ],
-        { encoding: 'utf8' }
-      );
-    } finally {
+      });
+
+      const code = compiler.compileModule(composition, '');
+      const tmpFile = join(tmpdir(), `holo-mcp-p5-gate-${Date.now()}.ts`);
+      writeFileSync(tmpFile, code, 'utf8');
+
       try {
-        unlinkSync(tmpFile);
-      } catch {
-        /* ok */
+        execFileSync(
+          process.execPath,
+          [
+            tscBin,
+            '--noEmit',
+            '--strict',
+            '--target',
+            'ES2020',
+            '--lib',
+            'ES2020',
+            '--module',
+            'commonjs',
+            '--moduleResolution',
+            'node',
+            '--skipLibCheck',
+            tmpFile,
+          ],
+          { encoding: 'utf8' }
+        );
+      } finally {
+        try {
+          unlinkSync(tmpFile);
+        } catch {
+          /* ok */
+        }
       }
     }
-  });
+  );
 });

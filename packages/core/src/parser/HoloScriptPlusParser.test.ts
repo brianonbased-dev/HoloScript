@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { HoloScriptPlusParser, parse } from './HoloScriptPlusParser';
 import type { HoloBrainDecl } from './HoloScriptPlusParser';
 import { parseHolo } from './HoloCompositionParser';
-import {
-  hsplusRustCheckerLoaded,
-  resetHsplusRustCheckerForTests,
-} from './hsplusRustTypeCheck';
+import { hsplusRustCheckerLoaded, resetHsplusRustCheckerForTests } from './hsplusRustTypeCheck';
 
 describe('HoloScriptPlusParser - Extended Features', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
@@ -909,8 +906,7 @@ describe('HoloScriptPlusParser - silent skips are errors', () => {
         code: 'HSP101',
         line: 2,
         column: 12,
-        message:
-          'HSP101: "${ }" only works inside a quoted string here. Put the value in quotes.',
+        message: 'HSP101: "${ }" only works inside a quoted string here. Put the value in quotes.',
       }),
     ]);
 
@@ -1213,7 +1209,9 @@ describe('typed functions checked by the Rust checker', () => {
   }
 
   function messages(source: string): string {
-    return rootOf(source).errors.map((error) => error.message).join('\n');
+    return rootOf(source)
+      .errors.map((error) => error.message)
+      .join('\n');
   }
 
   it('leaves an untyped function unchanged and does not load the Rust checker', () => {

@@ -17,7 +17,15 @@
  */
 
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdtempSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -295,7 +303,10 @@ for (const gate of legacyLens) {
     'joined staged paths exceed 32767 characters',
     `payload length ${payload.length}`
   );
-  assertTrue(paths.some((p) => p.includes(' ')), 'synthetic list includes a path with spaces');
+  assertTrue(
+    paths.some((p) => p.includes(' ')),
+    'synthetic list includes a path with spaces'
+  );
   for (const gate of legacyLens) {
     assertTrue(
       gate.legacyLength > WINDOWS_CMDLINE_LIMIT,
@@ -313,7 +324,11 @@ for (const gate of legacyLens) {
     try {
       measured = hookCommand(hookSource, gate, paths);
     } catch (err) {
-      assertTrue(false, `${gate.name}: hook command measured`, err instanceof Error ? err.message : String(err));
+      assertTrue(
+        false,
+        `${gate.name}: hook command measured`,
+        err instanceof Error ? err.message : String(err)
+      );
       continue;
     }
     console.log(
@@ -338,13 +353,24 @@ for (const gate of legacyLens) {
         measured.line.includes(`run_node_with_files_from ${gate.timeout} `),
         `${gate.name}: hook keeps timeout ${gate.timeout}`
       );
-      assertTrue(measured.argv.includes('--files-from'), `${gate.name}: helper argv uses --files-from`);
+      assertTrue(
+        measured.argv.includes('--files-from'),
+        `${gate.name}: helper argv uses --files-from`
+      );
       assertTrue(
         !measured.argv.some((arg) => arg.includes('\n') || arg.includes('merge batch')),
         `${gate.name}: path list is not an argv element`
       );
-      assertEq(measured.list, `${paths.join('\n')}\n`, `${gate.name}: temp file contains every staged path`);
-      assertEq(measured.leftovers.length, 0, `${gate.name}: temp list file is removed after the helper`);
+      assertEq(
+        measured.list,
+        `${paths.join('\n')}\n`,
+        `${gate.name}: temp file contains every staged path`
+      );
+      assertEq(
+        measured.leftovers.length,
+        0,
+        `${gate.name}: temp list file is removed after the helper`
+      );
       rmSync(measured.measured.dir, { recursive: true, force: true });
     }
   }
@@ -375,7 +401,11 @@ for (const gate of legacyLens) {
       crlf: true,
     });
     const spaced = runNode(RENDER, [...renderArgs, '--files-from', spacedList]);
-    assertEq(spaced.code, 1, 'render --files-from detects a violation in a CRLF path that contains spaces');
+    assertEq(
+      spaced.code,
+      1,
+      'render --files-from detects a violation in a CRLF path that contains spaces'
+    );
     assertTrue(
       withSlashes(spaced.out).includes('packages/r3f-renderer/src/my file.tsx'),
       'render --files-from keeps the spaced path as one path',
@@ -390,7 +420,11 @@ for (const gate of legacyLens) {
     buried.splice(500, 0, 'packages/r3f-renderer/src/my file.tsx');
     const longList = writeList(listDir, 'long.txt', buried);
     const longBad = runNode(RENDER, [...renderArgs, '--files-from', longList]);
-    assertEq(longBad.code, 1, 'render --files-from still detects a violation inside a 1000-path list');
+    assertEq(
+      longBad.code,
+      1,
+      'render --files-from still detects a violation inside a 1000-path list'
+    );
     assertTrue(
       withSlashes(longBad.out).includes('packages/r3f-renderer/src/my file.tsx'),
       'render buried violation is the spaced path',
@@ -399,17 +433,37 @@ for (const gate of legacyLens) {
 
     const emptyList = writeList(listDir, 'empty.txt', []);
     const empty = runNode(RENDER, [...renderArgs, '--files-from', emptyList]);
-    assertEq(empty.code, 0, 'render --files-from empty list stays scoped and does not fail the tree');
+    assertEq(
+      empty.code,
+      0,
+      'render --files-from empty list stays scoped and does not fail the tree'
+    );
 
     const full = runNode(RENDER, renderArgs);
-    assertEq(full.code, 1, 'render full-tree mode still flags a violation when no file list is passed');
+    assertEq(
+      full.code,
+      1,
+      'render full-tree mode still flags a violation when no file list is passed'
+    );
 
-    const legacy = runNode(RENDER, [...renderArgs, '--files', 'packages/r3f-renderer/src/Legacy.tsx']);
+    const legacy = runNode(RENDER, [
+      ...renderArgs,
+      '--files',
+      'packages/r3f-renderer/src/Legacy.tsx',
+    ]);
     assertEq(legacy.code, 0, 'render --files still ignores an unlisted peer');
-    const legacyBad = runNode(RENDER, [...renderArgs, '--files', 'packages/r3f-renderer/src/Peer.tsx']);
+    const legacyBad = runNode(RENDER, [
+      ...renderArgs,
+      '--files',
+      'packages/r3f-renderer/src/Peer.tsx',
+    ]);
     assertEq(legacyBad.code, 1, 'render --files still detects a listed violation');
 
-    const missing = runNode(RENDER, [...renderArgs, '--files-from', join(listDir, 'no-such-list.txt')]);
+    const missing = runNode(RENDER, [
+      ...renderArgs,
+      '--files-from',
+      join(listDir, 'no-such-list.txt'),
+    ]);
     assertEq(missing.code, 2, 'render --files-from rejects an unreadable list');
     const noValue = runNode(RENDER, [...renderArgs, '--files-from']);
     assertEq(noValue.code, 2, 'render --files-from requires a path');
@@ -437,7 +491,11 @@ for (const gate of legacyLens) {
 
     const spacedList = writeList(listDir, 'spaced.txt', ['docs/my notes.md'], { crlf: true });
     const spaced = runNode(STATS, ['--files-from', spacedList], root);
-    assertEq(spaced.code, 1, 'stats --files-from detects a violation in a CRLF path that contains spaces');
+    assertEq(
+      spaced.code,
+      1,
+      'stats --files-from detects a violation in a CRLF path that contains spaces'
+    );
     assertTrue(
       withSlashes(spaced.out).includes('docs/my notes.md'),
       'stats --files-from keeps the spaced path as one path',
@@ -452,7 +510,11 @@ for (const gate of legacyLens) {
     buried.splice(500, 0, 'docs/my notes.md');
     const longList = writeList(listDir, 'long.txt', buried);
     const longBad = runNode(STATS, ['--files-from', longList], root);
-    assertEq(longBad.code, 1, 'stats --files-from still detects a violation inside a 1000-path list');
+    assertEq(
+      longBad.code,
+      1,
+      'stats --files-from still detects a violation inside a 1000-path list'
+    );
 
     const emptyList = writeList(listDir, 'empty.txt', []);
     const empty = runNode(STATS, ['--files-from', emptyList], root);
@@ -464,7 +526,11 @@ for (const gate of legacyLens) {
     );
 
     const positional = runNode(STATS, ['docs/my notes.md'], root);
-    assertEq(positional.code, 1, 'stats positional arguments still detect a path that contains spaces');
+    assertEq(
+      positional.code,
+      1,
+      'stats positional arguments still detect a path that contains spaces'
+    );
     const positionalClean = runNode(STATS, ['docs/clean.md'], root);
     assertEq(positionalClean.code, 0, 'stats positional arguments still pass a clean file');
 
@@ -521,7 +587,11 @@ for (const gate of legacyLens) {
       crlf: true,
     });
     const spaced = runNode(QR, ['--files-from', spacedList], root);
-    assertEq(spaced.code, 1, 'qr --files-from detects a violation in a CRLF path that contains spaces');
+    assertEq(
+      spaced.code,
+      1,
+      'qr --files-from detects a violation in a CRLF path that contains spaces'
+    );
     assertTrue(
       withSlashes(spaced.out).includes('packages/widget/src/my file.ts'),
       'qr --files-from keeps the spaced path as one path',
@@ -548,7 +618,11 @@ for (const gate of legacyLens) {
     );
 
     const positional = runNode(QR, ['packages/widget/src/my file.ts'], root);
-    assertEq(positional.code, 1, 'qr positional arguments still detect a path that contains spaces');
+    assertEq(
+      positional.code,
+      1,
+      'qr positional arguments still detect a path that contains spaces'
+    );
     const positionalClean = runNode(QR, ['packages/widget/src/clean.ts'], root);
     assertEq(positionalClean.code, 0, 'qr positional arguments still pass a clean file');
 
@@ -578,7 +652,10 @@ for (const gate of legacyLens) {
   const hookSource = readFileSync(HOOK, 'utf8');
   const start = hookSource.indexOf('run_with_timeout() {');
   const end = hookSource.indexOf('\n# Large merges');
-  assertTrue(start >= 0 && end > start, 'pre-commit defines run_with_timeout before the files-from helper');
+  assertTrue(
+    start >= 0 && end > start,
+    'pre-commit defines run_with_timeout before the files-from helper'
+  );
   const fn = start >= 0 && end > start ? hookSource.slice(start, end) : '';
   const stubDir = mkdtempSync(join(tmpdir(), 'timeout-stub-'));
   try {
@@ -589,10 +666,7 @@ for (const gate of legacyLens) {
     // A function in this same bash -c is resolved before any PATH entry.
     // run_with_timeout is inlined below, not run as a child bash, so the
     // function does not need export -f (a child would see this file instead).
-    writeFileSync(
-      join(stubDir, 'timeout'),
-      '#!/bin/sh\nexit 2\n'
-    );
+    writeFileSync(join(stubDir, 'timeout'), '#!/bin/sh\nexit 2\n');
     chmodSync(join(stubDir, 'timeout'), 0o755);
     const run = (stubExit) =>
       spawnSync(
@@ -607,7 +681,11 @@ run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from 
         {
           cwd: REPO,
           encoding: 'utf8',
-          env: { ...process.env, PATH: `${stubDir}:${process.env.PATH}`, STUB_EXIT: String(stubExit) },
+          env: {
+            ...process.env,
+            PATH: `${stubDir}:${process.env.PATH}`,
+            STUB_EXIT: String(stubExit),
+          },
         }
       );
     const timedOut = run(124);
@@ -677,10 +755,10 @@ run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from 
   }
 
   const legacySrc =
-    "git -c core.quotepath=off diff --cached --name-only --diff-filter=ACM -- " +
+    'git -c core.quotepath=off diff --cached --name-only --diff-filter=ACM -- ' +
     "'packages/*/src/**/*.ts' 'packages/*/src/**/*.tsx' 'packages/*/src/**/*.js' 'packages/*/src/**/*.mjs'";
   const legacyRender =
-    "git -c core.quotepath=off diff --cached --name-only -- " +
+    'git -c core.quotepath=off diff --cached --name-only -- ' +
     "'packages/r3f-renderer/src/**/*.tsx' 'packages/studio/src/**/*.tsx'";
 
   const root = mkdtempSync(join(tmpdir(), 'src-direct-glob-'));
@@ -700,17 +778,26 @@ run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from 
 
     const oldSrc = nameList(legacySrc, root);
     const oldRender = nameList(legacyRender, root);
-    assertTrue(!oldSrc.names.includes(directTsx), 'legacy src/** pathspec skips a file directly under src/');
+    assertTrue(
+      !oldSrc.names.includes(directTsx),
+      'legacy src/** pathspec skips a file directly under src/'
+    );
     assertTrue(
       !oldSrc.names.includes(directNestedPkg),
       'legacy src/** pathspec skips packages/<a>/<b>/src/<file>'
     );
-    assertTrue(oldSrc.names.includes(nestedTsx), 'legacy src/** pathspec still lists a nested file');
+    assertTrue(
+      oldSrc.names.includes(nestedTsx),
+      'legacy src/** pathspec still lists a nested file'
+    );
     assertTrue(
       !oldRender.names.includes(directTsx),
       'legacy render src/** pathspec skips a file directly under src/'
     );
-    assertTrue(oldRender.names.includes(nestedTsx), 'legacy render src/** pathspec still lists a nested file');
+    assertTrue(
+      oldRender.names.includes(nestedTsx),
+      'legacy render src/** pathspec still lists a nested file'
+    );
 
     const srcCmd = assignmentCommand('STAGED_SRC');
     const renderCmd = assignmentCommand('STAGED_RENDER_TSX');
@@ -718,13 +805,20 @@ run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from 
     const stagedRender = nameList(renderCmd, root);
     assertEq(stagedSrc.code, 0, 'hook STAGED_SRC command exits 0');
     assertEq(stagedRender.code, 0, 'hook STAGED_RENDER_TSX command exits 0');
-    assertTrue(stagedSrc.names.includes(directTsx), 'hook feeds packages/<x>/src/<file>.tsx to the QR list', stagedSrc.names.join(','));
+    assertTrue(
+      stagedSrc.names.includes(directTsx),
+      'hook feeds packages/<x>/src/<file>.tsx to the QR list',
+      stagedSrc.names.join(',')
+    );
     assertTrue(
       stagedSrc.names.includes(directNestedPkg),
       'hook feeds packages/<a>/<b>/src/<file> to the QR list',
       stagedSrc.names.join(',')
     );
-    assertTrue(stagedSrc.names.includes(nestedTsx), 'hook still feeds a nested src file to the QR list');
+    assertTrue(
+      stagedSrc.names.includes(nestedTsx),
+      'hook still feeds a nested src file to the QR list'
+    );
     assertTrue(
       stagedRender.names.includes(directTsx),
       'hook feeds packages/<x>/src/<file>.tsx to the render-surface list',
@@ -800,7 +894,9 @@ run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from 
     "git -c core.quotepath=off diff --cached --name-only -- 'packages/mcp-server/src/**/*.ts'";
   const invoke = hookSource
     .split('\n')
-    .find((entry) => entry.includes('check-mcp-gate-coverage.mjs') && entry.includes('run_with_timeout'));
+    .find(
+      (entry) => entry.includes('check-mcp-gate-coverage.mjs') && entry.includes('run_with_timeout')
+    );
   assertTrue(
     Boolean(invoke) && !invoke.includes('$STAGED_MCP_SRC'),
     'hook runs mcp-gate-coverage with no path list once STAGED_MCP_SRC is non-empty',
@@ -823,7 +919,10 @@ run_with_timeout 20 node scripts/holo-ci/check-hardcoded-stats.mjs --files-from 
       !oldList.names.includes(directTs),
       'legacy mcp src/** pathspec skips a file directly in packages/mcp-server/src/'
     );
-    assertTrue(oldList.names.includes(nestedTs), 'legacy mcp src/** pathspec still lists a nested file');
+    assertTrue(
+      oldList.names.includes(nestedTs),
+      'legacy mcp src/** pathspec still lists a nested file'
+    );
 
     const staged = nameList(assignmentCommand('STAGED_MCP_SRC'), root);
     assertEq(staged.code, 0, 'hook STAGED_MCP_SRC command exits 0');

@@ -433,7 +433,11 @@ describe('extractAndVerifySigning — HOLOMESH_REQUIRE_ATTESTED_SIGNERS=1', () =
     mockVerifyMessage.mockResolvedValue(true);
     const registry = new AttestationRegistry();
     attestKey(registry);
-    const r = await extractAndVerifySigning(buildEnvelope(), { nowMs: FRESH_NOW, registry, env: REQUIRE });
+    const r = await extractAndVerifySigning(buildEnvelope(), {
+      nowMs: FRESH_NOW,
+      registry,
+      env: REQUIRE,
+    });
     expect(r.ctx.signingValid).toBe(true);
     expect(r.ctx.signer).toBe(VALID_ADDR);
   });

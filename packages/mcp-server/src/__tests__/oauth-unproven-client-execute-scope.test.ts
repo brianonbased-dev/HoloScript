@@ -62,7 +62,9 @@ async function signUpWithoutProof(): Promise<{ token: string; granted: string[] 
   expect(issued.status, JSON.stringify(issued.body)).toBe(200);
   return {
     token: issued.body.access_token as string,
-    granted: String(issued.body.scope ?? '').split(' ').filter(Boolean),
+    granted: String(issued.body.scope ?? '')
+      .split(' ')
+      .filter(Boolean),
   };
 }
 

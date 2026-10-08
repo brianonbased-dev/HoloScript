@@ -10,10 +10,10 @@ into the parser later keeping the same codes.
 
 ## Two modes, both documented
 
-| Mode | Returns | For |
-| --- | --- | --- |
-| `parseTolerant(src)` | `{ ok: true, ast, diagnostics }` — whatever parsed, plus every diagnostic | Editors, language servers, partial input while typing |
-| `parseStrict(src)` | `{ ok: false, ast: null, diagnostics }` if any diagnostic has severity `error` | CI, compilers, agent-generated code, anything that acts on the result |
+| Mode                 | Returns                                                                        | For                                                                   |
+| -------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `parseTolerant(src)` | `{ ok: true, ast, diagnostics }` — whatever parsed, plus every diagnostic      | Editors, language servers, partial input while typing                 |
+| `parseStrict(src)`   | `{ ok: false, ast: null, diagnostics }` if any diagnostic has severity `error` | CI, compilers, agent-generated code, anything that acts on the result |
 
 Both modes run the same checks and report the same diagnostics at the same
 places; they differ only in what they return. Tolerant never throws and never
@@ -44,18 +44,18 @@ of its name. Diagnostics about the whole file (`HS1001`, `HS1009`, `HS1010`)
 point at line 1, column 1. Codes are stable: a new check gets a new code in a
 minor release; renaming or removing one is a major release.
 
-| Code | Severity | Means | Example input |
-| --- | --- | --- | --- |
-| `HS1001` | error | Source is empty — nothing but whitespace and comments | `""` |
-| `HS1002` | error | A delimiter never closes, or closes with nothing open | `object Cube {` |
-| `HS1003` | error | A token that cannot start a top-level item | `SELECT * FROM users;` |
-| `HS1004` | error | Tokens exist, nothing parsed into the composition | `this is not holo at all` |
-| `HS1005` | error | A trait with no name, including `@` alone | `{{{@@@` |
-| `HS1006` | warning (both modes; error with `unknownTraits: "error"`) | Trait is in no known vocabulary | `@nope_xyz` |
-| `HS1007` | error | The parser's own error, carried through unchanged | `object Cube { position: [0, 1, 0]` |
-| `HS1008` | warning | The parser's own warning, carried through | — |
-| `HS1009` | error | Source was not a string | `parse(42)` |
-| `HS1010` | error | The tokenizer or parser threw | — |
+| Code     | Severity                                                  | Means                                                 | Example input                       |
+| -------- | --------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------- |
+| `HS1001` | error                                                     | Source is empty — nothing but whitespace and comments | `""`                                |
+| `HS1002` | error                                                     | A delimiter never closes, or closes with nothing open | `object Cube {`                     |
+| `HS1003` | error                                                     | A token that cannot start a top-level item            | `SELECT * FROM users;`              |
+| `HS1004` | error                                                     | Tokens exist, nothing parsed into the composition     | `this is not holo at all`           |
+| `HS1005` | error                                                     | A trait with no name, including `@` alone             | `{{{@@@`                            |
+| `HS1006` | warning (both modes; error with `unknownTraits: "error"`) | Trait is in no known vocabulary                       | `@nope_xyz`                         |
+| `HS1007` | error                                                     | The parser's own error, carried through unchanged     | `object Cube { position: [0, 1, 0]` |
+| `HS1008` | warning                                                   | The parser's own warning, carried through             | —                                   |
+| `HS1009` | error                                                     | Source was not a string                               | `parse(42)`                         |
+| `HS1010` | error                                                     | The tokenizer or parser threw                         | —                                   |
 
 `HS1003` works from a deliberately short denylist of tokens that cannot begin a
 top-level item in any reading of the grammar. A token missing from that list is

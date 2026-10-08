@@ -51,7 +51,9 @@ for (const [key, value] of Object.entries(SEALED)) {
 // Every fetch fails here, and is recorded: a refused call must make no orchestrator call at all.
 const fetchCalls: string[] = [];
 vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
-  fetchCalls.push(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
+  fetchCalls.push(
+    typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+  );
   throw new Error('the network is sealed in no-caller-principal.test.ts');
 });
 const orchestratorCalls = () => fetchCalls.filter((url) => url.includes('/gpu/'));
@@ -124,7 +126,11 @@ describe('holo_ci_dispatch through the registry', () => {
   // tool's own no-caller check (#474) stays behind it; the second test calls the tool directly.
   it('a hosted call with no caller, or the anonymous caller, is refused before the tool runs', async () => {
     process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
-    for (const args of [fullSubmit(), { sha: 'b'.repeat(40), profile: 'quick', dryRun: false }, { sha: 'b'.repeat(40), profile: 'quick' }]) {
+    for (const args of [
+      fullSubmit(),
+      { sha: 'b'.repeat(40), profile: 'quick', dryRun: false },
+      { sha: 'b'.repeat(40), profile: 'quick' },
+    ]) {
       for (const ctx of [undefined, publicAnonymousContext()]) {
         const refused = await _handleSingleToolLogic('holo_ci_dispatch', args, ctx);
         expect((refused as { isError?: boolean }).isError).toBe(true);
@@ -137,7 +143,11 @@ describe('holo_ci_dispatch through the registry', () => {
   it("behind dispatch, the tool's own check still gives nobody no tier and no spend, not even the quick profile", async () => {
     // The restricted tier left one quick submit a day, in ONE bucket every no-caller call
     // shared, so the spend belonged to no one (claude3's review of #474).
-    const full = (await handleHoloCiTool('holo_ci_dispatch', fullSubmit(), NO_CALLER_PRINCIPAL)) as Record<string, unknown>;
+    const full = (await handleHoloCiTool(
+      'holo_ci_dispatch',
+      fullSubmit(),
+      NO_CALLER_PRINCIPAL
+    )) as Record<string, unknown>;
     expect(full.ok).toBe(false);
     expect(full.tierDenied).toBe(true);
     const quick = (await handleHoloCiTool(
@@ -211,9 +221,15 @@ describe("a daimōn's rituals, through the registry and through handleTool", () 
     expect(String(payloadOf(posing).error)).toMatch(/authorization denied|needs a caller/);
 
     // Behind dispatch, the binding itself still refuses nobody, named owner or not.
-    for (const args of [update('mplw-ritual-registry'), update('mplw-ritual-registry', 'owner-mplw')]) {
-      await expect(handleDaemonLifecycleTool('holo_update_daemon_ritual', args, { signer: NO_CALLER_PRINCIPAL }))
-        .rejects.toThrow(/needs a caller/);
+    for (const args of [
+      update('mplw-ritual-registry'),
+      update('mplw-ritual-registry', 'owner-mplw'),
+    ]) {
+      await expect(
+        handleDaemonLifecycleTool('holo_update_daemon_ritual', args, {
+          signer: NO_CALLER_PRINCIPAL,
+        })
+      ).rejects.toThrow(/needs a caller/);
     }
 
     const anonymous = await _handleSingleToolLogic(
@@ -240,11 +256,15 @@ describe("a daimōn's rituals, through the registry and through handleTool", () 
       for (const ctx of [undefined, publicAnonymousContext()]) {
         const refused = await _handleSingleToolLogic(tool, { ...args }, ctx);
         expect((refused as { isError?: boolean }).isError, tool).toBe(true);
-        expect(String(payloadOf(refused).error), tool).toMatch(/authorization denied|needs a caller/);
+        expect(String(payloadOf(refused).error), tool).toMatch(
+          /authorization denied|needs a caller/
+        );
       }
       // Behind dispatch (#407), the binding (#474) still refuses nobody.
-      await expect(handleDaemonLifecycleTool(tool, { ...args }, { signer: NO_CALLER_PRINCIPAL }), tool)
-        .rejects.toThrow(/needs a caller/);
+      await expect(
+        handleDaemonLifecycleTool(tool, { ...args }, { signer: NO_CALLER_PRINCIPAL }),
+        tool
+      ).rejects.toThrow(/needs a caller/);
     }
     // Reads: on the hosted server nobody holds no scope, so dispatch refuses even a list; the
     // stdio user lists, and nobody owns nothing.

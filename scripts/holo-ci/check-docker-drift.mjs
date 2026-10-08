@@ -600,14 +600,17 @@ function runtimeShipsWasmChecker(file) {
   if (file.rel === 'packages/studio/Dockerfile') {
     const cfg = file.nextConfig || '';
     const external = /serverExternalPackages\s*:\s*\[[\s\S]*?'@holoscript\/wasm'/.test(cfg);
-    const includes = /outputFileTracingIncludes[\s\S]*?(?:compiler-wasm\/pkg-node|@holoscript\/wasm\/pkg-node)/.test(
-      cfg
-    );
+    const includes =
+      /outputFileTracingIncludes[\s\S]*?(?:compiler-wasm\/pkg-node|@holoscript\/wasm\/pkg-node)/.test(
+        cfg
+      );
     const bytes = /holoscript_wasm_bg\.wasm/.test(last);
     const standaloneLink = /ln -sfn \.\.\/\.\.\/packages\/compiler-wasm\b/.test(file.text);
     return loads && linked && external && includes && bytes && standaloneLink;
   }
-  const builderCopiedWasm = /COPY\s+packages\/compiler-wasm\/\s+packages\/compiler-wasm\//.test(file.text);
+  const builderCopiedWasm = /COPY\s+packages\/compiler-wasm\/\s+packages\/compiler-wasm\//.test(
+    file.text
+  );
   const runtimeHasPkg =
     /compiler-wasm\/pkg-node/.test(last) ||
     (/\/app\/packages\s+packages\b/.test(last) && builderCopiedWasm);

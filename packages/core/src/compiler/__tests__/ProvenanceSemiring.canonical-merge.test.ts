@@ -13,7 +13,10 @@ import { ProvenanceSemiring, type TraitApplication } from '../traits/ProvenanceS
 function permutations<T>(items: T[]): T[][] {
   if (items.length <= 1) return [items];
   return items.flatMap((item, index) =>
-    permutations([...items.slice(0, index), ...items.slice(index + 1)]).map((rest) => [item, ...rest])
+    permutations([...items.slice(0, index), ...items.slice(index + 1)]).map((rest) => [
+      item,
+      ...rest,
+    ])
   );
 }
 
@@ -27,7 +30,9 @@ describe('ProvenanceSemiring canonical n-ary merge (8jh1)', () => {
       { name: 'a-thrust', config: { velocity: [0.1, 0, 0] } },
       { name: 'c-wind', config: { velocity: [0.3, 0, 0] } },
     ];
-    const seen = distinct(permutations(traits).map((order) => JSON.stringify(semiring.add(order).provenance.velocity)));
+    const seen = distinct(
+      permutations(traits).map((order) => JSON.stringify(semiring.add(order).provenance.velocity))
+    );
     expect(seen.size).toBe(1);
     const only = JSON.parse([...seen][0]);
     expect(only.source).toBe('a-thrust+b-drift+c-wind');
@@ -37,7 +42,11 @@ describe('ProvenanceSemiring canonical n-ary merge (8jh1)', () => {
     // so it could not fail: claude3's review of #318.)
     expect(only.value[0]).toBe(0.1 + 0.2 + 0.3);
     expect(only.value[0]).not.toBe(0.3 + 0.2 + 0.1);
-    expect(only.contributions.map((leaf: { source: string }) => leaf.source)).toEqual(['a-thrust', 'b-drift', 'c-wind']);
+    expect(only.contributions.map((leaf: { source: string }) => leaf.source)).toEqual([
+      'a-thrust',
+      'b-drift',
+      'c-wind',
+    ]);
   });
 
   it('sum and multiply rules serialise one way for every arrival order', () => {
@@ -84,8 +93,14 @@ describe('ProvenanceSemiring canonical n-ary merge (8jh1)', () => {
   it('two operands keep the pairwise spelling, so nothing that read A+B changes', () => {
     const semiring = new ProvenanceSemiring();
     const [ab, ba] = [
-      semiring.add([{ name: 'b', config: { velocity: [1, 0, 0] } }, { name: 'a', config: { velocity: [2, 0, 0] } }]),
-      semiring.add([{ name: 'a', config: { velocity: [2, 0, 0] } }, { name: 'b', config: { velocity: [1, 0, 0] } }]),
+      semiring.add([
+        { name: 'b', config: { velocity: [1, 0, 0] } },
+        { name: 'a', config: { velocity: [2, 0, 0] } },
+      ]),
+      semiring.add([
+        { name: 'a', config: { velocity: [2, 0, 0] } },
+        { name: 'b', config: { velocity: [1, 0, 0] } },
+      ]),
     ];
     expect(ab.provenance.velocity.source).toBe('a+b');
     expect(JSON.stringify(ab.provenance.velocity)).toBe(JSON.stringify(ba.provenance.velocity));
@@ -105,7 +120,9 @@ describe('equal values are one fact over the leaf set, never against a running t
       { name: 'B', config: { load: 3 } },
       { name: 'C', config: { load: 5 } },
     ];
-    const seen = distinct(permutations(traits).map((order) => JSON.stringify(sumRule().add(order).provenance.load)));
+    const seen = distinct(
+      permutations(traits).map((order) => JSON.stringify(sumRule().add(order).provenance.load))
+    );
     expect(seen.size).toBe(1);
     expect(JSON.parse([...seen][0])).toMatchObject({ value: 10, source: 'A+B+C' });
   });
@@ -116,7 +133,9 @@ describe('equal values are one fact over the leaf set, never against a running t
       { name: 'B', config: { load: 4 } },
       { name: 'C', config: { load: 4 } },
     ];
-    const seen = distinct(permutations(traits).map((order) => JSON.stringify(sumRule().add(order).provenance.load)));
+    const seen = distinct(
+      permutations(traits).map((order) => JSON.stringify(sumRule().add(order).provenance.load))
+    );
     expect(seen.size).toBe(1);
     // B and C carry one fact; the tie-break keeps B (the smaller source), as the pairwise rule does.
     expect(JSON.parse([...seen][0])).toMatchObject({ value: 6, source: 'A+B' });
@@ -133,7 +152,8 @@ describe('equal values are one fact over the leaf set, never against a running t
   });
 
   it('a tropical merge picks its context over every leaf, one way in all six orders', () => {
-    const semiring = () => new ProvenanceSemiring([{ property: 'latency', strategy: 'tropical-min-plus' }]);
+    const semiring = () =>
+      new ProvenanceSemiring([{ property: 'latency', strategy: 'tropical-min-plus' }]);
     // Equal authority, no agent or op ids: the tie-break falls to the source, and the joined
     // running-total name ('a⊗b1') used to be compared against the next leaf ('a1').
     const traits: TraitApplication[] = [
@@ -141,7 +161,9 @@ describe('equal values are one fact over the leaf set, never against a running t
       { name: 'a1', config: { latency: 2 }, context: { authorityLevel: 50, sourceType: 'agent' } },
       { name: 'a', config: { latency: 1 }, context: { authorityLevel: 50, sourceType: 'user' } },
     ];
-    const seen = distinct(permutations(traits).map((order) => JSON.stringify(semiring().add(order).provenance.latency)));
+    const seen = distinct(
+      permutations(traits).map((order) => JSON.stringify(semiring().add(order).provenance.latency))
+    );
     expect(seen.size).toBe(1);
     expect(JSON.parse([...seen][0]).context).toEqual({ authorityLevel: 50, sourceType: 'user' });
   });

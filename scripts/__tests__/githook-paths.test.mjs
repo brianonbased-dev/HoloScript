@@ -324,7 +324,11 @@ for (const gate of legacyLens) {
     try {
       measured = hookCommand(hookSource, gate.script, paths);
     } catch (err) {
-      assertTrue(false, `${gate.name}: hook command measured`, err instanceof Error ? err.message : String(err));
+      assertTrue(
+        false,
+        `${gate.name}: hook command measured`,
+        err instanceof Error ? err.message : String(err)
+      );
       continue;
     }
     console.log(
@@ -346,7 +350,11 @@ for (const gate of legacyLens) {
         !measured.argv.some((arg) => arg.includes('\n')),
         `${gate.name}: path list is not an argv element`
       );
-      assertEq(measured.list, `${paths.join('\n')}\n`, `${gate.name}: temp file contains every staged path`);
+      assertEq(
+        measured.list,
+        `${paths.join('\n')}\n`,
+        `${gate.name}: temp file contains every staged path`
+      );
       rmSync(measured.measured.dir, { recursive: true, force: true });
     }
   }
@@ -372,7 +380,11 @@ for (const gate of legacyLens) {
   const measured = measureHelper(['packages/app/src/ok.ts'], { abruptExit: true });
   try {
     assertEq(measured.result.status, 9, 'helper surfaces an abrupt exit from the checker');
-    assertEq(measured.leftovers.length, 0, 'temp list file is removed when the checker exits the shell');
+    assertEq(
+      measured.leftovers.length,
+      0,
+      'temp list file is removed when the checker exits the shell'
+    );
   } finally {
     rmSync(measured.dir, { recursive: true, force: true });
   }
@@ -401,7 +413,11 @@ for (const gate of legacyLens) {
 
     const longList = writeList(listDir, 'long.txt', [...paths, 'packages/app/src/peer.ts']);
     const longBad = runNode(APEX, ['--root', root, '--files-from', longList]);
-    assertEq(longBad.code, 1, 'apex --files-from still detects a violation inside a 1000-path list');
+    assertEq(
+      longBad.code,
+      1,
+      'apex --files-from still detects a violation inside a 1000-path list'
+    );
 
     const longClean = runNode(APEX, ['--root', root, '--files-from', cleanList]);
     assertEq(longClean.code, 0, 'apex --files-from still passes a clean file when peers are dirty');
@@ -411,7 +427,12 @@ for (const gate of legacyLens) {
     const legacyClean = runNode(APEX, ['--root', root, '--files', 'packages/app/src/mine.ts']);
     assertEq(legacyClean.code, 0, 'apex --files still ignores an unlisted peer');
 
-    const missing = runNode(APEX, ['--root', root, '--files-from', join(listDir, 'no-such-list.txt')]);
+    const missing = runNode(APEX, [
+      '--root',
+      root,
+      '--files-from',
+      join(listDir, 'no-such-list.txt'),
+    ]);
     assertEq(missing.code, 2, 'apex --files-from rejects an unreadable list');
     const noValue = runNode(APEX, ['--root', root, '--files-from']);
     assertEq(noValue.code, 2, 'apex --files-from requires a path');
@@ -436,7 +457,11 @@ for (const gate of legacyLens) {
 
     const badList = writeList(listDir, 'spaced.txt', ['packages/app/src/my file.ts']);
     const bad = runNode(ORCH, ['--root', root, '--files-from', badList]);
-    assertEq(bad.code, 1, 'orchestrator --files-from detects a violation in a path that contains spaces');
+    assertEq(
+      bad.code,
+      1,
+      'orchestrator --files-from detects a violation in a path that contains spaces'
+    );
 
     const commaList = writeList(listDir, 'comma.txt', ['packages/app/src/a,b.ts']);
     const comma = runNode(ORCH, ['--root', root, '--files-from', commaList]);
@@ -444,7 +469,11 @@ for (const gate of legacyLens) {
 
     const longList = writeList(listDir, 'long.txt', [...paths, 'packages/app/src/peer.ts']);
     const longBad = runNode(ORCH, ['--root', root, '--files-from', longList]);
-    assertEq(longBad.code, 1, 'orchestrator --files-from still detects a violation inside a 1000-path list');
+    assertEq(
+      longBad.code,
+      1,
+      'orchestrator --files-from still detects a violation inside a 1000-path list'
+    );
 
     const legacy = runNode(ORCH, ['--root', root, '--files', 'packages/app/src/peer.ts']);
     assertEq(legacy.code, 1, 'orchestrator --files still detects a listed violation');
@@ -531,9 +560,15 @@ console.log('githook-paths.test.mjs — pre-push');
   const ZERO = '0000000000000000000000000000000000000000';
   const hookSource = readFileSync(resolve(REPO, '.githooks/pre-push'), 'utf8');
   const start = hookSource.indexOf('trunk=$(git ls-remote');
-  const loop = hookSource.indexOf('while read -r local_ref local_sha remote_ref remote_sha; do', start);
+  const loop = hookSource.indexOf(
+    'while read -r local_ref local_sha remote_ref remote_sha; do',
+    start
+  );
   const end = loop >= 0 ? hookSource.indexOf('\ndone\n', loop) : -1;
-  assertTrue(start >= 0 && loop > start && end > loop, 'pre-push: the range block is found in the hook');
+  assertTrue(
+    start >= 0 && loop > start && end > loop,
+    'pre-push: the range block is found in the hook'
+  );
   const block = hookSource.slice(start, end + '\ndone\n'.length);
 
   // Fixture commits in a throwaway repo: no signing, a fixed identity, and a
@@ -545,8 +580,20 @@ console.log('githook-paths.test.mjs — pre-push');
     const when = `${clock} +0000`;
     const r = spawnSync(
       'git',
-      ['-c', 'commit.gpgsign=false', '-c', 'user.name=hook-test', '-c', 'user.email=hook-test@example.invalid', ...args],
-      { cwd, encoding: 'utf8', env: { ...process.env, GIT_AUTHOR_DATE: when, GIT_COMMITTER_DATE: when } }
+      [
+        '-c',
+        'commit.gpgsign=false',
+        '-c',
+        'user.name=hook-test',
+        '-c',
+        'user.email=hook-test@example.invalid',
+        ...args,
+      ],
+      {
+        cwd,
+        encoding: 'utf8',
+        env: { ...process.env, GIT_AUTHOR_DATE: when, GIT_COMMITTER_DATE: when },
+      }
     );
     if (r.status !== 0) throw new Error(`git ${args.join(' ')}: ${r.stderr}`);
     return r.stdout.trim();
@@ -561,7 +608,13 @@ console.log('githook-paths.test.mjs — pre-push');
   const judged = (cwd, remoteName, remoteUrl, lines) => {
     const run = spawnSync(
       'sh',
-      ['-c', `ZERO=${ZERO}\n${block}\nprintf 'force=%s\\n' "$force_check"\nprintf '%s\\n' "$changed"`, 'pre-push', remoteName, remoteUrl],
+      [
+        '-c',
+        `ZERO=${ZERO}\n${block}\nprintf 'force=%s\\n' "$force_check"\nprintf '%s\\n' "$changed"`,
+        'pre-push',
+        remoteName,
+        remoteUrl,
+      ],
       { cwd, input: `${lines.join('\n')}\n`, encoding: 'utf8' }
     );
     const out = run.stdout || '';
@@ -592,7 +645,11 @@ console.log('githook-paths.test.mjs — pre-push');
 
     let r = judged(work, 'origin', bare, [`refs/heads/feat ${f1} refs/heads/feat ${ZERO}`]);
     assertEq(r.force, '0', 'pre-push: a new branch behind main is not force-checked');
-    assertEq(r.files.join(','), 'packages/studio/b.ts', "pre-push: a new branch behind main is judged by its own files, not main's core change");
+    assertEq(
+      r.files.join(','),
+      'packages/studio/b.ts',
+      "pre-push: a new branch behind main is judged by its own files, not main's core change"
+    );
 
     // The commonest push: a branch already on the remote at f1 fast-forwards with more studio work
     // after main moved on (fc9486's round-2 note). It is judged by its own files, and not in full:
@@ -601,31 +658,55 @@ console.log('githook-paths.test.mjs — pre-push');
     git(work, 'push', '-q', 'origin', 'feat-ff');
     const ff2 = commitFile(work, 'packages/studio/e.ts', 'e\n', 'ff2');
     r = judged(work, 'origin', bare, [`refs/heads/feat-ff ${ff2} refs/heads/feat-ff ${f1}`]);
-    assertEq(r.force, '0', 'pre-push: an existing branch that fast-forwards after main moved is not force-checked');
+    assertEq(
+      r.force,
+      '0',
+      'pre-push: an existing branch that fast-forwards after main moved is not force-checked'
+    );
     assertTrue(
       r.files.length > 0 && r.files.every((f) => f.startsWith('packages/studio/')),
       "pre-push: ...and it is judged by its own studio files, not main's core change",
-      r.files.join(','),
+      r.files.join(',')
     );
     git(work, 'checkout', '-q', 'feat');
 
     const f2 = commitFile(work, 'packages/core/c.ts', 'c\n', 'f2');
     r = judged(work, 'origin', bare, [`refs/heads/feat ${f2} refs/heads/feat ${ZERO}`]);
-    assertTrue(r.files.includes('packages/core/c.ts'), 'pre-push: a branch that changes core is still judged for it', r.files.join(','));
+    assertTrue(
+      r.files.includes('packages/core/c.ts'),
+      'pre-push: a branch that changes core is still judged for it',
+      r.files.join(',')
+    );
 
     git(work, 'push', '-q', 'origin', 'feat');
     git(work, 'merge', '-q', '--no-ff', '-m', 'merge main', 'main');
     const merged = git(work, 'rev-parse', 'HEAD');
     r = judged(work, 'origin', bare, [`refs/heads/feat ${merged} refs/heads/feat ${f2}`]);
-    assertTrue(!r.files.includes('packages/core/a.ts'), "pre-push: merging main into an existing branch does not charge main's changes", r.files.join(','));
-    assertTrue(r.files.includes('packages/core/c.ts'), "pre-push: ...while the branch's own core change is still judged", r.files.join(','));
-    assertEq(r.force, '0', 'pre-push: ...and an existing branch that fast-forwards is not force-checked');
+    assertTrue(
+      !r.files.includes('packages/core/a.ts'),
+      "pre-push: merging main into an existing branch does not charge main's changes",
+      r.files.join(',')
+    );
+    assertTrue(
+      r.files.includes('packages/core/c.ts'),
+      "pre-push: ...while the branch's own core change is still judged",
+      r.files.join(',')
+    );
+    assertEq(
+      r.force,
+      '0',
+      'pre-push: ...and an existing branch that fast-forwards is not force-checked'
+    );
 
     git(work, 'checkout', '-q', 'main');
     const onMain = git(work, 'rev-parse', 'HEAD'); // m1, what the remote's main holds
     const m2 = commitFile(work, 'packages/core/d.ts', 'd\n', 'm2');
     r = judged(work, 'origin', bare, [`refs/heads/main ${m2} refs/heads/main ${onMain}`]);
-    assertEq(r.files.join(','), 'packages/core/d.ts', 'pre-push: a push to main is judged by exactly what it adds');
+    assertEq(
+      r.files.join(','),
+      'packages/core/d.ts',
+      'pre-push: a push to main is judged by exactly what it adds'
+    );
     assertEq(r.force, '0', 'pre-push: ...and a fast-forward of main is not force-checked');
 
     // Rewind: main goes back from m1 (which edited packages/core/a.ts) to m0b.
@@ -649,7 +730,11 @@ console.log('githook-paths.test.mjs — pre-push');
     git(work, 'checkout', '-q', '--orphan', 'orphan');
     const orphan = commitFile(work, 'packages/studio/o.ts', 'o\n', 'orphan');
     r = judged(work, 'origin', bare, [`refs/heads/orphan ${orphan} refs/heads/orphan ${ZERO}`]);
-    assertEq(r.force, '1', 'pre-push: a branch with no history in common with main is judged in full');
+    assertEq(
+      r.force,
+      '1',
+      'pre-push: a branch with no history in common with main is judged in full'
+    );
 
     // Criss-cross: F merges main's M1 while main merges F1, so main and F have
     // two merge bases, M1 and F1. F3 then reverts F1's core edit.
@@ -688,18 +773,30 @@ console.log('githook-paths.test.mjs — pre-push');
       landed.join(',')
     );
     r = judged(cc, 'origin', ccBare, [`refs/heads/F ${F3} refs/heads/F ${F2}`]);
-    assertEq(r.force, '1', 'pre-push: a fast-forward with two merge bases against main (criss-cross merges) is judged in full');
+    assertEq(
+      r.force,
+      '1',
+      'pre-push: a fast-forward with two merge bases against main (criss-cross merges) is judged in full'
+    );
 
     const lone = join(root, 'lone');
     git(root, 'init', '-q', '-b', 'main', lone);
     const x = commitFile(lone, 'packages/core/x.ts', 'x\n', 'x');
-    r = judged(lone, 'nowhere', join(root, 'no-such-remote.git'), [`refs/heads/x ${x} refs/heads/x ${ZERO}`]);
-    assertEq(r.force, '1', 'pre-push: with no trunk to compare against, a new branch is judged in full');
+    r = judged(lone, 'nowhere', join(root, 'no-such-remote.git'), [
+      `refs/heads/x ${x} refs/heads/x ${ZERO}`,
+    ]);
+    assertEq(
+      r.force,
+      '1',
+      'pre-push: with no trunk to compare against, a new branch is judged in full'
+    );
 
     // The no-trunk fallback compares the remote's tree with the pushed one, so a
     // rewind there is judged for what it removes without the trunk rules.
     const y = commitFile(lone, 'packages/core/y.ts', 'y\n', 'y');
-    r = judged(lone, 'nowhere', join(root, 'no-such-remote.git'), [`refs/heads/x ${x} refs/heads/x ${y}`]);
+    r = judged(lone, 'nowhere', join(root, 'no-such-remote.git'), [
+      `refs/heads/x ${x} refs/heads/x ${y}`,
+    ]);
     assertTrue(
       r.force === '1' || r.files.includes('packages/core/y.ts'),
       'pre-push: with no trunk, a rewind of an existing branch is judged for the core file it removes',

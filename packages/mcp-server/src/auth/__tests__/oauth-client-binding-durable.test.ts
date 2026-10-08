@@ -219,7 +219,12 @@ describe('the unproven mark only tightens (zkdg)', () => {
     const store = storeOver(new InMemoryTokenStore());
     const clientId = 'hsc_sticky_unproven';
     const clientSecret = 'sticky-secret';
-    await store.registerClient({ ...REGISTRATION, clientId, clientSecret, registeredUnproven: true });
+    await store.registerClient({
+      ...REGISTRATION,
+      clientId,
+      clientSecret,
+      registeredUnproven: true,
+    });
     await store.registerClient({ ...REGISTRATION, clientId, clientSecret });
     expect((await store.getClient(clientId))?.registeredUnproven).toBe(true);
   });

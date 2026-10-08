@@ -58,7 +58,9 @@ function seedTeam(teamId: string, overrides: Record<string, unknown> = {}) {
     visibility: 'private',
     ownerId: 'owner-1',
     ownerName: 'Owner',
-    members: [{ agentId: 'owner-1', agentName: 'Owner', role: 'owner', joinedAt: new Date().toISOString() }],
+    members: [
+      { agentId: 'owner-1', agentName: 'Owner', role: 'owner', joinedAt: new Date().toISOString() },
+    ],
     maxSlots: 5,
     waitlist: [],
     createdAt: new Date().toISOString(),
@@ -72,33 +74,49 @@ describe('viewerMayQueryTeamWorkspace', () => {
   it('lets a member query their own private team workspace', () => {
     seedTeam('private-team-1', { members: [{ agentId: 'member-1' }] });
     expect(
-      viewerMayQueryTeamWorkspace({ authenticated: true, id: 'member-1' }, getTeamWorkspaceId('private-team-1'))
+      viewerMayQueryTeamWorkspace(
+        { authenticated: true, id: 'member-1' },
+        getTeamWorkspaceId('private-team-1')
+      )
     ).toBe(true);
   });
 
   it('refuses a non-member querying a private team workspace', () => {
     seedTeam('private-team-2', { members: [{ agentId: 'member-1' }] });
     expect(
-      viewerMayQueryTeamWorkspace({ authenticated: true, id: 'stranger' }, getTeamWorkspaceId('private-team-2'))
+      viewerMayQueryTeamWorkspace(
+        { authenticated: true, id: 'stranger' },
+        getTeamWorkspaceId('private-team-2')
+      )
     ).toBe(false);
   });
 
   it('refuses an unauthenticated (anonymous) caller on a private team workspace', () => {
     seedTeam('private-team-3');
-    expect(viewerMayQueryTeamWorkspace(ANONYMOUS_VIEWER, getTeamWorkspaceId('private-team-3'))).toBe(false);
+    expect(
+      viewerMayQueryTeamWorkspace(ANONYMOUS_VIEWER, getTeamWorkspaceId('private-team-3'))
+    ).toBe(false);
   });
 
   it('lets anyone, including anonymous, query a public team workspace', () => {
     seedTeam('public-team-1', { visibility: 'public', members: [] });
-    expect(viewerMayQueryTeamWorkspace(ANONYMOUS_VIEWER, getTeamWorkspaceId('public-team-1'))).toBe(true);
+    expect(viewerMayQueryTeamWorkspace(ANONYMOUS_VIEWER, getTeamWorkspaceId('public-team-1'))).toBe(
+      true
+    );
     expect(
-      viewerMayQueryTeamWorkspace({ authenticated: true, id: 'anyone' }, getTeamWorkspaceId('public-team-1'))
+      viewerMayQueryTeamWorkspace(
+        { authenticated: true, id: 'anyone' },
+        getTeamWorkspaceId('public-team-1')
+      )
     ).toBe(true);
   });
 
   it('refuses an unknown team id rather than leaking whether it exists', () => {
     expect(
-      viewerMayQueryTeamWorkspace({ authenticated: true, id: 'someone' }, getTeamWorkspaceId('no-such-team'))
+      viewerMayQueryTeamWorkspace(
+        { authenticated: true, id: 'someone' },
+        getTeamWorkspaceId('no-such-team')
+      )
     ).toBe(false);
   });
 

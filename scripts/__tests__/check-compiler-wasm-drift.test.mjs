@@ -224,10 +224,17 @@ test('package layout: a web build older than the source fails even when pkg-node
 test('package layout: a receipt whose wasmSha256 is not its wasm fails', () => {
   const { root, sourceCommit } = createLayoutRepo();
   try {
-    writeBuild(root, 'pkg', { wasm: 'rebuilt-wasm', sourceCommit, claimedSha: sha256('same-wasm') });
+    writeBuild(root, 'pkg', {
+      wasm: 'rebuilt-wasm',
+      sourceCommit,
+      claimedSha: sha256('same-wasm'),
+    });
     const result = runLayoutGate(root);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /pkg\/rebuild-receipt\.json says wasmSha256 .* the receipt does not describe this build/);
+    assert.match(
+      result.stderr,
+      /pkg\/rebuild-receipt\.json says wasmSha256 .* the receipt does not describe this build/
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -236,7 +243,10 @@ test('package layout: a receipt whose wasmSha256 is not its wasm fails', () => {
 test('package layout: builds whose receipts name different source commits fail', () => {
   const { root } = createLayoutRepo();
   try {
-    writeBuild(root, 'pkg', { wasm: 'old-wasm', sourceCommit: '580d91e32aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' });
+    writeBuild(root, 'pkg', {
+      wasm: 'old-wasm',
+      sourceCommit: '580d91e32aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    });
     const result = runLayoutGate(root);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /the builds name different source commits/);

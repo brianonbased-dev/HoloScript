@@ -435,7 +435,6 @@ describe('tool-result cap', () => {
     }
   });
 
-
   /** One iteration that pushes `blob` through a real (stubbed) tool call, then answers. */
   async function dumpThroughTool(blob: string) {
     const session = new Session({ ollamaHost: 'http://fake', model: 'fake-model' });

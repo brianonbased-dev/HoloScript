@@ -276,10 +276,16 @@ function tieBreakLeaf(x: ProvenanceLeaf, y: ProvenanceLeaf): ProvenanceLeaf {
  */
 function contextOverLeaves(leaves: ProvenanceLeaf[]): ProvenanceContext | undefined {
   let best = leaves[0];
-  let bestWeight = authorityWeight(best.context?.authorityLevel ?? 0, best.context?.reputationScore);
+  let bestWeight = authorityWeight(
+    best.context?.authorityLevel ?? 0,
+    best.context?.reputationScore
+  );
   for (let i = 1; i < leaves.length; i += 1) {
     const leaf = leaves[i];
-    const weight = authorityWeight(leaf.context?.authorityLevel ?? 0, leaf.context?.reputationScore);
+    const weight = authorityWeight(
+      leaf.context?.authorityLevel ?? 0,
+      leaf.context?.reputationScore
+    );
     if (weight > bestWeight || (weight === bestWeight && tieBreakLeaf(best, leaf) === leaf)) {
       best = leaf;
       bestWeight = weight;
@@ -759,7 +765,9 @@ export class ProvenanceSemiring {
               `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
-        return mergeCanonical(a, b, '⊕max', (x, y) => vecComponentMax(x as VectorValue, y as VectorValue));
+        return mergeCanonical(a, b, '⊕max', (x, y) =>
+          vecComponentMax(x as VectorValue, y as VectorValue)
+        );
       }
 
       case 'vec-component-min': {
@@ -769,7 +777,9 @@ export class ProvenanceSemiring {
               `got ${JSON.stringify(a.value)} and ${JSON.stringify(b.value)}`
           );
         }
-        return mergeCanonical(a, b, '⊕min', (x, y) => vecComponentMin(x as VectorValue, y as VectorValue));
+        return mergeCanonical(a, b, '⊕min', (x, y) =>
+          vecComponentMin(x as VectorValue, y as VectorValue)
+        );
       }
 
       case 'vec-component-sum': {

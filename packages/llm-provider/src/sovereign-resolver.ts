@@ -235,7 +235,6 @@ export interface ResolvedSovereignProvider {
   step?: SovereignResolveStep;
 }
 
-
 export interface SovereignResolveOptions {
   /** Explicit provider override (CLI flag etc.) — beats every env. */
   explicit?: string;
@@ -811,10 +810,11 @@ function resolveVastOssCoding(
   baseUrlOverride: string | undefined,
   opts: SovereignResolveOptions
 ): ResolvedSovereignProvider {
-  const baseURL = (baseUrlOverride || vastCodingUrlFromEnv() || VAST_OSS_CODING_DEFAULT_URL).replace(
-    /\/+$/,
-    ''
-  );
+  const baseURL = (
+    baseUrlOverride ||
+    vastCodingUrlFromEnv() ||
+    VAST_OSS_CODING_DEFAULT_URL
+  ).replace(/\/+$/, '');
   if (!isLoopbackUrl(baseURL)) {
     throw new Error(
       `vast-oss-coding proxy URL must be loopback-only (got ${baseURL}). ` +
@@ -822,8 +822,7 @@ function resolveVastOssCoding(
         `Refusing non-loopback to avoid cross-route / accidental frontier egress.`
     );
   }
-  const model =
-    modelOverride(opts) || env(VAST_CODING_MODEL_ENV) || VAST_OSS_CODING_DEFAULT_MODEL;
+  const model = modelOverride(opts) || env(VAST_CODING_MODEL_ENV) || VAST_OSS_CODING_DEFAULT_MODEL;
   const provider = new LocalLLMAdapter({
     baseURL,
     model,
@@ -853,7 +852,6 @@ async function probeVastOssCodingProxy(baseURL: string): Promise<void> {
   }
 }
 
-
 function isNativeUnreachableError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   // Network/down only — sovereignty impostor / artifact-binding refusals must NOT
@@ -875,8 +873,6 @@ function withNativeStep(resolved: ResolvedSovereignProvider): ResolvedSovereignP
   }
   return resolved;
 }
-
-
 
 // FLEET_DEFAULT_MODEL + the local default come from the model-policy SSOT.
 // qwen3.5 over qwen2.5-coder: the older family cannot emit NATIVE tool calls
@@ -974,19 +970,20 @@ function resolveSovereignProviderInternal(
   // Sync cannot health-check; resolveSovereignProviderAsync enforces healthy failover.
   noteRetiredOllamaEnv(ollamaHost, describeCaller(opts));
   const holoServeUrl = env('HOLOSERVE_URL', 'HOLOSERVE_ENDPOINT');
-  if (holoServeUrl) return withNativeStep(resolveHoloServe(holoServeUrl, opts, allowParityHoloServe));
+  if (holoServeUrl)
+    return withNativeStep(resolveHoloServe(holoServeUrl, opts, allowParityHoloServe));
   const vastCodingUrl = vastCodingUrlFromEnv();
   if (vastCodingUrl) return resolveVastOssCoding(vastCodingUrl, opts);
   const holoLlamaUrl = env('HOLOLLAMA_URL', 'HOLOLLAMA_ENDPOINT');
-  if (holoLlamaUrl) return withNativeStep(resolveHoloLlama(holoLlamaUrl, opts, allowParityHoloServe));
+  if (holoLlamaUrl)
+    return withNativeStep(resolveHoloLlama(holoLlamaUrl, opts, allowParityHoloServe));
   // Hosted-bridge gate: Brittney llm-service may forward to Fireworks/Together. Never silent.
   if (cloudUrl) return gateHostedBridge(cloudUrl, opts, () => resolveCloud(cloudUrl, opts));
   // Frontier fallback GATED (fix 7): never silent.
   if (anthropicKey)
     return gateFrontierFallback('anthropic', opts, () => resolveAnthropic(anthropicKey, opts));
   if (env('XAI_API_KEY')) return gateFrontierFallback('xai', opts, () => resolveXai(opts));
-  if (env('OPENAI_API_KEY'))
-    return gateFrontierFallback('openai', opts, () => resolveOpenai(opts));
+  if (env('OPENAI_API_KEY')) return gateFrontierFallback('openai', opts, () => resolveOpenai(opts));
 
   // Sovereign default (D.117): HoloLlama at :18080 when the backup chain had nothing configured.
   return withNativeStep(resolveHoloLlama(undefined, opts, allowParityHoloServe));
@@ -1085,7 +1082,6 @@ export async function resolveSovereignProviderAsync(
   return resolveOrderedBackupChainAsync(opts);
 }
 
-
 async function resolveOrderedBackupChainAsync(
   opts: SovereignResolveOptions
 ): Promise<ResolvedSovereignProvider> {
@@ -1117,9 +1113,7 @@ async function resolveOrderedBackupChainAsync(
         throw err;
       }
       failures.push(`native:${msg}`);
-      console.warn(
-        `[sovereign-resolver] BACKUP CHAIN step=native FAILED caller=${caller}: ${msg}`
-      );
+      console.warn(`[sovereign-resolver] BACKUP CHAIN step=native FAILED caller=${caller}: ${msg}`);
     }
   } else {
     failures.push('native:HOLOSERVE_URL unset');
@@ -1154,8 +1148,7 @@ async function resolveOrderedBackupChainAsync(
   const nativeFailed = failures.some(
     (f) => f.startsWith('native:') || f.startsWith('native-holollama:')
   );
-  const shouldProbeCoding =
-    Boolean(codingUrlExplicit) || (nativeConfigured && nativeFailed);
+  const shouldProbeCoding = Boolean(codingUrlExplicit) || (nativeConfigured && nativeFailed);
   if (shouldProbeCoding) {
     const codingUrl = (codingUrlExplicit || VAST_OSS_CODING_DEFAULT_URL).replace(/\/+$/, '');
     if (isLoopbackUrl(codingUrl)) {

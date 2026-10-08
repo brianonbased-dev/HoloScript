@@ -48,7 +48,9 @@ function workloadFlag() {
       : process.argv[at].slice('--workload='.length)
   )?.trim();
   if (!value || value.startsWith('--')) {
-    console.error('[doctrine-slots] --workload needs a path: --workload <file> or --workload=<file>.');
+    console.error(
+      '[doctrine-slots] --workload needs a path: --workload <file> or --workload=<file>.'
+    );
     process.exit(2);
   }
   return value;
@@ -181,7 +183,9 @@ if (!existsSync(file)) {
     process.exit(0);
   }
   console.error(`DOCTRINE VIOLATION: workload breadcrumb missing: ${file}`);
-  console.error(`[doctrine-slots] ${markedBy}, so a dispatch should have written this file, and none did.`);
+  console.error(
+    `[doctrine-slots] ${markedBy}, so a dispatch should have written this file, and none did.`
+  );
   console.error(
     '[doctrine-slots] Fix: run a HoloCI dispatch so it writes the file, or point --workload or HOLOCI_WORKLOAD_PATH at the breadcrumb it wrote. A machine that does not dispatch can skip this check for one push with HOLOCI_ALLOW_MISSING_WORKLOAD=1.'
   );

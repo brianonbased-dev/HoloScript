@@ -87,7 +87,9 @@ const mockClient = {
   discoverPeers: vi.fn().mockResolvedValue([]),
   queryKnowledge: vi.fn().mockResolvedValue([]),
   contributeKnowledge: vi.fn().mockResolvedValue(1),
-  contributeKnowledgeDetailed: vi.fn().mockResolvedValue({ synced: 1, accepted: true, status: 200, reason: null }),
+  contributeKnowledgeDetailed: vi
+    .fn()
+    .mockResolvedValue({ synced: 1, accepted: true, status: 200, reason: null }),
   getAgentCard: vi.fn().mockResolvedValue(null),
   getAgentReputation: vi.fn().mockResolvedValue({
     score: 10,
@@ -1455,7 +1457,12 @@ describe('HoloMesh HTTP Routes', () => {
       return regRes._body.agent.api_key as string;
     }
 
-    async function call(method: string, path: string, body?: Record<string, unknown>, apiKey?: string) {
+    async function call(
+      method: string,
+      path: string,
+      body?: Record<string, unknown>,
+      apiKey?: string
+    ) {
       const req = mockReq(method, path, body, apiKey ? { authorization: `Bearer ${apiKey}` } : {});
       const res = mockRes();
       await handleHoloMeshRoute(req, res, path);
@@ -1486,7 +1493,11 @@ describe('HoloMesh HTTP Routes', () => {
       const branchId = branched._body.branch.id as string;
       const unlockPath = `/api/holomesh/storyweaver/session/${sessionId}/branch/${branchId}/unlock`;
 
-      for (const claim of [{ paid: true }, { paymentReference: 'ref-123' }, { x402Proof: 'proof' }]) {
+      for (const claim of [
+        { paid: true },
+        { paymentReference: 'ref-123' },
+        { x402Proof: 'proof' },
+      ]) {
         const unlock = await call('POST', unlockPath, claim, readerKey);
         expect(unlock._status).toBe(402);
         expect(unlock._body.code).toBe('x402-verification-unavailable');
@@ -3252,7 +3263,15 @@ describe('HoloMesh HTTP Routes', () => {
       const req = mockReq(
         'POST',
         `/api/holomesh/team/${tid}/knowledge`,
-        { entries: [{ type: 'wisdom', content: 'A row the orchestrator will refuse', domain: 'compilation' }] },
+        {
+          entries: [
+            {
+              type: 'wisdom',
+              content: 'A row the orchestrator will refuse',
+              domain: 'compilation',
+            },
+          ],
+        },
         { authorization: `Bearer ${ownerApiKey}` }
       );
       const res = mockRes();
@@ -3516,15 +3535,15 @@ describe('HoloMesh HTTP Routes', () => {
         const memberTokenRes = await search(memberApiKey, hiddenToken);
         expect(memberTokenRes._status).toBe(200);
         expect(JSON.stringify(memberTokenRes._body)).not.toContain(hiddenToken);
-        expect(
-          memberTokenRes._body.entries.map((e: { id: string }) => e.id)
-        ).not.toContain('entry_locked_hidden_probe');
+        expect(memberTokenRes._body.entries.map((e: { id: string }) => e.id)).not.toContain(
+          'entry_locked_hidden_probe'
+        );
 
         const memberRes = await search(memberApiKey, hiddenPhrase);
         expect(memberRes._status).toBe(200);
-        expect(
-          memberRes._body.entries.map((e: { id: string }) => e.id)
-        ).not.toContain('entry_locked_hidden_probe');
+        expect(memberRes._body.entries.map((e: { id: string }) => e.id)).not.toContain(
+          'entry_locked_hidden_probe'
+        );
         expect(JSON.stringify(memberRes._body)).not.toContain(hiddenToken);
         expect(JSON.stringify(memberRes._body)).not.toContain('paidprobe');
 
@@ -7199,7 +7218,12 @@ describe('HoloMesh HTTP Routes', () => {
 
       const search = async (apiKey?: string) => {
         const path = `/api/holomesh/search?q=${encodeURIComponent(hiddenPhrase)}&limit=10`;
-        const req = mockReq('GET', path, undefined, apiKey ? { authorization: `Bearer ${apiKey}` } : undefined);
+        const req = mockReq(
+          'GET',
+          path,
+          undefined,
+          apiKey ? { authorization: `Bearer ${apiKey}` } : undefined
+        );
         const res = mockRes();
         await handleHoloMeshRoute(req, res, path);
         return res;
@@ -7208,7 +7232,9 @@ describe('HoloMesh HTTP Routes', () => {
       try {
         const anon = await search();
         expect(anon._status).toBe(200);
-        expect(anon._body.results.map((e: { id: string }) => e.id)).toEqual(['entry_public_free_keep']);
+        expect(anon._body.results.map((e: { id: string }) => e.id)).toEqual([
+          'entry_public_free_keep',
+        ]);
         expect(JSON.stringify(anon._body.results)).not.toContain(entryId);
         expect(JSON.stringify(anon._body.results)).not.toContain(hiddenToken);
         expect(JSON.stringify(anon._body.results)).not.toContain('paidprobe');

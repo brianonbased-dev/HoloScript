@@ -129,8 +129,7 @@ function request(
 const sendTask = (skillId: string, token?: string) =>
   request('POST', '/a2a/tasks', { body: { skillId, arguments: {} }, token });
 
-const taskState = (reply: Reply) =>
-  (reply.body.status as { state?: string } | undefined)?.state;
+const taskState = (reply: Reply) => (reply.body.status as { state?: string } | undefined)?.state;
 
 async function adminTaskTotal(): Promise<number> {
   const listed = await request('GET', '/a2a/tasks', { token: TEST_KEY });
@@ -234,9 +233,7 @@ describe('/a2a routes through the real http-server', () => {
       'DELETE /a2a/tasks/:id': await request('DELETE', `/a2a/tasks/${UNKNOWN_TASK_ID}`),
     };
     for (const [route, reply] of Object.entries(replies)) {
-      expect(reply.status, `${route} without credentials: ${JSON.stringify(reply.body)}`).toBe(
-        401
-      );
+      expect(reply.status, `${route} without credentials: ${JSON.stringify(reply.body)}`).toBe(401);
     }
   });
 
@@ -265,7 +262,7 @@ describe('/a2a routes through the real http-server', () => {
     expect(JSON.stringify(reply.body.status)).toContain('Insufficient scope');
   });
 
-  it('over JSON-RPC too: a2a.sendMessage runs with the read login\'s scopes, not admin', async () => {
+  it("over JSON-RPC too: a2a.sendMessage runs with the read login's scopes, not admin", async () => {
     const rpc = await request('POST', '/a2a', {
       token: readToken,
       body: {
@@ -285,7 +282,7 @@ describe('/a2a routes through the real http-server', () => {
     expect(JSON.stringify(rpc.body), JSON.stringify(rpc.body)).toContain('Insufficient scope');
   });
 
-  it('a read login cannot list every caller\'s tasks, over REST or JSON-RPC', async () => {
+  it("a read login cannot list every caller's tasks, over REST or JSON-RPC", async () => {
     const rest = await request('GET', '/a2a/tasks', { token: readToken });
     expect(rest.status, JSON.stringify(rest.body)).toBe(403);
 

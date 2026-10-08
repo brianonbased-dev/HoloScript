@@ -100,9 +100,11 @@ function pathListInvocations(hook) {
   const found = [];
   for (let i = 0; i < lines.length; i += 1) {
     const code = lines[i].replace(/#.*/, '');
-    const isNameOnly = /\bgit\b/.test(code) && code.includes('diff') && code.includes('--name-only');
+    const isNameOnly =
+      /\bgit\b/.test(code) && code.includes('diff') && code.includes('--name-only');
     const isLsFiles = /\bgit\b/.test(code) && /\bls-files\b/.test(code);
-    const isNameStatus = /\bgit\b/.test(code) && code.includes('diff') && code.includes('--name-status');
+    const isNameStatus =
+      /\bgit\b/.test(code) && code.includes('diff') && code.includes('--name-status');
     if (!isNameOnly && !isLsFiles && !isNameStatus) continue;
     let text = code;
     let j = i;
@@ -179,11 +181,15 @@ const hook = readFileSync(HOOK, 'utf8');
     String(invocations.length)
   );
   assertTrue(
-    invocations.some((invocation) => invocation.kind === 'ls-files' && invocation.text.includes('ls-files')),
+    invocations.some(
+      (invocation) => invocation.kind === 'ls-files' && invocation.text.includes('ls-files')
+    ),
     'tracked-shadow git ls-files is in the quotepath list'
   );
   assertTrue(
-    invocations.some((invocation) => invocation.kind === 'name-status' && invocation.text.includes('--name-status')),
+    invocations.some(
+      (invocation) => invocation.kind === 'name-status' && invocation.text.includes('--name-status')
+    ),
     'deletion git diff --name-status is in the quotepath list'
   );
   for (const invocation of invocations) {
@@ -220,7 +226,11 @@ const hook = readFileSync(HOOK, 'utf8');
     const oldList = old.stdout || '';
     console.log(`  info old name-only list: ${JSON.stringify(oldList)}`);
     assertEq(old.status, 0, 'old name-only list command exits 0');
-    assertTrue(!oldList.split(/\r?\n/).includes(rel), 'old hook list does not emit the literal non-ASCII path', oldList);
+    assertTrue(
+      !oldList.split(/\r?\n/).includes(rel),
+      'old hook list does not emit the literal non-ASCII path',
+      oldList
+    );
     assertTrue(
       oldList.includes('\\') || oldList.includes('"'),
       'old hook list C-quotes the non-ASCII path',
@@ -248,9 +258,7 @@ const hook = readFileSync(HOOK, 'utf8');
     console.log(`  info hook STAGED_MD list: ${JSON.stringify(newList)}`);
     assertEq(listed.status, 0, 'hook STAGED_MD list command exits 0');
     assertTrue(
-      withSlashes(newList)
-        .split(/\r?\n/)
-        .includes(rel),
+      withSlashes(newList).split(/\r?\n/).includes(rel),
       'hook list builder emits the literal non-ASCII path',
       newList
     );
@@ -262,11 +270,7 @@ const hook = readFileSync(HOOK, 'utf8');
     });
     const seenOut = `${seen.stdout || ''}${seen.stderr || ''}`;
     assertEq(seen.status, 1, 'stats gate fails when the literal non-ASCII path is listed');
-    assertTrue(
-      withSlashes(seenOut).includes(rel),
-      'stats gate names the non-ASCII file',
-      seenOut
-    );
+    assertTrue(withSlashes(seenOut).includes(rel), 'stats gate names the non-ASCII file', seenOut);
   } finally {
     rmSync(root, { recursive: true, force: true });
     rmSync(listDir, { recursive: true, force: true });
@@ -276,7 +280,10 @@ const hook = readFileSync(HOOK, 'utf8');
 {
   const start = hook.indexOf('run_with_timeout() {');
   const end = hook.indexOf('\n# Large merges');
-  assertTrue(start >= 0 && end > start, 'pre-commit defines run_with_timeout before the files-from helper');
+  assertTrue(
+    start >= 0 && end > start,
+    'pre-commit defines run_with_timeout before the files-from helper'
+  );
   if (isWin32) {
     skip('fallback PATH probe runs', WIN32_BASH_SKIP);
     skip('fallback PATH has no timeout binary', WIN32_BASH_SKIP);
@@ -343,32 +350,58 @@ run_with_timeout ${limit} node ${script}
         }
       }
       assertEq(fast.status, 0, 'fallback fast gate returns 0');
-      assertTrue((fast.stdout || '').includes('fast-ok'), 'fallback fast gate prints its output', fast.stdout);
-      assertTrue(!(fast.stdout || '').includes('TIMED OUT:'), 'fallback fast gate is not reported as a timeout', fast.stdout);
+      assertTrue(
+        (fast.stdout || '').includes('fast-ok'),
+        'fallback fast gate prints its output',
+        fast.stdout
+      );
+      assertTrue(
+        !(fast.stdout || '').includes('TIMED OUT:'),
+        'fallback fast gate is not reported as a timeout',
+        fast.stdout
+      );
       assertTrue(
         fast.status === 0 && fast.elapsed < FAST_WELL_UNDER_MS,
         `fallback fast gate returns well under its ${FAST_LIMIT_SECS}s limit`,
         `status ${fast.status}, elapsed ${fast.elapsed}ms (limit ${FAST_LIMIT_MS}ms). The old killer held the capture pipe open until sleep finished.`
       );
-      assertTrue(beforeSleep !== null && afterSleep !== null, 'ps -C sleep ran', 'ps -C returned nothing usable');
+      assertTrue(
+        beforeSleep !== null && afterSleep !== null,
+        'ps -C sleep ran',
+        'ps -C returned nothing usable'
+      );
       const leftover =
-        afterSleep === null ? ['ps-unavailable'] : afterSleep.filter((args) => args === `sleep ${FAST_LIMIT_SECS}`);
-      assertEq(leftover.length, 0, 'fallback fast gate does not leave its sleep running', leftover.join(' | '));
+        afterSleep === null
+          ? ['ps-unavailable']
+          : afterSleep.filter((args) => args === `sleep ${FAST_LIMIT_SECS}`);
+      assertEq(
+        leftover.length,
+        0,
+        'fallback fast gate does not leave its sleep running',
+        leftover.join(' | ')
+      );
 
       const slow = run('check-slow-gate.mjs', SLOW_LIMIT_SECS);
-      console.log(`  info fallback forced timeout: status=${slow.status} elapsed_ms=${slow.elapsed}`);
+      console.log(
+        `  info fallback forced timeout: status=${slow.status} elapsed_ms=${slow.elapsed}`
+      );
       for (const line of (slow.stdout || '').split('\n')) {
         if (line.trim()) console.log(`  info   ${line}`);
       }
       assertEq(slow.status, 124, 'fallback forced timeout returns 124');
       assertTrue(
-        (slow.stdout || '').includes(`TIMED OUT: check-slow-gate timed out after ${SLOW_LIMIT_SECS}s.`),
+        (slow.stdout || '').includes(
+          `TIMED OUT: check-slow-gate timed out after ${SLOW_LIMIT_SECS}s.`
+        ),
         'fallback forced timeout prints TIMED OUT with the limit',
         slow.stdout
       );
       const slowListed = sleepArgs();
       assertTrue(slowListed !== null, 'ps -C sleep ran after the forced timeout');
-      const slowLeft = slowListed === null ? ['ps-unavailable'] : slowListed.filter((args) => args === `sleep ${SLOW_LIMIT_SECS}`);
+      const slowLeft =
+        slowListed === null
+          ? ['ps-unavailable']
+          : slowListed.filter((args) => args === `sleep ${SLOW_LIMIT_SECS}`);
       assertEq(slowLeft.length, 0, 'fallback forced timeout does not leave its sleep running');
     } finally {
       rmSync(bin, { recursive: true, force: true });
@@ -413,14 +446,24 @@ ${banner}
     );
     const text = rendered.stdout || '';
     console.log(`  info strata banner with ${name}=7: ${text.trim()}`);
-    assertTrue(text.includes('budget 7s'), 'language-strata banner prints the configured seconds', text);
-    assertTrue(!text.includes('budget 120s'), 'language-strata banner does not keep a hardcoded 120', text);
+    assertTrue(
+      text.includes('budget 7s'),
+      'language-strata banner prints the configured seconds',
+      text
+    );
+    assertTrue(
+      !text.includes('budget 120s'),
+      'language-strata banner does not keep a hardcoded 120',
+      text
+    );
   }
 }
 
 const testsPassed = testsRun - testsFailed - testsSkipped;
 if (testsFailed > 0) {
-  console.error(`\n${testsPassed} passed, ${testsSkipped} skipped, ${testsFailed} failed (${testsRun} run)`);
+  console.error(
+    `\n${testsPassed} passed, ${testsSkipped} skipped, ${testsFailed} failed (${testsRun} run)`
+  );
   process.exit(1);
 }
 

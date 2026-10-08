@@ -1426,7 +1426,11 @@ describe('cache fields survive each runner aggregation site (qf65, behavioural)'
             model: 'mock-1',
             provider: 'mock',
             finishReason: 'tool_use',
-            toolUses: step.toolUses.map((t, k) => ({ id: `tu-${n}-${k}`, name: t.name, input: t.input })),
+            toolUses: step.toolUses.map((t, k) => ({
+              id: `tu-${n}-${k}`,
+              name: t.name,
+              input: t.input,
+            })),
             assistantBlocks: step.toolUses.map((t, k) => ({
               type: 'tool_use' as const,
               id: `tu-${n}-${k}`,
@@ -1488,15 +1492,34 @@ describe('cache fields survive each runner aggregation site (qf65, behavioural)'
   it('site 1, the tool loop: both responses contribute their cache fields', async () => {
     const { result, recorded, calls } = await runTick([
       {
-        usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800, cacheWriteTokens: 100 },
+        usage: {
+          promptTokens: 1000,
+          completionTokens: 200,
+          totalTokens: 1200,
+          cacheReadTokens: 800,
+          cacheWriteTokens: 100,
+        },
         toolUses: [BASH],
       },
-      { usage: { promptTokens: 2000, completionTokens: 300, totalTokens: 2300, cacheReadTokens: 1500 } },
+      {
+        usage: {
+          promptTokens: 2000,
+          completionTokens: 300,
+          totalTokens: 2300,
+          cacheReadTokens: 1500,
+        },
+      },
     ]);
     expect(result.action).toBe('executed');
     expect(calls).toBe(2);
     expect(recorded).toEqual([
-      { promptTokens: 3000, completionTokens: 500, totalTokens: 3500, cacheReadTokens: 2300, cacheWriteTokens: 100 },
+      {
+        promptTokens: 3000,
+        completionTokens: 500,
+        totalTokens: 3500,
+        cacheReadTokens: 2300,
+        cacheWriteTokens: 100,
+      },
     ]);
   });
 
@@ -1505,7 +1528,12 @@ describe('cache fields survive each runner aggregation site (qf65, behavioural)'
       { usage: plain(10, 1), toolUses: [{ name: 'read_file', input: { path: '/tmp/qf65-x' } }] },
       { usage: plain(20, 2), content: 'I read it.' },
       {
-        usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800 },
+        usage: {
+          promptTokens: 1000,
+          completionTokens: 200,
+          totalTokens: 1200,
+          cacheReadTokens: 800,
+        },
         toolUses: [{ name: 'write_file', input: { path: '/tmp/qf65-out', content: 'artifact' } }],
       },
     ]);
@@ -1520,7 +1548,15 @@ describe('cache fields survive each runner aggregation site (qf65, behavioural)'
     const { result, recorded, calls } = await runTick([
       { usage: plain(10, 1), toolUses: [{ name: 'vision_analyze', input: { image_path: '' } }] },
       { usage: plain(20, 2), content: 'seen' },
-      { usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800 }, content: 'caption stored' },
+      {
+        usage: {
+          promptTokens: 1000,
+          completionTokens: 200,
+          totalTokens: 1200,
+          cacheReadTokens: 800,
+        },
+        content: 'caption stored',
+      },
     ]);
     expect(calls).toBe(3);
     expect(result.action).toBe('executed');
@@ -1536,7 +1572,12 @@ describe('cache fields survive each runner aggregation site (qf65, behavioural)'
         { usage: plain(10, 1), toolUses: [BASH] },
         { usage: plain(20, 2), content: 'done' },
         {
-          usage: { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800 },
+          usage: {
+            promptTokens: 1000,
+            completionTokens: 200,
+            totalTokens: 1200,
+            cacheReadTokens: 800,
+          },
           content: 'fine' + NL + 'VERDICT: PASS',
         },
       ],
@@ -1560,7 +1601,12 @@ describe('cache fields survive each runner aggregation site (qf65, behavioural)'
   });
 
   it('the real pricers bill it through the runner: Claude reads at 0.1, OpenAI reads at full input', async () => {
-    const cached: TokenUsage = { promptTokens: 1000, completionTokens: 200, totalTokens: 1200, cacheReadTokens: 800 };
+    const cached: TokenUsage = {
+      promptTokens: 1000,
+      completionTokens: 200,
+      totalTokens: 1200,
+      cacheReadTokens: 800,
+    };
     // haiku-4-5, $1 / $5: 200 uncached + 800 read at 0.1 + 200 out = 1,280 micro-dollars a call.
     const claude = await runTick([{ usage: cached, toolUses: [BASH] }, { usage: cached }], {
       pricer: defaultAnthropicPricer,

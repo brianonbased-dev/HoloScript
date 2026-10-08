@@ -74,7 +74,9 @@ export function parseReleasePublishArgs(argv) {
     if (arg === '--help' || arg === '-h') return { help: true };
     if (arg === '--packages' || arg.startsWith('--packages=')) {
       sawPackages = true;
-      const value = arg.startsWith('--packages=') ? arg.slice('--packages='.length) : args[(i += 1)];
+      const value = arg.startsWith('--packages=')
+        ? arg.slice('--packages='.length)
+        : args[(i += 1)];
       if (value == null || value.startsWith('--')) {
         return { error: '--packages requires a comma-separated package list' };
       }
@@ -175,7 +177,9 @@ export async function runReleasePublish({
       allowlist: combined.allowlist,
     });
     if (!prepared.ok) {
-      console.error(`[release-publish] ${prepared.message || prepared.code || 'allowlist gate failed'}`);
+      console.error(
+        `[release-publish] ${prepared.message || prepared.code || 'allowlist gate failed'}`
+      );
       publishCode = 1;
     } else {
       snapshots = prepared.snapshots || [];

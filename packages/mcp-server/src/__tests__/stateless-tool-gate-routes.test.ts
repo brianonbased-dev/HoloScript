@@ -208,7 +208,7 @@ describe('the stateless tool routes run the tool-call gate (real server)', () =>
         },
       });
     const state = (r: Reply) =>
-      ((r.body.result as { status?: { state?: string } } | undefined)?.status)?.state;
+      (r.body.result as { status?: { state?: string } } | undefined)?.status?.state;
     const text = (r: Reply) => JSON.stringify(r.body);
     const auditedPaths = (tool: string) =>
       getAuditLogger()

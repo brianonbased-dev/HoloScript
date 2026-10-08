@@ -23,13 +23,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import {
-  existsSync,
-  readFileSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -181,7 +175,8 @@ export function evaluateReleasePublishAllowlist({ allowlist, packages, groups = 
     return {
       ok: true,
       code: 'full-fleet',
-      message: 'RELEASE_PUBLISH_ALLOWLIST is unset. changeset publish keeps the full unpublished set.',
+      message:
+        'RELEASE_PUBLISH_ALLOWLIST is unset. changeset publish keeps the full unpublished set.',
       publishSet: null,
       holdsProposed: [],
       strays: [],
@@ -395,7 +390,8 @@ export function readChangesetGroups(config) {
     if (value == null) continue;
     if (!Array.isArray(value)) throw new Error(`changeset config ${key} is not an array`);
     for (const group of value) {
-      if (!Array.isArray(group)) throw new Error(`changeset config ${key} entries must be arrays of package names`);
+      if (!Array.isArray(group))
+        throw new Error(`changeset config ${key} entries must be arrays of package names`);
       groups.push(group.map(String));
     }
   }
@@ -403,7 +399,9 @@ export function readChangesetGroups(config) {
 }
 
 export function scrubbedNpmError(result) {
-  return scrubSecrets(`${result.stderr || ''}\n${result.stdout || ''}`).trim().slice(0, 400);
+  return scrubSecrets(`${result.stderr || ''}\n${result.stdout || ''}`)
+    .trim()
+    .slice(0, 400);
 }
 
 export function versionsFromNpmView(result) {
@@ -559,7 +557,7 @@ export async function prepareFilteredPublish({
       };
     }
     const versions = Array.isArray(info) ? info : info?.versions;
-    const latest = Array.isArray(info) ? null : info?.latest ?? null;
+    const latest = Array.isArray(info) ? null : (info?.latest ?? null);
     if (!Array.isArray(versions)) {
       return {
         ok: false,
@@ -683,23 +681,34 @@ export function runAllowlistSelfTest() {
   const empty = evaluateReleasePublishAllowlist({ allowlist: [], packages: [llm] });
   check('empty allowlist', empty.ok === false && empty.code === 'empty-allowlist');
 
-  const one = evaluateReleasePublishAllowlist({ allowlist: ['@holoscript/llm-provider'], packages: [llm] });
+  const one = evaluateReleasePublishAllowlist({
+    allowlist: ['@holoscript/llm-provider'],
+    packages: [llm],
+  });
   check(
     'one package',
-    one.ok === true && one.code === 'allowlist' && one.publishSet.join(',') === '@holoscript/llm-provider'
+    one.ok === true &&
+      one.code === 'allowlist' &&
+      one.publishSet.join(',') === '@holoscript/llm-provider'
   );
 
   const published = evaluateReleasePublishAllowlist({
     allowlist: ['@holoscript/llm-provider'],
     packages: [{ ...llm, registryVersions: ['1.6.1', '1.6.2'] }],
   });
-  check('package not in unpublished set', published.ok === false && published.code === 'not-unpublished');
+  check(
+    'package not in unpublished set',
+    published.ok === false && published.code === 'not-unpublished'
+  );
 
   const stray = evaluateReleasePublishAllowlist({
     allowlist: ['@holoscript/llm-provider'],
     packages: [llm, core],
   });
-  check('stray unpublished outside allowlist → fail', stray.ok === false && stray.code === 'stray-unpublished');
+  check(
+    'stray unpublished outside allowlist → fail',
+    stray.ok === false && stray.code === 'stray-unpublished'
+  );
 
   return failures;
 }
@@ -755,7 +764,9 @@ async function main() {
   if (args.includes('--check')) {
     const fixtureFlag = args.indexOf('--fixture');
     if (fixtureFlag < 0) {
-      console.error('[release-publish-allowlist] --check requires --fixture <file> in this entrypoint');
+      console.error(
+        '[release-publish-allowlist] --check requires --fixture <file> in this entrypoint'
+      );
       return 2;
     }
     const fixture = JSON.parse(readFileSync(args[fixtureFlag + 1], 'utf8'));
@@ -771,7 +782,9 @@ async function main() {
     );
     return evaluation.ok ? 0 : 1;
   }
-  console.error('[release-publish-allowlist] refusing to publish. Use corepack pnpm release:publish.');
+  console.error(
+    '[release-publish-allowlist] refusing to publish. Use corepack pnpm release:publish.'
+  );
   return 1;
 }
 
@@ -779,7 +792,9 @@ if (invokedAsMain()) {
   main()
     .then((code) => process.exit(code))
     .catch((error) => {
-      console.error(`[release-publish-allowlist] ${error instanceof Error ? error.message : error}`);
+      console.error(
+        `[release-publish-allowlist] ${error instanceof Error ? error.message : error}`
+      );
       process.exit(1);
     });
 }

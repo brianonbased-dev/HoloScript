@@ -38,7 +38,9 @@ function arg(name, fallback) {
   return value;
 }
 
-const parserPath = resolve(arg('--parser', join(repoRoot, 'packages/core/src/parser/HoloScriptPlusParser.ts')));
+const parserPath = resolve(
+  arg('--parser', join(repoRoot, 'packages/core/src/parser/HoloScriptPlusParser.ts'))
+);
 const specPath = resolve(arg('--spec', join(repoRoot, 'docs/spec/holoscript-spec-v0.1.md')));
 const label = arg('--label', 'current');
 
@@ -130,7 +132,9 @@ async function main() {
     }
   };
 
-  const corpus = files.map((file) => read(relative(repoRoot, file).split('\\').join('/'), readFileSync(file, 'utf8')));
+  const corpus = files.map((file) =>
+    read(relative(repoRoot, file).split('\\').join('/'), readFileSync(file, 'utf8'))
+  );
   const spec = hsAccept.map((fence) => {
     const row = read(`docs/spec/holoscript-spec-v0.1.md:${fence.line}`, fence.source);
     row.fenceLine = fence.line;

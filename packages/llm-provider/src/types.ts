@@ -307,9 +307,7 @@ export interface AnthropicContainerUploadBlock {
 }
 
 export type AnthropicFileContentBlock =
-  | AnthropicDocumentFileBlock
-  | AnthropicImageFileBlock
-  | AnthropicContainerUploadBlock;
+  AnthropicDocumentFileBlock | AnthropicImageFileBlock | AnthropicContainerUploadBlock;
 
 export type AnthropicFileContentBlockType = AnthropicFileContentBlock['type'];
 
@@ -358,10 +356,7 @@ export function anthropicFileContentBlock(
 }
 
 export type LLMContentBlock =
-  | TextBlock
-  | ToolUseBlock
-  | ToolResultBlock
-  | AnthropicFileContentBlock;
+  TextBlock | ToolUseBlock | ToolResultBlock | AnthropicFileContentBlock;
 
 export type AssistantContentBlock = TextBlock | ToolUseBlock;
 

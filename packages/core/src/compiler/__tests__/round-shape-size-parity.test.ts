@@ -58,9 +58,10 @@ describe('round shapes: Android and Quest agree on size', () => {
   it('a cylinder is as wide and as tall as Quest draws it', () => {
     // Quest has no cylinder primitive: it draws Box(min, max) with max = +size/2 on each axis.
     // The sphere is not a box, so the only Box in this scene is the cylinder's.
-    const box = /Box\(Vector3\((-?[\d.]+)f, (-?[\d.]+)f, (-?[\d.]+)f\), Vector3\((-?[\d.]+)f, (-?[\d.]+)f, (-?[\d.]+)f\)\)/.exec(
-      quest
-    );
+    const box =
+      /Box\(Vector3\((-?[\d.]+)f, (-?[\d.]+)f, (-?[\d.]+)f\), Vector3\((-?[\d.]+)f, (-?[\d.]+)f, (-?[\d.]+)f\)\)/.exec(
+        quest
+      );
     expect(box, 'Quest emitted the cylinder as a box').not.toBeNull();
     const questWidth = Number(box![4]) * 2;
     const questHeight = Number(box![5]) * 2;

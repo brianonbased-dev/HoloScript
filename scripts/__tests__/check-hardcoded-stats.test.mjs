@@ -97,9 +97,15 @@ describe('check-hardcoded-stats batched staged diff', () => {
     writeFileSync(join(root, 'docs', 'added café.md'), 'Hello.\n');
     execFileSync('git', ['add', '--', 'docs'], { cwd: root, stdio: 'ignore' });
     execFileSync('git', ['commit', '-m', 'base', '--quiet'], { cwd: root, stdio: 'ignore' });
-    writeFileSync(join(root, 'docs', 'my notes.md'), 'Historical note: 158 MCP tools.\nHello again.\n');
+    writeFileSync(
+      join(root, 'docs', 'my notes.md'),
+      'Historical note: 158 MCP tools.\nHello again.\n'
+    );
     writeFileSync(join(root, 'docs', 'café.md'), 'Historical note: 44 compilers.\nHello again.\n');
-    writeFileSync(join(root, 'docs', 'added café.md'), 'Hello.\nThis release ships 158 MCP tools.\n');
+    writeFileSync(
+      join(root, 'docs', 'added café.md'),
+      'Hello.\nThis release ships 158 MCP tools.\n'
+    );
     execFileSync('git', ['add', '--', 'docs/my notes.md', 'docs/café.md', 'docs/added café.md'], {
       cwd: root,
       stdio: 'ignore',

@@ -386,9 +386,8 @@ describe('agent_id binding for a loopback registrant through the real http-serve
     // holomesh/state, which resolves HOLOMESH_DATA_DIR once at load. A static
     // import here would run before the env scrub and point the whole run at
     // the real data dir.
-    ({ AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR, AGENT_ID_RESERVED_ERROR } = await import(
-      '../security/proven-agent-id'
-    ));
+    ({ AGENT_ID_NOT_BOUND_AT_REGISTRATION_ERROR, AGENT_ID_RESERVED_ERROR } =
+      await import('../security/proven-agent-id'));
     ({ AGENT_ID_NOT_BOUND_ERROR } = await import('../auth/oauth2-provider'));
   });
 
@@ -550,8 +549,12 @@ describe('agent_id binding for a loopback registrant through the real http-serve
         const record = getOAuth21Service().getClient(id);
         expect(record, `client ${id} is stored`).toBeDefined();
         // Only the per-client identifiers and the clock may differ.
-        const { clientId: _clientId, clientSecret: _clientSecret, createdAt: _createdAt, ...rest } =
-          record!;
+        const {
+          clientId: _clientId,
+          clientSecret: _clientSecret,
+          createdAt: _createdAt,
+          ...rest
+        } = record!;
         return rest;
       };
       const proven = stored(provenAskingY.body.client_id as string);

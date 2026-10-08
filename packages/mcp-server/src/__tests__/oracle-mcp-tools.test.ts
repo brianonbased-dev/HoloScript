@@ -142,7 +142,10 @@ describe('oracle-mcp-tools', () => {
             path.join(tmp, 'missing-target-for-broken-symlink'),
             path.join(tmp, 'dangling-root')
           );
-          fs.symlinkSync(path.join(tmp, 'missing-nested-target'), path.join(notes, 'dangling-nested'));
+          fs.symlinkSync(
+            path.join(tmp, 'missing-nested-target'),
+            path.join(notes, 'dangling-nested')
+          );
           fs.symlinkSync(visible, path.join(tmp, '2026-09-27_hardeningprobe-linked.md'));
         } catch (err) {
           const code =

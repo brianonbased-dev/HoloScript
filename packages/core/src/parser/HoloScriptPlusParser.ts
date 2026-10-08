@@ -8175,9 +8175,10 @@ export class HoloScriptPlusParser {
       malformed = true;
     }
 
-    const sliceEnd = !malformed && this.previous().type === 'RBRACE'
-      ? this.previous().offset + this.previous().value.length
-      : (region.bodyEnd ?? region.signatureEnd);
+    const sliceEnd =
+      !malformed && this.previous().type === 'RBRACE'
+        ? this.previous().offset + this.previous().value.length
+        : (region.bodyEnd ?? region.signatureEnd);
     if (malformed) this.advanceTokensTo(sliceEnd);
 
     const anyParamType = paramTypes.some((entry) => entry !== null);
