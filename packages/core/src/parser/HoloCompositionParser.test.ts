@@ -31,6 +31,69 @@ describe('HoloCompositionParser', () => {
     });
   });
 
+  // A file without a `composition` wrapper used to skip unknown root tokens
+  // silently: `zzz qqq 123 !!!` parsed to an empty composition, success: true.
+  describe('Unknown file-level input', () => {
+    it('reports garbage instead of returning an empty success', () => {
+      const result = parseHolo('zzz qqq 123 !!!');
+      expect(result.success).toBe(false);
+      expect(result.errors[0].message).toMatch(/Unexpected token at file level/);
+    });
+
+    it('reports bare unknown words, not only the junk after them', () => {
+      const result = parseHolo('zzz qqq\n');
+      expect(result.success).toBe(false);
+      expect(result.errors[0].message).toMatch(/file level: IDENTIFIER 'zzz'/);
+    });
+
+    it('reports an unknown word block but still parses what is inside it', () => {
+      const result = parseHolo('foo {\n  object "Cube" { geometry: "cube" }\n}\n');
+      expect(result.success).toBe(false);
+      expect(result.ast?.objects.map((o) => o.name)).toEqual(['Cube']);
+    });
+
+    it('reads the documented `nft marketplace` form as a marketplace with the nft trait', () => {
+      const bare = parseHolo('nft marketplace "Art" {\n  symbol: "ART"\n}\n');
+      const wrapped = parseHolo('composition "C" {\n  nft marketplace "Art" {\n    symbol: "ART"\n  }\n}\n');
+      for (const result of [bare, wrapped]) {
+        expect(result.success).toBe(true);
+        const block = result.ast?.domainBlocks?.find((d) => d.name === 'Art');
+        expect(block?.keyword).toBe('marketplace');
+        expect(block?.traits).toContain('nft');
+      }
+    });
+
+    it('names a wrapperless file from @world "Name" and keeps @version "x" as _arg0', () => {
+      const result = parseHolo('@world "Weather Demo"\n@version "5.7.0"\n');
+      expect(result.success).toBe(true);
+      expect(result.ast?.name).toBe('Weather Demo');
+      const version = result.ast?.traits?.find((t) => t.name === 'version');
+      expect(version?.config).toEqual({ _arg0: '5.7.0' });
+    });
+
+    it('parses file-level particle_system as the particles synonym', () => {
+      const result = parseHolo('particle_system "Rain" @looping {\n  rate: 10\n}\n');
+      expect(result.success).toBe(true);
+      const block = result.ast?.domainBlocks?.find((d) => d.name === 'Rain');
+      expect(block?.domain).toBe('vfx');
+    });
+
+    it('accepts at file level what a composition body accepts (zone)', () => {
+      const body = 'zone "Lobby" {\n  shape: "box"\n}\n';
+      const wrapped = parseHolo(`composition "C" {\n${body}}\n`);
+      const bare = parseHolo(body);
+      expect(wrapped.success).toBe(true);
+      expect(bare.success).toBe(true);
+      expect(bare.ast?.zones?.map((z) => z.name)).toEqual(['Lobby']);
+    });
+
+    it('still parses a valid wrapperless file cleanly', () => {
+      const result = parseHolo('object "Ball" {\n  position: [0, 1, 0]\n}\n');
+      expect(result.success).toBe(true);
+      expect(result.errors).toEqual([]);
+    });
+  });
+
   describe('Environment', () => {
     it('parses environment block', () => {
       const source = `
