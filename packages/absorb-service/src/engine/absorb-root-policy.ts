@@ -38,7 +38,16 @@ function isWithin(child: string, root: string): boolean {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
-export function absorbAllowedRoots(env: NodeJS.ProcessEnv = process.env): string[] {
+/**
+ * The only variables the policy reads. Narrower than NodeJS.ProcessEnv on purpose: a caller
+ * hands in its own roots as a plain object (`{ ABSORB_ALLOWED_ROOTS: dir }`), and an app that
+ * augments ProcessEnv with required keys (Next.js adds NODE_ENV) must still be able to.
+ */
+export type AbsorbRootEnv = Readonly<
+  Partial<Record<'ABSORB_ALLOWED_ROOTS' | 'HOLOSCRIPT_WORKSPACE_ROOT' | 'ABSORB_PROJECT_ROOT', string>>
+>;
+
+export function absorbAllowedRoots(env: AbsorbRootEnv = process.env): string[] {
   const configured = (env.ABSORB_ALLOWED_ROOTS ?? '')
     .split(path.delimiter)
     .map((entry) => entry.trim())
@@ -56,7 +65,7 @@ export function absorbAllowedRoots(env: NodeJS.ProcessEnv = process.env): string
 /** Why `requested` may not be scanned, or null when it sits inside an allowed root. */
 export function absorbRootRefusal(
   requested: string,
-  env: NodeJS.ProcessEnv = process.env
+  env: AbsorbRootEnv = process.env
 ): string | null {
   const real = realOrResolved(requested);
   const roots = absorbAllowedRoots(env);
