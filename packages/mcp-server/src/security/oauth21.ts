@@ -26,7 +26,7 @@ import {
   openDevModeAllowed,
   OAUTH2_PUBLIC_SCOPE_NAMES,
 } from '../auth/oauth2-provider';
-import { ClientStoreFullError, DEFAULT_MAX_CLIENTS } from '../auth/token-store';
+import { ClientStoreFullError, DEFAULT_MAX_CLIENTS, scopesIssuedTo } from '../auth/token-store';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -112,6 +112,8 @@ export interface RegisteredClient {
    * this agent_id without re-presenting the key; any other agent_id is refused.
    */
   agentId?: string;
+  /** The registration proved nothing: tools:execute is issued as tools:write (scopesIssuedTo). */
+  registeredUnproven?: boolean;
 }
 
 export interface AuthorizationCode {
@@ -270,6 +272,8 @@ export class OAuth21Service {
     rateLimit?: number;
     /** Only set by a caller that proved this agent's own key (see http-server). */
     agentId?: string;
+    /** The registration proved nothing (see http-server, /oauth/register). */
+    registeredUnproven?: boolean;
   }): { clientId: string; clientSecret: string } {
     if (clients.size >= this.config.maxClients) {
       throw new ClientStoreFullError({
@@ -292,6 +296,7 @@ export class OAuth21Service {
       clientType: params.clientType || 'confidential',
       rateLimit: params.rateLimit || 60,
       ...(params.agentId ? { agentId: params.agentId } : {}),
+      ...(params.registeredUnproven ? { registeredUnproven: true } : {}),
     };
 
     clients.set(clientId, client);
@@ -835,6 +840,9 @@ export class OAuth21Service {
     dpopThumbprint?: string,
     chainId?: string
   ): TokenResponse {
+    // Every grant issues here, so this is where an unproven client's
+    // tools:execute narrows to tools:write (board task zkdg).
+    scopes = scopesIssuedTo(clients.get(clientId), scopes) as OAuthScope[];
     const now = Date.now();
     const accessTokenValue = generateToken();
     const refreshTokenValue = generateToken();

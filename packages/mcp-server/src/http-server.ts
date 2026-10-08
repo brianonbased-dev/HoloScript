@@ -149,6 +149,7 @@ import {
 import {
   agentBindingForRegistration,
   loopbackRegistrantMayBindUnproven,
+  registrationProvedNothing,
   resolveProvenAgentId,
 } from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
@@ -2198,13 +2199,26 @@ const httpServer = http.createServer(async (req, res) => {
       // same socket address the door above was decided on, never a header.
       // The decision lives in `agentBindingForRegistration` so it can be tested
       // without booting this server: inline, it stayed green when deleted.
+      const registrarAgentId = resolveProvenAgentId(req.headers);
+      const registrarIsLoopback = isLoopbackAddress(registrar);
+      const remoteRegistrationAllowed = isTruthyEnvFlag(
+        process.env.OAUTH_ALLOW_REMOTE_REGISTRATION
+      );
       const agentBinding = agentBindingForRegistration({
         requestedAgentId: body.agent_id,
-        registrarAgentId: resolveProvenAgentId(req.headers),
+        registrarAgentId,
         unprovenBindingAllowed: loopbackRegistrantMayBindUnproven({
-          registrarIsLoopback: isLoopbackAddress(registrar),
-          remoteRegistrationAllowed: isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION),
+          registrarIsLoopback,
+          remoteRegistrationAllowed,
         }),
+      });
+      // A registrant that proved nothing gets tools:execute issued as
+      // tools:write only (board task zkdg); recorded on the client in both
+      // registries so a redeploy cannot hand it the full grant.
+      const registeredUnproven = registrationProvedNothing({
+        provenAgentId: registrarAgentId,
+        registrarIsLoopback,
+        remoteRegistrationAllowed,
       });
       if (!agentBinding.ok) throw new Error(agentBinding.reason);
       // The registry's spelling for a proven binding; the request's, trimmed,
@@ -2228,6 +2242,7 @@ const httpServer = http.createServer(async (req, res) => {
           clientType,
           rateLimit,
           ...(boundAgentId ? { agentId: boundAgentId } : {}),
+          ...(registeredUnproven ? { registeredUnproven: true } : {}),
         },
         { metrics: getPrometheusMetrics('holoscript') }
       );

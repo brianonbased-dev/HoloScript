@@ -341,6 +341,7 @@ export async function registerClientDurably(
         clientType?: 'confidential' | 'public';
         rateLimit?: number;
         agentId?: string;
+        registeredUnproven?: boolean;
       }): { clientId: string; clientSecret: string };
       revokeClient(clientId: string): boolean;
     };
@@ -353,6 +354,7 @@ export async function registerClientDurably(
     clientType: 'confidential' | 'public';
     rateLimit: number;
     agentId?: string;
+    registeredUnproven?: boolean;
   },
   observe: { metrics: RegistrationMetrics; logError?: (line: string) => void }
 ): Promise<DurableRegistrationOutcome> {
@@ -475,6 +477,7 @@ export async function prepareClientForUse(
         clientType: 'confidential' | 'public';
         rateLimit: number;
         agentId?: string;
+        registeredUnproven?: boolean;
       }): void;
       revokeClient(clientId: string): boolean;
     };
@@ -529,6 +532,9 @@ export async function prepareClientForUse(
           // next token request, with nothing in the response saying the binding
           // had been forgotten rather than never granted.
           ...(durable.agentId ? { agentId: durable.agentId } : {}),
+          // Same for an unproven registration: dropped here, a redeploy would
+          // hand the client the full tools:execute it was never meant to hold.
+          ...(durable.registeredUnproven ? { registeredUnproven: true } : {}),
         });
       }
     } catch (err) {
@@ -592,6 +598,8 @@ export class OAuth2Provider {
     clientSecret?: string;
     /** Agent binding proved at registration; persisted so it survives a deploy. */
     agentId?: string;
+    /** The registration proved nothing; see StoredClient.registeredUnproven. */
+    registeredUnproven?: boolean;
   }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     return this.store.registerClient({
       ...params,
