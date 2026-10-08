@@ -1,0 +1,98 @@
+{
+  "schema": "which-is-right.moment-receipt.v1",
+  "roundId": "moments-20261006T015218-78526c91",
+  "sealVerified": true,
+  "questions": [
+    {
+      "n": 1,
+      "class": "planted-fault",
+      "shown": {
+        "A": "planted fault swing-off-by-one",
+        "B": "correct"
+      },
+      "expectedChoice": "heat",
+      "versionA": "off",
+      "versionB": "heat",
+      "matchedVersion": "B",
+      "correctSide": "B",
+      "correct": true,
+      "seconds": 33.5
+    },
+    {
+      "n": 2,
+      "class": "planted-fault",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault fan-on-auto-swapped"
+      },
+      "expectedChoice": "off",
+      "versionA": "off",
+      "versionB": "fan",
+      "matchedVersion": "A",
+      "correctSide": "A",
+      "correct": true,
+      "seconds": 16.7
+    },
+    {
+      "n": 3,
+      "class": "planted-fault",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault heat-cool-swapped"
+      },
+      "expectedChoice": "off",
+      "versionA": "off",
+      "versionB": "backup",
+      "matchedVersion": "A",
+      "correctSide": "A",
+      "correct": true,
+      "seconds": 153.3
+    },
+    {
+      "n": 4,
+      "class": "planted-fault",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault wait-5-not-7"
+      },
+      "expectedChoice": "cool",
+      "versionA": "off",
+      "versionB": "cool",
+      "matchedVersion": "B",
+      "correctSide": "A",
+      "correct": false,
+      "seconds": 21.9
+    },
+    {
+      "n": 5,
+      "class": "rebuild-disagreement",
+      "shown": {
+        "A": "rebuild r3",
+        "B": "correct"
+      },
+      "expectedChoice": "cool",
+      "versionA": "off",
+      "versionB": "cool",
+      "matchedVersion": "B",
+      "correctSide": "B",
+      "correct": true,
+      "seconds": 7
+    }
+  ],
+  "totals": {
+    "shown": 5,
+    "answered": 5,
+    "knownAnswered": 5,
+    "right": 4,
+    "plantedShown": 4,
+    "plantedCaught": 3,
+    "rebuildShown": 1,
+    "rebuildAnswered": 1,
+    "rebuildSidedWithRules": 1,
+    "neitherVersion": 0,
+    "averageSeconds": 46
+  },
+  "plain": "You answered 5 questions.\nOn the 5 where we knew the answer, you chose right 4 times.\nYou caught 3 of 4 planted faults.\nOn the 1 where a copy built from your rules disagreed, you sided with your rules 1 time.\nYou took about 46 seconds each.\nThe answer key was sealed before you saw the questions, and it was not changed.",
+  "sealProblems": [],
+  "collectedAt": "2026-10-08T00:16:25.655Z"
+}
