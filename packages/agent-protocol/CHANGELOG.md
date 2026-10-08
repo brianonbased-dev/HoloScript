@@ -1,5 +1,13 @@
 # @holoscript/agent-protocol
 
+## 8.9.0
+
+### Minor Changes
+
+- Released with `@holoscript/core` 8.9.0 as part of the fixed version group. No agent-protocol-specific changeset was recorded for this release.
+
+## 8.7.0
+
 ## 8.0.6
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @holoscript/uaal
 
+## 8.9.0
+
+### Minor Changes
+
+- Released with `@holoscript/core` 8.9.0 as part of the fixed version group. No uaal-specific changeset was recorded for this release.
+
+## 8.7.0
+
+### Patch Changes
+
+- 33cf7ea: Publish deterministic `.hs` compiler/UAAL execution provenance and an additive cross-format source-run receipt that explicitly distinguishes source re-execution from hash-anchored `.holo` and `.hsplus` evidence.
+
 ## 8.3.0
 
 ### Minor Changes

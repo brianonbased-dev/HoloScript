@@ -1,5 +1,63 @@
 # @holoscript/core
 
+## 8.9.0
+
+### Minor Changes
+
+- Core and CLI changes merged to main between the 8.7.0 release (2026-08-13) and
+  this one. They were not recorded as changesets at the time; the git history of
+  `packages/core` and `packages/cli` since 2026-08-13 is the full list.
+
+  **Behavior change (security):** a pipeline no longer reads environment variables
+  on its own. Each variable it reads must be allowed by the operator with
+  `--allow-env <NAME>` (this includes `HOLOSCRIPT_MCP_URL`). A pipeline that read
+  environment variables under 8.7.0 runs under 8.9.0 without them until they are
+  allowed. A pipeline file can also no longer send `HOLOSCRIPT_API_KEY` to a
+  server it chose, and gets no loopback server of its own.
+
+  Other highlights:
+
+  - Scene blocks: objects written inside a `scene` now reach WebGPU, Godot, Android,
+    iOS, visionOS, Android XR, Quest and Studio's viewport, and a scene that reuses
+    an object name no longer breaks WebGPU or Godot output.
+  - Every export target carries a readiness tier its evidence earns.
+  - Three.js output emits rotation in radians (HoloScript rotation is degrees);
+    iOS and Android round parts and cylinders are sized like Quest and the web.
+  - The `.hsplus` Rust checker loads from built output.
+  - `query --dir` searches the directory it absorbed.
+  - Traits can describe their own fields, and editor affordances are refused for a
+    trait name two traits claim.
+
+### Patch Changes
+
+- @holoscript/agent-protocol@8.9.0
+
+## 8.7.0
+
+### Minor Changes
+
+- 64f7022: Expose structured HoloScript+ record fields through the supported core and parser entry points,
+  including a fail-closed source-to-HoloMeaning projection for `@unknown` fields. Canonical parser
+  APIs now return `HSPlusParseResult` with a required typed AST while `HSPlusCompileResult` retains
+  optional typed AST compatibility for handwritten results. Keep the zero-runtime core-types mirror
+  in sync and harden LSP safety extraction against malformed or cyclic AST input.
+- d26629c: Add source-run receipt v3 with deterministic `.holo` source re-projection,
+  world-provenance verification, closed nested receipt contracts, and a durable
+  three-format Model Village experiment fixture while preserving v2
+  verification. Expose the canonical `.holo` tokenizer so the admitted world
+  profile can fail closed on non-static token classes, properties, traits, and
+  lifecycle syntax. Pose/physics output is declaration metadata, not solver
+  execution.
+
+### Patch Changes
+
+- 7c22951: Fix clean public-registry imports by lazily materializing `VR_TRAITS` in parser error recovery instead of spreading it at module load time.
+- 664f178: Require authored `.holo` `seeks` and selected-barrier `shields` relationships before the bounded
+  HSI causal loop can resolve or act, with deterministic fail-closed receipts for unbound queries.
+- Updated dependencies [64f7022]
+  - @holoscript/core-types@6.2.0
+  - @holoscript/agent-protocol@8.7.0
+
 ## 8.0.13
 
 ### Patch Changes
