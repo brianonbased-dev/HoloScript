@@ -79,6 +79,20 @@ function fail(reason, detail) {
 // resolve the platform-correct binary and run npm via shell so PATH applies.
 const NPM_BIN = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
+// A failed child process can print nothing at all (measured 2026-10-08: npm install of the
+// core tarball exited non-zero with empty stdout and stderr, and the gate printed only
+// "Command failed: ..."). Always carry the exit status and signal, then whatever it printed.
+function childFailure(e) {
+  const how = [
+    e.status != null ? `exit status ${e.status}` : null,
+    e.signal ? `signal ${e.signal}` : null,
+    e.code && typeof e.code === 'string' ? `error ${e.code}` : null,
+  ].filter(Boolean);
+  const printed = [e.stderr, e.stdout].filter((x) => x && String(x).trim()).join(String.fromCharCode(10));
+  const head = how.length ? `(${how.join(', ')}) ` : '';
+  return (head + (printed || `${e.message || ''} (the command printed nothing)`)).slice(0, 2000);
+}
+
 function run(cmd, cmdArgs, opts = {}) {
   const isNpm = cmd === 'npm';
   return execFileSync(isNpm ? NPM_BIN : cmd, cmdArgs, {
@@ -324,7 +338,7 @@ function main() {
     try {
       run('npm', installArgs, { cwd: work });
     } catch (e) {
-      fail('install-failed', (e.stderr || e.stdout || e.message || '').slice(0, 2000));
+      fail('install-failed', childFailure(e));
     }
 
     const probes = [
@@ -344,7 +358,7 @@ function main() {
           fail('probe-bad-output', `${p.name} probe did not print ${p.marker}:\n${out}`);
         }
       } catch (e) {
-        const detail = (e.stderr || e.stdout || e.message || '').slice(0, 2000);
+        const detail = childFailure(e);
         results.push({ probe: p.name, passed: false, output: detail });
         log(`[cold-repro-onramp] ${p.name} probe: FAIL`);
         fail('probe-crashed', `${p.name} probe crashed:\n${detail}`);
