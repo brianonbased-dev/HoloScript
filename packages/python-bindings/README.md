@@ -2,8 +2,9 @@
 
 Python bridges that carry scientific tooling into
 [HoloScript](https://github.com/brianonbased-dev/HoloScript) — DICOM imaging,
-protein structure, radio astronomy, ROS 2 and molecular docking — plus the
-decision surfaces under `holoscript.cognition`.
+radio astronomy, ROS 2, molecular docking and Narupa molecular dynamics — plus
+the decision surfaces under `holoscript.cognition`. The AlphaFold bridge ships
+but is a stub: nothing in it predicts a structure yet.
 
 **Parsing is not in this package yet.** `parse()` and `validate()` raise
 `NotImplementedError` in 6.0.8. Through 6.0.7 they returned success for any
@@ -18,22 +19,31 @@ text that is not HoloScript.
 and were never tested here. On those versions pip keeps installing 6.0.7.
 
 The README you see on [pypi.org/project/holoscript](https://pypi.org/project/holoscript/)
-comes from this file in the published wheel and sdist.
+comes from this file in the published wheel.
 
 ## Install
 
 ```bash
 pip install holoscript                    # bridges only, no heavy dependencies
 pip install 'holoscript[medical]'         # DICOM imaging
-pip install 'holoscript[alphafold]'       # protein structure prediction
+pip install 'holoscript[alphafold]'       # AlphaFold bridge (a stub: predicts nothing yet)
 pip install 'holoscript[astronomy]'       # radio astronomy
 pip install 'holoscript[robotics]'        # ROS 2
-pip install 'holoscript[scientific]'      # molecular docking (AutoDock)
-pip install 'holoscript[all]'             # everything
+pip install 'holoscript[scientific]'      # numpy only; docking also needs: pip install vina
+pip install 'holoscript[all]'             # every extra above
 ```
 
-Importing a bridge without its extra raises `ImportError` naming the install
-line. It never ends your process.
+No extra installs AutoDock Vina (`pip install vina`) or Narupa's `nanover-server`.
+
+What happens when a dependency is missing:
+
+- `medical` raises `ImportError` at import, naming the install line.
+- `alphafold`, `robotics`, `scientific` and `narupa` import fine, then report the
+  missing dependency in the result they return, naming what to install:
+  `status: failed` (`narupa` says `status: error`).
+- `radio_astronomy` needs no extra package.
+
+None of them ends your process.
 
 ## What this version implements
 
@@ -50,7 +60,8 @@ it rather than on this README.
 | Not here | Where it is | When |
 | --- | --- | --- |
 | `parse`, `validate` | `@holoscript/core` on npm (permissive) | planned for 6.1.0 |
-| `generate`, scene rendering, `share` | not shipped anywhere yet | unscheduled |
+| `generate`, scene rendering, `share` | MCP server tools (`generate_object` / `generate_scene`, `render_preview`, `create_share_link`); not in the Python package | not planned here |
+| AlphaFold structure prediction | nowhere yet: the bridge is a stub (`capabilities()` lists it under `not_implemented`) | unscheduled |
 | Full trait registry | `@holoscript/core` | with 6.1.0 |
 
 `list_traits()` returns a static five-name snapshot, not the registry. Of those
@@ -70,7 +81,10 @@ image = bridge.load_dicom("/path/to/scan.dcm")
 volume = bridge.extract_3d_volume("/path/to/dicom/")
 ```
 
-Requires: `pydicom`, `numpy` (`pip install 'holoscript[medical]'`)
+Requires: `pydicom`, `numpy` (`pip install 'holoscript[medical]'`).
+`extract_3d_volume` returns the volume's dimensions, spacing and value range,
+not the voxels. `dicom_to_mesh` is not implemented: it always returns
+`success: False`.
 
 ### AlphaFold — Protein Structure
 
@@ -84,9 +98,12 @@ result = bridge.predict_structure({
 })
 ```
 
-The method is `predict_structure()`; `predict_multimer()` handles complexes.
-Without an API key the bridge fails closed with a clear error rather than
-reaching the network. Requires: `requests`
+**A stub.** No path in this bridge returns a structure: the AlphaFold API
+endpoint it calls is a placeholder that does not resolve, and the local
+ColabFold path (`mode: "local"`) returns "not yet implemented" even with
+ColabFold installed. Every call fails closed with `status: failed`. Without an
+API key it fails before reaching the network. `capabilities()` lists it under
+`not_implemented`.
 
 ### Astronomy — Radio Telescope Data
 
@@ -127,8 +144,21 @@ results = bridge.run_docking({
 })
 ```
 
-Without AutoDock Vina installed this returns a `status: failed` dict rather
-than raising.
+Needs AutoDock Vina: `pip install vina`. The `[scientific]` extra installs
+only numpy. Without Vina this returns a `status: failed` dict rather than
+raising.
+
+### Narupa — molecular dynamics servers
+
+```python
+from holoscript.bridges.narupa import NarupaBridge
+
+bridge = NarupaBridge()
+bridge.start_server({"pdb_path": "protein.pdb"})
+```
+
+Needs `nanover-server`, which no extra installs. Without it `start_server`
+returns `status: error` naming the install line.
 
 ## Cognition
 

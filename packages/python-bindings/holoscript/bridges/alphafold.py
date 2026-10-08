@@ -3,6 +3,13 @@
 AlphaFold Bridge for HoloScript
 Protein structure prediction using AlphaFold3 API or ColabFold
 
+Status: a stub. No path in this module returns a structure. The API endpoint is
+a placeholder that does not resolve, and the local ColabFold path returns
+'not yet implemented' even when ColabFold is installed. Every call fails closed
+with status 'failed'. holoscript.capabilities() lists this bridge under
+not_implemented, and the release pre-flight checks that it stays there while
+this is true.
+
 Requirements:
   pip install requests
 

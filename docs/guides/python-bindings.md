@@ -1,8 +1,9 @@
 # Python Bindings Guide
 
 The `holoscript` package on PyPI carries scientific tooling into HoloScript —
-DICOM imaging, protein structure, radio astronomy, ROS 2 and molecular docking —
-plus the decision surfaces under `holoscript.cognition`.
+DICOM imaging, radio astronomy, ROS 2, molecular docking and Narupa molecular
+dynamics — plus the decision surfaces under `holoscript.cognition`. The AlphaFold
+bridge ships but is a stub: nothing in it predicts a structure yet.
 
 **It does not parse HoloScript yet.** In 6.0.8, `parse()` and `validate()` raise
 `NotImplementedError`. Through 6.0.7 they returned success for any non-empty
@@ -23,15 +24,24 @@ Python 3.10 or newer. On 3.8 and 3.9, pip keeps installing 6.0.7.
 ```bash
 pip install holoscript                    # bridges only, no heavy dependencies
 pip install 'holoscript[medical]'         # DICOM imaging
-pip install 'holoscript[alphafold]'       # protein structure prediction
+pip install 'holoscript[alphafold]'       # AlphaFold bridge (a stub: predicts nothing yet)
 pip install 'holoscript[astronomy]'       # radio astronomy
 pip install 'holoscript[robotics]'        # ROS 2
-pip install 'holoscript[scientific]'      # molecular docking (AutoDock)
-pip install 'holoscript[all]'             # everything
+pip install 'holoscript[scientific]'      # numpy only; docking also needs: pip install vina
+pip install 'holoscript[all]'             # every extra above
 ```
 
-Importing a bridge without its extra raises `ImportError` naming the install
-line. It never ends your process.
+No extra installs AutoDock Vina (`pip install vina`) or Narupa's `nanover-server`.
+
+What happens when a dependency is missing:
+
+- `medical` raises `ImportError` at import, naming the install line.
+- `alphafold`, `robotics`, `scientific` and `narupa` import fine, then report the
+  missing dependency in the result they return, naming what to install:
+  `status: failed` (`narupa` says `status: error`).
+- `radio_astronomy` needs no extra package.
+
+None of them ends your process.
 
 ## Ask the package what it does
 
@@ -45,18 +55,24 @@ print(holoscript.capabilities())
 `capabilities()` is the machine-readable answer. Agents and scripts should branch
 on it rather than on this page:
 
-- `implemented` — what works: `list_traits`, the six bridges, the cognition
-  surfaces.
-- `limits` — implemented, with a stated gap (the AlphaFold API path is a stub
-  that fails closed; the synchrotron formula is a placeholder; `cognition.render`
-  needs the npm `holo-decision` program).
-- `not_implemented` — top-level functions that do not exist yet, with the
-  release they are planned for (`None` means unscheduled).
+- `implemented` — what works: `list_traits`, five bridges (`medical`, `narupa`,
+  `radio_astronomy`, `robotics`, `scientific`), the cognition surfaces.
+- `limits` — implemented, with a stated gap: `medical` (`dicom_to_mesh` is not
+  implemented; `extract_3d_volume` returns dimensions and value range, not
+  voxels), `narupa` (needs `nanover-server`, which no extra installs),
+  `scientific` (needs `pip install vina`, which the extra does not install), the
+  synchrotron formula is a placeholder, and `cognition.render` needs the npm
+  `holo-decision` program.
+- `not_implemented` — top-level functions that do not exist yet, plus
+  `bridges.alphafold` (it ships and imports, but no path returns a structure),
+  with the release each is planned for (`None` means unscheduled).
 
 Before a release is uploaded, every `implemented` entry is checked against the
 installed wheel (`packages/python-bindings/scripts/preflight-release.py`) — at
 least that it imports or exists; `record_decision` and `read_log` are also run
-end to end. Gaps that check cannot see are listed under `limits`.
+end to end. It also forces the AlphaFold local path with ColabFold "present" and
+requires a failure, so `alphafold` cannot be listed as implemented while it is a
+stub. Gaps that check cannot see are listed under `limits`.
 
 ## API
 
@@ -91,6 +107,9 @@ volume = bridge.extract_3d_volume("/path/to/dicom/")
 ```
 
 Requires `pydicom` and `numpy` (`pip install 'holoscript[medical]'`).
+`extract_3d_volume` returns the volume's dimensions, spacing and value range, not
+the voxels. `dicom_to_mesh` is not implemented: it always returns
+`success: False`.
 
 ### AlphaFold — protein structure
 
@@ -104,8 +123,12 @@ result = bridge.predict_structure({
 })
 ```
 
-`predict_multimer()` handles complexes. The AlphaFold API path is a stub: without
-an API key it fails closed with a clear error rather than reaching the network.
+**A stub.** No path in this bridge returns a structure: the AlphaFold API endpoint
+it calls is a placeholder that does not resolve, and the local ColabFold path
+(`mode: "local"`) returns "not yet implemented" even with ColabFold installed.
+Every call, `predict_multimer()` included, fails closed with `status: failed`;
+without an API key it fails before reaching the network. `capabilities()` lists
+it under `not_implemented`.
 
 ### Astronomy — radio telescope data
 
@@ -142,8 +165,20 @@ results = AutoDockBridge().run_docking({
 })
 ```
 
-Without AutoDock Vina installed this returns a `status: failed` dict rather than
-raising.
+Needs AutoDock Vina: `pip install vina`. The `[scientific]` extra installs only
+numpy. Without Vina this returns a `status: failed` dict rather than raising.
+
+### Narupa — molecular dynamics servers
+
+```python
+from holoscript.bridges.narupa import NarupaBridge
+
+bridge = NarupaBridge()
+bridge.start_server({"pdb_path": "protein.pdb"})
+```
+
+Needs `nanover-server`, which no extra installs. Without it `start_server` returns
+`status: error` naming the install line.
 
 ## Cognition
 
