@@ -1814,8 +1814,11 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.entries[0].type).toBe('wisdom');
       expect(res._body.entries[1].type).toBe('gotcha');
 
-      // Verify the contributeKnowledge call used the private workspace
-      const lastCall = mockClient.contributeKnowledge.mock.calls.at(-1);
+      // Verify the write used the private workspace. The route writes through
+      // contributeKnowledgeDetailed (task xzgt); reading contributeKnowledge here found
+      // registration's "Private workspace initialized." entry and passed by accident.
+      const lastCall = mockClient.contributeKnowledgeDetailed.mock.calls.at(-1);
+      expect(lastCall[0][0].content).toBe('Private wisdom A');
       expect(lastCall[0][0].workspaceId).toMatch(/^private:0x/);
       expect(lastCall[0][0].tags).toContain('private');
     });
@@ -1906,7 +1909,7 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.promoted.price).toBe(0.05);
 
       // Verify the public entry was synced to the shared workspace (NOT private)
-      const lastCall = mockClient.contributeKnowledge.mock.calls.at(-1);
+      const lastCall = mockClient.contributeKnowledgeDetailed.mock.calls.at(-1);
       expect(lastCall[0][0].workspaceId).not.toMatch(/^private:/);
       expect(lastCall[0][0].tags).toContain('promoted');
       expect(lastCall[0][0].tags).not.toContain('private');
@@ -1944,7 +1947,7 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.deleted).toBe('W.priv.1');
 
       // Verify tombstone was synced
-      const lastCall = mockClient.contributeKnowledge.mock.calls.at(-1);
+      const lastCall = mockClient.contributeKnowledgeDetailed.mock.calls.at(-1);
       expect(lastCall[0][0].content).toBe('[deleted]');
       expect(lastCall[0][0].tags).toContain('tombstone');
     });
@@ -6814,7 +6817,7 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(res._status).toBe(201);
       expect(res._body.id).toMatch(/^P\.contrib\./);
-      const call = mockClient.contributeKnowledge.mock.calls.at(-1);
+      const call = mockClient.contributeKnowledgeDetailed.mock.calls.at(-1);
       const entry = call?.[0]?.[0] as Record<string, unknown>;
       expect(entry.metadata).toEqual(
         expect.objectContaining({

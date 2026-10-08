@@ -2234,15 +2234,12 @@ export const compilerTools: Tool[] = [
   {
     name: 'verify_cross_perceiver',
     description:
-      'Falsification oracle for one .holo composition across structurally-different perceiver ' +
-      'compilers: webgpu (the human eye), agent-inference (the agent context), urdf (the robot ' +
-      'stack). Compiles the SAME source through each requested perceiver, independently ' +
-      're-derives world facts from each EMITTED ARTIFACT (never the shared input AST), and ' +
-      'diffs them into a PerceiverConsensusReceipt. Any perceiver that re-derives a different ' +
-      'fact flips the verdict to FALSIFIED with the concrete disagreement. ' +
-      'DESIGN CONSTRAINT — verdict FALSIFIED is LOAD-BEARING: consumers MUST treat FALSIFIED ' +
-      'as a hard failure (fail the pipeline / exit non-zero); it must NEVER be demoted to a ' +
-      'warning. Requires at least 2 perceivers (a single-perceiver receipt is circular).',
+      'Falsification oracle: compiles ONE .holo composition through structurally different ' +
+      'perceivers (webgpu = the human eye, agent-inference = the agent context, urdf = the ' +
+      'robot stack), re-derives world facts from each EMITTED artifact (never the shared AST), ' +
+      'and diffs them into a PerceiverConsensusReceipt. Any disagreement flips the verdict to ' +
+      'FALSIFIED. FALSIFIED is a hard failure (fail the pipeline, exit non-zero), never a ' +
+      'warning. Needs at least 2 perceivers.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2275,16 +2272,11 @@ export const compilerTools: Tool[] = [
   {
     name: 'verify_verified_view',
     description:
-      'Provenance oracle for an agent-authored 2D surface (.holo): does every data-bound ' +
-      'element prove what it renders? Re-derives the @verified_view contract that ' +
-      'Native2DCompiler enforces and returns EVERY violation at once (compiling would throw ' +
-      'on the first). Violations: mismatched-node (@projects names a different path than the ' +
-      'binding — "says sessions, wired revenue"), missing-projects (bound element with no ' +
-      'receipt), hallucinated-root (projects a state node that does not exist), ' +
-      'projects-without-binding (a receipt on an unbound element), no-verified-view (binds ' +
-      'data without opting into the gate). DESIGN CONSTRAINT — `complete: false` is ' +
-      'LOAD-BEARING: a surface that cannot prove its data source must be treated as a hard ' +
-      'failure, never demoted to a warning. Unverifiable input is an error, never a false clean.',
+      'Provenance oracle for an agent-authored 2D .holo surface: does every data-bound element ' +
+      'prove what it renders? Re-derives the @verified_view contract Native2DCompiler enforces ' +
+      'and returns EVERY violation at once (mismatched-node, missing-projects, ' +
+      'hallucinated-root, projects-without-binding, no-verified-view). complete: false is a ' +
+      'hard failure, never a warning; unverifiable input is an error, never a false clean.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -3203,7 +3195,12 @@ export const compilerTools: Tool[] = [
   {
     name: 'list_export_targets',
     description:
-      'List all available HoloScript export targets with categories (Game Engines, VR Platforms, Web, Robotics, etc.) and sovereignty classification per target (sovereign = native HoloScript runtime/renderer; bridge = emits to third-party engine; mode = compile orchestrator), and an honest readiness tier per target earned from evidence (reference = proven on a device; production = golden-pinned and accepted by the real engine; preview = unit-tested only; experimental = untested; format-only = writes a description, nothing to run) with a plain sentence of what each target still lacks.',
+      'List every HoloScript export target with its category (game engines, VR, web, robotics, ' +
+      '...), sovereignty (sovereign = native HoloScript runtime; bridge = emits to a ' +
+      'third-party engine; mode = compile orchestrator) and an evidence-earned readiness tier ' +
+      '(reference = proven on a device; production = golden-pinned and accepted by the real ' +
+      'engine; preview = unit-tested only; experimental = untested; format-only = writes a ' +
+      'description, nothing to run), plus what each target still lacks.',
     inputSchema: {
       type: 'object',
       properties: {},
