@@ -126,6 +126,10 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/hsplus-files.test.ts',
+      // @holoscript/strict (packages/core/strict) carries its own node:test runner: its corpus
+      // test runs as `node --test strict/test/corpus.test.mjs` (the strict-corpus HoloCI gate).
+      // Under vitest that file reads as "No test suite found" and fails the core baseline.
+      'strict/**',
       // Flaky files are excluded from the sharded pass and run separately in a
       // dedicated sequential pass (maxWorkers=1) by run-vitest.mjs. This flag
       // is set by the sharded-pass invocation only.
