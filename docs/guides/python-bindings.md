@@ -48,12 +48,15 @@ on it rather than on this page:
 - `implemented` — what works: `list_traits`, the six bridges, the cognition
   surfaces.
 - `limits` — implemented, with a stated gap (the AlphaFold API path is a stub
-  that fails closed; the synchrotron formula is a placeholder).
+  that fails closed; the synchrotron formula is a placeholder; `cognition.render`
+  needs the npm `holo-decision` program).
 - `not_implemented` — top-level functions that do not exist yet, with the
   release they are planned for (`None` means unscheduled).
 
-Every `implemented` entry is checked against the installed wheel before a
-release is uploaded (`packages/python-bindings/scripts/preflight-release.py`).
+Before a release is uploaded, every `implemented` entry is checked against the
+installed wheel (`packages/python-bindings/scripts/preflight-release.py`) — at
+least that it imports or exists; `record_decision` and `read_log` are also run
+end to end. Gaps that check cannot see are listed under `limits`.
 
 ## API
 
@@ -121,7 +124,7 @@ from holoscript.bridges.robotics import ROS2Bridge
 
 bridge = ROS2Bridge("ws://localhost:9090")
 bridge.connect()
-bridge.publish_joint_command("/joint_states", {"position": [0, 0.5, 1.0]})
+bridge.publish_joint_command("/joint_states", {"joint1": 0.0, "joint2": 0.5, "joint3": 1.0})
 ```
 
 Requires `roslibpy`.
@@ -131,7 +134,12 @@ Requires `roslibpy`.
 ```python
 from holoscript.bridges.scientific import AutoDockBridge
 
-results = AutoDockBridge().run_docking({"protein_pdb": "receptor.pdb", "ligand_mol": "compound.mol"})
+results = AutoDockBridge().run_docking({
+    "protein_pdb": "receptor.pdb",
+    "ligand_mol": "compound.mol",
+    "box_center": [0.0, 0.0, 0.0],  # search box centre, angstroms
+    "box_size": [20.0, 20.0, 20.0],  # search box size, angstroms
+})
 ```
 
 Without AutoDock Vina installed this returns a `status: failed` dict rather than
@@ -144,6 +152,8 @@ from holoscript.cognition import record_decision, read_log, render
 ```
 
 Records decisions with their causes to a shared log and renders the log as SVG.
+`render` shells out to the npm `holo-decision` program and raises `RuntimeError`
+when it is not installed.
 
 ## Related links
 

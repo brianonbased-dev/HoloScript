@@ -108,7 +108,7 @@ from holoscript.bridges.robotics import ROS2Bridge
 
 bridge = ROS2Bridge("ws://localhost:9090")
 bridge.connect()
-bridge.publish_joint_command("/joint_states", {"position": [0, 0.5, 1.0]})
+bridge.publish_joint_command("/joint_states", {"joint1": 0.0, "joint2": 0.5, "joint3": 1.0})
 ```
 
 Requires: `roslibpy`
@@ -121,7 +121,9 @@ from holoscript.bridges.scientific import AutoDockBridge
 bridge = AutoDockBridge()
 results = bridge.run_docking({
     "protein_pdb": "receptor.pdb",
-    "ligand_mol": "compound.mol"
+    "ligand_mol": "compound.mol",
+    "box_center": [0.0, 0.0, 0.0],  # search box centre, angstroms
+    "box_size": [20.0, 20.0, 20.0],  # search box size, angstroms
 })
 ```
 
@@ -135,6 +137,8 @@ from holoscript.cognition import record_decision, read_log, render
 ```
 
 Feeds a shared decision stream that renders through the SVG compiler.
+`render` shells out to the npm `holo-decision` program and raises `RuntimeError`
+when it is not installed.
 
 ## MCP Server
 

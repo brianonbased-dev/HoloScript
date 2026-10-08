@@ -87,9 +87,10 @@ def capabilities() -> Dict[str, Any]:
     """Machine-readable truth about this build.
 
     Agents and CI should branch on this rather than on the README. Every
-    entry under ``implemented`` must have a check in scripts/preflight-release.py,
-    which runs against the installed wheel before any upload; a claim with no
-    check behind it is how 6.0.7 shipped.
+    entry under ``implemented`` is checked by scripts/preflight-release.py against
+    the installed wheel before any upload -- at least that it imports or exists;
+    record_decision and read_log are also exercised end to end. Gaps that check
+    cannot see are stated under ``limits``.
 
     ``not_implemented`` names top-level functions. ``scene_render`` is rendering a
     HoloScript scene, which nothing here does; ``holoscript.cognition.render``
@@ -114,6 +115,8 @@ def capabilities() -> Dict[str, Any]:
             "alphafold": "predict_structure via the AlphaFold API is a stub that fails closed; "
             "the ColabFold path needs a local ColabFold install",
             "radio_astronomy": "calculate_synchrotron is a placeholder formula",
+            "cognition.render": "shells out to the npm holo-decision program; raises "
+            "RuntimeError when it is not installed",
         },
         "not_implemented": {
             "parse": "6.1.0",

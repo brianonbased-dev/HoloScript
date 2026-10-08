@@ -139,4 +139,4 @@ if ($LASTEXITCODE -ne 0) { throw 'the published artifact failed its own smoke te
 Write-Host ''
 Write-Host 'Published and verified.' -ForegroundColor Green
 Write-Host 'Do not yank 6.0.7 on its own: 6.0.8 needs Python 3.10+, so 3.8/3.9 users would fall back to 6.0.6, which has the same fake parser.'
-Write-Host 'Then tell Harbor to re-grade: pip install holoscript==6.0.8'
+Write-Host 'Tell Harbor to re-grade: pip install holoscript==6.0.8'
