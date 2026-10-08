@@ -52,49 +52,8 @@ import type {
 import { absorbEmptyLabel, CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
 import { checkProjectPath } from '@/lib/daemon/projectPathPolicy';
 import { confinedReader, readConfinedRegularFile } from '@/lib/daemon/confinedRead';
-
-// =============================================================================
-// ABSORB TYPES (mirrors CodebaseGraph serialized shape)
-// =============================================================================
-
-interface AbsorbSymbol {
-  name: string;
-  type: string;
-  filePath: string;
-  line: number;
-}
-
-interface AbsorbImport {
-  fromFile: string;
-  toModule: string;
-  resolvedPath?: string;
-}
-
-interface AbsorbFileResult {
-  path: string;
-  language: string;
-  symbols: AbsorbSymbol[];
-  imports: AbsorbImport[];
-  calls: unknown[];
-  loc: number;
-  sizeBytes: number;
-}
-
-interface _AbsorbScanResult {
-  rootDir: string;
-  files: AbsorbFileResult[];
-  stats: {
-    totalFiles: number;
-    totalSymbols: number;
-    totalImports: number;
-    totalLoc: number;
-    durationMs: number;
-    errors: string[];
-    filesByLanguage: Record<string, number>;
-    symbolsByType: Record<string, number>;
-    totalCalls: number;
-  };
-}
+// The engine's own type: a local copy of it drifted (no rootDirs) and stopped type-checking.
+import type { ScanResult } from '@holoscript/absorb-service/engine';
 
 export interface AbsorbGraphData {
   /** Files ordered leaf-first (lowest in-degree first — safest to fix) */
@@ -342,9 +301,9 @@ export async function runAbsorbPhase(
   // checked between discovery and parse batches.
   const scanner = new engine.CodebaseScanner(undefined, false);
   const signal = AbortSignal.timeout(limits.scanTimeoutMs);
-  let scanResult: _AbsorbScanResult;
+  let scanResult: ScanResult;
   try {
-    scanResult = (await scanner.scan({
+    scanResult = await scanner.scan({
       rootDir: workDir,
       maxFiles: limits.scanMaxFiles,
       signal,
@@ -353,7 +312,7 @@ export async function runAbsorbPhase(
       readFile: confinedReader(workDir, 1024 * 1024),
       // The copy has no .git; don't spawn git to look for one.
       respectGitIgnore: false,
-    })) as _AbsorbScanResult;
+    });
   } catch (err: unknown) {
     if (signal.aborted) {
       throw new Error(
