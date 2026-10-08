@@ -1,14 +1,40 @@
+"""Python bindings for HoloScript.
+
+6.0.8 is an honesty release. The HoloScript parser is not implemented in the
+Python package, and this version stops pretending it is: ``parse`` and
+``validate`` raise instead of returning success for any input. Real parsing
+is planned for 6.1.0, built on the strict rejection layer for the grammar
+``@holoscript/core`` uses, so the two runtimes cannot drift.
+
+What works today: the domain bridges under ``holoscript.bridges`` and the
+decision surfaces under ``holoscript.cognition``. Ask the package what it
+implements with ``holoscript.capabilities()``.
+"""
+
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Any, Dict, List
 
 # Release version injected by CI from git tag. Dev version for local use.
-__version__ = "6.0.7"
+__version__ = "6.0.8"
+
+#: Where parsing actually lives until 6.1.0 ships.
+_NO_PARSER = (
+    "HoloScript parsing is not implemented in the Python package "
+    "(holoscript {version}). It is planned for 6.1.0, on the same grammar "
+    "as @holoscript/core. Until then, parse with the npm package "
+    "@holoscript/core, or call the hosted compiler -- and check what comes back: "
+    "core is permissive and can return an empty composition for text that is "
+    "not HoloScript. "
+    "See holoscript.capabilities() for what this version does implement."
+).format(version=__version__)
 
 
 @dataclass
 class ParseResult:
+    """Shape reserved for 6.1.0. Nothing in 6.0.8 returns one."""
+
     success: bool
-    ast: Dict[str, str]
+    ast: Dict[str, Any]
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
     format: str = "holo"
@@ -16,31 +42,90 @@ class ParseResult:
 
 @dataclass
 class ValidationResult:
+    """Shape reserved for 6.1.0. Nothing in 6.0.8 returns one."""
+
     valid: bool
     errors: List[str] = field(default_factory=list)
     warnings: List[str] = field(default_factory=list)
 
 
 def parse(code: str) -> ParseResult:
-    stripped = code.strip()
-    if not stripped:
-        return ParseResult(success=False, ast={}, errors=["Input is empty"])
+    """Not implemented in this release.
 
-    return ParseResult(
-        success=True,
-        ast={"type": "composition", "source": stripped},
-    )
+    Raises:
+        NotImplementedError: always. Through 6.0.7 this returned
+            ``ParseResult(success=True)`` for any non-empty string, including
+            text that is not HoloScript at all.
+    """
+    raise NotImplementedError(_NO_PARSER)
 
 
 def validate(code: str) -> ValidationResult:
-    if not code.strip():
-        return ValidationResult(valid=False, errors=["Input is empty"])
+    """Not implemented in this release.
 
-    return ValidationResult(valid=True)
+    Raises:
+        NotImplementedError: always. See :func:`parse`.
+    """
+    raise NotImplementedError(_NO_PARSER)
 
 
 def list_traits() -> List[str]:
+    """Return a static snapshot of five trait names.
+
+    This is a hard-coded list, not a reading of the trait registry, and it does
+    not agree with the core: of these five, only ``@grabbable`` appears in the
+    core's trait registry (``@physics``, ``@clickable``, ``@color`` and
+    ``@position`` do not; the nearest ids are ``rigidbody`` and ``gpu_physics``).
+    The registry's size is not quoted here on purpose -- it changes with every
+    deploy, and docs/NUMBERS.md gives the command that reads it.
+    Resolve which list is the truth before 6.1.0, which reads the registry.
+    """
     return ["@grabbable", "@physics", "@clickable", "@color", "@position"]
+
+
+def capabilities() -> Dict[str, Any]:
+    """Machine-readable truth about this build.
+
+    Agents and CI should branch on this rather than on the README. Every
+    entry under ``implemented`` is checked by scripts/preflight-release.py against
+    the installed wheel before any upload -- at least that it imports or exists;
+    record_decision and read_log are also exercised end to end. Gaps that check
+    cannot see are stated under ``limits``.
+
+    ``not_implemented`` names top-level functions. ``scene_render`` is rendering a
+    HoloScript scene, which nothing here does; ``holoscript.cognition.render``
+    (an SVG of a decision log) is implemented and listed under ``cognition``.
+    """
+    return {
+        "version": __version__,
+        "grammar": None,  # set to the core grammar version once 6.1.0 ships
+        "implemented": {
+            "list_traits": "static snapshot of 5 names; only @grabbable is in the core's trait registry",
+            "bridges": [
+                "alphafold",
+                "medical",
+                "narupa",
+                "radio_astronomy",
+                "robotics",
+                "scientific",
+            ],
+            "cognition": ["record_decision", "read_log", "render"],
+        },
+        "limits": {
+            "alphafold": "predict_structure via the AlphaFold API is a stub that fails closed; "
+            "the ColabFold path needs a local ColabFold install",
+            "radio_astronomy": "calculate_synchrotron is a placeholder formula",
+            "cognition.render": "shells out to the npm holo-decision program; raises "
+            "RuntimeError when it is not installed",
+        },
+        "not_implemented": {
+            "parse": "6.1.0",
+            "validate": "6.1.0",
+            "generate": None,
+            "scene_render": None,
+            "share": None,
+        },
+    }
 
 
 __all__ = [
@@ -50,4 +135,5 @@ __all__ = [
     "parse",
     "validate",
     "list_traits",
+    "capabilities",
 ]

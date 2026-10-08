@@ -24,7 +24,17 @@ import os
 import json
 import time
 from typing import Dict, List, Any, Optional
-import requests
+from .._deps import require as _require
+
+
+class _LazyRequests:
+    """Imports requests on first use so a clean install can still import this module."""
+
+    def __getattr__(self, name):
+        return getattr(_require(("requests",), "alphafold")["requests"], name)
+
+
+requests = _LazyRequests()
 
 class AlphaFoldBridge:
     """
