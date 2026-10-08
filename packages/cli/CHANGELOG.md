@@ -10,7 +10,8 @@
 
   **Behavior change (security):** a pipeline no longer reads environment variables
   on its own. Each variable it reads must be allowed by the operator with
-  `--allow-env <NAME>` (this includes `HOLOSCRIPT_MCP_URL`). A pipeline that read
+  `--allow-env <NAME>` or the `HOLOSCRIPT_PIPELINE_ALLOW_ENV=NAME,NAME` environment
+  variable (this includes `HOLOSCRIPT_MCP_URL`). A pipeline that read
   environment variables under 8.7.0 runs under 8.9.0 without them until they are
   allowed. A pipeline file can also no longer send `HOLOSCRIPT_API_KEY` to a
   server it chose, and gets no loopback server of its own.
