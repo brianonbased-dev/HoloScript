@@ -18,9 +18,12 @@ import {
   versionsFromNpmView,
 } from '../holo-ci/release-publish-allowlist.mjs';
 import {
+  INSTALL_TREE_AUDIT,
   POST_PUBLISH_ARGS,
   PRE_PUBLISH_ARGS,
   parseReleasePublishArgs,
+  planPendingPublish,
+  prePublishArgsFor,
   runReleasePublish,
 } from '../holo-ci/release-publish.mjs';
 
@@ -308,6 +311,106 @@ describe('release:publish wrapper', () => {
     assert.equal(code, 1);
     assert.equal(steps, 0);
     assert.equal(parseReleasePublishArgs(['node', 'script', '--skip-gates']).error.includes('Unknown argument'), true);
+  });
+});
+
+describe('pending publish set for the install-tree audit', () => {
+  const localPackages = () => [
+    { name: '@holoscript/core', version: '8.9.0' },
+    { name: '@holoscript/cli', version: '8.9.0' },
+    // Bumped on disk but not in the allowlist: must never be offered as pending.
+    { name: '@holoscript/mcp-server', version: '8.1.1' },
+  ];
+
+  it('offers name@version for exactly the allowlisted packages this run publishes', async () => {
+    const seen = [];
+    const pending = await planPendingPublish({
+      rootDir: 'unused',
+      allowlist: ['@holoscript/core', '@holoscript/cli'],
+      prepare: async (opts) => {
+        seen.push(opts.write);
+        return { ok: true, publishSet: ['@holoscript/core', '@holoscript/cli'] };
+      },
+      loadPackages: localPackages,
+    });
+    assert.deepEqual(pending, ['@holoscript/core@8.9.0', '@holoscript/cli@8.9.0']);
+    assert.deepEqual(seen, [false], 'planning runs the allowlist gate read-only');
+  });
+
+  it('never offers a package outside the allowlist, even one with a local unpublished version', async () => {
+    const pending = await planPendingPublish({
+      rootDir: 'unused',
+      allowlist: ['@holoscript/core'],
+      // A publishSet naming something outside the allowlist must not leak through.
+      prepare: async () => ({ ok: true, publishSet: ['@holoscript/core', '@holoscript/mcp-server'] }),
+      loadPackages: localPackages,
+    });
+    assert.deepEqual(pending, ['@holoscript/core@8.9.0']);
+  });
+
+  it('offers nothing for a full-fleet run or when planning fails', async () => {
+    const load = localPackages;
+    assert.deepEqual(
+      await planPendingPublish({ rootDir: 'x', allowlist: null, prepare: async () => ({ ok: true }), loadPackages: load }),
+      []
+    );
+    assert.deepEqual(
+      await planPendingPublish({
+        rootDir: 'x',
+        allowlist: ['@holoscript/core'],
+        prepare: async () => ({ ok: false, code: 'stray-unpublished' }),
+        loadPackages: load,
+      }),
+      []
+    );
+    assert.deepEqual(
+      await planPendingPublish({
+        rootDir: 'x',
+        allowlist: ['@holoscript/core'],
+        prepare: async () => {
+          throw new Error('registry down');
+        },
+        loadPackages: load,
+      }),
+      []
+    );
+  });
+
+  it('hands the pending set to the install-tree audit only', () => {
+    assert.equal(prePublishArgsFor([]), PRE_PUBLISH_ARGS);
+    const args = prePublishArgsFor(['@holoscript/core@8.9.0']);
+    for (const step of args) {
+      const pendingFlags = step.filter((a) => a.startsWith('--pending='));
+      if (step[0] === INSTALL_TREE_AUDIT) assert.deepEqual(pendingFlags, ['--pending=@holoscript/core@8.9.0']);
+      else assert.deepEqual(pendingFlags, []);
+    }
+    assert.equal(
+      POST_PUBLISH_ARGS.some((step) => step.some((a) => a.startsWith('--pending='))),
+      false,
+      'the post-publish audit judges the registry alone'
+    );
+  });
+
+  it('release:publish passes the planned set to the pre-publish audit', async () => {
+    const calls = [];
+    const code = await runReleasePublish({
+      argv: ['node', 'release-publish.mjs'],
+      env: { RELEASE_PUBLISH_ALLOWLIST: '@holoscript/core' },
+      rootDir: REPO_ROOT,
+      runStep(_cmd, args) {
+        calls.push(args.join(' '));
+        return 0;
+      },
+      prepare: async () => ({ ok: true, snapshots: [], publishSet: ['@holoscript/core'] }),
+      restore() {},
+      loadPackages: localPackages,
+    });
+    assert.equal(code, 0);
+    const pre = calls.find((c) => c.startsWith(INSTALL_TREE_AUDIT) && c.includes('--multi-major=warn'));
+    assert.ok(pre && pre.includes('--pending=@holoscript/core@8.9.0'), pre);
+    const post = calls.filter((c) => c.startsWith(INSTALL_TREE_AUDIT) && !c.includes('--multi-major=warn'));
+    assert.equal(post.length, 1);
+    assert.equal(post[0].includes('--pending'), false);
   });
 });
 

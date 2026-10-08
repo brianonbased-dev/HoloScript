@@ -21,6 +21,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   combineAllowlist,
+  loadWorkspacePackages,
   prepareFilteredPublish,
   restoreSnapshots,
   splitPackageList,
@@ -57,6 +58,45 @@ export const POST_PUBLISH_ARGS = [
   ['scripts/audit-published-install-tree.mjs', '@holoscript/cli@latest'],
   ['scripts/cold-repro-onramp.mjs', '--published'],
 ];
+
+export const INSTALL_TREE_AUDIT = 'scripts/audit-published-install-tree.mjs';
+
+/**
+ * name@version for every allowlisted package this run will publish, so the
+ * pre-publish install-tree audit can count a phantom pin as resolved when (and
+ * only when) this publish supplies a version that satisfies it. Planned with the
+ * allowlist gate in read-only mode (write:false). Full-fleet runs and any
+ * planning failure return [] — the audit then judges the registry alone, as
+ * before, and the real allowlist gate still runs after the pre-publish steps.
+ */
+export async function planPendingPublish({
+  rootDir,
+  allowlist,
+  prepare,
+  loadPackages = loadWorkspacePackages,
+}) {
+  if (allowlist == null) return [];
+  let plan;
+  try {
+    plan = await prepare({ rootDir, allowlist, write: false });
+  } catch {
+    return [];
+  }
+  if (!plan?.ok || !Array.isArray(plan.publishSet)) return [];
+  const allowed = new Set(allowlist);
+  const versions = new Map(loadPackages(rootDir).map((pkg) => [pkg.name, pkg.version]));
+  return plan.publishSet
+    .filter((name) => allowed.has(name) && versions.has(name))
+    .map((name) => `${name}@${versions.get(name)}`);
+}
+
+/** PRE_PUBLISH_ARGS with this run's pending set handed to the install-tree audit. */
+export function prePublishArgsFor(pending) {
+  if (!pending.length) return PRE_PUBLISH_ARGS;
+  return PRE_PUBLISH_ARGS.map((args) =>
+    args[0] === INSTALL_TREE_AUDIT ? [...args, `--pending=${pending.join(',')}`] : args
+  );
+}
 
 export function changesetBin(rootDir) {
   const name = process.platform === 'win32' ? 'changeset.cmd' : 'changeset';
@@ -139,6 +179,7 @@ export async function runReleasePublish({
   runStep = (cmd, args) => defaultRunStep(rootDir, cmd, args),
   prepare = prepareFilteredPublish,
   restore = restoreSnapshots,
+  loadPackages = loadWorkspacePackages,
 } = {}) {
   const parsed = parseReleasePublishArgs(argv);
   if (parsed.help) {
@@ -161,7 +202,17 @@ export async function runReleasePublish({
     console.log(`[release-publish] mode=allowlist ${combined.allowlist.join(',')}`);
   }
 
-  for (const args of PRE_PUBLISH_ARGS) {
+  const pending = await planPendingPublish({
+    rootDir,
+    allowlist: combined.allowlist,
+    prepare,
+    loadPackages,
+  });
+  if (pending.length) {
+    console.log(`[release-publish] pending for the install-tree audit: ${pending.join(', ')}`);
+  }
+
+  for (const args of prePublishArgsFor(pending)) {
     const code = runStep(process.execPath, args);
     if (code !== 0) return code ?? 1;
   }

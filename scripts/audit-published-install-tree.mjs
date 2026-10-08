@@ -87,6 +87,31 @@ const ROOT_SPECS = (() => {
   return positional.length ? positional : ['@holoscript/cli@latest'];
 })();
 
+/**
+ * Versions this run is about to publish: `--pending=name@version,name@version`.
+ *
+ * Exists for ONE position, the pre-publish audit inside `release:publish`, which
+ * passes the allowlisted name@version set it will publish (release-publish.mjs).
+ * Without it the audit deadlocks the one publish that repairs a phantom pin: on
+ * 2026-10-08 core 8.9.0 failed to reach npm while cli/uaal/engine 8.9.0 did, so
+ * cli@latest pinned core@^8.9.0, and the gate refused to let core 8.9.0 publish.
+ *
+ * A phantom counts as resolved ONLY when a pending version of that exact package
+ * satisfies that exact range. A pending version of another package, or one
+ * outside the range, changes nothing, and leaks and multi-major rules are
+ * unaffected. The post-publish audit never passes this flag.
+ */
+const PENDING = (() => {
+  const arg = process.argv.find((a) => a.startsWith('--pending='));
+  if (!arg) return new Map();
+  try {
+    return parsePending(arg.slice('--pending='.length));
+  } catch (e) {
+    console.error(`[audit-published-install-tree] ${e.message}`);
+    process.exit(2);
+  }
+})();
+
 const DEP_FIELDS = ['dependencies', 'peerDependencies', 'optionalDependencies'];
 const CRAWL_FIELDS = new Set(['dependencies']);
 
@@ -267,6 +292,38 @@ function resolveVersion(pk, spec) {
   return candidates.length ? candidates[0] : null;
 }
 
+/** Parse `name@version,name@version` into name -> [versions]. Refuses anything not an exact version. */
+function parsePending(raw) {
+  const pending = new Map();
+  for (const entry of String(raw)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)) {
+    const at = entry.lastIndexOf('@');
+    const name = at > 0 ? entry.slice(0, at) : '';
+    const version = at > 0 ? entry.slice(at + 1) : '';
+    if (!name || !parseSemver(version)) {
+      throw new Error(`--pending entries must be name@exact-version, got "${entry}"`);
+    }
+    if (!pending.has(name)) pending.set(name, []);
+    pending.get(name).push(version);
+  }
+  return pending;
+}
+
+/**
+ * The pending version of `name` that would satisfy `spec`, or null. Same
+ * resolution rules as the registry (bare exact pins match exactly; dist-tags are
+ * never satisfied by a pending version, since this run does not know which tag
+ * changeset will move).
+ */
+function pendingSatisfying(pending, name, spec) {
+  const versions = pending.get(name);
+  if (!versions || !versions.length) return null;
+  const pk = { 'dist-tags': {}, versions: Object.fromEntries(versions.map((v) => [v, {}])) };
+  return resolveVersion(pk, spec);
+}
+
 function isInternal(name) {
   return name.startsWith('@holoscript/') || name.startsWith('holoscript-');
 }
@@ -377,6 +434,48 @@ function runSelfTest() {
     'external packages are out of scope — we do not control their versioning'
   );
 
+  // ── pending publish (--pending) ──────────────────────────────────────────
+  // (1) the 2026-10-08 case: cli 8.9.0 pins core@^8.9.0, core 8.9.0 is what this run publishes.
+  const pendCore = parsePending('@holoscript/core@8.9.0,@holoscript/cli@8.9.0');
+  assertSelf(
+    pendingSatisfying(pendCore, '@holoscript/core', '^8.9.0') === '8.9.0',
+    'pending core 8.9.0 satisfies a phantom core@^8.9.0'
+  );
+  // (2) the same phantom with nothing pending stays a phantom.
+  assertSelf(
+    pendingSatisfying(new Map(), '@holoscript/core', '^8.9.0') === null,
+    'no pending: phantom core@^8.9.0 stays a phantom'
+  );
+  // (3) a pending version outside the range, or of another package, does not satisfy it.
+  assertSelf(
+    pendingSatisfying(parsePending('@holoscript/core@8.9.1'), '@holoscript/core', '8.9.0') === null,
+    'pending core 8.9.1 does not satisfy a bare exact pin of 8.9.0'
+  );
+  assertSelf(
+    pendingSatisfying(parsePending('@holoscript/core@9.0.0'), '@holoscript/core', '^8.9.0') === null,
+    'pending core 9.0.0 does not satisfy ^8.9.0'
+  );
+  assertSelf(
+    pendingSatisfying(parsePending('@holoscript/uaal@8.9.0'), '@holoscript/core', '^8.9.0') === null,
+    'pending uaal 8.9.0 does not satisfy a core pin'
+  );
+  // (4) a package that is not pending is not satisfied, whatever exists elsewhere.
+  assertSelf(
+    pendingSatisfying(pendCore, '@holoscript/mcp-server', '^8.1.0') === null,
+    'a phantom on a package not in the pending set stays a phantom'
+  );
+  assertSelf(
+    pendingSatisfying(pendCore, '@holoscript/core', 'latest') === null,
+    'a dist-tag pin is never satisfied by a pending version'
+  );
+  let rejected = false;
+  try {
+    parsePending('@holoscript/core@^8.9.0');
+  } catch {
+    rejected = true;
+  }
+  assertSelf(rejected, '--pending refuses a range; it takes exact versions only');
+
   assertSelf(majorOf('8.0.20') === '8', 'majorOf reads the major');
   assertSelf(majorOf('not-a-version') === null, 'majorOf rejects garbage rather than guessing');
 
@@ -397,9 +496,22 @@ async function main() {
   const queue = roots.map(({ name, spec }) => ({ name, spec, via: [`${name}@${spec}`] }));
   const leaks = [];
   const phantoms = [];
+  // Phantoms this run's own publish fills (see PENDING). Reported, never silent.
+  const resolvedByPending = [];
   // name -> Map(resolvedVersion -> the via-path that first required it)
   const resolved = new Map();
   let scanned = 0;
+
+  // A missing internal pin that this publish supplies still counts toward the
+  // multi-major check under the version it will resolve to.
+  const coveredByPending = (name, spec, via) => {
+    const version = isInternal(name) ? pendingSatisfying(PENDING, name, spec) : null;
+    if (!version) return false;
+    resolvedByPending.push({ pkg: `${name}@${spec}`, pending: `${name}@${version}`, via });
+    if (!resolved.has(name)) resolved.set(name, new Map());
+    if (!resolved.get(name).has(version)) resolved.get(name).set(version, via);
+    return true;
+  };
 
   while (queue.length) {
     const { name, spec, via } = queue.shift();
@@ -407,12 +519,13 @@ async function main() {
     if (!pk) {
       // Unresolvable package itself (404). Only flag internal ones — external
       // 404s would be a different (and louder) failure.
-      if (isInternal(name)) phantoms.push({ pkg: `${name}@${spec}`, reason: 'package-404', via });
+      if (isInternal(name) && !coveredByPending(name, spec, via))
+        phantoms.push({ pkg: `${name}@${spec}`, reason: 'package-404', via });
       continue;
     }
     const ver = resolveVersion(pk, spec);
     if (!ver || !pk.versions[ver]) {
-      if (isInternal(name))
+      if (isInternal(name) && !coveredByPending(name, spec, via))
         phantoms.push({
           pkg: `${name}@${spec}`,
           reason: 'version-not-published',
@@ -476,6 +589,7 @@ async function main() {
           ok,
           leaks,
           phantoms,
+          resolvedByPending,
           multiMajor,
         },
         null,
@@ -502,6 +616,15 @@ async function main() {
           `    ${p.pkg}  (${p.reason}${p.available ? `; published: ${p.available.join(', ')}` : ''})`
         );
         if (p.via?.length) console.error(`      via: ${p.via.join(' -> ')}`);
+      }
+    }
+    if (resolvedByPending.length) {
+      console.log(
+        `\n  RESOLVED BY THIS PUBLISH (${resolvedByPending.length}) — missing on npm now, supplied by --pending:`
+      );
+      for (const r of resolvedByPending) {
+        console.log(`    ${r.pkg}  <- ${r.pending}`);
+        if (r.via?.length) console.log(`      via: ${r.via.join(' -> ')}`);
       }
     }
     if (multiMajor.length) {
