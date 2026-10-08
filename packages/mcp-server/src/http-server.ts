@@ -98,6 +98,8 @@ import {
   OAUTH2_PUBLIC_SCOPES,
   OAUTH2_PUBLIC_SCOPE_NAMES,
   OAUTH2_SCOPES,
+  prepareClientForUse,
+  registerClientDurably,
 } from './auth/oauth2-provider';
 import {
   acceptsHtml,
@@ -123,8 +125,13 @@ import {
   publicAnonymousContext,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
-import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
-import { founderGateX402ToolCallCheck } from './tool-call-checks';
+import {
+  frameDeclarationFromMcpMeta,
+  gateToolCall,
+  toolGateEnforcementFrom,
+  ToolCallGateDeniedError,
+} from './tool-call-gate';
+import { founderGateFrameToolCallCheck, founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import { creditRouteWithoutLedger } from './security/consumer-spend-guard';
 import {
@@ -142,6 +149,7 @@ import {
 import {
   agentBindingForRegistration,
   loopbackRegistrantMayBindUnproven,
+  registrationProvedNothing,
   resolveProvenAgentId,
 } from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
@@ -184,7 +192,12 @@ function readMoltbookApiKeyForRoute(): string {
 }
 
 import { resolveStoreRoot } from './hologram-renderer';
-import { isHologramMcpResponse, wrapHologramMcpEnvelope, parseHolo } from '@holoscript/core';
+import {
+  getPrometheusMetrics,
+  isHologramMcpResponse,
+  wrapHologramMcpEnvelope,
+  parseHolo,
+} from '@holoscript/core';
 import { buildContentPolicyConfig, evaluateContentPolicySync } from '@holoscript/core/policy';
 import { promises as fsPromises } from 'fs';
 import { join as pathJoin, extname as pathExtname, basename as pathBasename } from 'path';
@@ -324,34 +337,14 @@ oauth.setDurableIntrospector(async (token) => {
   };
 });
 
-/** Rehydrate a client from the durable registry into the legacy in-memory one. */
+/**
+ * Before an authorize or token request consults the in-memory registry: record
+ * the client's use in the durable store (so a retirement cannot take it in the
+ * middle of its sign-in), drop a copy the durable store no longer holds, and
+ * rehydrate it after a deploy wiped the in-memory map. See prepareClientForUse.
+ */
 async function ensureClientHydrated(clientId: string | null | undefined): Promise<void> {
-  if (!clientId || oauth.getClient(clientId)) return;
-  try {
-    const durable = await oauth2.getClient(clientId);
-    if (durable) {
-      oauth.importClient({
-        clientId: durable.clientId,
-        clientSecret: durable.clientSecretHash,
-        clientName: durable.clientName,
-        redirectUris: durable.redirectUris,
-        scopes: durable.scopes as OAuthScope[],
-        createdAt: durable.createdAt,
-        clientType: durable.clientType,
-        rateLimit: durable.rateLimit,
-        // Carry the agent binding across the deploy that wiped the in-memory
-        // map. Dropping it here refused the client's own agent_id on the very
-        // next token request, with nothing in the response saying the binding
-        // had been forgotten rather than never granted.
-        ...(durable.agentId ? { agentId: durable.agentId } : {}),
-      });
-    }
-  } catch (err) {
-    console.warn(
-      '[auth] durable client hydration failed:',
-      err instanceof Error ? err.message : err
-    );
-  }
+  await prepareClientForUse({ memory: oauth, durable: oauth2 }, clientId);
 }
 
 /** Rehydrate a refresh token from the durable registry before a refresh grant. */
@@ -803,6 +796,52 @@ async function securedToolExecution(
   );
 }
 
+/**
+ * How the stateless routes run the tool-call gate. They never ran it, so an agent's frame was
+ * not enforced where agents actually call (task 6fef). Enforcing every frame at once could
+ * refuse tools agents use today, so the gate first OBSERVES here: it writes the receipt and logs
+ * "[ToolCallGate] observe: would deny ..." and lets the call through. Once those lines have been
+ * read, HOLOSCRIPT_STATELESS_TOOL_GATE=enforce makes it refuse (toolGateEnforcementFrom reads
+ * the value; the server states the effective mode at startup). Scope is enforced downstream by
+ * securedToolExecution's triple gate in either mode.
+ */
+function statelessToolGateMode(): 'enforce' | 'observe' {
+  return toolGateEnforcementFrom(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE);
+}
+
+/**
+ * POST /mcp (tools/call), POST /tools/call, POST /a2a/tasks and POST /a2a (JSON-RPC a2a.sendMessage) run the founder authority routing on the tool name
+ * and the caller's active frame from `_meta`, with one receipt per call. Scope is not checked
+ * here: securedToolExecution's triple gate checks it, answers a shortfall in its own shape and
+ * writes it to the audit log, exactly as before this gate existed. A refusal (enforce mode)
+ * throws ToolCallGateDeniedError before anything is dispatched; each route answers it itself.
+ */
+async function gatedStatelessToolExecution(
+  toolName: string,
+  args: Record<string, unknown>,
+  auth: TokenIntrospection,
+  meta: unknown,
+  options: SecuredToolExecutionOptions
+): Promise<{ result: unknown; isError: boolean }> {
+  const frameDeclaration = frameDeclarationFromMcpMeta(meta);
+  return gateToolCall(
+    { name: toolName, args },
+    {
+      transport: 'http',
+      callerId: auth.agentId ?? auth.clientId ?? options.signingCtx?.signer ?? null,
+      scopes: auth.scopes,
+      ...(frameDeclaration !== undefined ? { frameDeclaration } : {}),
+    },
+    (env) => securedToolExecution(env.name, env.args, auth, options),
+    {
+      check: founderGateFrameToolCallCheck,
+      enforcement: statelessToolGateMode(),
+      classifyResult: (r) =>
+        r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
+    }
+  );
+}
+
 async function securedToolExecutionInner(
   toolName: string,
   args: Record<string, unknown>,
@@ -1088,13 +1127,32 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
  * admin:* on the belief that the HTTP layer had already authenticated the
  * caller, but the /a2a routes never did, so a caller with no credentials
  * ran any registered tool as admin.
+ *
+ * `route` names the entry point it serves: its path is what the audit log files the call
+ * under, and `meta` is the caller's `_meta` on that route (the body's on POST /a2a/tasks,
+ * the JSON-RPC params' on POST /a2a, as on POST /mcp). Both are required so a route cannot
+ * borrow another's label or silently drop the frame its caller declared.
  */
-function a2aToolHandlerFor(auth: TokenIntrospection) {
+function a2aToolHandlerFor(
+  auth: TokenIntrospection,
+  route: { path: '/a2a' | '/a2a/tasks'; meta: unknown }
+) {
   return async (name: string, args: Record<string, unknown>): Promise<unknown> => {
-    const { result, isError } = await securedToolExecution(name, args, auth, {
-      requestPath: '/a2a/tasks',
-      requestMethod: 'POST',
-    });
+    // The same gate, with the same HOLOSCRIPT_STATELESS_TOOL_GATE switch, as POST /mcp and
+    // POST /tools/call (#463). A refusal (enforce) becomes a failed task before any dispatch.
+    let gated: { result: unknown; isError: boolean };
+    try {
+      gated = await gatedStatelessToolExecution(name, args, auth, route.meta, {
+        requestPath: route.path,
+        requestMethod: 'POST',
+      });
+    } catch (gateError) {
+      if (!(gateError instanceof ToolCallGateDeniedError)) throw gateError;
+      throw new Error(
+        `[A2A task dispatch] Refused by the tool-call gate (${gateError.check}): ${gateError.message}`
+      );
+    }
+    const { result, isError } = gated;
 
     if (isError) {
       const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
@@ -1107,7 +1165,7 @@ function a2aToolHandlerFor(auth: TokenIntrospection) {
 }
 
 const A2A_LIST_NEEDS_ADMIN_MESSAGE =
-  'Listing A2A tasks returns every caller\'s results, so it needs admin. Fetch your own task by its id.';
+  "Listing A2A tasks returns every caller's results, so it needs admin. Fetch your own task by its id.";
 
 /**
  * The /a2a task routes run tools and hand back their results, so they need
@@ -1832,7 +1890,10 @@ const httpServer = http.createServer(async (req, res) => {
       // Handle the JSON-RPC request with the caller's own scopes
       const response = await handleJsonRpcRequest(
         parsed.request,
-        a2aToolHandlerFor(a2aCaller),
+        a2aToolHandlerFor(a2aCaller, {
+          path: '/a2a',
+          meta: (parsed.request.params as { _meta?: unknown } | undefined)?._meta,
+        }),
         agentCardBuilder
       );
 
@@ -2138,53 +2199,82 @@ const httpServer = http.createServer(async (req, res) => {
       // same socket address the door above was decided on, never a header.
       // The decision lives in `agentBindingForRegistration` so it can be tested
       // without booting this server: inline, it stayed green when deleted.
+      const registrarAgentId = resolveProvenAgentId(req.headers);
+      const registrarIsLoopback = isLoopbackAddress(registrar);
+      const remoteRegistrationAllowed = isTruthyEnvFlag(
+        process.env.OAUTH_ALLOW_REMOTE_REGISTRATION
+      );
       const agentBinding = agentBindingForRegistration({
         requestedAgentId: body.agent_id,
-        registrarAgentId: resolveProvenAgentId(req.headers),
+        registrarAgentId,
         unprovenBindingAllowed: loopbackRegistrantMayBindUnproven({
-          registrarIsLoopback: isLoopbackAddress(registrar),
-          remoteRegistrationAllowed: isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION),
+          registrarIsLoopback,
+          remoteRegistrationAllowed,
         }),
+      });
+      // A registrant that proved nothing gets tools:execute issued as
+      // tools:write only (board task zkdg); recorded on the client in both
+      // registries so a redeploy cannot hand it the full grant.
+      const registeredUnproven = registrationProvedNothing({
+        provenAgentId: registrarAgentId,
+        registrarIsLoopback,
+        remoteRegistrationAllowed,
       });
       if (!agentBinding.ok) throw new Error(agentBinding.reason);
       // The registry's spelling for a proven binding; the request's, trimmed,
       // for a loopback-unproven one.
       const boundAgentId = agentBinding.boundAgentId;
 
-      // Register with legacy provider (backwards compat)
-      const { clientId, clientSecret } = oauth.registerClient({
-        clientName,
-        redirectUris,
-        scopes,
-        clientType,
-        rateLimit,
-        ...(boundAgentId ? { agentId: boundAgentId } : {}),
-      });
-
-      // Also register with the new OAuth2Provider (token-store backed) using
-      // the SAME identity, so the durable copy is reachable by the credentials
-      // the caller holds. The previous divergent dual-write (separate generated
-      // ids) made the Postgres copy useless for rehydration after deploys.
-      try {
-        await oauth2.registerClient({
+      // One identity in both registries, or none. The durable copy is what
+      // survives a deploy, so a client the durable store refused is not handed
+      // out: the in-memory half is undone and the caller is told (503). This
+      // used to log a warning and answer 201 with a memory-only client, which
+      // is how a full store went unnoticed from 2026-06-28 (board
+      // task_1790545471449_w6yi). The agent binding goes into the durable copy
+      // too: a binding that quietly stops existing at deploy refuses a caller
+      // that did everything right.
+      const registration = await registerClientDurably(
+        { memory: oauth, durable: oauth2 },
+        {
           clientName,
           redirectUris,
           scopes,
           clientType,
           rateLimit,
-          clientId,
-          clientSecret,
-          // The binding belongs in the durable copy too: the in-memory one is
-          // gone on the next deploy, and a binding that quietly stops existing
-          // refuses a caller that did everything right.
           ...(boundAgentId ? { agentId: boundAgentId } : {}),
+          ...(registeredUnproven ? { registeredUnproven: true } : {}),
+        },
+        { metrics: getPrometheusMetrics('holoscript') }
+      );
+
+      for (const retiredClientId of registration.retiredClientIds) {
+        auditLog.logAuthEvent({
+          event: 'client_revoked',
+          clientId: retiredClientId,
+          reason: 'retired to make room: idle past the retirement window with no live token',
         });
-      } catch (oauth2Err) {
-        console.warn(
-          '[auth] OAuth2Provider registration failed; legacy registry succeeded:',
-          oauth2Err instanceof Error ? oauth2Err.message : oauth2Err
-        );
       }
+
+      if (!registration.ok) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          ip: clientIP,
+          reason: `client registration refused: ${registration.reason}`,
+        });
+        res.writeHead(503, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'temporarily_unavailable',
+            error_description: registration.message,
+          })
+        );
+        return;
+      }
+
+      const { clientId, clientSecret } = registration;
 
       auditLog.logAuthEvent({
         event: 'client_registered',
@@ -2918,7 +3008,13 @@ const httpServer = http.createServer(async (req, res) => {
       };
 
       const task = createTask(request);
-      const executed = await executeTask(task, a2aToolHandlerFor(a2aCaller));
+      const executed = await executeTask(
+        task,
+        a2aToolHandlerFor(a2aCaller, {
+          path: '/a2a/tasks',
+          meta: (body as { _meta?: unknown })._meta,
+        })
+      );
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(taskToResponse(executed), null, 2));
@@ -3594,15 +3690,40 @@ const httpServer = http.createServer(async (req, res) => {
       if (method === 'tools/call') {
         const toolArgs = (params.arguments as Record<string, unknown>) || {};
         const tcpPeer = req.socket.remoteAddress?.replace(/^::ffff:/, '') || undefined;
-        const { result, isError } = await securedToolExecution(name, toolArgs || {}, auth, {
-          requestPath: '/mcp',
-          requestMethod: 'POST',
-          ip: clientIP,
-          tcpPeerIp: tcpPeer,
-          rawXForwardedFor: readXForwardedFor(req),
-          bearerToken: readBearerToken(req),
-          signingCtx: unwrapped.signingCtx,
-        });
+        let gated: { result: unknown; isError: boolean };
+        try {
+          gated = await gatedStatelessToolExecution(
+            name,
+            toolArgs || {},
+            auth,
+            (params as { _meta?: unknown })._meta,
+            {
+              requestPath: '/mcp',
+              requestMethod: 'POST',
+              ip: clientIP,
+              tcpPeerIp: tcpPeer,
+              rawXForwardedFor: readXForwardedFor(req),
+              bearerToken: readBearerToken(req),
+              signingCtx: unwrapped.signingCtx,
+            }
+          );
+        } catch (gateError) {
+          if (!(gateError instanceof ToolCallGateDeniedError)) throw gateError;
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: body.id,
+              error: {
+                code: -32003,
+                message: gateError.message,
+                data: { deniedBy: gateError.check },
+              },
+            })
+          );
+          return;
+        }
+        const { result, isError } = gated;
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
@@ -3684,11 +3805,28 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      const { result, isError } = await securedToolExecution(tool, args || {}, requestAuth, {
-        requestPath: '/tools/call',
-        requestMethod: 'POST',
-        signingCtx: unwrapped.signingCtx,
-      });
+      let gated: { result: unknown; isError: boolean };
+      try {
+        gated = await gatedStatelessToolExecution(
+          tool,
+          args || {},
+          requestAuth,
+          (body as { _meta?: unknown })._meta,
+          {
+            requestPath: '/tools/call',
+            requestMethod: 'POST',
+            signingCtx: unwrapped.signingCtx,
+          }
+        );
+      } catch (gateError) {
+        if (!(gateError instanceof ToolCallGateDeniedError)) throw gateError;
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({ success: false, error: gateError.message, deniedBy: gateError.check })
+        );
+        return;
+      }
+      const { result, isError } = gated;
 
       res.writeHead(isError ? 500 : 200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: !isError, result }));
@@ -4901,6 +5039,11 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     );
     console.info(`   Bind: ${BIND_HOST}:${PORT}`);
     console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
+    // Once, so a deploy's log says which way the switch actually landed (#463 pre-review).
+    console.info(
+      `   Tool-call gate on POST /mcp, POST /tools/call, POST /a2a/tasks and POST /a2a: ${statelessToolGateMode()} ` +
+        `(HOLOSCRIPT_STATELESS_TOOL_GATE=${JSON.stringify(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE ?? '')})`
+    );
     console.info(
       `   Sizing: ${SERVER_SIZING.profile} (${SERVER_SIZING.recommendedConsumer}, body=${SERVER_SIZING.requestBodyMaxBytes}B, pgPool=${SERVER_SIZING.postgresPoolMax}, tools=${SERVER_SIZING.maxConcurrentToolCalls}, timeout=${SERVER_SIZING.toolTimeoutMs}ms, oauth=${RATE_LIMIT}/min, anon=${PUBLIC_ANON_RATE_LIMIT}/min, gen=${CONSUMER_GEN_RATE_LIMIT}/min/${CONSUMER_GEN_DAILY_QUOTA}/day)`
     );

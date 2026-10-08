@@ -28,10 +28,18 @@ export interface KnowledgeSyncOutcome {
   reason: string | null;
 }
 
-/** A POST to the orchestrator that has not finished in this long counts as unreachable. */
-function orchestratorPostTimeoutMs(): number {
+/**
+ * A request to the orchestrator (any POST or GET, the body included) that has not finished in this
+ * long counts as unreachable. HOLOMESH_ORCHESTRATOR_POST_TIMEOUT_MS sets it; the name predates the
+ * GETs and the heartbeat using it too (task_1790588649622_mbp7).
+ */
+function orchestratorRequestTimeoutMs(): number {
   const configured = Number(process.env.HOLOMESH_ORCHESTRATOR_POST_TIMEOUT_MS);
-  return Number.isFinite(configured) && configured > 0 ? configured : 15_000;
+  // Whole milliseconds, at most what a timer can hold: AbortSignal.timeout throws on a larger delay,
+  // and every request then read as unreachable (claude3's re-read of #319, task xzgt).
+  return Number.isFinite(configured) && configured > 0
+    ? Math.min(Math.max(1, Math.trunc(configured)), 2_147_483_647)
+    : 15_000;
 }
 
 /** The most of a knowledge-write answer that is read; the count is in the first bytes. */
@@ -63,10 +71,14 @@ async function discardBody(res: Response): Promise<void> {
   }
 }
 
+/** readJsonAnswer's answer for a body longer than it will read. */
+const ANSWER_OVER_CAP = Symbol('answer-over-cap');
+
 /**
  * Read a successful answer as JSON, at most `cap` bytes of it. Returns
- * undefined when it is not JSON (an HTML login page, an empty body, or an
- * answer cut at the cap).
+ * undefined when it is not JSON (an HTML login page, an empty body), and
+ * ANSWER_OVER_CAP when it is longer than the cap, so that case is named for
+ * what it is rather than reported as a missing body (task xzgt).
  */
 async function readJsonAnswer(res: Response, cap: number): Promise<unknown> {
   const stream = res.body as ReadableStream<Uint8Array> | null | undefined;
@@ -82,12 +94,13 @@ async function readJsonAnswer(res: Response, cap: number): Promise<unknown> {
       size += value.byteLength;
       if (size > cap) {
         await reader.cancel().catch(() => undefined);
-        return undefined;
+        return ANSWER_OVER_CAP;
       }
     }
     text = Buffer.concat(chunks).toString('utf8');
   } else if (typeof res.text === 'function') {
-    text = (await res.text()).slice(0, cap);
+    text = await res.text();
+    if (text.length > cap) return ANSWER_OVER_CAP;
   } else if (typeof (res as { json?: unknown }).json === 'function') {
     try {
       return await (res as { json: () => Promise<unknown> }).json();
@@ -96,6 +109,8 @@ async function readJsonAnswer(res: Response, cap: number): Promise<unknown> {
     }
   }
   if (text === undefined) return undefined;
+  // A byte-order mark is not part of the JSON; JSON.parse refuses it.
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   try {
     return JSON.parse(text);
   } catch {
@@ -353,6 +368,10 @@ export class HoloMeshOrchestratorClient {
     });
 
     if (!res.ok) return { synced: 0, accepted: false, status: res.status, reason: res.failure };
+    if (res.answer === ANSWER_OVER_CAP) {
+      const kib = DETAILED_ANSWER_CAP_BYTES / 1024;
+      return { synced: 0, accepted: false, status: res.status, reason: `answer over ${kib} KiB` };
+    }
     // A 2xx is not acceptance by itself: an HTML login page, an empty body or a
     // redirect to a login page all answer 200 (claude3's review of #319).
     if (!isRecord(res.answer)) {
@@ -362,6 +381,11 @@ export class HoloMeshOrchestratorClient {
         status: res.status,
         reason: `HTTP ${res.status ?? 'unknown'} without a JSON body`,
       };
+    }
+    // An answer that says it failed accepted nothing, whatever count it carries (task xzgt): with no
+    // count it used to read as the whole batch accepted.
+    if (res.answer.success === false) {
+      return { synced: 0, accepted: false, status: res.status, reason: 'answered success:false' };
     }
     const sent = entries.length;
     const counted = Number(res.answer.synced ?? res.answer.count);
@@ -466,10 +490,18 @@ export class HoloMeshOrchestratorClient {
     return crypto.createHash('sha256').update(content).digest('hex');
   }
 
+  /** GET and parse, or null. Bounded like every other request: an answer that never comes, or stops
+   * mid-body, used to hold a peer lookup or an inbox read forever. */
   private async get(path: string): Promise<any> {
     try {
-      const res = await fetch(`${this.baseUrl}${path}`, { headers: this.headers });
-      if (!res.ok) return null;
+      const res = await fetch(`${this.baseUrl}${path}`, {
+        headers: this.headers,
+        signal: AbortSignal.timeout(orchestratorRequestTimeoutMs()),
+      });
+      if (!res.ok) {
+        await discardBody(res);
+        return null;
+      }
       return await res.json();
     } catch {
       return null;
@@ -494,7 +526,7 @@ export class HoloMeshOrchestratorClient {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(orchestratorPostTimeoutMs()),
+        signal: AbortSignal.timeout(orchestratorRequestTimeoutMs()),
       });
     } catch (error) {
       return { ok: false, status: null, answer: undefined, failure: transportFailure(error) };
@@ -520,7 +552,7 @@ export class HoloMeshOrchestratorClient {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
-        signal: AbortSignal.timeout(orchestratorPostTimeoutMs()),
+        signal: AbortSignal.timeout(orchestratorRequestTimeoutMs()),
       });
       if (!res.ok) {
         await discardBody(res);
@@ -532,13 +564,18 @@ export class HoloMeshOrchestratorClient {
     }
   }
 
+  /** POST for the heartbeat, a message, a subscription or a broadcast: whether the orchestrator said
+   * yes. A silent orchestrator used to hold these forever; they now give up with the others. The
+   * answer's body is never used, so it is released instead of held open. */
   private async postOk(path: string, body: Record<string, unknown>): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}${path}`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(orchestratorRequestTimeoutMs()),
       });
+      await discardBody(res);
       return res.ok;
     } catch {
       return false;

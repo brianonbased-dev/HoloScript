@@ -624,6 +624,7 @@ export {
   compilePipelineToPython,
   compilePipelineSourceToNode,
   compilePipelineSourceToPython,
+  summarizePipelineIo,
 } from './PipelineNodeCompiler';
 export type {
   PipelineCompileTarget,
@@ -766,3 +767,17 @@ export {
   targetSovereignty,
 } from './sovereign-targets';
 export type { SovereignEngine } from './sovereign-targets';
+export {
+  TARGET_TIERS,
+  TIER_MEANING,
+  earnedTier,
+  auditTargetTiers,
+  targetTier,
+  describeTargetLimits,
+} from './target-tiers';
+export type {
+  TargetTier,
+  TargetTierEntry,
+  TargetRuntimeProof,
+  TierAuditIO,
+} from './target-tiers';

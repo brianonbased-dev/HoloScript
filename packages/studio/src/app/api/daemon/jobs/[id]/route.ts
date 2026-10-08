@@ -24,7 +24,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const { searchParams } = new URL(request.url);
   const view = searchParams.get('view');
 
-  const job = getDaemonJob(id);
+  const job = getDaemonJob(id, auth.user.id);
   if (!job) {
     return NextResponse.json({ error: 'Daemon job not found' }, { status: 404 });
   }
@@ -53,7 +53,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (auth instanceof NextResponse) return auth;
 
   const { id } = await context.params;
-  const job = getDaemonJob(id);
+  const job = getDaemonJob(id, auth.user.id);
   if (!job) {
     return NextResponse.json({ error: 'Daemon job not found' }, { status: 404 });
   }

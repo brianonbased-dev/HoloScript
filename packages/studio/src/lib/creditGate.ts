@@ -20,6 +20,7 @@ import { getSession } from './api-auth';
 
 import { ENDPOINTS, getAbsorbKey, getMcpApiKey } from '@holoscript/config';
 import { ALLOWED_ABSORB_HOSTS, validateAbsorbBaseUrl } from './absorb-host-validator';
+import { adminGithubUsernames } from './inviteAllowlist';
 
 // Re-export the validator surface for any caller that already imports it
 // from this module (the implementation lives in ./absorb-host-validator so
@@ -40,12 +41,8 @@ const ABSORB_API_KEY = getAbsorbKey() || getMcpApiKey() || '';
 })();
 
 // Admin bypass — comma-separated GitHub usernames that skip credit checks
-const ADMIN_GITHUB_USERNAMES = new Set(
-  (process.env.ADMIN_GITHUB_USERNAMES || '')
-    .split(',')
-    .map((u) => u.trim().toLowerCase())
-    .filter(Boolean)
-);
+// (parsed by the same helper the invite-only sign-in allowlist uses)
+const ADMIN_GITHUB_USERNAMES = adminGithubUsernames();
 
 export type StudioOperation =
   | 'studio_autocomplete'

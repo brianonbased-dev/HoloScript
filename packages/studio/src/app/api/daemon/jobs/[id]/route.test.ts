@@ -71,6 +71,8 @@ describe('/api/daemon/jobs/[id] route', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.job.id).toBe('dj-1');
+    // Looked up for the signed-in caller only (another user's job reads as 404).
+    expect(getDaemonJobMock).toHaveBeenCalledWith('dj-1', expect.any(String));
   });
 
   it('GET returns patches when view=patches', async () => {

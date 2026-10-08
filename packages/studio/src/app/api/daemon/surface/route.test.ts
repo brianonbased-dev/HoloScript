@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { listDaemonJobsMock, getTelemetrySummaryMock, loadDaemonSurfaceMock } = vi.hoisted(() => ({
-  listDaemonJobsMock: vi.fn(),
-  getTelemetrySummaryMock: vi.fn(),
-  loadDaemonSurfaceMock: vi.fn(),
-}));
+const { listDaemonJobsMock, getTelemetrySummaryMock, loadDaemonSurfaceMock, requireAuthMock } =
+  vi.hoisted(() => ({
+    listDaemonJobsMock: vi.fn(),
+    getTelemetrySummaryMock: vi.fn(),
+    loadDaemonSurfaceMock: vi.fn(),
+    requireAuthMock: vi.fn(),
+  }));
+
+vi.mock('@/lib/api-auth', () => ({ requireAuth: requireAuthMock }));
 
 vi.mock('@/app/api/daemon/jobs/store', () => ({
   listDaemonJobs: listDaemonJobsMock,
@@ -35,6 +39,19 @@ describe('/api/daemon/surface route', () => {
     vi.clearAllMocks();
     listDaemonJobsMock.mockReturnValue(jobs);
     getTelemetrySummaryMock.mockReturnValue(telemetry);
+    requireAuthMock.mockResolvedValue({ user: { id: 'user-test-1' } });
+  });
+
+  it("lists only the signed-in caller's jobs and refuses anonymous callers", async () => {
+    await GET(new Request('http://localhost/api/daemon/surface'));
+    expect(listDaemonJobsMock).toHaveBeenCalledWith('user-test-1');
+    expect(getTelemetrySummaryMock).toHaveBeenCalledWith('user-test-1');
+    const { NextResponse } = await import('next/server');
+    requireAuthMock.mockResolvedValueOnce(
+      NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    );
+    const res = await GET(new Request('http://localhost/api/daemon/surface'));
+    expect(res.status).toBe(401);
   });
 
   it('returns hydrated dashboard surface by default', async () => {

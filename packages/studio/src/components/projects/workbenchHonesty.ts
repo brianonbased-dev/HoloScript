@@ -5,6 +5,7 @@ import {
   workspaceAgentStatus,
   workspaceBuildStatus,
 } from './workspaceOverview';
+import { absorbEmptyLabel, CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
 
 export type HonestyTone = 'ready' | 'blocked' | 'degraded' | 'idle' | 'running' | 'neutral';
 
@@ -82,7 +83,12 @@ export function workspaceReadiness(
     }
   }
 
-  if (agent === 'running' || agent === 'queued' || absorb === 'scanning' || absorb === 'absorbing') {
+  if (
+    agent === 'running' ||
+    agent === 'queued' ||
+    absorb === 'scanning' ||
+    absorb === 'absorbing'
+  ) {
     return {
       ready: false,
       label: agent === 'running' || agent === 'queued' ? `Agent ${agent}` : `Absorb ${absorb}`,
@@ -95,9 +101,10 @@ export function workspaceReadiness(
     return {
       ready: false,
       label: blockers[0].label,
-      tone: blockers[0].code.startsWith('build_') || blockers[0].code === 'absorb_stale'
-        ? 'degraded'
-        : 'blocked',
+      tone:
+        blockers[0].code.startsWith('build_') || blockers[0].code === 'absorb_stale'
+          ? 'degraded'
+          : 'blocked',
       blockers,
     };
   }
@@ -132,12 +139,18 @@ function absorbFileCount(job: DaemonJob): number {
   return job.absorb?.totalFiles ?? 0;
 }
 
+/** Files Absorb was handed (0 for jobs persisted before the field existed). */
+function absorbFilesScanned(job: DaemonJob): number {
+  return job.absorb?.filesScanned ?? 0;
+}
+
 /** Honest outcome for a daemon job card — no success lipstick on 0-delta / empty absorb. */
 export function describeJobOutcome(job: DaemonJob): JobOutcomeView {
   const patches = job.patches?.length ?? 0;
   const filesAnalyzed = job.metrics?.filesAnalyzed ?? 0;
   const qualityDelta = job.metrics?.qualityDelta ?? 0;
   const absorbFiles = absorbFileCount(job);
+  const filesScanned = absorbFilesScanned(job);
   const dnaConfidencePct = Math.round((job.projectDna?.confidence ?? 0) * 100);
   const missionProfile = job.projectDna?.daemonAgent?.missionProfile;
   const limits = job.limits
@@ -184,6 +197,25 @@ export function describeJobOutcome(job: DaemonJob): JobOutcomeView {
     };
   }
 
+  // Absorb scanned N files but built no graph: Blocked, with N, whether the
+  // runner stopped the job (failed) or a job still completed. Never green.
+  const absorbEmptyWithFiles =
+    job.absorb != null && absorbFiles === 0 && filesScanned > 0 && patches === 0;
+
+  if (job.status === 'failed' && absorbEmptyWithFiles) {
+    return {
+      headline: absorbEmptyLabel(filesScanned),
+      honesty: job.error ?? job.summary ?? job.statusMessage ?? 'Absorb returned an empty graph.',
+      tone: 'blocked',
+      showProgressPercent: false,
+      patches,
+      filesAnalyzed,
+      qualityDelta,
+      absorbFiles,
+      details,
+    };
+  }
+
   if (job.status === 'failed') {
     return {
       headline: `Failed — ${missionLabel}`,
@@ -201,10 +233,28 @@ export function describeJobOutcome(job: DaemonJob): JobOutcomeView {
   // completed
   if (absorbFiles === 0 && patches === 0) {
     return {
-      headline: 'Blocked — Absorb empty',
-      honesty:
-        'Absorb returned an empty graph. Not a heal success — refresh Absorb or verify the workspace path.',
+      headline: absorbEmptyWithFiles ? absorbEmptyLabel(filesScanned) : 'Blocked — Absorb empty',
+      honesty: absorbEmptyWithFiles
+        ? `Absorb built no graph from ${filesScanned} scanned files. Not a heal success — refresh Absorb or check the files are a supported language.`
+        : 'Absorb returned an empty graph. Not a heal success — refresh Absorb or verify the workspace path.',
       tone: 'blocked',
+      showProgressPercent: false,
+      patches,
+      filesAnalyzed,
+      qualityDelta,
+      absorbFiles,
+      details,
+    };
+  }
+
+  // Absorb ran, the repo's own tools did not (no sandbox). Grey, never green.
+  if (job.checksSkipped && patches === 0) {
+    return {
+      headline: CHECKS_SKIPPED_LABEL,
+      honesty:
+        job.summary ??
+        "Repo checks and auto-fixes did not run: they would execute this repository's code on the Studio server. Not a heal.",
+      tone: 'degraded',
       showProgressPercent: false,
       patches,
       filesAnalyzed,

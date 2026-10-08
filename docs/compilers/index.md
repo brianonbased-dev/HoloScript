@@ -9,6 +9,89 @@ Canonical target keys are defined in `ExportTarget` (`packages/core/src/compiler
 grep -n "export enum ExportTarget" -A 200 packages/core/src/compiler/CircuitBreaker.ts
 ```
 
+## How ready is each target?
+
+Not every target is equally proven. Each one carries a tier, and the tier is **earned from evidence, not declared**: a unit test (`packages/core/src/compiler/__tests__/target-tiers.test.ts`) checks every label against the files that prove it, and fails if a label claims more than its evidence (or less).
+
+| Tier | What it means |
+| --- | --- |
+| reference | Proven on a real device. Its output is pinned byte-for-byte to a reference app that every change is checked against. |
+| production | Its output is pinned by a passing golden test, and a real build tool or engine has accepted it. Not yet proven on a device. |
+| preview | Tests check the code, but nothing here shows its output running in the real engine yet. |
+| experimental | The code exists, but no test checks it yet. |
+| format-only | Writes a description or manifest for another system to read. There is no program to run. |
+
+The `list_export_targets` MCP tool returns the same tier and sentence for every target. The data lives in `packages/core/src/compiler/target-tiers.ts`; to move a target up, add the evidence there (a golden test, a quote from a build or device run, a reference app) and the test will confirm it.
+
+<!-- target-tiers:start (checked by target-tiers.test.ts) -->
+| Target | Tier | What it still lacks |
+| --- | --- | --- |
+| `android` | reference | No known gaps at this tier. |
+| `android-xr` | production | It has not been run on a real device. |
+| `3dgs` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `agent-inference` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `ai-glasses` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `audio` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `bot-swarm` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `canvas2d-game` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `character-webgpu` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `colyseus` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `desktop-gpu` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `dungeon-instance` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `edge` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `embodied-dataset` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `flutter` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `fmu` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `gaussian-train` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `godot` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `incremental` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `ios` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `lens-studio` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `llama-server` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `mcp-server` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `media` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `mjcf` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `mjx` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `multi-layer` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. Its VR layer still hands off to the Babylon bridge. |
+| `nft-marketplace` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `nir` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `openxr` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `openxr-spatial-entities` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `pathtrace` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `pathtrace-cpu` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `pcg-graph` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `physics-sim` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `quest` | preview | A golden test pins its output, but nothing shows that output accepted by the real engine. The headset build is checked only by a pre-commit script; the core golden test pins the older 2D panel app, which has no recorded device run. |
+| `r3f` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `sdf` | preview | A golden test pins its output, but nothing shows that output accepted by the real engine. |
+| `sdk` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `state` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `svg` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `trait-composition` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `tsl` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `unity` | preview | A golden test pins its output, but nothing shows that output accepted by the real engine. |
+| `unreal` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `urdf` | preview | A golden test pins its output, but nothing shows that output accepted by the real engine. |
+| `usd` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `usdz` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `visionos` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `vrchat` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `wasm` | preview | A golden test pins its output, but nothing shows that output accepted by the real engine. |
+| `webgpu` | preview | A golden test pins its output, but nothing shows that output accepted by the real engine. |
+| `world-shard` | preview | No golden test pins its output; nothing shows its output accepted by the real engine. |
+| `3dtiles` | format-only | No known gaps at this tier. |
+| `a2a-agent-card` | format-only | No known gaps at this tier. |
+| `daimon-seed` | format-only | No known gaps at this tier. |
+| `dtdl` | format-only | No known gaps at this tier. |
+| `omnigent-agent-yaml` | format-only | No known gaps at this tier. |
+| `scm` | format-only | No known gaps at this tier. |
+| `code-editor` | experimental | No test checks this compiler. |
+| `holob` | experimental | No test checks this compiler. |
+| `onnx` | experimental | No test checks this compiler. |
+| `openapi` | experimental | No test checks this compiler. |
+| `stl-export` | experimental | No test checks this compiler. |
+<!-- target-tiers:end -->
+
 ## Common targets (non-exhaustive)
 
 | Target Flag                | File                                             | Output                          | Platform                                     |

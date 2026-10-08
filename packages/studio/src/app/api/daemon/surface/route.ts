@@ -1,17 +1,20 @@
 export const maxDuration = 300;
 
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { listDaemonJobs, getTelemetrySummary } from '@/app/api/daemon/jobs/store';
 import { loadDaemonSurface, type DaemonSurfaceKind } from '@/lib/daemon/compositionSurfaces';
 
 import { corsHeaders } from '../../_lib/cors';
 export async function GET(request: Request) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
   const { searchParams } = new URL(request.url);
   const kindParam = searchParams.get('kind');
   const kind: DaemonSurfaceKind = kindParam === 'orchestration' ? 'orchestration' : 'dashboard';
 
-  const jobs = listDaemonJobs();
-  const telemetry = getTelemetrySummary();
+  const jobs = listDaemonJobs(auth.user.id);
+  const telemetry = getTelemetrySummary(auth.user.id);
 
   try {
     const surface = await loadDaemonSurface(kind, jobs, telemetry);

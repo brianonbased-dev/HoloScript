@@ -845,7 +845,36 @@ export const SOVEREIGN_ENGINES: readonly SovereignEngine[];
 export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
+
+// Honest maturity tier per export target, earned from evidence (target-tiers.ts)
+export type TargetTier = 'reference' | 'production' | 'preview' | 'experimental' | 'format-only';
+export interface TargetRuntimeProof {
+  readonly file: string;
+  readonly quote: string;
+  readonly onDevice: boolean;
+}
+export interface TargetTierEntry {
+  readonly tier: TargetTier;
+  readonly compiler: string;
+  readonly tests: readonly string[];
+  readonly golden?: string;
+  readonly runtimeProof?: TargetRuntimeProof;
+  readonly referenceApp?: string;
+  readonly knownGaps?: string;
+}
+export interface TierAuditIO {
+  exists(repoRelativePath: string): boolean;
+  read(repoRelativePath: string): string;
+  knownFailingTests: ReadonlySet<string>;
+}
+export const TARGET_TIERS: Readonly<Record<ExportTarget, TargetTierEntry>>;
+export const TIER_MEANING: Readonly<Record<TargetTier, string>>;
+export function earnedTier(entry: TargetTierEntry): TargetTier;
+export function auditTargetTiers(io: TierAuditIO, tiers?: Readonly<Record<string, TargetTierEntry>>): string[];
+export function targetTier(target: string): TargetTier | undefined;
+export function describeTargetLimits(target: string): string;
 export function compilePipelineSourceToNode(source: string, options?: any): any;
+export function summarizePipelineIo(source: string): { success: boolean; envReads: string[]; hosts: string[]; dynamicHost: boolean; errors?: string[] };
 
 /**
  * Native2D — the sovereign HoloScript-native 2D/UI compiler (.holo -> @generated .tsx). Its

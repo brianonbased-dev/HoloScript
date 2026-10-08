@@ -1762,6 +1762,12 @@ export async function handleTeamRoutes(
     appendTeamKnowledgeMirror(team, prepared);
     await persistTeamDurable(teamId);
     const outcome = await getClient().contributeKnowledgeDetailed(prepared);
+    if (!outcome.accepted) {
+      // One line an operator can grep, and never the orchestrator's text (task xzgt).
+      console.warn(
+        `[holomesh] team ${teamId} knowledge: ${prepared.length} row(s) kept in the team mirror; orchestrator ${outcome.reason ?? 'did not accept'}`
+      );
+    }
     json(res, 201, {
       success: true,
       synced: outcome.synced,

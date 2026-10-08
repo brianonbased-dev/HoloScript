@@ -187,6 +187,25 @@ export function loopbackRegistrantMayBindUnproven(params: {
   return params.registrarIsLoopback && !params.remoteRegistrationAllowed;
 }
 
+/**
+ * Did this `POST /oauth/register` prove nothing about who is registering
+ * (board task zkdg)? Trusted are: a registrar that proved an agent (its own key,
+ * including the x-mcp-api-key our agent bridges send, or a platform-signed
+ * manifest), and a loopback peer while registration is loopback-only, which is
+ * this host already (the same rule as loopbackRegistrantMayBindUnproven). Anyone
+ * else, which once OAUTH_ALLOW_REMOTE_REGISTRATION is set includes every peer
+ * behind a same-container proxy, proved nothing, and their client's
+ * tools:execute is issued as tools:write only.
+ */
+export function registrationProvedNothing(params: {
+  provenAgentId: string | undefined;
+  registrarIsLoopback: boolean;
+  remoteRegistrationAllowed: boolean;
+}): boolean {
+  if (params.provenAgentId) return false;
+  return !loopbackRegistrantMayBindUnproven(params);
+}
+
 /** The agent a live per-agent key belongs to, or undefined if it proves nothing. */
 function agentIdForKey(presented: string): string | undefined {
   if (!presented) return undefined;

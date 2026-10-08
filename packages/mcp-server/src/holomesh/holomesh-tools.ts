@@ -51,6 +51,7 @@ import {
   entryForViewer,
   premiumEntryAccess,
   mcpToolViewer,
+  viewerMayQueryTeamWorkspace,
 } from './entry-lookup';
 import { isPremiumEntry } from './premium-view';
 import { boardTools, handleBoardTool } from './board-tools';
@@ -823,21 +824,34 @@ async function handlePublishTool(
     const manifest = publishMeshToolManifest(built);
     let synced = 0;
     let remoteError: string | undefined;
+    let orchestrator:
+      { accepted: boolean; status: number | null; reason: string | null } | undefined;
 
     if (client) {
       try {
-        synced = await client.contributeKnowledge([manifestKnowledgeEntry(manifest, client)]);
+        const outcome = await client.contributeKnowledgeDetailed([
+          manifestKnowledgeEntry(manifest, client),
+        ]);
+        synced = outcome.synced;
+        orchestrator = {
+          accepted: outcome.accepted,
+          status: outcome.status,
+          reason: outcome.reason,
+        };
       } catch (err: unknown) {
         remoteError = err instanceof Error ? err.message : String(err);
       }
     }
 
+    // The manifest is published in this server's own registry whatever the orchestrator does, so
+    // this stays a success; `orchestrator` says whether the knowledge copy landed too (task xzgt).
     return {
       success: true,
       meshToolId: manifest.id,
       manifestHash: manifest.attestation.manifestHash,
       synced,
       manifest,
+      ...(orchestrator ? { orchestrator } : {}),
       ...(remoteError ? { remoteError } : {}),
     };
   } catch (err: unknown) {
@@ -1307,13 +1321,22 @@ async function handleContribute(
       createdAt: new Date().toISOString(),
     };
 
-    const synced = await client.contributeKnowledge([entry]);
+    const outcome = await client.contributeKnowledgeDetailed([entry]);
+    if (!outcome.accepted) {
+      // This tool keeps no copy of its own, so a refused write stored nothing: success:true with
+      // synced:0 read as saved (task xzgt). Named by status and reason, never the orchestrator's text.
+      return {
+        success: false,
+        error: outcome.status === null ? 'orchestrator_unreachable' : 'orchestrator_refused',
+        orchestrator: { accepted: false, status: outcome.status, reason: outcome.reason },
+      };
+    }
 
     return {
       success: true,
       entryId,
       provenanceHash,
-      synced,
+      synced: outcome.synced,
       type: entryType,
     };
   } catch (err: unknown) {
@@ -1325,12 +1348,19 @@ async function handleQuery(client: HoloMeshOrchestratorClient, args: Record<stri
   try {
     const search = args.search as string;
     const viewer = mcpToolViewer(args);
+    const workspaceId = args.workspace as string | undefined;
+    // The premium gate below decides whether a PAID row's content may be read; it says
+    // nothing about whether this caller may search this WORKSPACE at all, and the
+    // orchestrator cannot check that either (task_1790079366686_qvr6 -- see entry-lookup.ts).
+    if (workspaceId && !viewerMayQueryTeamWorkspace(viewer, workspaceId)) {
+      return { error: `Not authorized to query workspace "${workspaceId}"` };
+    }
     const results = entriesForViewer(
       entitledSearchRows(
         await client.queryKnowledge(search, {
           type: args.type as string,
           limit: (args.limit as number) || 10,
-          workspaceId: args.workspace as string,
+          workspaceId,
         }),
         viewer
       ),

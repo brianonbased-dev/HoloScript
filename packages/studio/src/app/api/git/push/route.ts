@@ -14,13 +14,11 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 
 import { corsHeaders } from '../../_lib/cors';
 import { isSafeGitRef, isSafeGitRemote, resolveWorkspaceGitPath } from '../_shared';
 import { getGitHubToken } from '@/app/api/github/_shared';
-const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
@@ -51,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   const { workspacePath, remote = 'origin', branch, force = false } = body;
 
-  const validated = resolveWorkspaceGitPath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath, session);
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
@@ -65,7 +63,7 @@ export async function POST(req: NextRequest) {
 
   try {
     // Get current remote URL to inject OAuth token
-    const { stdout: remoteUrl } = await execFileAsync('git', ['remote', 'get-url', remote], {
+    const { stdout: remoteUrl } = await runGit(['remote', 'get-url', remote], {
       cwd: resolved,
     });
     const originalUrl = remoteUrl.trim();
@@ -74,7 +72,7 @@ export async function POST(req: NextRequest) {
     let authedUrl = originalUrl;
     if (originalUrl.startsWith('https://github.com/')) {
       authedUrl = originalUrl.replace('https://', `https://${token}@`);
-      await execFileAsync('git', ['remote', 'set-url', remote, authedUrl], { cwd: resolved });
+      await runGit(['remote', 'set-url', remote, authedUrl], { cwd: resolved });
     }
 
     // Build push args
@@ -82,11 +80,11 @@ export async function POST(req: NextRequest) {
     if (branch) args.push(branch);
     if (force) args.push('--force');
 
-    const { stdout, stderr } = await execFileAsync('git', args, { cwd: resolved });
+    const { stdout, stderr } = await runGit(args, { cwd: resolved });
 
     // Restore original URL (don't leave token in git config)
     if (authedUrl !== originalUrl) {
-      await execFileAsync('git', ['remote', 'set-url', remote, originalUrl], { cwd: resolved });
+      await runGit(['remote', 'set-url', remote, originalUrl], { cwd: resolved });
     }
 
     return NextResponse.json({
@@ -101,12 +99,12 @@ export async function POST(req: NextRequest) {
 
     // Always restore original URL on error
     try {
-      const { stdout: origUrl } = await execFileAsync('git', ['remote', 'get-url', remote], {
+      const { stdout: origUrl } = await runGit(['remote', 'get-url', remote], {
         cwd: resolved,
       });
       if (origUrl.includes('@github.com')) {
         const clean = origUrl.replace(/https:\/\/[^@]+@/, 'https://');
-        await execFileAsync('git', ['remote', 'set-url', remote, clean.trim()], { cwd: resolved });
+        await runGit(['remote', 'set-url', remote, clean.trim()], { cwd: resolved });
       }
     } catch (cleanupErr) {
       console.error('[git push] cleanup failed', cleanupErr);

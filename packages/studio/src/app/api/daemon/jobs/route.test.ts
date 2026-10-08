@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextResponse } from 'next/server';
 import * as path from 'path';
 import * as os from 'os';
+import * as fs from 'fs';
+import { registerWorkspaceRows } from '@/lib/workspace/testing/ownedWorkspaceFixture';
 
 const { createDaemonJobMock, listDaemonJobsMock, getTelemetrySummaryMock, requireAuthMock } =
   vi.hoisted(() => ({
@@ -55,6 +57,8 @@ describe('/api/daemon/jobs route', () => {
 
     const res = await GET(new Request('http://localhost/api/daemon/jobs'));
     expect(res.status).toBe(200);
+    // Scoped to the signed-in caller, never the whole store.
+    expect(listDaemonJobsMock).toHaveBeenCalledWith('user-test-1');
     const body = await res.json();
     expect(body.jobs).toHaveLength(1);
     expect(body.jobs[0].id).toBe('dj-1');
@@ -68,6 +72,8 @@ describe('/api/daemon/jobs route', () => {
     const body = await res.json();
     expect(body.telemetry.totalJobs).toBe(3);
     expect(body.telemetry.completedJobs).toBe(2);
+    // Telemetry is scoped to the caller, never the global event log.
+    expect(getTelemetrySummaryMock).toHaveBeenCalledWith('user-test-1');
   });
 
   it('POST returns 400 on invalid JSON body', async () => {
@@ -135,12 +141,15 @@ describe('/api/daemon/jobs route', () => {
   it('POST creates and returns job when payload is valid', async () => {
     createDaemonJobMock.mockReturnValue({ id: 'dj-created', status: 'queued' });
 
-    const workspaceRoot = path.join(
-      process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(),
-      '.holoscript',
-      'workspaces'
-    );
+    // A real workspace owned by the caller (user-test-1): the route now
+    // requires ownership, not only containment.
+    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-jobs-owned-'));
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = workspaceRoot;
     const safeProjectPath = path.join(workspaceRoot, 'project-1');
+    fs.mkdirSync(safeProjectPath, { recursive: true });
+    registerWorkspaceRows(workspaceRoot, [
+      { id: 'project-1', localPath: safeProjectPath, ownerId: 'user-test-1' },
+    ]);
 
     const payload = {
       projectId: 'project-1',
@@ -163,14 +172,27 @@ describe('/api/daemon/jobs route', () => {
       expect.objectContaining({
         projectId: 'project-1',
         profile: 'balanced',
+        // The job is owned by the signed-in caller.
+        userId: 'user-test-1',
       })
     );
   });
 
   it('POST accepts projectPath under HOLOSCRIPT_WORKSPACES_DIR (volume root)', async () => {
     createDaemonJobMock.mockReturnValue({ id: 'dj-volume', status: 'queued' });
-    const volumeRoot = path.resolve(path.join(os.tmpdir(), 'holoscript-volume', 'workspaces'));
+    const volumeRoot = path.join(
+      fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-volume-')),
+      'workspaces'
+    );
     process.env.HOLOSCRIPT_WORKSPACES_DIR = volumeRoot;
+    fs.mkdirSync(path.join(volumeRoot, 'ws-abc', 'HoloScript'), { recursive: true });
+    registerWorkspaceRows(volumeRoot, [
+      {
+        id: 'ws-abc',
+        localPath: path.join(volumeRoot, 'ws-abc', 'HoloScript'),
+        ownerId: 'user-test-1',
+      },
+    ]);
 
     const req = new Request('http://localhost/api/daemon/jobs', {
       method: 'POST',
@@ -212,6 +234,31 @@ describe('/api/daemon/jobs route', () => {
 
     const res = await POST(req);
     expect(res.status).toBe(400);
+    expect(createDaemonJobMock).not.toHaveBeenCalled();
+  });
+
+  it('POST refuses a projectPath in a workspace owned by another account (P0 owner check)', async () => {
+    const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-jobs-foreign-'));
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = workspaceRoot;
+    const foreign = path.join(workspaceRoot, 'ws-owned-by-a', 'repo');
+    fs.mkdirSync(foreign, { recursive: true });
+    registerWorkspaceRows(workspaceRoot, [
+      { id: 'ws-owned-by-a', localPath: foreign, ownerId: 'user-a' },
+    ]);
+
+    const res = await POST(
+      new Request('http://localhost/api/daemon/jobs', {
+        method: 'POST',
+        body: JSON.stringify({
+          projectId: 'ws-owned-by-a',
+          profile: 'balanced',
+          projectDna: { domain: 'general' },
+          projectPath: foreign,
+        }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    expect(res.status).toBe(404);
     expect(createDaemonJobMock).not.toHaveBeenCalled();
   });
 });

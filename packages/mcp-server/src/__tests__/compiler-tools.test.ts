@@ -62,6 +62,46 @@ describe('compiler tools', () => {
     }
   });
 
+  it('labels every listed export target with an honest tier and what it still lacks', async () => {
+    const result = (await handleCompilerTool('list_export_targets', {})) as {
+      targets: string[];
+      tiers: Record<string, { tier: string; meaning: string; limits: string }>;
+    };
+    for (const target of result.targets) {
+      const label = result.tiers[target];
+      expect(label, target).toBeDefined();
+      expect(label.meaning.length, target).toBeGreaterThan(10);
+      expect(label.limits.length, target).toBeGreaterThan(10);
+    }
+    expect(result.tiers.android.tier).toBe('reference');
+    expect(result.tiers.quest.tier).toBe('preview');
+    expect(result.tiers.unity.tier).toBe('preview');
+    expect(result.tiers.unity.limits).toMatch(/real engine/);
+  });
+
+  it('shows every export target that has its own compile tool, naming that tool', async () => {
+    const { TARGET_TIERS } = await import('@holoscript/core/compiler');
+    const result = (await handleCompilerTool('list_export_targets', {})) as {
+      targets: string[];
+      toolOnlyTargets: Record<string, string>;
+      tiers: Record<string, { tier: string }>;
+    };
+    const toolNames = new Set(compilerTools.map((tool) => tool.name));
+    const hidden = Object.keys(TARGET_TIERS).filter(
+      (t) =>
+        toolNames.has(`compile_to_${t.replace(/-/g, '_')}`) &&
+        !result.targets.includes(t) &&
+        !(t in result.toolOnlyTargets)
+    );
+    expect(hidden).toEqual([]);
+    expect(result.toolOnlyTargets.quest).toBe('compile_to_quest');
+    for (const [target, tool] of Object.entries(result.toolOnlyTargets)) {
+      expect(toolNames.has(tool), tool).toBe(true);
+      expect(result.targets, target).not.toContain(target);
+      expect(result.tiers[target], target).toBeDefined();
+    }
+  });
+
   it('compiles USD through its convenience tool', async () => {
     const result = (await handleCompilerTool('compile_to_usd', {
       code: robotComposition,
