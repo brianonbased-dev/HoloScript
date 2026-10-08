@@ -85,9 +85,10 @@ def check(name, fn, want=None):
         print(f"FAIL  {name}  (raised {type(exc).__name__}: {exc})")
         return
     ok = (got is True) if want is None else (got == want)
-    print(f"{'PASS ' if ok else 'FAIL '} {name}" + ("" if ok else f"  (got {got!r}, want {want!r})"))
+    shown = True if want is None else want  # a check with no `want` must return True
+    print(f"{'PASS ' if ok else 'FAIL '} {name}" + ("" if ok else f"  (got {got!r}, want {shown!r})"))
     if not ok:
-        FAILS.append(f"{name}: got {got!r}, want {want!r}")
+        FAILS.append(f"{name}: got {got!r}, want {shown!r}")
 
 
 def main() -> int:

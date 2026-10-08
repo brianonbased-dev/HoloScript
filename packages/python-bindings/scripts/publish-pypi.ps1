@@ -33,6 +33,10 @@
 # .env. With HoloKey, put it in the shell first:
 #   $env:PYPI_API_TOKEN = (<your holokey command to read the pypi token>)
 
+# CmdletBinding makes an unknown parameter an error. Without it, PowerShell puts
+# -Repo (removed on purpose) into $args and runs anyway, so a caller would think
+# they had chosen the repo.
+[CmdletBinding()]
 param(
   [switch]$Publish,
   [string]$Sha
