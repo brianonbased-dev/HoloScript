@@ -6664,6 +6664,10 @@ async function hydrateGraphRAGFromDiskEmbeddings(
     { serve: true }
   );
   if (!cachedIndex) return false;
+  // Install only over the graph this process still serves: the awaits above
+  // let another call replace it, and an engine beside a different graph
+  // answers for the wrong one (claude4's round 3 review).
+  if (cachedGraph !== graph) return false;
 
   setGraphRAGState(cachedIndex, new GraphRAGEngine(graph, cachedIndex), {
     rootDir,
@@ -6802,6 +6806,28 @@ function startBackgroundGraphRAGWarm(
   envelope: GraphCacheEnvelope
 ): string | null {
   if (graphRAGWarmInProgress) return graphRAGWarmJobId;
+
+  // The warm publishes `graph` as the cache generation of the envelope's roots,
+  // under the envelope's file hashes and HEAD, which every later caller loads
+  // from disk as trusted. So it publishes only a graph of exactly those roots:
+  // never an inline upload (or any graph) that was scanned from somewhere
+  // else. An upload's own root is its own; claude4's round 3 review of
+  // claudecode/absorb-agent-brief found an upload handed in with the server
+  // workspace's envelope.
+  const graphRootDirs = (graph as { rootDirs?: unknown } | null)?.rootDirs;
+  const envelopeRootDirs = envelope.rootDirs ?? [envelope.rootDir];
+  if (
+    !Array.isArray(graphRootDirs) ||
+    graphRootDirs.length === 0 ||
+    !absorbRootSetsMatch(graphRootDirs as string[], envelopeRootDirs)
+  ) {
+    console.error(
+      `[AbsorbCacheWarm] refused: the graph was not scanned from ${envelopeRootDirs.join(', ')}${
+        inlineUploadOwner(graph) !== undefined ? ' (it is an inline upload)' : ''
+      }, so it is not published as that root's cache`
+    );
+    return null;
+  }
 
   const memoryBudget = resolveAbsorbMemoryBudget({});
   if (!memoryBudget.valid) {
@@ -6993,6 +7019,13 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     resetGraphRAGState();
   }
   if (cachedGraph) {
+    // Everything below is about THIS graph, captured before the first await.
+    // The awaits (git, coverage, the embedding hydrate) let another call
+    // replace the shared cachedGraph meanwhile, often with an inline upload;
+    // rereading the shared variable after them handed that upload to the warm
+    // with this graph's envelope, which published it as this root's cache
+    // generation (claude4's round 3 review of claudecode/absorb-agent-brief).
+    const servedRootDir = cachedRootDir;
     const memoryRootDir = cachedRootDir || resolveWorkspaceRoot();
     const workspaceRoot = resolveWorkspaceRoot();
     const memoryGraph = cachedGraph as {
@@ -7154,24 +7187,26 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     }
 
     let warmJobId: string | null = null;
-    if (options.warmGraphRAG === true && !isGraphRAGReady()) {
+    // Hydrate and warm only the graph validated above, and only while this
+    // process still serves it.
+    if (options.warmGraphRAG === true && !isGraphRAGReady() && cachedGraph === memoryGraph) {
       try {
         const mod = await loadCodebaseModule();
         const hydrated = await hydrateGraphRAGFromDiskEmbeddings(
           mod,
-          cachedGraph,
-          cachedRootDir,
-          cacheTimestamp,
-          (cachedGraph as { embeddingCacheSha256?: string | null }).embeddingCacheSha256,
+          memoryGraph,
+          servedRootDir,
+          memoryTimestamp,
+          (memoryGraph as { embeddingCacheSha256?: string | null }).embeddingCacheSha256,
           memoryRootDirs
         );
-        if (!hydrated) {
+        if (!hydrated && cachedGraph === memoryGraph) {
           const envelope = loadGraphCache(
             memoryRootDir,
             memoryRootDirs.length > 1 ? memoryRootDirs : undefined
           );
           if (envelope) {
-            warmJobId = startBackgroundGraphRAGWarm(mod, cachedGraph, envelope);
+            warmJobId = startBackgroundGraphRAGWarm(mod, memoryGraph, envelope);
           }
         }
       } catch (err) {
@@ -7310,17 +7345,26 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       }
       const mod = await loadCodebaseModule();
       const { CodebaseGraph, GraphRAGEngine } = mod;
-      cachedGraph = CodebaseGraph.deserialize(envelope.graphJson);
-      attachGraphCacheMetadata(cachedGraph, envelope);
-      (cachedGraph as { worktreeFingerprint?: string }).worktreeFingerprint =
+      // The graph this call loads, held locally: the awaits below (the
+      // embedding hydrate) let another call replace the shared cachedGraph,
+      // and the warm must be handed this graph with this envelope, never
+      // whatever is shared by then (claude4's round 3 review).
+      const diskGraph = CodebaseGraph.deserialize(envelope.graphJson);
+      attachGraphCacheMetadata(diskGraph, envelope);
+      (diskGraph as { worktreeFingerprint?: string }).worktreeFingerprint =
         envelope.worktreeFingerprint ??
         buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ??
         undefined;
-      (cachedGraph as { coverageAtScan?: GraphCoverageStatus }).coverageAtScan =
+      (diskGraph as { coverageAtScan?: GraphCoverageStatus }).coverageAtScan =
         envelope.coverageAtScan ?? coverage;
       if (cwdFileHashFreshForHeadMismatch && currentGitCommitHash) {
-        (cachedGraph as { gitCommitHash?: string }).gitCommitHash = currentGitCommitHash;
+        (diskGraph as { gitCommitHash?: string }).gitCommitHash = currentGitCommitHash;
       }
+      // Any semantic state installed during the awaits above belongs to some
+      // other graph (an upload that landed meanwhile); left in place it would
+      // sit beside this graph and answer every caller.
+      resetGraphRAGState();
+      cachedGraph = diskGraph;
       cachedRootDir = envelope.rootDir;
       cacheProvenance = 'disk-cache';
       cacheTimestamp = envelope.timestamp;
@@ -7337,15 +7381,15 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
         try {
           const hydrated = await hydrateGraphRAGFromDiskEmbeddings(
             mod,
-            cachedGraph,
-            cachedRootDir,
-            cacheTimestamp,
+            diskGraph,
+            envelope.rootDir,
+            envelope.timestamp,
             envelope.embeddingCacheSha256
           );
           if (hydrated) {
             // GraphRAG is ready from the persisted HoloEmbed index.
-          } else {
-            startBackgroundGraphRAGWarm(mod, cachedGraph, envelope);
+          } else if (cachedGraph === diskGraph) {
+            startBackgroundGraphRAGWarm(mod, diskGraph, envelope);
           }
         } catch (err) {
           console.warn(`[AbsorbCacheWarm] GraphRAG warmup skipped: ${String(err)}`);

@@ -12,7 +12,13 @@ import { createHash } from 'crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
 import { handleGraphRagTool, readSymbolLines, resetGraphRAGStateForTests } from './graph-rag-tools';
-import { codeReadAllowed, runWithCodeReadAccess, setCodeReadDefault } from './code-read-access';
+import {
+  codeReadAllowed,
+  currentCallerPrincipal,
+  runWithCodeReadAccess,
+  setCodeReadDefault,
+} from './code-read-access';
+import { GitChangeDetector } from '../engine/GitChangeDetector';
 
 const TENANT_A_FILE = {
   path: 'src/tenantA.ts',
@@ -70,7 +76,7 @@ afterEach(() => {
   Object.assign(process.env, saved);
 });
 
-async function absorbFixture(): Promise<void> {
+async function absorbFixture(outputFormat: 'graph' | 'stats' = 'graph'): Promise<void> {
   resetCodebaseToolStateForTests();
   resetGraphRAGStateForTests();
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-code-read-repo-'));
@@ -101,7 +107,7 @@ async function absorbFixture(): Promise<void> {
   const absorb = (await handleCodebaseTool('holo_absorb_repo', {
     rootDir: repo,
     force: true,
-    outputFormat: 'graph',
+    outputFormat,
   })) as { error?: string };
   expect(absorb.error, JSON.stringify(absorb).slice(0, 300)).toBeUndefined();
 }
@@ -371,6 +377,146 @@ describe('code read access', () => {
       handleGraphRagTool('holo_semantic_search', { query: 'tenantAlphaPricingRule', topK: 3 })
     );
     expect(JSON.stringify(other)).not.toContain('tenantAlphaPricingRule');
+  }, 120_000);
+
+  /**
+   * Make tenant A's sourceFiles upload (no root) land in the middle of one of
+   * tenant B's calls: the first time B's call asks git for HEAD (`when` picks
+   * which of B's lookups), the lookup waits for A's whole upload, as a slow
+   * hydrate or git call does on a busy server. Returns a probe that says
+   * whether the upload ran and what it answered.
+   */
+  function uploadDuringTenantBHeadLookup(
+    outputFormat: 'graph' | 'stats',
+    when: (stack: string) => boolean = () => true
+  ): () => { ran: boolean; error?: string } {
+    const realHead = GitChangeDetector.prototype.getHeadCommit;
+    const probe: { ran: boolean; error?: string } = { ran: false };
+    const previousLimit = Error.stackTraceLimit;
+    vi.spyOn(GitChangeDetector.prototype, 'getHeadCommit').mockImplementation(function (
+      this: GitChangeDetector
+    ) {
+      Error.stackTraceLimit = 100;
+      const stack = new Error().stack ?? '';
+      Error.stackTraceLimit = previousLimit;
+      if (probe.ran || currentCallerPrincipal() !== 'tenant-b' || !when(stack)) {
+        return realHead.call(this);
+      }
+      probe.ran = true;
+      return (async () => {
+        const upload = (await runWithCodeReadAccess(
+          false,
+          () =>
+            handleCodebaseTool('holo_absorb_repo', { sourceFiles: [TENANT_A_FILE], outputFormat }),
+          'tenant-a'
+        )) as { error?: string };
+        probe.error = upload.error;
+        return realHead.call(this);
+      })() as unknown as string | null;
+    });
+    return () => probe;
+  }
+
+  const SEARCH = { query: 'tenantAlphaPricingRule', topK: 3 };
+  const SELECT = { selectedNodeIds: ['tenantAlphaPricingRule'] };
+  it.each([
+    ['holo_semantic_search', 'memory', SEARCH],
+    ['holo_visual_graph_context', 'memory', SELECT],
+    ['holo_semantic_search', 'disk', SEARCH],
+    ['holo_visual_graph_context', 'disk', SELECT],
+  ] as const)(
+    "%s never answers from another caller's upload that installed while the call was loading (workspace graph in %s)",
+    async (tool, start, args) => {
+      // claude4's round 3 review (P1): after the eviction in ensureCachedGraph,
+      // an upload that installed its engine during the call's awaits made the
+      // semantic state "ready", so the hydrate was skipped and semantic search
+      // and visual context read the upload's index and graph with no owner
+      // check (only ask had one). 'disk': the call loads the workspace graph
+      // from disk and the upload lands during that load.
+      await absorbFixture('graph');
+      if (start === 'disk') {
+        resetCodebaseToolStateForTests();
+        resetGraphRAGStateForTests();
+      }
+      const upload = uploadDuringTenantBHeadLookup('graph');
+      const other = await runWithCodeReadAccess(
+        false,
+        () => handleGraphRagTool(tool, { ...args }),
+        'tenant-b'
+      );
+      expect(upload().ran, 'the upload never ran inside tenant B call').toBe(true);
+      expect(upload().error).toBeUndefined();
+      // The query is echoed back, so look for what only the upload holds: its file.
+      expect(JSON.stringify(other)).not.toContain('tenantA.ts');
+      if (tool === 'holo_semantic_search') {
+        // Tenant B is answered from the workspace, not refused.
+        expect(JSON.stringify(other).slice(0, 2000)).toContain('isCachedMapFresh');
+      }
+
+      // The uploader is still answered from its own upload.
+      const reupload = (await runWithCodeReadAccess(
+        false,
+        () =>
+          handleCodebaseTool('holo_absorb_repo', {
+            sourceFiles: [TENANT_A_FILE],
+            outputFormat: 'graph',
+          }),
+        'tenant-a'
+      )) as { error?: string };
+      expect(reupload.error).toBeUndefined();
+      const own = await runWithCodeReadAccess(
+        false,
+        () => handleGraphRagTool(tool, { ...args }),
+        'tenant-a'
+      );
+      expect(JSON.stringify(own).slice(0, 4000)).toContain('tenantA.ts');
+    },
+    120_000
+  );
+
+  it("a background warm never publishes another caller's upload as the workspace's cache", async () => {
+    // claude4's round 3 review (P2): the warm reread the shared graph after the
+    // hydrate's awaits while its envelope came from the workspace, so an
+    // upload that landed in between was published as the workspace's cache
+    // generation, under the workspace's hashes and HEAD, trusted by every
+    // caller and surviving restarts.
+    await absorbFixture('stats');
+    const upload = uploadDuringTenantBHeadLookup('stats', (stack) =>
+      stack.includes('ensureCachedGraphRAGStateFromCodebaseTools')
+    );
+    const building = (await runWithCodeReadAccess(
+      false,
+      () =>
+        handleGraphRagTool('holo_semantic_search', { query: 'tenantAlphaPricingRule', topK: 3 }),
+      'tenant-b'
+    )) as { warmJobId?: string };
+    expect(upload().ran, 'the upload never ran inside the semantic hydrate').toBe(true);
+    expect(upload().error).toBeUndefined();
+    vi.restoreAllMocks();
+    if (building.warmJobId) {
+      let warm: Record<string, unknown> = {};
+      for (let i = 0; i < 400; i++) {
+        warm = (await handleCodebaseTool('holo_get_absorb_status', {
+          jobId: building.warmJobId,
+        })) as Record<string, unknown>;
+        if (['complete', 'error', 'cancelled'].includes(String(warm.status))) break;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+    }
+
+    // A fresh process state reads the workspace's cache from disk: it is still
+    // the workspace, and holds nothing of the upload.
+    resetCodebaseToolStateForTests();
+    resetGraphRAGStateForTests();
+    const asTenantC = <T>(fn: () => T) => runWithCodeReadAccess(false, fn, 'tenant-c');
+    const leaked = await asTenantC(() =>
+      handleCodebaseTool('holo_query_codebase', { query: 'find', symbol: 'tenantAlphaPricingRule' })
+    );
+    expect(JSON.stringify(leaked)).not.toContain('tenantA.ts');
+    const workspace = await asTenantC(() =>
+      handleCodebaseTool('holo_query_codebase', { query: 'find', symbol: 'isCachedMapFresh' })
+    );
+    expect(JSON.stringify(workspace).slice(0, 2000)).toContain('freshness.ts');
   }, 120_000);
 
   it("refuses a named root on an upload from a caller that may not name this server's folders", async () => {

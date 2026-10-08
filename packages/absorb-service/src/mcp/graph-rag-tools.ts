@@ -319,6 +319,48 @@ export function resetGraphRAGState(): void {
 
 export const resetGraphRAGStateForTests = resetGraphRAGState;
 
+/** The graph-rag state one call reads: taken once, through the owner gate. */
+interface GraphRAGReadState {
+  engine: GraphRAGEngine | null;
+  index: SymbolSearchIndex | null;
+  visualGraph: GraphRAGEngine['graph'] | null;
+}
+
+/**
+ * The one owner gate for every graph-rag read (claude4's round 3 review of
+ * claudecode/absorb-agent-brief, 2026-10-08). The engine, its index and the
+ * visual graph are one per process, and an inline upload's state answers only
+ * the caller who sent it. Checking the shared codebase graph is not enough:
+ * the hydrate below awaits real I/O, and an upload that installs its engine
+ * during that wait made the state "ready", so semantic search and visual
+ * context read it with no owner check (only ask had one). So the check sits
+ * here, at the state itself: another caller's upload state is evicted (as
+ * ensureCachedGraph evicts its graph) and never counts as ready or readable.
+ */
+function evictAnotherCallersUploadState(): void {
+  if (cachedGraphRAGEngine && !uploadBelongsToCaller(cachedGraphRAGEngine.graph)) {
+    cachedEmbeddingIndex = null;
+    cachedGraphRAGEngine = null;
+    cachedGraphRAGRootDir = null;
+    cachedGraphRAGTimestamp = 0;
+  }
+  if (cachedVisualGraph && !uploadBelongsToCaller(cachedVisualGraph)) {
+    cachedVisualGraph = null;
+    cachedVisualGraphRootDir = null;
+    cachedVisualGraphTimestamp = 0;
+  }
+}
+
+/** Read the state once, through the gate. Handlers use this snapshot only, never the shared variables. */
+function graphRAGStateForCaller(): GraphRAGReadState {
+  evictAnotherCallersUploadState();
+  return {
+    engine: cachedGraphRAGEngine,
+    index: cachedEmbeddingIndex,
+    visualGraph: cachedVisualGraph,
+  };
+}
+
 export async function handleGraphRagTool(
   name: string,
   args: Record<string, unknown>
@@ -328,32 +370,38 @@ export async function handleGraphRagTool(
   if (nestedSliceRefuse) {
     return nestedSliceRefuse;
   }
+  // Another caller's upload state is not "ready" for this caller: drop it so
+  // the hydrate below loads this caller's answer instead of being skipped.
+  evictAnotherCallersUploadState();
 
+  let hydration: Awaited<ReturnType<typeof hydrateCachedGraphRAGStateFromCodebaseTools>> =
+    undefined;
+  const semantic = name === 'holo_semantic_search' || name === 'holo_ask_codebase';
   if (name === 'holo_visual_graph_context' && !cachedVisualGraph) {
     await hydrateCachedVisualGraphStateFromCodebaseTools();
-  } else if (
-    (name === 'holo_semantic_search' || name === 'holo_ask_codebase') &&
-    !isGraphRAGReady()
-  ) {
-    const hydration = await hydrateCachedGraphRAGStateFromCodebaseTools();
-    if (!isGraphRAGReady() && hydration?.warm) {
-      const { warm } = hydration;
-      return {
-        error: 'semantic_index_building',
-        message: `The semantic index for ${warm.rootDir} is being built right now (${warm.phase}). ${name} will work when it finishes; retry in a few minutes. Do not call holo_absorb_repo for this — that would only start a second build of the same index. holo_graph_status shows progress under cacheWarm.`,
-        warmJobId: hydration.warmJobId,
-        warm,
-      };
-    }
+  } else if (semantic && !isGraphRAGReady()) {
+    hydration = await hydrateCachedGraphRAGStateFromCodebaseTools();
+  }
+
+  // The hydrate awaited; whatever was installed meanwhile passes the gate again.
+  const state = graphRAGStateForCaller();
+  if (semantic && hydration?.warm && !(state.engine && state.index)) {
+    const { warm } = hydration;
+    return {
+      error: 'semantic_index_building',
+      message: `The semantic index for ${warm.rootDir} is being built right now (${warm.phase}). ${name} will work when it finishes; retry in a few minutes. Do not call holo_absorb_repo for this — that would only start a second build of the same index. holo_graph_status shows progress under cacheWarm.`,
+      warmJobId: hydration.warmJobId,
+      warm,
+    };
   }
 
   switch (name) {
     case 'holo_semantic_search':
-      return handleSemanticSearch(args);
+      return handleSemanticSearch(args, state);
     case 'holo_visual_graph_context':
-      return handleVisualGraphContext(args);
+      return handleVisualGraphContext(args, state);
     case 'holo_ask_codebase':
-      return handleAskCodebase(args);
+      return handleAskCodebase(args, state);
     default:
       return null;
   }
@@ -690,8 +738,11 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
 }
 
-async function handleSemanticSearch(args: Record<string, unknown>): Promise<unknown> {
-  const resolvedIndex = await resolveSemanticSearchIndex(args);
+async function handleSemanticSearch(
+  args: Record<string, unknown>,
+  state: GraphRAGReadState
+): Promise<unknown> {
+  const resolvedIndex = await resolveSemanticSearchIndex(args, state.index);
   if ('error' in resolvedIndex) {
     return resolvedIndex;
   }
@@ -754,14 +805,16 @@ async function handleSemanticSearch(args: Record<string, unknown>): Promise<unkn
 }
 
 async function resolveSemanticSearchIndex(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  // The caller's index, taken through the owner gate (graphRAGStateForCaller).
+  callerIndex: SymbolSearchIndex | null
 ): Promise<
   | { index: SymbolSearchIndex; source: string; manifestPath?: string; warning?: string }
   | { error: string; hint: string }
 > {
   if (args.useCachedAbsorbIndex === true) {
-    return cachedEmbeddingIndex
-      ? { index: cachedEmbeddingIndex, source: 'cached-embedding-index' }
+    return callerIndex
+      ? { index: callerIndex, source: 'cached-embedding-index' }
       : {
           error: ABSORB_EMBEDDING_INDEX_ERROR,
           hint: ABSORB_HOLO_ABSORB_REPO_HINT,
@@ -774,8 +827,8 @@ async function resolveSemanticSearchIndex(
 
   // A fresh in-session cached index (holo_absorb_repo of the CURRENT repo) is the ground
   // truth for this query. An explicit manifest (arg or env) still wins over it.
-  if (!explicitManifestPath && cachedEmbeddingIndex) {
-    return { index: cachedEmbeddingIndex, source: 'cached-embedding-index' };
+  if (!explicitManifestPath && callerIndex) {
+    return { index: callerIndex, source: 'cached-embedding-index' };
   }
 
   // The promoted DEFAULT manifest is a fixed research release built on a DIFFERENT repo
@@ -788,8 +841,8 @@ async function resolveSemanticSearchIndex(
       : resolveDefaultHoloGraphHoloEmbedManifestPath();
   const manifestPath = explicitManifestPath ?? defaultManifestPath;
   if (!manifestPath) {
-    return cachedEmbeddingIndex
-      ? { index: cachedEmbeddingIndex, source: 'cached-embedding-index' }
+    return callerIndex
+      ? { index: callerIndex, source: 'cached-embedding-index' }
       : {
           error: ABSORB_EMBEDDING_INDEX_ERROR,
           hint:
@@ -873,8 +926,13 @@ function buildVisualFocus(
   return manager.getVisualFocus(undefined, maxNeighbors);
 }
 
-function handleVisualGraphContext(args: Record<string, unknown>): Record<string, unknown> {
-  if (!cachedVisualGraph) {
+function handleVisualGraphContext(
+  args: Record<string, unknown>,
+  state: GraphRAGReadState
+): Record<string, unknown> {
+  // The caller's visual graph, taken through the owner gate (graphRAGStateForCaller).
+  const visualGraph = state.visualGraph;
+  if (!visualGraph) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
@@ -886,7 +944,7 @@ function handleVisualGraphContext(args: Record<string, unknown>): Record<string,
     typeof args.maxNeighbors === 'number' && Number.isFinite(args.maxNeighbors)
       ? Math.max(0, Math.floor(args.maxNeighbors))
       : 100;
-  const manager = new GraphSelectionManager(cachedVisualGraph);
+  const manager = new GraphSelectionManager(visualGraph);
   for (const nodeId of selectedNodeIds) manager.select(nodeId);
   const context = manager.getSelectionContext();
   const visualFocus = manager.getVisualFocus(undefined, maxNeighbors);
@@ -1281,15 +1339,19 @@ function pinnedAnsweredBy(
   };
 }
 
-async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown> {
-  // Take the shared engine and index once, here. An ask waits on model calls
-  // for up to minutes, and meanwhile another caller's upload or a finishing
-  // warm can swap the shared engine; every later read in this ask uses this
-  // snapshot, never the shared variable again. An upload's engine answers only
-  // its uploader (claude4's round 2 review of claudecode/absorb-agent-brief).
-  const askEngine = cachedGraphRAGEngine;
-  const askIndex = cachedEmbeddingIndex;
-  if (!askIndex || !askEngine || !uploadBelongsToCaller(askEngine.graph)) {
+async function handleAskCodebase(
+  args: Record<string, unknown>,
+  state: GraphRAGReadState
+): Promise<unknown> {
+  // The engine and index were taken once, through the owner gate
+  // (graphRAGStateForCaller), so an upload's engine answers only its uploader.
+  // An ask waits on model calls for up to minutes, and meanwhile another
+  // caller's upload or a finishing warm can swap the shared engine; every
+  // later read in this ask uses this snapshot, never the shared variable again
+  // (claude4's round 2 and round 3 reviews of claudecode/absorb-agent-brief).
+  const askEngine = state.engine;
+  const askIndex = state.index;
+  if (!askIndex || !askEngine) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,

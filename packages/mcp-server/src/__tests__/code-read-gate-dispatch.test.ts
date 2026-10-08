@@ -6,6 +6,12 @@
  * handleTool (handlers.ts). Deleting either wrapper, or making it grant code to
  * everyone, turns this red; the predicate alone is covered in
  * security/__tests__/caller-may-read-code.test.ts.
+ *
+ * Two tenants (claude4's round 2 and round 3 reviews): one tenant's inline
+ * sourceFiles upload never answers another tenant, through both dispatchers.
+ * The dispatchers name the caller (callerPrincipal of the signing context);
+ * dropping that argument makes every caller the same unnamed one, and this
+ * turns red.
  */
 import * as fs from 'fs';
 import * as os from 'os';
@@ -24,6 +30,24 @@ const TENANT = {
   signedRequest: false,
   signingValid: false,
 } as unknown as Ctx;
+const tenantCtx = (signer: string) =>
+  ({
+    scopes: ['tools:codebase'],
+    signer,
+    signedRequest: false,
+    signingValid: false,
+  }) as unknown as Ctx;
+const TENANT_A = tenantCtx('tenant-a');
+const TENANT_B = tenantCtx('tenant-b');
+const TENANT_A_UPLOAD = {
+  sourceFiles: [
+    {
+      path: 'src/tenantA.ts',
+      content: 'export function tenantAlphaPricingRule(): number { return 42; }\n',
+    },
+  ],
+  outputFormat: 'graph',
+};
 const ADMIN = {
   scopes: ['admin:*'],
   signer: 'admin-under-test',
@@ -105,4 +129,45 @@ describe('code-read gate through the server dispatch', () => {
     const admin = text(await handleTool('holo_query_codebase', SOURCE_ARGS, ADMIN));
     expect(admin).toContain(CODE_LINE);
   }, 60_000);
+
+  it.each([
+    ['_handleSingleToolLogic', _handleSingleToolLogic],
+    ['handleTool', handleTool],
+  ] as const)(
+    "%s: one tenant's sourceFiles upload never answers another tenant; the uploader is",
+    async (_label, dispatch) => {
+      // The workspace gets a semantic index, so tenant B has a real answer to get.
+      const absorb = text(
+        await dispatch('holo_absorb_repo', { force: true, outputFormat: 'graph' }, ADMIN)
+      );
+      expect(absorb).not.toContain('"error"');
+
+      const upload = text(await dispatch('holo_absorb_repo', TENANT_A_UPLOAD, TENANT_A));
+      expect(upload).not.toContain('"error"');
+      // Each answer is checked for what only the upload holds and the question
+      // does not echo back: its file when asked by name, its symbol when asked by file.
+      for (const [tool, args, leak] of [
+        ['holo_semantic_search', { query: 'tenantAlphaPricingRule', topK: 3 }, 'tenantA.ts'],
+        ['holo_query_codebase', { query: 'symbols' }, 'tenantA'],
+        ['holo_query_codebase', { query: 'symbols', filePath: 'src/tenantA.ts' }, 'tenantAlpha'],
+        ['holo_query_codebase', { query: 'find', symbol: 'tenantAlphaPricingRule' }, 'tenantA.ts'],
+      ] as const) {
+        const other = text(await dispatch(tool, { ...args }, TENANT_B));
+        expect(other, `${tool} ${JSON.stringify(args)}`).not.toContain(leak);
+      }
+
+      // Tenant B's call evicted the upload; the uploader sends it again and is answered from it.
+      const again = text(await dispatch('holo_absorb_repo', TENANT_A_UPLOAD, TENANT_A));
+      expect(again).not.toContain('"error"');
+      const own = text(
+        await dispatch(
+          'holo_semantic_search',
+          { query: 'tenantAlphaPricingRule', topK: 3 },
+          TENANT_A
+        )
+      );
+      expect(own).toContain('tenantA.ts');
+    },
+    180_000
+  );
 });
