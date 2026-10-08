@@ -82,6 +82,32 @@ const sceneIRNodePool = new ASTNodePool<R3FNode>(
   0 // Was 20000 — demand-allocate instead of pre-allocating
 );
 
+/**
+ * Inline material objects are written with glTF-style names in the language docs and
+ * examples (`material: { baseColor, metallic }`, examples/quickstart/*.holo); the
+ * renderer copies materialProps onto a three.js material, which reads `color` and
+ * `metalness`. Without this the quickstart programs rendered with no color. A three.js
+ * name the author wrote directly wins over its alias.
+ */
+const INLINE_MATERIAL_ALIASES: Record<string, string> = {
+  baseColor: 'color',
+  base_color: 'color',
+  metallic: 'metalness',
+  emissive_intensity: 'emissiveIntensity',
+};
+
+function normalizeInlineMaterial(material: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(material)) {
+    if (!(key in INLINE_MATERIAL_ALIASES)) out[key] = value;
+  }
+  for (const [key, value] of Object.entries(material)) {
+    const target = INLINE_MATERIAL_ALIASES[key];
+    if (target && !(target in out)) out[target] = value;
+  }
+  return out;
+}
+
 function isVfxParticleTraitName(name: string): boolean {
   return name.startsWith('vfx_particle_');
 }
@@ -3337,6 +3363,8 @@ export class SceneIRCompiler {
   ): R3FNode {
     const props: Record<string, unknown> = {};
     let geometryType = 'cube';
+    // The color a named material preset brought in, so an explicit `color` can beat it.
+    let presetColor: unknown;
 
     // Merge template traits onto the object if it uses a template
     if (obj.template && templateMap) {
@@ -3449,6 +3477,7 @@ export class SceneIRCompiler {
           const currentMaterialProps = (props.materialProps || {}) as Record<string, unknown>;
           if (typeof value === 'string' && MATERIAL_PRESETS[value]) {
             props.materialProps = { ...MATERIAL_PRESETS[value], ...currentMaterialProps };
+            presetColor = MATERIAL_PRESETS[value].color;
           } else if (typeof value === 'object' && value !== null) {
             const valObj = value as Record<string, unknown>;
             // Handle material objects with a preset key: { preset: "glass", color: "#aaddff" }
@@ -3458,13 +3487,15 @@ export class SceneIRCompiler {
               MATERIAL_PRESETS[valObj.preset]
             ) {
               const { preset: _, ...rest } = valObj;
+              const inline = normalizeInlineMaterial(rest);
               props.materialProps = {
                 ...MATERIAL_PRESETS[valObj.preset],
-                ...rest,
+                ...inline,
                 ...currentMaterialProps,
               };
+              if (inline.color === undefined) presetColor = MATERIAL_PRESETS[valObj.preset].color;
             } else {
-              props.materialProps = { ...currentMaterialProps, ...valObj };
+              props.materialProps = { ...currentMaterialProps, ...normalizeInlineMaterial(valObj) };
             }
           }
         } else if (key === 'roughness' || key === 'metalness' || key === 'metallic') {
@@ -3850,11 +3881,23 @@ export class SceneIRCompiler {
       const compositor = new TraitCompositor();
       const composedMaterial = compositor.compose(traitNames);
       if (Object.keys(composedMaterial).length > 0) {
+        // Traits suggest a look; what the author wrote wins. With the trait look
+        // spread last, @collidable/@grabbable/@clickable overwrote an authored
+        // roughness (0.85 became 0.5) on every quickstart object.
+        const fromTraits: Record<string, unknown> = { ...composedMaterial };
+        if (props.color != null) delete fromTraits.color;
         props.materialProps = {
+          ...fromTraits,
           ...(props.materialProps as Record<string, unknown>),
-          ...composedMaterial,
         };
       }
+    }
+
+    // An explicit `color` beats the one a named preset brought in
+    // (`material: "stone"` with `color: "#8a8378"` rendered the preset's grey).
+    const mat = props.materialProps as Record<string, unknown> | undefined;
+    if (props.color != null && mat && presetColor !== undefined && mat.color === presetColor) {
+      delete mat.color;
     }
 
     const perceptualTrait = Array.isArray(obj.traits)
