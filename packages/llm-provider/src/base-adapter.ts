@@ -35,16 +35,107 @@ import {
 // HoloScript Generation System Prompt
 // =============================================================================
 
-const HOLOSCRIPT_SYSTEM_PROMPT = `You are an expert HoloScript developer. HoloScript is a general-purpose semantic systems programming language under active construction. This generation task uses its declarative composition surface for spatial scenes; spatial computing is a proving ground, not the language boundary.
+/**
+ * One whole, real HoloScript program, shown to every model that writes HoloScript
+ * through `generateHoloScript` (and so through the MCP generate_object /
+ * generate_scene tools).
+ *
+ * A verbatim copy of examples/quickstart/2-red-cube-teal-button.holo: a real file,
+ * chosen because it is short and has the whole shape (one composition root around
+ * an environment, a light and three objects), not written to suit any benchmark.
+ *
+ * Why a whole program instead of a description: on the 14 author_holo tasks
+ * (Qwen3-4B, 2026-09-02; ai-ecosystem
+ * receipts/holotune-native-authoring/2026-09-02-edge-lane-baseline.json) showing
+ * one real program took the pass rate from 2/14 to 11/14, and a prompt that only
+ * described the parts made it 0/14. The three tasks still failing put an object
+ * inside an object where a composition root belonged, which is why this example
+ * is a composition wrapping objects.
+ *
+ * packages/mcp-server/src/__tests__/generator-prompt-parse.test.ts parses this
+ * program, and every other program in the prompt, with parseHolo and the strict
+ * layer, and checks this copy still matches the real file. Edit them together.
+ */
+export const HOLOSCRIPT_EXAMPLE_PROGRAM = `// 2-red-cube-teal-button.holo
+// A throwable red cube and a teal cylinder button
 
-HoloScript syntax:
-- Primitive objects (simple placeholders): cube, sphere, plane, cylinder, cone, torus, mesh, text, light, camera
-- Basic traits: @color(value), @position(x, y, z), @rotation(x, y, z), @scale(x, y, z)
-- Interaction: @grabbable, @clickable, @hoverable, @throwable, @scalable
-- Physics: @physics, @gravity, @collidable, @static, @kinematic
-- Basic visual: @emissive(color), @transparent(opacity), @wireframe, @metallic(value)
-- Network: @networked, @shared, @owned
-- AI: @agent, @llm_agent, @reactive
+composition "Red Cube and Teal Button" {
+  // -- Visual: soft gradient sky with ground reflection --
+  environment { skybox: "gradient", ambient_light: 0.35, shadows: true }
+  light "Sun" { type: "directional", position: [5, 8, 3], intensity: 1.0, color: "#fff5e6", castShadow: true }
+
+  object "Ground" {
+    @collidable
+    geometry: "plane"
+    position: [0, 0, 0]
+    scale: [10, 1, 10]
+    material: { baseColor: "#2d3436", roughness: 0.85, metallic: 0.05 }
+  }
+
+  object "RedCube" {
+    @grabbable
+    @throwable
+    @physics
+    @collidable
+
+    geometry: "cube"
+    position: [0, 1, -2]
+    scale: 0.3
+    material: { baseColor: "#ff6b6b", roughness: 0.45, metallic: 0.15 }
+  }
+
+  object "TealButton" {
+    @pointable
+    @clickable
+
+    geometry: "cylinder"
+    position: [1.5, 1, -2]
+    scale: [0.2, 0.05, 0.2]
+    material: { baseColor: "#4ecdc4", roughness: 0.3, metallic: 0.3, emissive: "#2a9d8f", emissiveIntensity: 0.3 }
+  }
+
+  post_processing {
+    bloom { intensity: 0.3, threshold: 0.9 }
+    tone_mapping { mode: "aces" }
+  }
+}`;
+
+/**
+ * The system prompt `generateHoloScript` sends unless the request supplies its own.
+ *
+ * Every block in it that starts a line with `composition "` is a whole program,
+ * and every trait it names is one core declares; the parse test named above enforces
+ * both, so an edit here cannot quietly teach broken syntax.
+ */
+export const HOLOSCRIPT_SYSTEM_PROMPT = `You are an expert HoloScript developer. HoloScript is a general-purpose semantic systems programming language under active construction. This generation task uses its declarative composition surface for spatial scenes; spatial computing is a proving ground, not the language boundary.
+
+Every answer is ONE whole program with exactly one root block, and nothing outside it:
+
+composition "Name" {
+  environment { skybox: "gradient" }
+  object "Name" { geometry: "cube" }
+}
+
+The outermost block is always \`composition "Name" { ... }\`, never \`object\`. The environment,
+lights, materials, templates and objects all go inside that one root, side by side. Inside an
+object, a trait is a line starting with @ (like @grabbable) and a property is a \`key: value\` line.
+
+A complete, real program (examples/quickstart/2-red-cube-teal-button.holo):
+
+${HOLOSCRIPT_EXAMPLE_PROGRAM}
+
+Object properties: geometry ("cube", "sphere", "plane", "cylinder", "cone", "torus", "capsule"),
+position: [x, y, z], rotation: [x, y, z], scale: n or [x, y, z], color: "#rrggbb", and
+material: { baseColor, roughness, metallic, emissive, emissiveIntensity } or a material's name.
+Position, rotation, scale and color are properties, not traits: write \`position: [0, 1, 0]\`.
+
+Traits (each on its own line inside an object):
+- Interaction: @grabbable, @clickable, @hoverable, @throwable, @scalable, @pointable
+- Physics: @physics, @collidable, @static, @kinematic, @trigger
+- Visual: @glowing, @emissive, @transparent, @animated, @billboard, @particle
+- Network: @networked, @synced, @persistent
+- AI: @llm_agent, @npc, @pathfinding, @state_machine
+- Audio: @spatial_audio
 
 Realistic materials and assets (prefer these over a bare primitive + flat color whenever the
 request implies anything other than a placeholder or a test object):
@@ -59,7 +150,7 @@ request implies anything other than a placeholder or a test object):
 - Full pattern library: docs/handbooks/holoscript-realistic-authoring-patterns.md.
 
 Rules:
-1. Return ONLY valid HoloScript code - no markdown, no explanations
+1. Return ONLY HoloScript code: one \`composition "Name" { ... }\` program, no markdown, no explanations
 2. Use realistic positions (objects should be visible, y >= 0 for floor level)
 3. Group related objects logically
 4. Keep scenes focused on the user's request
@@ -68,29 +159,35 @@ Rules:
    explicit test/mock/stand-in request; otherwise compose a material and, where a real asset
    exists, an imported model
 
-Examples (contrast a placeholder against a composed object — match the request's intent):
+Two more whole programs (contrast a placeholder against a composed object — match the request's intent):
 
 // Placeholder / test object
-cube {
-  @color(red)
-  @position(0, 1, 0)
-  @grabbable
-  @physics
+composition "Test Cube" {
+  object "Cube" {
+    @grabbable
+    @physics
+    geometry: "cube"
+    position: [0, 1, 0]
+    color: "#ff0000"
+  }
 }
 
 // Composed, realistic object
-material "WeatheredStone" @advanced_pbr {
-  base_color: "#8a8378"
-  roughness: 0.75
-  metallic: 0.0
-  normal_map: "textures/stone_normal.png"
-  ao_map: "textures/stone_ao.png"
-}
-object "Boulder" @collidable @advanced_pbr {
-  model: "models/boulder.glb"
-  material: "WeatheredStone"
-  position: [0, 0, -3]
-  collider: { type: "mesh", convex: true }
+composition "Boulder" {
+  material "WeatheredStone" @advanced_pbr {
+    base_color: "#8a8378"
+    roughness: 0.75
+    metallic: 0.0
+    normal_map: "textures/stone_normal.png"
+    ao_map: "textures/stone_ao.png"
+  }
+
+  object "Boulder" @collidable @advanced_pbr {
+    model: "models/boulder.glb"
+    material: "WeatheredStone"
+    position: [0, 0, -3]
+    collider: { type: "mesh", convex: true }
+  }
 }`;
 
 // =============================================================================
@@ -381,11 +478,15 @@ Return ONLY the HoloScript code, no explanations or markdown.`;
       errors.push(`Unbalanced braces: ${openBraces} opening, ${closeBraces} closing`);
     }
 
-    // Check for at least one object
-    const objectMatch = code.match(
-      /\b(cube|sphere|plane|cylinder|cone|torus|mesh|text|light|camera|scene)\s*\{/
-    );
-    if (!objectMatch) {
+    // Check for at least one object: a named declaration — the shape the system
+    // prompt teaches, `composition "Name" {` around `object "Name" {` — or a bare
+    // primitive block. Matching only the primitive form called the prompt's own
+    // example program invalid.
+    const hasNamedDeclaration =
+      /\b(composition|object|template|material|light|spatial_group)\s+"[^"]*"/.test(code);
+    const hasPrimitiveBlock =
+      /\b(cube|sphere|plane|cylinder|cone|torus|mesh|text|light|camera|scene)\s*\{/.test(code);
+    if (!hasNamedDeclaration && !hasPrimitiveBlock) {
       errors.push('No recognized HoloScript object types found');
     }
 

@@ -61,23 +61,6 @@ export const BITNET_MODEL_ALIASES: Readonly<Record<string, BitNetModel>> = {
 };
 
 // =============================================================================
-// HoloScript system prompt — compact for BitNet 2B-4T
-// The 2B model works best with short prompts (< 200 tokens) to leave room for output.
-// =============================================================================
-
-const BITNET_HOLOSCRIPT_SYSTEM_PROMPT = `You are a HoloScript code generator. Output ONLY valid HoloScript code, no markdown.
-
-Syntax:
-  composition {
-    cube { @color(red) @position(0,1,0) @grabbable @physics }
-    sphere { @color(blue) @position(2,1,0) @emissive(cyan) }
-    plane { @color(gray) @position(0,0,0) @scale(10,1,10) @static }
-  }
-For a real object (not a test cube/sphere), use @advanced_pbr instead of @color.
-
-Rules: Return code only. y >= 0. Use @static on floors.`;
-
-// =============================================================================
 // BitNet Adapter
 // =============================================================================
 
@@ -212,14 +195,6 @@ export class BitNetAdapter extends BaseLLMAdapter {
         raw,
       };
     });
-  }
-
-  /**
-   * Returns the HoloScript-tuned system prompt for BitNet's smaller model context.
-   * Overrides the base class version to use the compact prompt.
-   */
-  protected getHoloScriptSystemPrompt(): string {
-    return BITNET_HOLOSCRIPT_SYSTEM_PROMPT;
   }
 
   /**

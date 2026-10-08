@@ -7,9 +7,11 @@
 ## Installation
 
 ```typescript
-import { HoloScriptGenerator } from '@holoscript/core';
-import { OpenAIAdapter } from '@holoscript/core';
+import { HoloScriptGenerator, OpenAIAdapter } from '@holoscript/framework';
 ```
+
+The AI generation API lives in `@holoscript/framework` (it moved out of core in A.011.02c);
+`@holoscript/core` does not export these names. Full guide: `AI_GENERATION_API.md`.
 
 ---
 
@@ -29,7 +31,7 @@ console.log(result.holoScript); // Generated code
 ### 2. Generate Batch
 
 ```typescript
-import { generateBatch } from '@holoscript/core';
+import { generateBatch } from '@holoscript/framework';
 
 const results = await generateBatch(
   ['Create player', 'Create enemy', 'Create button'],
@@ -70,7 +72,7 @@ new GeminiAdapter({ apiKey: 'AIza...' });
 new XAIAdapter({ apiKey: 'xai-...' });
 
 // Local Ollama
-new OllamaAdapter({ baseURL: 'http://localhost:11434' });
+new OllamaAdapter({ baseUrl: 'http://localhost:11434' });
 
 // Together.ai
 new TogetherAdapter({ apiKey: 'together_...' });
@@ -152,7 +154,7 @@ history.push({ role: 'assistant', content: response2 });
 ## Validation & Batch Operations
 
 ```typescript
-import { validateBatch } from '@holoscript/core';
+import { validateBatch } from '@holoscript/framework';
 
 // Validate multiple codes
 const validation = validateBatch(codes);
@@ -164,7 +166,12 @@ console.log('Valid:', validation.filter((v) => v.valid).length);
 ## Complete Example
 
 ```typescript
-import { HoloScriptGenerator, OpenAIAdapter, generateBatch, validateBatch } from '@holoscript/core';
+import {
+  HoloScriptGenerator,
+  OpenAIAdapter,
+  generateBatch,
+  validateBatch,
+} from '@holoscript/framework';
 
 // Setup
 const generator = new HoloScriptGenerator();
@@ -262,15 +269,20 @@ const explanation = await generator.explain(code.holoScript, session);
 ```typescript
 // With mock adapter (in tests)
 import { describe, it, expect } from 'vitest';
+import { HoloScriptGenerator, type AIAdapter } from '@holoscript/framework';
 
 class MockAdapter implements AIAdapter {
+  readonly id = 'mock';
+  readonly name = 'Mock';
+  isReady() {
+    return true;
+  }
   async generateHoloScript(prompt: string) {
     return {
-      holoScript: `orb #test { }`,
-      aiConfidence: 0.95,
+      holoScript: `composition "Test" {\n  object "Cube" { geometry: "cube" }\n}`,
+      confidence: 0.95, // surfaces as GeneratedCode.aiConfidence
     };
   }
-  // ... other methods
 }
 
 describe('MyCode', () => {

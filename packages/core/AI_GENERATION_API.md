@@ -1,8 +1,12 @@
 # AI-Guided HoloScript Generation API
 
-**Status**: ✅ Complete | **Tests**: 65/65 passing | **Coverage**: Adapters + Generator + Integration
+**Package**: `@holoscript/framework`, not `@holoscript/core`. Every name on this page is imported from `@holoscript/framework` (source: `packages/framework/src/ai/`). The AI layer moved out of core in A.011.02c; this page stayed behind and still imported from core until 2026-10-07, which led one agent to report that `HoloScriptGenerator` existed nowhere.
 
-This document provides a complete guide to the AI-guided HoloScript generation system, which enables creation of valid HoloScript code from natural language descriptions through a unified API.
+**Tests**: 122 passing in 5 files under `packages/framework/src/ai/__tests__/` (run 2026-10-07; see [Testing](#testing)). None of them calls a live model API (they use stand-in adapters or test only configuration), so validation against live APIs is still open (see [Next Steps](#next-steps)).
+
+This document is a guide to the AI-guided HoloScript generation API in `@holoscript/framework`, which turns natural language descriptions into HoloScript code.
+
+> Not the same path as the MCP `generate_object` / `generate_scene` tools. Those go through `@holoscript/llm-provider` (`generateHoloScript` on a provider adapter), whose system prompt (`HOLOSCRIPT_SYSTEM_PROMPT`) shows a parse-tested `composition "Name" { ... }` program. The framework adapters on this page send their own prompt.
 
 ---
 
@@ -24,8 +28,7 @@ This document provides a complete guide to the AI-guided HoloScript generation s
 ### Basic Generation
 
 ```typescript
-import { HoloScriptGenerator } from '@holoscript/core';
-import { AnthropicAdapter } from '@holoscript/core';
+import { HoloScriptGenerator, AnthropicAdapter } from '@holoscript/framework';
 
 // Create generator and session
 const generator = new HoloScriptGenerator();
@@ -44,11 +47,15 @@ console.log(result.wasFixed); // Auto-fixed?
 ### Using Helper Functions
 
 ```typescript
-import { generateHoloScript, generateBatch, validateBatch } from '@holoscript/core';
-import { OpenAIAdapter } from '@holoscript/core';
+import {
+  generateHoloScriptWithAdapter,
+  generateBatch,
+  validateBatch,
+  OpenAIAdapter,
+} from '@holoscript/framework';
 
 // Single generation
-const code = await generateHoloScript(
+const result = await generateHoloScriptWithAdapter(
   'Create an interactive player controller',
   new OpenAIAdapter({ apiKey: 'sk-...' }),
   { maxAttempts: 3, targetPlatform: 'vr' }
@@ -64,6 +71,8 @@ const results = await generateBatch(
 const validation = validateBatch(results.map((r) => r.holoScript));
 console.log(`Valid: ${validation.filter((v) => v.valid).length}/${validation.length}`);
 ```
+
+> **Two functions, similar names.** `generateHoloScriptWithAdapter(prompt, adapter, config?)` is the helper above: it takes an adapter and returns `GeneratedCode`. The export named `generateHoloScript(prompt, options?)` is a different function: it uses the adapter registered with `registerAIAdapter` / `setDefaultAIAdapter` and returns the adapter's raw `GenerateResult`. Passing an adapter to `generateHoloScript` does not do what the helper does.
 
 ---
 
@@ -95,7 +104,7 @@ Natural Language Prompt
 
 | Component                | Purpose                         | Status               |
 | ------------------------ | ------------------------------- | -------------------- |
-| **AIAdapter**            | Interface for AI providers      | ✅ 8 implementations |
+| **AIAdapter**            | Interface for AI providers      | ✅ 9 implementations |
 | **HoloScriptGenerator**  | High-level generation API       | ✅ Complete          |
 | **HoloScriptPlusParser** | Parse & validate generated code | ✅ Working           |
 | **ErrorRecovery**        | Auto-fix broken code            | ✅ Integrated        |
@@ -112,10 +121,12 @@ Main class for AI-guided code generation.
 #### Constructor
 
 ```typescript
-constructor();
+class HoloScriptGenerator {
+  constructor(enableCache?: boolean); // default: true
+}
 ```
 
-Creates a new generator instance with a built-in parser.
+Creates a new generator instance with a built-in parser and, unless `enableCache` is false, a generation cache.
 
 #### Methods
 
@@ -147,7 +158,7 @@ Generate HoloScript from a natural language prompt.
 interface GeneratedCode {
   holoScript: string; // The generated code
   aiConfidence: number; // AI confidence (0-1)
-  parseResult: ParseResult; // Parser result
+  parseResult: HSPlusCompileResult; // Parser result
   wasFixed: boolean; // Auto-fixed?
   attempts: number; // Number of attempts
   explanation?: string; // Optional explanation
@@ -164,7 +175,9 @@ const result = await generator.generate(
 - Generates code up to `maxAttempts` times
 - Checks confidence against `minConfidence` threshold
 - Auto-fixes if enabled and first attempt has errors
-- Parses with lenient mode for graceful degradation
+- Parses with lenient mode for graceful degradation: `HoloScriptPlusParser({ strict: false })`.
+  This is not the `.holo` strict layer (`packages/core/strict`, codes HS1001-HS1010), so
+  `parseResult.success` does not mean the code passes that layer.
 - Fetches explanation if generation succeeds
 - Records in session history
 
@@ -264,6 +277,7 @@ generator.clearHistory(session);
 | OpenAI          | `OpenAIAdapter`    | ✅     | API Key |
 | Anthropic       | `AnthropicAdapter` | ✅     | API Key |
 | Ollama (Local)  | `OllamaAdapter`    | ✅     | URL     |
+| LM Studio       | `LMStudioAdapter`  | ✅     | URL     |
 | Google (Gemini) | `GeminiAdapter`    | ✅     | API Key |
 | XAI (Grok)      | `XAIAdapter`       | ✅     | API Key |
 | Together.ai     | `TogetherAdapter`  | ✅     | API Key |
@@ -272,71 +286,93 @@ generator.clearHistory(session);
 
 ### Adapter Interface
 
-All adapters implement `AIAdapter`:
+All adapters implement `AIAdapter` (`packages/framework/src/ai/AIAdapter.ts`). Only `id`,
+`name` and `isReady()` are required; each capability is optional, so check before calling:
 
 ```typescript
 interface AIAdapter {
+  readonly id: string;
+  readonly name: string;
+  isReady(): boolean | Promise<boolean>;
+
   // Generate HoloScript from prompt
-  generateHoloScript(prompt: string): Promise<GenerateResult>;
+  generateHoloScript?(prompt: string, options?: GenerateOptions): Promise<GenerateResult>;
 
   // Explain existing code
-  explainHoloScript(code: string): Promise<ExplainResult>;
+  explainHoloScript?(holoScript: string): Promise<ExplainResult>;
 
   // Optimize for platform
-  optimizeHoloScript(code: string, platform: string): Promise<OptimizeResult>;
+  optimizeHoloScript?(
+    holoScript: string,
+    target: 'mobile' | 'desktop' | 'vr' | 'ar'
+  ): Promise<OptimizeResult>;
 
   // Fix broken code
-  fixHoloScript(code: string, errors: string[]): Promise<FixResult>;
+  fixHoloScript?(holoScript: string, errors: string[]): Promise<FixResult>;
+
+  // Code completion at a cursor position
+  completeHoloScript?(holoScript: string, cursorPosition: number): Promise<string[]>;
 
   // Multi-turn conversation
-  chat(message: string, systemPrompt: string, history?: Message[]): Promise<string>;
+  chat?(
+    message: string,
+    holoScript?: string,
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+  ): Promise<string>;
 
   // Generate embeddings
-  getEmbeddings(texts: string[]): Promise<number[][]>;
+  getEmbeddings?(text: string | string[]): Promise<number[][]>;
+}
 
-  // Get adapter name
-  getName(): string;
+interface GenerateResult {
+  holoScript: string;
+  confidence?: number; // becomes GeneratedCode.aiConfidence
+  objectCount?: number;
+  warnings?: string[];
+  metadata?: Record<string, unknown>;
 }
 ```
 
 ### Using Different Adapters
 
 ```typescript
-import { OpenAIAdapter, AnthropicAdapter, GeminiAdapter } from '@holoscript/core';
+import {
+  OpenAIAdapter,
+  AnthropicAdapter,
+  GeminiAdapter,
+  OllamaAdapter,
+  generateHoloScriptWithAdapter,
+} from '@holoscript/framework';
 
-// OpenAI (GPT-4)
+// `model` is optional in every config; each adapter has a default.
+
+// OpenAI
 const openai = new OpenAIAdapter({
   apiKey: process.env.OPENAI_API_KEY,
-  model: 'gpt-4-turbo', // or 'gpt-4', 'gpt-3.5-turbo'
-  temperature: 0.7,
+  model: 'gpt-4o-mini', // the default
 });
 
 // Anthropic (Claude)
 const anthropic = new AnthropicAdapter({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  model: 'claude-3-opus', // or 'claude-3-sonnet'
-  temperature: 0.7,
 });
 
 // Google Gemini
 const gemini = new GeminiAdapter({
   apiKey: process.env.GEMINI_API_KEY,
-  model: 'gemini-pro',
-  temperature: 0.7,
 });
 
 // Local Ollama
 const ollama = new OllamaAdapter({
-  baseURL: 'http://localhost:11434',
+  baseUrl: 'http://localhost:11434',
   model: 'mistral',
-  temperature: 0.7,
 });
 
 // Generate with different adapters
 const results = await Promise.all([
-  generateHoloScript(prompt, openai),
-  generateHoloScript(prompt, anthropic),
-  generateHoloScript(prompt, gemini),
+  generateHoloScriptWithAdapter(prompt, openai),
+  generateHoloScriptWithAdapter(prompt, anthropic),
+  generateHoloScriptWithAdapter(prompt, gemini),
 ]);
 ```
 
@@ -423,23 +459,27 @@ console.log('Valid:', result.parseResult.success);
 console.log('Auto-fixed:', result.wasFixed);
 ```
 
-**Expected Output**:
+**Example output** (a model's exact output varies; this is the shape to expect, one
+`composition` root around the objects). It parses with zero errors under `parseHolo` and the
+strict layer:
 
-```holoscript
-orb #throwableSphere
-  @grabbable(snap_to_hand: true)
-  @throwable(physics: true)
-  geometry: 'sphere'
-  color: '#0077ff'
-  scale: 1.0
-{
-  position: [0, 1.5, 0]
-  physics: {
-    type: 'dynamic'
-    mass: 0.5
+```holo
+composition "Throwable Sphere" {
+  object "BlueSphere" {
+    @grabbable
+    @throwable
+    @physics
+    @collidable
+
+    geometry: "sphere"
+    position: [0, 1.5, 0]
+    scale: 0.3
+    material: { baseColor: "#0077ff", roughness: 0.4, metallic: 0.1 }
   }
 }
 ```
+
+A real, longer program in the same shape: `examples/quickstart/2-red-cube-teal-button.holo`.
 
 ### Example 2: Batch Generation
 
@@ -583,7 +623,7 @@ const optimized = await generator.optimize(generatedCode.holoScript, 'mobile', s
 
 ```typescript
 // ✅ Good: Generate in parallel
-const results = await Promise.all(prompts.map((p) => generateHoloScript(p, adapter)));
+const results = await Promise.all(prompts.map((p) => generateHoloScriptWithAdapter(p, adapter)));
 
 // Then validate
 const validation = validateBatch(results.map((r) => r.holoScript));
@@ -595,40 +635,50 @@ const validation = validateBatch(results.map((r) => r.holoScript));
 
 ### Unit Tests
 
-All components have comprehensive test coverage:
+The tests live in `packages/framework/src/ai/__tests__/`:
 
 ```bash
-# Run all AI layer tests
-pnpm --filter=@holoscript/core test -- ai
+# Run all five AI layer test files
+pnpm --filter @holoscript/framework exec vitest run src/ai/__tests__/
 
-# Run specific test file
-pnpm --filter=@holoscript/core test -- AIIntegration.test.ts
-pnpm --filter=@holoscript/core test -- HoloScriptGenerator.test.ts
+# Run one file
+pnpm --filter @holoscript/framework exec vitest run src/ai/__tests__/HoloScriptGenerator.test.ts
 ```
 
 ### Test Coverage
 
-| Module              | Tests  | Status         |
-| ------------------- | ------ | -------------- |
-| AIIntegration       | 30     | ✅ Passing     |
-| HoloScriptGenerator | 35     | ✅ Passing     |
-| **Total**           | **65** | ✅ **Passing** |
+Counted from a run on 2026-10-07. Re-run the command above rather than trusting these numbers
+as they age.
+
+| File                          | Tests   | Status         |
+| ----------------------------- | ------- | -------------- |
+| `HoloScriptGenerator.test.ts` | 14      | ✅ Passing     |
+| `AIAdapter.test.ts`           | 14      | ✅ Passing     |
+| `AIAdapter.prod.test.ts`      | 23      | ✅ Passing     |
+| `adapters.test.ts`            | 30      | ✅ Passing     |
+| `adapters.prod.test.ts`       | 41      | ✅ Passing     |
+| **Total**                     | **122** | ✅ **Passing** |
 
 ### Mock Adapter for Testing
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import type { AIAdapter } from '@holoscript/core';
+import { HoloScriptGenerator, type AIAdapter } from '@holoscript/framework';
 
 class MockAdapter implements AIAdapter {
-  async generateHoloScript(prompt: string) {
-    return {
-      holoScript: `orb #test { }`,
-      aiConfidence: 0.95,
-    };
+  readonly id = 'mock';
+  readonly name = 'Mock';
+
+  isReady() {
+    return true;
   }
 
-  // ... other methods
+  async generateHoloScript(prompt: string) {
+    return {
+      holoScript: `composition "Test" {\n  object "Cube" { geometry: "cube" }\n}`,
+      confidence: 0.95, // surfaces as GeneratedCode.aiConfidence
+    };
+  }
 }
 
 describe('GenerationLogic', () => {
@@ -660,6 +710,6 @@ describe('GenerationLogic', () => {
 
 ---
 
-**Last Updated**: 2025-01-21  
-**Status**: Production Ready  
+**Last Updated**: 2026-10-07 (imports moved to `@holoscript/framework`, test counts re-run)  
+**Status**: Working; tested without live model APIs, so live-API validation is still open  
 **Maintainer**: AI Development Team
