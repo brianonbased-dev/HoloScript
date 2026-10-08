@@ -49,7 +49,29 @@ export function getRegisteredToolCount(): number {
   return _lastRegisteredToolCount;
 }
 
-async function createMcpServer(): Promise<McpServer> {
+/**
+ * Who a tool call on this host runs as. Source code (queryType "source", code
+ * in ask answers) is read only for admins: any GitHub token authenticates here,
+ * and the absorbed graph is shared by everyone this process serves (claude4's
+ * review of claudecode/absorb-agent-brief, 2026-10-08). Inline sourceFiles
+ * uploads are bound to `principal`.
+ */
+interface ToolCaller {
+  codeRead: boolean;
+  principal: string | undefined;
+}
+
+function toolCallerFor(req: Request): ToolCaller {
+  const authReq = req as AuthenticatedRequest;
+  return {
+    codeRead: authReq.authenticated === true && authReq.isAdmin === true,
+    principal: sessionPrincipal(req) ?? undefined,
+  };
+}
+
+const NO_TOOL_CALLER: ToolCaller = { codeRead: false, principal: undefined };
+
+async function createMcpServer(caller: ToolCaller = NO_TOOL_CALLER): Promise<McpServer> {
   const server = new McpServer({
     name: 'absorb-service',
     version: SERVICE_VERSION,
@@ -69,6 +91,9 @@ async function createMcpServer(): Promise<McpServer> {
     }
   };
 
+  let runAsCaller: <T>(fn: () => Promise<T>) => Promise<T> = async () => {
+    throw new Error('HoloAbsorb code-read gate unavailable; refusing to run tools without it');
+  };
   try {
     const mcpModule = (await import('@holoscript/absorb-service/mcp')) as Record<string, any>;
 
@@ -88,6 +113,16 @@ async function createMcpServer(): Promise<McpServer> {
       mcpModule.graphRagTools,
       mcpModule.handleGraphRagTool ?? mcpModule.graphRagToolHandler,
     );
+    // Looked up after registration: a module without the gate still lists its
+    // tools, and every call is then refused (runAsCaller's default above).
+    try {
+      const gateRun = mcpModule.runWithCodeReadAccess;
+      if (typeof gateRun === 'function') {
+        runAsCaller = (fn) => gateRun(caller.codeRead, fn, caller.principal);
+      }
+    } catch {
+      // keep the refusing default
+    }
 
   } catch (e: any) {
     console.warn('[mcp] Failed to register absorb MCP tools:', e.message);
@@ -120,9 +155,8 @@ async function createMcpServer(): Promise<McpServer> {
     }
 
     try {
-      const result = await entry.handler(
-        name,
-        (request.params.arguments ?? {}) as Record<string, unknown>,
+      const result = await runAsCaller(() =>
+        entry.handler(name, (request.params.arguments ?? {}) as Record<string, unknown>),
       );
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -184,6 +218,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
   const sessionId = transport.sessionId;
   transports.set(sessionId, transport);
   sessionUserMap.set(sessionId, principal);
+  const caller = toolCallerFor(req);
 
   // Drop the session when the SSE stream closes (client disconnect).
   res.on('close', () => {
@@ -191,7 +226,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
     sessionUserMap.delete(sessionId);
   });
 
-  const server = await createMcpServer();
+  const server = await createMcpServer(caller);
   // connect() starts the transport (SSE headers + endpoint event). The extra
   // transport.start() that followed threw "already started" on every session.
   await server.connect(transport);
@@ -207,7 +242,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
  * remaining protocol-compatible with Streamable HTTP clients.
  */
 export async function handleMcpStreamableHttp(req: Request, res: Response): Promise<void> {
-  const server = await createMcpServer();
+  const server = await createMcpServer(toolCallerFor(req));
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

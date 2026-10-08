@@ -596,8 +596,10 @@ export async function _handleSingleToolLogic(
   args: Record<string, unknown>,
   signingCtx?: SigningContext
 ) {
-  return runWithCodeReadAccess(callerMayReadCode(signingCtx), () =>
-    handleSingleToolLogicForCaller(name, args, signingCtx)
+  return runWithCodeReadAccess(
+    callerMayReadCode(signingCtx),
+    () => handleSingleToolLogicForCaller(name, args, signingCtx),
+    callerPrincipal(signingCtx)
   );
 }
 

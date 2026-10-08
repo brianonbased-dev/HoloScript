@@ -14,6 +14,7 @@ import path from 'node:path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import { codeReadAllowed } from './code-read-access';
+import { absorbRootRefusal } from '../engine/absorb-root-policy';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
 import {
@@ -928,9 +929,27 @@ export function readSymbolExcerpt(
   file: string,
   line: number,
   lineCount?: number,
-  maxLines = EXCERPT_MAX_LINES
+  maxLines = EXCERPT_MAX_LINES,
+  readSource?: SourceTextReader
 ): string | undefined {
-  return readSymbolLines(rootDir, file, line, lineCount, maxLines)?.lines.join('\n');
+  return readSymbolLines(rootDir, file, line, lineCount, maxLines, readSource)?.lines.join('\n');
+}
+
+/** Returns a file's text by its graph-relative path, or undefined when it has none. */
+export type SourceTextReader = (relativePath: string) => string | undefined;
+
+/**
+ * For a graph built from inline sourceFiles, the uploaded text by path; the
+ * code readers use it instead of the disk. The graph root of an upload can be a
+ * caller-named folder (rootDir / a snapshot receipt) that the upload never
+ * wrote, so reading the disk there would return the server's files, outside the
+ * absorb root allowlist, instead of the code that was absorbed (claude4's
+ * review, 2026-10-08). Undefined for graphs scanned from disk.
+ */
+export function inlineSourceReaderFor(graph: unknown): SourceTextReader | undefined {
+  const sources = (graph as { inlineSources?: Map<string, string> } | null)?.inlineSources;
+  if (!(sources instanceof Map)) return undefined;
+  return (relativePath) => sources.get(relativePath.replace(/\\/g, '/'));
 }
 
 /**
@@ -942,7 +961,9 @@ export function readSymbolLines(
   file: string,
   line: number,
   lineCount?: number,
-  maxLines = EXCERPT_MAX_LINES
+  maxLines = EXCERPT_MAX_LINES,
+  readSource?: SourceTextReader,
+  maxLineChars = EXCERPT_MAX_LINE_CHARS
 ): { startLine: number; lines: string[] } | undefined {
   if (!rootDir || !file || !(line >= 1)) return undefined;
   const root = path.resolve(rootDir);
@@ -950,9 +971,29 @@ export function readSymbolLines(
   const relative = path.relative(root, target);
   if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) return undefined;
   try {
-    const stat = fs.statSync(target);
-    if (!stat.isFile() || stat.size > 2 * 1024 * 1024) return undefined;
-    const lines = fs.readFileSync(target, 'utf-8').split(/\r?\n/);
+    let text: string | undefined;
+    if (readSource) {
+      // An inline upload: its own text, never the disk at its (caller-named) root.
+      text = readSource(relative);
+      if (text === undefined || text.length > 2 * 1024 * 1024) return undefined;
+    } else {
+      // Read the disk only under a root this server may absorb (#483's
+      // allowlist). A graph whose root a caller named for an inline upload, or
+      // one reloaded from such a cache, is not a licence to read that folder.
+      if (absorbRootRefusal(root)) return undefined;
+      // A symlink inside the root can point anywhere; read only what really
+      // lives under the root (claude6's and claude4's P3).
+      const realRoot = fs.realpathSync.native(root);
+      const realTarget = fs.realpathSync.native(target);
+      const realRelative = path.relative(realRoot, realTarget);
+      if (!realRelative || realRelative.startsWith('..') || path.isAbsolute(realRelative)) {
+        return undefined;
+      }
+      const stat = fs.statSync(realTarget);
+      if (!stat.isFile() || stat.size > 2 * 1024 * 1024) return undefined;
+      text = fs.readFileSync(realTarget, 'utf-8');
+    }
+    const lines = text.split(/\r?\n/);
     // Start at the comment block directly above the definition, if any: it is
     // usually the one sentence that says what the code is for.
     let start = line - 1;
@@ -965,7 +1006,7 @@ export function readSymbolLines(
       lines: lines
         .slice(start, start + span)
         .map((text) =>
-          text.length > EXCERPT_MAX_LINE_CHARS ? `${text.slice(0, EXCERPT_MAX_LINE_CHARS)}...` : text
+          text.length > maxLineChars ? `${text.slice(0, maxLineChars)}...` : text
         ),
     };
   } catch {
@@ -1045,10 +1086,18 @@ function answerCodeReader(
   read: (result: EnrichedResult) => string | undefined;
 } {
   const rootDir = engine.graph.getRootDir?.() ?? '';
+  const readSource = inlineSourceReaderFor(engine.graph);
   return {
     count: 3,
     read: (r) => {
-      const read = readSymbolLines(rootDir, r.file, r.symbol.line, r.symbol.lineCount, ANSWER_CODE_SCAN_LINES);
+      const read = readSymbolLines(
+        rootDir,
+        r.file,
+        r.symbol.line,
+        r.symbol.lineCount,
+        ANSWER_CODE_SCAN_LINES,
+        readSource
+      );
       return read ? selectLinesForQuestion(read.lines, question).join('\n') : undefined;
     },
   };
@@ -1127,7 +1176,14 @@ async function buildExtractiveCodebaseAnswer(options: {
   const excerpts = (quote ? context : [])
     .slice(0, EXCERPT_COUNT)
     .map((r) => {
-      const code = readSymbolExcerpt(rootDir, r.file, r.symbol.line, r.symbol.lineCount);
+      const code = readSymbolExcerpt(
+        rootDir,
+        r.file,
+        r.symbol.line,
+        r.symbol.lineCount,
+        undefined,
+        inlineSourceReaderFor(engine.graph)
+      );
       return code ? { name: contextName(r), file: r.file, line: r.symbol.line, code } : undefined;
     })
     .filter((excerpt): excerpt is NonNullable<typeof excerpt> => excerpt !== undefined);
@@ -1145,7 +1201,9 @@ async function buildExtractiveCodebaseAnswer(options: {
     answer: guard.passed
       ? [
           `LLM generation was unavailable (${fallbackReason}); returning an extractive GraphRAG answer from cited code context.`,
-          'Retrieval only, not an answer: the matches below are ranked by search and can be off-topic. Read the excerpts (or holo_query_codebase {query: "source"}) before relying on them.',
+          quote
+            ? 'Retrieval only, not an answer: the matches below are ranked by search and can be off-topic. Read the excerpts (or holo_query_codebase {query: "source"}) before relying on them.'
+            : 'Retrieval only, not an answer: the matches below are ranked by search and can be off-topic. Source code is not shown to this caller.',
           '',
           ...citedLines,
           ...(excerpts.length > 0

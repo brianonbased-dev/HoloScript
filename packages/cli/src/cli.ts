@@ -4972,7 +4972,10 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
     case 'graph-status': {
       try {
-        const { handleCodebaseTool } = await import('@holoscript/absorb-service/mcp');
+        const { handleCodebaseTool, setCodeReadDefault } = await import(
+          '@holoscript/absorb-service/mcp'
+        );
+        setCodeReadDefault(true); // the CLI is the local user
         const status = await handleCodebaseTool('holo_graph_status', {});
         if (options.json) {
           printJson(status);

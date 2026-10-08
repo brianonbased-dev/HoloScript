@@ -807,6 +807,19 @@ function vastCodingUrlForAsyncProbe(): string {
   return (vastCodingUrlFromEnv() || VAST_OSS_CODING_DEFAULT_URL).replace(/\/+$/, '');
 }
 
+/**
+ * The caller's per-attempt bound (timeoutMs, maxRetries) for an adapter. The
+ * paid resolvers used to build their adapters without it, so a caller asking
+ * for one attempt in 120 s got the base defaults: 3 retries and 300 s, each
+ * retry billed (claude4's review of holo_ask_codebase routing, 2026-10-08).
+ */
+function adapterBounds(opts: SovereignResolveOptions): { timeoutMs?: number; maxRetries?: number } {
+  return {
+    ...(opts.timeoutMs !== undefined && { timeoutMs: opts.timeoutMs }),
+    ...(opts.maxRetries !== undefined && { maxRetries: opts.maxRetries }),
+  };
+}
+
 function resolveVastOssCoding(
   baseUrlOverride: string | undefined,
   opts: SovereignResolveOptions
@@ -829,6 +842,7 @@ function resolveVastOssCoding(
     model,
     nativeOllamaApi: false,
     timeoutMs: 300_000,
+    ...adapterBounds(opts),
   });
   return {
     provider,
@@ -1469,7 +1483,11 @@ function resolveAnthropic(
   if (!apiKey) {
     throw new Error('provider=anthropic requires ANTHROPIC_API_KEY (BYOK frontier fallback).');
   }
-  const provider = new AnthropicAdapter({ apiKey, enablePromptCaching: true });
+  const provider = new AnthropicAdapter({
+    apiKey,
+    enablePromptCaching: true,
+    ...adapterBounds(opts),
+  });
   return {
     provider,
     model: modelOverride(opts) || 'claude-sonnet-4-6',
@@ -1481,7 +1499,7 @@ function resolveAnthropic(
 function resolveXai(opts: SovereignResolveOptions): ResolvedSovereignProvider {
   const apiKey = env('XAI_API_KEY');
   if (!apiKey) throw new Error('provider=xai requires XAI_API_KEY.');
-  const provider = new XAIAdapter({ apiKey });
+  const provider = new XAIAdapter({ apiKey, ...adapterBounds(opts) });
   return {
     provider,
     model: modelOverride(opts) || 'grok-4.3',
@@ -1496,6 +1514,7 @@ function resolveOpenai(opts: SovereignResolveOptions): ResolvedSovereignProvider
   const provider = new OpenAIAdapter({
     apiKey,
     ...(env('OPENAI_BASE_URL') ? { baseURL: env('OPENAI_BASE_URL') } : {}),
+    ...adapterBounds(opts),
   });
   return {
     provider,
@@ -1547,6 +1566,7 @@ async function resolveFleet(opts: SovereignResolveOptions): Promise<ResolvedSove
   const provider = new VastServerlessAdapter({
     ...baseConfig,
     ...(maxWaitS ? { maxWaitS } : {}),
+    ...adapterBounds(opts),
   });
   return {
     provider,

@@ -354,8 +354,10 @@ export async function handleTool(
   // (absorb-service code-read-access): the local stdio user, loopback local
   // custody or an admin scope. An externally-sourced lane never may.
   const mayReadCode = !subjectSourceOverride && callerMayReadCode(signingCtx);
-  return runWithCodeReadAccess(mayReadCode, () =>
-    handleToolForCaller(name, args, signingCtx, subjectSourceOverride)
+  return runWithCodeReadAccess(
+    mayReadCode,
+    () => handleToolForCaller(name, args, signingCtx, subjectSourceOverride),
+    subjectSourceOverride ? `holoscript-mcp:${subjectSourceOverride}` : callerPrincipal(signingCtx)
   );
 }
 

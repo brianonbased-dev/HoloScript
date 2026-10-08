@@ -45,6 +45,9 @@ async function withWorkspaceRoot<T>(
 
 async function defaultHandlers(): Promise<CodebaseQueryHandlers> {
   const mcp = await import('@holoscript/absorb-service/mcp');
+  // The CLI runs as the local user on their own checkout, so it may read code
+  // (the library default is "no" for hosts that serve other callers).
+  mcp.setCodeReadDefault(true);
   return {
     handleCodebaseTool: mcp.handleCodebaseTool,
     handleGraphRagTool: mcp.handleGraphRagTool,

@@ -11,6 +11,7 @@ import { execFileSync } from 'child_process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
 import { handleGraphRagTool, readSymbolExcerpt, resetGraphRAGStateForTests } from './graph-rag-tools';
+import { runWithCodeReadAccess } from './code-read-access';
 
 const saved = { ...process.env };
 afterEach(() => {
@@ -62,10 +63,14 @@ describe('holo_ask_codebase without a reachable model', () => {
     expect(absorb.error, JSON.stringify(absorb).slice(0, 300)).toBeUndefined();
 
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('fetch failed'));
-    const answer = (await handleGraphRagTool('holo_ask_codebase', {
-      question: 'how is a cached map judged fresh',
-      topK: 3,
-    })) as {
+    // A caller allowed to read code (the local user); refused callers are
+    // covered in code-read-access.test.ts.
+    const answer = (await runWithCodeReadAccess(true, () =>
+      handleGraphRagTool('holo_ask_codebase', {
+        question: 'how is a cached map judged fresh',
+        topK: 3,
+      })
+    )) as {
       error?: string;
       fallback?: string;
       fallbackReason?: string;

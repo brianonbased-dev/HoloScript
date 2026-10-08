@@ -36,7 +36,6 @@ import { tools } from './tools';
 import { handleTool } from './handlers';
 import { getCompilerWasmBuildIdentity } from './parserBuildIdentity';
 import { _handleSingleToolLogic } from './index';
-import { setCodeReadDefault } from '@holoscript/absorb-service/mcp';
 import { listSkillResources, readSkillResource } from './skill-resources';
 import { PluginManager } from './PluginManager';
 import { handleCompilerTool, handleCompileToTarget } from './compiler-tools';
@@ -205,10 +204,9 @@ const PORT = parseInt(process.env.PORT || '3000', 10);
 const BIND_HOST = resolveMcpBindHost();
 const TRUST_LOOPBACK_MCP = process.env.MCP_TRUST_LOOPBACK === 'true';
 
-// The HTTP server serves many callers from one absorbed graph, so a call that
-// lost its caller reads no source code. Each tool call grants it back only to
-// local custody or an admin scope (_handleSingleToolLogic / handleTool).
-setCodeReadDefault(false);
+// Code reading through the codebase tools is off unless a tool call grants it:
+// absorb-service's default is "no" (code-read-access.ts), and each call is
+// decided per caller in _handleSingleToolLogic / handleTool (callerMayReadCode).
 const HOLOSCRIPT_API_KEY = process.env.HOLOSCRIPT_API_KEY || '';
 const SERVICE_NAME = 'holoscript-mcp';
 declare const __SERVICE_VERSION__: string;

@@ -23,6 +23,7 @@
  */
 
 import type { LLMProvider } from '../engine/GraphRAGEngine';
+import { codeReadAllowed } from './code-read-access';
 
 export type AnswerRouteKind =
   | 'explicit-endpoint'
@@ -174,6 +175,20 @@ export async function createRoutedAnswerProvider(
       }
 
       // 3 — the canonical resolver under the owner's configured spend consent.
+      // Only for the server's own operator (the callers allowed to read code:
+      // stdio, loopback local custody, admin). Its consent is server-wide env,
+      // so on a hosted server any tenant would otherwise spend the operator's
+      // paid routes, and a Vast route probe bumps demand even when nothing
+      // answers (claude4's review, 2026-10-08).
+      if (!codeReadAllowed()) {
+        attempts.push({
+          kind: 'paid',
+          target: 'resolver',
+          outcome: 'skipped',
+          reason: "the server's configured and paid routes answer only its operator",
+        });
+        throw new Error(`no answer model reachable — ${describeAttempts(attempts)}`);
+      }
       try {
         const resolved = await llm.resolveSovereignProviderAsync({
           caller: 'holo_ask_codebase',
@@ -208,7 +223,7 @@ export async function createRoutedAnswerProvider(
               model: resolved.model,
               ...(resolved.step ? { step: resolved.step } : {}),
               summary: paid
-                ? `Answered by ${resolved.model} through ${resolved.providerName}, a paid route you allowed.`
+                ? `Answered by ${resolved.model} through ${resolved.providerName}, a paid route the server's operator allowed.`
                 : `Answered by ${resolved.model} through ${resolved.providerName}, as configured.`,
             };
             return { content: response.content };

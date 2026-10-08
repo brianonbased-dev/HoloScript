@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import express from 'express';
 import type { Server } from 'node:http';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { handleMcpStreamableHttp } from './mcp-handler.js';
+import type { AuthenticatedRequest } from './middleware/auth.js';
 
 let server: Server;
 let endpoint = '';
@@ -9,6 +14,18 @@ let endpoint = '';
 beforeAll(async () => {
   const app = express();
   app.use(express.json({ limit: '1mb' }));
+  // Stand-in for authMiddleware: the caller named in x-test-caller is
+  // authenticated ("admin" as an admin, anything else as a GitHub user).
+  app.use((req, _res, next) => {
+    const caller = req.headers['x-test-caller'];
+    if (typeof caller === 'string') {
+      const authReq = req as AuthenticatedRequest;
+      authReq.authenticated = true;
+      authReq.userId = caller;
+      authReq.isAdmin = caller === 'admin';
+    }
+    next();
+  });
   app.post('/mcp', handleMcpStreamableHttp);
 
   server = await new Promise<Server>((resolve) => {
@@ -27,12 +44,13 @@ afterAll(async () => {
   });
 });
 
-async function rpc(body: Record<string, unknown>) {
+async function rpc(body: Record<string, unknown>, caller?: string) {
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       accept: 'application/json, text/event-stream',
+      ...(caller ? { 'x-test-caller': caller } : {}),
     },
     body: JSON.stringify(body),
   });
@@ -107,4 +125,53 @@ describe('HoloAbsorb stateless MCP integration', () => {
       officialMcpTool: 'holo_absorb_manifest',
     });
   }, 60_000);
+
+  it('reads source code only for admins: a GitHub user gets code_read_not_allowed (claude4, 2026-10-08)', async () => {
+    const CODE_LINE = 'return headMatches && fingerprintMatches;';
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'holoabsorb-host-gate-repo-'));
+    const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, windowsHide: true });
+    git('init');
+    git('config', 'user.email', 'codex@example.test');
+    git('config', 'user.name', 'Codex Test');
+    fs.mkdirSync(path.join(repo, 'src'), { recursive: true });
+    fs.writeFileSync(
+      path.join(repo, 'src', 'freshness.ts'),
+      [
+        'export function isCachedMapFresh(headMatches: boolean, fingerprintMatches: boolean): boolean {',
+        `  ${CODE_LINE}`,
+        '}',
+        '',
+      ].join('\n'),
+    );
+    git('add', '.');
+    git('commit', '-m', 'init');
+    const saved = { ...process.env };
+    Object.assign(process.env, {
+      HOLOSCRIPT_CACHE_DIR: fs.mkdtempSync(path.join(os.tmpdir(), 'holoabsorb-host-gate-cache-')),
+      HOLOSCRIPT_WORKSPACE_ROOT: repo,
+      ABSORB_ALLOWED_ROOTS: repo,
+      ABSORB_AUTO_BACKGROUND: '0',
+      ABSORB_REQUIRE_ISOLATION: '0',
+      ABSORB_MIN_SYSTEM_FREE_MB: '64',
+    });
+    try {
+      const call = (name: string, args: Record<string, unknown>, caller: string) =>
+        rpc({ jsonrpc: '2.0', id: 9, method: 'tools/call', params: { name, arguments: args } }, caller);
+      const resultText = (r: { body: Record<string, any> }) =>
+        String(r.body.result?.content?.find((e: { type?: string }) => e.type === 'text')?.text ?? '');
+
+      const absorb = await call('holo_absorb_repo', { force: true, outputFormat: 'stats' }, 'admin');
+      expect(resultText(absorb)).not.toContain('"error"');
+
+      const source = { query: 'isCachedMapFresh', queryType: 'source', symbolName: 'isCachedMapFresh' };
+      const user = resultText(await call('holo_query_codebase', source, 'github-user-1'));
+      expect(user).toContain('code_read_not_allowed');
+      expect(user).not.toContain(CODE_LINE);
+      const admin = resultText(await call('holo_query_codebase', source, 'admin'));
+      expect(admin).toContain(CODE_LINE);
+    } finally {
+      for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key];
+      Object.assign(process.env, saved);
+    }
+  }, 120_000);
 });

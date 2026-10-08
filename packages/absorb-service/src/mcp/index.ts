@@ -41,10 +41,14 @@ export {
 } from './graph-rag-tools';
 export {
   CODE_READ_REFUSED,
+  LOCAL_PRINCIPAL,
+  UNKNOWN_PRINCIPAL,
   codeReadAllowed,
+  currentCallerPrincipal,
   runWithCodeReadAccess,
   setCodeReadDefault,
 } from './code-read-access';
+export type { CodeReadCaller } from './code-read-access';
 export { oracleTools, handleOracleTool } from './oracle-tools';
 export {
   knowledgeExtractionTools,

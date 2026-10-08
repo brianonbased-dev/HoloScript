@@ -19,6 +19,7 @@ import {
   resetGraphRAGStateForTests,
   setGraphRAGState,
 } from './graph-rag-tools';
+import { runWithCodeReadAccess } from './code-read-access';
 
 const ENV_KEYS = [
   'SOVEREIGN_DEVICES_DIR',
@@ -281,5 +282,98 @@ describe('holo_ask_codebase answer-model routing', () => {
     });
     // The registry was never probed.
     expect(calls.some((c) => c.endsWith('/health'))).toBe(false);
+  });
+
+  /** A request to anything but a registered device (loopback or LAN). */
+  const offRegistry = (call: string) => {
+    const host = new URL(call.split(' ')[1]).hostname;
+    return !(host.startsWith('127.') || host.startsWith('192.168.'));
+  };
+
+  it('never reaches the paid step for a caller who may not read code; the operator still does', async () => {
+    process.env.VAST_API_KEY = 'test-only-not-a-key';
+    const tenantCalls = stubNetwork({});
+    const tenant = await ask();
+    expect(tenant.answeredBy?.kind).toBe('retrieval-only');
+    expect(tenant.routing).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          target: 'resolver',
+          outcome: 'skipped',
+          reason: expect.stringContaining('operator'),
+        }),
+      ])
+    );
+    // Nothing left for anything but registered devices: no Vast route probe.
+    expect(tenantCalls.filter(offRegistry)).toEqual([]);
+
+    vi.unstubAllGlobals();
+    const operatorCalls = stubNetwork({});
+    await runWithCodeReadAccess(true, () => ask());
+    expect(operatorCalls.some(offRegistry)).toBe(true);
+  });
+
+  it('puts code in the answer prompt only for a caller who may read code', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'absorb-prompt-gate-'));
+    const CODE_LINE = 'return answerFromTheGraph(question);';
+    writeFileSync(
+      join(root, 'service.ts'),
+      ['export class AbsorbService {', `  ask(question: string) { ${CODE_LINE} }`, '}', ''].join('\n')
+    );
+    const symbol: ExternalSymbolDefinition = {
+      name: 'AbsorbService',
+      type: 'class',
+      filePath: 'service.ts',
+      line: 1,
+      column: 1,
+      language: 'typescript',
+      visibility: 'public',
+      signature: 'class AbsorbService',
+    };
+    const hit = { symbol, score: 0.99, file: symbol.filePath, type: symbol.type };
+    const index: SymbolSearchIndex = {
+      search: async () => [hit],
+      searchWithFilters: async () => [hit],
+    };
+    const graph = {
+      getRootDir: () => root,
+      getCallersOf: () => [],
+      getCalleesOf: () => [],
+      getSymbolImpact: () => new Set<string>(),
+      getCommunityForFile: () => 'absorb-service',
+      getSymbolsInFile: (file: string) => (file === symbol.filePath ? [symbol] : []),
+    } as unknown as CodebaseGraph;
+    setGraphRAGState(index, new GraphRAGEngine(graph, index));
+
+    writeLaptopAndJetson();
+    const prompts: string[] = [];
+    const server = llamaServer('fara-7b', 'An answer.');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL, init?: RequestInit) => {
+        const url = new URL(String(input));
+        const method = (init?.method ?? 'GET').toUpperCase();
+        // Only the laptop device (loopback, port 18080) answers.
+        if (!url.hostname.startsWith('127.') || url.port !== '18080') {
+          throw new TypeError('fetch failed');
+        }
+        if (method === 'POST') prompts.push(String(init?.body ?? ''));
+        const body = server[`${method} ${url.pathname}`];
+        if (body === undefined) throw new TypeError('fetch failed');
+        return new Response(JSON.stringify(body), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      })
+    );
+
+    await ask();
+    expect(prompts.length).toBeGreaterThan(0);
+    expect(prompts.join('\n')).not.toContain(CODE_LINE);
+
+    prompts.length = 0;
+    await runWithCodeReadAccess(true, () => ask());
+    expect(prompts.join('\n')).toContain(CODE_LINE);
+    rmSync(root, { recursive: true, force: true });
   });
 });

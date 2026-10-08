@@ -26,11 +26,12 @@ import {
   isGraphRAGReady,
   resetGraphRAGState,
   resetGraphRAGStateForTests,
+  inlineSourceReaderFor,
   readSymbolExcerpt,
   readSymbolLines,
   setGraphRAGState,
 } from './graph-rag-tools';
-import { CODE_READ_REFUSED, codeReadAllowed } from './code-read-access';
+import { CODE_READ_REFUSED, codeReadAllowed, currentCallerPrincipal } from './code-read-access';
 import {
   ABSORB_HOLO_ABSORB_REPO_HINT,
   describeGraphUnavailable,
@@ -7346,12 +7347,22 @@ export async function refuseNestedWorkspaceSliceForSemanticTools(): Promise<{
   hint: string;
   graphUnavailableReceipt: GraphUnavailableReceipt;
 } | null> {
-  // Ask only the nested-slice question. The full in-memory authority check in
-  // ensureCachedGraph evicts any graph that does not cover its rootDir's Git
-  // file set (an inline sourceFiles upload never does) and resets GraphRAG
-  // state as a side effect, so the semantic tool that called this lost the
-  // engine it was about to use. Staleness stays the semantic tool's concern.
-  if (cachedGraph) {
+  // An inline sourceFiles upload never covers its root's Git file set, so the
+  // full authority check in ensureCachedGraph evicts it, and the uploader's
+  // own ask then found no engine. For the uploader alone, ask only the
+  // nested-slice question. Anyone else must never be answered from another
+  // caller's upload: evict it, as main did. Git-backed graphs always take the
+  // full check, which also catches a stale graph (claude4's review, 2026-10-08).
+  const uploadOwner = (cachedGraph as { inlineUploadPrincipal?: string } | null)
+    ?.inlineUploadPrincipal;
+  if (cachedGraph && uploadOwner !== undefined && uploadOwner !== currentCallerPrincipal()) {
+    cachedGraph = null;
+    cachedRootDir = '';
+    cacheProvenance = null;
+    cacheTimestamp = 0;
+    resetGraphRAGState();
+  }
+  if (cachedGraph && uploadOwner !== undefined) {
     const workspaceRoot = resolveWorkspaceRoot();
     const memoryRootDirs = (cachedGraph as { rootDirs?: string[] }).rootDirs;
     const declaredRoots =
@@ -8297,6 +8308,22 @@ async function runFullScan(
     activeRefreshCheckpoint?.markInterrupted(error);
     setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
     throw error;
+  }
+  if (inlineSourceFiles) {
+    // An inline upload answers only the caller who sent it, and its code is
+    // read from what was sent, not from the disk at its root (claude4's review
+    // of claudecode/absorb-agent-brief, 2026-10-08).
+    Object.assign(graph, {
+      inlineUploadPrincipal: currentCallerPrincipal(),
+      inlineSources: new Map(
+        inlineSourceFiles.map((file) => [
+          path
+            .relative(primaryRootDir, path.resolve(primaryRootDir, file.path))
+            .replace(/\\/g, '/'),
+          file.content,
+        ])
+      ),
+    });
   }
   cachedGraph = graph;
   cachedRootDir = primaryRootDir;
@@ -10918,7 +10945,11 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
   const query = args.query as string;
 
   // Infer query type from natural language if not provided
-  const effectiveType = queryType ?? inferQueryType(query);
+  // A query only inferred to be a code read ("where do we read X") falls back
+  // to find for a caller who may not read code, instead of a refusal.
+  const inferredType = queryType ?? inferQueryType(query);
+  const effectiveType =
+    !queryType && inferredType === 'source' && !codeReadAllowed() ? 'find' : inferredType;
 
   switch (effectiveType) {
     case 'callers': {
@@ -11002,24 +11033,61 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         .filter((sym) => !symbolOwner || sym.owner === symbolOwner)
         .slice(0, SOURCE_MAX_DEFINITIONS);
       const rootDir = cachedGraph.getRootDir();
+      // A graph built from inline sourceFiles is read from its upload, never
+      // from the disk at its root (claude4's review, 2026-10-08).
+      const readSource = inlineSourceReaderFor(cachedGraph);
       // `match` reads the whole definition and returns only the lines holding
       // a word, with context: tester 7 had to filter a 375-line body by hand.
       const match = typeof args.match === 'string' ? args.match.trim().toLowerCase() : '';
       if (match) {
         const matched = definitions.flatMap((sym) => {
-          const read = readSymbolLines(rootDir, sym.filePath, sym.line, sym.lineCount, SOURCE_MATCH_MAX_SCAN);
+          // Match against whole lines; cut long lines only for display.
+          const read = readSymbolLines(
+            rootDir,
+            sym.filePath,
+            sym.line,
+            sym.lineCount,
+            SOURCE_MATCH_MAX_SCAN,
+            readSource,
+            Number.POSITIVE_INFINITY
+          );
           if (!read) return [];
           const keep = new Set<number>();
+          let matchCount = 0;
           read.lines.forEach((text, i) => {
             if (!text.toLowerCase().includes(match)) return;
+            matchCount++;
             for (let k = Math.max(0, i - SOURCE_MATCH_CONTEXT); k <= Math.min(read.lines.length - 1, i + SOURCE_MATCH_CONTEXT); k++) keep.add(k);
           });
-          const indexes = [...keep].sort((a, b) => a - b).slice(0, SOURCE_MAX_LINES);
+          const allIndexes = [...keep].sort((a, b) => a - b);
+          const indexes = allIndexes.slice(0, SOURCE_MAX_LINES);
           if (indexes.length === 0) return [];
+          const display = (text: string) =>
+            text.length > SOURCE_MATCH_DISPLAY_CHARS ? `${text.slice(0, SOURCE_MATCH_DISPLAY_CHARS)}...` : text;
           const code = indexes
-            .map((i, n) => `${n > 0 && i !== indexes[n - 1] + 1 ? '...\n' : ''}${read.startLine + i}: ${read.lines[i]}`)
+            .map((i, n) => `${n > 0 && i !== indexes[n - 1] + 1 ? '...\n' : ''}${read.startLine + i}: ${display(read.lines[i])}`)
             .join('\n');
-          return [{ name: sym.owner ? `${sym.owner}.${sym.name}` : sym.name, type: sym.type, file: sym.filePath, line: sym.line, match, code }];
+          const scanCut = sym.lineCount !== undefined && sym.lineCount > SOURCE_MATCH_MAX_SCAN;
+          const shownCut = allIndexes.length > indexes.length;
+          return [
+            {
+              name: sym.owner ? `${sym.owner}.${sym.name}` : sym.name,
+              type: sym.type,
+              file: sym.filePath,
+              line: sym.line,
+              match,
+              matchCount,
+              code,
+              ...((scanCut || shownCut) && {
+                cut: [
+                  shownCut ? `showing the first ${indexes.length} of ${allIndexes.length} matching/context lines` : '',
+                  scanCut ? `searched only the first ${SOURCE_MATCH_MAX_SCAN} of ${sym.lineCount} lines` : '',
+                ]
+                  .filter(Boolean)
+                  .join('; '),
+              }),
+            },
+          ];
         });
         return {
           query: `source of ${name} matching "${match}"`,
@@ -11033,7 +11101,14 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         };
       }
       const sources = definitions.flatMap((sym) => {
-        const code = readSymbolExcerpt(rootDir, sym.filePath, sym.line, sym.lineCount, SOURCE_MAX_LINES);
+        const code = readSymbolExcerpt(
+          rootDir,
+          sym.filePath,
+          sym.line,
+          sym.lineCount,
+          SOURCE_MAX_LINES,
+          readSource
+        );
         if (!code) return [];
         const shownLines = Math.min(SOURCE_MAX_LINES, sym.lineCount ?? SOURCE_MAX_LINES);
         return [
@@ -12412,6 +12487,7 @@ const SOURCE_MAX_DEFINITIONS = 3;
 const SOURCE_MAX_LINES = 120;
 const SOURCE_MATCH_MAX_SCAN = 3000;
 const SOURCE_MATCH_CONTEXT = 3;
+const SOURCE_MATCH_DISPLAY_CHARS = 160;
 
 function inferQueryType(query: string): string {
   const q = query.toLowerCase();
