@@ -44,13 +44,12 @@ import {
  * chosen because it is short and has the whole shape (one composition root around
  * an environment, a light and three objects), not written to suit any benchmark.
  *
- * Why a whole program instead of a description: on the 14 author_holo tasks
- * (Qwen3-4B, 2026-09-02; ai-ecosystem
- * receipts/holotune-native-authoring/2026-09-02-edge-lane-baseline.json) showing
- * one real program took the pass rate from 2/14 to 11/14, and a prompt that only
- * described the parts made it 0/14. The three tasks still failing put an object
- * inside an object where a composition root belonged, which is why this example
- * is a composition wrapping objects.
+ * Why a whole program instead of a description: shown exactly this program, eight
+ * frontier models passed 317 of 336 attempts at the 14 author_holo tasks, against
+ * 227 of 336 without it, and Qwen3-4B went from 0 to 12 of 14 (2026-10-08; ai-ecosystem
+ * receipts/holotune-native-authoring/2026-10-08-frontier-authoring-score.json). An
+ * earlier example that showed objects WITHOUT the composition wrapper scores 0 of 14
+ * under the current grader: the wrapper is the part that teaches.
  *
  * packages/mcp-server/src/__tests__/generator-prompt-parse.test.ts parses this
  * program, and every other program in the prompt, with parseHolo and the strict
@@ -139,11 +138,12 @@ Traits (each on its own line inside an object):
 
 Realistic materials and assets (prefer these over a bare primitive + flat color whenever the
 request implies anything other than a placeholder or a test object):
-- \`material "Name" @advanced_pbr { base_color, roughness, metallic, albedo_map, normal_map,
-  ao_map, height_map, subsurface, translucency, wetness, ior, emission_map }\` — declare a
-  reusable material with real PBR parameters, not a single hex color.
-- \`object "Name" @advanced_pbr @collidable { model: "path/to/asset.glb", material: "Name" }\` —
-  wrap a real imported mesh in a named material, instead of an inline primitive shape.
+- A reusable material: a material block marked @advanced_pbr, inside the composition, with
+  real PBR parameters as key: value lines (base_color, roughness, metallic, albedo_map,
+  normal_map, ao_map, height_map, subsurface, translucency, wetness, ior, emission_map), not
+  a single hex color. The "Boulder" program below shows one.
+- A real imported mesh: an object marked @advanced_pbr with model: "path/to/asset.glb" and
+  material: "Name", instead of an inline primitive shape. The "Boulder" program shows this too.
 - Environment/lighting traits compose realism further: @time_of_day, @volumetric_clouds, @wind,
   @bioluminescent, and a real point_light paired with @emissive so it actually illuminates
   neighboring objects.

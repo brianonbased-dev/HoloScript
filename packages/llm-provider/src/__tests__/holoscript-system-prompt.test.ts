@@ -12,8 +12,8 @@ import type { LLMCompletionRequest, LLMCompletionResponse } from '../types';
  * Until 2026-10-07 it never showed the `composition "Name" { ... }` root that
  * every program needs, and its examples were root-less fragments; its placeholder
  * example parsed into a program with no objects at all. Showing one real program
- * is the largest measured improvement in authoring (2/14 -> 11/14, see the comment
- * on HOLOSCRIPT_EXAMPLE_PROGRAM). These tests keep that program in the prompt and
+ * is the largest measured improvement in authoring (frontier models 227 -> 317 of
+ * 336, see the comment on HOLOSCRIPT_EXAMPLE_PROGRAM). These tests keep that program in the prompt and
  * keep it in front of every provider. Whether it PARSES is checked where the parser
  * lives: packages/mcp-server/src/__tests__/generator-prompt-parse.test.ts.
  */

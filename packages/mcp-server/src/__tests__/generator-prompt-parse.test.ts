@@ -3,17 +3,22 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseHolo } from '@holoscript/core';
-import { HOLOSCRIPT_EXAMPLE_PROGRAM, HOLOSCRIPT_SYSTEM_PROMPT } from '@holoscript/llm-provider';
+// From source, not the package: @holoscript/llm-provider resolves to its untracked
+// dist/, which would test the last build instead of the prompt being edited.
+import {
+  HOLOSCRIPT_EXAMPLE_PROGRAM,
+  HOLOSCRIPT_SYSTEM_PROMPT,
+} from '../../../llm-provider/src/base-adapter';
 // The strict layer (codes HS1001-HS1010) is plain ESM inside packages/core and is
 // not in core's exports map, so it is reached by path. It parses with core's build.
-import { parseStrict } from '../../../core/strict/index.mjs';
+import { coreInfo, parseStrict } from '../../../core/strict/index.mjs';
 
 /**
  * generate_object and generate_scene send HOLOSCRIPT_SYSTEM_PROMPT to whichever
  * model writes the code. Whatever program that prompt shows is what the model
- * copies: on the 14 author_holo tasks, showing one real program took Qwen3-4B
- * from 2/14 to 11/14 (ai-ecosystem
- * receipts/holotune-native-authoring/2026-09-02-edge-lane-baseline.json).
+ * copies: shown this prompt's example program, eight frontier models passed 317 of
+ * 336 attempts at the 14 author_holo tasks, against 227 without it (ai-ecosystem
+ * receipts/holotune-native-authoring/2026-10-08-frontier-authoring-score.json).
  *
  * So the programs in the prompt must be programs. Before 2026-10-07 they were not:
  * the prompt never showed the `composition "Name" { ... }` root, and its
@@ -74,6 +79,10 @@ describe('the programs the HoloScript generator prompt shows are real programs',
 
   it('shows whole programs, including the real example', () => {
     expect(programs.length).toBeGreaterThanOrEqual(2);
+    // Every program that starts must also close; one cut short would otherwise drop
+    // out of the parse checks below without failing anything.
+    const starts = HOLOSCRIPT_SYSTEM_PROMPT.match(/^composition "[^"]*" \{/gm) ?? [];
+    expect(programs).toHaveLength(starts.length);
     expect(programs.some((p) => HOLOSCRIPT_EXAMPLE_PROGRAM.includes(p))).toBe(true);
   });
 
@@ -106,14 +115,18 @@ describe('the programs the HoloScript generator prompt shows are real programs',
   it('shows no declaration outside a composition root', () => {
     let rest = HOLOSCRIPT_SYSTEM_PROMPT;
     for (const program of programs) rest = rest.replace(program, '');
-    // A root-less fragment at the start of a line is what the old examples taught:
-    // `cube {`, `object "Boulder" @collidable {`. (`material: {` is a property line.)
+    // A root-less fragment is what the old examples taught, at the start of a line
+    // (`cube {`) or inline in a bullet (`material "Name" @advanced_pbr { base_color,
+    // roughness }`, which also fails the strict layer). `material: {` is a property.
     const fragment =
-      /^(object|material|template|spatial_group|light|scene|cube|sphere|plane|cylinder|cone|torus|capsule|mesh)(\s+"[^"]*")?(\s+@\w+(\([^)]*\))?)*\s*\{/m;
+      /(^|[\s`(])(object|material|template|spatial_group|light|scene|cube|sphere|plane|cylinder|cone|torus|capsule|mesh)(\s+"[^"]*")?(\s+@\w+(\([^)]*\))?)*\s*\{/m;
     expect(rest.match(fragment)?.[0]).toBeUndefined();
   });
 
   it('names only traits that core declares', async () => {
+    // If core's trait lists fail to load, the strict layer skips HS1006 silently
+    // and this test would pass having checked nothing.
+    expect((await coreInfo({ fullVocabulary: true })).traitCheck).toBe(true);
     const named = [...new Set(HOLOSCRIPT_SYSTEM_PROMPT.match(/@[a-z_][a-z0-9_]*/g) ?? [])];
     expect(named.length).toBeGreaterThan(10);
     const allOnOneObject = `composition "Traits" {\n  object "A" {\n${named

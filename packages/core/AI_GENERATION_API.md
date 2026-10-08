@@ -4,6 +4,8 @@
 
 **Tests**: 122 passing in 5 files under `packages/framework/src/ai/__tests__/` (run 2026-10-07; see [Testing](#testing)). None of them calls a live model API (they use stand-in adapters or test only configuration), so validation against live APIs is still open (see [Next Steps](#next-steps)).
 
+**Validation: not done today.** The parser this layer uses is a stand-in: `HoloScriptPlusParser` in `packages/framework/src/ai/HoloScriptGenerator.ts` returns `{ success: true, errors: [] }` for any text. So `parseResult.success` is always true, `validateBatch` marks every input valid, and auto-fix never runs. Until that is fixed, check generated code yourself with `parseHolo` from `@holoscript/core` or the strict layer in `packages/core/strict` (codes HS1001-HS1010).
+
 This document is a guide to the AI-guided HoloScript generation API in `@holoscript/framework`, which turns natural language descriptions into HoloScript code.
 
 > Not the same path as the MCP `generate_object` / `generate_scene` tools. Those go through `@holoscript/llm-provider` (`generateHoloScript` on a provider adapter), whose system prompt (`HOLOSCRIPT_SYSTEM_PROMPT`) shows a parse-tested `composition "Name" { ... }` program. The framework adapters on this page send their own prompt.
@@ -102,13 +104,13 @@ Natural Language Prompt
 
 ### Key Components
 
-| Component                | Purpose                         | Status               |
-| ------------------------ | ------------------------------- | -------------------- |
-| **AIAdapter**            | Interface for AI providers      | ✅ 9 implementations |
-| **HoloScriptGenerator**  | High-level generation API       | ✅ Complete          |
-| **HoloScriptPlusParser** | Parse & validate generated code | ✅ Working           |
-| **ErrorRecovery**        | Auto-fix broken code            | ✅ Integrated        |
-| **Sessions**             | Track generation history        | ✅ Implemented       |
+| Component                | Purpose                         | Status                    |
+| ------------------------ | ------------------------------- | ------------------------- |
+| **AIAdapter**            | Interface for AI providers      | ✅ 9 implementations      |
+| **HoloScriptGenerator**  | High-level generation API       | ✅ Complete               |
+| **HoloScriptPlusParser** | Parse & validate generated code | ⚠️ Stub: always "success" |
+| **ErrorRecovery**        | Auto-fix broken code            | ⚠️ Never triggered        |
+| **Sessions**             | Track generation history        | ✅ Implemented            |
 
 ---
 
@@ -174,10 +176,10 @@ const result = await generator.generate(
 
 - Generates code up to `maxAttempts` times
 - Checks confidence against `minConfidence` threshold
-- Auto-fixes if enabled and first attempt has errors
-- Parses with lenient mode for graceful degradation: `HoloScriptPlusParser({ strict: false })`.
-  This is not the `.holo` strict layer (`packages/core/strict`, codes HS1001-HS1010), so
-  `parseResult.success` does not mean the code passes that layer.
+- Auto-fixes if enabled and the parse reports errors, which today it never does
+- "Parses" with `HoloScriptPlusParser({ strict: false })`, a stand-in that returns success for
+  any text. `parseResult.success` is therefore always true and says nothing about the code;
+  check it with `parseHolo` or the strict layer (`packages/core/strict`) instead.
 - Fetches explanation if generation succeeds
 - Records in session history
 
@@ -711,5 +713,5 @@ describe('GenerationLogic', () => {
 ---
 
 **Last Updated**: 2026-10-07 (imports moved to `@holoscript/framework`, test counts re-run)  
-**Status**: Working; tested without live model APIs, so live-API validation is still open  
+**Status**: Generation works; validation is a stand-in that always says "success" (see the top of this page); tested without live model APIs  
 **Maintainer**: AI Development Team
