@@ -8,10 +8,12 @@ import {
   XAIAdapter,
   TogetherAdapter,
 } from '../adapters';
+import { HOLOSCRIPT_SYSTEM_PROMPT } from '@holoscript/llm-provider';
 
 vi.mock('@holoscript/llm-provider', async (importOriginal) => {
   // The hosted-Ollama gate is policy, not transport: keep the real one under the fakes.
-  const { checkHostedOllama, HostedOllamaRefusedError } =
+  // So is the system prompt: the adapters must send the real, parse-tested one.
+  const { checkHostedOllama, HostedOllamaRefusedError, HOLOSCRIPT_SYSTEM_PROMPT } =
     await importOriginal<typeof import('@holoscript/llm-provider')>();
   type MockConfig = { apiKey?: string; baseURL?: string; defaultModel?: string; model?: string };
   type MockRequest = {
@@ -140,6 +142,7 @@ vi.mock('@holoscript/llm-provider', async (importOriginal) => {
     LOCAL_DEFAULT_MODEL: 'qwen3:4b-instruct-2507',
     checkHostedOllama,
     HostedOllamaRefusedError,
+    HOLOSCRIPT_SYSTEM_PROMPT,
   };
 });
 
@@ -466,5 +469,88 @@ describe('AI Adapters', () => {
       expect(result.holoScript).toBe('output');
       expect(result.confidence).toBe(0.8);
     });
+  });
+});
+
+// Until 2026-10-08 these adapters sent their own prompt, whose sample program failed
+// the parser at `every(1000)` and named @animatable, a trait core does not declare.
+// They now send the one prompt @holoscript/llm-provider parse-tests and that was
+// measured on the author_holo tasks.
+describe('the system prompt the framework adapters send', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it.each([
+    [
+      'OpenAI',
+      () => new OpenAIAdapter({ apiKey: 'k' }),
+      { choices: [{ message: { content: 'x' } }] },
+    ],
+    ['Anthropic', () => new AnthropicAdapter({ apiKey: 'k' }), { content: [{ text: 'x' }] }],
+    ['Ollama (local)', () => new OllamaAdapter({}), { choices: [{ message: { content: 'x' } }] }],
+    ['xAI', () => new XAIAdapter({ apiKey: 'k' }), { choices: [{ message: { content: 'x' } }] }],
+  ])('%s sends the shared, parse-tested prompt', async (_name, make, reply) => {
+    mockFetch.mockResolvedValueOnce(mockOKResponse(reply));
+
+    await make().generateHoloScript('a red cube');
+
+    const body = JSON.parse(String(mockFetch.mock.calls[0][1].body));
+    const messages: Array<{ role: string; content: string }> = body.messages ?? body.contents ?? [];
+    const system = messages.find((m) => m.role === 'system')?.content;
+    expect(system).toBe(HOLOSCRIPT_SYSTEM_PROMPT);
+    expect(system).toContain('composition "Red Cube and Teal Button" {');
+    expect(system).not.toContain('every(1000)');
+    expect(system).not.toContain('@animatable');
+  });
+
+  // The shared prompt's rule 1 is "Return ONLY HoloScript code". Explaining and
+  // chatting answer in words, so they get the same knowledge with that rule lifted.
+  it.each([
+    [
+      'OpenAI chat',
+      () => new OpenAIAdapter({ apiKey: 'k' }).chat('what does @grabbable do?'),
+      {
+        choices: [{ message: { content: 'x' } }],
+      },
+    ],
+    [
+      'Anthropic explain',
+      () => new AnthropicAdapter({ apiKey: 'k' }).explainHoloScript('x'),
+      {
+        content: [{ text: 'x' }],
+      },
+    ],
+    [
+      'Anthropic chat',
+      () => new AnthropicAdapter({ apiKey: 'k' }).chat('why?'),
+      {
+        content: [{ text: 'x' }],
+      },
+    ],
+    [
+      'xAI explain',
+      () => new XAIAdapter({ apiKey: 'k' }).explainHoloScript('x'),
+      {
+        choices: [{ message: { content: 'x' } }],
+      },
+    ],
+    [
+      'Ollama (local) chat',
+      () => new OllamaAdapter({}).chat('why?'),
+      {
+        choices: [{ message: { content: 'x' } }],
+      },
+    ],
+  ])('%s answers in words: the code-only rule is lifted', async (_name, call, reply) => {
+    mockFetch.mockResolvedValueOnce(mockOKResponse(reply));
+
+    await call();
+
+    const body = JSON.parse(String(mockFetch.mock.calls[0][1].body));
+    const messages: Array<{ role: string; content: string }> = body.messages ?? body.contents ?? [];
+    const system = messages.find((m) => m.role === 'system')?.content ?? '';
+    expect(system.startsWith(HOLOSCRIPT_SYSTEM_PROMPT)).toBe(true);
+    expect(system).toContain('This request is a question or a conversation');
   });
 });

@@ -108,7 +108,8 @@ composition "Red Cube and Teal Button" {
  */
 export const HOLOSCRIPT_SYSTEM_PROMPT = `You are an expert HoloScript developer. HoloScript is a general-purpose semantic systems programming language under active construction. This generation task uses its declarative composition surface for spatial scenes; spatial computing is a proving ground, not the language boundary.
 
-Every answer is ONE whole program with exactly one root block, and nothing outside it:
+Every answer is ONE whole program with exactly one root block, and nothing outside it. The
+same program is valid HoloScript whether it is saved as .holo or .hsplus:
 
 composition "Name" {
   environment { skybox: "gradient" }
@@ -116,7 +117,7 @@ composition "Name" {
 }
 
 The outermost block is always \`composition "Name" { ... }\`, never \`object\`. The environment,
-lights, materials, templates and objects all go inside that one root, side by side. Inside an
+lights, templates and objects all go inside that one root, side by side. Inside an
 object, a trait is a line starting with @ (like @grabbable) and a property is a \`key: value\` line.
 
 A complete, real program (examples/quickstart/2-red-cube-teal-button.holo):
@@ -124,8 +125,9 @@ A complete, real program (examples/quickstart/2-red-cube-teal-button.holo):
 ${HOLOSCRIPT_EXAMPLE_PROGRAM}
 
 Object properties: geometry ("cube", "sphere", "plane", "cylinder", "cone", "torus", "capsule"),
-position: [x, y, z], rotation: [x, y, z], scale: n or [x, y, z], color: "#rrggbb", and
-material: { baseColor, roughness, metallic, emissive, emissiveIntensity } or a material's name.
+or model: "path/to/asset.glb" for an imported mesh; position: [x, y, z], rotation: [x, y, z],
+scale: n or [x, y, z]; and the surface: color: "#rrggbb", roughness and metallic (0 to 1), and
+emissive: "#rrggbb" with emissiveIntensity for things that glow.
 Position, rotation, scale and color are properties, not traits: write \`position: [0, 1, 0]\`.
 
 Traits (each on its own line inside an object):
@@ -136,14 +138,11 @@ Traits (each on its own line inside an object):
 - AI: @llm_agent, @npc, @pathfinding, @state_machine
 - Audio: @spatial_audio
 
-Realistic materials and assets (prefer these over a bare primitive + flat color whenever the
-request implies anything other than a placeholder or a test object):
-- A reusable material: a material block marked @advanced_pbr, inside the composition, with
-  real PBR parameters as key: value lines (base_color, roughness, metallic, albedo_map,
-  normal_map, ao_map, height_map, subsurface, translucency, wetness, ior, emission_map), not
-  a single hex color. The "Boulder" program below shows one.
-- A real imported mesh: an object marked @advanced_pbr with model: "path/to/asset.glb" and
-  material: "Name", instead of an inline primitive shape. The "Boulder" program shows this too.
+Realistic objects (prefer this over a bare primitive + flat color whenever the request implies
+anything other than a placeholder or a test object):
+- Give the surface real values, color with roughness and metallic, not a color alone.
+- Use a real imported mesh, model: "path/to/asset.glb", instead of a primitive shape where one
+  exists. The "Boulder" program below shows both.
 - Environment/lighting traits compose realism further: @time_of_day, @volumetric_clouds, @wind,
   @bioluminescent, and a real point_light paired with @emissive so it actually illuminates
   neighboring objects.
@@ -156,8 +155,8 @@ Rules:
 4. Keep scenes focused on the user's request
 5. Use appropriate traits for the described behavior
 6. A bare primitive + flat color is a placeholder, not a finished object — use it only for an
-   explicit test/mock/stand-in request; otherwise compose a material and, where a real asset
-   exists, an imported model
+   explicit test/mock/stand-in request; otherwise give it real surface values (color, roughness,
+   metallic) and, where a real asset exists, an imported model
 
 Two more whole programs (contrast a placeholder against a composed object — match the request's intent):
 
@@ -174,19 +173,13 @@ composition "Test Cube" {
 
 // Composed, realistic object
 composition "Boulder" {
-  material "WeatheredStone" @advanced_pbr {
-    base_color: "#8a8378"
+  object "Boulder" {
+    @collidable
+    model: "models/boulder.glb"
+    position: [0, 0, -3]
+    color: "#8a8378"
     roughness: 0.75
     metallic: 0.0
-    normal_map: "textures/stone_normal.png"
-    ao_map: "textures/stone_ao.png"
-  }
-
-  object "Boulder" @collidable @advanced_pbr {
-    model: "models/boulder.glb"
-    material: "WeatheredStone"
-    position: [0, 0, -3]
-    collider: { type: "mesh", convex: true }
   }
 }`;
 
@@ -478,15 +471,18 @@ Return ONLY the HoloScript code, no explanations or markdown.`;
       errors.push(`Unbalanced braces: ${openBraces} opening, ${closeBraces} closing`);
     }
 
-    // Check for at least one object: a named declaration — the shape the system
-    // prompt teaches, `composition "Name" {` around `object "Name" {` — or a bare
-    // primitive block. Matching only the primitive form called the prompt's own
-    // example program invalid.
-    const hasNamedDeclaration =
-      /\b(composition|object|template|material|light|spatial_group)\s+"[^"]*"/.test(code);
+    // Check for at least one object: `object "Name" {` (the shape the system prompt
+    // teaches, inside its composition), a template or spatial group, or a bare
+    // primitive block. Comments do not count, and a composition, material or light
+    // on its own is not an object: `// object "x"\nhello` and `composition "E" {}`
+    // used to pass.
+    const uncommented = code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+    const hasNamedObject = /\b(object|template|spatial_group)\s+"[^"]*"/.test(uncommented);
     const hasPrimitiveBlock =
-      /\b(cube|sphere|plane|cylinder|cone|torus|mesh|text|light|camera|scene)\s*\{/.test(code);
-    if (!hasNamedDeclaration && !hasPrimitiveBlock) {
+      /\b(cube|sphere|plane|cylinder|cone|torus|mesh|text|light|camera|scene)\s*\{/.test(
+        uncommented
+      );
+    if (!hasNamedObject && !hasPrimitiveBlock) {
       errors.push('No recognized HoloScript object types found');
     }
 

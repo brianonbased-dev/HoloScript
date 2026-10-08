@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseHolo } from '@holoscript/core';
+import { parseHolo, validateCanonicalSource } from '@holoscript/core';
 // From source, not the package: @holoscript/llm-provider resolves to its untracked
 // dist/, which would test the last build instead of the prompt being edited.
 import {
@@ -100,6 +100,20 @@ describe('the programs the HoloScript generator prompt shows are real programs',
       expect(result.ast?.objects?.length ?? 0).toBeGreaterThan(0);
     }
   );
+
+  // The prompt goes out with whichever format the caller asks for: generate_scene asks
+  // for .holo, while generate_object and generateHoloScript default to .hsplus. A
+  // program that is valid only as .holo (a `material "Name" { }` block, for one)
+  // would teach an .hsplus request something its parser refuses.
+  it.each(
+    programsIn(HOLOSCRIPT_SYSTEM_PROMPT).flatMap((p) =>
+      (['holo', 'hsplus'] as const).map((surface) => [p.split('\n')[0], surface, p] as const)
+    )
+  )('%s is valid as .%s under the canonical validator', (_first, surface, program) => {
+    const result = validateCanonicalSource({ source: program, surface });
+    expect(result.errors).toEqual([]);
+    expect(result.valid).toBe(true);
+  });
 
   it.each(programsIn(HOLOSCRIPT_SYSTEM_PROMPT).map((p) => [p.split('\n')[0], p]))(
     '%s passes the strict layer with no diagnostics at all',

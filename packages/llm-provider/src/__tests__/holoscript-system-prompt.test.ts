@@ -76,6 +76,20 @@ describe('the prompt that asks a model to write HoloScript', () => {
     );
   });
 
+  it.each([
+    ['a comment that mentions an object', '// object "Nothing" here\nhello world'],
+    ['an empty composition', 'composition "Empty" {\n}'],
+    ['a material alone', 'material "Only" {}'],
+  ])("does not count %s as an object (the adapter's own check)", async (_label, reply) => {
+    const adapter = new MockAdapter();
+    capture(adapter, reply);
+
+    const result = await adapter.generateHoloScript({ prompt: 'x' });
+
+    expect(result.valid).toBe(false);
+    expect(result.errors).toContain('No recognized HoloScript object types found');
+  });
+
   it('still lets a request bring its own system prompt', async () => {
     const adapter = new MockAdapter();
     const seen = capture(adapter, HOLOSCRIPT_EXAMPLE_PROGRAM);

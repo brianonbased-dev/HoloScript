@@ -2,13 +2,13 @@
 
 **Package**: `@holoscript/framework`, not `@holoscript/core`. Every name on this page is imported from `@holoscript/framework` (source: `packages/framework/src/ai/`). The AI layer moved out of core in A.011.02c; this page stayed behind and still imported from core until 2026-10-07, which led one agent to report that `HoloScriptGenerator` existed nowhere.
 
-**Tests**: 122 passing in 5 files under `packages/framework/src/ai/__tests__/` (run 2026-10-07; see [Testing](#testing)). None of them calls a live model API (they use stand-in adapters or test only configuration), so validation against live APIs is still open (see [Next Steps](#next-steps)).
+**Tests**: 131 passing in the 5 files listed under [Testing](#testing), in `packages/framework/src/ai/__tests__/` (run 2026-10-08; see [Testing](#testing)). None of them calls a live model API (they use stand-in adapters or test only configuration), so validation against live APIs is still open (see [Next Steps](#next-steps)).
 
 **Validation: not done today.** The parser this layer uses is a stand-in: `HoloScriptPlusParser` in `packages/framework/src/ai/HoloScriptGenerator.ts` returns `{ success: true, errors: [] }` for any text. So `parseResult.success` is always true, `validateBatch` marks every input valid, and auto-fix never runs. Until that is fixed, check generated code yourself with `parseHolo` from `@holoscript/core` or the strict layer in `packages/core/strict` (codes HS1001-HS1010).
 
 This document is a guide to the AI-guided HoloScript generation API in `@holoscript/framework`, which turns natural language descriptions into HoloScript code.
 
-> Not the same path as the MCP `generate_object` / `generate_scene` tools. Those go through `@holoscript/llm-provider` (`generateHoloScript` on a provider adapter), whose system prompt (`HOLOSCRIPT_SYSTEM_PROMPT`) shows a parse-tested `composition "Name" { ... }` program. The framework adapters on this page send their own prompt.
+> Not the same path as the MCP `generate_object` / `generate_scene` tools. Those go through `@holoscript/llm-provider` (`generateHoloScript` on a provider adapter), whose system prompt (`HOLOSCRIPT_SYSTEM_PROMPT`) shows a parse-tested `composition "Name" { ... }` program. Since 2026-10-08 the framework adapters on this page send that same prompt for generate, fix and optimize, and the same knowledge with its "return only code" rule lifted for explain and chat.
 
 ---
 
@@ -640,7 +640,10 @@ const validation = validateBatch(results.map((r) => r.holoScript));
 The tests live in `packages/framework/src/ai/__tests__/`:
 
 ```bash
-# Run all five AI layer test files
+# Run the five AI layer test files counted below
+pnpm --filter @holoscript/framework exec vitest run src/ai/__tests__/HoloScriptGenerator.test.ts src/ai/__tests__/AIAdapter.test.ts src/ai/__tests__/AIAdapter.prod.test.ts src/ai/__tests__/adapters.test.ts src/ai/__tests__/adapters.prod.test.ts
+
+# Run every test in the folder (43 files)
 pnpm --filter @holoscript/framework exec vitest run src/ai/__tests__/
 
 # Run one file
@@ -649,7 +652,7 @@ pnpm --filter @holoscript/framework exec vitest run src/ai/__tests__/HoloScriptG
 
 ### Test Coverage
 
-Counted from a run on 2026-10-07. Re-run the command above rather than trusting these numbers
+Counted from a run on 2026-10-08. Re-run the command above rather than trusting these numbers
 as they age.
 
 | File                          | Tests   | Status         |
@@ -657,9 +660,9 @@ as they age.
 | `HoloScriptGenerator.test.ts` | 14      | ✅ Passing     |
 | `AIAdapter.test.ts`           | 14      | ✅ Passing     |
 | `AIAdapter.prod.test.ts`      | 23      | ✅ Passing     |
-| `adapters.test.ts`            | 30      | ✅ Passing     |
+| `adapters.test.ts`            | 39      | ✅ Passing     |
 | `adapters.prod.test.ts`       | 41      | ✅ Passing     |
-| **Total**                     | **122** | ✅ **Passing** |
+| **Total**                     | **131** | ✅ **Passing** |
 
 ### Mock Adapter for Testing
 
