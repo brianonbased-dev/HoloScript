@@ -12,9 +12,13 @@ await parseStrict('object Cube { position: [0, 1, 0] }');  // { ok: true, ast, d
 await parseStrict('{{{@@@');                               // { ok: false, diagnostics: [HS1002, HS1005, ...] }
 await parseTolerant(src);                                  // always ok, keeps the AST, same diagnostics
 await parseStrict(src, { knownTraits: ['my_plugin_trait'] });  // add a vocabulary core does not ship
+await parseStrict(src, { unknownTraits: 'error' });             // refuse unknown traits too
 ```
 
 Every diagnostic has a code, a message and a real 1-based line and column.
+Strict mode refuses what is not HoloScript (empty, unbalanced, unparseable, or
+parsing into nothing). An unknown trait is a warning in both modes, as in
+core's own validators, unless the caller passes `unknownTraits: 'error'`.
 
 - `ERROR_CONTRACT.md` — the codes, the two modes, what counts as a known trait,
   the known gaps and the grammar decisions still open.
@@ -35,7 +39,9 @@ the build it ships with. Everything comes through core's public `exports` map:
 the tokenizer and parser from `@holoscript/core/parser`, the trait lists from
 `@holoscript/core/constants` and `@holoscript/core/traits/trait-registry.json`,
 and, only when those miss a name, the rest of the vocabulary from core's main
-entry.
+entry. **The first source that uses a trait outside the light lists costs a
+one-time load of core's main entry** (measured 6–8 s with a cold disk cache,
+about 1 s warm); later calls in the same process do not pay it.
 
 **If no trait list can be loaded, the unknown-trait check (`HS1006`) is
 skipped** and everything else still runs. `coreInfo()` reports which lists

@@ -166,7 +166,7 @@ function core() {
 async function depsFor(source, options) {
   const state = await core();
   if (!state.full && typeof source === "string") {
-    const probe = analyzeWith(source, state.deps, { ...options, mode: "strict" });
+    const probe = analyzeWith(source, state.deps, options);
     if (probe.diagnostics.some((d) => d.code === "HS1006")) await loadFullVocabulary(state);
   }
   return state.deps;
@@ -198,9 +198,9 @@ export const CODES = {
 
 /**
  * Options for every entry point:
- *   knownTraits  extra trait names for this call (for example a plugin's), the
- *                same seam as core's `HoloParserOptions.knownTraits`
- * `analyze` also takes `mode`: "strict" (default) or "tolerant".
+ *   knownTraits    extra trait names for this call (for example a plugin's), the
+ *                  same seam as core's `HoloParserOptions.knownTraits`
+ *   unknownTraits  "warning" (default) or "error": the severity of HS1006
  */
 export async function analyze(source, options = {}) {
   return analyzeWith(source, await depsFor(source, options), options);

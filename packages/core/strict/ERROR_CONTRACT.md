@@ -15,15 +15,25 @@ into the parser later keeping the same codes.
 | `parseTolerant(src)` | `{ ok: true, ast, diagnostics }` — whatever parsed, plus every diagnostic | Editors, language servers, partial input while typing |
 | `parseStrict(src)` | `{ ok: false, ast: null, diagnostics }` if any diagnostic has severity `error` | CI, compilers, agent-generated code, anything that acts on the result |
 
-Both modes run the same checks and report the same codes at the same places.
-The one difference is the severity of `HS1006` (below). Tolerant never throws
-and never hides a diagnostic. Strict never returns an AST it had to guess at.
+Both modes run the same checks and report the same diagnostics at the same
+places; they differ only in what they return. Tolerant never throws and never
+hides a diagnostic. Strict never returns an AST it had to guess at.
 `parseHolo` keeps its current signature so nothing breaks; `parseHoloStrict`
 is the name that changes behaviour, and today it is the one that fabricates
 trait nodes named `"@"` and `""` from noise.
 
-Both take an optional second argument, `{ knownTraits }`: extra trait names
-for that call, for vocabularies core does not ship (a plugin's, a host's).
+Both take an optional second argument:
+
+- `knownTraits` — extra trait names for that call, for vocabularies core does
+  not ship (a plugin's, a host's).
+- `unknownTraits: "error"` — make `HS1006` an error, for a caller that wants
+  invented traits refused (for example generated code checked against a closed
+  vocabulary). The default is `"warning"`.
+
+**Strict mode refuses what is not HoloScript**: empty, unbalanced, a token that
+cannot start anything, a trait with no name, a parser error, or a source that
+parses into nothing. It does not refuse a well-formed file over its trait
+vocabulary (see `HS1006`).
 
 ## Codes
 
@@ -41,7 +51,7 @@ minor release; renaming or removing one is a major release.
 | `HS1003` | error | A token that cannot start a top-level item | `SELECT * FROM users;` |
 | `HS1004` | error | Tokens exist, nothing parsed into the composition | `this is not holo at all` |
 | `HS1005` | error | A trait with no name, including `@` alone | `{{{@@@` |
-| `HS1006` | error (strict) / warning (tolerant) | Trait is in no known vocabulary | `@nope_xyz` |
+| `HS1006` | warning (both modes; error with `unknownTraits: "error"`) | Trait is in no known vocabulary | `@nope_xyz` |
 | `HS1007` | error | The parser's own error, carried through unchanged | `object Cube { position: [0, 1, 0]` |
 | `HS1008` | warning | The parser's own warning, carried through | — |
 | `HS1009` | error | Source was not a string | `parse(42)` |
@@ -57,6 +67,20 @@ statement terminator (`import "./x.holo";`).
 `HS1004` counts any field of the composition AST as content except the fields
 every node carries (`type`, `loc`, `provenance`) and the composition's `name`.
 A construct added to the grammar therefore counts the day it lands.
+
+### `HS1006` is a warning, in both modes
+
+Decided 2026-10-07 by the requester of this layer, closing what was open
+question 2. An unknown trait was an error in strict mode. Run over every
+tracked `.holo` on that date, that rejected well over a hundred grammatically
+valid files, most of them under `examples/`, whose only fault was a trait
+missing from core's lists. Core's own validators treat an unknown trait as a warning: the parser
+records any `@name`, and `ConfabulationValidator` calls it "a confabulation
+risk but NOT always an error", because plugins add traits. Strict mode exists
+to refuse garbage (non-HoloScript, empty, broken structure), not to be
+stricter about the trait vocabulary than core is. So `HS1006` is a warning in
+both modes, still reported at the trait's `@`, and `unknownTraits: "error"`
+restores the refusal for a caller who wants it.
 
 ### What `HS1006` checks against
 
@@ -76,7 +100,10 @@ it is used:
 
 Names compare across spellings: `@fooBar`, `@foo-bar` and `@foo_bar` are the
 same trait. 3 and 4 live only on core's main entry, which is slow to load, so
-the layer loads them once, the first time 1 and 2 miss a name.
+the layer loads them once, the first time 1 and 2 miss a name: the first
+source with such a trait pays a one-time load (measured at 6–8 s with a cold
+disk cache, about 1 s warm). Without it, files using Native2D panel traits or
+core's own `@trait` definitions would get false `HS1006` warnings.
 
 **If no vocabulary can be loaded, `HS1006` is skipped** and every other check
 still runs. `coreInfo()` says which vocabularies were loaded (`traitSources`)
@@ -85,8 +112,8 @@ load inside this repo, so the check cannot switch itself off unnoticed here.
 
 When the parser has read a trait name differently from how it is written (it
 reads `@2d_canvas` at composition level as a trait named `2`), `HS1006` says
-so and names the written form: that is a parser defect, not a fault in the
-source.
+so, as a warning, and names the written form: that is a parser defect, not a
+fault in the source.
 
 ## How it is enforced
 
@@ -101,6 +128,8 @@ layer to `corpus/manifest.json`:
   error diagnostics. These exist because the first version of this layer
   rejected most of the repo's own valid files and the hand-written corpus did
   not notice.
+- `corpus/warns/*.holo` — must be accepted by strict mode, with exactly the
+  listed warnings (an unknown trait; a trait name the parser misread).
 - `corpus/invalid/*.holo` — must be rejected with exactly the listed error
   codes, each at the listed line and column.
 
@@ -125,15 +154,17 @@ be compiled this way later.
   the AST holds a real block. Refusing it is a grammar decision, not a strict
   layer fix.
 - **Real files that still fail.** Running every tracked `.holo` through core
-  and this layer leaves two kinds of rejection among files core accepts:
-  - JSON documents saved with a `.holo` extension (`examples/v5.0-hardened/`,
-    some of `examples/v6/`, `packages/studio/holoscript-editor.holo`). Core
-    accepts them as an empty composition; `HS1004` is right and core is wrong.
-  - Files using traits that no vocabulary above declares (`@interactable`,
-    `@reactive`, `@ambient`, `@hand_tracked`, `@verified_view`, and more).
-    Either core's vocabulary is missing them or the files use traits nothing
-    defines; core's parser accepts any `@name`, so it cannot tell. Hosts that
-    supply such traits pass them in `knownTraits`.
+  and this layer, the only files core accepts and strict refuses (outside this
+  folder's invalid corpus) are JSON documents saved with a `.holo` extension
+  (`examples/v5.0-hardened/`, some of `examples/v6/`,
+  `packages/studio/holoscript-editor.holo`). Core accepts them as an empty
+  composition; `HS1004` is right and core is wrong.
+- **Traits nothing declares get a warning only.** Many real files use traits
+  that no vocabulary above declares (`@interactable`, `@reactive`,
+  `@ambient`, `@hand_tracked`, `@verified_view`, and more). Either core's
+  vocabulary is missing them or the files use traits nothing defines; core's
+  parser accepts any `@name`, so it cannot tell. Hosts that supply such
+  traits pass them in `knownTraits`.
 
 ## Open questions — these are grammar decisions, not bugs
 
@@ -141,15 +172,7 @@ be compiled this way later.
    parses to an empty composition, so the strict layer rejects it with
    `HS1004`. If zones are real grammar, that is a parser gap; if they are not
    yet, the error is correct.
-2. **Unknown traits: error or warning in strict mode?** It is `HS1006` error in
-   strict mode. Core's own validators treat an unknown trait as a warning (the
-   parser records any `@name`; `ConfabulationValidator` calls it "a
-   confabulation risk but NOT always an error"), because plugins add traits.
-   This layer keeps it an error in strict mode — strict exists to catch
-   invented traits in generated code — and gives plugins `knownTraits` as the
-   way in. If that proves too strict for real authoring, the change is to
-   this table, made deliberately.
-3. **Which trait list is the truth?** The Python package's `list_traits()`
+2. **Which trait list is the truth?** The Python package's `list_traits()`
    advertises `@grabbable`, `@physics`, `@clickable`, `@color` and `@position`.
    The first three are in `VR_TRAITS`; `color` and `position` are properties,
    not traits, in every vocabulary core ships. Decide before either list is

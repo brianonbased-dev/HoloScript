@@ -8,13 +8,16 @@
  * without touching the grammar, so it can land in the core as a wrapper today
  * and be absorbed into the parser later with the same codes and messages.
  *
- * Two modes, same checks, same codes:
+ * Two modes, same checks, same diagnostics:
  *
  *   parseTolerant(src) -> { ok: true,  ast, diagnostics }   // editors, partial input
  *   parseStrict(src)   -> { ok: false, ast: null, diagnostics } on any error
  *
- * The only difference between the modes is severity: HS1006 (unknown trait)
- * is an error in strict mode and a warning in tolerant mode (ERROR_CONTRACT.md).
+ * Strict refuses what is not HoloScript: empty, unbalanced, unparseable, or
+ * parsed into nothing. An unknown trait (HS1006) is a warning in both modes,
+ * as in core's own validators: the trait vocabulary is open (plugins add to
+ * it), so it is not grounds to refuse a file. A caller that wants it to be
+ * passes { unknownTraits: "error" } (see ERROR_CONTRACT.md).
  *
  * Every diagnostic carries { code, severity, message, line, column }, both
  * 1-based and pointing at a real place in the source. Codes are stable; see
@@ -78,12 +81,13 @@ const START = { line: 1, column: 1 };
  *   `traitIds` is the trait vocabulary, in any of the spellings normalizeTrait
  *   accepts. When it is missing or empty, the unknown-trait check (HS1006) is
  *   skipped.
- * @param {{ mode?: "strict" | "tolerant", knownTraits?: Iterable<string> }} [options]
+ * @param {{ knownTraits?: Iterable<string>, unknownTraits?: "warning" | "error" }} [options]
  *   `knownTraits` adds trait names for this call (plugin vocabularies).
+ *   `unknownTraits: "error"` makes HS1006 an error (default: a warning).
  */
 export function analyze(source, deps, options = {}) {
   const { tokenizeHoloSource, parseHolo, traitIds } = deps;
-  const mode = options.mode === "tolerant" ? "tolerant" : "strict";
+  const unknownTraitSeverity = options.unknownTraits === "error" ? "error" : "warning";
   const diagnostics = [];
   const seen = new Set();
   const push = (d) => {
@@ -227,7 +231,7 @@ export function analyze(source, deps, options = {}) {
     push(
       diag(
         "HS1006",
-        mode === "strict" ? "error" : "warning",
+        unknownTraitSeverity,
         misread
           ? `The parser read "@${written}" as a trait named "@${bare}", which is not a known trait.`
           : `Unknown trait "@${bare}".`,
@@ -541,12 +545,12 @@ export function anchorTokens(source, tokens) {
 }
 
 export function parseTolerant(source, deps, options = {}) {
-  const { ast, diagnostics } = analyze(source, deps, { ...options, mode: "tolerant" });
+  const { ast, diagnostics } = analyze(source, deps, options);
   return { ok: true, mode: "tolerant", ast, diagnostics };
 }
 
 export function parseStrict(source, deps, options = {}) {
-  const { ast, diagnostics } = analyze(source, deps, { ...options, mode: "strict" });
+  const { ast, diagnostics } = analyze(source, deps, options);
   const errors = diagnostics.filter((d) => d.severity === "error");
   return errors.length
     ? { ok: false, mode: "strict", ast: null, diagnostics }

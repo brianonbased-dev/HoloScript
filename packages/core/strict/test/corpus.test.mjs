@@ -41,6 +41,21 @@ for (const entry of manifest.real) {
   });
 }
 
+// An unknown trait is a warning in both modes: strict accepts the file and
+// still reports the trait, at its `@`.
+for (const entry of manifest.warns) {
+  test(`accepts ${entry.file} with exact warnings`, async () => {
+    const source = read(entry.file);
+    const result = await parseStrict(source);
+    assert.equal(result.ok, true, JSON.stringify(result.diagnostics));
+    assert.deepEqual(errorsOf(result), []);
+    assert.equal((result.ast.objects || []).length, entry.objects);
+    const warnings = result.diagnostics.filter((d) => d.severity === "warning");
+    assert.deepEqual(warnings.map((d) => [d.code, d.line, d.column]), entry.warnings);
+    assertRealPositions(source, result.diagnostics);
+  });
+}
+
 for (const entry of manifest.invalid) {
   test(`rejects ${entry.file} with exact codes and positions`, async () => {
     const source = read(entry.file);
@@ -53,28 +68,34 @@ for (const entry of manifest.invalid) {
   });
 }
 
-test("tolerant mode keeps the AST and reports an unknown trait as a warning", async () => {
-  const source = read("invalid/unknown-trait.holo");
-  const tolerant = await parseTolerant(source);
-  assert.equal(tolerant.ok, true);
-  assert.equal((tolerant.ast.objects || []).length, 1);
-  const unknown = tolerant.diagnostics.find((d) => d.code === "HS1006");
-  assert.ok(unknown, "HS1006 reported in tolerant mode");
-  assert.equal(unknown.severity, "warning");
+test("an unknown trait is a warning in both modes", async () => {
+  const source = read("warns/unknown-trait.holo");
+  for (const result of [await parseStrict(source), await parseTolerant(source)]) {
+    assert.equal(result.ok, true, result.mode);
+    assert.equal((result.ast.objects || []).length, 1);
+    const unknown = result.diagnostics.find((d) => d.code === "HS1006");
+    assert.ok(unknown, `HS1006 reported in ${result.mode} mode`);
+    assert.equal(unknown.severity, "warning");
+  }
+});
 
-  const strict = await parseStrict(source);
-  assert.equal(strict.diagnostics.find((d) => d.code === "HS1006").severity, "error");
+test("a caller can make unknown traits refuse the file", async () => {
+  const result = await parseStrict(read("warns/unknown-trait.holo"), { unknownTraits: "error" });
+  assert.equal(result.ok, false);
+  assert.deepEqual(errorsOf(result).map((d) => [d.code, d.line, d.column]), [["HS1006", 3, 3]]);
 });
 
 test("a caller can make a trait known (plugin vocabularies)", async () => {
-  const result = await parseStrict(read("invalid/unknown-trait.holo"), { knownTraits: ["nope_xyz"] });
+  const result = await parseStrict(read("warns/unknown-trait.holo"), { knownTraits: ["nope_xyz"] });
   assert.equal(result.ok, true, JSON.stringify(result.diagnostics));
+  assert.equal(result.diagnostics.some((d) => d.code === "HS1006"), false);
 });
 
 test("a trait declared with @trait in the same source is known there", async () => {
   const source = '@trait {\n  name: "@made_here_xyz"\n}\n\nobject Ball {\n  @made_here_xyz\n}\n';
   const result = await parseStrict(source);
   assert.equal(result.ok, true, JSON.stringify(result.diagnostics));
+  assert.equal(result.diagnostics.some((d) => d.code === "HS1006"), false);
 });
 
 test("positions stay real with Windows line endings", async () => {

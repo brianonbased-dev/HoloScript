@@ -1,0 +1,7 @@
+composition "Panel" {
+  @2d_canvas(title: "Demo")
+
+  object Card {
+    position: [0, 0, 0]
+  }
+}

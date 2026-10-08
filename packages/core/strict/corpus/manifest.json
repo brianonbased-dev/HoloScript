@@ -1,5 +1,5 @@
 {
-  "$comment": "The corpus the strict layer is held to. valid/: small hand-written files, accepted with the object count shown. real/: verbatim copies of real repo files (path in `from`, copied at f55538f48), each accepted with no error diagnostics; they guard against rejecting the language as it is actually written. invalid/: rejected with exactly the error diagnostics listed, each at a 1-based line and column.",
+  "$comment": "The corpus the strict layer is held to. valid/: small hand-written files, accepted with the object count shown. real/: verbatim copies of real repo files (path in `from`, copied at f55538f48), each accepted with no error diagnostics; they guard against rejecting the language as it is actually written. warns/: accepted by strict mode, with exactly the warnings listed (an unknown trait is a warning, not grounds to refuse). invalid/: rejected with exactly the error diagnostics listed, each at a 1-based line and column.",
   "valid": [
     {
       "file": "valid/object-basic.holo",
@@ -177,6 +177,22 @@
       "covers": "actions"
     }
   ],
+  "warns": [
+    {
+      "file": "warns/unknown-trait.holo",
+      "objects": 1,
+      "warnings": [
+        ["HS1006", 3, 3]
+      ]
+    },
+    {
+      "file": "warns/composition-2d-canvas.holo",
+      "objects": 1,
+      "warnings": [
+        ["HS1006", 2, 3]
+      ]
+    }
+  ],
   "invalid": [
     {
       "file": "invalid/empty.holo",
@@ -237,12 +253,6 @@
       "file": "invalid/at-without-name.holo",
       "errors": [
         ["HS1005", 1, 1]
-      ]
-    },
-    {
-      "file": "invalid/unknown-trait.holo",
-      "errors": [
-        ["HS1006", 3, 3]
       ]
     }
   ]
