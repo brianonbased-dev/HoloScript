@@ -393,10 +393,12 @@ export class HoloCompositionParser {
             // parseDomainBlock handles traits. But at ROOT level, there is no
             // "previous domain block", so we handle @world/@environment decorators.
             this.advance(); // consume @
-            const decoratorName = this.current().value.toLowerCase();
-            this.advance(); // consume decorator name
+            const decoratorName = this.parseTraitName().toLowerCase();
 
-            if (decoratorName === 'world' || decoratorName === 'environment') {
+            if (decoratorName === '') {
+              // Nameless '@': parseTraitName() recorded HS1005; attach nothing.
+              this.discardOrphanTraitConfig(true);
+            } else if (decoratorName === 'world' || decoratorName === 'environment') {
               // `@world "Name"` names a wrapperless file the way
               // `composition "Name"` names a wrapped one.
               if (this.check('STRING')) {
@@ -786,10 +788,12 @@ export class HoloCompositionParser {
       } else {
         // Handle @state, @world, and other decorators at composition level
         this.advance(); // consume @
-        const decoratorName = this.current().value.toLowerCase();
-        this.advance(); // consume decorator name
+        const decoratorName = this.parseTraitName().toLowerCase();
 
-        if (decoratorName === 'state') {
+        if (decoratorName === '') {
+          // Nameless '@': parseTraitName() recorded HS1005; attach nothing.
+          this.discardOrphanTraitConfig(true);
+        } else if (decoratorName === 'state') {
           composition.state = this.parseStateBody();
         } else if (decoratorName === 'world' || decoratorName === 'environment') {
           composition.environment = this.parseEnvironmentBody();
@@ -972,7 +976,12 @@ export class HoloCompositionParser {
     // Parse traits after name: @grabbable @glowing etc.
     while (this.check('AT')) {
       this.advance(); // consume @
-      const traitName = this.expectIdentifier();
+      const traitName = this.parseTraitName();
+      if (!traitName) {
+        // HS1005 recorded; no trait from a nameless '@'. A `{` here is the orb's body.
+        this.discardOrphanTraitConfig(false);
+        continue;
+      }
       const config = this.parseOptionalTraitConfig(true);
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
@@ -988,9 +997,13 @@ export class HoloCompositionParser {
 
         if (this.check('AT')) {
           this.advance();
-          const traitName = this.expectIdentifier();
-          const config = this.parseOptionalTraitConfig();
-          traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
+          const traitName = this.parseTraitName();
+          if (traitName) {
+            const config = this.parseOptionalTraitConfig();
+            traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
+          } else {
+            this.discardOrphanTraitConfig(true);
+          }
         } else if (this.isPropertyName()) {
           const key = this.parsePropertyKey();
           if (this.check('COLON')) {
@@ -1433,7 +1446,8 @@ export class HoloCompositionParser {
 
     const inlineTraitProperties: HoloLightProperty[] = [];
     while (this.check('AT')) {
-      inlineTraitProperties.push(this.parseTraitAsLightProperty(true));
+      const property = this.parseTraitAsLightProperty(true);
+      if (property) inlineTraitProperties.push(property);
     }
 
     this.expect('LBRACE');
@@ -1448,7 +1462,8 @@ export class HoloCompositionParser {
       // instead of canonical key:value properties. Capture each as a light property (collapsing
       // positional args to an array) so nothing is lost; native-2d ignores lights anyway.
       if (this.check('AT')) {
-        properties.push(this.parseTraitAsLightProperty());
+        const property = this.parseTraitAsLightProperty();
+        if (property) properties.push(property);
         this.skipNewlines();
         continue;
       }
@@ -1494,9 +1509,15 @@ export class HoloCompositionParser {
     };
   }
 
-  private parseTraitAsLightProperty(requireBodyAfterBareBrace = false): HoloLightProperty {
+  private parseTraitAsLightProperty(requireBodyAfterBareBrace = false): HoloLightProperty | null {
     this.expect('AT');
     const traitName = this.parseTraitName();
+    if (!traitName) {
+      // HS1005 recorded; no property from a nameless '@'. In the header (the caller passes
+      // requireBodyAfterBareBrace) a `{` is the light's own body, so keep it.
+      this.discardOrphanTraitConfig(!requireBodyAfterBareBrace);
+      return null;
+    }
     const cfg = this.parseOptionalTraitConfig(requireBodyAfterBareBrace);
     const cfgKeys = Object.keys(cfg);
     let traitValue: HoloValue;
@@ -1589,7 +1610,7 @@ export class HoloCompositionParser {
       // Handle AT decorators in camera body: @camera_3d, @perspective etc.
       if (this.check('AT')) {
         this.advance(); // consume @
-        if (!this.check('RBRACE') && !this.isAtEnd()) this.advance(); // decorator name
+        this.parseTraitName(); // decorator name (discarded); records HS1005 when missing
         if (this.check('LPAREN')) this.skipParens();
         if (this.check('LBRACE')) this.skipBlock();
         this.skipNewlines();
@@ -1739,7 +1760,7 @@ export class HoloCompositionParser {
       if (this.check('AT')) {
         // @trait annotations inside audio block (e.g., @spatial_audio)
         this.advance(); // consume @
-        if (!this.isAtEnd()) this.advance(); // trait name
+        this.parseTraitName(); // trait name (discarded); records HS1005 when missing
         if (this.check('LPAREN')) this.skipParens();
         else if (this.check('LBRACE')) this.skipBlock();
         this.skipNewlines();
@@ -2110,9 +2131,12 @@ export class HoloCompositionParser {
       } else if (this.check('AT')) {
         // @trait support in templates
         this.advance(); // consume @
-        const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name (e.g., @ui_panel)
+        const traitName = this.parseTraitName(); // '' (HS1005 recorded) when no name follows
 
-        if (traitName === 'version') {
+        if (!traitName) {
+          // Nameless '@': no trait, no directive.
+          this.discardOrphanTraitConfig(true);
+        } else if (traitName === 'version') {
           // @version(N) — set template schema version for hot-reload
           this.expect('LPAREN');
           const versionToken = this.advance();
@@ -2278,6 +2302,11 @@ export class HoloCompositionParser {
     while (this.check('AT')) {
       this.advance(); // consume @
       const traitName = this.parseTraitName(); // handles digit-leading names like @2d_canvas
+      if (!traitName) {
+        // HS1005 recorded. `object "X" @ {` keeps its body brace; only a `(...)` is dropped.
+        this.discardOrphanTraitConfig(false);
+        continue;
+      }
       if (String(traitName).toLowerCase() === 'platform') {
         platformConstraint = this.parsePlatformConstraint();
         this.skipNewlines();
@@ -2352,14 +2381,23 @@ export class HoloCompositionParser {
         });
       } else if (this.check('AT')) {
         this.advance(); // consume @
-        const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
+        const traitName = this.parseTraitName(); // '' (HS1005 recorded) when no name follows
+        // Nameless '@': no trait, no directive.
+        if (!traitName) {
+          this.discardOrphanTraitConfig(true);
+          continue;
+        }
         if (String(traitName).toLowerCase() === 'platform') {
           const constraint = this.parsePlatformConstraint();
           this.skipNewlines();
 
           if (this.check('AT')) {
             this.advance(); // consume @
-            const nextTraitName = this.isAtEnd() ? '' : this.advance().value;
+            const nextTraitName = this.parseTraitName();
+            if (!nextTraitName) {
+              this.discardOrphanTraitConfig(true); // HS1005 recorded
+              continue;
+            }
             const config = this.parseOptionalTraitConfig();
             const trait = {
               type: 'ObjectTrait' as const,
@@ -2674,7 +2712,7 @@ export class HoloCompositionParser {
         if (this.check('LBRACE')) this.skipBlock();
       } else if (this.check('AT')) {
         this.advance(); // consume @
-        if (!this.isAtEnd()) this.advance(); // trait name
+        this.parseTraitName(); // trait name (discarded); records HS1005 when missing
         if (this.check('LPAREN')) this.skipParens();
         else if (this.check('LBRACE')) this.skipBlock();
       } else if (this.isStatementKeyword()) {
@@ -3247,10 +3285,8 @@ export class HoloCompositionParser {
       return this.parseBindValue();
     }
     if (this.match('AT')) {
-      const traitName = this.parseTraitName();
-      if (traitName) return `@${traitName}`;
-      this.error(`Expected trait name after '@', got ${this.current().type}`);
-      return null;
+      const traitName = this.parseTraitName(); // records HS1005 when no name follows
+      return traitName ? `@${traitName}` : null;
     }
     if (this.match('HASH')) {
       return this.parseHashLiteral();
@@ -3821,8 +3857,12 @@ export class HoloCompositionParser {
         if (this.check('AT')) {
           this.advance(); // consume @
           const name = this.parseTraitName(); // handles digit-leading names like @2d_canvas
-          const config = this.parseOptionalTraitConfig();
-          traits.push({ type: 'ObjectTrait' as const, name, config });
+          if (name) {
+            const config = this.parseOptionalTraitConfig();
+            traits.push({ type: 'ObjectTrait' as const, name, config });
+          } else {
+            this.discardOrphanTraitConfig(true);
+          }
         } else if (this.isPropertyName()) {
           const key = this.parsePropertyKey();
           if (this.check('COLON')) {
@@ -3941,26 +3981,89 @@ export class HoloCompositionParser {
    * error via expectIdentifier; the object body silently captured only "2", dropping the rest —
    * which also silently corrupted the shipped 2d-revolution template). Also accepts a quoted
    * name (@"2d_canvas") and keyword-as-identifier names.
+   *
+   * Call it with the '@' already consumed. When no name follows it records HS1005 at the '@'
+   * and returns '' WITHOUT consuming the next token, so a newline, `{` or `}` stays for the
+   * enclosing block. Callers must not create a trait from ''. (It used to take ANY next token
+   * as the name, so `@` before a newline became a trait named "\n" and `@ }` ate the brace.)
    */
   private parseTraitName(): string {
-    if (this.check('STRING')) {
-      return this.advance().value;
+    const length = this.traitNameLength(this.pos);
+    if (length === 0) {
+      this.reportMissingTraitName();
+      // `@""` names nothing either; consume the empty string, it is the name slot.
+      if (this.check('STRING')) this.advance();
+      return '';
     }
-    if (this.check('NUMBER')) {
-      let name = this.advance().value;
-      // Reassemble a digit-leading name split by the lexer: NUMBER + IDENTIFIER (2 + d_canvas).
-      if (this.check('IDENTIFIER')) {
-        name += this.advance().value;
-      }
-      return name;
+    let name = this.advance().value;
+    // Reassemble a digit-leading name split by the lexer: NUMBER + IDENTIFIER (2 + d_canvas).
+    if (length === 2) name += this.advance().value;
+    return name;
+  }
+
+  /**
+   * How many tokens, starting at `index`, form a trait name after '@': 0 when none does.
+   * A name is a non-blank quoted string, a digit-leading name (NUMBER, plus the IDENTIFIER
+   * the lexer split off: 2 + d_canvas), an identifier, or any keyword (keywords lex to their
+   * own token types but are still words: @state, @world, @light). Punctuation, NEWLINE, EOF
+   * and another '@' are not names.
+   */
+  private traitNameLength(index: number): number {
+    const token = this.tokens[index];
+    if (!token) return 0;
+    switch (token.type) {
+      case 'STRING':
+        return token.value.trim() === '' ? 0 : 1;
+      case 'NUMBER':
+        if (!/^\d/.test(token.value)) return 0;
+        return this.tokens[index + 1]?.type === 'IDENTIFIER' ? 2 : 1;
+      case 'IDENTIFIER':
+        return 1;
+      case 'EOF':
+      case 'NEWLINE':
+        return 0;
+      default:
+        return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.value) ? 1 : 0;
     }
-    if (this.check('IDENTIFIER')) {
-      return this.advance().value;
+  }
+
+  /**
+   * Tokens parseTraitName() consumes at `index`: the name, or a blank `""` standing in the
+   * name slot. The lookahead helpers skip exactly this much after an '@', so a nameless '@'
+   * skips nothing and the construct is still recognised and reported with HS1005.
+   */
+  private traitNameSpan(index: number): number {
+    const length = this.traitNameLength(index);
+    if (length > 0) return length;
+    return this.tokens[index]?.type === 'STRING' ? 1 : 0;
+  }
+
+  /**
+   * After a nameless '@' (HS1005 already recorded), drop the config group written right after
+   * it, so `@(x: 1)` or `@ { ... }` costs one error instead of a cascade and leaves no node
+   * built from the orphaned group. `{` is skipped only where it cannot be the enclosing
+   * declaration's own body: pass allowBlock=false in headers (`object "X" @ {`).
+   */
+  private discardOrphanTraitConfig(allowBlock: boolean): void {
+    if (this.check('LPAREN')) this.skipParens();
+    else if (allowBlock && this.check('LBRACE')) this.skipBlock();
+  }
+
+  /**
+   * Record HS1005 for an '@' with no trait name after it (the code the rejection corpus in
+   * src/validation/__tests__/fixtures/rejection-corpus/manifest.json expects). The location is the '@' token itself, the same place the strict layer
+   * reports it. Throws in non-tolerant mode, like error().
+   */
+  private reportMissingTraitName(): void {
+    const previous = this.tokens[this.pos - 1];
+    const at = previous?.type === 'AT' ? previous : this.current();
+    const loc: SourceLocation = { line: at.line, column: at.column };
+    const message = '`@` is not followed by a trait name.';
+    const suggestion = 'Write a trait as @name, for example @grabbable.';
+    this.errors.push({ message, loc, code: 'HS1005', suggestion, severity: 'error' });
+    if (!this.options.tolerant) {
+      throw new Error(`Parse error at line ${loc.line}: ${message}\n  Suggestion: ${suggestion}`);
     }
-    if (this.isKeywordAsIdentifierType(this.current().type)) {
-      return this.advance().value;
-    }
-    return this.isAtEnd() ? '' : this.advance().value;
   }
 
   private expectIdentifier(): string {
@@ -4170,6 +4273,8 @@ export class HoloCompositionParser {
         const traitName = this.parseTraitName();
         if (traitName) {
           config[`@${traitName}`] = this.parseOptionalTraitConfig();
+        } else {
+          this.discardOrphanTraitConfig(true);
         }
       } else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
         const nestedKey = this.parsePropertyKey();
@@ -4241,7 +4346,9 @@ export class HoloCompositionParser {
       hasTrait = true;
       index++;
       if (this.tokens[index]?.type === 'EOF') return false;
-      index++;
+      // Skip exactly the name parseTraitName() will read; a nameless '@' skips nothing, so
+      // `key @ {` is still recognised and parseInlineTraitNamesBeforeBlock reports HS1005.
+      index += this.traitNameSpan(index);
 
       if (this.tokens[index]?.type === 'LPAREN') {
         index = this.indexAfterBalancedTokens(index, 'LPAREN', 'RPAREN');
@@ -4522,8 +4629,12 @@ export class HoloCompositionParser {
         // (e.g. @verbalFingerprint { style { ... } }, @reputationLedger { ... }).
         this.advance(); // consume @
         const traitName = this.parseTraitName();
-        const config = this.parseOptionalTraitConfig(true);
-        (npc.traits ??= []).push({ type: 'ObjectTrait', name: traitName, config });
+        if (traitName) {
+          const config = this.parseOptionalTraitConfig(true);
+          (npc.traits ??= []).push({ type: 'ObjectTrait', name: traitName, config });
+        } else {
+          this.discardOrphanTraitConfig(true);
+        }
       } else {
         const key = this.expectIdentifier();
         this.expect('COLON');
@@ -6681,7 +6792,7 @@ export class HoloCompositionParser {
       index++;
     }
     while (this.tokens[index]?.type === 'AT') {
-      index += 2;
+      index += 1 + this.traitNameSpan(index + 1); // '@' + exactly the name parseTraitName reads
       if (this.tokens[index]?.type === 'LPAREN') {
         let depth = 1;
         index++;
@@ -6710,7 +6821,7 @@ export class HoloCompositionParser {
     index++;
 
     while (this.tokens[index]?.type === 'AT') {
-      index += 2;
+      index += 1 + this.traitNameSpan(index + 1); // '@' + exactly the name parseTraitName reads
       if (this.tokens[index]?.type === 'LPAREN') {
         let depth = 1;
         index++;
@@ -8117,13 +8228,15 @@ export class HoloCompositionParser {
     const traits: string[] = [];
     while (this.check('AT')) {
       this.advance(); // @
-      if (this.check('IDENTIFIER') || this.current().type !== 'EOF') {
-        traits.push(this.current().value);
-        this.advance();
+      const traitName = this.parseTraitName(); // '' (HS1005 recorded) when no name follows
+      if (traitName) {
+        traits.push(traitName);
         // Handle trait with parenthesized config: @trait(key: value)
         if (this.check('LPAREN')) {
           this.skipParens();
         }
+      } else {
+        this.discardOrphanTraitConfig(false); // a `{` here is the block's own body
       }
     }
 
@@ -8212,10 +8325,14 @@ export class HoloCompositionParser {
       // Bare domain decorators used as body directives, e.g. service { @cors_policy }.
       else if (this.check('AT')) {
         this.advance();
-        const traitName = this.parseTraitName();
-        if (traitName) traits.push(traitName);
-        if (this.check('LPAREN') || this.check('LBRACE') || this.check('COLON')) {
-          properties[`@${traitName}`] = this.parseOptionalTraitConfig();
+        const traitName = this.parseTraitName(); // '' (HS1005 recorded) when no name follows
+        if (traitName) {
+          traits.push(traitName);
+          if (this.check('LPAREN') || this.check('LBRACE') || this.check('COLON')) {
+            properties[`@${traitName}`] = this.parseOptionalTraitConfig();
+          }
+        } else {
+          this.discardOrphanTraitConfig(true);
         }
       }
       // Nested domain property block: post_processing { bloom { intensity: 0.3 } }

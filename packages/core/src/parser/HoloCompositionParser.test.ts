@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { parseHolo, parseHoloStrict } from './HoloCompositionParser';
+import { parseHolo, parseHoloStrict, tokenizeHoloSource } from './HoloCompositionParser';
 import { generateHoloSource } from './HoloCompositionGenerator';
 
 describe('HoloCompositionParser', () => {
@@ -1417,6 +1417,288 @@ describe('HoloCompositionParser', () => {
       expect(triggers[0].cooldown).toBe(2.0);
       expect(triggers[0].onActivate?.length).toBe(1);
       expect(triggers[0].onDeactivate?.length).toBe(1);
+    });
+  });
+});
+
+// A trait marker `@` with no name after it used to parse cleanly: `@` alone was a
+// trait named "", `@` before a newline a trait named "\n", and `@` before `}` ate
+// the brace as its name. Code HS1005 matches the rejection corpus
+// (src/validation/__tests__/fixtures/rejection-corpus/manifest.json).
+describe('Trait marker with no name (HS1005)', () => {
+  const MESSAGE = '`@` is not followed by a trait name.';
+  const SUGGESTION = 'Write a trait as @name, for example @grabbable.';
+
+  /** Where each `@` sits, in the lexer's own coordinates (the ones every parse error uses). */
+  const atLocations = (source: string) =>
+    tokenizeHoloSource(source)
+      .filter((token) => token.type === 'AT')
+      .map((token) => ({ line: token.line, column: token.column }));
+
+  /** Every name the AST carries for a trait: trait nodes, domain-block traits, `@name` keys, light keys. */
+  const traitNames = (node: unknown): string[] => {
+    const names: string[] = [];
+    const walk = (value: unknown): void => {
+      if (!value || typeof value !== 'object') return;
+      if (Array.isArray(value)) {
+        value.forEach(walk);
+        return;
+      }
+      const record = value as Record<string, unknown>;
+      if (record.type === 'ObjectTrait' || record.type === 'trait') names.push(String(record.name));
+      if (record.type === 'LightProperty') names.push(String(record.key));
+      if (record.type === 'DomainBlock' && Array.isArray(record.traits)) {
+        names.push(...(record.traits as unknown[]).map(String));
+      }
+      for (const [key, child] of Object.entries(record)) {
+        if (key === 'loc') continue;
+        if (key.startsWith('@')) names.push(key.slice(1));
+        walk(child);
+      }
+    };
+    walk(node);
+    return names;
+  };
+
+  /** Refused in both modes, HS1005 at the given `@`, and no trait built from punctuation. */
+  const expectRefused = (source: string, atIndex = 0) => {
+    const result = parseHolo(source);
+    expect(result.success).toBe(false);
+    const missing = result.errors.filter((error) => error.code === 'HS1005');
+    expect(missing.length).toBeGreaterThan(0);
+    expect(missing[0]).toEqual({
+      message: MESSAGE,
+      suggestion: SUGGESTION,
+      code: 'HS1005',
+      severity: 'error',
+      loc: atLocations(source)[atIndex],
+    });
+    for (const name of traitNames(result.ast)) {
+      expect(name).toMatch(/^[A-Za-z0-9_]/);
+    }
+    expect(() => parseHoloStrict(source)).toThrow(MESSAGE);
+    return result;
+  };
+
+  describe('refuses a nameless @', () => {
+    it('`@` alone', () => {
+      const result = expectRefused('@');
+      expect(result.errors[0].loc?.line).toBe(1);
+      expect(result.ast?.traits ?? []).toEqual([]);
+    });
+
+    it('`@` followed by a newline', () => {
+      const result = expectRefused('@\n');
+      expect(result.errors[0].loc?.line).toBe(1);
+      expect(result.ast?.traits ?? []).toEqual([]);
+    });
+
+    it('`@` on its own line inside an object', () => {
+      const result = expectRefused('object "X" {\n  @\n}');
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].loc?.line).toBe(2);
+      expect(result.ast?.objects[0].traits).toEqual([]);
+    });
+
+    it('`@` between an object name and its body keeps the body', () => {
+      const result = expectRefused('object "X" @ {\n  color: "red"\n}');
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].loc?.line).toBe(1);
+      const object = result.ast?.objects[0];
+      expect(object?.traits).toEqual([]);
+      expect(object?.properties).toEqual([{ type: 'ObjectProperty', key: 'color', value: 'red' }]);
+    });
+
+    it('`@ @grabbable` refuses the first and still reads the second', () => {
+      const result = expectRefused('@ @grabbable', 0);
+      expect(result.errors).toHaveLength(1);
+      expect(result.ast?.traits?.map((trait) => trait.name)).toEqual(['grabbable']);
+    });
+
+    it('a lone `@` right before `}` does not swallow the brace', () => {
+      const result = expectRefused('object "X" {\n  @}');
+      expect(result.errors).toHaveLength(1);
+      expect(result.ast?.objects).toHaveLength(1);
+    });
+
+    it('a trailing `@` after a real trait keeps the real one and the brace', () => {
+      const result = expectRefused('object "X" { @grabbable @ }', 1);
+      expect(result.errors).toHaveLength(1);
+      expect(result.ast?.objects[0].traits.map((trait) => trait.name)).toEqual(['grabbable']);
+    });
+
+    it('`@` then a blank line before an object (corpus at-without-name.holo)', () => {
+      const result = expectRefused('@\n\nobject Ball {\n  position: [0, 1, 0]\n}\n');
+      expect(result.errors).toHaveLength(1);
+      expect(result.ast?.objects.map((object) => object.name)).toEqual(['Ball']);
+    });
+
+    it('a quoted empty name `@""`', () => {
+      const result = expectRefused('object "X" {\n  @""\n}');
+      expect(result.errors).toHaveLength(1);
+      expect(result.ast?.objects[0].traits).toEqual([]);
+    });
+
+    it('drops the orphaned config of a nameless `@(...)` instead of cascading', () => {
+      const result = expectRefused('object "X" {\n  @(mass: 2)\n  @grabbable\n}');
+      expect(result.errors).toHaveLength(1);
+      expect(result.ast?.objects[0].traits.map((trait) => trait.name)).toEqual(['grabbable']);
+    });
+
+    // Every place '@' introduces a trait or decorator, with `<@>` standing for the nameless one.
+    const contexts: Array<[string, string]> = [
+      ['file level, before an object', '<@>\nobject "A" {}'],
+      ['composition body', 'composition "C" {\n  <@>\n  object "A" {}\n}'],
+      ['object body after @platform', 'object "A" {\n  @platform(quest3)\n  <@>\n}'],
+      ['template body', 'template "T" {\n  <@>\n}'],
+      ['orb header', 'orb "O" <@> {\n}'],
+      ['orb body', 'orb "O" {\n  <@>\n}'],
+      ['light header', 'light "L" directional <@> {\n  intensity: 1\n}'],
+      ['light body', 'light "L" {\n  <@>\n  intensity: 1\n}'],
+      ['camera body', 'camera "C" {\n  <@>\n  fov: 60\n}'],
+      ['audio body', 'audio "A" {\n  <@>\n  volume: 1\n}'],
+      ['spatial group body', 'spatial_group "G" {\n  <@>\n  object "A" {}\n}'],
+      ['primitive body', 'cube {\n  <@>\n  color: "red"\n}'],
+      ['npc body', 'npc "N" {\n  <@>\n  type: "guard"\n}'],
+      ['domain block header', 'iot_sensor "S" <@> {\n  unit: "C"\n}'],
+      ['domain block body', 'iot_sensor "S" {\n  <@>\n  unit: "C"\n}'],
+      ['loose material header', 'pbr_material "M" <@> {\n  roughness: 1\n}'],
+      ['value position', 'object "A" {\n  tags: [<@>]\n}'],
+      ['trait config block', 'object "A" {\n  @ui {\n    <@>\n  }\n}'],
+      [
+        'traited property block',
+        'object "A" {\n  @ui {\n    panel <@> {\n      color: "x"\n    }\n  }\n}',
+      ],
+    ];
+    const followers: Array<[string, string]> = [
+      ['alone', '@'],
+      ['with a config', '@(x: 1)'],
+    ];
+    for (const [where, template] of contexts) {
+      for (const [how, marker] of followers) {
+        it(`${where}: ${how}`, () => {
+          const source = template.replace('<@>', marker);
+          // The nameless '@' is the one <@> stood for: count the '@'s written before it.
+          const atIndex = atLocations(template.slice(0, template.indexOf('<@>'))).length;
+          expectRefused(source, atIndex);
+        });
+      }
+    }
+  });
+
+  describe('keeps every named form', () => {
+    const expectClean = (source: string) => {
+      const result = parseHolo(source);
+      expect(result.errors).toEqual([]);
+      expect(result.success).toBe(true);
+      expect(() => parseHoloStrict(source)).not.toThrow();
+      return result;
+    };
+
+    it('quoted, digit-leading, keyword and chained names on an object header', () => {
+      const result = expectClean(
+        'object "A" @grabbable @glowing(intensity: 2) @"quoted" @2d_canvas @a @b {\n  color: "red"\n}'
+      );
+      expect(result.ast?.objects[0].traits.map((trait) => trait.name)).toEqual([
+        'grabbable',
+        'glowing',
+        'quoted',
+        '2d_canvas',
+        'a',
+        'b',
+      ]);
+    });
+
+    it('the same names, configs and blocks inside an object body', () => {
+      const result = expectClean(
+        'object "A" {\n  @grabbable\n  @physics(mass: 2)\n  @"quoted"\n  @2d_canvas\n  @state\n  @light\n  @collider {\n    shape: "box"\n  }\n  @a @b\n}'
+      );
+      const traits = result.ast?.objects[0].traits ?? [];
+      expect(traits.map((trait) => trait.name)).toEqual([
+        'grabbable',
+        'physics',
+        'quoted',
+        '2d_canvas',
+        'state',
+        'light',
+        'collider',
+        'a',
+        'b',
+      ]);
+      expect(traits[1].config).toEqual({ mass: 2 });
+      expect(traits[6].config).toEqual({ shape: 'box' });
+    });
+
+    it('file-level @world "Name", @version "x", @name(config) and @name { }', () => {
+      const result = expectClean(
+        '@world "Lobby" {\n  skybox: "night"\n}\n@version "5.7.0"\n@page(title: "Home")\n@metadata {\n  author: "x"\n}\n@2d_canvas\nobject "A" {}'
+      );
+      expect(result.ast?.name).toBe('Lobby');
+      expect(result.ast?.traits?.map((trait) => [trait.name, trait.config])).toEqual([
+        ['version', { _arg0: '5.7.0' }],
+        ['page', { title: 'Home' }],
+        ['metadata', { author: 'x' }],
+        ['2d_canvas', {}],
+      ]);
+    });
+
+    it('decorators inside a composition body', () => {
+      const result = expectClean(
+        'composition "C" {\n  @world {\n    skybox: "x"\n  }\n  @page(title: "t")\n  @version "1"\n  object "A" {}\n}'
+      );
+      expect(result.ast?.traits?.map((trait) => trait.name)).toEqual(['page', 'version']);
+    });
+
+    it('templates, orbs, lights, primitives, domain blocks and trait values', () => {
+      const template = expectClean(
+        'template "T" {\n  @grabbable\n  @version(2)\n  @"q"\n  @2d_canvas\n}'
+      );
+      expect(template.ast?.templates[0].traits.map((trait) => trait.name)).toEqual([
+        'grabbable',
+        'q',
+        '2d_canvas',
+      ]);
+      expect(template.ast?.templates[0].version).toBe(2);
+
+      const orb = expectClean(
+        'orb "O" @grabbable @glowing {\n  @physics(mass: 1)\n  color: "red"\n}'
+      );
+      expect(orb.ast?.objects[0].traits.map((trait) => trait.name)).toEqual([
+        'grabbable',
+        'glowing',
+        'physics',
+      ]);
+
+      const light = expectClean(
+        'light "L" directional @shadow {\n  @position(1, 2, 3)\n  intensity: 1\n}'
+      );
+      expect(light.ast?.lights[0].properties.map((property) => property.key)).toEqual([
+        'shadow',
+        'position',
+        'intensity',
+      ]);
+
+      const primitive = expectClean('cube {\n  @grabbable\n  @2d_canvas\n  color: "red"\n}');
+      expect(primitive.ast?.objects[0].traits.map((trait) => trait.name)).toEqual([
+        'grabbable',
+        '2d_canvas',
+      ]);
+
+      const domain = expectClean(
+        'iot_sensor "S" @networked @telemetry(rate: 2) {\n  @cors_policy\n  @auth(mode: "x")\n  unit: "C"\n}'
+      );
+      expect(domain.ast?.domainBlocks?.[0].traits).toEqual([
+        'networked',
+        'telemetry',
+        'cors_policy',
+        'auth',
+      ]);
+
+      const material = expectClean('pbr_material "M" @shader(x: 1) {\n  roughness: 0.5\n}');
+      expect(material.ast?.domainBlocks?.[0].traits).toEqual(['shader']);
+
+      const values = expectClean('object "A" {\n  tags: [@grabbable, @glowing]\n}');
+      expect(values.ast?.objects[0].properties[0].value).toEqual(['@grabbable', '@glowing']);
     });
   });
 });
