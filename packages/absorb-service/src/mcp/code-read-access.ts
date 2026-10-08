@@ -66,6 +66,24 @@ export function codeReadAllowed(): boolean {
 }
 
 /**
+ * May the current caller tie an inline `sourceFiles` upload to a named folder
+ * on this server (rootDir, rootDirs, or a snapshot receipt's roots)? Such an
+ * upload is published as that folder's cache generation, which every later
+ * caller loads from disk without the uploader's tag, and its self-asserted
+ * receipt makes it trusted. So only the callers that may name the server's
+ * folders may do it: the process's own user (no host-decided call: the CLI, a
+ * library caller, and an isolated absorb worker thread, whose parent already
+ * decided before dispatch) and a call the host let read code (mcp-server:
+ * stdio, loopback local custody or an admin scope, the same set as
+ * callerMayNameHostPaths plus the stdio user; the absorb host: admins).
+ * claude4's round 2 review of claudecode/absorb-agent-brief, 2026-10-08.
+ */
+export function callerMayNameUploadRoots(): boolean {
+  const store = gate().access.getStore();
+  return store === undefined || store.codeRead;
+}
+
+/**
  * The principal of the current call, or LOCAL_PRINCIPAL outside any decided
  * call (the CLI, a test, a library caller: the process is its own user).
  */
@@ -73,6 +91,17 @@ export function currentCallerPrincipal(): string {
   const store = gate().access.getStore();
   if (!store) return LOCAL_PRINCIPAL;
   return store.principal && store.principal.length > 0 ? store.principal : UNKNOWN_PRINCIPAL;
+}
+
+/** Who sent the inline sourceFiles upload a graph was built from, if it was one. */
+export function inlineUploadOwner(graph: unknown): string | undefined {
+  return (graph as { inlineUploadPrincipal?: string } | null | undefined)?.inlineUploadPrincipal;
+}
+
+/** True unless the graph is an inline upload sent by a different caller than this one. */
+export function uploadBelongsToCaller(graph: unknown): boolean {
+  const owner = inlineUploadOwner(graph);
+  return owner === undefined || owner === currentCallerPrincipal();
 }
 
 /** The process's own user, outside any host-decided call. */

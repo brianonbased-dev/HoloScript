@@ -1032,6 +1032,7 @@ export async function resolveSovereignProviderAsync(
         model: picked.model,
         nativeOllamaApi: picked.backend === 'ollama',
         timeoutMs: 300_000,
+        ...adapterBounds(opts),
       });
       return {
         provider,
@@ -1293,6 +1294,9 @@ function resolveCloud(
     apiKey: env('HOLO_LLM_SERVICE_KEY', 'BRITTNEY_API_KEY') ?? '',
     ...(tier ? { tier } : {}),
     ...(lane ? { lane } : {}),
+    // The hosted bridge is a paid route (answer-routing counts 'cloud' as paid):
+    // the caller's bound reaches it too (claude4's round 2 review).
+    ...adapterBounds(opts),
   });
   return {
     provider,

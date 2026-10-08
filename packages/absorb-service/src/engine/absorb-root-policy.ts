@@ -17,8 +17,11 @@
  *                         or cwd) and the daemon project root
  *                         (ABSORB_PROJECT_ROOT or <tmp>/holoscript-daemon).
  *
- * Inline sourceFiles uploads never reach this check: they are written to a
- * server-chosen temp directory, not a caller-named one.
+ * Inline sourceFiles uploads never reach this check. Without a named root they
+ * are written to a server-chosen temp directory. With one (rootDir, rootDirs
+ * or a snapshot receipt's roots) they are refused unless the caller may name
+ * this server's folders (callerMayNameUploadRoots in mcp/code-read-access.ts),
+ * and code is read from the uploaded text, never from the disk at that root.
  */
 import fs from 'node:fs';
 import os from 'node:os';

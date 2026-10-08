@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
-import { codeReadAllowed } from './code-read-access';
+import { codeReadAllowed, uploadBelongsToCaller } from './code-read-access';
 import { absorbRootRefusal } from '../engine/absorb-root-policy';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
 import { GraphRAGEngine, type EnrichedResult, type LLMProvider } from '../engine/GraphRAGEngine';
@@ -1282,7 +1282,14 @@ function pinnedAnsweredBy(
 }
 
 async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown> {
-  if (!cachedEmbeddingIndex || !cachedGraphRAGEngine) {
+  // Take the shared engine and index once, here. An ask waits on model calls
+  // for up to minutes, and meanwhile another caller's upload or a finishing
+  // warm can swap the shared engine; every later read in this ask uses this
+  // snapshot, never the shared variable again. An upload's engine answers only
+  // its uploader (claude4's round 2 review of claudecode/absorb-agent-brief).
+  const askEngine = cachedGraphRAGEngine;
+  const askIndex = cachedEmbeddingIndex;
+  if (!askIndex || !askEngine || !uploadBelongsToCaller(askEngine.graph)) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
@@ -1297,7 +1304,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   const llmApiKey = args.llmApiKey as string | undefined;
   const llmModel = args.llmModel as string | undefined;
   const visualFocus = buildVisualFocus(
-    cachedGraphRAGEngine.graph,
+    askEngine.graph,
     readStringArray(args.visualNodeIds)
   );
   // An explicit HoloLlama endpoint or profile wins over device routing.
@@ -1310,7 +1317,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
   try {
     // If a custom LLM provider is specified, create a new engine with that provider
-    let engine = cachedGraphRAGEngine;
+    let engine = askEngine;
     if (effectiveProvider && effectiveProvider !== 'ollama') {
       try {
         // The adapter classes from @holoscript/llm-provider satisfy the
@@ -1374,8 +1381,8 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
         // Create a temporary engine with the custom LLM provider
         const { GraphRAGEngine } = await import('../engine/GraphRAGEngine');
-        const graph = cachedGraphRAGEngine.graph;
-        engine = new GraphRAGEngine(graph, cachedEmbeddingIndex!, {
+        const graph = askEngine.graph;
+        engine = new GraphRAGEngine(graph, askIndex, {
           llmProvider: llmAdapter,
           llmModel: llmModel,
         });
@@ -1502,7 +1509,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
               continue;
           }
           const { GraphRAGEngine } = await import('../engine/GraphRAGEngine');
-          const fbEngine = new GraphRAGEngine(cachedGraphRAGEngine.graph, cachedEmbeddingIndex!, {
+          const fbEngine = new GraphRAGEngine(askEngine.graph, askIndex, {
             llmProvider: fbAdapter,
             llmModel,
           });
@@ -1517,7 +1524,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
           // Provenance integrity guard (same as primary path)
           const fbGuard = validateCitations(
             fbAnswer.citations as Citation[],
-            cachedGraphRAGEngine.graph
+            askEngine.graph
           );
           const fbFilteredCitations = fbGuard.passed
             ? fbGuard.resolved.map(({ name, file, line }) => ({ name, file, line }))
@@ -1580,7 +1587,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
     );
     try {
       return await buildExtractiveCodebaseAnswer({
-        engine: cachedGraphRAGEngine,
+        engine: askEngine,
         question,
         topK,
         language,

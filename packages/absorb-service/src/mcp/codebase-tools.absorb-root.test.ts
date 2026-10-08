@@ -28,6 +28,7 @@ import {
 import { EmbeddingIndex } from '../engine/EmbeddingIndex';
 import { CodebaseScanner } from '../engine/CodebaseScanner';
 import { CodebaseGraph } from '../engine/CodebaseGraph';
+import { runWithCodeReadAccess } from './code-read-access';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 const originalCacheLayout = process.env.HOLOSCRIPT_CACHE_LAYOUT;
@@ -2384,27 +2385,38 @@ describe('holo_absorb_repo root validation', () => {
     expect(uncalled.notInGraph).toBeUndefined();
     expect(uncalled.note).toMatch(/alpha is defined \(src\/alpha\.ts:1\) and no call to it is recorded/);
 
-    // queryType "source" reads the code from the absorbed files, no admin scope needed.
-    const source = (await handleCodebaseTool('holo_query_codebase', {
+    // queryType "source" reads the code from the absorbed files, for a caller
+    // the host lets read code (the local user, loopback local custody or an
+    // admin scope; code-read-access.ts). Reading is off unless a call decides,
+    // so these calls run as such a caller.
+    const asCodeReader = (args: Record<string, unknown>) =>
+      runWithCodeReadAccess(true, () => handleCodebaseTool('holo_query_codebase', args));
+    const source = (await asCodeReader({
       query: 'source',
       symbolName: 'alpha',
     })) as { count?: number; sources?: Array<{ name: string; file: string; line: number; code: string }> };
     expect(source.count).toBe(1);
     expect(source.sources?.[0]).toMatchObject({ name: 'alpha', file: 'src/alpha.ts', line: 1 });
     expect(source.sources?.[0]?.code).toContain('return "alpha"');
-    const unknownSource = (await handleCodebaseTool('holo_query_codebase', {
+    // A caller that may not read code is told so and gets no code.
+    const refused = (await runWithCodeReadAccess(false, () =>
+      handleCodebaseTool('holo_query_codebase', { query: 'source', symbolName: 'alpha' })
+    )) as { error?: string };
+    expect(refused.error).toBe('code_read_not_allowed');
+    expect(JSON.stringify(refused)).not.toContain('return "alpha"');
+    const unknownSource = (await asCodeReader({
       query: 'show me the code of `alphaa`',
     })) as { count?: number; notInGraph?: boolean };
     expect(unknownSource.count).toBe(0);
     expect(unknownSource.notInGraph).toBe(true);
     // match: only the lines holding a word, numbered by file line.
-    const matched = (await handleCodebaseTool('holo_query_codebase', {
+    const matched = (await asCodeReader({
       query: 'source',
       symbolName: 'alpha',
       match: 'RETURN',
     })) as { sources?: Array<{ code: string }>; note?: string };
     expect(matched.sources?.[0]?.code).toMatch(/^1: export function alpha/);
-    const noMatch = (await handleCodebaseTool('holo_query_codebase', {
+    const noMatch = (await asCodeReader({
       query: 'source',
       symbolName: 'alpha',
       match: 'zebra',

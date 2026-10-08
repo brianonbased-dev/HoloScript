@@ -31,7 +31,14 @@ import {
   readSymbolLines,
   setGraphRAGState,
 } from './graph-rag-tools';
-import { CODE_READ_REFUSED, codeReadAllowed, currentCallerPrincipal } from './code-read-access';
+import {
+  CODE_READ_REFUSED,
+  callerMayNameUploadRoots,
+  codeReadAllowed,
+  currentCallerPrincipal,
+  inlineUploadOwner,
+  uploadBelongsToCaller,
+} from './code-read-access';
 import {
   ABSORB_HOLO_ABSORB_REPO_HINT,
   describeGraphUnavailable,
@@ -6919,9 +6926,16 @@ function startBackgroundGraphRAGWarm(
           embeddingResume: resumable.receipt,
         };
       }
-      setGraphRAGState(idx, new GraphRAGEngine(graph, idx), {
-        rootDir: rootForWarm,
-      });
+      // Install the engine only over the graph this process still serves. The
+      // warm can run for minutes; meanwhile the graph it started from may have
+      // been evicted (another caller's upload) or replaced, and installing it
+      // then would answer every semantic tool from it (claude4's round 2
+      // review). The published generation stays on disk either way.
+      if (cachedGraph === graph) {
+        setGraphRAGState(idx, new GraphRAGEngine(graph, idx), {
+          rootDir: rootForWarm,
+        });
+      }
       trackAbsorbProgress(warmJobId, 'Complete', 100);
     } catch (err) {
       if (isAbsorbCancellation(err, warmJobId)) {
@@ -6963,6 +6977,21 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
   graphUnavailableReceipt?: GraphUnavailableReceipt;
   warmJobId?: string;
 }> {
+  // An inline upload answers only the caller who sent it, whatever snapshot
+  // receipt it carries. Every tool family (structural queries, impact, and
+  // semantic tools through refuseNestedWorkspaceSliceForSemanticTools) reaches
+  // the graph through here, so the owner check lives here: another caller's
+  // upload is evicted and this caller is answered from disk, as main did.
+  // claude4's round 2 review: the check used to run only before semantic
+  // tools, so holo_query_codebase symbols/find and holo_impact_analysis
+  // answered tenant B from tenant A's receipt-bearing upload.
+  if (cachedGraph && !uploadBelongsToCaller(cachedGraph)) {
+    cachedGraph = null;
+    cachedRootDir = '';
+    cacheProvenance = null;
+    cacheTimestamp = 0;
+    resetGraphRAGState();
+  }
   if (cachedGraph) {
     const memoryRootDir = cachedRootDir || resolveWorkspaceRoot();
     const workspaceRoot = resolveWorkspaceRoot();
@@ -7350,19 +7379,11 @@ export async function refuseNestedWorkspaceSliceForSemanticTools(): Promise<{
   // An inline sourceFiles upload never covers its root's Git file set, so the
   // full authority check in ensureCachedGraph evicts it, and the uploader's
   // own ask then found no engine. For the uploader alone, ask only the
-  // nested-slice question. Anyone else must never be answered from another
-  // caller's upload: evict it, as main did. Git-backed graphs always take the
-  // full check, which also catches a stale graph (claude4's review, 2026-10-08).
-  const uploadOwner = (cachedGraph as { inlineUploadPrincipal?: string } | null)
-    ?.inlineUploadPrincipal;
-  if (cachedGraph && uploadOwner !== undefined && uploadOwner !== currentCallerPrincipal()) {
-    cachedGraph = null;
-    cachedRootDir = '';
-    cacheProvenance = null;
-    cacheTimestamp = 0;
-    resetGraphRAGState();
-  }
-  if (cachedGraph && uploadOwner !== undefined) {
+  // nested-slice question. Anyone else goes through ensureCachedGraph, which
+  // evicts another caller's upload (the owner check lives there, for every
+  // tool family). Git-backed graphs always take the full check, which also
+  // catches a stale graph (claude4's review, 2026-10-08).
+  if (cachedGraph && inlineUploadOwner(cachedGraph) === currentCallerPrincipal()) {
     const workspaceRoot = resolveWorkspaceRoot();
     const memoryRootDirs = (cachedGraph as { rootDirs?: string[] }).rootDirs;
     const declaredRoots =
@@ -7936,6 +7957,26 @@ async function runFullScan(
   publicationScannedFiles = normalizedGraphFilePaths(primaryRootDir, graph) ?? scannedFilePaths;
   graph.rootSetId = buildRootSetId(rootDirs);
   graph.rootAuthorityPins = rootAuthorityPins;
+  if (inlineSourceFiles) {
+    // An inline upload answers only the caller who sent it, and its code is
+    // read from what was sent, not from the disk at its root (claude4's review
+    // of claudecode/absorb-agent-brief, 2026-10-08). Tagged here, once, before
+    // the outputFormat 'stats' branch: both places that install the graph as
+    // cachedGraph must carry the tag (round 2: the stats install had none).
+    // graph.serialize() writes only its own fields, so the tag never reaches
+    // the published cache generation.
+    Object.assign(graph, {
+      inlineUploadPrincipal: currentCallerPrincipal(),
+      inlineSources: new Map(
+        inlineSourceFiles.map((file) => [
+          path
+            .relative(primaryRootDir, path.resolve(primaryRootDir, file.path))
+            .replace(/\\/g, '/'),
+          file.content,
+        ])
+      ),
+    });
+  }
   recordPhaseMetric('git-hash', {
     filesProcessed: scanResult?.stats?.totalFiles,
     totalFiles: scanPlanReceipt?.totalCandidateFiles,
@@ -8308,22 +8349,6 @@ async function runFullScan(
     activeRefreshCheckpoint?.markInterrupted(error);
     setAbsorbJobRefreshProgress(jobId, activeRefreshCheckpoint?.progressReceipt());
     throw error;
-  }
-  if (inlineSourceFiles) {
-    // An inline upload answers only the caller who sent it, and its code is
-    // read from what was sent, not from the disk at its root (claude4's review
-    // of claudecode/absorb-agent-brief, 2026-10-08).
-    Object.assign(graph, {
-      inlineUploadPrincipal: currentCallerPrincipal(),
-      inlineSources: new Map(
-        inlineSourceFiles.map((file) => [
-          path
-            .relative(primaryRootDir, path.resolve(primaryRootDir, file.path))
-            .replace(/\\/g, '/'),
-          file.content,
-        ])
-      ),
-    });
   }
   cachedGraph = graph;
   cachedRootDir = primaryRootDir;
@@ -9125,6 +9150,31 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     inlineSourceFiles = validation.files;
     const provenanceRoot =
       rootDir || (rootDirsRaw && rootDirsRaw.length > 0 ? rootDirsRaw[0] : undefined);
+    // A named root (rootDir, rootDirs, or a snapshot receipt's roots, which
+    // rootDir/rootDirsRaw fall back to) is resolved against this server's
+    // workspace and the upload is published as that folder's durable cache
+    // generation; after an eviction every caller reloads it from disk without
+    // the uploader's tag, trusted through the uploader's own unsigned receipt.
+    // So only a caller that may name this server's folders may tie an upload to
+    // one (claude4's round 2 review, pre-existing on main). Refusing is the
+    // smaller correct change than a per-upload temp root: the receipt's only
+    // purpose is to name roots, every receipt flow (HoloShell's local adapter)
+    // runs against a local MCP that may name them, and a hosted caller is told
+    // plainly to upload without a root instead of having its roots silently
+    // ignored. The check runs in the request host before any background
+    // dispatch; an isolated worker thread runs as the process's own user.
+    if (
+      (provenanceRoot || (rootDirsRaw && rootDirsRaw.length > 0)) &&
+      !callerMayNameUploadRoots()
+    ) {
+      return {
+        error: 'upload_root_not_allowed',
+        message:
+          'This caller may not tie an upload to a folder on this server (rootDir, rootDirs or a ' +
+          'snapshot receipt names one). Send sourceFiles alone: the upload is analyzed in its own ' +
+          'folder and answers only you.',
+      };
+    }
     if (provenanceRoot) {
       primaryRootDir = path.resolve(resolveWorkspaceRoot(), provenanceRoot);
       effectiveRootDirs = [primaryRootDir];
@@ -11040,6 +11090,9 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
       // a word, with context: tester 7 had to filter a 375-line body by hand.
       const match = typeof args.match === 'string' ? args.match.trim().toLowerCase() : '';
       if (match) {
+        // A definition whose file cannot be read is not one with no matching
+        // line: say which it is (claude4's round 2 review, P3).
+        let unreadable = 0;
         const matched = definitions.flatMap((sym) => {
           // Match against whole lines; cut long lines only for display.
           const read = readSymbolLines(
@@ -11051,7 +11104,10 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
             readSource,
             Number.POSITIVE_INFINITY
           );
-          if (!read) return [];
+          if (!read) {
+            unreadable++;
+            return [];
+          }
           const keep = new Set<number>();
           let matchCount = 0;
           read.lines.forEach((text, i) => {
@@ -11096,7 +11152,15 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
           ...(matched.length === 0 &&
             (definitions.length === 0
               ? explainEmptySymbolAnswer(name, 'find')
-              : { note: `No line of ${name} contains "${match}". Drop match to read the code from the top.` })),
+              : unreadable > 0
+                ? {
+                    note:
+                      `${name} is defined but its file could not be read from the absorbed root` +
+                      (unreadable < definitions.length
+                        ? `; no line of the ${definitions.length - unreadable} readable definition(s) contains "${match}".`
+                        : '.'),
+                  }
+                : { note: `No line of ${name} contains "${match}". Drop match to read the code from the top.` })),
           ...(cacheNote && { cacheNote }),
         };
       }

@@ -43,6 +43,7 @@ export {
   CODE_READ_REFUSED,
   LOCAL_PRINCIPAL,
   UNKNOWN_PRINCIPAL,
+  callerMayNameUploadRoots,
   codeReadAllowed,
   currentCallerPrincipal,
   runWithCodeReadAccess,

@@ -17,6 +17,7 @@
  * A record cut short by a crash is ignored on read.
  */
 import fs from 'node:fs';
+import path from 'node:path';
 import type { ReusableEmbedding } from './EmbeddingIndex';
 
 const MAGIC = Buffer.from('HEJ1', 'ascii');
@@ -88,10 +89,14 @@ export function appendEmbeddingJournal(file: string, entries: readonly ReusableE
   const chunks: Buffer[] = [];
   if (existingDimension === dimension) repairJournalTail(file, dimension);
   if (existingDimension !== dimension) {
-    // Absent, unreadable, or another dimension: start a fresh journal.
+    // Absent, unreadable, or another dimension: start a fresh journal. Its
+    // folder may not exist yet: an inline upload with no named root takes no
+    // writer lease, and the lease used to be what created the cache folder, so
+    // every such upload failed here with ENOENT and got no semantic index.
     const header = Buffer.alloc(HEADER_BYTES);
     MAGIC.copy(header, 0);
     header.writeUInt32LE(dimension, 4);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, header);
   }
   for (const entry of entries) {

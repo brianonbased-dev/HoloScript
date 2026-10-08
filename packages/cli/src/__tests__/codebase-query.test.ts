@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { executeCanonicalCodebaseQuery } from '../commands/codebase-query';
+import { defaultHandlers, executeCanonicalCodebaseQuery } from '../commands/codebase-query';
 
 describe('executeCanonicalCodebaseQuery', () => {
   it('reuses the canonical Absorb handlers and current in-memory index', async () => {
@@ -132,4 +132,21 @@ describe('executeCanonicalCodebaseQuery', () => {
       expect(seen).toEqual({ absorb: '/srv/pinned-repo', search: '/srv/pinned-repo' });
     });
   });
+
+  // claude4's round 2 review (P3): the library default is "no code", so the
+  // CLI reads code only because its real handlers opt the process in. Every
+  // other case injects handlers, so deleting the opt-in kept the suite green.
+  it('opts the CLI process in to code reading when it loads the real handlers', async () => {
+    const mcp = await import('@holoscript/absorb-service/mcp');
+    mcp.setCodeReadDefault(false);
+    try {
+      expect(mcp.codeReadAllowed()).toBe(false);
+      const handlers = await defaultHandlers();
+      expect(mcp.codeReadAllowed()).toBe(true);
+      expect(handlers.handleCodebaseTool).toBe(mcp.handleCodebaseTool);
+      expect(handlers.handleGraphRagTool).toBe(mcp.handleGraphRagTool);
+    } finally {
+      mcp.setCodeReadDefault(false);
+    }
+  }, 60_000);
 });

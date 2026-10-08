@@ -481,6 +481,36 @@ describe('resolveSovereignProviderAsync (owned local fleet)', () => {
     expect(fetchSpy.mock.calls[0]?.[0]).toBe('http://127.0.0.1:8099/v1/chat/completions');
   });
 
+  it("carries the caller's timeoutMs and maxRetries to the local-fleet adapter", async () => {
+    // claude4's round 2 review: this adapter was hard-coded to 300 s with the
+    // default retries, whatever bound the caller (holo_ask_codebase) asked for.
+    vi.stubEnv('HOLO_LLM_FLEET_BRAIN', 'C:/fleet/model-fleet.hsplus');
+    resolveLocalFleetMock.mockResolvedValue({
+      baseURL: 'https://fleet-node.example.test:8099',
+      model: 'holorunner-s0',
+      backend: 'pytorch-holo',
+      route: {
+        handle: 'laptop-holoserve',
+        baseURL: 'https://fleet-node.example.test:8099',
+        model: 'holorunner-s0',
+        warm: true,
+        loadScore: 0,
+        backend: 'pytorch-holo',
+        reason: 'test route',
+        candidates: [],
+      },
+    });
+    const bounded = await resolveSovereignProviderAsync({ timeoutMs: 120_000, maxRetries: 0 });
+    expect(bounded.providerName).toBe('local-fleet');
+    expect(
+      (bounded.provider as unknown as { config: { timeoutMs?: number; maxRetries?: number } }).config
+    ).toMatchObject({ timeoutMs: 120_000, maxRetries: 0 });
+    const unbounded = await resolveSovereignProviderAsync();
+    expect(
+      (unbounded.provider as unknown as { config: { timeoutMs?: number } }).config.timeoutMs
+    ).toBe(300_000);
+  });
+
   it('keeps HoloLlama as the GGUF carrier when an auto local-fleet route is unavailable', async () => {
     vi.stubEnv('HOLO_LLM_FLEET_BRAIN', 'C:/fleet/model-fleet.hsplus');
     vi.stubEnv('HOLOLLAMA_URL', 'http://127.0.0.1:18080');
