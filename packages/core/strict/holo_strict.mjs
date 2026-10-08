@@ -176,9 +176,9 @@ export function analyze(source, deps, options = {}) {
     }
   }
 
-  // Run the parser itself and carry its own findings through unchanged,
-  // except that their positions are mapped from the lexer's convention to
-  // real 1-based ones.
+  // Run the parser itself and carry its findings through, with positions
+  // mapped from the lexer's convention to real 1-based ones. Only the first
+  // error on a token is kept (see the loop below).
   let parsed;
   try {
     parsed = parseHolo(source);
@@ -188,8 +188,9 @@ export function analyze(source, deps, options = {}) {
   }
   for (const err of parsed.errors || []) {
     const where = anchors.fromParser(err);
-    // The checks above already put an error on this token (an unclosed "{", a
-    // nameless "@"); the parser's report of the same token adds nothing.
+    // A token that already carries an error (from the checks above, such as an
+    // unclosed "{" or a nameless "@", or from an earlier parser error) keeps
+    // only that first one: later reports on the same token are knock-ons.
     if (diagnostics.some((d) => d.severity === "error" && d.line === where.line && d.column === where.column)) {
       continue;
     }

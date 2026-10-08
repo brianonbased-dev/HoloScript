@@ -13,7 +13,7 @@
  * codes the canonical path emits itself: HS1001 (empty source) and HS1005
  * (an "@" with no trait name, reported by the parser).
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { validateCanonicalSource, type CanonicalDiagnostic } from '../CanonicalSourceValidator';
@@ -61,6 +61,31 @@ const KNOWN_ZERO_COLUMN_FILES = new Set([
   'invalid/json-not-holo.holo',
   'invalid/stray-close-brace.holo',
 ]);
+
+describe('strict corpus: manifest integrity', () => {
+  it('lists every corpus file exactly once, and every listed file exists', () => {
+    const dirs = ['valid', 'real', 'warns', 'invalid'];
+    const onDisk = dirs
+      .flatMap((dir) =>
+        readdirSync(path.join(CORPUS_DIR, dir))
+          .filter((name) => name.endsWith('.holo'))
+          .map((name) => `${dir}/${name}`)
+      )
+      .sort();
+    const listed = [
+      ...manifest.valid,
+      ...manifest.real,
+      ...manifest.warns,
+      ...manifest.invalid,
+    ]
+      .map((entry) => entry.file)
+      .sort();
+
+    // A file on disk but missing here would never be checked by either layer.
+    expect(listed).toEqual(onDisk);
+    expect(new Set(listed).size).toBe(listed.length);
+  });
+});
 
 describe('strict corpus: files the canonical validator must accept', () => {
   it.each(manifest.valid)('$file is valid with $objects object(s)', ({ file, objects }) => {
