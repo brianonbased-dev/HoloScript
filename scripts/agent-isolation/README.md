@@ -27,7 +27,7 @@ These scripts are **drafted, not activated.** Activation changes every running a
    ```
    (Place the hook where `run-hook.mjs` resolves it, mirroring the existing `room-connect.mjs` wiring.)
 3. Schedule `worktree-gc.mjs` (e.g. daily) once isolation is producing per-agent worktrees.
-4. **Then** unfreeze main (remove the `pre-push` freeze + the `frozen-primary` commit guard) so agents commit straight to main with rebase-retry — the doctrine's code path. This **retires** the bandaid hook family (`frozen-primary`, W.082 multi-scope block, W.082b index-race detector, `safe-commit-parity`): with per-agent isolation they have nothing to detect.
+4. **Then** unfreeze main (remove the `pre-push` freeze + the `frozen-primary` commit guard) so agents push their branches and open PRs (main takes no direct push; Release merges after `release-gate/pass`). This **retires** the bandaid hook family (`frozen-primary`, W.082 multi-scope block, W.082b index-race detector, `safe-commit-parity`): with per-agent isolation they have nothing to detect.
 
 ## What this retires (once active)
 

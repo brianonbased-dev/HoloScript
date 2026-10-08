@@ -29,7 +29,7 @@ If MCP is unavailable: diagnose → start server → retry. If still down, **ski
 - Never hardcode domain vocabulary into core. Plugins are data, not code.
 - Simulation-first. Digital twin before physical twin.
 - Sovereign compilers > bridge compilers for new features.
-- Commit to main. Pre-commit hook is the quality gate.
+- Every change is a pull request. Release merges after `release-gate/pass`; never merge your own.
 - Stage explicitly: `git add <file>`, never `git add -A`
 
 ## Decision Tree (stop at first match)

@@ -61,12 +61,12 @@ find . -name "railway.toml" -type f
 # 1. Make changes
 code packages/studio/src/components/SceneBuilder.tsx
 
-# 2. Commit and push
+# 2. Commit, push a branch, and open a pull request
 git add packages/studio/
 git commit -m "feat: improve scene builder UI"
-git push origin main
+git push origin HEAD:feat/scene-builder-ui
 
-# Railway automatically detects changes and deploys
+# Railway automatically deploys once Release merges the PR
 # ✅ Live in ~3-5 minutes
 ```
 
@@ -458,11 +458,11 @@ pnpm audit --fix
 # 4. Test locally
 pnpm test
 
-# 5. Deploy updates
+# 5. Deploy updates (through a pull request)
 git add package.json pnpm-lock.yaml
 git commit -m "chore: update dependencies"
-git push origin main
-# Auto-deploys via Railway
+git push origin HEAD:chore/update-dependencies
+# Auto-deploys via Railway once Release merges the PR
 ```
 
 ### Security Audit
