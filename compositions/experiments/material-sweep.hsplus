@@ -32,12 +32,12 @@ composition "MaterialSweep" {
       }
 
       constraints {
-        fixed "base" { face: z- }
+        fixed "base" { face: "z-" }
       }
 
       loads {
         point "tip_load" {
-          face: z+
+          face: "z+"
           force: [0, -1000, 0]
         }
       }

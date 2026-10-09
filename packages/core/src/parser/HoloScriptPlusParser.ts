@@ -1650,6 +1650,21 @@ export class HoloScriptPlusParser {
           } else if (this.check('IDENTIFIER') && this.current().value === 'execute') {
             const executeNode = this.parseHsExecuteStatement();
             topLevelNodes.push(executeNode);
+          } else if (this.check('IDENTIFIER') && this.current().value === 'import') {
+            // `import ...` is the form .holo reads, and means what `@import ...` means here. It
+            // used to become a node that swallowed the next line (directive 2, task 34vf).
+            const importToken = this.advance();
+            if (this.check('STRING') || this.check('LBRACE') || this.check('ASTERISK')) {
+              const importDirective = this.parseImportClause();
+              if (importDirective) globalDirectives.push(importDirective);
+            } else {
+              this.errorAt(
+                importToken,
+                'This import form is not read here. Write import { Name } from "path", or import "path".',
+                'HSP001'
+              );
+              this.skipRestOfLine();
+            }
           } else if (this.check('IDENTIFIER') && isBrainKeyword(this.current().value)) {
             const brainNode = this.parseBrainDeclaration();
             // Attach preceding directives
@@ -1774,6 +1789,19 @@ export class HoloScriptPlusParser {
     if (type === 'zone' || type === 'spatial' || type === 'layer') {
       this.errorAt(startToken, HoloScriptPlusParser.rejectedBlockMessage(type), 'HSP001');
       this.skipZoneSpatialLayerTail();
+      return null;
+    }
+
+    // A file's imports are read at its top level (parse). Inside a block, `import` used to
+    // become a node that swallowed the next line, and the error named a stray STRING there
+    // instead of the import (directive 2, task 34vf).
+    if (type === 'import') {
+      this.errorAt(
+        startToken,
+        'An import goes at the top of the file, outside any block: import "path" or @import "path".',
+        'HSP001'
+      );
+      this.skipRestOfLine();
       return null;
     }
 
@@ -2180,6 +2208,12 @@ export class HoloScriptPlusParser {
         if (this.check('NEWLINE')) {
           this.skipNewlines();
           if (this.check('LBRACE')) break;
+          // The `}` of the enclosing block ends a body-less last child.
+          if (this.check('RBRACE')) break;
+          // A line that opens another node ends this one: it has no body. Read here as bare
+          // properties, `sphere ball` then `cube box { ... }` became one sphere with cube: true
+          // and box: true, and the cube vanished with success (directive 2, task 34vf).
+          if (this.startsNodeHeaderLine()) break;
           if (!this.check('AT')) {
             // Determine if we should exit looking for props
             if (this.check('EOF')) break;
@@ -2475,7 +2509,16 @@ export class HoloScriptPlusParser {
                 this.pos = saved;
                 const childNode = this.parseNode();
                 if (childNode) children.push(childNode);
-              } else if (this.current().type === 'IDENTIFIER') {
+              } else if (
+                this.current().type === 'IDENTIFIER' ||
+                (this.current().type === 'STRING' &&
+                  this.tokens[saved].type === 'IDENTIFIER' &&
+                  name !== 'using')
+              ) {
+                // A word, then a name, opens a child, as it does at the top level. With a quoted
+                // name and a word outside childNodeKeywords, `button "OK" { color: "red" }`
+                // used to become the properties button: true and OK: true, and the body was
+                // skipped, with success (directive 2, task 34vf).
                 this.pos = saved;
                 const childNode = this.parseNode();
                 if (childNode) children.push(childNode);
@@ -2926,87 +2969,7 @@ export class HoloScriptPlusParser {
     // Import  (@import "./path.hs" | @import "./path.hs" as Alias |
     //          @import { A, B } from "./path.hs" | @import * as NS from "./path.hs")
     // =========================================================================
-    if (name === 'import') {
-      if (!this.options.enableTypeScriptImports) {
-        this.warn('@import is disabled');
-        return null;
-      }
-
-      let namedImports: string[] | undefined;
-      let isWildcard = false;
-
-      // Named-import form: @import { A, B } from "./path.hs"
-      if (this.check('LBRACE')) {
-        this.advance(); // {
-        namedImports = [];
-        while (!this.check('RBRACE') && !this.check('EOF')) {
-          if (this.check('IDENTIFIER')) {
-            namedImports.push(this.advance().value);
-          }
-          if (this.check('COMMA')) this.advance();
-        }
-        this.expect('RBRACE', 'Expected } in named import list');
-        // consume 'from' keyword (appears as IDENTIFIER)
-        if (this.check('IDENTIFIER') && this.current().value === 'from') {
-          this.advance();
-        } else {
-          this.warn("Expected 'from' after named import specifiers");
-        }
-      }
-
-      // Wildcard form: @import * as Namespace from "./path.hs"
-      let wildcardAlias: string | undefined;
-      if (this.check('ASTERISK') || (this.check('IDENTIFIER') && this.current().value === '*')) {
-        this.advance(); // *
-        isWildcard = true;
-        if (this.check('IDENTIFIER') && this.current().value === 'as') {
-          this.advance(); // as
-          // Grab the namespace alias BEFORE 'from' — previously the parser
-          // skipped straight to expecting the path string here, which broke
-          // the documented `* as Namespace from "./path"` form (HSP001).
-          if (this.check('IDENTIFIER') && this.current().value !== 'from') {
-            wildcardAlias = this.advance().value;
-          }
-        }
-        if (this.check('IDENTIFIER') && this.current().value === 'from') {
-          this.advance(); // from
-        }
-      }
-
-      const path = this.expect('STRING', 'Expected import path string').value;
-
-      // Derive default alias from filename (wildcard alias wins when present)
-      let alias =
-        wildcardAlias ||
-        path
-          .split('/')
-          .pop()
-          ?.replace(/\.[^.]+$/, '') ||
-        'import';
-
-      // Handle trailing 'as Alias' on non-named-import forms
-      if (!namedImports && this.check('IDENTIFIER') && this.current().value === 'as') {
-        this.advance();
-        alias = this.expect('IDENTIFIER', 'Expected alias after as').value;
-      }
-
-      // For wildcard with 'as' already consumed above, grab the alias token
-      if (isWildcard && this.check('IDENTIFIER') && this.current().value !== 'from') {
-        alias = this.advance().value;
-        if (this.check('IDENTIFIER') && this.current().value === 'from') {
-          this.advance(); // consume trailing 'from'
-        }
-      }
-
-      this.imports.push({ path, alias, namedImports, isWildcard });
-      return {
-        type: 'import' as const,
-        path,
-        alias,
-        namedImports,
-        isWildcard,
-      } as HSPlusDirective;
-    }
+    if (name === 'import') return this.parseImportClause();
 
     // =========================================================================
     // Export  (@export template "Name" | @export object "Name" | @export "Name")
@@ -7068,6 +7031,121 @@ export class HoloScriptPlusParser {
       if (this.check('LPAREN')) depth++;
       if (this.check('RPAREN')) depth--;
       this.advance();
+    }
+  }
+
+  /**
+   * The part of an import after its keyword, for both `@import ...` and `import ...` (the
+   * form .holo reads): "path", "path" as Alias, { A, B } from "path", * as NS from "path".
+   */
+  private parseImportClause(): HSPlusDirective | null {
+    if (!this.options.enableTypeScriptImports) {
+      this.warn('@import is disabled');
+      return null;
+    }
+
+    let namedImports: string[] | undefined;
+    let isWildcard = false;
+
+    // Named-import form: @import { A, B } from "./path.hs"
+    if (this.check('LBRACE')) {
+      this.advance(); // {
+      namedImports = [];
+      // Every turn consumes a token: a line break inside the braces used to stop the loop from
+      // moving, so a multi-line list hung the parser (packages/lsp/src/server.hsplus).
+      while (!this.check('RBRACE') && !this.check('EOF')) {
+        if (this.check('IDENTIFIER') && this.current().value === 'as') {
+          this.advance(); // as
+          if (this.check('IDENTIFIER')) this.advance(); // local name
+        } else if (this.check('IDENTIFIER')) {
+          namedImports.push(this.advance().value);
+        } else {
+          this.advance(); // comma, line break, or anything else
+        }
+      }
+      this.expect('RBRACE', 'Expected } in named import list');
+      // consume 'from' keyword (appears as IDENTIFIER)
+      if (this.check('IDENTIFIER') && this.current().value === 'from') {
+        this.advance();
+      } else {
+        this.warn("Expected 'from' after named import specifiers");
+      }
+    }
+
+    // Wildcard form: @import * as Namespace from "./path.hs"
+    let wildcardAlias: string | undefined;
+    if (this.check('ASTERISK') || (this.check('IDENTIFIER') && this.current().value === '*')) {
+      this.advance(); // *
+      isWildcard = true;
+      if (this.check('IDENTIFIER') && this.current().value === 'as') {
+        this.advance(); // as
+        // Grab the namespace alias BEFORE 'from' — previously the parser
+        // skipped straight to expecting the path string here, which broke
+        // the documented `* as Namespace from "./path"` form (HSP001).
+        if (this.check('IDENTIFIER') && this.current().value !== 'from') {
+          wildcardAlias = this.advance().value;
+        }
+      }
+      if (this.check('IDENTIFIER') && this.current().value === 'from') {
+        this.advance(); // from
+      }
+    }
+
+    const path = this.expect('STRING', 'Expected import path string').value;
+
+    // Derive default alias from filename (wildcard alias wins when present)
+    let alias =
+      wildcardAlias ||
+      path
+        .split('/')
+        .pop()
+        ?.replace(/\.[^.]+$/, '') ||
+      'import';
+
+    // Handle trailing 'as Alias' on non-named-import forms
+    if (!namedImports && this.check('IDENTIFIER') && this.current().value === 'as') {
+      this.advance();
+      alias = this.expect('IDENTIFIER', 'Expected alias after as').value;
+    }
+
+    // For wildcard with 'as' already consumed above, grab the alias token
+    if (isWildcard && this.check('IDENTIFIER') && this.current().value !== 'from') {
+      alias = this.advance().value;
+      if (this.check('IDENTIFIER') && this.current().value === 'from') {
+        this.advance(); // consume trailing 'from'
+      }
+    }
+
+    this.imports.push({ path, alias, namedImports, isWildcard });
+    return {
+      type: 'import' as const,
+      path,
+      alias,
+      namedImports,
+      isWildcard,
+    } as HSPlusDirective;
+  }
+
+  /**
+   * True when the current line opens a node: a word, then a name (`cube box`, `object "a"`).
+   * Between a header and its `{` a line holds a @directive, `key: value`, or a bare `key`, so
+   * a word followed by a name there is the next node, not a property.
+   */
+  private startsNodeHeaderLine(): boolean {
+    const word = this.current();
+    const name = this.peek(1);
+    return (
+      word.type === 'IDENTIFIER' &&
+      word.value !== 'using' &&
+      (name.type === 'STRING' || name.type === 'IDENTIFIER')
+    );
+  }
+
+  /** Drop the rest of the current line, and any brace group it opens. The next line stays. */
+  private skipRestOfLine(): void {
+    while (!this.check('NEWLINE') && !this.check('EOF')) {
+      if (this.check('LBRACE')) this.skipBraces();
+      else this.advance();
     }
   }
 

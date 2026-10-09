@@ -1404,86 +1404,112 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
   "ast": {
     "body": [
       {
-        "children": [],
-        "directives": [],
-        "id": undefined,
-        "loc": {
-          "end": {
-            "column": 18,
-            "line": 1,
+        "body": {
+          "children": [
+            {
+              "children": [],
+              "directives": [
+                {
+                  "config": {},
+                  "name": "accessible",
+                  "type": "trait",
+                },
+                {
+                  "config": {
+                    "default": "Main dashboard view",
+                  },
+                  "name": "alt_text",
+                  "type": "trait",
+                },
+              ],
+              "properties": {},
+              "traits": Map {},
+              "type": "fragment",
+            },
+          ],
+          "configs": [],
+          "properties": {
+            "BaseLayout": true,
+            "panels": [
+              {
+                "__ref": "ui_panel",
+              },
+              {
+                "content": {
+                  "target": {
+                    "__ref": "statusText",
+                  },
+                  "type": "nullCoalescingAssignment",
+                  "value": "Ready",
+                },
+                "title": "Status",
+              },
+              {
+                "__ref": "ui_panel",
+              },
+              {
+                "chart": {
+                  "__spread_0": {
+                    "argument": {
+                      "__ref": "defaultChart",
+                    },
+                    "type": "spread",
+                  },
+                  "data": {
+                    "__ref": "metrics",
+                  },
+                },
+                "title": "Metrics",
+              },
+            ],
+            "title": {
+              "left": {
+                "__ref": "userTitle",
+              },
+              "operator": "??",
+              "right": "Dashboard",
+              "type": "binary",
+            },
           },
-          "start": {
-            "column": 1,
-            "line": 1,
-          },
+          "systems": [],
         },
-        "name": undefined,
-        "properties": {
-          "Chart": true,
-        },
-        "traits": Map {},
-        "type": "import",
-      },
-      {
         "children": [
           {
-            "loc": {
-              "end": {
-                "column": 16,
-                "line": 4,
+            "children": [],
+            "directives": [
+              {
+                "config": {},
+                "name": "accessible",
+                "type": "trait",
               },
-              "start": {
-                "column": 3,
-                "line": 4,
+              {
+                "config": {
+                  "default": "Main dashboard view",
+                },
+                "name": "alt_text",
+                "type": "trait",
               },
-            },
-            "target": "BaseLayout",
-            "type": "spread",
+            ],
+            "properties": {},
+            "traits": Map {},
+            "type": "fragment",
           },
         ],
-        "directives": [
-          {
-            "config": {},
-            "name": "accessible",
-            "type": "trait",
-          },
-          {
-            "config": {
-              "default": "Main dashboard view",
-            },
-            "name": "alt_text",
-            "type": "trait",
-          },
-        ],
-        "id": "./ui/Chart.holo",
+        "directives": [],
+        "id": "Dashboard",
         "loc": {
           "end": {
             "column": 2,
             "line": 21,
           },
           "start": {
-            "column": 18,
-            "line": 1,
+            "column": 1,
+            "line": 3,
           },
         },
-        "name": "./ui/Chart.holo",
+        "name": "Dashboard",
         "properties": {
-          "Dashboard": true,
-          "__spread_BaseLayout": {
-            "loc": {
-              "end": {
-                "column": 16,
-                "line": 4,
-              },
-              "start": {
-                "column": 3,
-                "line": 4,
-              },
-            },
-            "target": "BaseLayout",
-            "type": "spread",
-          },
-          "composition": true,
+          "BaseLayout": true,
           "panels": [
             {
               "__ref": "ui_panel",
@@ -1531,91 +1557,117 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
             "default": "Main dashboard view",
           },
         },
-        "type": "from",
+        "type": "composition",
       },
     ],
     "children": [
       {
-        "children": [],
-        "directives": [],
-        "id": undefined,
-        "loc": {
-          "end": {
-            "column": 18,
-            "line": 1,
+        "body": {
+          "children": [
+            {
+              "children": [],
+              "directives": [
+                {
+                  "config": {},
+                  "name": "accessible",
+                  "type": "trait",
+                },
+                {
+                  "config": {
+                    "default": "Main dashboard view",
+                  },
+                  "name": "alt_text",
+                  "type": "trait",
+                },
+              ],
+              "properties": {},
+              "traits": Map {},
+              "type": "fragment",
+            },
+          ],
+          "configs": [],
+          "properties": {
+            "BaseLayout": true,
+            "panels": [
+              {
+                "__ref": "ui_panel",
+              },
+              {
+                "content": {
+                  "target": {
+                    "__ref": "statusText",
+                  },
+                  "type": "nullCoalescingAssignment",
+                  "value": "Ready",
+                },
+                "title": "Status",
+              },
+              {
+                "__ref": "ui_panel",
+              },
+              {
+                "chart": {
+                  "__spread_0": {
+                    "argument": {
+                      "__ref": "defaultChart",
+                    },
+                    "type": "spread",
+                  },
+                  "data": {
+                    "__ref": "metrics",
+                  },
+                },
+                "title": "Metrics",
+              },
+            ],
+            "title": {
+              "left": {
+                "__ref": "userTitle",
+              },
+              "operator": "??",
+              "right": "Dashboard",
+              "type": "binary",
+            },
           },
-          "start": {
-            "column": 1,
-            "line": 1,
-          },
+          "systems": [],
         },
-        "name": undefined,
-        "properties": {
-          "Chart": true,
-        },
-        "traits": Map {},
-        "type": "import",
-      },
-      {
         "children": [
           {
-            "loc": {
-              "end": {
-                "column": 16,
-                "line": 4,
+            "children": [],
+            "directives": [
+              {
+                "config": {},
+                "name": "accessible",
+                "type": "trait",
               },
-              "start": {
-                "column": 3,
-                "line": 4,
+              {
+                "config": {
+                  "default": "Main dashboard view",
+                },
+                "name": "alt_text",
+                "type": "trait",
               },
-            },
-            "target": "BaseLayout",
-            "type": "spread",
+            ],
+            "properties": {},
+            "traits": Map {},
+            "type": "fragment",
           },
         ],
-        "directives": [
-          {
-            "config": {},
-            "name": "accessible",
-            "type": "trait",
-          },
-          {
-            "config": {
-              "default": "Main dashboard view",
-            },
-            "name": "alt_text",
-            "type": "trait",
-          },
-        ],
-        "id": "./ui/Chart.holo",
+        "directives": [],
+        "id": "Dashboard",
         "loc": {
           "end": {
             "column": 2,
             "line": 21,
           },
           "start": {
-            "column": 18,
-            "line": 1,
+            "column": 1,
+            "line": 3,
           },
         },
-        "name": "./ui/Chart.holo",
+        "name": "Dashboard",
         "properties": {
-          "Dashboard": true,
-          "__spread_BaseLayout": {
-            "loc": {
-              "end": {
-                "column": 16,
-                "line": 4,
-              },
-              "start": {
-                "column": 3,
-                "line": 4,
-              },
-            },
-            "target": "BaseLayout",
-            "type": "spread",
-          },
-          "composition": true,
+          "BaseLayout": true,
           "panels": [
             {
               "__ref": "ui_panel",
@@ -1663,16 +1715,192 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
             "default": "Main dashboard view",
           },
         },
-        "type": "from",
+        "type": "composition",
       },
     ],
-    "compositions": [],
-    "directives": [],
+    "compositions": [
+      {
+        "body": {
+          "children": [
+            {
+              "children": [],
+              "directives": [
+                {
+                  "config": {},
+                  "name": "accessible",
+                  "type": "trait",
+                },
+                {
+                  "config": {
+                    "default": "Main dashboard view",
+                  },
+                  "name": "alt_text",
+                  "type": "trait",
+                },
+              ],
+              "properties": {},
+              "traits": Map {},
+              "type": "fragment",
+            },
+          ],
+          "configs": [],
+          "properties": {
+            "BaseLayout": true,
+            "panels": [
+              {
+                "__ref": "ui_panel",
+              },
+              {
+                "content": {
+                  "target": {
+                    "__ref": "statusText",
+                  },
+                  "type": "nullCoalescingAssignment",
+                  "value": "Ready",
+                },
+                "title": "Status",
+              },
+              {
+                "__ref": "ui_panel",
+              },
+              {
+                "chart": {
+                  "__spread_0": {
+                    "argument": {
+                      "__ref": "defaultChart",
+                    },
+                    "type": "spread",
+                  },
+                  "data": {
+                    "__ref": "metrics",
+                  },
+                },
+                "title": "Metrics",
+              },
+            ],
+            "title": {
+              "left": {
+                "__ref": "userTitle",
+              },
+              "operator": "??",
+              "right": "Dashboard",
+              "type": "binary",
+            },
+          },
+          "systems": [],
+        },
+        "children": [
+          {
+            "children": [],
+            "directives": [
+              {
+                "config": {},
+                "name": "accessible",
+                "type": "trait",
+              },
+              {
+                "config": {
+                  "default": "Main dashboard view",
+                },
+                "name": "alt_text",
+                "type": "trait",
+              },
+            ],
+            "properties": {},
+            "traits": Map {},
+            "type": "fragment",
+          },
+        ],
+        "directives": [],
+        "id": "Dashboard",
+        "loc": {
+          "end": {
+            "column": 2,
+            "line": 21,
+          },
+          "start": {
+            "column": 1,
+            "line": 3,
+          },
+        },
+        "name": "Dashboard",
+        "properties": {
+          "BaseLayout": true,
+          "panels": [
+            {
+              "__ref": "ui_panel",
+            },
+            {
+              "content": {
+                "target": {
+                  "__ref": "statusText",
+                },
+                "type": "nullCoalescingAssignment",
+                "value": "Ready",
+              },
+              "title": "Status",
+            },
+            {
+              "__ref": "ui_panel",
+            },
+            {
+              "chart": {
+                "__spread_0": {
+                  "argument": {
+                    "__ref": "defaultChart",
+                  },
+                  "type": "spread",
+                },
+                "data": {
+                  "__ref": "metrics",
+                },
+              },
+              "title": "Metrics",
+            },
+          ],
+          "title": {
+            "left": {
+              "__ref": "userTitle",
+            },
+            "operator": "??",
+            "right": "Dashboard",
+            "type": "binary",
+          },
+        },
+        "traits": Map {
+          "accessible" => {},
+          "alt_text" => {
+            "default": "Main dashboard view",
+          },
+        },
+        "type": "composition",
+      },
+    ],
+    "directives": [
+      {
+        "alias": "Chart",
+        "isWildcard": false,
+        "namedImports": [
+          "Chart",
+        ],
+        "path": "./ui/Chart.holo",
+        "type": "import",
+      },
+    ],
     "hasControlFlow": false,
     "hasState": false,
     "hasVRTraits": true,
     "id": "root",
-    "imports": [],
+    "imports": [
+      {
+        "alias": "Chart",
+        "isWildcard": false,
+        "namedImports": [
+          "Chart",
+        ],
+        "path": "./ui/Chart.holo",
+      },
+    ],
     "loc": {
       "end": {
         "column": 2,
@@ -1689,86 +1917,112 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
     "root": {
       "body": [
         {
-          "children": [],
-          "directives": [],
-          "id": undefined,
-          "loc": {
-            "end": {
-              "column": 18,
-              "line": 1,
+          "body": {
+            "children": [
+              {
+                "children": [],
+                "directives": [
+                  {
+                    "config": {},
+                    "name": "accessible",
+                    "type": "trait",
+                  },
+                  {
+                    "config": {
+                      "default": "Main dashboard view",
+                    },
+                    "name": "alt_text",
+                    "type": "trait",
+                  },
+                ],
+                "properties": {},
+                "traits": Map {},
+                "type": "fragment",
+              },
+            ],
+            "configs": [],
+            "properties": {
+              "BaseLayout": true,
+              "panels": [
+                {
+                  "__ref": "ui_panel",
+                },
+                {
+                  "content": {
+                    "target": {
+                      "__ref": "statusText",
+                    },
+                    "type": "nullCoalescingAssignment",
+                    "value": "Ready",
+                  },
+                  "title": "Status",
+                },
+                {
+                  "__ref": "ui_panel",
+                },
+                {
+                  "chart": {
+                    "__spread_0": {
+                      "argument": {
+                        "__ref": "defaultChart",
+                      },
+                      "type": "spread",
+                    },
+                    "data": {
+                      "__ref": "metrics",
+                    },
+                  },
+                  "title": "Metrics",
+                },
+              ],
+              "title": {
+                "left": {
+                  "__ref": "userTitle",
+                },
+                "operator": "??",
+                "right": "Dashboard",
+                "type": "binary",
+              },
             },
-            "start": {
-              "column": 1,
-              "line": 1,
-            },
+            "systems": [],
           },
-          "name": undefined,
-          "properties": {
-            "Chart": true,
-          },
-          "traits": Map {},
-          "type": "import",
-        },
-        {
           "children": [
             {
-              "loc": {
-                "end": {
-                  "column": 16,
-                  "line": 4,
+              "children": [],
+              "directives": [
+                {
+                  "config": {},
+                  "name": "accessible",
+                  "type": "trait",
                 },
-                "start": {
-                  "column": 3,
-                  "line": 4,
+                {
+                  "config": {
+                    "default": "Main dashboard view",
+                  },
+                  "name": "alt_text",
+                  "type": "trait",
                 },
-              },
-              "target": "BaseLayout",
-              "type": "spread",
+              ],
+              "properties": {},
+              "traits": Map {},
+              "type": "fragment",
             },
           ],
-          "directives": [
-            {
-              "config": {},
-              "name": "accessible",
-              "type": "trait",
-            },
-            {
-              "config": {
-                "default": "Main dashboard view",
-              },
-              "name": "alt_text",
-              "type": "trait",
-            },
-          ],
-          "id": "./ui/Chart.holo",
+          "directives": [],
+          "id": "Dashboard",
           "loc": {
             "end": {
               "column": 2,
               "line": 21,
             },
             "start": {
-              "column": 18,
-              "line": 1,
+              "column": 1,
+              "line": 3,
             },
           },
-          "name": "./ui/Chart.holo",
+          "name": "Dashboard",
           "properties": {
-            "Dashboard": true,
-            "__spread_BaseLayout": {
-              "loc": {
-                "end": {
-                  "column": 16,
-                  "line": 4,
-                },
-                "start": {
-                  "column": 3,
-                  "line": 4,
-                },
-              },
-              "target": "BaseLayout",
-              "type": "spread",
-            },
-            "composition": true,
+            "BaseLayout": true,
             "panels": [
               {
                 "__ref": "ui_panel",
@@ -1816,91 +2070,117 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
               "default": "Main dashboard view",
             },
           },
-          "type": "from",
+          "type": "composition",
         },
       ],
       "children": [
         {
-          "children": [],
-          "directives": [],
-          "id": undefined,
-          "loc": {
-            "end": {
-              "column": 18,
-              "line": 1,
+          "body": {
+            "children": [
+              {
+                "children": [],
+                "directives": [
+                  {
+                    "config": {},
+                    "name": "accessible",
+                    "type": "trait",
+                  },
+                  {
+                    "config": {
+                      "default": "Main dashboard view",
+                    },
+                    "name": "alt_text",
+                    "type": "trait",
+                  },
+                ],
+                "properties": {},
+                "traits": Map {},
+                "type": "fragment",
+              },
+            ],
+            "configs": [],
+            "properties": {
+              "BaseLayout": true,
+              "panels": [
+                {
+                  "__ref": "ui_panel",
+                },
+                {
+                  "content": {
+                    "target": {
+                      "__ref": "statusText",
+                    },
+                    "type": "nullCoalescingAssignment",
+                    "value": "Ready",
+                  },
+                  "title": "Status",
+                },
+                {
+                  "__ref": "ui_panel",
+                },
+                {
+                  "chart": {
+                    "__spread_0": {
+                      "argument": {
+                        "__ref": "defaultChart",
+                      },
+                      "type": "spread",
+                    },
+                    "data": {
+                      "__ref": "metrics",
+                    },
+                  },
+                  "title": "Metrics",
+                },
+              ],
+              "title": {
+                "left": {
+                  "__ref": "userTitle",
+                },
+                "operator": "??",
+                "right": "Dashboard",
+                "type": "binary",
+              },
             },
-            "start": {
-              "column": 1,
-              "line": 1,
-            },
+            "systems": [],
           },
-          "name": undefined,
-          "properties": {
-            "Chart": true,
-          },
-          "traits": Map {},
-          "type": "import",
-        },
-        {
           "children": [
             {
-              "loc": {
-                "end": {
-                  "column": 16,
-                  "line": 4,
+              "children": [],
+              "directives": [
+                {
+                  "config": {},
+                  "name": "accessible",
+                  "type": "trait",
                 },
-                "start": {
-                  "column": 3,
-                  "line": 4,
+                {
+                  "config": {
+                    "default": "Main dashboard view",
+                  },
+                  "name": "alt_text",
+                  "type": "trait",
                 },
-              },
-              "target": "BaseLayout",
-              "type": "spread",
+              ],
+              "properties": {},
+              "traits": Map {},
+              "type": "fragment",
             },
           ],
-          "directives": [
-            {
-              "config": {},
-              "name": "accessible",
-              "type": "trait",
-            },
-            {
-              "config": {
-                "default": "Main dashboard view",
-              },
-              "name": "alt_text",
-              "type": "trait",
-            },
-          ],
-          "id": "./ui/Chart.holo",
+          "directives": [],
+          "id": "Dashboard",
           "loc": {
             "end": {
               "column": 2,
               "line": 21,
             },
             "start": {
-              "column": 18,
-              "line": 1,
+              "column": 1,
+              "line": 3,
             },
           },
-          "name": "./ui/Chart.holo",
+          "name": "Dashboard",
           "properties": {
-            "Dashboard": true,
-            "__spread_BaseLayout": {
-              "loc": {
-                "end": {
-                  "column": 16,
-                  "line": 4,
-                },
-                "start": {
-                  "column": 3,
-                  "line": 4,
-                },
-              },
-              "target": "BaseLayout",
-              "type": "spread",
-            },
-            "composition": true,
+            "BaseLayout": true,
             "panels": [
               {
                 "__ref": "ui_panel",
@@ -1948,10 +2228,20 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
               "default": "Main dashboard view",
             },
           },
-          "type": "from",
+          "type": "composition",
         },
       ],
-      "directives": [],
+      "directives": [
+        {
+          "alias": "Chart",
+          "isWildcard": false,
+          "namedImports": [
+            "Chart",
+          ],
+          "path": "./ui/Chart.holo",
+          "type": "import",
+        },
+      ],
       "id": "root",
       "loc": {
         "end": {
@@ -1974,7 +2264,24 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
     "worlds": [],
   },
   "compiledExpressions": Map {},
-  "errors": [],
+  "errors": [
+    {
+      "code": "HSP101",
+      "column": 3,
+      "context": "  2 | 
+  3 | composition Dashboard {
+> 4 |   ...BaseLayout
+       ^
+  5 |   
+  6 |   title: userTitle ?? "Dashboard"",
+      "endColumn": undefined,
+      "endLine": undefined,
+      "line": 4,
+      "message": "HSP101: Unexpected token SPREAD "..." in composition body. Expected property name, @directive, or child node",
+      "severity": "error",
+      "suggestion": undefined,
+    },
+  ],
   "features": {
     "conditionals": false,
     "lifecycleHooks": false,
@@ -1982,8 +2289,10 @@ exports[`Parser AST Visual Regression > Complex Real-World AST Examples > dashbo
     "state": false,
     "vrTraits": true,
   },
-  "requiredCompanions": [],
-  "success": true,
+  "requiredCompanions": [
+    "./ui/Chart.holo",
+  ],
+  "success": false,
   "warnings": [],
 }
 `;
@@ -7876,97 +8185,34 @@ exports[`Parser AST Visual Regression > Expression AST Nodes > ternary operator 
 exports[`Parser AST Visual Regression > Import and Module System > import statement AST 1`] = `
 {
   "ast": {
-    "body": [
-      {
-        "children": [],
-        "directives": [],
-        "id": undefined,
-        "loc": {
-          "end": {
-            "column": 19,
-            "line": 1,
-          },
-          "start": {
-            "column": 1,
-            "line": 1,
-          },
-        },
-        "name": undefined,
-        "properties": {
-          "Button": true,
-        },
-        "traits": Map {},
-        "type": "import",
-      },
-      {
-        "children": [],
-        "directives": [],
-        "id": "./ui/Button.holo",
-        "loc": {
-          "end": {
-            "column": 42,
-            "line": 1,
-          },
-          "start": {
-            "column": 19,
-            "line": 1,
-          },
-        },
-        "name": "./ui/Button.holo",
-        "properties": {},
-        "traits": Map {},
-        "type": "from",
-      },
-    ],
-    "children": [
-      {
-        "children": [],
-        "directives": [],
-        "id": undefined,
-        "loc": {
-          "end": {
-            "column": 19,
-            "line": 1,
-          },
-          "start": {
-            "column": 1,
-            "line": 1,
-          },
-        },
-        "name": undefined,
-        "properties": {
-          "Button": true,
-        },
-        "traits": Map {},
-        "type": "import",
-      },
-      {
-        "children": [],
-        "directives": [],
-        "id": "./ui/Button.holo",
-        "loc": {
-          "end": {
-            "column": 42,
-            "line": 1,
-          },
-          "start": {
-            "column": 19,
-            "line": 1,
-          },
-        },
-        "name": "./ui/Button.holo",
-        "properties": {},
-        "traits": Map {},
-        "type": "from",
-      },
-    ],
+    "body": [],
+    "children": [],
     "compositions": [],
-    "directives": [],
+    "directives": [
+      {
+        "alias": "Button",
+        "isWildcard": false,
+        "namedImports": [
+          "Button",
+        ],
+        "path": "./ui/Button.holo",
+        "type": "import",
+      },
+    ],
     "hasControlFlow": false,
     "hasState": false,
     "hasVRTraits": false,
     "id": "root",
-    "imports": [],
+    "imports": [
+      {
+        "alias": "Button",
+        "isWildcard": false,
+        "namedImports": [
+          "Button",
+        ],
+        "path": "./ui/Button.holo",
+      },
+    ],
     "loc": {
       "end": {
         "column": 42,
@@ -7981,91 +8227,19 @@ exports[`Parser AST Visual Regression > Import and Module System > import statem
     "npcs": [],
     "properties": {},
     "root": {
-      "body": [
+      "body": [],
+      "children": [],
+      "directives": [
         {
-          "children": [],
-          "directives": [],
-          "id": undefined,
-          "loc": {
-            "end": {
-              "column": 19,
-              "line": 1,
-            },
-            "start": {
-              "column": 1,
-              "line": 1,
-            },
-          },
-          "name": undefined,
-          "properties": {
-            "Button": true,
-          },
-          "traits": Map {},
+          "alias": "Button",
+          "isWildcard": false,
+          "namedImports": [
+            "Button",
+          ],
+          "path": "./ui/Button.holo",
           "type": "import",
         },
-        {
-          "children": [],
-          "directives": [],
-          "id": "./ui/Button.holo",
-          "loc": {
-            "end": {
-              "column": 42,
-              "line": 1,
-            },
-            "start": {
-              "column": 19,
-              "line": 1,
-            },
-          },
-          "name": "./ui/Button.holo",
-          "properties": {},
-          "traits": Map {},
-          "type": "from",
-        },
       ],
-      "children": [
-        {
-          "children": [],
-          "directives": [],
-          "id": undefined,
-          "loc": {
-            "end": {
-              "column": 19,
-              "line": 1,
-            },
-            "start": {
-              "column": 1,
-              "line": 1,
-            },
-          },
-          "name": undefined,
-          "properties": {
-            "Button": true,
-          },
-          "traits": Map {},
-          "type": "import",
-        },
-        {
-          "children": [],
-          "directives": [],
-          "id": "./ui/Button.holo",
-          "loc": {
-            "end": {
-              "column": 42,
-              "line": 1,
-            },
-            "start": {
-              "column": 19,
-              "line": 1,
-            },
-          },
-          "name": "./ui/Button.holo",
-          "properties": {},
-          "traits": Map {},
-          "type": "from",
-        },
-      ],
-      "directives": [],
       "id": "root",
       "loc": {
         "end": {
@@ -8096,7 +8270,9 @@ exports[`Parser AST Visual Regression > Import and Module System > import statem
     "state": false,
     "vrTraits": false,
   },
-  "requiredCompanions": [],
+  "requiredCompanions": [
+    "./ui/Button.holo",
+  ],
   "success": true,
   "warnings": [],
 }
@@ -8105,185 +8281,68 @@ exports[`Parser AST Visual Regression > Import and Module System > import statem
 exports[`Parser AST Visual Regression > Import and Module System > multiple imports AST 1`] = `
 {
   "ast": {
-    "body": [
-      {
-        "children": [],
-        "directives": [],
-        "id": undefined,
-        "loc": {
-          "end": {
-            "column": 19,
-            "line": 1,
-          },
-          "start": {
-            "column": 1,
-            "line": 1,
-          },
-        },
-        "name": undefined,
-        "properties": {
-          "Button": true,
-        },
-        "traits": Map {},
-        "type": "import",
-      },
-      {
-        "children": [],
-        "directives": [],
-        "id": "./ui/Button.holo",
-        "loc": {
-          "end": {
-            "column": 18,
-            "line": 2,
-          },
-          "start": {
-            "column": 19,
-            "line": 1,
-          },
-        },
-        "name": "./ui/Button.holo",
-        "properties": {
-          "Panel": true,
-          "import": true,
-        },
-        "traits": Map {},
-        "type": "from",
-      },
-      {
-        "children": [],
-        "directives": [],
-        "id": "./ui/Panel.holo",
-        "loc": {
-          "end": {
-            "column": 23,
-            "line": 3,
-          },
-          "start": {
-            "column": 18,
-            "line": 2,
-          },
-        },
-        "name": "./ui/Panel.holo",
-        "properties": {
-          "Controller": true,
-          "import": true,
-        },
-        "traits": Map {},
-        "type": "from",
-      },
-      {
-        "children": [],
-        "directives": [],
-        "id": "./logic/Controller.hsplus",
-        "loc": {
-          "end": {
-            "column": 55,
-            "line": 3,
-          },
-          "start": {
-            "column": 23,
-            "line": 3,
-          },
-        },
-        "name": "./logic/Controller.hsplus",
-        "properties": {},
-        "traits": Map {},
-        "type": "from",
-      },
-    ],
-    "children": [
-      {
-        "children": [],
-        "directives": [],
-        "id": undefined,
-        "loc": {
-          "end": {
-            "column": 19,
-            "line": 1,
-          },
-          "start": {
-            "column": 1,
-            "line": 1,
-          },
-        },
-        "name": undefined,
-        "properties": {
-          "Button": true,
-        },
-        "traits": Map {},
-        "type": "import",
-      },
-      {
-        "children": [],
-        "directives": [],
-        "id": "./ui/Button.holo",
-        "loc": {
-          "end": {
-            "column": 18,
-            "line": 2,
-          },
-          "start": {
-            "column": 19,
-            "line": 1,
-          },
-        },
-        "name": "./ui/Button.holo",
-        "properties": {
-          "Panel": true,
-          "import": true,
-        },
-        "traits": Map {},
-        "type": "from",
-      },
-      {
-        "children": [],
-        "directives": [],
-        "id": "./ui/Panel.holo",
-        "loc": {
-          "end": {
-            "column": 23,
-            "line": 3,
-          },
-          "start": {
-            "column": 18,
-            "line": 2,
-          },
-        },
-        "name": "./ui/Panel.holo",
-        "properties": {
-          "Controller": true,
-          "import": true,
-        },
-        "traits": Map {},
-        "type": "from",
-      },
-      {
-        "children": [],
-        "directives": [],
-        "id": "./logic/Controller.hsplus",
-        "loc": {
-          "end": {
-            "column": 55,
-            "line": 3,
-          },
-          "start": {
-            "column": 23,
-            "line": 3,
-          },
-        },
-        "name": "./logic/Controller.hsplus",
-        "properties": {},
-        "traits": Map {},
-        "type": "from",
-      },
-    ],
+    "body": [],
+    "children": [],
     "compositions": [],
-    "directives": [],
+    "directives": [
+      {
+        "alias": "Button",
+        "isWildcard": false,
+        "namedImports": [
+          "Button",
+        ],
+        "path": "./ui/Button.holo",
+        "type": "import",
+      },
+      {
+        "alias": "Panel",
+        "isWildcard": false,
+        "namedImports": [
+          "Panel",
+        ],
+        "path": "./ui/Panel.holo",
+        "type": "import",
+      },
+      {
+        "alias": "Controller",
+        "isWildcard": false,
+        "namedImports": [
+          "Controller",
+        ],
+        "path": "./logic/Controller.hsplus",
+        "type": "import",
+      },
+    ],
     "hasControlFlow": false,
     "hasState": false,
     "hasVRTraits": false,
     "id": "root",
-    "imports": [],
+    "imports": [
+      {
+        "alias": "Button",
+        "isWildcard": false,
+        "namedImports": [
+          "Button",
+        ],
+        "path": "./ui/Button.holo",
+      },
+      {
+        "alias": "Panel",
+        "isWildcard": false,
+        "namedImports": [
+          "Panel",
+        ],
+        "path": "./ui/Panel.holo",
+      },
+      {
+        "alias": "Controller",
+        "isWildcard": false,
+        "namedImports": [
+          "Controller",
+        ],
+        "path": "./logic/Controller.hsplus",
+      },
+    ],
     "loc": {
       "end": {
         "column": 55,
@@ -8298,179 +8357,37 @@ exports[`Parser AST Visual Regression > Import and Module System > multiple impo
     "npcs": [],
     "properties": {},
     "root": {
-      "body": [
+      "body": [],
+      "children": [],
+      "directives": [
         {
-          "children": [],
-          "directives": [],
-          "id": undefined,
-          "loc": {
-            "end": {
-              "column": 19,
-              "line": 1,
-            },
-            "start": {
-              "column": 1,
-              "line": 1,
-            },
-          },
-          "name": undefined,
-          "properties": {
-            "Button": true,
-          },
-          "traits": Map {},
+          "alias": "Button",
+          "isWildcard": false,
+          "namedImports": [
+            "Button",
+          ],
+          "path": "./ui/Button.holo",
           "type": "import",
         },
         {
-          "children": [],
-          "directives": [],
-          "id": "./ui/Button.holo",
-          "loc": {
-            "end": {
-              "column": 18,
-              "line": 2,
-            },
-            "start": {
-              "column": 19,
-              "line": 1,
-            },
-          },
-          "name": "./ui/Button.holo",
-          "properties": {
-            "Panel": true,
-            "import": true,
-          },
-          "traits": Map {},
-          "type": "from",
-        },
-        {
-          "children": [],
-          "directives": [],
-          "id": "./ui/Panel.holo",
-          "loc": {
-            "end": {
-              "column": 23,
-              "line": 3,
-            },
-            "start": {
-              "column": 18,
-              "line": 2,
-            },
-          },
-          "name": "./ui/Panel.holo",
-          "properties": {
-            "Controller": true,
-            "import": true,
-          },
-          "traits": Map {},
-          "type": "from",
-        },
-        {
-          "children": [],
-          "directives": [],
-          "id": "./logic/Controller.hsplus",
-          "loc": {
-            "end": {
-              "column": 55,
-              "line": 3,
-            },
-            "start": {
-              "column": 23,
-              "line": 3,
-            },
-          },
-          "name": "./logic/Controller.hsplus",
-          "properties": {},
-          "traits": Map {},
-          "type": "from",
-        },
-      ],
-      "children": [
-        {
-          "children": [],
-          "directives": [],
-          "id": undefined,
-          "loc": {
-            "end": {
-              "column": 19,
-              "line": 1,
-            },
-            "start": {
-              "column": 1,
-              "line": 1,
-            },
-          },
-          "name": undefined,
-          "properties": {
-            "Button": true,
-          },
-          "traits": Map {},
+          "alias": "Panel",
+          "isWildcard": false,
+          "namedImports": [
+            "Panel",
+          ],
+          "path": "./ui/Panel.holo",
           "type": "import",
         },
         {
-          "children": [],
-          "directives": [],
-          "id": "./ui/Button.holo",
-          "loc": {
-            "end": {
-              "column": 18,
-              "line": 2,
-            },
-            "start": {
-              "column": 19,
-              "line": 1,
-            },
-          },
-          "name": "./ui/Button.holo",
-          "properties": {
-            "Panel": true,
-            "import": true,
-          },
-          "traits": Map {},
-          "type": "from",
-        },
-        {
-          "children": [],
-          "directives": [],
-          "id": "./ui/Panel.holo",
-          "loc": {
-            "end": {
-              "column": 23,
-              "line": 3,
-            },
-            "start": {
-              "column": 18,
-              "line": 2,
-            },
-          },
-          "name": "./ui/Panel.holo",
-          "properties": {
-            "Controller": true,
-            "import": true,
-          },
-          "traits": Map {},
-          "type": "from",
-        },
-        {
-          "children": [],
-          "directives": [],
-          "id": "./logic/Controller.hsplus",
-          "loc": {
-            "end": {
-              "column": 55,
-              "line": 3,
-            },
-            "start": {
-              "column": 23,
-              "line": 3,
-            },
-          },
-          "name": "./logic/Controller.hsplus",
-          "properties": {},
-          "traits": Map {},
-          "type": "from",
+          "alias": "Controller",
+          "isWildcard": false,
+          "namedImports": [
+            "Controller",
+          ],
+          "path": "./logic/Controller.hsplus",
+          "type": "import",
         },
       ],
-      "directives": [],
       "id": "root",
       "loc": {
         "end": {
@@ -8501,7 +8418,11 @@ exports[`Parser AST Visual Regression > Import and Module System > multiple impo
     "state": false,
     "vrTraits": false,
   },
-  "requiredCompanions": [],
+  "requiredCompanions": [
+    "./ui/Button.holo",
+    "./ui/Panel.holo",
+    "./logic/Controller.hsplus",
+  ],
   "success": true,
   "warnings": [],
 }

@@ -30,12 +30,12 @@ composition "WindTunnelCFD" {
 
       boundary_conditions {
         lid "top_wall" {
-          face: y+
+          face: "y+"
           velocity: [$state.lidVelocity, 0, 0]
         }
-        no_slip "bottom" { face: y- }
-        no_slip "left"   { face: x- }
-        no_slip "right"  { face: x+ }
+        no_slip "bottom" { face: "y-" }
+        no_slip "left"   { face: "x-" }
+        no_slip "right"  { face: "x+" }
       }
     }
 

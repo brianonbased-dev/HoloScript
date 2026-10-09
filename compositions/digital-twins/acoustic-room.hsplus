@@ -29,11 +29,11 @@ composition "AcousticRoom" {
 
       boundary_conditions {
         wall "all_walls" {
-          faces: [x-, x+, y-, y+]
+          faces: ["x-", "x+", "y-", "y+"]
           type: $state.wallType
         }
         soft_wall "floor_ceil" {
-          faces: [z-, z+]
+          faces: ["z-", "z+"]
         }
       }
 

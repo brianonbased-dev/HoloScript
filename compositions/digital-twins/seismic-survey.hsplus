@@ -35,8 +35,8 @@ composition "SeismicSurvey" {
       }
 
       boundary_conditions {
-        absorbing "all" { faces: [x-, x+, z-, z+] }
-        soft_wall "sides" { faces: [y-, y+] }
+        absorbing "all" { faces: ["x-", "x+", "z-", "z+"] }
+        soft_wall "sides" { faces: ["y-", "y+"] }
       }
 
       sources {

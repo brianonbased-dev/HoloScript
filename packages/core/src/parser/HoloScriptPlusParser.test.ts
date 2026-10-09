@@ -1496,3 +1496,147 @@ describe('zone, spatial, and layer are rejected in .hsplus', () => {
     expect(result.ast?.zones[0]?.name).toBe('SafeArea');
   });
 });
+
+// Directive 2 (no parser drops input silently), .hsplus slice (task_1791563992019_34vf). The
+// lines between a node's header and its `{` may hold @directives and key: value properties.
+// A line that opens another node used to be read there as bare boolean properties, so the
+// next node vanished with success: true.
+describe('HoloScriptPlusParser - a body-less node never swallows the next node', () => {
+  const nodes = (src: string) => {
+    const result = new HoloScriptPlusParser().parse(src);
+    return {
+      result,
+      children: (result.ast?.children ?? []) as Array<{
+        type: string;
+        name?: string;
+        properties?: Record<string, unknown>;
+      }>,
+    };
+  };
+
+  it('ends a body-less node where the next node starts', () => {
+    const { result, children } = nodes('sphere ball\ncube box { color: "red" }');
+    expect(result.errors).toEqual([]);
+    expect(children.map((c) => `${c.type}:${c.name}`)).toEqual(['sphere:ball', 'cube:box']);
+    expect(children[0].properties).not.toHaveProperty('cube');
+    expect(children[1].properties).toMatchObject({ color: 'red' });
+  });
+
+  it('ends a body-less node before a quoted header too', () => {
+    const { children } = nodes('object "lamp"\nobject "shade" { color: "blue" }');
+    expect(children.map((c) => `${c.type}:${c.name}`)).toEqual(['object:lamp', 'object:shade']);
+    expect(children[1].properties).toMatchObject({ color: 'blue' });
+  });
+
+  it('still reads @directives and properties written between the header and its body', () => {
+    const { result, children } = nodes('object "lamp"\n  @grabbable\n  color: "red"\n  visible\n{ size: 2 }');
+    expect(result.errors).toEqual([]);
+    expect(children).toHaveLength(1);
+    expect(children[0].properties).toMatchObject({ color: 'red', visible: true, size: 2 });
+  });
+
+  it('keeps every node of a body-less run, inside a body as well as at the top', () => {
+    const { result, children } = nodes('group "g" {\n  sphere a\n  sphere b\n  cube c { size: 1 }\n}');
+    expect(result.errors).toEqual([]);
+    const kids = (children[0] as unknown as { children: Array<{ type: string; name: string }> }).children;
+    expect(kids.map((c) => `${c.type}:${c.name}`)).toEqual(['sphere:a', 'sphere:b', 'cube:c']);
+  });
+
+  it('reads the import forms .holo reads exactly as @import, and reads the next node', () => {
+    for (const clause of ['{ Foo, Bar } from "./foo.hsplus"', '"./foo.hsplus"']) {
+      const bare = nodes(`import ${clause}\nobject "a" { color: "red" }`);
+      const at = nodes(`@import ${clause}\nobject "a" { color: "red" }`);
+      expect(bare.result.errors, clause).toEqual([]);
+      expect(bare.result.ast?.imports, clause).toEqual(at.result.ast?.imports);
+      expect(bare.result.ast?.imports?.[0]?.path).toBe('./foo.hsplus');
+      expect(bare.children.map((c) => `${c.type}:${c.name}`), clause).toEqual(['object:a']);
+      expect(bare.children[0].properties).toEqual({ color: 'red' });
+    }
+  });
+
+  it('reads a multi-line import list, with as, without hanging', () => {
+    for (const keyword of ['import', '@import']) {
+      const src = `${keyword} {\n  Alpha,\n  Beta as B,\n  Gamma\n} from "./x.hsplus"\nobject "a" { color: "red" }`;
+      const { result, children } = nodes(src);
+      expect(result.errors, keyword).toEqual([]);
+      expect(result.ast?.imports?.[0]?.namedImports, keyword).toEqual(['Alpha', 'Beta', 'Gamma']);
+      expect(children.map((c) => `${c.type}:${c.name}`), keyword).toEqual(['object:a']);
+    }
+  });
+
+  it('refuses an import form neither file type has, at its own line, and reads the next node', () => {
+    const { result, children } = nodes('import Foo from "./foo.hsplus"\nobject "a" { color: "red" }');
+    expect(result.success).toBe(false);
+    expect(result.errors[0].line).toBe(1);
+    expect(children.map((c) => `${c.type}:${c.name}`)).toEqual(['object:a']);
+    expect(children[0].properties).toEqual({ color: 'red' });
+  });
+
+  it('reads a quoted child of any kind inside a body, with its own body', () => {
+    for (const kind of ['button', 'widget', 'sphere']) {
+      const { result, children } = nodes(`panel "p" {\n  ${kind} "OK" { color: "red" }\n}`);
+      expect(result.errors, kind).toEqual([]);
+      expect(children[0].properties, kind).toEqual({});
+      const kids = (children[0] as unknown as { children: Array<{ type: string; name: string; properties: unknown }> })
+        .children;
+      expect(kids.map((c) => `${c.type}:${c.name}`), kind).toEqual([`${kind}:OK`]);
+      expect(kids[0].properties, kind).toEqual({ color: 'red' });
+    }
+  });
+
+  it('ends a body-less last child at the closing brace', () => {
+    const { result, children } = nodes('group "g" {\n  sphere a\n  button "OK"\n}\nobject "after" { }');
+    expect(result.errors).toEqual([]);
+    const kids = (children[0] as unknown as { children: Array<{ type: string; name: string }> }).children;
+    expect(kids.map((c) => `${c.type}:${c.name}`)).toEqual(['sphere:a', 'button:OK']);
+    expect(children.map((c) => `${c.type}:${c.name}`)).toEqual(['group:g', 'object:after']);
+  });
+
+  it('refuses an import inside a block, naming the top of the file, and keeps the next node', () => {
+    const { result, children } = nodes('group "g" {\n  import "./x.hsplus"\n  sphere a\n}');
+    expect(result.success).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(String(result.errors[0].message)).toMatch(/top of the file/);
+    expect(result.errors[0].line).toBe(2);
+    const kids = (children[0] as unknown as { children: Array<{ type: string; name: string }> }).children;
+    expect(kids.map((c) => `${c.type}:${c.name}`)).toEqual(['sphere:a']);
+  });
+
+  it('still reads @import', () => {
+    const result = new HoloScriptPlusParser().parse('@import "./foo.hsplus"\nobject "a" { color: "red" }');
+    expect(result.errors).toEqual([]);
+    expect(result.ast?.imports).toEqual([{ path: './foo.hsplus', alias: 'foo', isWildcard: false }]);
+  });
+
+  // Property: a run of body-less headers, each followed by any mix of pre-body lines, keeps one
+  // node per header, in order, and never turns a header word into a property.
+  it('keeps one node per header across generated runs', () => {
+    const preBody = ['', '  @grabbable', '  color: "red"', '  visible', '  size: 2'];
+    const headers = ['sphere a', 'cube b', 'object "c"', 'light d', 'mesh "e"'];
+    let seed = 7;
+    const next = (n: number) => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed % n;
+    };
+    for (let round = 0; round < 40; round += 1) {
+      const count = 2 + next(4);
+      const picked = Array.from({ length: count }, () => headers[next(headers.length)]);
+      const lines: string[] = [];
+      picked.forEach((header, i) => {
+        lines.push(header);
+        const extra = preBody[next(preBody.length)];
+        if (extra) lines.push(extra);
+        if (i === picked.length - 1) lines.push('{ last: true }');
+      });
+      const src = lines.join('\n');
+      const { result, children } = nodes(src);
+      expect(result.errors, src).toEqual([]);
+      expect(children.map((c) => `${c.type}:${c.name}`), src).toEqual(
+        picked.map((h) => h.replace(/"/g, '').replace(' ', ':'))
+      );
+      for (const child of children) {
+        for (const h of headers) expect(child.properties ?? {}, src).not.toHaveProperty(h.split(' ')[0]);
+      }
+    }
+  });
+});
