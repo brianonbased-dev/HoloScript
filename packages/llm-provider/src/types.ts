@@ -675,6 +675,13 @@ export interface HoloScriptGenerationRequest {
 
   /** Temperature override */
   temperature?: number;
+
+  /**
+   * GBNF grammar the output must follow, forwarded to `complete()` as
+   * {@link LLMCompletionRequest.grammar}: only the local OpenAI-compatible path
+   * (llama.cpp llama-server) applies it; cloud adapters ignore it.
+   */
+  grammar?: string;
 }
 
 export interface HoloScriptGenerationResponse {

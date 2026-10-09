@@ -240,6 +240,7 @@ export abstract class BaseLLMAdapter implements ILLMProvider {
       ],
       maxTokens: 2048,
       temperature: request.temperature ?? 0.7,
+      ...(request.grammar ? { grammar: request.grammar } : {}),
     };
 
     const response = await this.complete(completionRequest, this.defaultHoloScriptModel);

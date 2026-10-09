@@ -5,7 +5,7 @@ import { parseHolo } from '@holoscript/core/parser';
 import {
   WebGPUCompiler,
   createTestCompilerToken,
-  generateHoloScriptGbnf,
+  holoScriptGrammarForPreset,
 } from '@holoscript/core/compiler';
 
 const receiptPath = process.argv[2];
@@ -31,8 +31,18 @@ function attemptById(id) {
 
 check(receipt.schema === 'holollama.constrained-native-generation.receipt.v1', 'schema mismatch');
 
-const grammar = generateHoloScriptGbnf();
-check(receipt.constraint?.sha256 === sha256(grammar), 'constraint grammar sha256 mismatch');
+// Re-derive the grammar the receipt NAMES, not whatever the generator's default is today:
+// `holoscript-subset.gbnf` is the root-less first subset, `holoscript.gbnf` the
+// whole-program grammar (the default since the composition root was added).
+const constraintPreset = {
+  'holoscript-subset.gbnf': 'holoscript-subset',
+  'holoscript.gbnf': 'holoscript',
+}[receipt.constraint?.id];
+check(Boolean(constraintPreset), `unknown constraint id ${receipt.constraint?.id}`);
+if (constraintPreset) {
+  const grammar = holoScriptGrammarForPreset(constraintPreset).content;
+  check(receipt.constraint?.sha256 === sha256(grammar), 'constraint grammar sha256 mismatch');
+}
 
 const rejected = (receipt.attempts || []).find(
   (attempt) => attempt.finalDisposition === 'rejected_invalid_syntax'

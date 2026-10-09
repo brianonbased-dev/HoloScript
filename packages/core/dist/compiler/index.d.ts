@@ -498,6 +498,28 @@ export class LlamaServerCompiler extends CompilerBase {
   compile(composition: any, agentToken: string, outputPath?: string): string;
   compileToFiles(composition: any, agentToken?: string): Record<string, string>;
 }
+// HoloScript -> GBNF grammar generator (compiler/holoscript-gbnf.ts).
+export interface HoloScriptGbnfOptions {
+  root?: 'composition' | 'definitions';
+  objectKeywords?: readonly string[];
+  primitiveShapes?: readonly string[];
+  materialKeywords?: readonly string[];
+  requireDefinition?: boolean;
+}
+export declare function generateHoloScriptGbnf(options?: HoloScriptGbnfOptions): string;
+export declare const HOLOSCRIPT_GRAMMAR_PRESETS: readonly ['holoscript', 'holoscript-subset'];
+export type HoloScriptGrammarPreset = (typeof HOLOSCRIPT_GRAMMAR_PRESETS)[number];
+export declare function isHoloScriptGrammarPreset(value: string): value is HoloScriptGrammarPreset;
+export declare function holoScriptGrammarForPreset(preset: HoloScriptGrammarPreset): {
+  path: string;
+  content: string;
+};
+export declare const RESERVED_PROPERTY_NAMES: readonly string[];
+export declare const RESERVED_GROUP_NAMES: readonly string[];
+export declare const RESERVED_MACHINE_NAMES: readonly string[];
+export declare const DEFAULT_OBJECT_KEYWORDS: readonly string[];
+export declare const DEFAULT_PRIMITIVE_SHAPES: readonly string[];
+export declare const DEFAULT_MATERIAL_KEYWORDS: readonly string[];
 export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 export class AgentInferenceCompiler extends CompilerBase {
   constructor(options?: any);

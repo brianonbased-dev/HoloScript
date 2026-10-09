@@ -6,6 +6,7 @@
 
 import { createProviderManager, type LLMProviderName } from '@holoscript/llm-provider';
 import { parseHolo } from '@holoscript/core';
+import { generateHoloScriptGbnf } from '@holoscript/core/compiler';
 import { enforceVerifiedViewReceipts, isProvenanceComplete } from '@holoscript/core/reconstruction';
 import type { HoloParseResult, HoloParseError } from '@holoscript/core';
 
@@ -573,6 +574,24 @@ Fix ONLY these problems and return corrected HoloScript. Grammar reminders:
 Return only code, no prose.`;
 }
 
+let holoProgramGrammar: string | undefined;
+
+/**
+ * The GBNF a provider's decoding is held to, if any. A small local model held to the
+ * whole-program grammar can only emit one `composition "Name" { ... }` that parses, so
+ * `.holo` requests to `local-llm` carry it; llama.cpp applies it on the OpenAI-compatible
+ * path. Cloud and other providers never receive it, and `.hs` / `.hsplus` requests do
+ * not either: the grammar describes `.holo` programs only. A local endpoint that fails
+ * the call with the grammar is asked again without it (see tryGenerateWithAI).
+ */
+function grammarFor(
+  providerName: LLMProviderName,
+  targetFormat: 'hs' | 'hsplus' | 'holo'
+): string | undefined {
+  if (providerName !== 'local-llm' || targetFormat !== 'holo') return undefined;
+  return (holoProgramGrammar ??= generateHoloScriptGbnf());
+}
+
 async function tryGenerateWithAI(
   prompt: string,
   targetFormat: 'hs' | 'hsplus' | 'holo'
@@ -609,6 +628,7 @@ async function tryGenerateWithAI(
 
     // Local providers (small models) need conservative settings to stay coherent
     const isLocalProvider = providerName === 'bitnet' || providerName === 'local-llm';
+    let grammar = grammarFor(providerName, targetFormat);
     let attemptPrompt = prompt;
 
     for (let attempt = 1; attempt <= MAX_GEN_RETRIES_PER_PROVIDER; attempt++) {
@@ -620,8 +640,21 @@ async function tryGenerateWithAI(
           maxObjects: targetFormat === 'holo' ? (isLocalProvider ? 4 : 8) : 1,
           // Nudge temperature down on retry so the repair stays close to the grammar.
           temperature: (isLocalProvider ? 0.1 : 0.35) * (attempt > 1 ? 0.6 : 1),
+          ...(grammar ? { grammar } : {}),
         });
-      } catch {
+      } catch (err) {
+        // Not every local-llm endpoint takes a GBNF grammar (HoloServe takes a grammar name
+        // and answers 400), so a call that failed with one is sent once more without it.
+        if (grammar) {
+          if (debugAI) {
+            console.debug(
+              `[generators] ${providerName} failed with the grammar (${err instanceof Error ? err.message : String(err)}); retrying without it`
+            );
+          }
+          grammar = undefined;
+          attempt--;
+          continue;
+        }
         // Provider call failed entirely — abandon this provider, try the next.
         break;
       }

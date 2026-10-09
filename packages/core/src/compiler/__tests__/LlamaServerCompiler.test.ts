@@ -218,25 +218,43 @@ describe('LlamaServerCompiler', () => {
     expect(bundle.registryEntry.capabilities.loraHotSwap).toBe(true);
   });
 
-  it('generates a HoloScript GBNF grammar file for the "holoscript" preset', () => {
+  it('generates the whole-program HoloScript GBNF for the "holoscript" preset', () => {
     const compiler = new LlamaServerCompiler();
     const files = compiler.compileToFiles(
       composition({ ...faraConfig, grammar: 'holoscript' }),
       token
     );
 
-    const gbnf = files['grammars/holoscript-subset.gbnf'];
+    const gbnf = files['grammars/holoscript.gbnf'];
     expect(gbnf).toBeDefined();
-    expect(gbnf).toContain('root ::=');
+    // One `composition "Name" { ... }` program, the root the generator prompt teaches.
+    expect(gbnf).toContain('root ::= ws composition ws');
     expect(gbnf).toContain('trait ::= "@" ident');
+    expect(files['grammars/holoscript-subset.gbnf']).toBeUndefined();
 
     const bundle = JSON.parse(
       compiler.compile(composition({ ...faraConfig, grammar: 'holoscript' }), token)
     ) as LlamaServerBundle;
     // The preset resolves to the generated grammar file, not a literal --grammar holoscript.
-    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript-subset.gbnf');
+    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript.gbnf');
     expect(bundle.launch.command).not.toContain('--grammar holoscript');
     expect(bundle.registryEntry.capabilities.grammarConstrained).toBe(true);
+  });
+
+  it('keeps the root-less first subset under the "holoscript-subset" preset', () => {
+    const compiler = new LlamaServerCompiler();
+    const files = compiler.compileToFiles(
+      composition({ ...faraConfig, grammar: 'holoscript-subset' }),
+      token
+    );
+    const gbnf = files['grammars/holoscript-subset.gbnf'];
+    expect(gbnf).toContain('root ::= ws (def ws)+');
+    expect(gbnf).not.toContain('composition ::=');
+
+    const bundle = JSON.parse(
+      compiler.compile(composition({ ...faraConfig, grammar: 'holoscript-subset' }), token)
+    ) as LlamaServerBundle;
+    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript-subset.gbnf');
   });
 
   it('parses and compiles a real .holo @llama_serve block (native authoring path)', () => {
@@ -266,12 +284,12 @@ describe('LlamaServerCompiler', () => {
     expect(bundle.registryEntry.handle).toBe('laptop-fara');
     expect(bundle.registryEntry.model).toBe('fara-7b');
     expect(bundle.launch.command).toContain('-m .scratch/fara.gguf');
-    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript-subset.gbnf');
+    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript.gbnf');
     expect(bundle.launch.command).toContain('--lora adapters/a.gguf');
     expect(bundle.launch.command).toContain('--lora adapters/b.gguf');
 
     const files = compiler.compileToFiles(result.ast!, token);
-    expect(files['grammars/holoscript-subset.gbnf']).toContain('root ::=');
+    expect(files['grammars/holoscript.gbnf']).toContain('root ::=');
     expect(files['sovereign-devices/laptop-fara.json']).toContain('"backend": "llama.cpp"');
   });
 
