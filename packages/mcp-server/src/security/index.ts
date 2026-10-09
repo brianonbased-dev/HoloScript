@@ -135,8 +135,10 @@ export {
 // internet unless the caller is trusted (task_1790594666743_g1lo).
 export {
   assertPublicHttpUrl,
+  callerMayReachPrivateNetwork,
   fetchPublicHttp,
   isNonPublicAddress,
+  readBodyCapped,
   type LookupAll,
   type OutboundGuardOptions,
 } from './outbound-url-guard';
