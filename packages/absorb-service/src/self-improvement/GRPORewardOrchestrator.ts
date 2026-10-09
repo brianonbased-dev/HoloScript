@@ -43,6 +43,7 @@ import {
 } from './BeneficiaryRewards';
 import type { BeneficiaryComposeConfig, BeneficiaryReceipt } from './BeneficiaryRewards';
 import { uaalResolutionReward } from './UAALResolutionRewards';
+import { holoScriptCheckReward } from './HoloScriptCheckRewards';
 
 // =============================================================================
 // TYPES
@@ -63,6 +64,8 @@ export interface GRPOOrchestratorConfig {
     faithfulCalibrationReward?: number;
     /** Weight for the uAAL-resolution disposition term. Requires enableUaalResolution. */
     uaalResolutionReward?: number;
+    /** Weight for the HoloScript-check term. Requires enableHoloScriptCheck. */
+    holoScriptCheckReward?: number;
   };
   /**
    * Enable the provenance-validity (V) reward term. Default: false.
@@ -86,6 +89,14 @@ export interface GRPOOrchestratorConfig {
    * `kwargs.uaalResolution`.
    */
   enableUaalResolution?: boolean;
+  /**
+   * Enable the HoloScript-check reward term (HoloScriptCheckRewards.ts). Default: false.
+   * Scores each completion as one whole `.holo` program with core's canonical validator
+   * (0 / 0.25 / 0.5 / 0.75 / 1). When enabled, weights.holoScriptCheckReward must be
+   * provided and the full weight set must sum to 1.0. A HoloScript-only run weights the
+   * five TypeScript terms 0, and a term weighted 0 is not run at all.
+   */
+  enableHoloScriptCheck?: boolean;
   /**
    * Enable the multi-beneficiary HOLARCHY composition. When set (non-null) the
    * composite reward is NO LONGER the flat weighted sum: R_self (the existing
@@ -192,6 +203,7 @@ const DEFAULT_CONFIG: Required<GRPOOrchestratorConfig> = {
   enableProvenanceValidity: false,
   enableFaithfulCalibration: false,
   enableUaalResolution: false,
+  enableHoloScriptCheck: false,
   beneficiaryHolarchy: null,
 };
 
@@ -200,6 +212,7 @@ type ResolvedWeights = { [K in keyof typeof GRPO_REWARD_WEIGHTS]: number } & {
   provenanceValidityReward: number;
   faithfulCalibrationReward: number;
   uaalResolutionReward: number;
+  holoScriptCheckReward: number;
 };
 
 // =============================================================================
@@ -255,6 +268,14 @@ export class GRPORewardOrchestrator {
     if (!this.config.enableUaalResolution && (w.uaalResolutionReward ?? 0) !== 0) {
       throw new Error('weights.uaalResolutionReward requires enableUaalResolution: true');
     }
+    if (this.config.enableHoloScriptCheck && w.holoScriptCheckReward === undefined) {
+      throw new Error(
+        'enableHoloScriptCheck requires weights.holoScriptCheckReward (full set must sum to 1.0)'
+      );
+    }
+    if (!this.config.enableHoloScriptCheck && (w.holoScriptCheckReward ?? 0) !== 0) {
+      throw new Error('weights.holoScriptCheckReward requires enableHoloScriptCheck: true');
+    }
 
     // Validate weights sum to 1.0
     this.resolvedWeights = {
@@ -271,6 +292,9 @@ export class GRPORewardOrchestrator {
         : 0,
       uaalResolutionReward: this.config.enableUaalResolution
         ? (w.uaalResolutionReward as number)
+        : 0,
+      holoScriptCheckReward: this.config.enableHoloScriptCheck
+        ? (w.holoScriptCheckReward as number)
         : 0,
     };
 
@@ -298,6 +322,7 @@ export class GRPORewardOrchestrator {
     if (this.config.enableProvenanceValidity) fnNames.push('provenanceValidityReward');
     if (this.config.enableFaithfulCalibration) fnNames.push('faithfulCalibrationReward');
     if (this.config.enableUaalResolution) fnNames.push('uaalResolutionReward');
+    if (this.config.enableHoloScriptCheck) fnNames.push('holoScriptCheckReward');
     if (this.config.beneficiaryHolarchy) fnNames.push('agentBenefitReward', 'humanBenefitReward');
     for (const name of fnNames) {
       this.stats.set(name, createEmptyStats());
@@ -418,6 +443,19 @@ export class GRPORewardOrchestrator {
         fn: uaalResolutionReward,
         weight: this.resolvedWeights.uaalResolutionReward,
       });
+    }
+    if (this.config.enableHoloScriptCheck) {
+      rewardEntries.push({
+        name: 'holoScriptCheckReward',
+        fn: holoScriptCheckReward,
+        weight: this.resolvedWeights.holoScriptCheckReward,
+      });
+    }
+    // A term weighted 0 cannot move the composite, so it is not run: a HoloScript-only
+    // run (TypeScript terms at 0) must not spend vitest, tsc and eslint on every `.holo`
+    // completion. Its statistics stay at zero evaluations.
+    for (let i = rewardEntries.length - 1; i >= 0; i--) {
+      if (rewardEntries[i].weight === 0) rewardEntries.splice(i, 1);
     }
     // Holarchy mode runs the two beneficiary terms at weight 0 — they produce the
     // raw R_agents / R_humans used by composeBeneficiaryReward below, but never
@@ -589,6 +627,7 @@ export class GRPORewardOrchestrator {
     if (this.config.enableProvenanceValidity) fns.push(provenanceValidityReward);
     if (this.config.enableFaithfulCalibration) fns.push(faithfulCalibrationReward);
     if (this.config.enableUaalResolution) fns.push(uaalResolutionReward);
+    if (this.config.enableHoloScriptCheck) fns.push(holoScriptCheckReward);
     if (this.config.beneficiaryHolarchy) fns.push(agentBenefitReward, humanBenefitReward);
     return fns;
   }
@@ -645,11 +684,13 @@ export class GRPORewardOrchestrator {
     provenanceValidityReward?: number;
     faithfulCalibrationReward?: number;
     uaalResolutionReward?: number;
+    holoScriptCheckReward?: number;
   } {
     const {
       provenanceValidityReward: pv,
       faithfulCalibrationReward: fc,
       uaalResolutionReward: ur,
+      holoScriptCheckReward: hc,
       ...base
     } = this.resolvedWeights;
     return {
@@ -657,6 +698,7 @@ export class GRPORewardOrchestrator {
       ...(this.config.enableProvenanceValidity ? { provenanceValidityReward: pv } : {}),
       ...(this.config.enableFaithfulCalibration ? { faithfulCalibrationReward: fc } : {}),
       ...(this.config.enableUaalResolution ? { uaalResolutionReward: ur } : {}),
+      ...(this.config.enableHoloScriptCheck ? { holoScriptCheckReward: hc } : {}),
     };
   }
 
