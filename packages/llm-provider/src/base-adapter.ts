@@ -45,11 +45,13 @@ import {
  * an environment, a light and three objects), not written to suit any benchmark.
  *
  * Why a whole program instead of a description: shown exactly this program, eight
- * frontier models passed 317 of 336 attempts at the 14 author_holo tasks, against
- * 227 of 336 without it, and Qwen3-4B went from 0 to 12 of 14 (2026-10-08; ai-ecosystem
- * receipts/holotune-native-authoring/2026-10-08-frontier-authoring-score.json). An
- * earlier example that showed objects WITHOUT the composition wrapper scores 0 of 14
- * under the current grader: the wrapper is the part that teaches.
+ * frontier models wrote the right answer (every requested detail) in 286 of 336 attempts
+ * at the 14 author_holo tasks, against 181 of 336 without it; counting the right shape
+ * only, 317 against 227. Qwen3-4B went from 0 to 12 of 14 on shape, 6 of 14 on right
+ * answers (2026-10-08; ai-ecosystem receipts/holotune-native-authoring/
+ * 2026-10-08-frontier-authoring-detail-regrade.json). An earlier example that showed
+ * objects WITHOUT the composition wrapper scores 0 of 14 under the current grader: the
+ * wrapper is the part that teaches.
  *
  * packages/mcp-server/src/__tests__/generator-prompt-parse.test.ts parses this
  * program, and every other program in the prompt, with parseHolo and the strict
@@ -122,11 +124,26 @@ composition "Red Cube and Teal Button" {
  * Board: task_1791522939238_jbhj (benchmark spellings), _9e2p (web compilers emit no state
  * machine and drop group children on threejs), _4z0m (.hsplus reads no state transitions,
  * hence the ".holo only" label on Crossing).
+ *
+ * What the numbers do and do not show. With this whole prompt, right answers on the 14
+ * author_holo tasks: Gemini 3.1 Pro 36 of 42 (33 with the prompt before Workshop and
+ * Crossing), Qwen3-4B 10 of 14 before and after (ai-ecosystem receipts/
+ * holotune-native-authoring/2026-10-08-generator-prompt-vocabulary-score.json). That gain
+ * is in-sample: Workshop mirrors tasks hc-02/05/07/13, Crossing mirrors hc-14, and rule 7
+ * names constructs chosen from this benchmark's misses. The names and values differ, but
+ * the whole rise is one construct on one model (Gemini's hc-05, 0 to 3 of 3), so it does
+ * not show that the prompt helps on tasks it was not tuned on.
+ *
+ * Known limits, not hidden: the featured example's inline `material: { ... }` keeps
+ * nothing on the r3f target, and a state_machine renders on no web target (_9e2p); the
+ * example is a verbatim real file, so it stays as written. The prompt is about 6.8 KB:
+ * 2.4 times the 2.8 KB one it replaced, 4.6 KB of it before Workshop and Crossing. Every
+ * request pays for that.
  */
 export const HOLOSCRIPT_SYSTEM_PROMPT = `You are an expert HoloScript developer. HoloScript is a general-purpose semantic systems programming language under active construction. This generation task uses its declarative composition surface for spatial scenes; spatial computing is a proving ground, not the language boundary.
 
-Every answer is ONE whole program with exactly one root block, and nothing outside it. The
-same program is valid HoloScript whether it is saved as .holo or .hsplus:
+Every answer is ONE whole program with exactly one root block, and nothing outside it. This
+program is valid HoloScript whether it is saved as .holo or .hsplus:
 
 composition "Name" {
   environment { skybox: "gradient" }

@@ -46,12 +46,15 @@ export type {
 // System Prompt for HoloScript Generation
 // ============================================================================
 
-// Every adapter here sends HOLOSCRIPT_SYSTEM_PROMPT from @holoscript/llm-provider: the
-// one prompt whose programs are parse-tested (packages/mcp-server/src/__tests__/
-// generator-prompt-parse.test.ts) and measured (Qwen3-4B 14/14, Gemini 3.1 Pro 42/42
-// on the author_holo tasks, 2026-10-08). Until then this file kept its own prompt,
-// whose sample program failed the parser at `every(1000)` and named @animatable,
-// a trait core does not declare.
+// Every adapter here sends HOLOSCRIPT_SYSTEM_PROMPT from @holoscript/llm-provider for
+// generate, fix and optimize: the one prompt whose programs are parse-tested
+// (packages/mcp-server/src/__tests__/generator-prompt-parse.test.ts) and measured on the
+// 14 author_holo tasks. Right answers, every requested detail graded: Qwen3-4B 10/14 and
+// Gemini 3.1 Pro 36/42 (ai-ecosystem receipts/holotune-native-authoring/
+// 2026-10-08-generator-prompt-vocabulary-score.json). The right shape alone was 14/14 and
+// 42/42; shape is not a right answer. Until 2026-10-08 this file kept its own prompt,
+// whose sample program failed the parser at `every(1000)` and named @animatable, a trait
+// core does not declare. The adapters-test "every adapter" block checks all nine.
 //
 // That prompt's rule 1 is "Return ONLY HoloScript code ... no explanations", which
 // is right for generate, fix and optimize and wrong for explaining or chatting.
@@ -104,11 +107,8 @@ export class OpenAIAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const response = await this.callAPI([
-      {
-        role: 'system',
-        content: 'You are a HoloScript expert. Explain the following code clearly.',
-      },
-      { role: 'user', content: 'Explain this HoloScript:\n\n' + holoScript },
+      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
+      { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ]);
 
     return { explanation: response };
@@ -119,14 +119,15 @@ export class OpenAIAdapter implements AIAdapter {
     target: 'mobile' | 'desktop' | 'vr' | 'ar'
   ): Promise<OptimizeResult> {
     const response = await this.callAPI([
+      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
       {
-        role: 'system',
+        role: 'user',
         content:
-          'You are a HoloScript optimizer. Optimize for ' +
+          'Optimize this HoloScript for ' +
           target +
-          ' platform. Return only the optimized code.',
+          '. Return only the optimized code:\n\n' +
+          holoScript,
       },
-      { role: 'user', content: holoScript },
     ]);
 
     return {
@@ -137,10 +138,7 @@ export class OpenAIAdapter implements AIAdapter {
 
   async fixHoloScript(holoScript: string, errors: string[]): Promise<FixResult> {
     const response = await this.callAPI([
-      {
-        role: 'system',
-        content: 'You are a HoloScript debugger. Fix the errors and return corrected code.',
-      },
+      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
       {
         role: 'user',
         content: 'Fix these errors:\n' + errors.join('\n') + '\n\nCode:\n' + holoScript,
@@ -435,8 +433,8 @@ export class OllamaAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const response = await this.callAPI(
-      'You are a HoloScript expert. Explain code clearly.',
-      'Explain this HoloScript:\n\n' + holoScript
+      HOLOSCRIPT_CHAT_PROMPT,
+      'Explain this HoloScript code clearly:\n\n' + holoScript
     );
     return { explanation: response };
   }
@@ -446,8 +444,11 @@ export class OllamaAdapter implements AIAdapter {
     target: 'mobile' | 'desktop' | 'vr' | 'ar'
   ): Promise<OptimizeResult> {
     const response = await this.callAPI(
-      'You are a HoloScript optimizer. Optimize for ' + target + '.',
-      holoScript
+      HOLOSCRIPT_SYSTEM_PROMPT,
+      'Optimize this HoloScript for ' +
+        target +
+        '. Return only the optimized code:\n\n' +
+        holoScript
     );
     return {
       holoScript: this.extractCode(response),
@@ -457,8 +458,11 @@ export class OllamaAdapter implements AIAdapter {
 
   async fixHoloScript(holoScript: string, errors: string[]): Promise<FixResult> {
     const response = await this.callAPI(
-      'You are a HoloScript debugger. Fix errors and return corrected code.',
-      'Errors: ' + errors.join(', ') + '\n\nCode:\n' + holoScript
+      HOLOSCRIPT_SYSTEM_PROMPT,
+      'Fix these errors in the HoloScript:\nErrors: ' +
+        errors.join(', ') +
+        '\n\nCode:\n' +
+        holoScript
     );
     return {
       holoScript: this.extractCode(response),

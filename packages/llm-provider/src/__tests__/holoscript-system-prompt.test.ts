@@ -12,8 +12,8 @@ import type { LLMCompletionRequest, LLMCompletionResponse } from '../types';
  * Until 2026-10-07 it never showed the `composition "Name" { ... }` root that
  * every program needs, and its examples were root-less fragments; its placeholder
  * example parsed into a program with no objects at all. Showing one real program
- * is the largest measured improvement in authoring (frontier models 227 -> 317 of
- * 336, see the comment on HOLOSCRIPT_EXAMPLE_PROGRAM). These tests keep that program in the prompt and
+ * raised frontier models' right answers from 181 to 286 of 336 (right shape only:
+ * 227 to 317; see the comment on HOLOSCRIPT_EXAMPLE_PROGRAM). These tests keep that program in the prompt and
  * keep it in front of every provider. Whether it PARSES is checked where the parser
  * lives: packages/mcp-server/src/__tests__/generator-prompt-parse.test.ts.
  */
@@ -78,6 +78,14 @@ describe('the prompt that asks a model to write HoloScript', () => {
     // reader keeps block bodies (HoloScript claude9/holo-keeps-what-it-reads); show one
     // only after that lands.
     expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/^\s*behavior "/m);
+    // A named material (`material: "stone"`, `material "X" @advanced_pbr { }`) is dropped
+    // on threejs and r3f and the object renders white (measured with
+    // `holoscript compile --target r3f`, c76223725); the prompt teaches color, roughness
+    // and metallic as properties instead. The `material "X" {` block is also refused
+    // in .hsplus.
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/\bmaterial:\s*"/);
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/^\s*material "/m);
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/@advanced_pbr\b/);
   });
 
   it.each([

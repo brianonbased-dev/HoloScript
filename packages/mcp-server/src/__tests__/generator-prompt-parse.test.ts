@@ -16,9 +16,10 @@ import { coreInfo, parseStrict } from '../../../core/strict/index.mjs';
 /**
  * generate_object and generate_scene send HOLOSCRIPT_SYSTEM_PROMPT to whichever
  * model writes the code. Whatever program that prompt shows is what the model
- * copies: shown this prompt's example program, eight frontier models passed 317 of
- * 336 attempts at the 14 author_holo tasks, against 227 without it (ai-ecosystem
- * receipts/holotune-native-authoring/2026-10-08-frontier-authoring-score.json).
+ * copies: shown this prompt's example program, eight frontier models wrote the right
+ * answer (every requested detail) in 286 of 336 attempts at the 14 author_holo tasks,
+ * against 181 without it; the right shape only, 317 against 227 (ai-ecosystem receipts/
+ * holotune-native-authoring/2026-10-08-frontier-authoring-detail-regrade.json).
  *
  * So the programs in the prompt must be programs. Before 2026-10-07 they were not:
  * the prompt never showed the `composition "Name" { ... }` root, and its
@@ -143,7 +144,10 @@ describe('the programs the HoloScript generator prompt shows are real programs',
     expect(shown.length).toBeGreaterThan(0);
     for (const program of shown) {
       const ast = parseHolo(program).ast!;
-      const all = [...(ast.objects ?? []), ...(ast.spatialGroups ?? []).flatMap((g) => g.objects ?? [])];
+      const all = [
+        ...(ast.objects ?? []),
+        ...(ast.spatialGroups ?? []).flatMap((g) => g.objects ?? []),
+      ];
       const using = [...program.matchAll(/object "([^"]+)" using "([^"]+)"/g)];
       expect(using.length).toBeGreaterThan(0);
       for (const [, name, template] of using) {

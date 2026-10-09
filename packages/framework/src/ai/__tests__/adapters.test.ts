@@ -7,7 +7,11 @@ import {
   GeminiAdapter,
   XAIAdapter,
   TogetherAdapter,
+  FireworksAdapter,
+  NVIDIAAdapter,
 } from '../adapters';
+import * as adapters from '../adapters';
+import type { AIAdapter } from '../adapters';
 import { HOLOSCRIPT_SYSTEM_PROMPT } from '@holoscript/llm-provider';
 
 vi.mock('@holoscript/llm-provider', async (importOriginal) => {
@@ -472,85 +476,94 @@ describe('AI Adapters', () => {
   });
 });
 
-// Until 2026-10-08 these adapters sent their own prompt, whose sample program failed
-// the parser at `every(1000)` and named @animatable, a trait core does not declare.
-// They now send the one prompt @holoscript/llm-provider parse-tests and that was
-// measured on the author_holo tasks.
-describe('the system prompt the framework adapters send', () => {
+// Until 2026-10-08 these adapters sent their own prompts: a sample program that failed
+// the parser at `every(1000)` and named @animatable, a trait core does not declare, and
+// one-line "You are a HoloScript optimizer" prompts for fix and optimize. Every adapter
+// now sends the one prompt @holoscript/llm-provider parse-tests and that was measured on
+// the author_holo tasks, for every method that writes code.
+describe('the system prompt every framework adapter sends', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it.each([
+  // AIAdapter marks these methods optional; every adapter here has all five.
+  type Adapter = Required<
+    Pick<
+      AIAdapter,
+      'generateHoloScript' | 'fixHoloScript' | 'optimizeHoloScript' | 'explainHoloScript' | 'chat'
+    >
+  >;
+  const OPENAI_REPLY = { choices: [{ message: { content: 'x' } }] };
+  const ADAPTERS: Array<[string, () => Adapter, unknown]> = [
+    ['OpenAIAdapter', () => new OpenAIAdapter({ apiKey: 'k' }), OPENAI_REPLY],
+    ['AnthropicAdapter', () => new AnthropicAdapter({ apiKey: 'k' }), { content: [{ text: 'x' }] }],
+    ['OllamaAdapter', () => new OllamaAdapter({}), OPENAI_REPLY],
+    ['LMStudioAdapter', () => new LMStudioAdapter({}), OPENAI_REPLY],
     [
-      'OpenAI',
-      () => new OpenAIAdapter({ apiKey: 'k' }),
-      { choices: [{ message: { content: 'x' } }] },
+      'GeminiAdapter',
+      () => new GeminiAdapter({ apiKey: 'k' }),
+      { candidates: [{ content: { parts: [{ text: 'x' }] } }] },
     ],
-    ['Anthropic', () => new AnthropicAdapter({ apiKey: 'k' }), { content: [{ text: 'x' }] }],
-    ['Ollama (local)', () => new OllamaAdapter({}), { choices: [{ message: { content: 'x' } }] }],
-    ['xAI', () => new XAIAdapter({ apiKey: 'k' }), { choices: [{ message: { content: 'x' } }] }],
-  ])('%s sends the shared, parse-tested prompt', async (_name, make, reply) => {
+    ['XAIAdapter', () => new XAIAdapter({ apiKey: 'k' }), OPENAI_REPLY],
+    ['TogetherAdapter', () => new TogetherAdapter({ apiKey: 'k' }), OPENAI_REPLY],
+    ['FireworksAdapter', () => new FireworksAdapter({ apiKey: 'k' }), OPENAI_REPLY],
+    ['NVIDIAAdapter', () => new NVIDIAAdapter({ apiKey: 'k' }), OPENAI_REPLY],
+  ];
+  const CODE = 'composition "A" {\n  object "a" { geometry: "cube" }\n}';
+  const WRITES_CODE: Array<[string, (adapter: Adapter) => Promise<unknown>]> = [
+    ['generate', (adapter) => adapter.generateHoloScript('a red cube')],
+    ['fix', (adapter) => adapter.fixHoloScript(CODE, ['Expected RBRACE'])],
+    ['optimize', (adapter) => adapter.optimizeHoloScript(CODE, 'vr')],
+  ];
+  const ANSWERS_IN_WORDS: Array<[string, (adapter: Adapter) => Promise<unknown>]> = [
+    ['explain', (adapter) => adapter.explainHoloScript(CODE)],
+    ['chat', (adapter) => adapter.chat('what does @grabbable do?')],
+  ];
+  const cases = (calls: Array<[string, (adapter: Adapter) => Promise<unknown>]>) =>
+    ADAPTERS.flatMap(([name, make, reply]) =>
+      calls.map(([method, call]) => [`${name} ${method}`, make, reply, call] as const)
+    );
+
+  async function systemPromptOf(
+    make: () => Adapter,
+    reply: unknown,
+    call: (adapter: Adapter) => Promise<unknown>
+  ): Promise<string> {
     mockFetch.mockResolvedValueOnce(mockOKResponse(reply));
-
-    await make().generateHoloScript('a red cube');
-
+    await call(make());
+    expect(mockFetch).toHaveBeenCalledTimes(1);
     const body = JSON.parse(String(mockFetch.mock.calls[0][1].body));
     const messages: Array<{ role: string; content: string }> = body.messages ?? body.contents ?? [];
-    const system = messages.find((m) => m.role === 'system')?.content;
-    expect(system).toBe(HOLOSCRIPT_SYSTEM_PROMPT);
-    expect(system).toContain('composition "Red Cube and Teal Button" {');
-    expect(system).not.toContain('every(1000)');
-    expect(system).not.toContain('@animatable');
+    return messages.find((m) => m.role === 'system')?.content ?? '';
+  }
+
+  it('covers every adapter class this module exports', () => {
+    const exported = Object.entries(adapters)
+      .filter(([name, value]) => typeof value === 'function' && /^[A-Z]\w*Adapter$/.test(name))
+      .map(([name]) => name)
+      .sort();
+    expect(ADAPTERS.map(([name]) => name).sort()).toEqual(exported);
   });
+
+  it.each(cases(WRITES_CODE))(
+    '%s sends the shared, parse-tested prompt',
+    async (_name, make, reply, call) => {
+      const system = await systemPromptOf(make, reply, call);
+      expect(system).toBe(HOLOSCRIPT_SYSTEM_PROMPT);
+      expect(system).toContain('composition "Red Cube and Teal Button" {');
+      expect(system).not.toContain('every(1000)');
+      expect(system).not.toContain('@animatable');
+    }
+  );
 
   // The shared prompt's rule 1 is "Return ONLY HoloScript code". Explaining and
   // chatting answer in words, so they get the same knowledge with that rule lifted.
-  it.each([
-    [
-      'OpenAI chat',
-      () => new OpenAIAdapter({ apiKey: 'k' }).chat('what does @grabbable do?'),
-      {
-        choices: [{ message: { content: 'x' } }],
-      },
-    ],
-    [
-      'Anthropic explain',
-      () => new AnthropicAdapter({ apiKey: 'k' }).explainHoloScript('x'),
-      {
-        content: [{ text: 'x' }],
-      },
-    ],
-    [
-      'Anthropic chat',
-      () => new AnthropicAdapter({ apiKey: 'k' }).chat('why?'),
-      {
-        content: [{ text: 'x' }],
-      },
-    ],
-    [
-      'xAI explain',
-      () => new XAIAdapter({ apiKey: 'k' }).explainHoloScript('x'),
-      {
-        choices: [{ message: { content: 'x' } }],
-      },
-    ],
-    [
-      'Ollama (local) chat',
-      () => new OllamaAdapter({}).chat('why?'),
-      {
-        choices: [{ message: { content: 'x' } }],
-      },
-    ],
-  ])('%s answers in words: the code-only rule is lifted', async (_name, call, reply) => {
-    mockFetch.mockResolvedValueOnce(mockOKResponse(reply));
-
-    await call();
-
-    const body = JSON.parse(String(mockFetch.mock.calls[0][1].body));
-    const messages: Array<{ role: string; content: string }> = body.messages ?? body.contents ?? [];
-    const system = messages.find((m) => m.role === 'system')?.content ?? '';
-    expect(system.startsWith(HOLOSCRIPT_SYSTEM_PROMPT)).toBe(true);
-    expect(system).toContain('This request is a question or a conversation');
-  });
+  it.each(cases(ANSWERS_IN_WORDS))(
+    '%s answers in words: the code-only rule is lifted',
+    async (_name, make, reply, call) => {
+      const system = await systemPromptOf(make, reply, call);
+      expect(system.startsWith(HOLOSCRIPT_SYSTEM_PROMPT)).toBe(true);
+      expect(system).toContain('This request is a question or a conversation');
+    }
+  );
 });
