@@ -52,14 +52,19 @@ export type Reply = {
 
 export interface RealHttpServer {
   port: number;
-  /** One request on one fresh connection; the answer parsed as JSON (or `{ raw }`). */
+  /**
+   * One request on one fresh connection; the answer parsed as JSON (or `{ raw }`). `token` is
+   * sent as a Bearer; `headers` adds others (a caller's own spelling, such as x-mcp-api-key).
+   */
   request(
     method: 'GET' | 'POST' | 'DELETE',
     path: string,
-    options?: { body?: unknown; token?: string }
+    options?: { body?: unknown; token?: string; headers?: Record<string, string> }
   ): Promise<Reply>;
   /** A client-credentials token for a client registered over loopback with exactly `scope`. */
   tokenWithScope(scope: string): Promise<string>;
+  /** The same, with the client id the server issued (the principal its tokens act as). */
+  clientWithScope(scope: string): Promise<{ token: string; clientId: string }>;
 }
 
 let savedEnv: NodeJS.ProcessEnv | undefined;
@@ -133,6 +138,7 @@ export async function bootRealHttpServer(options: {
             connection: 'close',
             ...(payload !== undefined ? { 'content-length': Buffer.byteLength(payload) } : {}),
             ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
+            ...opts.headers,
           },
         },
         (res) => {
@@ -172,7 +178,7 @@ export async function bootRealHttpServer(options: {
     await new Promise((r) => setTimeout(r, 250));
   }
 
-  const tokenWithScope: RealHttpServer['tokenWithScope'] = async (scope) => {
+  const clientWithScope: RealHttpServer['clientWithScope'] = async (scope) => {
     const registered = await request('POST', '/oauth/register', {
       body: {
         client_name: `probe-${scope.replace(/[^a-z]+/g, '-')}`,
@@ -196,10 +202,15 @@ export async function bootRealHttpServer(options: {
     if (issued.status !== 200) {
       throw new Error(`token failed: ${issued.status} ${JSON.stringify(issued.body)}`);
     }
-    return issued.body.access_token as string;
+    return {
+      token: issued.body.access_token as string,
+      clientId: registered.body.client_id as string,
+    };
   };
+  const tokenWithScope: RealHttpServer['tokenWithScope'] = async (scope) =>
+    (await clientWithScope(scope)).token;
 
-  return { port, request, tokenWithScope };
+  return { port, request, tokenWithScope, clientWithScope };
 }
 
 export function restoreRealHttpServerEnv(): void {

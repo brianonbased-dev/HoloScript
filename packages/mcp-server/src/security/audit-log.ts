@@ -39,7 +39,9 @@ export type AuditEventType =
   | 'client_revoked'
   | 'rate_limited'
   | 'session_created'
-  | 'session_closed';
+  | 'session_closed'
+  /** A write refused because another principal owns the content hash (HTTP 409). */
+  | 'ownership_refused';
 
 export type AuditResultStatus = 'success' | 'error' | 'denied' | 'rate_limited';
 
@@ -366,6 +368,47 @@ class AuditLogger {
       metadata: {
         invocationId: params.invocationId,
       },
+    });
+  }
+
+  /**
+   * Log an HTTP route refusing an authenticated caller: `gate_denied` when the token lacks the
+   * route's scope (403; the same event name Gate 2 uses for a tool), `ownership_refused` when
+   * another principal owns the content hash (409). The caller is named by client and agent id,
+   * the IP is hashed like every other entry, and the token itself is never passed in.
+   */
+  logRouteRefusal(params: {
+    event: 'gate_denied' | 'ownership_refused';
+    auth: Pick<TokenIntrospection, 'clientId' | 'agentId' | 'scopes'>;
+    ip?: string;
+    method?: string;
+    path: string;
+    reason: string;
+    requiredScopes?: readonly string[];
+    /** The principal the route judged the caller as (security/protocol-records.ts). */
+    principal?: string;
+    contentHash?: string;
+  }): void {
+    const metadata: Record<string, unknown> = { reason: params.reason };
+    if (params.principal) metadata.principal = params.principal;
+    if (params.contentHash) metadata.contentHash = params.contentHash;
+    this.log({
+      id: randomUUID(),
+      timestamp: new Date().toISOString(),
+      event: params.event,
+      agent: {
+        clientId: params.auth.clientId,
+        agentId: params.auth.agentId,
+        ipHash: params.ip ? hashIP(params.ip) : undefined,
+      },
+      security: {
+        deniedAtGate: params.event === 'gate_denied' ? 2 : undefined,
+        deniedReason: params.reason,
+        requiredScopes: params.requiredScopes ? [...params.requiredScopes] : undefined,
+        grantedScopes: params.auth.scopes ? [...params.auth.scopes] : undefined,
+      },
+      request: { method: params.method, path: params.path },
+      metadata,
     });
   }
 

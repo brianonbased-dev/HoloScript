@@ -152,6 +152,20 @@ import {
   registrationProvedNothing,
   resolveProvenAgentId,
 } from './security/proven-agent-id';
+import {
+  alreadyPublishedBody,
+  contentProofRefusal,
+  keepsPreRecordMetadata,
+  mayReplaceProtocolRecord,
+  metadataForStorage,
+  nextProtocolRecordOwner,
+  protocolRecordFieldsFromBody,
+  publisherPrincipalOf,
+  saysReplaceOwned,
+  storedEditionCount,
+  storedSceneIdOf,
+  storedSceneUrlOf,
+} from './security/protocol-records';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
 import { getConsolidationBridge } from './holomesh/consolidation-bridge';
 import { queryAdminOperationsAudit } from './holomesh/admin-operations-audit';
@@ -241,6 +255,52 @@ const ALLOW_SSE_TRANSPORT = process.env.MCP_ENABLE_SSE === 'true' || !IS_RAILWAY
 const protocolRecords = new Map<string, Record<string, unknown>>();
 const compileRateMap = new Map<string, number[]>();
 const protocolMetadata = new Map<string, Record<string, unknown>>();
+/**
+ * Who owns each content hash (security/protocol-records.ts). Kept beside the records and the
+ * metadata, never inside them, so no read route can return an owner: it is an OAuth client or
+ * agent id. A metadata owner counts only while no record exists for the hash.
+ */
+const protocolRecordOwners = new Map<string, string>();
+const protocolMetadataOwners = new Map<string, string>();
+
+function setProtocolOwner(owners: Map<string, string>, hash: string, owner: string | undefined) {
+  if (owner) owners.set(hash, owner);
+  else owners.delete(hash);
+}
+
+/**
+ * POST /api/protocol just created the first record for `hash`. From now on the record's owner
+ * governs its metadata, so the metadata owner is forgotten, and metadata stored before the record
+ * by anyone but its writer or new owner is dropped (keepsPreRecordMetadata): a principal that
+ * pre-claimed the hash's metadata does not get its provenance served beside the real author's
+ * record. POST /api/publish overwrites the metadata itself.
+ */
+function settleMetadataForFirstRecord(
+  hash: string,
+  writer: string | undefined,
+  newOwner: string | undefined
+): void {
+  const metadataOwner = protocolMetadataOwners.get(hash);
+  protocolMetadataOwners.delete(hash);
+  if (protocolMetadata.has(hash) && !keepsPreRecordMetadata(metadataOwner, writer, newOwner)) {
+    protocolMetadata.delete(hash);
+  }
+}
+
+/** The origin public scene and metadata links are built on, as every protocol route builds it. */
+function protocolBaseUrl(): string {
+  return process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : `http://localhost:${PORT}`;
+}
+
+/** A replaced record keeps the editions already collected from it (none when it had none). */
+function collectedEditionsOf(existing: Record<string, unknown> | undefined): {
+  editionCount?: number;
+} {
+  const collected = storedEditionCount(existing?.editionCount);
+  return collected > 0 ? { editionCount: collected } : {};
+}
 
 // Initialize PostgreSQL pool (shared across token store + credit routes)
 let pgPool: import('pg').Pool | undefined;
@@ -622,15 +682,6 @@ async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntr
 }
 
 /**
- * Legacy authentication check (kept for simple boolean checks on non-tool routes)
- */
-
-async function checkAuth(req: http.IncomingMessage): Promise<boolean> {
-  const auth = await authenticateRequest(req);
-  return auth.active;
-}
-
-/**
  * Does an authenticated caller hold at least one of `required`? `admin:*` holds everything, the
  * same rule Gate 2 applies to tools (security/tool-scopes.ts authorizeToolCall). Scopes arrive
  * already expanded by oauth21 expandScopes, so `admin` is admin:* + tools:admin and
@@ -644,8 +695,26 @@ function authHasAnyScope(auth: TokenIntrospection, required: readonly string[]):
   return required.some((scope) => granted.includes(scope));
 }
 
-/** 403 for a valid token that lacks the scope a route needs (RFC 6750 §3.1). */
-function refuseInsufficientScope(res: http.ServerResponse, required: readonly string[]): void {
+/**
+ * 403 for a valid token that lacks the scope a route needs (RFC 6750 §3.1). Each refusal is
+ * audited as `gate_denied`, the event Gate 2 writes when a tool is refused for scope, with the
+ * caller's client and agent id and the hashed IP; the token is never logged.
+ */
+function refuseInsufficientScope(
+  res: http.ServerResponse,
+  required: readonly string[],
+  refused: { auth: TokenIntrospection; ip: string; method: string; path: string }
+): void {
+  auditLog.logRouteRefusal({
+    event: 'gate_denied',
+    auth: refused.auth,
+    ip: refused.ip,
+    method: refused.method,
+    path: refused.path,
+    reason: 'insufficient_scope',
+    requiredScopes: required,
+    principal: publisherPrincipalOf(refused.auth),
+  });
   res.writeHead(403, {
     'Content-Type': 'application/json; charset=utf-8',
     'WWW-Authenticate': `Bearer realm="holoscript-mcp", error="insufficient_scope", scope="${required.join(' ')}"`,
@@ -659,10 +728,52 @@ function refuseInsufficientScope(res: http.ServerResponse, required: readonly st
   );
 }
 
+/**
+ * 409 for a write to a content hash another principal owns. Nothing has been written when this
+ * runs. Audited as `ownership_refused` with the caller's principal, the hash and the hashed IP;
+ * never the token.
+ */
+function refuseOwnedHash(
+  res: http.ServerResponse,
+  refused: {
+    auth: TokenIntrospection;
+    ip: string;
+    method: string;
+    path: string;
+    principal: string | undefined;
+    contentHash: string;
+    existingUrl: string | null;
+  }
+): void {
+  auditLog.logRouteRefusal({
+    event: 'ownership_refused',
+    auth: refused.auth,
+    ip: refused.ip,
+    method: refused.method,
+    path: refused.path,
+    reason: 'content hash owned by another principal',
+    principal: refused.principal,
+    contentHash: refused.contentHash,
+  });
+  res.writeHead(409, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(alreadyPublishedBody(refused.contentHash, refused.existingUrl)));
+}
+
+/**
+ * Operator only: acting on another account, or speaking as the server itself. Not tools:write,
+ * which every GitHub login receives (security/github-auth.ts GITHUB_MEMBER_SCOPES).
+ */
+const OPERATOR_SCOPES = ['tools:admin'] as const;
 /** Spending another account's credits is an operator action. */
-const CREDIT_DEDUCT_SCOPES = ['tools:admin'] as const;
+const CREDIT_DEDUCT_SCOPES = OPERATOR_SCOPES;
 /** Publishing, posting publicly, or changing stored records. */
 const ROUTE_WRITE_SCOPES = ['tools:write'] as const;
+/**
+ * Most editions one POST /api/collect may mint. The same bound the holomesh_collect tool already
+ * clamps to (protocol-tools.ts handleCollect, requireNumberInRange 1..10000); records carry no
+ * supply limit of their own.
+ */
+const MAX_COLLECT_QUANTITY = 10_000;
 
 /**
  * Check if the request carries a founder-level key from the HoloMesh key
@@ -3137,8 +3248,8 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (url === '/api/credits/check' && req.method === 'POST') {
     // Auth required
-    const authed = await checkAuth(req);
-    if (!authed) {
+    const checkAuth = await authenticateRequest(req);
+    if (!checkAuth.active) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
@@ -3147,6 +3258,16 @@ const httpServer = http.createServer(async (req, res) => {
     if (isFounderRequest(req)) {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, balance: 999_999_999, required: 0, founderBypass: true }));
+      return;
+    }
+    // The body names whose balance to read, so only an operator may ask, as for deduct.
+    if (!authHasAnyScope(checkAuth, OPERATOR_SCOPES)) {
+      refuseInsufficientScope(res, OPERATOR_SCOPES, {
+        auth: checkAuth,
+        ip: clientIP,
+        method: req.method,
+        path: url,
+      });
       return;
     }
     try {
@@ -3215,7 +3336,12 @@ const httpServer = http.createServer(async (req, res) => {
     // The body names whose credits to spend, so only an operator may call this. The one caller
     // (studio creditGate.ts) sends the server's own key, which resolves to admin:*.
     if (!authHasAnyScope(deductAuth, CREDIT_DEDUCT_SCOPES)) {
-      refuseInsufficientScope(res, CREDIT_DEDUCT_SCOPES);
+      refuseInsufficientScope(res, CREDIT_DEDUCT_SCOPES, {
+        auth: deductAuth,
+        ip: clientIP,
+        method: req.method,
+        path: url,
+      });
       return;
     }
     try {
@@ -3304,10 +3430,18 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ success: false, error: 'Authentication required' }));
       return;
     }
-    // A public post under the server's Moltbook account. tools:write, not admin: the
-    // ai-ecosystem knowledge crosspost script calls this with an agent key, not an operator key.
-    if (!authHasAnyScope(crosspostAuth, ROUTE_WRITE_SCOPES)) {
-      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
+    // A public post under the server's own Moltbook account: operator only. tools:write would
+    // let any GitHub login post as HoloScript. ai-ecosystem hooks/team-connect.mjs and the
+    // holomesh_moltbook_crosspost tool default to mcp-orchestrator's own route; they reach this
+    // one only when HOLOMESH_MOLTBOOK_CROSSPOST_URL or MCP_ORCHESTRATOR_URL points at
+    // mcp-server, and then they send the server key (admin:*), which passes.
+    if (!authHasAnyScope(crosspostAuth, OPERATOR_SCOPES)) {
+      refuseInsufficientScope(res, OPERATOR_SCOPES, {
+        auth: crosspostAuth,
+        ip: clientIP,
+        method: req.method,
+        path: url,
+      });
       return;
     }
     // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
@@ -4024,6 +4158,38 @@ const httpServer = http.createServer(async (req, res) => {
   // Accepts scene payload, extracts traits, stores scene, registers protocol record,
   // stores provenance metadata, returns public URL.
   if (url === '/api/publish' && req.method === 'POST') {
+    // Writes the same protocol records and metadata as POST /api/protocol, so the same gate.
+    const auth = await authenticateRequest(req);
+    if (!auth.active) {
+      auditLog.logAuthEvent({
+        event: 'auth_failure',
+        ip: clientIP,
+        reason: '/api/publish publish - invalid credentials',
+      });
+      res.writeHead(401, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'WWW-Authenticate': 'Bearer realm="holoscript-mcp", error="invalid_token"',
+      });
+      res.end(
+        JSON.stringify({
+          error: 'Unauthorized',
+          message:
+            'Publishing to the HoloScript Protocol requires authentication. Register a client via POST /oauth/register and use the issued bearer token.',
+          token_endpoint: '/oauth/token',
+          registration_endpoint: '/oauth/register',
+        })
+      );
+      return;
+    }
+    if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES, {
+        auth,
+        ip: clientIP,
+        method: req.method,
+        path: url,
+      });
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const code = body.code as string;
@@ -4044,6 +4210,48 @@ const httpServer = http.createServer(async (req, res) => {
       // 1. Generate content hash from source code
       const contentHash = createHash('sha256').update(code).digest('hex');
 
+      // Another account's record is not replaced: nothing below runs, no scene is stored.
+      const existing = protocolRecords.get(contentHash);
+      const existingOwner = protocolRecordOwners.get(contentHash);
+      const principal = publisherPrincipalOf(auth);
+      const isOperator = authHasAnyScope(auth, OPERATOR_SCOPES);
+      // An operator replaces another principal's record only on purpose (saysReplaceOwned).
+      if (
+        existing &&
+        !mayReplaceProtocolRecord(
+          true,
+          existingOwner,
+          principal,
+          isOperator,
+          saysReplaceOwned(body)
+        )
+      ) {
+        refuseOwnedHash(res, {
+          auth,
+          ip: clientIP,
+          method: req.method,
+          path: url,
+          principal,
+          contentHash,
+          existingUrl: storedSceneUrlOf(existing, protocolBaseUrl()),
+        });
+        return;
+      }
+      const ownerChoice = nextProtocolRecordOwner({
+        exists: existing !== undefined,
+        existingOwner,
+        principal,
+        isOperator,
+        body,
+      });
+      if ('error' in ownerChoice) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({ error: 'invalid_publisher_principal', message: ownerChoice.error })
+        );
+        return;
+      }
+
       // 2. Extract traits from the code (lightweight regex extraction)
       const traitMatches = code.match(/@\w+/g) ?? [];
       const traits = [...new Set(traitMatches)];
@@ -4060,9 +4268,7 @@ const httpServer = http.createServer(async (req, res) => {
         },
       });
 
-      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
-        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-        : `http://localhost:${PORT}`;
+      const baseUrl = protocolBaseUrl();
       const sceneUrl = `${baseUrl}/scene/${scene.id}`;
       const embedUrl = `${baseUrl}/embed/${scene.id}`;
 
@@ -4080,7 +4286,11 @@ const httpServer = http.createServer(async (req, res) => {
         sceneUrl,
         embedUrl,
         timestamp: Date.now(),
+        // Collected editions survive a republish, so edition numbers are never handed out twice.
+        ...collectedEditionsOf(existing),
       });
+      // The owner lives beside the record, never in it (no read route may return it).
+      setProtocolOwner(protocolRecordOwners, contentHash, ownerChoice.owner);
 
       // 5. Store provenance metadata
       protocolMetadata.set(contentHash, {
@@ -4210,7 +4420,8 @@ const httpServer = http.createServer(async (req, res) => {
           importCount,
           codeLength: code.length,
           alreadyPublished: !!existing,
-          existingUrl: existing ? (existing.sceneUrl as string) : null,
+          // Only a scene the server stored; never a URL a caller wrote into a record.
+          existingUrl: storedSceneUrlOf(existing, protocolBaseUrl()),
           revenue,
         })
       );
@@ -4251,38 +4462,105 @@ const httpServer = http.createServer(async (req, res) => {
       return;
     }
     if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
-      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES, {
+        auth,
+        ip: clientIP,
+        method: req.method,
+        path: url,
+      });
       return;
     }
     try {
       const body = await parseJsonBody(req);
-      const contentHash = body.contentHash as string;
-      if (!contentHash) {
+      const contentHash = body.contentHash;
+      if (typeof contentHash !== 'string' || contentHash === '') {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Missing required field: contentHash' }));
         return;
       }
-      // Store record in protocol registry
-      protocolRecords.set(contentHash, {
-        ...(body as Record<string, unknown>),
-        contentHash,
-        timestamp: body.timestamp || Date.now(),
+      const principal = publisherPrincipalOf(auth);
+      const isOperator = authHasAnyScope(auth, OPERATOR_SCOPES);
+      // Anyone but an operator claims a hash by sending the content that hashes to it, so nobody
+      // can pre-claim the hash of code they do not have and lock its author out.
+      if (!isOperator) {
+        const refusal = contentProofRefusal(body, contentHash);
+        if (refusal) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ ...refusal, contentHash }));
+          return;
+        }
+      }
+      // Another account's record is not replaced: 409 before anything is written.
+      const existing = protocolRecords.get(contentHash);
+      const existingOwner = protocolRecordOwners.get(contentHash);
+      const baseUrl = protocolBaseUrl();
+      // An operator replaces another principal's record only on purpose (saysReplaceOwned).
+      if (
+        existing &&
+        !mayReplaceProtocolRecord(
+          true,
+          existingOwner,
+          principal,
+          isOperator,
+          saysReplaceOwned(body)
+        )
+      ) {
+        refuseOwnedHash(res, {
+          auth,
+          ip: clientIP,
+          method: req.method,
+          path: url,
+          principal,
+          contentHash,
+          existingUrl: storedSceneUrlOf(existing, baseUrl),
+        });
+        return;
+      }
+      // The owner comes from the token, or from an operator's explicit publisherPrincipal.
+      const ownerChoice = nextProtocolRecordOwner({
+        exists: existing !== undefined,
+        existingOwner,
+        principal,
+        isOperator,
+        body,
       });
+      if ('error' in ownerChoice) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({ error: 'invalid_publisher_principal', message: ownerChoice.error })
+        );
+        return;
+      }
       // If source code was provided, store as scene too
       const sceneResult: Record<string, unknown> = {};
-      if (body.source && typeof body.source === 'string') {
-        const scene = storeScene(body.source as string, {
+      if (typeof body.source === 'string' && body.source) {
+        const scene = storeScene(body.source, {
           title: (body.title as string) || undefined,
           author: (body.author as string) || undefined,
           license: (body.license as string) || undefined,
         });
-        const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
-          ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-          : `http://localhost:${PORT}`;
         sceneResult.sceneId = scene.id;
         sceneResult.sceneUrl = `${baseUrl}/scene/${scene.id}`;
         sceneResult.embedUrl = `${baseUrl}/embed/${scene.id}`;
       }
+      // Store record in protocol registry: only the fields callers may set. Scene links point at
+      // a scene this server stored (now, or for the record being replaced), never at a URL from
+      // the body; the edition count is the server's; the owner is kept beside the record.
+      const sceneId = (sceneResult.sceneId as string | undefined) ?? storedSceneIdOf(existing);
+      protocolRecords.set(contentHash, {
+        ...protocolRecordFieldsFromBody(body),
+        contentHash,
+        ...(sceneId
+          ? {
+              sceneId,
+              sceneUrl: `${baseUrl}/scene/${sceneId}`,
+              embedUrl: `${baseUrl}/embed/${sceneId}`,
+            }
+          : {}),
+        ...collectedEditionsOf(existing),
+      });
+      setProtocolOwner(protocolRecordOwners, contentHash, ownerChoice.owner);
+      if (!existing) settleMetadataForFirstRecord(contentHash, principal, ownerChoice.owner);
       res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(sceneResult));
     } catch (err) {
@@ -4311,19 +4589,50 @@ const httpServer = http.createServer(async (req, res) => {
       return;
     }
     if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
-      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES, {
+        auth,
+        ip: clientIP,
+        method: req.method,
+        path: url,
+      });
       return;
     }
     try {
       const body = await parseJsonBody(req);
       const provenance = body.provenance as Record<string, unknown> | undefined;
       const hash = (provenance?.hash as string) || `meta-${Date.now()}`;
-      protocolMetadata.set(hash, body);
-      const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
-        ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-        : `http://localhost:${PORT}`;
+      // Metadata follows its hash's owner: the record's owner once a record exists, else whoever
+      // last stored metadata for the hash. Anyone else gets 409 and nothing is written. An
+      // operator writes over a record's owner only on purpose (saysReplaceOwned), as on
+      // /api/protocol; metadata with no record yet is not a published hash, so an operator
+      // replaces it (the protocol tools and the secrets broker write metadata before the record).
+      const recordExists = protocolRecords.has(hash);
+      const exists = recordExists || protocolMetadata.has(hash);
+      const owner = recordExists
+        ? protocolRecordOwners.get(hash)
+        : protocolMetadataOwners.get(hash);
+      const principal = publisherPrincipalOf(auth);
+      const isOperator = authHasAnyScope(auth, OPERATOR_SCOPES);
+      const onPurpose = recordExists ? saysReplaceOwned(body) : true;
+      if (!mayReplaceProtocolRecord(exists, owner, principal, isOperator, onPurpose)) {
+        refuseOwnedHash(res, {
+          auth,
+          ip: clientIP,
+          method: req.method,
+          path: url,
+          principal,
+          contentHash: hash,
+          existingUrl: storedSceneUrlOf(protocolRecords.get(hash), protocolBaseUrl()),
+        });
+        return;
+      }
+      // Stored and served without any owner field; the owner is kept beside it. Before a record
+      // exists, whoever wrote the metadata now stored is its owner, so the record's first writer
+      // can tell their own metadata from someone else's (settleMetadataForFirstRecord).
+      protocolMetadata.set(hash, metadataForStorage(body));
+      if (!recordExists) setProtocolOwner(protocolMetadataOwners, hash, principal);
       res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ metadataURI: `${baseUrl}/metadata/${hash}` }));
+      res.end(JSON.stringify({ metadataURI: `${protocolBaseUrl()}/metadata/${hash}` }));
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -4800,7 +5109,12 @@ const httpServer = http.createServer(async (req, res) => {
     }
     // Collecting mints editions on a stored record: a write, not a read.
     if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
-      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES, {
+        auth,
+        ip: clientIP,
+        method: req.method,
+        path: url,
+      });
       return;
     }
     const hash = url.replace('/api/collect/', '');
@@ -4812,9 +5126,27 @@ const httpServer = http.createServer(async (req, res) => {
     }
     try {
       const body = await parseJsonBody(req);
-      const quantity = (body.quantity as number) || 1;
-      // Increment edition count
-      const currentCount = (record.editionCount as number) || 0;
+      // Absent means one. Anything else must be a whole number from 1 to MAX_COLLECT_QUANTITY:
+      // a negative, fractional or string quantity used to rewrite editionCount directly.
+      const quantity = body.quantity ?? 1;
+      if (
+        typeof quantity !== 'number' ||
+        !Number.isInteger(quantity) ||
+        quantity < 1 ||
+        quantity > MAX_COLLECT_QUANTITY
+      ) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            error: 'invalid_quantity',
+            message: `quantity must be a whole number from 1 to ${MAX_COLLECT_QUANTITY}`,
+          })
+        );
+        return;
+      }
+      // Increment edition count. A stored count that is not a whole number >= 0 counts as none,
+      // so it can neither concatenate ('x' + 1) nor go negative.
+      const currentCount = storedEditionCount(record.editionCount);
       record.editionCount = currentCount + quantity;
       const editions = Array.from({ length: quantity }, (_, i) => currentCount + i + 1);
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -5158,14 +5490,14 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     console.info(`     DELETE /a2a/tasks/:id              - A2A cancel task`);
     console.info(`     GET  /api/health                   - API health + capabilities (public)`);
     console.info(
-      `     POST /api/moltbook/crosspost       - HoloMesh handoff / WPG knowledge -> Moltbook (auth)`
+      `     POST /api/moltbook/crosspost       - HoloMesh handoff / WPG knowledge -> Moltbook (admin)`
     );
     console.info(
       `     POST /api/compile                  - Compile HoloScript to any target (returns raw code)`
     );
     console.info(`     POST /api/render                   - Render HoloScript preview`);
     console.info(`     POST /api/share                    - Create share links`);
-    console.info(`     POST /api/publish                  - Studio full publish flow`);
+    console.info(`     POST /api/publish                  - Studio full publish flow (auth)`);
     console.info(`     POST /api/extract                  - Pre-publish trait extraction`);
     console.info(`     POST /api/scene                    - Store scene, get short URL`);
     console.info(`     GET  /scene/:id                    - View stored scene (public)`);

@@ -767,7 +767,8 @@ export class OAuth21Service {
       }
     }
 
-    // 2. Try GitHub token resolution as last-resort fallback
+    // 2. Try GitHub token resolution as last-resort fallback. The resolver sends only
+    // GitHub-shaped tokens to api.github.com (github-auth.ts isGitHubShapedToken).
     if (authHeader.startsWith('Bearer ')) {
       const token = authHeader.slice(7);
       try {

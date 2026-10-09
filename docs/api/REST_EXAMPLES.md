@@ -183,10 +183,14 @@ View scenes: `GET /scene/:id` (interactive 3D), `GET /embed/:id` (iframe-friendl
 ## Publish with provenance
 
 Full publish flow: extracts traits, stores scene, registers protocol record,
-generates content hash, previews revenue distribution.
+generates content hash, previews revenue distribution. Needs a token with
+`tools:write` (see OAuth 2.1 below). A content hash already published by another
+account answers `409 already_published` and changes nothing; republishing your own
+code is fine.
 
 ```bash
 curl -X POST "https://mcp.holoscript.net/api/publish" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "code": "object Orb { @glowing @interactive position: [0,2,0] }",
@@ -248,12 +252,21 @@ curl -X POST "https://mcp.holoscript.net/api/extract" \
 ## Protocol registry
 
 HoloScript-as-Protocol: content-addressed publishing, collecting, and revenue.
+The POST routes need a token with `tools:write`. Registering a record means
+sending the content with its hash: `contentHash` must be the sha256 of `source`
+(or `code`), or the call answers `400`. A hash another account owns answers
+`409 already_published`, and so does its metadata (see "Who owns a content
+hash" below for how an author gets a hash back). Collecting takes a
+`quantity` from 1 to 10000.
 
 ```bash
-# Register a protocol record
+# Register a protocol record (contentHash = sha256 of source)
+SOURCE='object Orb { @glowing position: [0,2,0] }'
+HASH=$(printf '%s' "$SOURCE" | sha256sum | cut -d' ' -f1)
 curl -X POST "https://mcp.holoscript.net/api/protocol" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"contentHash":"abc123","author":"my-agent","title":"My Scene","license":"cc-by-4.0","price":"0"}'
+  -d "{\"contentHash\":\"$HASH\",\"source\":\"$SOURCE\",\"author\":\"my-agent\",\"title\":\"My Scene\",\"license\":\"cc-by-4.0\",\"price\":\"0\"}"
 
 # Get a protocol record by hash
 curl "https://mcp.holoscript.net/api/protocol/abc123"
@@ -266,11 +279,13 @@ curl "https://mcp.holoscript.net/api/protocol/revenue/abc123"
 
 # Collect (mint) a published composition
 curl -X POST "https://mcp.holoscript.net/api/collect/abc123" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"quantity":1}'
 
 # Store provenance metadata
 curl -X POST "https://mcp.holoscript.net/api/protocol/metadata" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"provenance":{"hash":"abc123","author":"my-agent","license":"cc-by-4.0","importHashes":[]}}'
 
@@ -278,9 +293,49 @@ curl -X POST "https://mcp.holoscript.net/api/protocol/metadata" \
 curl "https://mcp.holoscript.net/api/registry/my-agent/my-scene"
 ```
 
+### Who owns a content hash
+
+The first account to register a content hash (with its content) owns it.
+Only that account can republish it or write its metadata; anyone else gets
+`409 already_published` and nothing changes. Metadata someone else stored for
+a hash before its first record does not survive that record's creation. The
+owner is never shown by any read.
+
+**If your code was published by someone else**, ask an operator to reassign
+the hash to you. Operators hold a `tools:admin` token. Even an operator gets
+the same `409` for a hash another account owns, unless the body says on
+purpose that it replaces it. One of two fields does that, and both are ignored
+from anyone who is not an operator:
+
+| Field                                 | What it does                                                                                                                                        |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `"publisherPrincipal": "<principal>"` | Replaces the record and gives the hash to that principal (an OAuth client id, or an agent id such as `github:<numeric id>` or `agent_<tenantId>`).  |
+| `"publisherPrincipal": null`          | Replaces the record and leaves the hash with no owner: from then on only an operator who sends `replaceOwned` or `publisherPrincipal` can write it. |
+| `"replaceOwned": true`                | Replaces the record (a moderation) and keeps the current owner.                                                                                     |
+
+Both work on `POST /api/protocol` and `POST /api/publish`, where any other
+value of `publisherPrincipal` answers `400 invalid_publisher_principal`. On
+`POST /api/protocol/metadata` either field lets an operator replace the
+metadata of a hash another account owns; the owner does not change there.
+
+```bash
+# Operator: give a hash back to its author
+curl -X POST "https://mcp.holoscript.net/api/protocol" \
+  -H "Authorization: Bearer OPERATOR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"contentHash\":\"$HASH\",\"source\":\"$SOURCE\",\"author\":\"my-agent\",\"publisherPrincipal\":\"AUTHOR_PRINCIPAL\"}"
+```
+
+Relays that publish for other people under one operator key (Studio's
+signed-in publishing, the `holo_protocol_publish` tool) never send these
+fields, so they cannot overwrite a record another account owns.
+
 ---
 
 ## Credits (metered operations)
+
+Both routes name the account in the body, so both need an operator token
+(`tools:admin`).
 
 ```bash
 # Check credit balance

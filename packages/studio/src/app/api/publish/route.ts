@@ -95,11 +95,51 @@ function protocolHeaders(meshKey: string): Record<string, string> {
   };
 }
 
+/**
+ * The protocol leg's outcome. `conflict` is set when the registry answered 409: it accepted the
+ * key (it checks the key and its scope before anything else) and refused only because another
+ * account already owns this exact code.
+ */
+interface ProtocolLeg {
+  protocol: ProtocolPublishResult | null;
+  conflict?: AlreadyPublished;
+}
+
+/** The registry's 409 body (mcp-server security/protocol-records.ts alreadyPublishedBody). */
+interface AlreadyPublished {
+  error: 'already_published';
+  contentHash: string;
+  existingUrl: string | null;
+  message: string;
+}
+
+/** The registry's own 409 answer, keeping only its known fields, whatever text it arrived as. */
+function alreadyPublishedFrom(text: string, contentHash: string): AlreadyPublished {
+  let parsed: Record<string, unknown> = {};
+  try {
+    const json: unknown = JSON.parse(text);
+    if (json && typeof json === 'object' && !Array.isArray(json)) {
+      parsed = json as Record<string, unknown>;
+    }
+  } catch {
+    // Not JSON: keep the text as the message below.
+  }
+  return {
+    error: 'already_published',
+    contentHash: typeof parsed.contentHash === 'string' ? parsed.contentHash : contentHash,
+    existingUrl: typeof parsed.existingUrl === 'string' ? parsed.existingUrl : null,
+    message:
+      typeof parsed.message === 'string'
+        ? parsed.message
+        : text || 'This code is already published by another account.',
+  };
+}
+
 async function publishToProtocol(
   meshKey: string | null,
   body: Record<string, unknown>
-): Promise<ProtocolPublishResult | null> {
-  if (typeof body.code !== 'string' || body.code.trim().length === 0) return null;
+): Promise<ProtocolLeg> {
+  if (typeof body.code !== 'string' || body.code.trim().length === 0) return { protocol: null };
 
   const serverUrl = (
     process.env.HOLOSCRIPT_PROTOCOL_URL ||
@@ -114,11 +154,13 @@ async function publishToProtocol(
   // failing the whole publish or silently pretending it succeeded.
   if (!meshKey) {
     return {
-      contentHash,
-      publish: null,
-      revenue: null,
-      error:
-        'Studio is not configured to publish to the protocol registry for a signed-in caller.',
+      protocol: {
+        contentHash,
+        publish: null,
+        revenue: null,
+        error:
+          'Studio is not configured to publish to the protocol registry for a signed-in caller.',
+      },
     };
   }
 
@@ -150,11 +192,15 @@ async function publishToProtocol(
     });
 
     if (!publishRes.ok) {
+      const text = await publishRes.text();
       return {
-        contentHash,
-        publish: null,
-        revenue: null,
-        error: `protocol publish failed (${publishRes.status}): ${await publishRes.text()}`,
+        protocol: {
+          contentHash,
+          publish: null,
+          revenue: null,
+          error: `protocol publish failed (${publishRes.status}): ${text}`,
+        },
+        ...(publishRes.status === 409 ? { conflict: alreadyPublishedFrom(text, contentHash) } : {}),
       };
     }
 
@@ -164,13 +210,15 @@ async function publishToProtocol(
     });
     const revenue = revenueRes.ok ? ((await revenueRes.json()) as Record<string, unknown>) : null;
 
-    return { contentHash, publish, revenue };
+    return { protocol: { contentHash, publish, revenue } };
   } catch (err) {
     return {
-      contentHash,
-      publish: null,
-      revenue: null,
-      error: err instanceof Error ? err.message : String(err),
+      protocol: {
+        contentHash,
+        publish: null,
+        revenue: null,
+        error: err instanceof Error ? err.message : String(err),
+      },
     };
   }
 }
@@ -222,7 +270,10 @@ export async function POST(req: Request) {
     if (!body || typeof body !== 'object') {
       return NextResponse.json({ error: 'Invalid scene data' }, { status: 400 });
     }
-    const protocol = await publishToProtocol(upstreamKey, body as Record<string, unknown>);
+    const { protocol, conflict } = await publishToProtocol(
+      upstreamKey,
+      body as Record<string, unknown>
+    );
 
     // An unvalidated caller key may authorize the UPSTREAM leg and nothing else.
     //
@@ -239,6 +290,14 @@ export async function POST(req: Request) {
     // why a session still publishes when the registry leg is skipped.
     const upstreamAccepted = protocol !== null && protocol.publish !== null;
     if (!signedIn && !upstreamAccepted) {
+      // A 409 is not a bad key: the registry checks the key and its scope first, and refuses
+      // only because another account owns this exact code. Pass its answer on (the existing
+      // scene's link, and that nothing changed) instead of blaming the key. Nothing is stored
+      // here either, as for any refused own-key publish. A signed-in caller's receipt still
+      // reports the 409 in protocol.error.
+      if (conflict) {
+        return NextResponse.json(conflict, { status: 409 });
+      }
       const reason =
         protocol === null
           ? 'A scene published with a key of your own must carry "code" — the registry is what vouches for that key.'

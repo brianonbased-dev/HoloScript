@@ -448,7 +448,15 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   hololand_npc_generate_dialogue: ['tools:write'],
   hololand_update_npc: ['tools:write'],
   holomesh_board_append_commit: ['tools:write'],
-  holomesh_crosspost_moltbook: ['tools:write'],
+  // Speaking publicly AS THE SERVER is operator-only (board task zeoq). These three post or list
+  // under the server's own identity: Moltbook with the server's MOLTBOOK_API_KEY (directly, or
+  // via a crosspost route that accepts the server key the tool attaches), and the orchestrator
+  // marketplace with HOLOSCRIPT_API_KEY and the server's agent name as author. tools:write is not
+  // enough: every GitHub login holds it (github-auth.ts GITHUB_MEMBER_SCOPES). Studio already
+  // refuses the last two to a signed-in session for the same reason (app/api/mcp/call).
+  holomesh_crosspost_moltbook: ['tools:admin'],
+  holomesh_moltbook_crosspost: ['tools:admin'],
+  holomesh_publish_agent_template: ['tools:admin'],
   holomesh_gossip_sync: ['tools:write'],
   // heartbeat is a presence keepalive that EVERY non-admin agent (incl. read-only monitors) issues;
   // task_1783805494038 names it a flow that must not break. Kept at tools:read (least-privilege that
@@ -456,8 +464,6 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // classifier's semantic write call, per the task's runtime-verify requirement.
   holomesh_heartbeat: ['tools:read'],
   holomesh_mark_read: ['tools:write'],
-  holomesh_moltbook_crosspost: ['tools:write'],
-  holomesh_publish_agent_template: ['tools:write'],
   holomesh_publish_insight: ['tools:write'],
   holomesh_reply: ['tools:write'],
   holomesh_scout: ['tools:write'],
@@ -693,6 +699,15 @@ const TOOL_RISK_MAP: Record<string, ToolRiskLevel> = {
   holomesh_contribute: 'medium',
   holomesh_collect: 'medium',
   holomesh_gossip: 'high',
+  // Public posts and listings under the server's own identity (tools:admin above). 'critical'
+  // does three things, all intended here: each call is flagged humanReviewRequired in the audit
+  // log (audit-log.ts, when flagHighRisk is on); a caller in open-dev-mode (a local server with no
+  // HOLOSCRIPT_API_KEY) is refused outright (gates.ts gate3EnforcePolicy, its risk check); and a
+  // transitive mesh invocation of them is refused unless the caller passes allow_high_risk=true
+  // (holomesh/mesh-tool-registry.ts). Before this they had no entry and defaulted to 'medium'.
+  holomesh_moltbook_crosspost: 'critical',
+  holomesh_crosspost_moltbook: 'critical',
+  holomesh_publish_agent_template: 'critical',
 
   // HoloLand MMO / Twin Earth product actions
   hololand_shard_status: 'low',

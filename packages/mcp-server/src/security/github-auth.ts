@@ -43,6 +43,26 @@ const ADMIN_USERNAMES = new Set(
     .filter(Boolean)
 );
 
+/**
+ * The shapes GitHub issues tokens in: gho_ (OAuth app: the device flow and web sign-in), ghu_
+ * (GitHub App user token), ghp_ (classic PAT), ghs_ / ghr_ (server and refresh tokens),
+ * github_pat_ (fine-grained PAT), and the 40-hex tokens from before April 2021.
+ */
+const GITHUB_TOKEN_SHAPES: readonly RegExp[] = [
+  /^gh[pousr]_[A-Za-z0-9]{20,}$/,
+  /^github_pat_[A-Za-z0-9_]{20,}$/,
+  /^[0-9a-f]{40}$/,
+];
+
+/**
+ * Could this be a GitHub token? Only these are ever sent to api.github.com. The resolver is the
+ * last fallback for ANY unrecognised Bearer, so without this check a HoloMesh agent key, a
+ * Moltbook key, or any other secret sent to this server was shown to GitHub.
+ */
+export function isGitHubShapedToken(token: string): boolean {
+  return GITHUB_TOKEN_SHAPES.some((shape) => shape.test(token));
+}
+
 async function fetchGitHubUser(token: string): Promise<GitHubUser | null> {
   try {
     const res = await fetch('https://api.github.com/user', {
@@ -65,6 +85,9 @@ async function fetchGitHubUser(token: string): Promise<GitHubUser | null> {
  * Returns null if the token is not a valid GitHub token.
  */
 export async function resolveGitHubTokenForMcp(token: string): Promise<TokenIntrospection | null> {
+  // Not GitHub's shape: not a GitHub token. No request leaves this server.
+  if (!isGitHubShapedToken(token)) return null;
+
   // Cache check
   const cached = cache.get(token);
   if (cached && Date.now() < cached.expiresAt) {

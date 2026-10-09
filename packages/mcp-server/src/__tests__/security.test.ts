@@ -870,6 +870,66 @@ describe('Gate 2: no login below admin reads a caller-named server path, writes 
   });
 });
 
+describe('Gate 2: no login below admin speaks publicly as the server', () => {
+  // These post or list under the SERVER's identity, not the caller's: Moltbook with the server's
+  // MOLTBOOK_API_KEY (the crosspost tool also attaches the server key to the crosspost route), and
+  // the orchestrator marketplace with HOLOSCRIPT_API_KEY and the server's agent name as author.
+  // Every GitHub login holds tools:write, so tools:write let anyone post as HoloScript (zeoq).
+  const SPEAKS_AS_SERVER = [
+    'holomesh_moltbook_crosspost',
+    'holomesh_crosspost_moltbook',
+    'holomesh_publish_agent_template',
+  ];
+  const registryNames = [...new Set(ALL_AVAILABLE_TOOLS.map((t) => t.name))];
+
+  beforeEach(() => {
+    __resetKnownToolsForTest();
+    registerKnownTools(registryNames);
+  });
+  afterEach(() => {
+    __resetKnownToolsForTest();
+  });
+
+  it('every pinned tool is still registered (a rename cannot empty this check)', () => {
+    for (const t of SPEAKS_AS_SERVER) {
+      expect(isRegisteredTool(t), `${t} must still be a registered tool`).toBe(true);
+    }
+  });
+
+  it('a GitHub login that is not an admin account is refused', () => {
+    const githubMember = [...GITHUB_MEMBER_SCOPES];
+    expect(githubMember).toContain('tools:write');
+    for (const t of SPEAKS_AS_SERVER) {
+      const result = authorizeToolCall(t, githubMember);
+      expect(result.authorized, `${t} must be refused for [${githubMember.join(', ')}]`).toBe(
+        false
+      );
+      expect(result.reason).toContain('Insufficient scope');
+    }
+  });
+
+  it('the widest grant a self-registered client can hold is refused too', () => {
+    const widestPublicLogin = expandScopes([...OAUTH2_PUBLIC_SCOPE_NAMES]);
+    for (const t of SPEAKS_AS_SERVER) {
+      expect(authorizeToolCall(t, widestPublicLogin).authorized, `${t}`).toBe(false);
+    }
+  });
+
+  it('the server key (legacy, admin:*), an admin login and tools:admin still reach them', () => {
+    for (const t of SPEAKS_AS_SERVER) {
+      expect(authorizeToolCall(t, ['admin:*']).authorized, `${t} via admin:*`).toBe(true);
+      expect(authorizeToolCall(t, expandScopes(['admin'])).authorized, `${t} via admin`).toBe(true);
+      expect(authorizeToolCall(t, ['tools:admin']).authorized, `${t} via tools:admin`).toBe(true);
+    }
+  });
+
+  it('they are critical risk, so each call is flagged for human review', () => {
+    for (const t of SPEAKS_AS_SERVER) {
+      expect(getToolRiskLevel(t), t).toBe('critical');
+    }
+  });
+});
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 4. Gate 3: StdlibPolicy Enforcement
 // ═══════════════════════════════════════════════════════════════════════════════

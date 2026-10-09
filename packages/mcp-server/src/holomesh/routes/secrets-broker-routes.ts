@@ -528,7 +528,13 @@ export async function handleSecretsBrokerRoutes(
       const priceWei = ethToWei(price);
       const revenuePreview = calculateRevenueDistribution(priceWei, caller.name, []);
 
-      // Register on protocol server
+      // Register on protocol server. These two calls need an OPERATOR (tools:admin) credential,
+      // which HOLOSCRIPT_API_KEY is today (the legacy key, admin:*). receiptHash is not a content
+      // hash: the `code` sent below does not hash to it, and only an operator may register a hash
+      // without its content (mcp-server security/protocol-records.ts contentProofRefusal). With a
+      // tools:write key, POST /api/protocol answers 400 content_hash_mismatch, surfaced here as
+      // 502 PROTOCOL_REGISTER_FAILED. The broker never replaces a record it does not own:
+      // receiptHash covers the token's secret, so nobody else can register it first.
       const serverUrl = await getProtocolServerUrl();
       const authHeaders = await getProtocolAuthHeaders();
 

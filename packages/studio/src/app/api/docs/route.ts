@@ -226,6 +226,10 @@ export async function GET() {
               description:
                 'No caller identity — sign in to Studio, or send your own key as "x-mcp-api-key"',
             },
+            '409': {
+              description:
+                'Sent with your own key: this exact code is already published by another account. The body is the registry\'s answer ({ error: "already_published", contentHash, existingUrl, message }); nothing was stored.',
+            },
           },
         },
         get: {

@@ -232,7 +232,8 @@ export class ProtocolRegistry {
       // Step 1: Store metadata
       const metadataURI = await this.storeMetadata(provenance, source);
 
-      // Step 2: Build protocol record
+      // Step 2: Build protocol record. It carries no `source`/`code`: see registerRecord before
+      // giving this client a key.
       const price: bigint = options.price ? BigInt(ethToWei(options.price)) : 0n;
       const referralBps = options.referralBps ?? PROTOCOL_CONSTANTS.DEFAULT_REFERRAL_BPS;
 
@@ -470,6 +471,13 @@ export class ProtocolRegistry {
   // PRIVATE — SERVER-SIDE REGISTRY
   // ===========================================================================
 
+  /**
+   * Sends no credential, so mcp-server's POST /api/protocol answers 401 today. Before giving this
+   * client a key: a key that is not an operator's (tools:write, not tools:admin) must also send
+   * the content, as `source` or `code`, whose sha256 is `contentHash`, or the server answers
+   * 400 content_required (mcp-server security/protocol-records.ts contentProofRefusal). The
+   * record built in publish() has no source yet. A hash another account owns answers 409.
+   */
   private async registerRecord(
     record: ProtocolRecord
   ): Promise<{ sceneId?: string; sceneUrl?: string; embedUrl?: string }> {

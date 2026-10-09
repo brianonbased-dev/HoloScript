@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { mkdtemp, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -66,7 +67,8 @@ function signedIn() {
   });
 }
 
-describe('POST /api/publish no-app WebXR receipt', () => {
+// The first test imports the route cold; on a busy machine that alone can pass the 5 s default.
+describe('POST /api/publish no-app WebXR receipt', { timeout: 30_000 }, () => {
   let originalCwd: string;
   let originalProtocolUrl: string | undefined;
   let tempDir: string;
@@ -163,7 +165,7 @@ describe('POST /api/publish no-app WebXR receipt', () => {
  * GET is deliberately NOT gated: it serves published scenes to the share
  * viewer, which is the whole point of publishing one.
  */
-describe('POST /api/publish — credential gate', () => {
+describe('POST /api/publish — credential gate', { timeout: 30_000 }, () => {
   let originalCwd: string;
   let originalProtocolUrl: string | undefined;
   let tempDir: string;
@@ -295,6 +297,58 @@ describe('POST /api/publish — credential gate', () => {
     expect(await response.text()).not.toMatch(/"id"\s*:/);
   });
 
+  it("an own key refused only because another account owns the code gets the registry's 409, not a key error", async () => {
+    // The registry checks the key and its scope before ownership, so a 409 proves the key is
+    // good. Turning it into "the registry did not accept that key" sent the caller after the
+    // wrong problem and dropped the existing scene's link.
+    signedOut();
+    const contentHash = createHash('sha256').update(SCENE_BODY.code).digest('hex');
+    const upstream = {
+      error: 'already_published',
+      contentHash,
+      existingUrl: 'https://protocol.test/scene/abc123',
+      message: 'This content hash is already published by another account.',
+    };
+    outbound.mockImplementation(async () => Response.json(upstream, { status: 409 }));
+    const { POST } = await import('./route');
+
+    const response = await POST(publishRequest({ 'x-mcp-api-key': CALLER_KEY }));
+    const body = (await response.json()) as Record<string, unknown>;
+
+    expect(response.status).toBe(409);
+    expect(body).toEqual(upstream);
+    expect(JSON.stringify(body)).not.toContain('did not accept that key');
+    // Nothing was stored for a publish that did not happen.
+    expect(JSON.stringify(body)).not.toMatch(/"id"\s*:/);
+  });
+
+  it('a 409 that is not JSON still comes back as already_published, with its text', async () => {
+    signedOut();
+    outbound.mockImplementation(async () => new Response('taken', { status: 409 }));
+    const { POST } = await import('./route');
+
+    const response = await POST(publishRequest({ 'x-mcp-api-key': CALLER_KEY }));
+    const body = (await response.json()) as Record<string, unknown>;
+
+    expect(response.status).toBe(409);
+    expect(body).toMatchObject({ error: 'already_published', message: 'taken', existingUrl: null });
+  });
+
+  it('a signed-in caller still gets the receipt, with the 409 reported in it', async () => {
+    outbound.mockImplementation(async () =>
+      Response.json({ error: 'already_published' }, { status: 409 })
+    );
+    const { POST } = await import('./route');
+
+    const response = await POST(publishRequest());
+    const body = (await response.json()) as NoAppWebxrPublishReceipt;
+
+    expect(response.status).toBe(200);
+    expect(body.id).toMatch(/^[a-f0-9]{8}$/);
+    expect(body.protocol?.publish).toBeNull();
+    expect(body.protocol?.error).toContain('protocol publish failed (409)');
+  });
+
   it('publishes for a signed-in caller under the server key', async () => {
     const { POST } = await import('./route');
 
@@ -302,6 +356,34 @@ describe('POST /api/publish — credential gate', () => {
 
     expect(response.status).toBe(200);
     expect(upstreamHeaders()['x-mcp-api-key']).toBe(SERVER_KEY);
+  });
+
+  it("never asks the server key to replace another account's code, whatever the caller sends", async () => {
+    // The registry lets an operator key overwrite a record another account owns only when the
+    // body says so (publisherPrincipal or replaceOwned: true). Studio holds an operator key for
+    // every signed-in user, so it must never send either one.
+    const { POST } = await import('./route');
+
+    const response = await POST(
+      publishRequest(
+        {},
+        {
+          ...SCENE_BODY,
+          replaceOwned: true,
+          publisherPrincipal: 'agent_someone_else',
+          metadata: { ...SCENE_BODY.metadata, replaceOwned: true },
+        }
+      )
+    );
+
+    expect(response.status).toBe(200);
+    expect(upstreamHeaders()['x-mcp-api-key']).toBe(SERVER_KEY);
+    const init = outbound.mock.calls[0]?.[1] as { body?: string } | undefined;
+    const forwarded = JSON.parse(init?.body ?? '{}') as Record<string, unknown>;
+    expect(forwarded.contentHash).toBe(createHash('sha256').update(SCENE_BODY.code).digest('hex'));
+    expect(forwarded).not.toHaveProperty('replaceOwned');
+    expect(forwarded).not.toHaveProperty('publisherPrincipal');
+    expect(init?.body).not.toContain('agent_someone_else');
   });
 
   it('never falls back to the browser-visible key', async () => {
@@ -352,6 +434,8 @@ describe('GET /api/docs — what /api/publish advertises', () => {
 
     expect(publish.post?.description).toContain('x-mcp-api-key');
     expect(publish.post?.responses?.['401']).toBeDefined();
+    // ...and the refusal an own-key caller meets when the code is someone else's.
+    expect(publish.post?.responses?.['409']).toBeDefined();
   });
 
   it('says the read side is open on purpose, so nobody gates it by mistake', async () => {

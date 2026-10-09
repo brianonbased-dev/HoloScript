@@ -8,6 +8,7 @@
  * the gate (whatever the route then answers, it is not 401/403); a bad token still gets 401.
  */
 
+import { createHash } from 'crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   bootRealHttpServer,
@@ -84,26 +85,54 @@ describe('POST /api/credits/deduct needs an operator scope', () => {
   });
 });
 
-describe('POST /api/moltbook/crosspost needs tools:write', () => {
+describe('POST /api/moltbook/crosspost needs an operator scope', () => {
   it('a read token cannot post publicly', async () => {
     const reply = await server.request('POST', '/api/moltbook/crosspost', {
       token: readToken,
       body: CROSSPOST_BODY,
     });
-    expectRefusedForScope(reply, ['tools:write']);
+    expectRefusedForScope(reply, ['tools:admin']);
   });
 
-  it('a write token passes the gate (then stops: no Moltbook key in the sandbox)', async () => {
+  it('a write token cannot either: every GitHub login holds tools:write', async () => {
     const reply = await server.request('POST', '/api/moltbook/crosspost', {
       token: writeToken,
       body: CROSSPOST_BODY,
     });
+    expectRefusedForScope(reply, ['tools:admin']);
+  });
+
+  it('the server key (admin:*) passes the gate (then stops: no Moltbook key in the sandbox)', async () => {
+    const reply = await server.request('POST', '/api/moltbook/crosspost', {
+      token: REAL_SERVER_ADMIN_KEY,
+      body: CROSSPOST_BODY,
+    });
     expectPastTheGate(reply);
+  });
+
+  it('the server-key callers still pass if pointed here: x-mcp-api-key, with or without a Moltbook Bearer', async () => {
+    // ai-ecosystem hooks/team-connect.mjs sends exactly this pair; holomesh_moltbook_crosspost
+    // sends the x-mcp-api-key alone. Both default to mcp-orchestrator's own crosspost route, and
+    // reach this one only when HOLOMESH_MOLTBOOK_CROSSPOST_URL or MCP_ORCHESTRATOR_URL points at
+    // mcp-server.
+    const reply = await server.request('POST', '/api/moltbook/crosspost', {
+      token: 'moltbook_not_a_holoscript_credential',
+      headers: { 'x-mcp-api-key': REAL_SERVER_ADMIN_KEY },
+      body: CROSSPOST_BODY,
+    });
+    expectPastTheGate(reply);
+    const keyOnly = await server.request('POST', '/api/moltbook/crosspost', {
+      headers: { 'x-mcp-api-key': REAL_SERVER_ADMIN_KEY },
+      body: CROSSPOST_BODY,
+    });
+    expectPastTheGate(keyOnly);
   });
 });
 
 describe('protocol publish, metadata and collect need tools:write', () => {
-  const hash = `scope-test-${Date.now()}`;
+  // A writer who is not an operator claims a hash by sending the content that hashes to it.
+  const code = `object ScopeTest_${Date.now()} { @glowing }`;
+  const hash = createHash('sha256').update(code).digest('hex');
 
   it('a read token cannot publish, store metadata, or collect', async () => {
     expectRefusedForScope(
@@ -132,7 +161,7 @@ describe('protocol publish, metadata and collect need tools:write', () => {
   it('a write token publishes, stores metadata, and collects', async () => {
     const published = await server.request('POST', '/api/protocol', {
       token: writeToken,
-      body: { contentHash: hash },
+      body: { contentHash: hash, code },
     });
     expect(published.status, JSON.stringify(published.body)).toBe(201);
 
