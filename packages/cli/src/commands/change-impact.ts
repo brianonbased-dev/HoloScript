@@ -18,8 +18,16 @@
  *        - any changed non-code file (fixture, snapshot, data, manifest,
  *          lockfile, config) — tests read those without an import edge;
  *        - test/build config with a code extension (vitest.config.ts, ...);
+ *        - changed test support code (a setup file, helper or fixture under a
+ *          test directory) — a runner or a test loads it by path;
  *      and such a file outside every package keeps EVERY test in the repo.
- *      Only prose (Markdown outside test/fixture directories) is inert.
+ *      A test can also name a file by path: read a docs page, spawn a CLI,
+ *      start a worker. So a changed file, and with the graph every file in its
+ *      reach, also selects the tests that name it (`tests.namedBy`): prose from
+ *      any test, code from tests in its own package or outside every package.
+ *      Tests that read Markdown or code files by pattern (`*.md`,
+ *      `.endsWith('.ts')`) count as naming every such file. Prose no test names
+ *      selects nothing; that is the only inert change.
  *   2. Forgotten callers — for each exported symbol whose declaration line
  *      changed, the call sites in files the change did NOT touch.
  *   3. Reviewer brief — a short plain-text summary of 1 and 2.
@@ -28,7 +36,9 @@
  * only. A consumer that imports a package by name (`@holoscript/core`) is not
  * traced, so graph mode covers reach WITHIN each package. The report lists the
  * workspace packages that depend on a touched package so nobody reads
- * "3 tests" as "nothing else can break".
+ * "3 tests" as "nothing else can break". For the same reason a test that reads
+ * ANOTHER package's data file (JSON, YAML, ...) by path is not found: data
+ * names are not matched across packages (`res.json()` reads like a file name).
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -114,6 +124,12 @@ export interface ChangeImpactReport {
      * package, which keeps every test in the repo.
      */
     fullSuitePackages: Array<{ pkg: string; reason: string }>;
+    /**
+     * Changed files (and, with the graph, files in their reach) that tests
+     * name by path, with the tests this adds to the selection: a test that
+     * reads, spawns or loads a file by path has no import edge to it.
+     */
+    namedBy: Array<{ file: string; tests: string[] }>;
   };
   callers: {
     available: boolean;
@@ -139,10 +155,20 @@ const DECLARATION_FILE_RE = /\.d\.[cm]?ts$/;
  */
 const PACKAGE_WIDE_FILE_RE =
   /(?:^|\/)(?:package\.json|package-lock\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|yarn\.lock|\.npmrc|tsconfig[^/]*\.json|(?:vite|vitest|jest|tsup|babel)(?:\.[\w-]+)*\.config\.[cm]?[jt]s|vitest\.(?:workspace|setup|shared)[^/]*\.[cm]?[jt]s)$/;
-/** Prose. Inert unless it sits where tests keep their inputs (see TEST_DATA_DIR_RE). */
+/** Prose. Keeps no whole suite unless it sits where tests keep their inputs (see TEST_DATA_DIR_RE). */
 const INERT_FILE_RE = /\.(?:md|mdx|markdown|rst)$/i;
 const TEST_DATA_DIR_RE =
   /(?:^|\/)(?:__tests__|__fixtures__|__snapshots__|fixtures?|tests?|testdata|test-data|golden)\//i;
+/** Test-runner config: it names the setup files the runner loads by path for every test. */
+const RUNNER_CONFIG_RE =
+  /(?:^|\/)(?:(?:vite|vitest|jest)(?:\.[\w-]+)*\.config|vitest\.workspace[^/]*)\.[cm]?[jt]s$/;
+/**
+ * A file name in source text, as `git grep -E` reads it: `cli.ts`, `README.md`,
+ * and patterns such as `*.md`, `'.md'` or `${name}.ts`.
+ */
+const NAMED_FILE_RE = '[A-Za-z0-9_.$*{}-]*\\.(mdx?|markdown|rst|[cm]?[jt]sx?)\\b';
+const NAMED_FILE_PARTS_RE = /^(.*)\.(mdx?|markdown|rst|[cm]?[jt]sx?)$/i;
+const CODE_EXT_RE = /\.[cm]?[jt]sx?$/i;
 /** fullSuitePackages scope for a change outside every package: every test in the repo. */
 export const REPO_SCOPE = '.';
 
@@ -150,10 +176,93 @@ export function isTestFile(file: string): boolean {
   return TEST_FILE_RE.test(toPosix(file));
 }
 
-/** A change that cannot alter any test outcome: prose outside test/fixture directories. */
+/**
+ * Prose outside test/fixture directories: its change keeps no whole suite.
+ * The tests that name it (or read Markdown by pattern) are still selected.
+ */
 export function isInertFile(file: string): boolean {
   const posix = toPosix(file);
   return INERT_FILE_RE.test(posix) && !TEST_DATA_DIR_RE.test(posix);
+}
+
+/** Code a runner or a test loads by path: a setup file, helper or fixture under a test directory. */
+function isTestSupport(file: string): boolean {
+  const posix = toPosix(file);
+  return CODE_FILE_RE.test(posix) && TEST_DATA_DIR_RE.test(posix) && !RUNNABLE_TEST_RE.test(posix);
+}
+
+/** Files that tests and runner configs name by path (see indexNamedFiles). */
+export interface NamedFileIndex {
+  /** Lower-case Markdown file name -> files that name it. */
+  prose: Map<string, string[]>;
+  /** Files that read Markdown by pattern (`*.md`, `'.md'`, `${name}.md`). */
+  prosePattern: string[];
+  /** Lower-case code file name without its extension -> files that name it (`cli.ts`, `dist/cli.js`). */
+  code: Map<string, string[]>;
+  /** Files that read code files by pattern (`*.ts`, `.endsWith('.js')`). */
+  codePattern: string[];
+}
+
+/** Index `git grep -z -o -E NAMED_FILE_RE` output (`path\0match` lines). */
+export function indexNamedFiles(grepOutput: string): NamedFileIndex {
+  const prose = new Map<string, Set<string>>();
+  const code = new Map<string, Set<string>>();
+  const prosePattern = new Set<string>();
+  const codePattern = new Set<string>();
+  const add = (map: Map<string, Set<string>>, name: string, reader: string) => {
+    if (!map.has(name)) map.set(name, new Set());
+    map.get(name)!.add(reader);
+  };
+  for (const line of grepOutput.split('\n')) {
+    const at = line.indexOf('\0');
+    if (at <= 0) continue;
+    const reader = toPosix(line.slice(0, at));
+    const parts = NAMED_FILE_PARTS_RE.exec(line.slice(at + 1).trim());
+    if (!parts) continue;
+    const stem = parts[1].toLowerCase();
+    const isProse = INERT_FILE_RE.test(`.${parts[2]}`);
+    if (stem === '' || /[*{}$]/.test(stem)) {
+      (isProse ? prosePattern : codePattern).add(reader);
+    } else if (isProse) {
+      add(prose, `${stem}.${parts[2].toLowerCase()}`, reader);
+    } else {
+      add(code, stem, reader);
+    }
+  }
+  const lists = (map: Map<string, Set<string>>) =>
+    new Map(Array.from(map, ([name, readers]) => [name, Array.from(readers)]));
+  return {
+    prose: lists(prose),
+    prosePattern: Array.from(prosePattern),
+    code: lists(code),
+    codePattern: Array.from(codePattern),
+  };
+}
+
+/**
+ * File names written in test files and runner configs. Returns null when the
+ * search could not run; `git grep` exits 1 when nothing matches.
+ */
+function grepNamedFiles(git: ChangeImpactDeps['git']): string | null {
+  try {
+    return git([
+      'grep',
+      '-z',
+      '-o',
+      '-I',
+      '-i',
+      '-E',
+      NAMED_FILE_RE,
+      '--',
+      '*.test.*',
+      '*.spec.*',
+      '*__tests__/*',
+      '*.config.*',
+      '*vitest.workspace*',
+    ]);
+  } catch (err) {
+    return (err as { status?: unknown }).status === 1 ? '' : null;
+  }
 }
 
 /**
@@ -433,6 +542,17 @@ export function renderReviewerBrief(report: Omit<ChangeImpactReport, 'brief'>): 
       full.pkg === REPO_SCOPE ? 'every package (the change is outside them all)' : full.pkg;
     lines.push(`  Whole suite kept for ${scope}: ${full.reason}`);
   }
+  const named = report.tests.namedBy ?? [];
+  for (const entry of named.slice(0, 5)) {
+    const shown = entry.tests.slice(0, 3).join(', ');
+    const more = entry.tests.length > 3 ? ` (+${entry.tests.length - 3} more)` : '';
+    lines.push(
+      `  Named by path: ${entry.file} — ${entry.tests.length} test file(s) name it and can read or load it with no import: ${shown}${more}`
+    );
+  }
+  if (named.length > 5) {
+    lines.push(`  Named by path: ${named.length - 5} more file(s), listed in tests.namedBy.`);
+  }
   if (!report.callers.available) {
     lines.push(`Callers: not checked — ${report.callers.reason ?? 'no graph'}.`);
   } else if (report.callers.changedSymbols.length === 0) {
@@ -622,15 +742,72 @@ export async function analyzeChangeImpact(
   // edge. Such a change keeps its package's whole suite; outside every package
   // it keeps every test in the repo. Unsure means more tests, never fewer.
   const fullSuite = new Map<string, string>();
-  const keepSuite = (f: string, why: string) => {
-    const pkg = pkgOf(f);
-    const scope = pkg ?? REPO_SCOPE;
-    if (fullSuite.has(scope)) return;
+  const keepScope = (scope: string | null, why: string) => {
+    const target = scope ?? REPO_SCOPE;
+    if (fullSuite.has(target)) return;
     fullSuite.set(
-      scope,
-      pkg ? why : `${why}; it is outside every package, so every test in the repo is kept`
+      target,
+      scope ? why : `${why}; it is outside every package, so every test in the repo is kept`
     );
   };
+  const keepSuite = (f: string, why: string) => keepScope(pkgOf(f), why);
+
+  // Tests and runner configs that name a file by path depend on it with no
+  // import edge. One search covers every test; a failed search keeps everything.
+  const grepped = changedFiles.length > 0 ? grepNamedFiles(deps.git) : '';
+  if (grepped === null) {
+    fullSuite.set(
+      REPO_SCOPE,
+      'the tests could not be searched for the files they name by path (git grep failed), so every test in the repo is kept'
+    );
+  }
+  const named = indexNamedFiles(grepped ?? '');
+  /** Code is named from its own package, or across packages when either side is outside them all. */
+  const sharesScope = (a: string, b: string) => {
+    const pa = pkgOf(a);
+    const pb = pkgOf(b);
+    return pa === null || pb === null || pa === pb;
+  };
+  const testsNaming = (f: string): string[] => {
+    const posix = toPosix(f);
+    const base = path.posix.basename(posix).toLowerCase();
+    const readers = INERT_FILE_RE.test(posix)
+      ? [...(named.prose.get(base) ?? []), ...named.prosePattern]
+      : CODE_FILE_RE.test(posix)
+        ? [...(named.code.get(base.replace(CODE_EXT_RE, '')) ?? []), ...named.codePattern].filter(
+            (r) => sharesScope(r, posix)
+          )
+        : [];
+    return readers.filter((r) => r !== posix && isTestFile(r) && !isDeleted(r));
+  };
+  /** A runner config that names test support code loads it for every test in its scope. */
+  const keepIfRunnerLoads = (f: string) => {
+    if (!isTestSupport(f)) return;
+    const stem = path.posix.basename(toPosix(f)).toLowerCase().replace(CODE_EXT_RE, '');
+    for (const config of named.code.get(stem) ?? []) {
+      if (!RUNNER_CONFIG_RE.test(config) || !sharesScope(config, f)) continue;
+      keepScope(
+        pkgOf(config),
+        `${f} is named by ${config}, which loads it for every test it runs, and the change reaches it`
+      );
+    }
+  };
+  const namedBy = new Map<string, string[]>();
+  /** Add the tests that name `files` to `selected`; record the ones it did not hold. */
+  const addTestsNaming = (files: Iterable<string>, selected: Set<string>) => {
+    const before = new Set(selected);
+    for (const f of files) {
+      const added = testsNaming(f).filter((t) => !before.has(t));
+      if (added.length === 0) continue;
+      for (const t of added) selected.add(t);
+      namedBy.set(f, Array.from(new Set([...(namedBy.get(f) ?? []), ...added])).sort());
+    }
+  };
+  const namedByEntries = () =>
+    Array.from(namedBy, ([file, tests]) => ({ file, tests })).sort((a, b) =>
+      a.file.localeCompare(b.file)
+    );
+
   for (const f of changedFiles) {
     if (isInertFile(f)) continue;
     if (PACKAGE_WIDE_FILE_RE.test(f)) {
@@ -640,12 +817,20 @@ export async function analyzeChangeImpact(
         f,
         `${f} changed and is not code the graph can trace (a test may read it as data, fixture or snapshot)`
       );
+    } else if (isTestSupport(f)) {
+      keepSuite(
+        f,
+        `${f} changed and is test support code (a setup file, helper or fixture): a runner or a test can load it by path, so the tests that use it cannot all be listed`
+      );
+      keepIfRunnerLoads(f);
     }
   }
   const fullSuiteEntries = () => Array.from(fullSuite, ([pkg, reason]) => ({ pkg, reason }));
 
   const fallback = (reason: string, cacheNote?: string): ChangeImpactReport => {
-    const fullSet = testsIn([...touchedPackages, ...fullSuite.keys()]);
+    const selected = new Set(testsIn([...touchedPackages, ...fullSuite.keys()]));
+    addTestsNaming(changedFiles, selected);
+    const fullSet = Array.from(selected).sort();
     const partial: Omit<ChangeImpactReport, 'brief'> = {
       schema: 'holoscript.change-impact.v1',
       repoRoot,
@@ -658,7 +843,12 @@ export async function analyzeChangeImpact(
       touchedPackages,
       affectedFiles: [],
       affectedCount: 0,
-      tests: { selected: fullSet, fullSet, fullSuitePackages: fullSuiteEntries() },
+      tests: {
+        selected: fullSet,
+        fullSet,
+        fullSuitePackages: fullSuiteEntries(),
+        namedBy: namedByEntries(),
+      },
       callers: {
         available: false,
         reason: 'needs the codebase graph',
@@ -752,12 +942,15 @@ export async function analyzeChangeImpact(
     );
   }
 
+  // A setup file the change reaches (it imports a changed file) runs before
+  // every test its runner config covers.
+  for (const f of affectedRel) keepIfRunnerLoads(f);
+
   const affectedPackages = new Set(touchedPackages);
   for (const f of affectedRel) {
     const pkg = pkgOf(f);
     if (pkg) affectedPackages.add(pkg);
   }
-  const fullSet = testsIn([...affectedPackages, ...fullSuite.keys()]);
   const selected = new Set<string>();
   for (const f of affectedRel) if (isTestFile(f)) selected.add(f);
   for (const f of present) {
@@ -765,9 +958,15 @@ export async function analyzeChangeImpact(
     else for (const t of conventionTestsFor(f, repoRoot, deps.fileExists)) selected.add(t);
   }
   for (const t of testsIn(fullSuite.keys())) selected.add(t);
+  // A test that spawns, reads or loads a reached file by path (a CLI, a worker)
+  // depends on everything that file imports.
+  addTestsNaming([...changedFiles, ...affectedRel], selected);
   // The reach of a deleted file (from a graph absorbed before the delete) can
   // include deleted tests; the runner must not be handed missing files.
   for (const f of Array.from(selected)) if (isDeleted(f)) selected.delete(f);
+  const fullSet = Array.from(
+    new Set([...testsIn([...affectedPackages, ...fullSuite.keys()]), ...selected])
+  ).sort();
 
   // ── Forgotten callers ─────────────────────────────────────────────────────
   const changedKeys = new Set(changedFiles.map((f) => key(f)));
@@ -833,6 +1032,7 @@ export async function analyzeChangeImpact(
       selected: Array.from(selected).sort(),
       fullSet,
       fullSuitePackages: fullSuiteEntries(),
+      namedBy: namedByEntries(),
     },
     callers: {
       available: callersAvailable,
