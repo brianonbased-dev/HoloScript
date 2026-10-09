@@ -32,8 +32,10 @@
  *      through these same rules, repeating until no new helper appears
  *      (`tests.viaHelpers`). Without the graph, when the graph cannot list a
  *      helper's users, or when nothing imports it or names it by name, the
- *      helper's package suite is kept (a `#!` program excepted: it is run on
- *      its own). A setup file a runner config names keeps that config's suite. Prose no test names selects nothing;
+ *      helper's package suite is kept (except a helper that runs on its own: a
+ *      `#!` program, or a *.bench / *.benchmark file run by hand with vitest
+ *      bench; it is listed instead). A setup file a runner config names keeps
+ *      that config's suite. Prose no test names selects nothing;
  *      that is the only inert change. Every git call pins its output shape
  *      (--no-color, -z, fixed diff prefixes), and a search whose output cannot
  *      be read keeps every test.
@@ -51,8 +53,10 @@
  * The brief says so whenever a changed data file sits inside a package
  * (`tests.untracedDataFiles`). Path aliases and vi.importActual are not import
  * edges the graph holds either: a test that reaches a changed file, or a
- * helper, only that way is not found. The brief says so whenever a helper was
- * followed.
+ * helper, only that way is not found; nor is a test that runs a program (a
+ * `#!` file) or a benchmark by a computed path. Such files that nothing
+ * imports or names are listed in `tests.viaHelpers` (`runsAlone`), not dropped
+ * silently. The brief says so whenever a helper was followed.
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -155,8 +159,17 @@ export interface ChangeImpactReport {
      * changed or reached file by path, or read such files by pattern. With the
      * graph, the tests that reach a helper are selected (`tests`); a helper
      * whose users the graph cannot list keeps its package suite instead.
+     * `runsAlone`: a helper nothing imports or names that runs on its own: a
+     * `#!` program, or a benchmark run by hand with `vitest bench`. It is
+     * listed, keeps no suite and selects nothing (a test that runs it by a
+     * computed path is not found).
      */
-    viaHelpers: Array<{ helper: string; reason: string; tests: string[] }>;
+    viaHelpers: Array<{
+      helper: string;
+      reason: string;
+      tests: string[];
+      runsAlone?: 'program' | 'benchmark';
+    }>;
   };
   callers: {
     available: boolean;
@@ -172,6 +185,12 @@ export interface ChangeImpactReport {
 const TEST_FILE_RE = /(?:^|\/)(?:__tests__\/.*\.[cm]?[jt]sx?|[^/]+\.(?:test|spec)\.[cm]?[jt]sx?)$/;
 /** A test file the runner runs on its own; nothing imports one, so it needs no reach. */
 const RUNNABLE_TEST_RE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
+/**
+ * A benchmark (*.bench / *.benchmark): run by hand with `vitest bench`, never
+ * by a test run. Not a test to select; a helper like any other when something
+ * imports or names it, and listed (not a reason to keep a suite) when nothing does.
+ */
+const BENCH_FILE_RE = /\.(?:bench|benchmark)\.[cm]?[jt]sx?$/;
 const CODE_FILE_RE = /\.(?:[cm]?[jt]sx?)$/;
 const DECLARATION_FILE_RE = /\.d\.[cm]?ts$/;
 /**
@@ -201,6 +220,11 @@ export const REPO_SCOPE = '.';
 
 export function isTestFile(file: string): boolean {
   return TEST_FILE_RE.test(toPosix(file));
+}
+
+/** A test file a test run executes. A benchmark is run by hand with vitest bench instead. */
+function runsInTests(file: string): boolean {
+  return isTestFile(file) && !BENCH_FILE_RE.test(toPosix(file));
 }
 
 /**
@@ -635,14 +659,18 @@ export function renderReviewerBrief(report: Omit<ChangeImpactReport, 'brief'>): 
     const shown = via.tests.slice(0, 3).join(', ');
     const more = via.tests.length > 3 ? ` (+${via.tests.length - 3} more)` : '';
     const users =
-      via.tests.length > 0
-        ? `${via.tests.length} test file(s) use it directly: ${shown}${more}`
-        : 'its users are reached through other files';
+      via.runsAlone === 'program'
+        ? 'it is a program run on its own, and no test imports it or names it by name'
+        : via.runsAlone === 'benchmark'
+          ? 'it is a benchmark run by hand with vitest bench, and no test imports it or names it by name'
+          : via.tests.length > 0
+            ? `${via.tests.length} test file(s) use it directly: ${shown}${more}`
+            : 'its users are reached through other files';
     lines.push(`  Via helper: ${via.helper} ${via.reason}; ${users}`);
   }
   if (helpers.length > 0) {
     lines.push(
-      '  Helper users are found through relative imports and file names only; a test that reaches a helper through a path alias or vi.importActual is not found.'
+      '  Helper users are found through relative imports and file names only; a test that reaches a helper through a path alias, vi.importActual or a computed path is not found.'
     );
   }
   const data = report.tests.untracedDataFiles ?? [];
@@ -825,8 +853,8 @@ export async function analyzeChangeImpact(
     .filter((f) => !isDeleted(f));
   const testsInPackage = (pkg: string) =>
     pkg === REPO_SCOPE
-      ? trackedFiles.filter((f) => isTestFile(f))
-      : trackedFiles.filter((f) => f.startsWith(`${pkg}/`) && isTestFile(f) && pkgOf(f) === pkg);
+      ? trackedFiles.filter((f) => runsInTests(f))
+      : trackedFiles.filter((f) => f.startsWith(`${pkg}/`) && runsInTests(f) && pkgOf(f) === pkg);
   const testsIn = (scopes: Iterable<string>) =>
     Array.from(new Set(Array.from(scopes).flatMap(testsInPackage))).sort();
   const allPackageDirs = Array.from(
@@ -1141,7 +1169,7 @@ export async function analyzeChangeImpact(
   // first line) is run on its own, so it needs no such fallback. A helper
   // already in the reach is handled like any reached file.
   const selectionReach = new Set(affectedRel);
-  const viaHelpers: Array<{ helper: string; reason: string; tests: string[] }> = [];
+  const viaHelpers: ChangeImpactReport['tests']['viaHelpers'] = [];
   const followed = new Set<string>();
   let frontier = [...changedFiles, ...affectedRel];
   while (frontier.length > 0) {
@@ -1173,7 +1201,16 @@ export async function analyzeChangeImpact(
       const importers = [...users.files].filter((f) => f !== helper && !isDeleted(f));
       const nameReaders = readersByName(helper);
       if (importers.length === 0 && nameReaders.length === 0) {
-        if (!isProgram(helper)) {
+        // A program or a benchmark runs on its own: listed, not dropped
+        // silently (the brief names the computed-path limit), and no suite.
+        const runsAlone = isProgram(helper)
+          ? ('program' as const)
+          : BENCH_FILE_RE.test(helper)
+            ? ('benchmark' as const)
+            : null;
+        if (runsAlone) {
+          viaHelpers.push({ helper, reason: why, tests: [], runsAlone });
+        } else {
           keepHelperSuite(
             helper,
             why,
@@ -1200,13 +1237,13 @@ export async function analyzeChangeImpact(
     if (pkg) affectedPackages.add(pkg);
   }
   const selected = new Set<string>();
-  for (const f of affectedRel) if (isTestFile(f)) selected.add(f);
-  // The helpers' reach selects test files by the same rule (a runner config
-  // can run more than *.test files, e.g. *.scenario.ts), except the helpers
-  // followed: they name files, they are not tests.
-  for (const f of selectionReach) if (isTestFile(f) && !followed.has(f)) selected.add(f);
+  for (const f of affectedRel) if (runsInTests(f)) selected.add(f);
+  // The helpers' reach selects test files by the same rule, the helpers
+  // themselves included: a runner config can run more than *.test files
+  // (e.g. *.scenario.ts), and such a file can also name files.
+  for (const f of selectionReach) if (runsInTests(f)) selected.add(f);
   for (const f of present) {
-    if (isTestFile(f)) selected.add(f);
+    if (runsInTests(f)) selected.add(f);
     else for (const t of conventionTestsFor(f, repoRoot, deps.fileExists)) selected.add(t);
   }
   for (const t of testsIn(fullSuite.keys())) selected.add(t);
