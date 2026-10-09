@@ -117,7 +117,7 @@ export const graphRagTools: Tool[] = [
         holoGraphHoloEmbedManifest: {
           type: 'string',
           description:
-            'Optional path to a canonical HoloGraph/HoloEmbed two-tower manifest. When omitted, search uses HOLOGRAPH_HOLOEMBED_MANIFEST or the promoted local ai-ecosystem HoloGraph/HoloEmbed release when present, then falls back to cached absorb state.',
+            'Optional path to a canonical HoloGraph/HoloEmbed two-tower manifest. It names a file on the server, so it is refused unless the server operator set HOLOGRAPH_HOLOEMBED_MANIFEST_ARG=allow (a single-user local server). When omitted, search uses HOLOGRAPH_HOLOEMBED_MANIFEST or the promoted local ai-ecosystem HoloGraph/HoloEmbed release when present, then falls back to cached absorb state.',
         },
         useCachedAbsorbIndex: {
           type: 'boolean',
@@ -715,9 +715,20 @@ async function resolveSemanticSearchIndex(
         };
   }
 
+  // Checked before anything touches the disk, and the refusal does not repeat the path:
+  // a "no such file" or a parse error would already tell the caller what is on the server.
+  const requestedManifestPath = stringArg(args.holoGraphHoloEmbedManifest);
+  if (requestedManifestPath && !manifestArgumentAllowed()) {
+    return {
+      error:
+        'holoGraphHoloEmbedManifest names a file on this server, which callers may not do here.',
+      hint:
+        "Leave it out: search then uses the operator's HOLOGRAPH_HOLOEMBED_MANIFEST, the promoted release, or the cached absorb index. " +
+        'On a single-user local server the operator can set HOLOGRAPH_HOLOEMBED_MANIFEST_ARG=allow.',
+    };
+  }
   const explicitManifestPath =
-    stringArg(args.holoGraphHoloEmbedManifest) ??
-    stringArg(process.env.HOLOGRAPH_HOLOEMBED_MANIFEST);
+    requestedManifestPath ?? stringArg(process.env.HOLOGRAPH_HOLOEMBED_MANIFEST);
 
   // A fresh in-session cached index (holo_absorb_repo of the CURRENT repo) is the ground
   // truth for this query. The promoted DEFAULT manifest is a FIXED shared release that may
@@ -774,6 +785,28 @@ async function resolveSemanticSearchIndex(
       hint: 'Verify the manifest schema, graphPath, nodeEmbeddingPath, and that the HoloEmbed query provider dimension matches the HoloGraph node embedding dimension.',
     };
   }
+}
+
+/**
+ * Whether a CALLER may name the manifest file (the holoGraphHoloEmbedManifest argument).
+ *
+ * The argument is a path on the server's disk. The loader reads it, reads and hashes
+ * every file it lists (absolute paths included), and reports what it found. So a hosted
+ * caller holding only tools:codebase could point it at any absolute, relative or `..`
+ * path and learn whether a file exists, its JSON `schema` field, the start of a non-JSON
+ * file through the parse error, and the sha256 of any file a crafted manifest lists
+ * (task 7qz0, 2026-10-08; on main since 3129e2c3d7, 2026-07-05).
+ *
+ * The refusal lives here because both hosts reach this code: mcp-server's host-path gate
+ * admits plain relative paths, which resolve against the server's own folder, and the
+ * absorb host has no path gate at all. No caller in either repo passes this argument.
+ *
+ * Off unless the operator turns it on for a single-user local server
+ * (HOLOGRAPH_HOLOEMBED_MANIFEST_ARG=allow). The operator's own
+ * HOLOGRAPH_HOLOEMBED_MANIFEST is unaffected.
+ */
+export function manifestArgumentAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.HOLOGRAPH_HOLOEMBED_MANIFEST_ARG?.trim().toLowerCase() === 'allow';
 }
 
 function stringArg(value: unknown): string | undefined {

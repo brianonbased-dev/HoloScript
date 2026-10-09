@@ -115,6 +115,18 @@ describe('findHostPathViolation: which arguments are looked at', () => {
     expect(findHostPathViolation({ videoUrl: '/etc/passwd' })?.reason).toMatch(/absolute/);
   });
 
+  it('holoGraphHoloEmbedManifest is a location (7qz0): absolute and ".." paths are refused here', () => {
+    expect(
+      findHostPathViolation({ holoGraphHoloEmbedManifest: '/app/.holoscript/holomesh/keys.json' })
+    ).toMatchObject({
+      key: 'holoGraphHoloEmbedManifest',
+      reason: expect.stringMatching(/absolute/),
+    });
+    expect(
+      findHostPathViolation({ holo_graph_holo_embed_manifest: '../../etc/hosts' })?.reason
+    ).toMatch(/"\.\." segment/);
+  });
+
   it('looks inside nested arrays under a path-typed key', () => {
     expect(findHostPathViolation({ paths: [['..']] })?.reason).toMatch(/"\.\." segment/);
     expect(findHostPathViolation({ files: [['a.ts'], ['/etc/x']] })?.reason).toMatch(/absolute/);
