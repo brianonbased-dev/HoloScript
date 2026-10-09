@@ -26,6 +26,7 @@ import {
   LocalLLMAdapter as LLMOllamaAdapter,
   LOCAL_DEFAULT_MODEL,
   checkHostedOllama,
+  HOLOSCRIPT_SYSTEM_PROMPT,
 } from '@holoscript/llm-provider';
 /** Shape of API error responses from AI providers. */
 interface APIErrorResponse {
@@ -45,40 +46,29 @@ export type {
 // System Prompt for HoloScript Generation
 // ============================================================================
 
-const HOLOSCRIPT_SYSTEM_PROMPT = `You are a HoloScript expert. HoloScript is a visual flow language for VR/AR world creation.
+// Every adapter here sends HOLOSCRIPT_SYSTEM_PROMPT from @holoscript/llm-provider for
+// generate, fix and optimize: the one prompt whose programs are parse-tested
+// (packages/mcp-server/src/__tests__/generator-prompt-parse.test.ts) and measured on the
+// 14 author_holo tasks. Right answers, every requested detail graded: Qwen3-4B 10/14 and
+// Gemini 3.1 Pro 36/42 (ai-ecosystem receipts/holotune-native-authoring/
+// 2026-10-08-generator-prompt-vocabulary-score.json). The right shape alone was 14/14 and
+// 42/42; shape is not a right answer. Until 2026-10-08 this file kept its own prompt,
+// whose sample program failed the parser at `every(1000)` and named @animatable, a trait
+// core does not declare. The adapters-test "every adapter" block checks all nine.
+//
+// That prompt's rule 1 is "Return ONLY HoloScript code ... no explanations", which
+// is right for generate, fix and optimize and wrong for explaining or chatting.
+// Chat gets the same knowledge with the rule lifted at the end.
+const HOLOSCRIPT_CHAT_PROMPT = `${HOLOSCRIPT_SYSTEM_PROMPT}
 
-Generate valid HoloScript code following this syntax:
+This request is a question or a conversation, not a request for code. Answer in plain words.
+Rule 1 above applies only when you are asked to write or change code; then return the code.`;
 
-COMPOSITIONS:
-composition "Scene Name" {
-  environment { skybox: "sky_day", ambient: 0.5 }
-
-  template "ObjectType" {
-    state { property: value }
-    action doSomething() { }
-  }
-
-  spatial_group "GroupName" {
-    object "Object1" { position: [x, y, z] }
-    object "Object2" using "ObjectType" { position: [x, y, z] }
-  }
-
-  logic {
-    on_event { action() }
-    every(1000) { periodic_action() }
-  }
-}
-
-SHAPES: cube, sphere, cylinder, cone, plane, torus, capsule, pyramid, prism, hexagon, octahedron, icosahedron, ring, tube, spiral, stairs, arch, dome, wedge, ramp
-
-TRAITS: @grabbable, @throwable, @hoverable, @interactive, @collidable, @animatable, @networked
-
-RULES:
-1. Use descriptive object names
-2. Position objects logically in 3D space (y is up)
-3. Include templates for reusable objects
-4. Add logic for interactivity
-5. Output ONLY valid HoloScript code, no explanations unless asked`;
+// Explain gets a short prompt of its own: the code to explain is in the request, and the
+// long prompt makes a small model write code. Measured 2026-10-09 on Qwen3-4B (Jetson,
+// temperature 0, three programs): answered in words 3/3 with this prompt, 2/3 with the
+// chat prompt above, 0/3 with that prompt's lifting moved first.
+const HOLOSCRIPT_EXPLAIN_PROMPT = 'You are a HoloScript expert. Explain code clearly.';
 
 // ============================================================================
 // OpenAI Adapter
@@ -108,9 +98,11 @@ export class OpenAIAdapter implements AIAdapter {
   }
 
   async generateHoloScript(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
-    const systemPrompt = this.buildSystemPrompt(options);
-    const response = await this.chat('Create a HoloScript scene: ' + prompt, undefined, [
-      { role: 'assistant', content: systemPrompt },
+    // Straight to the model with the code prompt as the system message. This used to go
+    // through chat(), which sent the prompt twice (as system, and as an assistant turn).
+    const response = await this.callAPI([
+      { role: 'system', content: this.buildSystemPrompt(options) },
+      { role: 'user', content: 'Create a HoloScript scene: ' + prompt },
     ]);
 
     return {
@@ -121,11 +113,8 @@ export class OpenAIAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const response = await this.callAPI([
-      {
-        role: 'system',
-        content: 'You are a HoloScript expert. Explain the following code clearly.',
-      },
-      { role: 'user', content: 'Explain this HoloScript:\n\n' + holoScript },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
+      { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ]);
 
     return { explanation: response };
@@ -136,14 +125,15 @@ export class OpenAIAdapter implements AIAdapter {
     target: 'mobile' | 'desktop' | 'vr' | 'ar'
   ): Promise<OptimizeResult> {
     const response = await this.callAPI([
+      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
       {
-        role: 'system',
+        role: 'user',
         content:
-          'You are a HoloScript optimizer. Optimize for ' +
+          'Optimize this HoloScript for ' +
           target +
-          ' platform. Return only the optimized code.',
+          '. Return only the optimized code:\n\n' +
+          holoScript,
       },
-      { role: 'user', content: holoScript },
     ]);
 
     return {
@@ -154,10 +144,7 @@ export class OpenAIAdapter implements AIAdapter {
 
   async fixHoloScript(holoScript: string, errors: string[]): Promise<FixResult> {
     const response = await this.callAPI([
-      {
-        role: 'system',
-        content: 'You are a HoloScript debugger. Fix the errors and return corrected code.',
-      },
+      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
       {
         role: 'user',
         content: 'Fix these errors:\n' + errors.join('\n') + '\n\nCode:\n' + holoScript,
@@ -176,7 +163,7 @@ export class OpenAIAdapter implements AIAdapter {
     history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<string> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
     ];
 
     if (history) {
@@ -285,11 +272,11 @@ export class AnthropicAdapter implements AIAdapter {
     return !!this.config.apiKey;
   }
 
-  async generateHoloScript(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
+  async generateHoloScript(prompt: string, _options?: GenerateOptions): Promise<GenerateResult> {
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       { role: 'user', content: 'Create a HoloScript scene: ' + prompt },
     ];
-    const response = await this.callAPI(messages, options);
+    const response = await this.callAPI(messages);
 
     return {
       holoScript: this.extractCode(response),
@@ -301,7 +288,7 @@ export class AnthropicAdapter implements AIAdapter {
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
-    const response = await this.callAPI(messages);
+    const response = await this.callAPI(messages, HOLOSCRIPT_EXPLAIN_PROMPT);
     return { explanation: response };
   }
 
@@ -362,7 +349,7 @@ export class AnthropicAdapter implements AIAdapter {
       messages.push({ role: 'user', content: message });
     }
 
-    return this.callAPI(messages);
+    return this.callAPI(messages, HOLOSCRIPT_CHAT_PROMPT);
   }
 
   private extractCode(response: string): string {
@@ -372,7 +359,7 @@ export class AnthropicAdapter implements AIAdapter {
 
   private async callAPI(
     messages: Array<{ role: 'user' | 'assistant'; content: string }>,
-    _options?: GenerateOptions
+    system: string = HOLOSCRIPT_SYSTEM_PROMPT
   ): Promise<string> {
     // Delegate to @holoscript/llm-provider AnthropicAdapter (withRetry on 429/5xx).
     const adapter = new LLMAnthropicAdapter({
@@ -380,7 +367,7 @@ export class AnthropicAdapter implements AIAdapter {
       defaultModel: this.model,
     });
     const result = await adapter.complete({
-      messages: [{ role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT }, ...messages],
+      messages: [{ role: 'system', content: system }, ...messages],
       maxTokens: 4096,
     });
     return result.content;
@@ -452,8 +439,8 @@ export class OllamaAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const response = await this.callAPI(
-      'You are a HoloScript expert. Explain code clearly.',
-      'Explain this HoloScript:\n\n' + holoScript
+      HOLOSCRIPT_EXPLAIN_PROMPT,
+      'Explain this HoloScript code clearly:\n\n' + holoScript
     );
     return { explanation: response };
   }
@@ -463,8 +450,11 @@ export class OllamaAdapter implements AIAdapter {
     target: 'mobile' | 'desktop' | 'vr' | 'ar'
   ): Promise<OptimizeResult> {
     const response = await this.callAPI(
-      'You are a HoloScript optimizer. Optimize for ' + target + '.',
-      holoScript
+      HOLOSCRIPT_SYSTEM_PROMPT,
+      'Optimize this HoloScript for ' +
+        target +
+        '. Return only the optimized code:\n\n' +
+        holoScript
     );
     return {
       holoScript: this.extractCode(response),
@@ -474,8 +464,11 @@ export class OllamaAdapter implements AIAdapter {
 
   async fixHoloScript(holoScript: string, errors: string[]): Promise<FixResult> {
     const response = await this.callAPI(
-      'You are a HoloScript debugger. Fix errors and return corrected code.',
-      'Errors: ' + errors.join(', ') + '\n\nCode:\n' + holoScript
+      HOLOSCRIPT_SYSTEM_PROMPT,
+      'Fix these errors in the HoloScript:\nErrors: ' +
+        errors.join(', ') +
+        '\n\nCode:\n' +
+        holoScript
     );
     return {
       holoScript: this.extractCode(response),
@@ -494,12 +487,12 @@ export class OllamaAdapter implements AIAdapter {
       const fullMessage = holoScript
         ? 'History:\n' + contextMsg + '\n\nContext:\n' + holoScript + '\n\nQuestion: ' + message
         : 'History:\n' + contextMsg + '\n\nQuestion: ' + message;
-      return this.callAPI(HOLOSCRIPT_SYSTEM_PROMPT, fullMessage);
+      return this.callAPI(HOLOSCRIPT_CHAT_PROMPT, fullMessage);
     }
     const fullMessage = holoScript
       ? 'Context:\n' + holoScript + '\n\nQuestion: ' + message
       : message;
-    return this.callAPI(HOLOSCRIPT_SYSTEM_PROMPT, fullMessage);
+    return this.callAPI(HOLOSCRIPT_CHAT_PROMPT, fullMessage);
   }
 
   private async callAPIWithErrorHandling(apiPath: string, body: RequestInit): Promise<Response> {
@@ -707,8 +700,8 @@ export class GeminiAdapter implements AIAdapter {
     return !!this.config.apiKey;
   }
 
-  async generateHoloScript(prompt: string, options?: GenerateOptions): Promise<GenerateResult> {
-    const response = await this.callAPI('Create a HoloScript scene: ' + prompt, options);
+  async generateHoloScript(prompt: string, _options?: GenerateOptions): Promise<GenerateResult> {
+    const response = await this.callAPI('Create a HoloScript scene: ' + prompt);
 
     return {
       holoScript: this.extractCode(response),
@@ -717,7 +710,10 @@ export class GeminiAdapter implements AIAdapter {
   }
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
-    const response = await this.callAPI('Explain this HoloScript code clearly:\n\n' + holoScript);
+    const response = await this.callAPI(
+      'Explain this HoloScript code clearly:\n\n' + holoScript,
+      HOLOSCRIPT_EXPLAIN_PROMPT
+    );
     return { explanation: response };
   }
 
@@ -758,7 +754,7 @@ export class GeminiAdapter implements AIAdapter {
     const fullMessage = holoScript
       ? 'Context:\n' + holoScript + '\n\nQuestion: ' + message
       : message;
-    return this.callAPI(fullMessage, undefined, history);
+    return this.callAPI(fullMessage, HOLOSCRIPT_CHAT_PROMPT, history);
   }
 
   async getEmbeddings(text: string | string[]): Promise<number[][]> {
@@ -798,7 +794,7 @@ export class GeminiAdapter implements AIAdapter {
 
   private async callAPI(
     message: string,
-    _options?: GenerateOptions,
+    system: string = HOLOSCRIPT_SYSTEM_PROMPT,
     history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<string> {
     // Delegate to @holoscript/llm-provider GeminiAdapter (withRetry on 429/5xx).
@@ -807,7 +803,7 @@ export class GeminiAdapter implements AIAdapter {
       defaultModel: this.model,
     });
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: system },
     ];
     if (history && history.length > 0) {
       for (const msg of history) {
@@ -864,7 +860,7 @@ export class XAIAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
     const response = await this.callAPI(messages);
@@ -918,7 +914,7 @@ export class XAIAdapter implements AIAdapter {
     history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<string> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
     ];
 
     if (history) {
@@ -1028,7 +1024,7 @@ export class TogetherAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
     const response = await this.callAPI(messages);
@@ -1082,7 +1078,7 @@ export class TogetherAdapter implements AIAdapter {
     history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<string> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
     ];
 
     if (history) {
@@ -1166,7 +1162,7 @@ export class FireworksAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
     const response = await this.callAPI(messages);
@@ -1220,7 +1216,7 @@ export class FireworksAdapter implements AIAdapter {
     history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<string> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
     ];
 
     if (history) {
@@ -1335,7 +1331,7 @@ export class NVIDIAAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
     const response = await this.callAPI(messages);
@@ -1389,7 +1385,7 @@ export class NVIDIAAdapter implements AIAdapter {
     history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<string> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_SYSTEM_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
     ];
 
     if (history) {
