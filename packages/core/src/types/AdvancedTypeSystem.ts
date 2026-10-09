@@ -383,6 +383,8 @@ export interface ASTProgram {
     path: string;
     alias: string;
     namedImports?: string[];
+    /** Local names from `{ A as B }`, keyed by the imported name (B for A), as .holo keeps them. */
+    localNames?: Record<string, string>;
     isWildcard?: boolean;
   }>;
   hasState: boolean;

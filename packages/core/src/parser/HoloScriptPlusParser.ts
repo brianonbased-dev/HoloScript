@@ -1166,8 +1166,12 @@ export class HoloScriptPlusParser {
     path: string;
     alias: string;
     namedImports?: string[];
+    /** Local names from `{ A as B }`, keyed by the imported name (B for A), as .holo keeps them. */
+    localNames?: Record<string, string>;
     isWildcard?: boolean;
   }> = [];
+  /** Set by parseDocument just before it reads a top-level node; parseNode clears it. */
+  private parsingTopLevel = false;
   private hasState: boolean = false;
   private hasVRTraits: boolean = false;
   private hasControlFlow: boolean = false;
@@ -1653,18 +1657,8 @@ export class HoloScriptPlusParser {
           } else if (this.check('IDENTIFIER') && this.current().value === 'import') {
             // `import ...` is the form .holo reads, and means what `@import ...` means here. It
             // used to become a node that swallowed the next line (directive 2, task 34vf).
-            const importToken = this.advance();
-            if (this.check('STRING') || this.check('LBRACE') || this.check('ASTERISK')) {
-              const importDirective = this.parseImportClause();
-              if (importDirective) globalDirectives.push(importDirective);
-            } else {
-              this.errorAt(
-                importToken,
-                'This import form is not read here. Write import { Name } from "path", or import "path".',
-                'HSP001'
-              );
-              this.skipRestOfLine();
-            }
+            const importDirective = this.readImportAfterKeyword(this.advance());
+            if (importDirective) globalDirectives.push(importDirective);
           } else if (this.check('IDENTIFIER') && isBrainKeyword(this.current().value)) {
             const brainNode = this.parseBrainDeclaration();
             // Attach preceding directives
@@ -1674,6 +1668,7 @@ export class HoloScriptPlusParser {
             ];
             topLevelNodes.push(brainNode as unknown as HSPlusNode);
           } else {
+            this.parsingTopLevel = true;
             const node = this.parseNode();
             if (node) {
               // Attach preceding directives to this node
@@ -1769,6 +1764,9 @@ export class HoloScriptPlusParser {
 
   private parseNode(): HSPlusNode | null {
     const startToken = this.current();
+    // Only the document reader starts a node at the top level; every other caller is a block.
+    const topLevel = this.parsingTopLevel;
+    this.parsingTopLevel = false;
 
     const typeToken =
       this.match([
@@ -1792,16 +1790,10 @@ export class HoloScriptPlusParser {
       return null;
     }
 
-    // A file's imports are read at its top level (parse). Inside a block, `import` used to
-    // become a node that swallowed the next line, and the error named a stray STRING there
-    // instead of the import (directive 2, task 34vf).
+    // An import reads the same wherever it stands, as `@import` does and as .holo reads it.
+    // It used to become a node that swallowed the next line (directive 2, task 34vf).
     if (type === 'import') {
-      this.errorAt(
-        startToken,
-        'An import goes at the top of the file, outside any block: import "path" or @import "path".',
-        'HSP001'
-      );
-      this.skipRestOfLine();
+      this.readImportAfterKeyword(startToken);
       return null;
     }
 
@@ -2210,6 +2202,11 @@ export class HoloScriptPlusParser {
           if (this.check('LBRACE')) break;
           // The `}` of the enclosing block ends a body-less last child.
           if (this.check('RBRACE')) break;
+          // Inside a block a child's body opens on its header line or the next one. A child with
+          // no body ends at its line, so the parent's next property stays the parent's
+          // (`object { geometry "sphere"` then `color: "red"` gave color to a phantom child;
+          // review of 43b8f9149). The multi-line header form stays a top-level form.
+          if (!topLevel) break;
           // A line that opens another node ends this one: it has no body. Read here as bare
           // properties, `sphere ball` then `cube box { ... }` became one sphere with cube: true
           // and box: true, and the cube vanished with success (directive 2, task 34vf).
@@ -2369,6 +2366,13 @@ export class HoloScriptPlusParser {
               const saved = this.pos;
               const name = this.advance().value;
 
+              // `import` in a body reads as it does at the top (review of 43b8f9149: a braced one
+              // here became import: true plus a phantom child named after the path).
+              if (name === 'import' && this.tokens[saved].type === 'IDENTIFIER') {
+                this.readImportAfterKeyword(this.tokens[saved]);
+                continue;
+              }
+
               const childNodeKeywords = [
                 'logic',
                 'template',
@@ -2488,7 +2492,14 @@ export class HoloScriptPlusParser {
                 }
               }
 
-              if (this.check('COLON') || this.check('EQUALS')) {
+              // `key => value` is a property, as .holo reads it in a block (an input map:
+              // `interact => "button_a"`). Before quoted children were read, those blocks were
+              // skipped whole, so nothing here ever met one.
+              if (
+                this.check('COLON') ||
+                this.check('EQUALS') ||
+                (this.check('ARROW') && this.current().value === '=>')
+              ) {
                 this.advance();
                 const pipeNext = this.peek(1);
                 if (
@@ -2538,6 +2549,17 @@ export class HoloScriptPlusParser {
             } else if (this.check('COMMA')) {
               // OPTIONAL COMMA SUPPORT
               this.advance();
+            } else if (
+              /^[A-Za-z_][A-Za-z0-9_]*$/.test(String(this.current().value)) &&
+              this.peek(1).type === 'COLON'
+            ) {
+              // A reserved word as a property name (`match: 0.5` in a Unity CanvasScaler), as
+              // .holo reads it.
+              const key = this.advance().value;
+              this.advance(); // :
+              const field = this.parseFieldValue();
+              properties[key] = field.value;
+              if (field.mark) fieldMarks[key] = field.mark;
             } else {
               const token = this.current();
               const message =
@@ -4773,7 +4795,11 @@ export class HoloScriptPlusParser {
         const token = this.current();
         const next = this.peek(1);
 
-        if (
+        // `import` in a composition is an import, as in .holo (`import "x"` used to become the
+        // property import: "x"; review of 43b8f9149).
+        if (token.type === 'IDENTIFIER' && token.value === 'import') {
+          this.readImportAfterKeyword(this.advance());
+        } else if (
           token.type === 'IDENTIFIER' &&
           token.value === 'system' &&
           (next.type === 'IDENTIFIER' || next.type === 'STRING') &&
@@ -4885,7 +4911,12 @@ export class HoloScriptPlusParser {
             next.type === 'NULL') &&
           // `policy "Name" using "Parent" { ... }` is a node, not two properties.
           // The body is stored by parseNode, the same path a brace body already uses.
-          !this.quotedNameUsingClauseOpensBody()
+          !this.quotedNameUsingClauseOpensBody() &&
+          // So is a quoted name followed by a trait or a body: `particles "Fireflies" @looping {`
+          // was read as particles: "Fireflies", and the particle system vanished with success
+          // (examples/perception-tests/03-particle-blocks.holo; directive 2, task 34vf).
+          this.peek(2).type !== 'AT' &&
+          this.peek(2).type !== 'LBRACE'
         ) {
           const key = this.advance().value;
           result.properties[key] = this.parseValue();
@@ -7045,22 +7076,44 @@ export class HoloScriptPlusParser {
     }
 
     let namedImports: string[] | undefined;
+    let localNames: Record<string, string> | undefined;
     let isWildcard = false;
 
     // Named-import form: @import { A, B } from "./path.hs"
     if (this.check('LBRACE')) {
       this.advance(); // {
       namedImports = [];
-      // Every turn consumes a token: a line break inside the braces used to stop the loop from
-      // moving, so a multi-line list hung the parser (packages/lsp/src/server.hsplus).
+      // Names separated by commas, each optionally `as Local`, across lines, as .holo reads
+      // them. Anything else is reported. The loop used to stall on a line break (a multi-line list
+      // hung the parser), and the first fix dropped every non-name silently (review of 43b8f9149).
+      let expectName = true;
       while (!this.check('RBRACE') && !this.check('EOF')) {
-        if (this.check('IDENTIFIER') && this.current().value === 'as') {
-          this.advance(); // as
-          if (this.check('IDENTIFIER')) this.advance(); // local name
-        } else if (this.check('IDENTIFIER')) {
-          namedImports.push(this.advance().value);
+        if (this.check('NEWLINE') || this.check('INDENT') || this.check('DEDENT')) {
+          this.advance();
+        } else if (this.check('COMMA') && !expectName) {
+          this.advance();
+          expectName = true;
+        } else if (this.check('IDENTIFIER') && expectName) {
+          const imported = this.advance().value;
+          namedImports.push(imported);
+          if (this.check('IDENTIFIER') && this.current().value === 'as') {
+            this.advance(); // as
+            if (this.check('IDENTIFIER')) {
+              (localNames ??= {})[imported] = this.advance().value;
+            } else {
+              this.error('An import list needs a local name after as.', 'HSP001');
+            }
+          }
+          expectName = false;
         } else {
-          this.advance(); // comma, line break, or anything else
+          const token = this.current();
+          this.error(
+            expectName
+              ? `"${token.value}" is not a name an import list can hold.`
+              : `Separate the names in an import list with commas (found "${token.value}").`,
+            'HSP001'
+          );
+          this.advance();
         }
       }
       this.expect('RBRACE', 'Expected } in named import list');
@@ -7116,14 +7169,33 @@ export class HoloScriptPlusParser {
       }
     }
 
-    this.imports.push({ path, alias, namedImports, isWildcard });
+    this.imports.push({ path, alias, namedImports, ...(localNames ? { localNames } : {}), isWildcard });
     return {
       type: 'import' as const,
       path,
       alias,
       namedImports,
+      ...(localNames ? { localNames } : {}),
       isWildcard,
     } as HSPlusDirective;
+  }
+
+  /**
+   * An import whose `import` keyword is consumed, read the same wherever it stands (the top of a
+   * file, a composition, a node body), as `@import` is and as .holo reads it. A form neither file
+   * type has (`import Foo from "x"`) gets one error at its own line, and the line is skipped.
+   */
+  private readImportAfterKeyword(importToken: Token): HSPlusDirective | null {
+    if (this.check('STRING') || this.check('LBRACE') || this.check('ASTERISK')) {
+      return this.parseImportClause();
+    }
+    this.errorAt(
+      importToken,
+      'This import form is not read here. Write import { Name } from "path", or import "path".',
+      'HSP001'
+    );
+    this.skipRestOfLine();
+    return null;
   }
 
   /**
@@ -7137,7 +7209,7 @@ export class HoloScriptPlusParser {
     return (
       word.type === 'IDENTIFIER' &&
       word.value !== 'using' &&
-      (name.type === 'STRING' || name.type === 'IDENTIFIER')
+      (name.type === 'STRING' || name.type === 'IDENTIFIER' || name.type === 'LBRACE')
     );
   }
 

@@ -1087,20 +1087,23 @@ describe('HoloScriptPlusParser - using clause keeps the body', () => {
     expect(result.ast.root.properties).toEqual({ title: 'Hello' });
   });
 
-  it('does not treat a bare policy block as a new keyword', () => {
+  // #382 kept this form out of its scope, and the test pinned what it then did: the property
+  // policy: 'Bare' plus a nameless-brace error, with the body lost. A quoted name followed by a
+  // body now opens a node in a composition, as it does at the top level and in a node body, with
+  // or without `using` (directive 2, task 34vf). A truly nameless brace is still HSP101.
+  it('reads a quoted block in a composition as a node, with or without using', () => {
     const source = 'composition "Room" {\n  policy "Bare" {\n    readOnly: true\n  }\n}\n';
     const result = parser.parse(source);
 
-    expect(result.success).toBe(false);
-    expect(result.errors).toEqual([
-      expect.objectContaining({
-        code: 'HSP101',
-        line: 2,
-        column: 17,
-        message: 'HSP101: A block here needs a name. Write the name, then the brace block.',
-      }),
+    expect(result.errors).toEqual([]);
+    expect(result.ast.root.properties).not.toHaveProperty('policy');
+    expect(JSON.stringify(result.ast)).toContain('"name":"Bare"');
+    expect(JSON.stringify(result.ast)).toContain('"readOnly":true');
+
+    const nameless = parser.parse('composition "Room" {\n  {\n    readOnly: true\n  }\n}\n');
+    expect(nameless.errors).toEqual([
+      expect.objectContaining({ code: 'HSP101', message: expect.stringMatching(/needs a name/) }),
     ]);
-    expect(result.ast.root.properties).toEqual({ policy: 'Bare' });
   });
 
   it('stores the ColoredInteractive body from the templates reference', () => {
@@ -1560,7 +1563,21 @@ describe('HoloScriptPlusParser - a body-less node never swallows the next node',
       const { result, children } = nodes(src);
       expect(result.errors, keyword).toEqual([]);
       expect(result.ast?.imports?.[0]?.namedImports, keyword).toEqual(['Alpha', 'Beta', 'Gamma']);
+      // The local name is kept, as .holo keeps it (review of 43b8f9149).
+      expect(result.ast?.imports?.[0]?.localNames, keyword).toEqual({ Beta: 'B' });
       expect(children.map((c) => `${c.type}:${c.name}`), keyword).toEqual(['object:a']);
+    }
+  });
+
+  // Review of 43b8f9149 (claude6): the first fix dropped every non-name in the list silently.
+  it('reports anything in an import list that is not a comma-separated name', () => {
+    for (const list of ['{ A, 42 }', '{ A, "s" }', '{ * }', '{ A; B }', '{ A B }']) {
+      for (const keyword of ['import', '@import']) {
+        const { result, children } = nodes(`${keyword} ${list} from "./x.hsplus"\nobject "a" { color: "red" }`);
+        expect(result.success, `${keyword} ${list}`).toBe(false);
+        expect(result.errors[0].line, `${keyword} ${list}`).toBe(1);
+        expect(children.map((c) => `${c.type}:${c.name}`), `${keyword} ${list}`).toEqual(['object:a']);
+      }
     }
   });
 
@@ -1592,14 +1609,64 @@ describe('HoloScriptPlusParser - a body-less node never swallows the next node',
     expect(children.map((c) => `${c.type}:${c.name}`)).toEqual(['group:g', 'object:after']);
   });
 
-  it('refuses an import inside a block, naming the top of the file, and keeps the next node', () => {
-    const { result, children } = nodes('group "g" {\n  import "./x.hsplus"\n  sphere a\n}');
-    expect(result.success).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(String(result.errors[0].message)).toMatch(/top of the file/);
-    expect(result.errors[0].line).toBe(2);
-    const kids = (children[0] as unknown as { children: Array<{ type: string; name: string }> }).children;
-    expect(kids.map((c) => `${c.type}:${c.name}`)).toEqual(['sphere:a']);
+  // One meaning (review of 43b8f9149): an import inside a block reads exactly as at the top, as
+  // `@import` does there and as .holo reads `import` inside a composition. A braced one used to
+  // leave import: true plus a phantom child named after the path; in a composition, `import "x"`
+  // became the property import: "x".
+  it('reads an import inside a body or a composition as it reads one at the top', () => {
+    for (const [label, src] of [
+      ['body, quoted', 'group "g" {\n  import "./x.hsplus"\n  sphere a\n}'],
+      ['body, braced', 'group "g" {\n  import { A } from "./x.hsplus"\n  sphere a\n}'],
+      ['composition, quoted', 'composition "C" {\n  import "./x.hsplus"\n  object "a" { color: "red" }\n}'],
+      ['composition, braced', 'composition "C" {\n  import { A } from "./x.hsplus"\n  object "a" { color: "red" }\n}'],
+    ] as const) {
+      const result = new HoloScriptPlusParser().parse(src);
+      expect(result.errors, label).toEqual([]);
+      expect(result.ast?.imports?.map((i) => i.path), label).toEqual(['./x.hsplus']);
+      const json = JSON.stringify(result.ast);
+      expect(json, label).not.toContain('"import":');
+      expect(json, label).not.toContain('"type":"from"');
+    }
+  });
+
+  it('gives a body-less child no property of its parent', () => {
+    const { result, children } = nodes('object "o" {\n  geometry "sphere"\n  color: "red"\n}');
+    expect(result.errors).toEqual([]);
+    expect(children[0].properties).toMatchObject({ color: 'red' });
+    const kids = (children[0] as unknown as { children: Array<{ properties: Record<string, unknown> }> }).children;
+    for (const kid of kids) expect(kid.properties).not.toHaveProperty('color');
+  });
+
+  // Blocks that used to be skipped whole are now read, so two forms .holo already reads in a
+  // block reach this parser for the first time (examples/showcase/physics-playground.holo and
+  // examples/export-pipelines/export-to-unity.holo).
+  it('reads key => value and a reserved word as a property name inside a body, as .holo does', () => {
+    const { result, children } = nodes(
+      'input "Controls" {\n  move: "left_stick"\n  interact => "button_a"\n}\ncomponent "CanvasScaler" {\n  match: 0.5\n}'
+    );
+    expect(result.errors).toEqual([]);
+    expect(children[0].properties).toEqual({ move: 'left_stick', interact: 'button_a' });
+    expect(children[1].properties).toEqual({ match: 0.5 });
+  });
+
+  it('reads a quoted child with a trait or a body inside a composition, not a property', () => {
+    const result = new HoloScriptPlusParser().parse(
+      'composition "C" {\n  particles "Fireflies" @looping {\n    rate: 50\n  }\n  emitter "Torch" {\n    rate: 5\n  }\n  label "plain"\n}'
+    );
+    expect(result.errors).toEqual([]);
+    const json = JSON.stringify(result.ast);
+    expect(json).toContain('"name":"Fireflies"');
+    expect(json).toContain('"name":"Torch"');
+    expect(json).not.toContain('"particles":"Fireflies"');
+    // A word and a value that end the line are still a colon-less property.
+    expect(json).toContain('"label":"plain"');
+  });
+
+  it('ends a body-less node before a word that opens a block', () => {
+    const { result, children } = nodes('sphere ball\nlogic { }\nobject "after" { }');
+    expect(result.errors).toEqual([]);
+    expect(children.map((c) => c.type)).toEqual(['sphere', 'logic', 'object']);
+    expect(children[0].properties).not.toHaveProperty('logic');
   });
 
   it('still reads @import', () => {
