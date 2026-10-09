@@ -26,8 +26,12 @@
  *      reach, also selects the tests that name it (`tests.namedBy`): prose from
  *      any test, code from tests in its own package or outside every package.
  *      Tests that read Markdown or code files by pattern (`*.md`,
- *      `.endsWith('.ts')`) count as naming every such file. Prose no test names
- *      selects nothing; that is the only inert change.
+ *      `.endsWith('.ts')`) count as naming every such file. A helper (test
+ *      support code) that names a file keeps its package suite, and so does a
+ *      setup file a runner config names. Prose no test names selects nothing;
+ *      that is the only inert change. Every git call pins its output shape
+ *      (--no-color, -z, fixed diff prefixes), and a search whose output cannot
+ *      be read keeps every test.
  *   2. Forgotten callers — for each exported symbol whose declaration line
  *      changed, the call sites in files the change did NOT touch.
  *   3. Reviewer brief — a short plain-text summary of 1 and 2.
@@ -37,8 +41,10 @@
  * traced, so graph mode covers reach WITHIN each package. The report lists the
  * workspace packages that depend on a touched package so nobody reads
  * "3 tests" as "nothing else can break". For the same reason a test that reads
- * ANOTHER package's data file (JSON, YAML, ...) by path is not found: data
+ * ANOTHER package's data file (JSON, YAML, .rs, ...) by path is not found: data
  * names are not matched across packages (`res.json()` reads like a file name).
+ * The brief says so whenever a changed data file sits inside a package
+ * (`tests.untracedDataFiles`).
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -130,6 +136,12 @@ export interface ChangeImpactReport {
      * reads, spawns or loads a file by path has no import edge to it.
      */
     namedBy: Array<{ file: string; tests: string[] }>;
+    /**
+     * Changed data files inside a package (non-code, non-prose). Their package
+     * suite is kept, but a test in ANOTHER package that reads one by path is
+     * not searched for: data names are not matched across packages.
+     */
+    untracedDataFiles: string[];
   };
   callers: {
     available: boolean;
@@ -201,6 +213,12 @@ export interface NamedFileIndex {
   code: Map<string, string[]>;
   /** Files that read code files by pattern (`*.ts`, `.endsWith('.js')`). */
   codePattern: string[];
+  /**
+   * Output lines not in the `path\0name` shape asked for (a git setting such as
+   * grep.lineNumber or color.ui=always reshaped them). Any at all means the
+   * index cannot be trusted.
+   */
+  unread: number;
 }
 
 /** Index `git grep -z -o -E NAMED_FILE_RE` output (`path\0match` lines). */
@@ -209,16 +227,23 @@ export function indexNamedFiles(grepOutput: string): NamedFileIndex {
   const code = new Map<string, Set<string>>();
   const prosePattern = new Set<string>();
   const codePattern = new Set<string>();
+  let unread = 0;
   const add = (map: Map<string, Set<string>>, name: string, reader: string) => {
     if (!map.has(name)) map.set(name, new Set());
     map.get(name)!.add(reader);
   };
   for (const line of grepOutput.split('\n')) {
-    const at = line.indexOf('\0');
-    if (at <= 0) continue;
-    const reader = toPosix(line.slice(0, at));
-    const parts = NAMED_FILE_PARTS_RE.exec(line.slice(at + 1).trim());
-    if (!parts) continue;
+    if (line.trim() === '') continue;
+    const fields = line.split('\0');
+    // eslint-disable-next-line no-control-regex
+    const colored = /\x1b/.test(line);
+    const parts =
+      fields.length === 2 && !colored ? NAMED_FILE_PARTS_RE.exec(fields[1].trim()) : null;
+    if (!fields[0] || !parts) {
+      unread++;
+      continue;
+    }
+    const reader = toPosix(fields[0]);
     const stem = parts[1].toLowerCase();
     const isProse = INERT_FILE_RE.test(`.${parts[2]}`);
     if (stem === '' || /[*{}$]/.test(stem)) {
@@ -236,17 +261,23 @@ export function indexNamedFiles(grepOutput: string): NamedFileIndex {
     prosePattern: Array.from(prosePattern),
     code: lists(code),
     codePattern: Array.from(codePattern),
+    unread,
   };
 }
 
 /**
  * File names written in test files and runner configs. Returns null when the
- * search could not run; `git grep` exits 1 when nothing matches.
+ * search could not run; `git grep` exits 1 when nothing matches. The --no-*
+ * flags override settings (grep.lineNumber, grep.column, color.ui=always)
+ * that add fields or color codes to every line.
  */
 function grepNamedFiles(git: ChangeImpactDeps['git']): string | null {
   try {
     return git([
       'grep',
+      '--no-line-number',
+      '--no-column',
+      '--no-color',
       '-z',
       '-o',
       '-I',
@@ -553,6 +584,13 @@ export function renderReviewerBrief(report: Omit<ChangeImpactReport, 'brief'>): 
   if (named.length > 5) {
     lines.push(`  Named by path: ${named.length - 5} more file(s), listed in tests.namedBy.`);
   }
+  const data = report.tests.untracedDataFiles ?? [];
+  if (data.length > 0) {
+    const more = data.length > 1 ? ` and ${data.length - 1} more data file(s)` : '';
+    lines.push(
+      `  Not searched: a test in another package that reads ${data[0]}${more} by path; data names are not matched across packages.`
+    );
+  }
   if (!report.callers.available) {
     lines.push(`Callers: not checked — ${report.callers.reason ?? 'no graph'}.`);
   } else if (report.callers.changedSymbols.length === 0) {
@@ -685,10 +723,18 @@ export async function analyzeChangeImpact(
   const deletedKeys = new Set(changes.filter((c) => c.status === 'D').map((c) => key(c.file)));
   const isDeleted = (f: string) => deletedKeys.has(key(f));
   const present = changedFiles.filter((f) => !isDeleted(f));
+  // The --no-* and prefix flags override settings that reshape the patch:
+  // color.ui=always (color codes on every line), diff.mnemonicPrefix or
+  // diff.noprefix (c/ w/ or no prefixes), diff.external and textconv drivers.
   const diff = deps.git([
     'diff',
     '-U0',
     '--no-renames',
+    '--no-color',
+    '--no-ext-diff',
+    '--no-textconv',
+    '--src-prefix=a/',
+    '--dst-prefix=b/',
     ...range,
     '--',
     '*.ts',
@@ -707,10 +753,11 @@ export async function analyzeChangeImpact(
     new Set(changedFiles.map(pkgOf).filter((p): p is string => Boolean(p)))
   ).sort();
 
+  // -z: without it core.quotePath (on by default) prints a non-ASCII path as
+  // "caf\303\251.test.ts", which matches no test pattern.
   const trackedFiles = deps
-    .git(['ls-files'])
-    .split(/\r?\n/)
-    .map((l) => l.trim())
+    .git(['ls-files', '-z'])
+    .split('\0')
     .filter(Boolean)
     .map(toPosix)
     // An unstaged delete is still in the index; never hand the runner a missing file.
@@ -755,20 +802,27 @@ export async function analyzeChangeImpact(
   // Tests and runner configs that name a file by path depend on it with no
   // import edge. One search covers every test; a failed search keeps everything.
   const grepped = changedFiles.length > 0 ? grepNamedFiles(deps.git) : '';
-  if (grepped === null) {
+  const named = indexNamedFiles(grepped ?? '');
+  const searchFailed =
+    grepped === null
+      ? 'git grep failed'
+      : named.unread > 0
+        ? `${named.unread} line(s) of git grep output were not in the shape asked for`
+        : null;
+  if (searchFailed) {
     fullSuite.set(
       REPO_SCOPE,
-      'the tests could not be searched for the files they name by path (git grep failed), so every test in the repo is kept'
+      `the tests could not be searched for the files they name by path (${searchFailed}), so every test in the repo is kept`
     );
   }
-  const named = indexNamedFiles(grepped ?? '');
   /** Code is named from its own package, or across packages when either side is outside them all. */
   const sharesScope = (a: string, b: string) => {
     const pa = pkgOf(a);
     const pb = pkgOf(b);
     return pa === null || pb === null || pa === pb;
   };
-  const testsNaming = (f: string): string[] => {
+  /** Files that name `f` by path: runnable tests, and test support code (a helper) that tests run through. */
+  const readersNaming = (f: string): { tests: string[]; support: string[] } => {
     const posix = toPosix(f);
     const base = path.posix.basename(posix).toLowerCase();
     const readers = INERT_FILE_RE.test(posix)
@@ -778,12 +832,35 @@ export async function analyzeChangeImpact(
             (r) => sharesScope(r, posix)
           )
         : [];
-    return readers.filter((r) => r !== posix && isTestFile(r) && !isDeleted(r));
+    const live = readers.filter((r) => r !== posix && !isDeleted(r));
+    return {
+      tests: live.filter((r) => RUNNABLE_TEST_RE.test(r)),
+      support: live.filter((r) => !RUNNABLE_TEST_RE.test(r) && (isTestFile(r) || isTestSupport(r))),
+    };
   };
-  /** A runner config that names test support code loads it for every test in its scope. */
+  const testsNaming = (f: string) => readersNaming(f).tests;
+  /**
+   * A helper that names a file by path is not a test the runner runs: the
+   * tests that call it cannot all be listed, so its package suite is kept.
+   */
+  const keepSuitesOfHelpersNaming = (files: Iterable<string>) => {
+    for (const f of files) {
+      for (const helper of readersNaming(f).support) {
+        keepSuite(
+          helper,
+          `${helper} names ${f} by path and is test support code, so the tests that use it cannot all be listed`
+        );
+      }
+    }
+  };
+  /**
+   * A runner config that names test support code, or a setup/teardown file,
+   * loads it for every test in its scope. (Other code a config names, such as
+   * an alias to src/index.ts, is reached through imports instead.)
+   */
   const keepIfRunnerLoads = (f: string) => {
-    if (!isTestSupport(f)) return;
     const stem = path.posix.basename(toPosix(f)).toLowerCase().replace(CODE_EXT_RE, '');
+    if (!isTestSupport(f) && !/setup|teardown/.test(stem)) return;
     for (const config of named.code.get(stem) ?? []) {
       if (!RUNNER_CONFIG_RE.test(config) || !sharesScope(config, f)) continue;
       keepScope(
@@ -803,10 +880,16 @@ export async function analyzeChangeImpact(
       namedBy.set(f, Array.from(new Set([...(namedBy.get(f) ?? []), ...added])).sort());
     }
   };
+  // Plain code-unit order, the same on every worker locale.
   const namedByEntries = () =>
     Array.from(namedBy, ([file, tests]) => ({ file, tests })).sort((a, b) =>
-      a.file.localeCompare(b.file)
+      a.file < b.file ? -1 : a.file > b.file ? 1 : 0
     );
+  // A test in ANOTHER package that reads a changed data file by path is not
+  // searched for (data names are not matched across packages); say so.
+  const untracedDataFiles = changedFiles.filter(
+    (f) => !CODE_FILE_RE.test(f) && !INERT_FILE_RE.test(f) && pkgOf(f) !== null
+  );
 
   for (const f of changedFiles) {
     if (isInertFile(f)) continue;
@@ -822,12 +905,13 @@ export async function analyzeChangeImpact(
         f,
         `${f} changed and is test support code (a setup file, helper or fixture): a runner or a test can load it by path, so the tests that use it cannot all be listed`
       );
-      keepIfRunnerLoads(f);
     }
+    if (CODE_FILE_RE.test(f)) keepIfRunnerLoads(f);
   }
   const fullSuiteEntries = () => Array.from(fullSuite, ([pkg, reason]) => ({ pkg, reason }));
 
   const fallback = (reason: string, cacheNote?: string): ChangeImpactReport => {
+    keepSuitesOfHelpersNaming(changedFiles);
     const selected = new Set(testsIn([...touchedPackages, ...fullSuite.keys()]));
     addTestsNaming(changedFiles, selected);
     const fullSet = Array.from(selected).sort();
@@ -848,6 +932,7 @@ export async function analyzeChangeImpact(
         fullSet,
         fullSuitePackages: fullSuiteEntries(),
         namedBy: namedByEntries(),
+        untracedDataFiles,
       },
       callers: {
         available: false,
@@ -945,6 +1030,7 @@ export async function analyzeChangeImpact(
   // A setup file the change reaches (it imports a changed file) runs before
   // every test its runner config covers.
   for (const f of affectedRel) keepIfRunnerLoads(f);
+  keepSuitesOfHelpersNaming([...changedFiles, ...affectedRel]);
 
   const affectedPackages = new Set(touchedPackages);
   for (const f of affectedRel) {
@@ -1033,6 +1119,7 @@ export async function analyzeChangeImpact(
       fullSet,
       fullSuitePackages: fullSuiteEntries(),
       namedBy: namedByEntries(),
+      untracedDataFiles,
     },
     callers: {
       available: callersAvailable,

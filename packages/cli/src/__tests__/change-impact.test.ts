@@ -51,11 +51,27 @@ const DIFF = [
   '+    this.reset(true);',
 ].join('\n');
 
+/**
+ * `git ls-files` as git prints it: NUL-separated with -z; otherwise one path
+ * per line, with core.quotePath (on by default) quoting a non-ASCII path.
+ */
+function lsFiles(paths: string[], args: string[]): string {
+  const sorted = [...paths].sort();
+  if (args.includes('-z')) return sorted.map((p) => `${p}\0`).join('');
+  const quote = (p: string) =>
+    /[^\x20-\x7e]/.test(p)
+      ? `"${Array.from(Buffer.from(p, 'utf8'), (b) =>
+          b > 0x7e ? `\\${b.toString(8)}` : String.fromCharCode(b)
+        ).join('')}"`
+      : p;
+  return sorted.map(quote).join('\n');
+}
+
 function makeDeps(overrides: Partial<ChangeImpactDeps> = {}): ChangeImpactDeps {
   const existing = new Set(FILES.map((f) => `${ROOT}/${f}`));
   return {
     git: (args) => {
-      if (args[0] === 'ls-files') return FILES.join('\n');
+      if (args[0] === 'ls-files') return lsFiles(FILES, args);
       if (args[0] === 'diff' && args[1] === '--name-status') return 'M\0packages/a/src/math.ts\0';
       if (args[0] === 'diff' && args[1] === '--name-only') return 'packages/a/src/math.ts\n';
       if (args[0] === 'diff' && args[1] === '-U0') return DIFF;
@@ -237,6 +253,37 @@ describe('impact --since: HoloCI change report from the codebase graph', () => {
     expect(report.brief).toContain('codebase graph of packages/a');
   });
 
+  it('git settings that color a diff, rename its prefixes or replace it do not hide changed declarations', async () => {
+    const base = makeDeps();
+    const deps = makeDeps({
+      git: (args) => {
+        if (args[0] !== 'diff' || args[1] !== '-U0') return base.git(args);
+        // diff.external, diff.mnemonicPrefix and color.ui=always, as git applies
+        // them unless the call overrides each one (prefixes measured on git 2.51).
+        if (!args.includes('--no-ext-diff')) return 'Files differ\n';
+        let out = DIFF;
+        if (!args.includes('--src-prefix=a/') || !args.includes('--dst-prefix=b/')) {
+          out = out
+            .replace(/^diff --git a\/(\S+) b\/(\S+)$/gm, 'diff --git c/$1 w/$2')
+            .replace(/^--- a\//gm, '--- c/')
+            .replace(/^\+\+\+ b\//gm, '+++ w/');
+        }
+        if (!args.includes('--no-color')) {
+          out = out
+            .split('\n')
+            .map((l) => `\x1b[1m${l}\x1b[m`)
+            .join('\n');
+        }
+        return out;
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD~1' }, deps);
+
+    expect(
+      report.callers.changedSymbols.map((s) => `${s.file} ${s.owner ? `${s.owner}.` : ''}${s.name}`)
+    ).toEqual(['packages/a/src/math.ts add', 'packages/a/src/math.ts Calc.total']);
+  });
+
   it('reads the graph cache only — absorbs first just with --refresh', async () => {
     const deps = makeDeps();
     await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD~1' }, deps);
@@ -316,6 +363,10 @@ function repo2(opts: {
   indexKeeps?: string[];
   /** `git grep` fails for a reason other than "no match". */
   grepFails?: boolean;
+  /** User git settings that reshape `git grep` output unless the call turns them off. */
+  gitConfig?: { lineNumber?: boolean; column?: boolean; colorAlways?: boolean };
+  /** Raw `git grep` stdout, whatever the flags (output this tool cannot read). */
+  grepOutput?: string;
   /** Files the graph holds (default: the code files after the change, i.e. a fresh absorb). */
   graphNodes?: string[];
   /** The `git diff -U0` text; `renamedDiff` is what git prints WITHOUT --no-renames. */
@@ -342,17 +393,30 @@ function repo2(opts: {
   return {
     git: (args) => {
       if (args[0] === 'ls-files') {
-        return Array.from(new Set([...tree, ...(opts.indexKeeps ?? [])]))
-          .sort()
-          .join('\n');
+        return lsFiles(Array.from(new Set([...tree, ...(opts.indexKeeps ?? [])])), args);
       }
       if (args[0] === 'grep') {
         // `git grep -z -o -E <re> -- <tests and runner configs>`, as git runs it.
         if (opts.grepFails) throw Object.assign(new Error('fatal: grep'), { status: 128 });
+        if (opts.grepOutput !== undefined) return opts.grepOutput;
+        const cfg = opts.gitConfig ?? {};
+        const color = cfg.colorAlways && !args.includes('--no-color');
+        const paint = (code: string, s: string) => (color ? `\x1b[${code}m${s}\x1b[m` : s);
         const re = new RegExp(args[args.indexOf('-E') + 1], 'gi');
         const out = Object.entries(opts.contents ?? {})
           .filter(([f]) => tree.has(f) && (isTestFile(f) || /\.config\.|vitest\.workspace/.test(f)))
-          .flatMap(([f, text]) => (text.match(re) ?? []).map((m) => `${f}\0${m}\n`))
+          .flatMap(([f, text]) =>
+            Array.from(text.matchAll(re), (m) => {
+              // Measured on git 2.51: each extra field is NUL-separated, and
+              // color.ui=always paints the path and the match too.
+              let line = paint('35', f);
+              if (cfg.lineNumber && !args.includes('--no-line-number'))
+                line += `\0${paint('32', '1')}`;
+              if (cfg.column && !args.includes('--no-column'))
+                line += `\0${paint('32', String(m.index! + 1))}`;
+              return `${line}\0${paint('1;31', m[0])}\n`;
+            })
+          )
           .join('');
         if (!out) throw Object.assign(new Error('git grep: exit 1'), { status: 1 });
         return out;
@@ -532,6 +596,11 @@ describe('impact --since: what the graph cannot place keeps a whole suite', () =
           'packages/a/src/__tests__/fixtures/data.json changed and is not code the graph can trace (a test may read it as data, fixture or snapshot)',
       },
     ]);
+    // The one reader this cannot find is said out loud.
+    expect(report.tests.untracedDataFiles).toEqual(['packages/a/src/__tests__/fixtures/data.json']);
+    expect(report.brief).toContain(
+      'Not searched: a test in another package that reads packages/a/src/__tests__/fixtures/data.json by path; data names are not matched across packages.'
+    );
   });
 
   it.each(['pnpm-lock.yaml', 'tsconfig.base.json', 'vitest.workspace.ts'])(
@@ -551,6 +620,9 @@ describe('impact --since: what the graph cannot place keeps a whole suite', () =
       ]);
       expect(report.brief).toContain('4 of 4 test file(s)');
       expect(report.brief).toContain('Whole suite kept for every package');
+      // Outside every package nothing is left unsearched: every test runs.
+      expect(report.tests.untracedDataFiles).toEqual([]);
+      expect(report.brief).not.toContain('Not searched');
     }
   );
 
@@ -679,6 +751,53 @@ describe('impact --since: tests that name a file by path depend on it', () => {
     expect(report.tests.fullSet).toContain(CLI_E2E);
   });
 
+  it('git settings that number or color grep output do not empty the name index', async () => {
+    const deps = repo2({
+      files: ['docs/guide.md', DOCS_TEST],
+      contents: {
+        [DOCS_TEST]: "fs.readFileSync(new URL('../../../../docs/guide.md', import.meta.url))",
+      },
+      changes: [{ status: 'M', file: 'docs/guide.md' }],
+      gitConfig: { lineNumber: true, column: true, colorAlways: true },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([DOCS_TEST]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+  });
+
+  it('grep output in a shape this tool cannot read keeps every test, with the reason', async () => {
+    const deps = repo2({
+      files: ['docs/guide.md'],
+      changes: [{ status: 'M', file: 'docs/guide.md' }],
+      // A line number git added anyway: the name field is not where it is read.
+      grepOutput: `${DOCS_TEST}\0 12\0guide.md\n`,
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual(ALL_TESTS);
+    expect(report.tests.fullSuitePackages).toEqual([
+      {
+        pkg: '.',
+        reason:
+          'the tests could not be searched for the files they name by path (1 line(s) of git grep output were not in the shape asked for), so every test in the repo is kept',
+      },
+    ]);
+  });
+
+  it('lists namedBy in plain code-unit order, the same on every locale', async () => {
+    const deps = repo2({
+      files: ['docs/a.md', 'docs/B.md', DOCS_TEST],
+      contents: { [DOCS_TEST]: "read('docs/a.md'); read('docs/B.md');" },
+      changes: [
+        { status: 'M', file: 'docs/a.md' },
+        { status: 'M', file: 'docs/B.md' },
+      ],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+    expect(report.tests.namedBy.map((n) => n.file)).toEqual(['docs/B.md', 'docs/a.md']);
+  });
+
   it('when the tests cannot be searched, every test in the repo is kept', async () => {
     const deps = repo2({
       changes: [{ status: 'M', file: 'packages/a/src/unrelated.ts' }],
@@ -720,6 +839,53 @@ describe('impact --since: test support code a runner or a test loads by path', (
 
     expect(report.tests.selected).toEqual(A_TESTS);
     expect(report.tests.fullSuitePackages.map((f) => f.pkg)).toEqual(['packages/a']);
+  });
+
+  it('a helper that names a changed file keeps its package suite (the tests that call it cannot all be listed)', async () => {
+    const helper = 'packages/a/src/__tests__/helpers/load-docs.ts';
+    for (const noGraph of [false, true]) {
+      const deps = repo2({
+        files: ['docs/guide.md', helper],
+        contents: {
+          [helper]: "export const load = () => readFileSync(join(root, 'docs/guide.md'));",
+        },
+        changes: [{ status: 'M', file: 'docs/guide.md' }],
+        noGraph,
+      });
+      const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+      expect(report.tests.selected).toEqual([...A_TESTS, helper].sort());
+      expect(report.tests.fullSuitePackages).toEqual([
+        {
+          pkg: 'packages/a',
+          reason: `${helper} names docs/guide.md by path and is test support code, so the tests that use it cannot all be listed`,
+        },
+      ]);
+    }
+  });
+
+  it('a setup file outside a test folder that a runner config names keeps that suite', async () => {
+    const setup = 'packages/a/src/setupTests.ts';
+    for (const noGraph of [false, true]) {
+      const deps = repo2({
+        files: [setup],
+        contents: {
+          'packages/a/vitest.config.ts':
+            "export default { test: { setupFiles: ['./src/setupTests.ts'] } };",
+        },
+        changes: [{ status: 'M', file: setup }],
+        noGraph,
+      });
+      const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+      expect(report.tests.selected).toEqual(A_TESTS);
+      expect(report.tests.fullSuitePackages).toEqual([
+        {
+          pkg: 'packages/a',
+          reason: `${setup} is named by packages/a/vitest.config.ts, which loads it for every test it runs, and the change reaches it`,
+        },
+      ]);
+    }
   });
 
   it('a setup file the change reaches keeps the suite its runner config loads it for', async () => {
@@ -766,6 +932,16 @@ describe('impact --since: the runner is never handed a deleted file', () => {
     }
   });
 
+  it('a test file with a non-ASCII name is found (ls-files -z, not quoted by core.quotePath)', async () => {
+    const cafe = 'packages/a/src/__tests__/café.test.ts';
+    const deps = repo2({
+      files: [cafe],
+      changes: [{ status: 'M', file: 'packages/a/src/__tests__/fixtures/data.json' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+    expect(report.tests.selected).toEqual([...A_TESTS, cafe].sort());
+  });
+
   it('a deleted test in the reach of a deleted file (graph absorbed before) is not selected', async () => {
     const gone = 'packages/a/src/__tests__/uses-helper.test.ts';
     const deps = repo2({
@@ -802,6 +978,21 @@ describe('indexNamedFiles', () => {
     expect(index.prose.get('guide.md')).toEqual(['t/a.test.ts']);
     expect(index.prosePattern).toEqual(['t/b.test.ts']);
     expect(index.codePattern).toEqual(['t/c.test.ts']);
+    expect(index.unread).toBe(1); // 'not-a-match-line'
+  });
+
+  it('counts lines a git setting reshaped (line numbers, columns, color) as unread', () => {
+    const index = indexNamedFiles(
+      [
+        't/a.test.ts\0 12\0guide.md',
+        't/a.test.ts\x001\x0019\0cli.ts',
+        '\x1b[35mt/a.test.ts\x1b[m\0\x1b[1;31mguide.md\x1b[m',
+        't/b.test.ts\0guide.md',
+      ].join('\n')
+    );
+    expect(index.unread).toBe(3);
+    expect(index.prose.get('guide.md')).toEqual(['t/b.test.ts']);
+    expect(index.code.size).toBe(0);
   });
 });
 
