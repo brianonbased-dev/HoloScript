@@ -1510,11 +1510,16 @@ export class HoloScriptCodeParser {
     if (this.check('punctuation', '(')) {
       this.advance(); // (
       while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
+        const start = this.position;
         const prop = this.parseProperty();
         if (prop) {
           config[prop.key] = prop.value;
         }
         if (this.check('punctuation', ',')) {
+          this.advance();
+        } else if (this.position === start) {
+          // parseProperty reported the bad token without consuming it; skip it
+          // so the loop cannot spin forever on e.g. `@t(1)`.
           this.advance();
         }
       }
@@ -2027,16 +2032,7 @@ export class HoloScriptCodeParser {
     const name = this.expectName() || 'template';
 
     let version: number | undefined;
-    const params: string[] = [];
-    if (this.check('punctuation', '(')) {
-      this.advance();
-      while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
-        const p = this.expectIdentifier();
-        if (p) params.push(p);
-        if (this.check('punctuation', ',')) this.advance();
-      }
-      this.expect('punctuation', ')');
-    }
+    const params: string[] = this.check('punctuation', '(') ? this.parseParamNames() : [];
 
     const children: ASTNode[] = [];
     const migrations: MigrationNode[] = [];
@@ -2187,16 +2183,7 @@ export class HoloScriptCodeParser {
             this.advance();
             const actionName = this.expectIdentifier();
             if (actionName) {
-              const params: string[] = [];
-              if (this.check('punctuation', '(')) {
-                this.advance();
-                while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
-                  const p = this.expectIdentifier();
-                  if (p) params.push(p);
-                  if (this.check('punctuation', ',')) this.advance();
-                }
-                this.expect('punctuation', ')');
-              }
+              const params: string[] = this.check('punctuation', '(') ? this.parseParamNames() : [];
               const body = this.parseBlockBody();
               actions.push({ name: actionName, params, body });
             }
@@ -2343,16 +2330,7 @@ export class HoloScriptCodeParser {
             this.advance();
             const actionName = this.expectIdentifier();
             if (actionName) {
-              const params: string[] = [];
-              if (this.check('punctuation', '(')) {
-                this.advance();
-                while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
-                  const p = this.expectIdentifier();
-                  if (p) params.push(p);
-                  if (this.check('punctuation', ',')) this.advance();
-                }
-                this.expect('punctuation', ')');
-              }
+              const params: string[] = this.check('punctuation', '(') ? this.parseParamNames() : [];
               const body = this.parseBlockBody();
               actions.push({ name: actionName, params, body });
             }
@@ -2704,16 +2682,7 @@ export class HoloScriptCodeParser {
           this.advance(); // consume event keyword
 
           // Optional parameter list: on_cast(target)
-          const params: string[] = [];
-          if (this.check('punctuation', '(')) {
-            this.advance();
-            while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
-              const p = this.expectIdentifier();
-              if (p) params.push(p);
-              if (this.check('punctuation', ',')) this.advance();
-            }
-            this.expect('punctuation', ')');
-          }
+          const params: string[] = this.check('punctuation', '(') ? this.parseParamNames() : [];
 
           // Body block
           let body = '';
@@ -3024,16 +2993,7 @@ export class HoloScriptCodeParser {
     this.advance(); // consume keyword
 
     // Optional parameter list: on_cast(target)
-    const params: string[] = [];
-    if (this.check('punctuation', '(')) {
-      this.advance();
-      while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
-        const p = this.expectIdentifier();
-        if (p) params.push(p);
-        if (this.check('punctuation', ',')) this.advance();
-      }
-      this.expect('punctuation', ')');
-    }
+    const params: string[] = this.check('punctuation', '(') ? this.parseParamNames() : [];
 
     const properties: Record<string, HoloScriptValue> = {};
     let body = '';
@@ -3214,16 +3174,7 @@ export class HoloScriptCodeParser {
     if (!name) return null;
 
     // Parameter list: action open(target)
-    const params: string[] = [];
-    if (this.check('punctuation', '(')) {
-      this.advance();
-      while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
-        const p = this.expectIdentifier();
-        if (p) params.push(p);
-        if (this.check('punctuation', ',')) this.advance();
-      }
-      this.expect('punctuation', ')');
-    }
+    const params: string[] = this.check('punctuation', '(') ? this.parseParamNames() : [];
 
     const clauses: ActionClause[] = [];
     const flags: string[] = [];
@@ -3644,6 +3595,44 @@ export class HoloScriptCodeParser {
       )
     );
     return false;
+  }
+
+  /**
+   * Parse a parenthesised parameter-name list — `(a, b: i32, c)` — starting at
+   * the `(`. A `: Type` annotation is consumed and not kept (this parser's
+   * action/handler params are untyped names). Every iteration either consumes
+   * a token or stops, so an unexpected token is reported once (HS002) and
+   * skipped instead of looping forever, which `action go(n: i32)` used to do.
+   */
+  private parseParamNames(): string[] {
+    const params: string[] = [];
+    this.expect('punctuation', '(');
+    while (!this.check('punctuation', ')') && this.position < this.tokens.length) {
+      const start = this.position;
+      const p = this.expectIdentifier();
+      if (p) {
+        params.push(p);
+        if (this.check('punctuation', ':')) {
+          // Skip the whole type (`Array<i32>`, `Map<string, i32>`, `i32[]`,
+          // `string | null`) up to a `,` or `)` outside brackets, so no part of
+          // it is read back as another parameter name.
+          this.advance();
+          let depth = 0;
+          while (this.position < this.tokens.length) {
+            const v = this.currentToken()?.value;
+            if (depth === 0 && (v === ',' || v === ')')) break;
+            if (v === '<' || v === '[' || v === '(') depth++;
+            else if (v === '>' || v === ']' || v === ')') depth--;
+            else if (v === '>>') depth -= 2;
+            this.advance();
+          }
+        }
+      }
+      if (this.check('punctuation', ',')) this.advance();
+      else if (this.position === start) this.advance();
+    }
+    this.expect('punctuation', ')');
+    return params;
   }
 
   public expectIdentifier(): string | null {

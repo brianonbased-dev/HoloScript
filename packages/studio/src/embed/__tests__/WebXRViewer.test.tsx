@@ -8,11 +8,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('@holoscript/core', () => ({
   parseHolo: vi.fn().mockReturnValue({ type: 'composition', body: [] }),
   MATERIAL_PRESETS: {},
-  HoloScriptValidator: class {
-    validate() {
-      return [];
-    }
-  },
+  // The bridge's fallback validate asks validateCanonicalSource (not HoloScriptValidator).
+  validateCanonicalSource: () => ({
+    valid: true,
+    surface: 'holo',
+    validator: 'holo-parser',
+    errors: [],
+    warnings: [],
+  }),
   HoloScriptPlusParser: class {
     parse() {
       return { ast: { type: 'program', body: [] } };

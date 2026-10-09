@@ -90,7 +90,9 @@ describe('HoloLand agent canary', () => {
       scenarioId: 'canary-scenario',
     });
     expect(receipt.success).toBe(true);
-    expect(receipt.status).toBe('passed');
+    // No validation runs here and no outcome was passed, so the receipt says so: the
+    // RATCHET in handleHololandCaptureRuntimeReceipt replaced a hardcoded 'passed'.
+    expect(receipt.status).toBe('unverified');
     expect(typeof receipt.hash).toBe('string');
     expect(receipt.hash).toHaveLength(64);
 
@@ -225,11 +227,15 @@ describe('HoloLand agent canary', () => {
     const contract = await tool('hololand_twin_earth_contract', {
       version: '1.0.0',
     });
-    expect(contract.success).toBe(true);
+    // The contract document does not exist on disk, and the tool now says so instead of
+    // returning success with a hash of its own name (RATCHET, 1d1f1cd5eb). The layer
+    // text is still returned, marked as specification only.
+    expect(contract.success).toBe(false);
+    expect(contract.contractFoundOnDisk).toBe(false);
     expect(contract.version).toBe('1.0.0');
-    expect(typeof contract.hash).toBe('string');
     expect(contract.layers).toBeDefined();
     expect(contract.layers.identity).toContain('Wallet-based');
+    expect(contract.layers.identity).toContain('SPEC-ONLY');
     expect(contract.layers.safetyEnvelope).toContain('Substrate-enforced');
   });
 
@@ -247,11 +253,25 @@ describe('HoloLand agent canary', () => {
       modelProvider: 'cloud',
       role: 'guide',
     });
+    // substrateEnforced is a real check now (an identity is registered on the
+    // substrate), so register one rather than expect the old hardcoded true.
+    const identity = await tool('twin_earth_register_identity', {
+      agentId: 'canary-status-robot',
+      walletAddress: '0xStatusRobot',
+      handle: 'Status Bot',
+      attestation: '0xAttestStatus',
+      kind: 'robot',
+      role: 'robot',
+      mode: 'local',
+      hardwareFingerprint: 'fp-status',
+    });
+    expect(identity.success).toBe(true);
 
     const status = await tool('hololand_twin_earth_substrate_status', {});
     expect(status.success).toBe(true);
     expect(status.contractVersion).toBe('1.0.0');
-    expect(status.substrateVersion).toBe('7.0.0');
+    // Read from package.json since the RATCHET (1d1f1cd5eb), so it follows releases.
+    expect(status.substrateVersion).toMatch(/^\d+\.\d+\.\d+/);
     expect(typeof status.identities).toBe('number');
     expect(typeof status.ais).toBe('number');
     expect(typeof status.byokCount).toBe('number');
@@ -267,7 +287,7 @@ describe('HoloLand agent canary', () => {
 
   it('canary: Twin Earth contract tool returns shape even without version', async () => {
     const contract = await tool('hololand_twin_earth_contract', {});
-    expect(contract.success).toBe(true);
+    expect(contract.success).toBe(false); // the document is missing; see above
     expect(contract.version).toBe('1.0.0');
   });
 

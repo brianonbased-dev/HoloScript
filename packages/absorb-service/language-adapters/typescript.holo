@@ -104,6 +104,13 @@
       argumentsField: "arguments",
       stringType: "string"
     }
+    reexports: {
+      declNodeType: "export_statement",
+      sourceField: "source",
+      clauseType: "export_clause",
+      specifierType: "export_specifier",
+      specifierNameField: "name"
+    }
   }
   calls: [
     {

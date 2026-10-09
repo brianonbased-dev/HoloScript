@@ -15,6 +15,7 @@ import {
 } from './graph-rag-tools';
 
 const originalManifestEnv = process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
+const originalManifestArgEnv = process.env.HOLOGRAPH_HOLOEMBED_MANIFEST_ARG;
 const originalAiEcosystemRootEnv = process.env.AI_ECOSYSTEM_ROOT;
 const originalHoloEcosystemRootEnv = process.env.HOLO_ECOSYSTEM_ROOT;
 const originalEcosystemRootEnv = process.env.ECOSYSTEM_ROOT;
@@ -26,6 +27,11 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
       delete process.env.HOLOGRAPH_HOLOEMBED_MANIFEST;
     } else {
       process.env.HOLOGRAPH_HOLOEMBED_MANIFEST = originalManifestEnv;
+    }
+    if (originalManifestArgEnv === undefined) {
+      delete process.env.HOLOGRAPH_HOLOEMBED_MANIFEST_ARG;
+    } else {
+      process.env.HOLOGRAPH_HOLOEMBED_MANIFEST_ARG = originalManifestArgEnv;
     }
     if (originalAiEcosystemRootEnv === undefined) {
       delete process.env.AI_ECOSYSTEM_ROOT;
@@ -44,8 +50,39 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
     }
   });
 
+  // 7qz0: the argument names a file on the server. A caller may not, unless the operator
+  // allows it, and the refusal comes before any read: no "no such file", no parse error
+  // quoting the file, no schema echo, no hash of a listed file.
+  it('refuses a caller-named manifest before reading anything, unless the operator allows it', async () => {
+    resetGraphRAGStateForTests();
+    delete process.env.HOLOGRAPH_HOLOEMBED_MANIFEST_ARG;
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holoembed-refuse-'));
+    const secretFile = path.join(dir, 'server-secret.env');
+    fs.writeFileSync(secretFile, 'SECRET_KEY=do-not-leak\n');
+    const missing = path.join(dir, 'does-not-exist.json');
+
+    for (const named of [secretFile, missing, '../../etc/hosts', 'relative/manifest.json']) {
+      const result = (await handleGraphRagTool('holo_semantic_search', {
+        query: 'target',
+        holoGraphHoloEmbedManifest: named,
+      })) as { error?: string; hint?: string; results?: unknown };
+      expect(result.results).toBeUndefined();
+      expect(result.error).toMatch(/names a file on this server/);
+      // The raw strings, not JSON.stringify: that doubles Windows backslashes and would
+      // hide an echoed path.
+      const said = Object.values(result)
+        .filter((value): value is string => typeof value === 'string')
+        .join('\n');
+      expect(said).not.toContain('SECRET_KEY');
+      expect(said).not.toContain(named);
+      expect(said).not.toMatch(/ENOENT|no such file|not valid JSON/i);
+    }
+  });
+
   it('uses an explicit HoloGraph/HoloEmbed manifest without requiring cached GraphRAG state', async () => {
     resetGraphRAGStateForTests();
+    // A single-user local server whose operator allows callers to name the manifest.
+    process.env.HOLOGRAPH_HOLOEMBED_MANIFEST_ARG = 'allow';
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'holograph-holoembed-mcp-'));
     const graphPath = path.join(dir, 'graph.json');
     const nodeEmbPath = path.join(dir, 'nodeemb.npy');
@@ -104,6 +141,17 @@ describe('holo_semantic_search HoloGraph/HoloEmbed manifest mode', () => {
     expect(result.holoGraphHoloEmbedManifest).toBe(manifestPath);
     expect(result.count).toBe(1);
     expect(result.results?.[0]?.name).toBe('target');
+
+    // The operator's own HOLOGRAPH_HOLOEMBED_MANIFEST needs no switch: it is not a caller's choice.
+    delete process.env.HOLOGRAPH_HOLOEMBED_MANIFEST_ARG;
+    process.env.HOLOGRAPH_HOLOEMBED_MANIFEST = manifestPath;
+    resetGraphRAGStateForTests();
+    const viaOperator = (await handleGraphRagTool('holo_semantic_search', {
+      query: 'target',
+      topK: 1,
+    })) as { indexSource?: string; results?: Array<{ name?: string }> };
+    expect(viaOperator.indexSource).toBe('holograph-holoembed-manifest');
+    expect(viaOperator.results?.[0]?.name).toBe('target');
   });
 
   it('fails closed when the promoted local release does not declare the pinned HoloEmbed student hash', async () => {

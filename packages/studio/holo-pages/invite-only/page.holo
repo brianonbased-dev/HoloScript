@@ -1,0 +1,39 @@
+// The invite-only page — authored in HoloScript, compiled to an @generated
+// Next.js page by the NextJSCompiler. EDIT THIS, not src/app/invite-only/page.tsx.
+// Regenerate: pnpm --filter @holoscript/studio holo:build
+//
+// WHERE THIS PAGE SITS. A refused sign-in, or a refused existing session, lands
+// here (lib/inviteAllowlist.ts INVITE_ONLY_PATH). It needs no session, and the
+// edge proxy never redirects this path, so it cannot loop. The refusal itself
+// lives in lib/inviteAllowlist.ts, lib/auth.ts and proxy.ts; this page only says
+// what happened and offers the way back.
+//
+// WHY IT IS A SERVER PAGE (client: false). Next.js only ships a page's metadata
+// from a server component. This page needs two pieces of it: the tab title, and
+// robots noindex, so a refusal never turns up in search results.
+//
+// WHY IT IS GENERATED. It arrived hand-written in #516 (2026-10-05) and the
+// render-surface gate (scripts/holo-ci/check-render-surface-native.mjs) went
+// red on main for every author: new Studio pages are authored here and
+// compiled, not hand-written and allowlisted (x4dx, 2026-10-08).
+composition "InviteOnly" {
+  @page { route: "/invite-only", client: false }
+  @metadata {
+    title: "Invite-only | HoloScript Studio"
+    robots: { index: false }
+  }
+
+  object "Page" {
+    @theme { tag: "main", className: "flex min-h-screen flex-col items-center justify-center gap-10 p-8" }
+
+    object "Message" {
+      @text { content: "Studio is invite-only right now." }
+      @theme { className: "text-center text-lg text-studio-text" }
+    }
+
+    object "HomeLink" {
+      @link { href: "/", content: "Back to home" }
+      @theme { className: "text-sm text-studio-muted underline-offset-4 hover:underline" }
+    }
+  }
+}

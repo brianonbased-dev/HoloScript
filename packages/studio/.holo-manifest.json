@@ -8,6 +8,7 @@
     "src/app/holodaemon/page.tsx",
     "src/app/install/page.tsx",
     "src/app/integrations/page.tsx",
+    "src/app/invite-only/page.tsx",
     "src/app/learn/page.tsx",
     "src/app/pipeline/page.tsx",
     "src/app/playground/embodied/page.tsx",
@@ -19,5 +20,5 @@
     "src/app/templates/page.tsx",
     "src/app/vibe/page.tsx"
   ],
-  "lastBuild": "2026-09-28T10:11:17.134Z"
+  "lastBuild": "2026-10-08T20:11:52.085Z"
 }

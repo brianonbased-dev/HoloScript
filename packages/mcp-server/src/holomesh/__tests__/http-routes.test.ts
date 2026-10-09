@@ -108,6 +108,15 @@ vi.mock('../orchestrator-client', () => ({
   getClient: vi.fn(() => mockClient),
 }));
 
+// ── Mock the Moltbook post call (nothing in this file may reach Moltbook) ──
+
+const mockCreateMoltbookPost = vi.fn();
+
+vi.mock('../../moltbook/moltbook-post.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../moltbook/moltbook-post.js')>()),
+  createMoltbookPost: (...args: any[]) => mockCreateMoltbookPost(...args),
+}));
+
 // ── Mock process.env ──
 
 const originalEnv = { ...process.env };
@@ -127,6 +136,7 @@ import {
 import { MOBILE_PRESENCE_TTL_MS, type Team } from '../types';
 import type { TeamTask } from '@holoscript/framework';
 import { getAttestationRegistry, resetAttestationRegistry } from '../identity/signing-middleware';
+import { getAuditLogger, resetAuditLogger } from '../../security/audit-log';
 
 // ── Test Helpers ──
 
@@ -1814,8 +1824,11 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.entries[0].type).toBe('wisdom');
       expect(res._body.entries[1].type).toBe('gotcha');
 
-      // Verify the contributeKnowledge call used the private workspace
-      const lastCall = mockClient.contributeKnowledge.mock.calls.at(-1);
+      // Verify the write used the private workspace. The route writes through
+      // contributeKnowledgeDetailed (task xzgt); reading contributeKnowledge here found
+      // registration's "Private workspace initialized." entry and passed by accident.
+      const lastCall = mockClient.contributeKnowledgeDetailed.mock.calls.at(-1);
+      expect(lastCall[0][0].content).toBe('Private wisdom A');
       expect(lastCall[0][0].workspaceId).toMatch(/^private:0x/);
       expect(lastCall[0][0].tags).toContain('private');
     });
@@ -1906,7 +1919,7 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.promoted.price).toBe(0.05);
 
       // Verify the public entry was synced to the shared workspace (NOT private)
-      const lastCall = mockClient.contributeKnowledge.mock.calls.at(-1);
+      const lastCall = mockClient.contributeKnowledgeDetailed.mock.calls.at(-1);
       expect(lastCall[0][0].workspaceId).not.toMatch(/^private:/);
       expect(lastCall[0][0].tags).toContain('promoted');
       expect(lastCall[0][0].tags).not.toContain('private');
@@ -1944,7 +1957,7 @@ describe('HoloMesh HTTP Routes', () => {
       expect(res._body.deleted).toBe('W.priv.1');
 
       // Verify tombstone was synced
-      const lastCall = mockClient.contributeKnowledge.mock.calls.at(-1);
+      const lastCall = mockClient.contributeKnowledgeDetailed.mock.calls.at(-1);
       expect(lastCall[0][0].content).toBe('[deleted]');
       expect(lastCall[0][0].tags).toContain('tombstone');
     });
@@ -6814,7 +6827,7 @@ describe('HoloMesh HTTP Routes', () => {
 
       expect(res._status).toBe(201);
       expect(res._body.id).toMatch(/^P\.contrib\./);
-      const call = mockClient.contributeKnowledge.mock.calls.at(-1);
+      const call = mockClient.contributeKnowledgeDetailed.mock.calls.at(-1);
       const entry = call?.[0]?.[0] as Record<string, unknown>;
       expect(entry.metadata).toEqual(
         expect.objectContaining({
@@ -7726,70 +7739,175 @@ describe('HoloMesh HTTP Routes', () => {
   // ── Crosspost to Moltbook (P5) ──
 
   describe('POST /api/holomesh/crosspost/moltbook', () => {
-    it('requires authentication', async () => {
-      const req = mockReq('POST', '/api/holomesh/crosspost/moltbook', { entry_id: 'test' });
-      const res = mockRes();
-      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+    // Board task x0iv: this route posts under the server's own Moltbook key,
+    // publicly, as HoloScript. Only the operator (a founder key) may use it;
+    // `test-api-key` is the founder key seeded in the outer beforeEach.
+    const CROSSPOST = '/api/holomesh/crosspost/moltbook';
+    const FOUNDER_AUTH = { authorization: 'Bearer test-api-key' };
 
-      expect(res._status).toBe(401);
+    beforeEach(() => {
+      mockCreateMoltbookPost.mockResolvedValue({
+        success: true,
+        data: { success: true, post: { id: 'mb-post-1' } },
+      });
     });
 
-    it('requires entry_id field', async () => {
-      // Register an agent first to get API key
+    afterEach(() => {
+      resetAuditLogger();
+      // A refused request never looks the entry up, so a queued
+      // mockResolvedValueOnce row would leak into the next test.
+      mockClient.queryKnowledge.mockReset();
+      mockClient.queryKnowledge.mockResolvedValue([]);
+    });
+
+    async function registerFreshAgent(prefix: string): Promise<{ apiKey: string; id: string }> {
       const regReq = mockReq('POST', '/api/holomesh/register', {
-        name: `crosspost-bot-${Date.now()}`,
+        name: `${prefix}-${Date.now()}`,
       });
       const regRes = mockRes();
       await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
-      const apiKey = regRes._body.agent.api_key;
+      expect(regRes._status).toBe(201);
+      return { apiKey: regRes._body.agent.api_key, id: regRes._body.agent.id };
+    }
+
+    it('requires authentication', async () => {
+      const req = mockReq('POST', CROSSPOST, { entry_id: 'test' });
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, CROSSPOST);
+
+      expect(res._status).toBe(401);
+      expect(mockCreateMoltbookPost).not.toHaveBeenCalled();
+    });
+
+    it('refuses a freshly self-registered agent posting its own entry: 403, nothing read, nothing posted', async () => {
+      const agent = await registerFreshAgent('crosspost-selfreg');
+      process.env.MOLTBOOK_API_KEY = 'test-moltbook-key';
+      delete process.env.HOLOMESH_VAULT_LEASE_ENFORCE;
+      mockClient.queryKnowledge.mockClear();
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'selfreg-entry',
+          authorId: agent.id,
+          content: 'Anything at all, posted publicly as HoloScript',
+          type: 'wisdom',
+          domain: 'general',
+          confidence: 0.9,
+        },
+      ]);
 
       const req = mockReq(
         'POST',
-        '/api/holomesh/crosspost/moltbook',
-        {},
-        {
-          authorization: `Bearer ${apiKey}`,
-        }
+        CROSSPOST,
+        { entry_id: 'selfreg-entry' },
+        { authorization: `Bearer ${agent.apiKey}` }
       );
       const res = mockRes();
-      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+      await handleHoloMeshRoute(req, res, CROSSPOST);
+
+      expect(res._status).toBe(403);
+      expect(res._body.error).toBe('Founder authorization required.');
+      expect(String(res._body.reason)).toContain('Nothing was posted');
+      expect(mockCreateMoltbookPost).not.toHaveBeenCalled();
+      // Refused before the entry lookup and before the body was read.
+      expect(mockClient.queryKnowledge).not.toHaveBeenCalled();
+      expect(req.listenerCount('data')).toBe(0);
+      // The refusal leaves an audit line naming the caller.
+      const audit = getAuditLogger().query({ event: 'auth_failure', agentId: agent.id });
+      expect(audit.entries.map((e) => e.metadata?.reason)).toContain(
+        '/api/holomesh/crosspost/moltbook refused: founder key required'
+      );
+    });
+
+    it('refuses a shared env-seeded key with scopes ["*"] that is not the founder key', async () => {
+      keyRegistry.set('seeded-shared-key', {
+        key: 'seeded-shared-key',
+        walletAddress: '0x00000000000000000000000000000000000000c0',
+        agentId: 'agent_env_copilot',
+        agentName: 'env:COPILOT_HOLOMESH_KEY',
+        scopes: ['*'],
+        createdAt: new Date().toISOString(),
+        rotationCount: 0,
+        lastRotatedAt: null,
+        isFounder: false,
+        seededFromEnv: 'COPILOT_HOLOMESH_KEY',
+      });
+      process.env.MOLTBOOK_API_KEY = 'test-moltbook-key';
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'seeded-entry',
+          authorId: 'agent_env_copilot',
+          content: 'shared-key entry',
+          type: 'wisdom',
+          domain: 'general',
+        },
+      ]);
+
+      const req = mockReq(
+        'POST',
+        CROSSPOST,
+        { entry_id: 'seeded-entry' },
+        { authorization: 'Bearer seeded-shared-key' }
+      );
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, CROSSPOST);
+
+      expect(res._status).toBe(403);
+      expect(res._body.error).toBe('Founder authorization required.');
+      expect(mockCreateMoltbookPost).not.toHaveBeenCalled();
+    });
+
+    it('the operator (founder key) still posts an entry it authored', async () => {
+      process.env.MOLTBOOK_API_KEY = 'test-moltbook-key';
+      delete process.env.HOLOMESH_VAULT_LEASE_ENFORCE;
+      mockClient.queryKnowledge.mockResolvedValueOnce([
+        {
+          id: 'founder-entry',
+          authorId: 'agent_founder',
+          content: 'Operator-approved knowledge for Moltbook',
+          type: 'wisdom',
+          domain: 'general',
+          confidence: 0.9,
+        },
+      ]);
+
+      const req = mockReq('POST', CROSSPOST, { entry_id: 'founder-entry' }, FOUNDER_AUTH);
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, CROSSPOST);
+
+      expect(res._status).toBe(200);
+      expect(res._body).toMatchObject({
+        success: true,
+        crossposted: true,
+        entry_id: 'founder-entry',
+        platform: 'moltbook',
+      });
+      expect(mockCreateMoltbookPost).toHaveBeenCalledTimes(1);
+      const posted = mockCreateMoltbookPost.mock.calls[0][0];
+      expect(posted.apiKey).toBe('test-moltbook-key');
+      expect(posted.content).toContain('Operator-approved knowledge for Moltbook');
+    });
+
+    it('requires entry_id field', async () => {
+      const req = mockReq('POST', CROSSPOST, {}, FOUNDER_AUTH);
+      const res = mockRes();
+      await handleHoloMeshRoute(req, res, CROSSPOST);
 
       expect(res._status).toBe(400);
       expect(res._body.error).toContain('entry_id');
     });
 
     it('returns 404 for nonexistent entry', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', {
-        name: `crosspost-404-${Date.now()}`,
-      });
-      const regRes = mockRes();
-      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
-      const apiKey = regRes._body.agent.api_key;
-
       mockClient.queryKnowledge.mockResolvedValueOnce([]);
 
-      const req = mockReq(
-        'POST',
-        '/api/holomesh/crosspost/moltbook',
-        { entry_id: 'nonexistent' },
-        {
-          authorization: `Bearer ${apiKey}`,
-        }
-      );
+      const req = mockReq('POST', CROSSPOST, { entry_id: 'nonexistent' }, FOUNDER_AUTH);
       const res = mockRes();
-      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+      await handleHoloMeshRoute(req, res, CROSSPOST);
 
       expect(res._status).toBe(404);
     });
 
-    it('rejects cross-post by non-author', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', {
-        name: `crosspost-noauth-${Date.now()}`,
-      });
-      const regRes = mockRes();
-      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
-      const apiKey = regRes._body.agent.api_key;
-
+    it('keeps the author check for the operator: an entry by someone else is 403', async () => {
+      process.env.MOLTBOOK_API_KEY = 'test-moltbook-key';
       mockClient.queryKnowledge.mockResolvedValueOnce([
         {
           id: 'entry-by-other',
@@ -7800,33 +7918,20 @@ describe('HoloMesh HTTP Routes', () => {
         },
       ]);
 
-      const req = mockReq(
-        'POST',
-        '/api/holomesh/crosspost/moltbook',
-        { entry_id: 'entry-by-other' },
-        {
-          authorization: `Bearer ${apiKey}`,
-        }
-      );
+      const req = mockReq('POST', CROSSPOST, { entry_id: 'entry-by-other' }, FOUNDER_AUTH);
       const res = mockRes();
-      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+      await handleHoloMeshRoute(req, res, CROSSPOST);
 
       expect(res._status).toBe(403);
+      expect(res._body.error).toBe('Only the entry author can crosspost');
+      expect(mockCreateMoltbookPost).not.toHaveBeenCalled();
     });
 
     it('returns 503 if MOLTBOOK_API_KEY not set', async () => {
-      const regReq = mockReq('POST', '/api/holomesh/register', {
-        name: `crosspost-nokey-${Date.now()}`,
-      });
-      const regRes = mockRes();
-      await handleHoloMeshRoute(regReq, regRes, '/api/holomesh/register');
-      const apiKey = regRes._body.agent.api_key;
-      const agentId = regRes._body.agent.id;
-
       mockClient.queryKnowledge.mockResolvedValueOnce([
         {
           id: 'my-entry',
-          authorId: agentId,
+          authorId: 'agent_founder',
           content: 'my knowledge',
           type: 'wisdom',
           domain: 'general',
@@ -7836,19 +7941,13 @@ describe('HoloMesh HTTP Routes', () => {
 
       delete process.env.MOLTBOOK_API_KEY;
 
-      const req = mockReq(
-        'POST',
-        '/api/holomesh/crosspost/moltbook',
-        { entry_id: 'my-entry' },
-        {
-          authorization: `Bearer ${apiKey}`,
-        }
-      );
+      const req = mockReq('POST', CROSSPOST, { entry_id: 'my-entry' }, FOUNDER_AUTH);
       const res = mockRes();
-      await handleHoloMeshRoute(req, res, '/api/holomesh/crosspost/moltbook');
+      await handleHoloMeshRoute(req, res, CROSSPOST);
 
       expect(res._status).toBe(503);
       expect(res._body.error).toContain('MOLTBOOK_API_KEY');
+      expect(mockCreateMoltbookPost).not.toHaveBeenCalled();
     });
   });
 

@@ -115,6 +115,43 @@ describe('findHostPathViolation: which arguments are looked at', () => {
     expect(findHostPathViolation({ videoUrl: '/etc/passwd' })?.reason).toMatch(/absolute/);
   });
 
+  // Operator-only keys: not path-checked but refused whatever the value, because a relative manifest path
+  // resolves against the server's own folder and an https endpoint is a URL the server calls with its key
+  // (7qz0 / #539; claude9's review of #539).
+  it.each([
+    ['holoGraphHoloEmbedManifest', '/app/.holoscript/holomesh/keys.json'],
+    ['holoGraphHoloEmbedManifest', '.holoscript/holomesh/keys.json'],
+    ['holo_graph_holo_embed_manifest', '../../etc/hosts'],
+    ['holoLlamaEndpoint', 'https://example.com/v1'],
+    ['holoLlamaEndpoint', 'http://169.254.169.254/latest/meta-data'],
+    ['holo-llama-endpoint', 'http://localhost:8080'],
+  ])(
+    '%s is operator-only: %s is refused for a caller without admin or local custody',
+    (key, value) => {
+      expect(findHostPathViolation({ [key]: value })).toMatchObject({
+        key,
+        reason: expect.stringMatching(/administrator or on the server's own machine/),
+      });
+      expect(() =>
+        assertNoHostPathArgs('holo_ask_codebase', { [key]: value }, ['tools:codebase'])
+      ).toThrow(new RegExp(`"${key}"`));
+    }
+  );
+
+  it('operator-only keys stay open to an administrator and to the local-custody loopback, and an empty value is no request', () => {
+    const args = {
+      holoLlamaEndpoint: 'https://example.com/v1',
+      holoGraphHoloEmbedManifest: 'm.json',
+    };
+    expect(() => assertNoHostPathArgs('holo_ask_codebase', args, ['tools:admin'])).not.toThrow();
+    expect(() =>
+      assertNoHostPathArgs('holo_ask_codebase', args, ['tools:codebase'], true)
+    ).not.toThrow();
+    expect(
+      findHostPathViolation({ holoLlamaEndpoint: '', holoGraphHoloEmbedManifest: undefined })
+    ).toBeNull();
+  });
+
   it('looks inside nested arrays under a path-typed key', () => {
     expect(findHostPathViolation({ paths: [['..']] })?.reason).toMatch(/"\.\." segment/);
     expect(findHostPathViolation({ files: [['a.ts'], ['/etc/x']] })?.reason).toMatch(/absolute/);

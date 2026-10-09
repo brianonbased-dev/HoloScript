@@ -262,4 +262,10 @@ export type {
 } from './DeprecatedInventory';
 
 // Which server folders a codebase scan may open (2026-10-04 custody review).
-export { absorbAllowedRoots, absorbRootRefusal } from './absorb-root-policy';
+export {
+  absorbAllowedRoots,
+  absorbRootRefusal,
+  insideServerState,
+  serverStateDirs,
+  type AbsorbRootEnv,
+} from './absorb-root-policy';
