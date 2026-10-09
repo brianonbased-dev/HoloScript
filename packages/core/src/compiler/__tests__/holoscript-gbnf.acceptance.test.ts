@@ -86,7 +86,26 @@ const REFERENCE_ANSWERS: Record<string, string> = {
     'composition "Portal" {\n  state_machine "door" {\n    initial: "closed"\n    state "closed" { on: { open: "opened" } }\n    state "opened" { on: { close: "closed" } }\n  }\n}',
 };
 
+// What Qwen3-4B wrote for two author_holo tasks WITHOUT the grammar (Jetson, temperature 0,
+// 2026-10-09). Both parse; an earlier grammar refused them (no child objects in a
+// template, no quoted inline-object keys), and held to it the model wrote
+// `objectref: "ScoreDisplay"` for the first and dropped a state from the second.
+const UNCONSTRAINED_QWEN: Record<string, string> = {
+  'hc-07':
+    'composition "Scoreboard" {\n  template "Board" {\n    state {\n      score: 0\n      label: "idle"\n    }\n    object "ScoreDisplay" {\n      @pointable\n      @hoverable\n      geometry: "text"\n      position: [0, 1.5, 0]\n      scale: 0.5\n      material: { baseColor: "#ffffff", roughness: 0.8, metallic: 0.0 }\n      text: "Score: {score}"\n    }\n    object "StatusLabel" {\n      @pointable\n      @hoverable\n      geometry: "text"\n      position: [0, 0.5, 0]\n      scale: 0.5\n      material: { baseColor: "#ffffff", roughness: 0.8, metallic: 0.0 }\n      text: "Label: {label}"\n    }\n  }\n}',
+  'hc-14':
+    'composition "Portal" {\n  object "Door" {\n    @collidable\n    @physics\n    @state_machine {\n      initial: "closed"\n      states: {\n        "closed": {\n          transitions: {\n            "open": { condition: "triggered", action: "set state to \'opened\'" }\n          }\n        },\n        "opened": {\n          transitions: {\n            "close": { condition: "triggered", action: "set state to \'closed\'" }\n          }\n        }\n      }\n    }\n    geometry: "plane"\n    position: [0, 1, 0]\n    scale: [2, 0.5, 2]\n    material: { baseColor: "#333333", roughness: 0.8, metallic: 0.1 }\n  }\n}',
+};
+
 describe('whole-program HoloScript grammar (composition root)', () => {
+  it.each(Object.entries(UNCONSTRAINED_QWEN))(
+    'accepts what Qwen3-4B wrote unconstrained for %s',
+    (_id, source) => {
+      expect(errorsOf(source)).toEqual([]);
+      expect(gbnfAccepts(grammar, source)).toBe(true);
+    }
+  );
+
   it('is well-formed: every referenced rule is defined and every rule is reachable', () => {
     const referenced = referencedRules(grammar);
     for (const name of referenced) expect(grammar.has(name), `undefined rule ${name}`).toBe(true);

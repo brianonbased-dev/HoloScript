@@ -135,7 +135,7 @@ const IDENT_CONTINUE = `0123456789${IDENT_START}`;
 function charClass(chars: Iterable<string>): string {
   const codes = [...new Set(chars)].map((c) => c.charCodeAt(0)).sort((a, b) => a - b);
   let out = '';
-  for (let i = 0; i < codes.length; ) {
+  for (let i = 0; i < codes.length;) {
     let j = i;
     while (j + 1 < codes.length && codes[j + 1] === codes[j] + 1) j++;
     const from = String.fromCharCode(codes[i]);
@@ -280,7 +280,13 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     'member ::= object | template | group | trigger | environment | light | post-processing | state-machine | material | primitive',
     '',
     `object ::= object-kw sp string (sp "using" sp string)? (sp header-trait)* hs "{" ws ${items('object-item')} ws "}"`,
-    'object-item ::= trait | property | animation | state-block | behavior',
+    // Child objects nest in objects and templates. Measured 2026-10-09: held to a grammar
+    // without them, Qwen3-4B wrote `objectref: "ScoreDisplay"` where it meant a child object.
+    // A child is always `object` (one level down the parser reads `orb "x"` as a property
+    // name) and carries its traits in its body: inside a template the parser refuses
+    // `object "c" @g(1) {`, and a `using` grandchild of `object "c" @m {`.
+    'object-item ::= trait | property | animation | state-block | behavior | child-object',
+    `child-object ::= "object" sp string (sp "using" sp string)? hs "{" ws ${items('object-item')} ws "}"`,
     `template ::= "template" sp string hs "{" ws ${items('object-item')} ws "}"`,
     `group ::= "spatial_group" sp string hs "{" ws ${items('group-item')} ws "}"`,
     'group-item ::= group-property | object | group',
@@ -322,7 +328,9 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     'value ::= number | string | boolean | null | array | inline-object',
     'array ::= "[" ws (value (ws "," ws value)*)? ws "]"',
     'inline-object ::= "{" ws (pair (ws "," ws pair)*)? ws "}"',
-    'pair ::= name hs ":" hs value',
+    // An inline-object key may be quoted (`{ "closed": { ... } }`); held to bare names only,
+    // Qwen3-4B dropped a state it had written quoted.
+    'pair ::= (name | string) hs ":" hs value',
     '',
     'number ::= "-"? [0-9]+ ("." [0-9]+)?',
     'boolean ::= "true" | "false"',
@@ -378,6 +386,9 @@ export function holoScriptGrammarForPreset(preset: HoloScriptGrammarPreset): {
   content: string;
 } {
   return preset === 'holoscript-subset'
-    ? { path: 'grammars/holoscript-subset.gbnf', content: generateHoloScriptGbnf({ root: 'definitions' }) }
+    ? {
+        path: 'grammars/holoscript-subset.gbnf',
+        content: generateHoloScriptGbnf({ root: 'definitions' }),
+      }
     : { path: 'grammars/holoscript.gbnf', content: generateHoloScriptGbnf() };
 }
