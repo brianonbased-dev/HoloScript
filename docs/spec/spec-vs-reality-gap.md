@@ -260,7 +260,7 @@ regardless of extension, on `origin/main` 257191940.
   (`examples/stress-tests/sunken-archive-holomap-speech-2026-05-02.holo`). No file loses a
   parsed object, template, or domain block. Of the 29:
   - 25 are JSON with a `.holo` extension (`examples/v5.0-hardened/`, `examples/v6/`,
-    `packages/studio/holoscript-editor.holo`);
+    `packages/studio/holoscript-editor.holo`, since renamed `.json`);
   - 1 is TypeScript-style code (`examples/agents/distributed-npc-state.holo`);
   - 2 are HoloScript using forms the `zone` and `ui` parsers refuse inside a composition too:
     `zone "x" @trait {` in `examples/hololand/10-twin-earth-playable.holo:194` and

@@ -32,7 +32,7 @@ interface HoloScriptEditorProps {
   height?: string;
 }
 
-// Timing constants from holoscript-editor.holo (compiled from holoscript-editor.hs)
+// Timing constants from holoscript-editor.json (compiled from holoscript-editor.hs)
 const _holoConfig = getEditorConfig();
 const LSP_DIAGNOSTICS_DEBOUNCE = _holoConfig.lsp_client?.diagnostics_debounce_ms ?? 750;
 const LSP_HOVER_DELAY = _holoConfig.lsp_client?.hover_delay_ms ?? 400;

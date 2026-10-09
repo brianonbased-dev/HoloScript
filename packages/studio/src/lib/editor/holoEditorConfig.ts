@@ -1,16 +1,24 @@
 /**
- * holoEditorConfig.ts — thin typed wrapper around the compiled .holo artifact.
+ * holoEditorConfig.ts — thin typed wrapper around the compiled editor config.
  *
- * The artifact at packages/studio/holoscript-editor.holo is produced by running
+ * The artifact at packages/studio/holoscript-editor.json is produced by running
  * `compile_to_code_editor` against holoscript-editor.hs. It is the source of
  * truth for editor behaviour: changing holoscript-editor.hs and recompiling
  * updates the editor without touching any React code.
  *
- * CI gate: packages/studio/holoscript-editor.holo must be up-to-date with
- * holoscript-editor.hs (re-compile and git diff --exit-code before merge).
+ * The compiler's output is JSON, so it is saved and imported as `.json`. Until
+ * 2026-10-09 it was saved as `.holo`, which sent it through Studio's `.holo`
+ * webpack loader (src/lib/holo-loader.mjs): that loader parses HoloScript and
+ * compiles a page, so this import received the loader's compiled module rather
+ * than the config (the editor's fallbacks hold the same values, so nothing
+ * showed). Once the parser refused JSON as HoloScript (#542), the same detour
+ * failed every Studio build.
+ *
+ * Keep it current with holoscript-editor.hs (re-compile and git diff
+ * --exit-code before merge).
  */
 
-import rawConfig from '../../../holoscript-editor.holo';
+import rawConfig from '../../../holoscript-editor.json';
 
 export interface HoloBindRef {
   __bind: true;

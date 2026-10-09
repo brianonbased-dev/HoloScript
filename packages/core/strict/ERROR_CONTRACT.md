@@ -157,7 +157,7 @@ be compiled this way later.
   and this layer, the only files core accepts and strict refuses (outside this
   folder's invalid corpus) are JSON-shaped documents (most do not even parse as JSON) saved with a `.holo` extension
   (`examples/v5.0-hardened/`, some of `examples/v6/`,
-  `packages/studio/holoscript-editor.holo`). Core accepts them as an empty
+  `packages/studio/holoscript-editor.holo`, renamed `.json` on 2026-10-09). Core accepts them as an empty
   composition; `HS1004` is right and core is wrong.
 - **Traits nothing declares get a warning only.** Many real files use traits
   that no vocabulary above declares (`@interactable`, `@reactive`,

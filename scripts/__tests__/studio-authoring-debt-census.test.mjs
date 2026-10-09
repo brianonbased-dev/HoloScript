@@ -68,7 +68,7 @@ describe('studio-authoring-debt-census', () => {
   });
 
   it('groups top-level Studio files under the package root label', () => {
-    assert.equal(studioSubtree('packages/studio/holoscript-editor.holo'), '.');
+    assert.equal(studioSubtree('packages/studio/holoscript-editor.json'), '.');
   });
 
   it('replaces or creates the marked paper table block', () => {
