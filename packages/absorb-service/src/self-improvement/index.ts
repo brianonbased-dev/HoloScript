@@ -130,6 +130,15 @@ export {
 } from './ProvenanceCalibrationRewards';
 
 export {
+  holoScriptCheckReward,
+  gradeHoloScriptCompletion,
+  gradeHoloScriptBatch,
+  HOLOSCRIPT_CHECK_REWARDS,
+  type HoloScriptCheckReceipt,
+  type HoloScriptCheckRung,
+} from './HoloScriptCheckRewards';
+
+export {
   agentBenefitReward,
   humanBenefitReward,
   isFabricatedClaim,
