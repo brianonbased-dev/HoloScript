@@ -94,7 +94,8 @@ export interface GRPOOrchestratorConfig {
    * Scores each completion as one whole `.holo` program with core's canonical validator
    * (0 / 0.25 / 0.5 / 0.75 / 1). When enabled, weights.holoScriptCheckReward must be
    * provided and the full weight set must sum to 1.0. A HoloScript-only run weights the
-   * five TypeScript terms 0, and a term weighted 0 is not run at all.
+   * five TypeScript terms 0; with this flag on, a TypeScript term weighted 0 is not run
+   * (in evaluate() or getRewardFuncsArray()). With it off, nothing is skipped.
    */
   enableHoloScriptCheck?: boolean;
   /**
@@ -206,6 +207,9 @@ const DEFAULT_CONFIG: Required<GRPOOrchestratorConfig> = {
   enableHoloScriptCheck: false,
   beneficiaryHolarchy: null,
 };
+
+/** The five TypeScript terms (vitest, tsc, eslint, coverage, circuit breaker). */
+const TYPESCRIPT_TERMS = new Set<string>(Object.keys(GRPO_REWARD_WEIGHTS));
 
 /** All reward-term weights, extended terms resolved to 0 when disabled. */
 type ResolvedWeights = { [K in keyof typeof GRPO_REWARD_WEIGHTS]: number } & {
@@ -451,11 +455,15 @@ export class GRPORewardOrchestrator {
         weight: this.resolvedWeights.holoScriptCheckReward,
       });
     }
-    // A term weighted 0 cannot move the composite, so it is not run: a HoloScript-only
-    // run (TypeScript terms at 0) must not spend vitest, tsc and eslint on every `.holo`
-    // completion. Its statistics stay at zero evaluations.
-    for (let i = rewardEntries.length - 1; i >= 0; i--) {
-      if (rewardEntries[i].weight === 0) rewardEntries.splice(i, 1);
+    // With the HoloScript term on, a TypeScript term weighted 0 is not run: a HoloScript-only
+    // run must not spend vitest, tsc and eslint on every `.holo` completion. Nothing else
+    // changes: with the flag off every term runs whatever its weight (callers that pass a
+    // 0 still get that term's results and statistics), and extended terms always run.
+    if (this.config.enableHoloScriptCheck) {
+      for (let i = rewardEntries.length - 1; i >= 0; i--) {
+        const entry = rewardEntries[i];
+        if (entry.weight === 0 && TYPESCRIPT_TERMS.has(entry.name)) rewardEntries.splice(i, 1);
+      }
     }
     // Holarchy mode runs the two beneficiary terms at weight 0 — they produce the
     // raw R_agents / R_humans used by composeBeneficiaryReward below, but never
@@ -617,13 +625,18 @@ export class GRPORewardOrchestrator {
    * Returns the 5 functions as an array matching TRL's expected format.
    */
   getRewardFuncsArray(): GRPORewardFunction[] {
-    const fns: GRPORewardFunction[] = [
-      this.rewardFns.testPassReward,
-      this.rewardFns.typeCheckReward,
-      this.rewardFns.lintReward,
-      this.rewardFns.coverageReward,
-      this.rewardFns.circuitBreakerReward,
+    const base: Array<[keyof typeof GRPO_REWARD_WEIGHTS, GRPORewardFunction]> = [
+      ['testPassReward', this.rewardFns.testPassReward],
+      ['typeCheckReward', this.rewardFns.typeCheckReward],
+      ['lintReward', this.rewardFns.lintReward],
+      ['coverageReward', this.rewardFns.coverageReward],
+      ['circuitBreakerReward', this.rewardFns.circuitBreakerReward],
     ];
+    // Same rule as evaluate(): with the HoloScript term on, a TypeScript term weighted 0
+    // is left out, so TRL does not run it either.
+    const fns: GRPORewardFunction[] = base
+      .filter(([name]) => !(this.config.enableHoloScriptCheck && this.resolvedWeights[name] === 0))
+      .map(([, fn]) => fn);
     if (this.config.enableProvenanceValidity) fns.push(provenanceValidityReward);
     if (this.config.enableFaithfulCalibration) fns.push(faithfulCalibrationReward);
     if (this.config.enableUaalResolution) fns.push(uaalResolutionReward);

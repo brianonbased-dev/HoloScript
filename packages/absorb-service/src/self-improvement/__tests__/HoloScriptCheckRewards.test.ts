@@ -1,12 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseHolo } from '@holoscript/core';
+import { tokenizeHoloSource } from '@holoscript/core/parser';
+// The strict layer is not a workspace package; the test reads it in place to hold the
+// mirrored HS1004 / HS1006 rules equal to it.
+import { analyze } from '../../../../core/strict/holo_strict.mjs';
 import type { RewardToolRunner } from '../GRPORewardFunctions';
 import { GRPORewardOrchestrator } from '../GRPORewardOrchestrator';
 import {
   gradeHoloScriptCompletion,
   holoScriptCheckReward,
+  holoScriptTraitVocabulary,
   HOLOSCRIPT_CHECK_REWARDS,
 } from '../HoloScriptCheckRewards';
 
@@ -33,8 +39,12 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
     }
   });
 
-  it('comments and blank lines around the one program are fine', () => {
+  it('comments, blank lines and leading import lines around the one program are fine', () => {
     expect(gradeHoloScriptCompletion(`// a lamp\n\n${PROGRAM}\n\n// done\n`).reward).toBe(1);
+    expect(gradeHoloScriptCompletion(`/* a lamp */\n${PROGRAM}\n/* done */`).reward).toBe(1);
+    expect(gradeHoloScriptCompletion(`import "./parts.holo"\n\n${PROGRAM}`).rung).not.toBe(
+      'not-a-program'
+    );
   });
 
   it('a bare root name is still one program (the parser takes it); the checker grades the rest', () => {
@@ -43,17 +53,22 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
     expect(receipt.rung).not.toBe('not-a-program');
   });
 
-  const NOT_A_PROGRAM: Record<string, string> = {
+  const NOT_A_PROGRAM: Record<string, unknown> = {
     prose: 'Here is your scene: a red cube on a table.',
     'prose before the program': `Here is the scene:\n${PROGRAM}`,
     'prose after the program': `${PROGRAM}\nThat is the scene.`,
     'a markdown fence': '```holo\n' + PROGRAM + '\n```',
+    'a tilde fence (the lexer drops tildes)': '~~~holo\n' + PROGRAM + '\n~~~',
+    'symbols after the program (the lexer drops backticks)': `${PROGRAM}\n\`\`\``,
+    'a stray backtick before the program': `\`${PROGRAM}`,
     JSON: '{"composition": "Lamp", "objects": [{"name": "lamp"}]}',
     'two roots': `${PROGRAM}\n${PROGRAM.replace('"Lamp"', '"Other"')}`,
     'a root-less object': 'object "lamp" {\n  geometry: "sphere"\n}',
     'a nameless composition': 'composition {\n  object "lamp" {}\n}',
     'an unclosed composition': 'composition "Lamp" {\n  object "lamp" {}\n',
     empty: '',
+    'a number, not text': 42,
+    null: null,
   };
   it.each(Object.entries(NOT_A_PROGRAM))('%s is not a program: 0', (_label, source) => {
     const receipt = gradeHoloScriptCompletion(source);
@@ -70,13 +85,17 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
   });
 
   it('a valid program that holds nothing: 0.5', () => {
+    const receipt = gradeHoloScriptCompletion('composition "Lamp" {\n}');
+    expect(receipt.rung).toBe('empty');
+    expect(receipt.reward).toBe(0.5);
+  });
+
+  it('content is anything beyond bookkeeping (HS1004): an environment, a scene', () => {
     for (const source of [
-      'composition "Lamp" {\n}',
       'composition "Lamp" {\n  environment { skybox: "gradient" }\n}',
+      'composition "Lamp" {\n  scene "Main" {\n    object "lamp" { geometry: "sphere" }\n  }\n}',
     ]) {
-      const receipt = gradeHoloScriptCompletion(source);
-      expect(receipt.rung).toBe('empty');
-      expect(receipt.reward).toBe(0.5);
+      expect(gradeHoloScriptCompletion(source).rung, source).not.toBe('empty');
     }
   });
 
@@ -87,6 +106,19 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
     expect(receipt.detail).toContain('madeUpTrait');
   });
 
+  // (kebab-case cannot be written in source: the lexer splits `@spatial-audio` at the
+  // hyphen; it matters only for registry ids, which the vocabulary normalizes.)
+  it('trait spellings compare like the strict layer: case and camelCase', () => {
+    for (const trait of ['@Grabbable', '@GRABBABLE', '@spatialAudio']) {
+      const receipt = gradeHoloScriptCompletion(PROGRAM.replace('@grabbable', trait));
+      expect(receipt.rung, `${trait}: ${receipt.detail}`).toBe('clean');
+    }
+  });
+
+  it('1 saturates on any trivial valid program (documented: pair this term with a prompt-reading one)', () => {
+    expect(gradeHoloScriptCompletion('composition "A" {\n  object "o" {}\n}').reward).toBe(1);
+  });
+
   it('the ladder is strictly increasing, so the group advantage always points one rung up', () => {
     const order = ['not-a-program', 'errors', 'empty', 'unknown-traits', 'clean'] as const;
     for (let i = 1; i < order.length; i++) {
@@ -94,7 +126,6 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
         HOLOSCRIPT_CHECK_REWARDS[order[i - 1]]
       );
     }
-    expect(HOLOSCRIPT_CHECK_REWARDS.warnings).toBe(HOLOSCRIPT_CHECK_REWARDS['unknown-traits']);
   });
 
   it('the term scores a batch index-aligned', async () => {
@@ -102,6 +133,40 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
       0, 1, 0.5,
     ]);
   });
+});
+
+describe('the mirrored rules equal the strict layer on its own corpus', () => {
+  const corpus = join(repoRoot, 'packages', 'core', 'strict', 'corpus');
+  const files = ['valid', 'warns', 'invalid'].flatMap((kind) =>
+    readdirSync(join(corpus, kind))
+      .filter((f) => f.endsWith('.holo'))
+      .map((f) => join(corpus, kind, f))
+  );
+  const deps = { tokenizeHoloSource, parseHolo, traitIds: holoScriptTraitVocabulary() };
+
+  it('covers the corpus', () => {
+    expect(files.length).toBeGreaterThan(10);
+  });
+
+  it.each(files.map((f) => [f.slice(corpus.length + 1), f]))(
+    '%s: empty <=> HS1004, unknown trait <=> HS1006',
+    (_name, file) => {
+      const source = readFileSync(file, 'utf8');
+      const receipt = gradeHoloScriptCompletion(source);
+      if (receipt.rung === 'not-a-program' || receipt.rung === 'errors') return;
+      // Traits a source declares itself (`@trait { name: ... }`) are not read by the term.
+      if (/@trait\b/.test(source)) return;
+      const codes = new Set(
+        (analyze(source, deps).diagnostics as Array<{ code: string }>).map((d) => d.code)
+      );
+      expect(receipt.rung === 'empty', `HS1004 ${codes.has('HS1004')}`).toBe(codes.has('HS1004'));
+      if (receipt.rung !== 'empty') {
+        expect(receipt.rung === 'unknown-traits', `HS1006 ${codes.has('HS1006')}`).toBe(
+          codes.has('HS1006')
+        );
+      }
+    }
+  );
 });
 
 /** A runner that counts every TypeScript tool call. */
@@ -170,6 +235,26 @@ describe('GRPORewardOrchestrator HoloScript-check registration (flag-gated, defa
     expect(result.functionResults.map((f) => f.name)).toEqual(['holoScriptCheckReward']);
     expect(runner.calls).toBe(0);
     expect(orch.getWeights().holoScriptCheckReward).toBe(1);
+    // The TRL path gets the same list.
+    expect(orch.getRewardFuncsArray()).toEqual([holoScriptCheckReward]);
+  });
+
+  it('with the flag OFF a TypeScript term weighted 0 still runs and reports', async () => {
+    const runner = countingRunner();
+    const orch = new GRPORewardOrchestrator(runner, {
+      cacheEnabled: false,
+      weights: {
+        testPassReward: 0.5,
+        typeCheckReward: 0,
+        lintReward: 0.2,
+        coverageReward: 0.2,
+        circuitBreakerReward: 0.1,
+      },
+    });
+    const result = await orch.evaluate(['const x = 1;']);
+    expect(result.functionResults.map((f) => f.name)).toContain('typeCheckReward');
+    expect(result.functionResults).toHaveLength(5);
+    expect(orch.getRewardFuncsArray()).toHaveLength(5);
   });
 
   it('mixed weights add the HoloScript term to the TypeScript terms', async () => {
