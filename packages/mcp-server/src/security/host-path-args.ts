@@ -52,6 +52,10 @@ const HOST_PATH_ARG_KEYS: ReadonlySet<string> = new Set(
     'brain_path',
     'research_files',
     'videoUrl',
+    // holo_semantic_search read any server file named here (7qz0, 2026-10-08). A plain
+    // relative path still passes this gate, so absorb-service refuses the argument itself
+    // unless the operator allows it (manifestArgumentAllowed); this is the early layer.
+    'holoGraphHoloEmbedManifest',
   ].map(normalizeKey)
 );
 
