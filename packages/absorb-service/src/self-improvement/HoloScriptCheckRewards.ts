@@ -205,10 +205,12 @@ function skipString(s: string, i: number): number {
  * `import "x"`, `import X from "x"`, `import * as X from "x"`, `import { A, B } from "x"`.
  * Keywords in any case (`Import`, `FROM`): the lexer looks keywords up in lower case. The
  * .holo parser itself takes only the first and last forms; the others still count as one
- * program here, and the checker's errors then decide the rung.
+ * program here, and the checker's errors then decide the rung. The path holds no
+ * whitespace: the parser takes any string there, so `import "Here is your scene:"` would
+ * otherwise let prose ride in front of a program at full reward.
  */
 const IMPORT_RE =
-  /^import\s+(?:(?:\{[^{}]*\}|\*\s+as\s+[A-Za-z_]\w*|[A-Za-z_]\w*)\s+from\s+)?(?:"[^"\n]*"|'[^'\n]*')[ \t]*;?/i;
+  /^import\s+(?:(?:\{[^{}]*\}|\*\s+as\s+[A-Za-z_]\w*|[A-Za-z_]\w*)\s+from\s+)?(?:"[^"\s]*"|'[^'\s]*')[ \t]*;?/i;
 
 /**
  * Index after one well-formed import at `i`, or -1. What follows is read like anything else

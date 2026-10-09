@@ -121,6 +121,9 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
     'a tilde fence (the lexer drops tildes)': '~~~holo\n' + PROGRAM + '\n~~~',
     'symbols after the program (the lexer drops backticks)': `${PROGRAM}\n\`\`\``,
     'a stray backtick before the program': `\`${PROGRAM}`,
+    // The parser takes any string as an import path; the reward takes none with whitespace.
+    'prose in an import path': `import "Here is your scene:"\n${PROGRAM}`,
+    'prose in a single-quoted import path': `import 'my scene below'\n${PROGRAM}`,
     JSON: '{"composition": "Lamp", "objects": [{"name": "lamp"}]}',
     'two roots': `${PROGRAM}\n${PROGRAM.replace('"Lamp"', '"Other"')}`,
     'a root-less object': 'object "lamp" {\n  geometry: "sphere"\n}',
@@ -215,7 +218,7 @@ describe('the mirrored rules equal the strict layer on its corpus (real/ include
   ]);
   const deps = { tokenizeHoloSource, parseHolo, traitIds };
   const compared: string[] = [];
-  const MIN_COMPARED = 20;
+  const MIN_COMPARED = 35;
 
   it.each(files.map((f) => [f.slice(corpus.length + 1).replace(/\\/g, '/'), f]))(
     '%s: empty <=> HS1004, unknown trait <=> HS1006',
@@ -416,6 +419,32 @@ describe('the term never throws, however deep the parsed program (claude6 P3 a)'
       const fresh = await import('../HoloScriptCheckRewards');
       const receipt = fresh.gradeHoloScriptCompletion(PROGRAM);
       expect(receipt.rung, receipt.detail).toBe('clean');
+    } finally {
+      vi.doUnmock('@holoscript/core');
+      vi.resetModules();
+    }
+  });
+
+  it('scores a tree that throws while being read as errors, not a thrown batch (claude6 P3)', async () => {
+    // Whatever goes wrong after validation lands in the try: a getter that throws stands
+    // in for any reader failure the walk or the trait checks could hit.
+    const ast = {
+      type: 'Composition',
+      name: 'Hostile',
+      get objects(): unknown {
+        throw new Error('getter exploded');
+      },
+    };
+    vi.resetModules();
+    vi.doMock('@holoscript/core', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@holoscript/core')>()),
+      validateCanonicalSource: () => ({ valid: true, errors: [], warnings: [], ast }),
+    }));
+    try {
+      const fresh = await import('../HoloScriptCheckRewards');
+      const receipt = fresh.gradeHoloScriptCompletion(PROGRAM);
+      expect(receipt.rung).toBe('errors');
+      expect(receipt.detail).toContain('getter exploded');
     } finally {
       vi.doUnmock('@holoscript/core');
       vi.resetModules();
