@@ -515,8 +515,10 @@ describe('the system prompt every framework adapter sends', () => {
     ['fix', (adapter) => adapter.fixHoloScript(CODE, ['Expected RBRACE'])],
     ['optimize', (adapter) => adapter.optimizeHoloScript(CODE, 'vr')],
   ];
-  const ANSWERS_IN_WORDS: Array<[string, (adapter: Adapter) => Promise<unknown>]> = [
+  const EXPLAINS: Array<[string, (adapter: Adapter) => Promise<unknown>]> = [
     ['explain', (adapter) => adapter.explainHoloScript(CODE)],
+  ];
+  const CHATS: Array<[string, (adapter: Adapter) => Promise<unknown>]> = [
     ['chat', (adapter) => adapter.chat('what does @grabbable do?')],
   ];
   const cases = (calls: Array<[string, (adapter: Adapter) => Promise<unknown>]>) =>
@@ -556,14 +558,24 @@ describe('the system prompt every framework adapter sends', () => {
     }
   );
 
-  // The shared prompt's rule 1 is "Return ONLY HoloScript code". Explaining and
-  // chatting answer in words, so they get the same knowledge with that rule lifted.
-  it.each(cases(ANSWERS_IN_WORDS))(
+  // The shared prompt's rule 1 is "Return ONLY HoloScript code". Chat gets the same
+  // knowledge with that rule lifted.
+  it.each(cases(CHATS))(
     '%s answers in words: the code-only rule is lifted',
     async (_name, make, reply, call) => {
       const system = await systemPromptOf(make, reply, call);
       expect(system.startsWith(HOLOSCRIPT_SYSTEM_PROMPT)).toBe(true);
       expect(system).toContain('This request is a question or a conversation');
+    }
+  );
+
+  // Explain gets a short prompt of its own: the long one made Qwen3-4B answer an explain
+  // request with code (2026-10-09, see adapters.ts HOLOSCRIPT_EXPLAIN_PROMPT).
+  it.each(cases(EXPLAINS))(
+    '%s explains with the short words prompt',
+    async (_name, make, reply, call) => {
+      const system = await systemPromptOf(make, reply, call);
+      expect(system).toBe('You are a HoloScript expert. Explain code clearly.');
     }
   );
 });

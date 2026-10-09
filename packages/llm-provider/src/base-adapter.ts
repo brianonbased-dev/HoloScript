@@ -47,7 +47,9 @@ import {
  * Why a whole program instead of a description: shown exactly this program, eight
  * frontier models wrote the right answer (every requested detail) in 286 of 336 attempts
  * at the 14 author_holo tasks, against 181 of 336 without it; counting the right shape
- * only, 317 against 227. Qwen3-4B went from 0 to 12 of 14 on shape, 6 of 14 on right
+ * only, 317 against 227. Those are pooled: the gain is in models that did not know the
+ * shape, while Claude Opus 5.5 went from 35 to 33 of 42 right answers and Claude Haiku
+ * 5.5 stayed at 33. Qwen3-4B went from 0 to 12 of 14 on shape, 6 of 14 on right
  * answers (2026-10-08; ai-ecosystem receipts/holotune-native-authoring/
  * 2026-10-08-frontier-authoring-detail-regrade.json). An earlier example that showed
  * objects WITHOUT the composition wrapper scores 0 of 14 under the current grader: the

@@ -8,7 +8,7 @@
 
 This document is a guide to the AI-guided HoloScript generation API in `@holoscript/framework`, which turns natural language descriptions into HoloScript code.
 
-> Not the same path as the MCP `generate_object` / `generate_scene` tools. Those go through `@holoscript/llm-provider` (`generateHoloScript` on a provider adapter), whose system prompt (`HOLOSCRIPT_SYSTEM_PROMPT`) shows a parse-tested `composition "Name" { ... }` program. Since 2026-10-08 the framework adapters on this page send that same prompt for generate, fix and optimize, and the same knowledge with its "return only code" rule lifted for explain and chat.
+> Not the same path as the MCP `generate_object` / `generate_scene` tools. Those go through `@holoscript/llm-provider` (`generateHoloScript` on a provider adapter), whose system prompt (`HOLOSCRIPT_SYSTEM_PROMPT`) shows a parse-tested `composition "Name" { ... }` program. Since 2026-10-08 the framework adapters on this page send that same prompt for generate, fix and optimize, and the same knowledge with its "return only code" rule lifted for chat. Explain sends a short "explain clearly" prompt instead: with the long one, Qwen3-4B answered explain requests with code (measured 2026-10-09).
 
 ---
 

@@ -58,11 +58,17 @@ export type {
 //
 // That prompt's rule 1 is "Return ONLY HoloScript code ... no explanations", which
 // is right for generate, fix and optimize and wrong for explaining or chatting.
-// Those get the same knowledge with the rule lifted.
+// Chat gets the same knowledge with the rule lifted at the end.
 const HOLOSCRIPT_CHAT_PROMPT = `${HOLOSCRIPT_SYSTEM_PROMPT}
 
 This request is a question or a conversation, not a request for code. Answer in plain words.
 Rule 1 above applies only when you are asked to write or change code; then return the code.`;
+
+// Explain gets a short prompt of its own: the code to explain is in the request, and the
+// long prompt makes a small model write code. Measured 2026-10-09 on Qwen3-4B (Jetson,
+// temperature 0, three programs): answered in words 3/3 with this prompt, 2/3 with the
+// chat prompt above, 0/3 with that prompt's lifting moved first.
+const HOLOSCRIPT_EXPLAIN_PROMPT = 'You are a HoloScript expert. Explain code clearly.';
 
 // ============================================================================
 // OpenAI Adapter
@@ -107,7 +113,7 @@ export class OpenAIAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const response = await this.callAPI([
-      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ]);
 
@@ -282,7 +288,7 @@ export class AnthropicAdapter implements AIAdapter {
     const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
-    const response = await this.callAPI(messages, HOLOSCRIPT_CHAT_PROMPT);
+    const response = await this.callAPI(messages, HOLOSCRIPT_EXPLAIN_PROMPT);
     return { explanation: response };
   }
 
@@ -433,7 +439,7 @@ export class OllamaAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const response = await this.callAPI(
-      HOLOSCRIPT_CHAT_PROMPT,
+      HOLOSCRIPT_EXPLAIN_PROMPT,
       'Explain this HoloScript code clearly:\n\n' + holoScript
     );
     return { explanation: response };
@@ -706,7 +712,7 @@ export class GeminiAdapter implements AIAdapter {
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const response = await this.callAPI(
       'Explain this HoloScript code clearly:\n\n' + holoScript,
-      HOLOSCRIPT_CHAT_PROMPT
+      HOLOSCRIPT_EXPLAIN_PROMPT
     );
     return { explanation: response };
   }
@@ -854,7 +860,7 @@ export class XAIAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
     const response = await this.callAPI(messages);
@@ -1018,7 +1024,7 @@ export class TogetherAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
     const response = await this.callAPI(messages);
@@ -1156,7 +1162,7 @@ export class FireworksAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
     const response = await this.callAPI(messages);
@@ -1325,7 +1331,7 @@ export class NVIDIAAdapter implements AIAdapter {
 
   async explainHoloScript(holoScript: string): Promise<ExplainResult> {
     const messages: Array<{ role: string; content: string }> = [
-      { role: 'system', content: HOLOSCRIPT_CHAT_PROMPT },
+      { role: 'system', content: HOLOSCRIPT_EXPLAIN_PROMPT },
       { role: 'user', content: 'Explain this HoloScript code clearly:\n\n' + holoScript },
     ];
     const response = await this.callAPI(messages);

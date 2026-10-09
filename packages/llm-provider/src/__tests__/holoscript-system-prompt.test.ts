@@ -12,7 +12,7 @@ import type { LLMCompletionRequest, LLMCompletionResponse } from '../types';
  * Until 2026-10-07 it never showed the `composition "Name" { ... }` root that
  * every program needs, and its examples were root-less fragments; its placeholder
  * example parsed into a program with no objects at all. Showing one real program
- * raised frontier models' right answers from 181 to 286 of 336 (right shape only:
+ * raised eight frontier models' pooled right answers from 181 to 286 of 336 (right shape only:
  * 227 to 317; see the comment on HOLOSCRIPT_EXAMPLE_PROGRAM). These tests keep that program in the prompt and
  * keep it in front of every provider. Whether it PARSES is checked where the parser
  * lives: packages/mcp-server/src/__tests__/generator-prompt-parse.test.ts.
