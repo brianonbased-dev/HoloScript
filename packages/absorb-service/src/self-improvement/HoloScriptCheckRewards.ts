@@ -27,6 +27,8 @@
  *  - Errors also: a trait parsed with an empty name (the strict layer's HS1005).
  *  - Empty: the strict layer's HS1004 rule (packages/core/strict/holo_strict.mjs): every
  *    composition field except `type`, `loc`, `provenance` and `name` counts as content.
+ *    So does a leading `import`: `import "x"` before an empty composition reaches 1, as it
+ *    passes strict. Kept equal to strict on purpose; changing it means changing HS1004.
  *  - Unknown trait: the strict layer's HS1006 rule. Traits are read from the AST (every
  *    `ObjectTrait`/`Trait` node, on any block), checked against core's known set, the traits
  *    `.holo` files declare and the trait registry, with its spelling rules (@camelCase,
@@ -116,14 +118,29 @@ const squash = (normalized: string) => normalized.replace(/_/g, '');
 
 let vocabulary: { ids: Set<string>; normalized: Set<string>; squashed: Set<string> } | undefined;
 
-/** The trait registry's ids, read the way the strict layer reads them; empty if unavailable. */
+/** Set when the trait registry could not be read; said in receipts and warned once. */
+let registryProblem: string | undefined;
+
+/**
+ * The trait registry's ids, read the way the strict layer reads them. Not silently empty:
+ * without the registry, registry-only traits score as unknown (0.75 instead of 1), so a
+ * failure is warned once and named in every receipt that reports an unknown trait.
+ */
 function registryIds(): string[] {
+  let ids: string[] = [];
   try {
     const registry = createRequire(import.meta.url)('@holoscript/core/traits/trait-registry.json');
-    return registry && typeof registry === 'object' ? Object.keys(registry) : [];
-  } catch {
-    return [];
+    ids = registry && typeof registry === 'object' ? Object.keys(registry) : [];
+    if (ids.length === 0) registryProblem = 'the trait registry read empty';
+  } catch (error) {
+    registryProblem = `the trait registry could not be read (${String(error).split('\n')[0]})`;
   }
+  if (registryProblem) {
+    console.warn(
+      `[HoloScriptCheckRewards] ${registryProblem}; registry-only traits will score as unknown`
+    );
+  }
+  return ids;
 }
 
 /** The strict layer's HS1006 vocabulary: known set, declared traits and the registry. */
@@ -184,17 +201,24 @@ function skipString(s: string, i: number): number {
   return -1;
 }
 
-/** `import "x"`, `import X from "x"`, `import * as X from "x"`, `import { A, B } from "x"`. */
+/**
+ * `import "x"`, `import X from "x"`, `import * as X from "x"`, `import { A, B } from "x"`.
+ * Keywords in any case (`Import`, `FROM`): the lexer looks keywords up in lower case. The
+ * .holo parser itself takes only the first and last forms; the others still count as one
+ * program here, and the checker's errors then decide the rung.
+ */
 const IMPORT_RE =
-  /^import\s+(?:(?:\{[^{}]*\}|\*\s+as\s+[A-Za-z_]\w*|[A-Za-z_]\w*)\s+from\s+)?(?:"[^"\n]*"|'[^'\n]*')[ \t]*;?/;
+  /^import\s+(?:(?:\{[^{}]*\}|\*\s+as\s+[A-Za-z_]\w*|[A-Za-z_]\w*)\s+from\s+)?(?:"[^"\n]*"|'[^'\n]*')[ \t]*;?/i;
 
-/** Index after one well-formed import at `i` (nothing but a comment after it on its line), or -1. */
+/**
+ * Index after one well-formed import at `i`, or -1. What follows is read like anything else
+ * between statements (whitespace, `//` and block comments, even on the same line), so an
+ * import with a block comment after it leads a program and `import "a.holo" then words`
+ * does not.
+ */
 function skipImport(s: string, i: number): number {
   const m = IMPORT_RE.exec(s.slice(i));
-  if (!m) return -1;
-  const end = i + m[0].length;
-  const nl = s.indexOf('\n', end);
-  return /^[ \t]*(\/\/.*)?$/.test(s.slice(end, nl < 0 ? s.length : nl)) ? end : -1;
+  return m ? i + m[0].length : -1;
 }
 
 /**
@@ -203,7 +227,7 @@ function skipImport(s: string, i: number): number {
  */
 function isOneBareComposition(s: string): boolean {
   let i = skipSpace(s, 0);
-  while (i >= 0 && /^import\b/.test(s.slice(i, i + 7))) {
+  while (i >= 0 && /^import\b/i.test(s.slice(i, i + 7))) {
     const end = skipImport(s, i);
     if (end < 0) return false;
     i = skipSpace(s, end);
@@ -253,17 +277,27 @@ function isOneBareComposition(s: string): boolean {
 
 type Node = Record<string, unknown>;
 
-/** Every trait node in the AST (`ObjectTrait` / `Trait`), wherever it sits. */
-function collectTraitNodes(node: unknown, found: Node[] = []): Node[] {
-  if (!node || typeof node !== 'object') return found;
-  if (Array.isArray(node)) {
-    for (const item of node) collectTraitNodes(item, found);
-    return found;
-  }
-  const n = node as Node;
-  if (n.type === 'ObjectTrait' || n.type === 'Trait') found.push(n);
-  for (const value of Object.values(n)) {
-    if (value && typeof value === 'object') collectTraitNodes(value, found);
+/**
+ * Every trait node in the AST (`ObjectTrait` / `Trait`), wherever it sits, in source order.
+ * A loop with its own stack, not recursion: a completion nested hundreds of thousands deep
+ * would overflow the call stack, and a throw here would zero the whole batch's term.
+ */
+function collectTraitNodes(root: unknown): Node[] {
+  const found: Node[] = [];
+  const seen = new WeakSet<object>();
+  const stack: unknown[] = [root];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node || typeof node !== 'object' || seen.has(node)) continue;
+    seen.add(node);
+    const children = Array.isArray(node) ? node : Object.values(node as Node);
+    if (!Array.isArray(node)) {
+      const n = node as Node;
+      if (n.type === 'ObjectTrait' || n.type === 'Trait') found.push(n);
+    }
+    for (let i = children.length - 1; i >= 0; i--) {
+      if (children[i] && typeof children[i] === 'object') stack.push(children[i]);
+    }
   }
   return found;
 }
@@ -320,28 +354,36 @@ export function gradeHoloScriptCompletion(completion: unknown): HoloScriptCheckR
     return rung('errors', `${result.errors.length} error(s); first: ${first}`);
   }
 
-  const traits = collectTraitNodes(result.ast);
-  const bareNames = traits.map((trait) =>
-    String(trait.name ?? '')
-      .trim()
-      .replace(/^@/, '')
-  );
-  if (bareNames.some((bare) => !/^[A-Za-z0-9_]/.test(bare))) {
-    return rung('errors', 'a trait was parsed with an empty name (HS1005)');
-  }
+  try {
+    const traits = collectTraitNodes(result.ast);
+    const bareNames = traits.map((trait) =>
+      String(trait.name ?? '')
+        .trim()
+        .replace(/^@/, '')
+    );
+    if (bareNames.some((bare) => !/^[A-Za-z0-9_]/.test(bare))) {
+      return rung('errors', 'a trait was parsed with an empty name (HS1005)');
+    }
 
-  if (!compositionHasContent(result.ast)) {
-    return rung('empty', 'valid, but nothing in it parsed into a composition (HS1004)');
-  }
+    if (!compositionHasContent(result.ast)) {
+      return rung('empty', 'valid, but nothing in it parsed into a composition (HS1004)');
+    }
 
-  const declared = declaredTraitNames(result.ast, traits);
-  const unknown = new Set(
-    bareNames.filter((bare) => !isKnownTrait(bare) && !declared.has(normalizeTraitName(bare)))
-  );
-  if (unknown.size > 0) {
-    return rung('unknown-traits', `traits the language does not know: ${[...unknown].join(', ')}`);
+    const declared = declaredTraitNames(result.ast, traits);
+    const unknown = new Set(
+      bareNames.filter((bare) => !isKnownTrait(bare) && !declared.has(normalizeTraitName(bare)))
+    );
+    if (unknown.size > 0) {
+      const registryNote = registryProblem ? `; ${registryProblem}` : '';
+      return rung(
+        'unknown-traits',
+        `traits the language does not know: ${[...unknown].join(', ')}${registryNote}`
+      );
+    }
+    return rung('clean', 'one valid program with content, every trait known');
+  } catch (error) {
+    return rung('errors', `the checker threw while reading the program: ${String(error)}`);
   }
-  return rung('clean', 'one valid program with content, every trait known');
 }
 
 /** Score a batch, index-aligned to `completions`. */

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,6 +67,28 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
     expect(gradeHoloScriptCompletion(multiLine).rung).not.toBe('not-a-program');
     expect(gradeHoloScriptCompletion(`import "a.holo" then words\n${PROGRAM}`).rung).toBe(
       'not-a-program'
+    );
+  });
+
+  it('an import leads in every spelling the parser takes (claude6 P3 d)', () => {
+    // Each parses with zero errors; b66da1f8a scored the first two 0.
+    for (const lead of [
+      'import "./parts.holo" /* shared parts */',
+      'Import "./parts.holo"',
+      'IMPORT { Lamp } FROM "./parts.holo";',
+      'import "./a.holo" import "./b.holo"',
+      'import "./parts.holo" /* spans\n  two lines */',
+    ]) {
+      const receipt = gradeHoloScriptCompletion(`${lead}\n${PROGRAM}`);
+      expect(receipt.rung, `${JSON.stringify(lead)}: ${receipt.detail}`).toBe('clean');
+    }
+    expect(gradeHoloScriptCompletion(`import "./parts.holo" ${PROGRAM}`).rung).toBe('clean');
+  });
+
+  it('a leading import counts as content, as in the strict layer (HS1004 parity)', () => {
+    // Pinned on purpose (claude6 P3 f): changing it means changing HS1004 with it.
+    expect(gradeHoloScriptCompletion('import "./parts.holo"\ncomposition "A" {\n}').rung).toBe(
+      'clean'
     );
   });
 
@@ -195,10 +217,16 @@ describe('the mirrored rules equal the strict layer on its corpus (real/ include
   const compared: string[] = [];
   const MIN_COMPARED = 20;
 
-  it.each(files.map((f) => [f.slice(corpus.length + 1), f]))(
+  it.each(files.map((f) => [f.slice(corpus.length + 1).replace(/\\/g, '/'), f]))(
     '%s: empty <=> HS1004, unknown trait <=> HS1006',
     (name, file) => {
-      const source = readFileSync(file, 'utf8');
+      const raw = readFileSync(file, 'utf8');
+      // A snippet without the root (warns/unknown-trait.holo is a bare object) is graded
+      // and analyzed inside one, so the rules are compared on it too instead of skipped.
+      const source =
+        gradeHoloScriptCompletion(raw).rung === 'not-a-program'
+          ? `composition "Corpus" {\n${raw}\n}`
+          : raw;
       const receipt = gradeHoloScriptCompletion(source);
       if (receipt.rung === 'not-a-program' || receipt.rung === 'errors') return;
       compared.push(name);
@@ -216,6 +244,10 @@ describe('the mirrored rules equal the strict layer on its corpus (real/ include
 
   it('compares enough of the corpus for "equal" to mean something', () => {
     expect(compared.length, compared.join(', ')).toBeGreaterThanOrEqual(MIN_COMPARED);
+    // Both warn files, so HS1006 is compared where strict actually fires it.
+    expect(compared).toEqual(
+      expect.arrayContaining(['warns/unknown-trait.holo', 'warns/composition-2d-canvas.holo'])
+    );
   });
 });
 
@@ -332,5 +364,61 @@ describe('GRPORewardOrchestrator HoloScript-check registration (flag-gated, defa
     const result = await orch.evaluate(['const x = 1;']);
     expect(result.functionResults).toHaveLength(5);
     expect(runner.calls).toBeGreaterThan(0);
+  });
+});
+
+describe('a trait registry that cannot be read is said, not silent (claude6 P3 e)', () => {
+  it('warns once and names the problem in every receipt with an unknown trait', async () => {
+    vi.resetModules();
+    vi.doMock('module', async (importOriginal) => {
+      const real = await importOriginal<typeof import('module')>();
+      const createRequire = () => () => {
+        throw new Error("Cannot find module '@holoscript/core/traits/trait-registry.json'");
+      };
+      return { ...real, createRequire, default: { ...real, createRequire } };
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const fresh = await import('../HoloScriptCheckRewards');
+      // agent_badge is known only through the registry.
+      const source = PROGRAM.replace('@grabbable', '@agent_badge');
+      for (let i = 0; i < 2; i++) {
+        const receipt = fresh.gradeHoloScriptCompletion(source);
+        expect(receipt.rung).toBe('unknown-traits');
+        expect(receipt.detail).toContain('the trait registry could not be read');
+      }
+      expect(warn).toHaveBeenCalledTimes(1);
+    } finally {
+      warn.mockRestore();
+      vi.doUnmock('module');
+      vi.resetModules();
+    }
+  });
+});
+
+describe('the term never throws, however deep the parsed program (claude6 P3 a)', () => {
+  it('reads a 400,000-deep tree, where a recursive walk overflows the stack', async () => {
+    // Today's parser keeps such source shallow, so the tree is handed over directly: what
+    // is under test is the walk after validation, which a throw would turn into a zeroed
+    // batch term.
+    let leaf: Record<string, unknown> = {
+      type: 'Object',
+      traits: [{ type: 'ObjectTrait', name: 'grabbable' }],
+    };
+    for (let i = 0; i < 400_000; i++) leaf = { type: 'Object', children: [leaf] };
+    const ast = { type: 'Composition', name: 'Deep', objects: [leaf] };
+    vi.resetModules();
+    vi.doMock('@holoscript/core', async (importOriginal) => ({
+      ...(await importOriginal<typeof import('@holoscript/core')>()),
+      validateCanonicalSource: () => ({ valid: true, errors: [], warnings: [], ast }),
+    }));
+    try {
+      const fresh = await import('../HoloScriptCheckRewards');
+      const receipt = fresh.gradeHoloScriptCompletion(PROGRAM);
+      expect(receipt.rung, receipt.detail).toBe('clean');
+    } finally {
+      vi.doUnmock('@holoscript/core');
+      vi.resetModules();
+    }
   });
 });
