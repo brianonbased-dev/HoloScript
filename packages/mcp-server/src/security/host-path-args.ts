@@ -52,11 +52,22 @@ const HOST_PATH_ARG_KEYS: ReadonlySet<string> = new Set(
     'brain_path',
     'research_files',
     'videoUrl',
-    // holo_semantic_search read any server file named here (7qz0, 2026-10-08). A plain
-    // relative path still passes this gate, so absorb-service refuses the argument itself
-    // unless the operator allows it (manifestArgumentAllowed); this is the early layer.
-    'holoGraphHoloEmbedManifest',
   ].map(normalizeKey)
+);
+
+/**
+ * Keys that name a server resource the operator chooses, refused for a caller without admin scope or
+ * local custody WHATEVER the value: a plain relative path or an https URL is as dangerous here as an
+ * absolute one, so these are not path-checked, they are not the caller's to set.
+ * - holoGraphHoloEmbedManifest: holo_semantic_search read the file named (7qz0, #539). A relative path
+ *   resolves against the server's own folder, so listing it as a path key still admitted one.
+ * - holoLlamaEndpoint: holo_ask_codebase called the URL named with the inference-proxy bearer attached
+ *   (SSRF plus the key; claude9's review of #539, 2026-10-09).
+ * absorb-service also refuses both unless the operator allows them (manifestArgumentAllowed,
+ * holoLlamaEndpointArgumentAllowed), which covers the absorb host, where this gate does not run.
+ */
+const OPERATOR_ONLY_ARG_KEYS: ReadonlySet<string> = new Set(
+  ['holoGraphHoloEmbedManifest', 'holoLlamaEndpoint'].map(normalizeKey)
 );
 
 /**
@@ -166,6 +177,12 @@ export function findHostPathViolation(
   if (!args || typeof args !== 'object') return null;
   for (const [key, value] of Object.entries(args)) {
     const normalized = normalizeKey(key);
+    if (OPERATOR_ONLY_ARG_KEYS.has(normalized)) {
+      if (value !== undefined && value !== null && value !== '') {
+        return { key, reason: "is set only by an administrator or on the server's own machine" };
+      }
+      continue;
+    }
     if (isHostPathKey(normalized)) {
       for (const candidate of stringsIn(value)) {
         const reason = hostPathViolation(candidate);

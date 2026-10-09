@@ -434,8 +434,10 @@ async function validateDocument(document: TextDocument): Promise<void> {
 
   // ── Canonical extension-routed parser ────────────────────────────────────
   try {
+    // allowEmpty: a brand-new file with nothing typed yet is not an error in
+    // the editor. The CLI and MCP validate_holoscript still refuse it (HS1001).
     const parseResult = validateCanonicalSource(
-      { source: text, surface },
+      { source: text, surface, allowEmpty: true },
       { validateHsDetailed: validateCanonicalHsDetailed }
     );
 

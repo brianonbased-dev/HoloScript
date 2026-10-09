@@ -205,7 +205,7 @@ export const graphRagTools: Tool[] = [
         holoLlamaEndpoint: {
           type: 'string',
           description:
-            'OpenAI-compatible HoloLlama endpoint override used when llmProvider is "holollama" (default: HoloKey-aware HOLOLLAMA_ENDPOINT/env or the selected profile registry endpoint). Accepts a base URL, /v1 URL, or /v1/chat/completions URL.',
+            'OpenAI-compatible HoloLlama endpoint override used when llmProvider is "holollama" (default: HoloKey-aware HOLOLLAMA_ENDPOINT/env or the selected profile registry endpoint). It is an address the server calls, so it is refused unless the server operator set HOLOLLAMA_ENDPOINT_ARG=allow (a single-user local server). Accepts a base URL, /v1 URL, or /v1/chat/completions URL.',
         },
       },
       required: ['question'],
@@ -809,6 +809,23 @@ export function manifestArgumentAllowed(env: NodeJS.ProcessEnv = process.env): b
   return env.HOLOGRAPH_HOLOEMBED_MANIFEST_ARG?.trim().toLowerCase() === 'allow';
 }
 
+/**
+ * Whether a CALLER may name the HoloLlama endpoint (holo_ask_codebase holoLlamaEndpoint).
+ *
+ * The server fetches that URL itself, and createHoloLlamaSynthesisProvider attaches the
+ * inference-proxy bearer (resolveInferenceProxyKey) to both the models probe and the chat
+ * call. So a caller holding only tools:codebase could make the server request any address
+ * it can reach, and receive the key there (found by claude9 reviewing #539, 2026-10-09).
+ *
+ * Off unless the operator turns it on for a single-user local server
+ * (HOLOLLAMA_ENDPOINT_ARG=allow). The operator's HOLOLLAMA_ENDPOINT / HOLOLLAMA_URL and
+ * the profile's own endpoint are unaffected. mcp-server additionally refuses the key for
+ * non-admin, non-loopback callers whatever this says (host-path-args).
+ */
+export function holoLlamaEndpointArgumentAllowed(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.HOLOLLAMA_ENDPOINT_ARG?.trim().toLowerCase() === 'allow';
+}
+
 function stringArg(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
 }
@@ -990,6 +1007,17 @@ async function buildExtractiveCodebaseAnswer(options: {
 }
 
 async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown> {
+  // First, before any state or network: a caller-named endpoint is an address this
+  // server would call with its own key attached (holoLlamaEndpointArgumentAllowed).
+  if (stringArg(args.holoLlamaEndpoint) && !holoLlamaEndpointArgumentAllowed()) {
+    return {
+      error:
+        'holoLlamaEndpoint names an address for this server to call, which callers may not do here.',
+      hint:
+        "Leave it out: the server uses its operator's HOLOLLAMA_ENDPOINT or the selected profile's own endpoint. " +
+        'On a single-user local server the operator can set HOLOLLAMA_ENDPOINT_ARG=allow.',
+    };
+  }
   if (!cachedEmbeddingIndex || !cachedGraphRAGEngine) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,

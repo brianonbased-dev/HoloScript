@@ -297,7 +297,8 @@ export class HoloScriptSandbox {
   }
 
   /**
-   * Validates HoloScript code syntax before execution
+   * Checks the code before execution: not empty, the capability blocklist, and that it is
+   * well-formed as a .holo composition or as JavaScript (see the end of this method).
    */
   private async validateCode(code: string): Promise<{ valid: boolean; error?: string }> {
     if (!code || code.trim() === '') {
@@ -305,7 +306,7 @@ export class HoloScriptSandbox {
     }
 
     // Paper #4 ablation: -Capability Check disables the static blocklist /
-    // proto-escape regex pass. Empty-string check above and parser pass below
+    // proto-escape regex pass. Empty-string check above and syntax check below
     // remain (they are not capability checks; they are validity checks).
     if (!this.ablation.disableCapabilityCheck) {
       const structuralError = this.preValidateStructure(code);
@@ -324,13 +325,26 @@ export class HoloScriptSandbox {
       }
     }
 
+    // Well-formed means one of the two languages this sandbox is handed: a .holo composition
+    // (validated, then refused at execution because it is not JavaScript) or JavaScript
+    // guest code (compiled here, run in Step 3). Until #509 the .holo parser also accepted
+    // JavaScript by skipping every token it did not know, so this check passed anything.
+    let holoError: string;
     try {
       parseHoloStrict(code);
       return { valid: true };
     } catch (error) {
+      holoError = error instanceof Error ? error.message : 'Unknown validation error';
+    }
+    try {
+      // Compiles only; nothing runs until Step 3.
+      new nodeVm.Script(code);
+      return { valid: true };
+    } catch (error) {
+      const jsError = error instanceof Error ? error.message : String(error);
       return {
         valid: false,
-        error: error instanceof Error ? error.message : 'Unknown validation error',
+        error: `Invalid syntax: not a .holo composition (${holoError}) and not JavaScript (${jsError})`,
       };
     }
   }
@@ -807,7 +821,7 @@ export class HoloScriptSandbox {
    * Execute a .hs LOGIC function (pure business logic) in the isolated VM and emit a
    * verifiable CAEL receipt — the native "run logic + PROVE the result" surface.
    *
-   * Unlike executeHoloScript (which validates .holo compositions via parseHoloStrict),
+   * Unlike executeHoloScript (which accepts a .holo composition or JavaScript, and runs JavaScript),
    * this validates .hs logic with the HoloScript(Plus) parser, injects the .hs runtime
    * math builtins (abs/max/min) into the isolate, calls `functionName(...args)`, and
    * records a hash-chained CAEL trace (input -> result). The returned `verified` is

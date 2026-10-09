@@ -531,7 +531,11 @@ export class HoloCompositionParser {
 }
 
 export type CanonicalSourceSurface = 'holo' | 'hsplus' | 'hs';
-export type CanonicalValidator = 'holo-parser' | 'typescript-hsplus' | 'rust-wasm';
+export type CanonicalValidator =
+  | 'holo-parser'
+  | 'typescript-hsplus'
+  | 'rust-wasm'
+  | 'empty-source-check';
 export interface CanonicalDiagnostic {
   severity: 'error' | 'warning';
   message: string;
@@ -544,6 +548,7 @@ export interface CanonicalSourceValidationRequest {
   source: string;
   fileName?: string;
   surface?: CanonicalSourceSurface | '.holo' | '.hsplus' | '.hs';
+  allowEmpty?: boolean;
 }
 export type CanonicalHsDetailedValidator = (source: string) => string | unknown;
 export interface CanonicalSourceValidationDependencies {

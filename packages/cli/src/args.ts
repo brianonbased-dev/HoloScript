@@ -256,6 +256,10 @@ export interface CLIOptions {
   absorbMaxFiles?: number;
   /** Comma-separated files for quick blast-radius query (relative to scan dir) */
   impactFiles?: string;
+  /** impact --since: absorb (force:false) before reading the graph */
+  impactRefresh?: boolean;
+  /** impact --since: print only the plain-text reviewer brief */
+  impactBrief?: boolean;
   // ── query command ────────────────────────────────────────────────────────
   /** Embedding provider for holoscript query (default: 'holoembed') */
   queryProvider?: 'holoembed' | 'structural';
@@ -721,6 +725,12 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--impact':
         options.impactFiles = args[++i];
         break;
+      case '--refresh':
+        options.impactRefresh = true;
+        break;
+      case '--brief':
+        options.impactBrief = true;
+        break;
       // ── query flags ──────────────────────────────────────────────────────
       case '--llm':
         options.queryLlm = args[++i];
@@ -851,6 +861,10 @@ Usage: holoscript <command> [options] [input]
   impact-analysis <files>
                     Run Absorb then report blast radius for comma-separated files
                     Use --dir <root> to set scan root (default: cwd)
+                    Use --since <ref|a..b> for a HoloCI change report: tests the
+                    change can reach, untouched callers of changed exports, and
+                    a reviewer brief (--brief). Reads the cached graph only;
+                    --refresh absorbs first. No graph = all package tests.
   query <question>  Semantic GraphRAG search over an absorbed codebase
                     Use --provider holoembed (default). structural is a legacy alias; external embedding providers are rejected for project GraphRAG.
                     Use --with-llm to get an LLM-synthesised answer
@@ -966,6 +980,8 @@ Usage: holoscript <command> [options] [input]
   --since <ref>       Limit absorb to files changed since git ref/date
   --max-files <n>     Bound absorb scan size for large local workspaces
   --impact <files>    Comma-separated files to compute blast-radius for
+  --refresh           impact --since: refresh the graph (incremental absorb) first
+  --brief             impact --since: print only the plain-text reviewer brief
   --provider <b>      GraphRAG embedding backend: holoembed (default) | structural alias. External embedding providers are rejected.
   --dir <path>        Directory to scan for query (default: cwd)
   --with-llm          Synthesise a natural-language answer from GraphRAG context
@@ -1055,6 +1071,7 @@ Usage: holoscript <command> [options] [input]
   holoscript graph-status --json              # Machine-readable graph cache status
   holoscript impact "src/cli.ts" --dir packages/cli/src --json
   holoscript impact-analysis "src/cli.ts" --dir packages/cli/src --json
+  holoscript impact --since origin/main --dir . --brief   # HoloCI change report
   holoscript self-improve --cycles 10         # Run 10 improvement cycles
   holoscript self-improve --harvest --commit  # Harvest training data + auto-commit
   holoscript self-improve --daemon            # Continuous mode until convergence

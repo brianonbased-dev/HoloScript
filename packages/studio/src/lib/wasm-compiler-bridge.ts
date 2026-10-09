@@ -496,24 +496,43 @@ export class CompilerBridge {
   private async _fallbackValidate(source: string): Promise<ValidationResult> {
     try {
       const core = (await import('@holoscript/core')) as Record<string, unknown>;
-      const ValidatorClass = core.HoloScriptValidator as
-        (new () => { validate(code: string): { message: string }[] }) | undefined;
-      if (!ValidatorClass) {
+      // The same verdict the CLI, the validate_holoscript tool and the LSP give.
+      // _fallbackParse reads this source as .holo, so validate it as .holo.
+      // HoloScriptValidator runs the legacy .hs code parser and rejects most
+      // valid compositions, so it is not used here.
+      const validateCanonicalSource = core.validateCanonicalSource as
+        | ((request: { source: string; surface: 'holo'; allowEmpty?: boolean }) => {
+            valid: boolean;
+            errors: { message: string; code?: string }[];
+            warnings: { message: string; code?: string }[];
+          })
+        | undefined;
+      if (!validateCanonicalSource) {
         return {
           valid: false,
           diagnostics: [
-            { severity: 'error', message: 'HoloScriptValidator not available in @holoscript/core' },
+            {
+              severity: 'error',
+              message: 'validateCanonicalSource not available in @holoscript/core',
+            },
           ],
         };
       }
-      const validator = new ValidatorClass();
-      const errors = validator.validate(source);
+      // An editor buffer may be blank while the user starts typing, like a new file in the LSP.
+      const result = validateCanonicalSource({ source, surface: 'holo', allowEmpty: true });
+      const toDiagnostic =
+        (severity: Severity) =>
+        (d: { message: string; code?: string }): Diagnostic => ({
+          severity,
+          message: d.message,
+          ...(d.code ? { code: d.code } : {}),
+        });
       return {
-        valid: errors.length === 0,
-        diagnostics: errors.map((e: { message: string }) => ({
-          severity: 'error' as Severity,
-          message: e.message,
-        })),
+        valid: result.valid,
+        diagnostics: [
+          ...result.errors.map(toDiagnostic('error')),
+          ...result.warnings.map(toDiagnostic('warning')),
+        ],
       };
     } catch (error) {
       return { valid: false, diagnostics: [{ severity: 'error', message: String(error) }] };

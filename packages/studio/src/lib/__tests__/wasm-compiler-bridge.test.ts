@@ -5,17 +5,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // ─── Mock @holoscript/core (dynamic-imported by fallback methods) ──────────
 
 const mockParseHolo = vi.fn().mockReturnValue({ type: 'composition', body: [] });
-const mockValidate = vi.fn().mockReturnValue([]);
+const VALID = { valid: true, surface: 'holo', validator: 'holo-parser', errors: [], warnings: [] };
+const mockValidate = vi.fn().mockReturnValue(VALID);
 const mockR3FCompile = vi.fn().mockReturnValue({ type: 'group', children: [] });
 const mockR3FCompileComposition = vi.fn().mockReturnValue({ type: 'group', children: [] });
 
 vi.mock('@holoscript/core', () => ({
   parseHolo: mockParseHolo,
-  HoloScriptValidator: class {
-    validate(code: string) {
-      return mockValidate(code);
-    }
-  },
+  validateCanonicalSource: (request: unknown) => mockValidate(request),
   HoloScriptPlusParser: class {
     parse(source: string) {
       return { ast: { type: 'program', body: [] } };
@@ -89,7 +86,7 @@ describe('CompilerBridge', { timeout: 15_000 }, () => {
     vi.clearAllMocks();
     // Restore default mock return values after clearAllMocks wipes them
     mockParseHolo.mockReturnValue({ type: 'composition', body: [] });
-    mockValidate.mockReturnValue([]);
+    mockValidate.mockReturnValue(VALID);
     mockR3FCompile.mockReturnValue({ type: 'group', children: [] });
     mockR3FCompileComposition.mockReturnValue({ type: 'group', children: [] });
     // Re-stub Worker to ensure isolation from other test files' Worker mocks
@@ -172,19 +169,48 @@ describe('CompilerBridge', { timeout: 15_000 }, () => {
   // ─── Fallback Validate ──────────────────────────────────────────
 
   describe('Fallback Validate', () => {
+    it('asks the canonical validator, as .holo, tolerating a blank buffer', async () => {
+      await bridge.validate('composition "Test" {}');
+      expect(mockValidate).toHaveBeenCalledWith({
+        source: 'composition "Test" {}',
+        surface: 'holo',
+        allowEmpty: true,
+      });
+    });
+
     it('should return valid: true when no errors', async () => {
-      mockValidate.mockReturnValueOnce([]);
       const result = await bridge.validate('composition "Test" {}');
       expect(result.valid).toBe(true);
       expect(result.diagnostics).toEqual([]);
     });
 
     it('should return valid: false with diagnostics', async () => {
-      mockValidate.mockReturnValueOnce([{ message: 'missing semicolon' }]);
+      mockValidate.mockReturnValueOnce({
+        ...VALID,
+        valid: false,
+        errors: [{ severity: 'error', message: 'missing semicolon', line: 1, column: 1 }],
+      });
       const result = await bridge.validate('bad code');
       expect(result.valid).toBe(false);
-      expect(result.diagnostics.length).toBe(1);
-      expect(result.diagnostics[0].message).toBe('missing semicolon');
+      expect(result.diagnostics).toEqual([{ severity: 'error', message: 'missing semicolon' }]);
+    });
+
+    it('keeps warning severity and stays valid when only warnings are reported', async () => {
+      mockValidate.mockReturnValueOnce({
+        ...VALID,
+        warnings: [{ severity: 'warning', message: 'deprecated keyword', code: 'W1' }],
+      });
+      const result = await bridge.validate('object "Cube" {}');
+      expect(result.valid).toBe(true);
+      expect(result.diagnostics).toEqual([
+        { severity: 'warning', message: 'deprecated keyword', code: 'W1' },
+      ]);
+    });
+
+    it('takes the verdict from the validator, not from the diagnostic count', async () => {
+      mockValidate.mockReturnValueOnce({ ...VALID, valid: false });
+      const result = await bridge.validate('object "Cube" {');
+      expect(result.valid).toBe(false);
     });
   });
 
@@ -304,7 +330,11 @@ describe('CompilerBridge', { timeout: 15_000 }, () => {
 
   describe('Fallback CheckTypes', () => {
     it('should delegate to validation in fallback', async () => {
-      mockValidate.mockReturnValueOnce([{ message: 'type error' }]);
+      mockValidate.mockReturnValueOnce({
+        ...VALID,
+        valid: false,
+        errors: [{ severity: 'error', message: 'type error' }],
+      });
       const diags = await bridge.checkTypes('bad code');
       expect(diags.length).toBe(1);
       expect(diags[0].message).toBe('type error');
