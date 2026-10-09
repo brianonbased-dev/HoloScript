@@ -13,7 +13,7 @@ pnpm add @holoscript/core
 ## Quick Start
 
 ```typescript
-import { HoloParser, parseHolo, compile } from '@holoscript/core';
+import { parseHolo, compile } from '@holoscript/core';
 
 // Parse a .holo file
 const result = parseHolo(`
@@ -26,25 +26,25 @@ const result = parseHolo(`
 `);
 
 // Compile to target platform
-const output = compile(result.composition, { target: 'threejs' });
+const output = compile(result.ast, { target: 'threejs' });
 ```
 
 ---
 
 ## Parsing
 
-### HoloParser
+### HoloCompositionParser
 
 Main parser for `.holo` composition files.
 
 ```typescript
-import { HoloParser } from '@holoscript/core';
+import { HoloCompositionParser } from '@holoscript/core';
 
-const parser = new HoloParser();
+const parser = new HoloCompositionParser();
 const result = parser.parse(source);
 
 if (result.success) {
-  console.log(result.composition);
+  console.log(result.ast);
 } else {
   console.error(result.errors);
 }
@@ -52,10 +52,12 @@ if (result.success) {
 
 #### Methods
 
-| Method                | Parameters | Returns           | Description                  |
-| --------------------- | ---------- | ----------------- | ---------------------------- |
-| `parse(source)`       | `string`   | `HoloParseResult` | Parse .holo source code      |
-| `parseStrict(source)` | `string`   | `HoloParseResult` | Parse with strict validation |
+| Method          | Parameters | Returns           | Description             |
+| --------------- | ---------- | ----------------- | ----------------------- |
+| `parse(source)` | `string`   | `HoloParseResult` | Parse .holo source code |
+
+`HoloParseResult` is `{ success, ast?, errors, warnings }`. `success` is false
+when any error was reported; the parser still returns what it could read in `ast`.
 
 ### parseHolo()
 
@@ -64,8 +66,22 @@ Convenience function for parsing `.holo` files.
 ```typescript
 import { parseHolo } from '@holoscript/core';
 
-const { success, composition, errors } = parseHolo(source);
+const { success, ast, errors } = parseHolo(source);
 ```
+
+### parseHoloStrict()
+
+Parses and returns the `HoloComposition` itself, or throws with the first error.
+
+```typescript
+import { parseHoloStrict } from '@holoscript/core';
+
+const composition = parseHoloStrict(source); // throws on invalid source
+```
+
+To check source without parsing it yourself (the same verdict as
+`holoscript validate` and the `validate_holoscript` tool), use
+`validateCanonicalSource({ source, surface: 'holo' })`.
 
 ### HoloScriptPlusParser
 

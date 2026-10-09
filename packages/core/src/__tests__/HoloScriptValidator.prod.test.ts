@@ -33,12 +33,18 @@ describe('HoloScriptValidator — Production', () => {
 
   // ─── Syntax Errors ─────────────────────────────────────────────────
   it('syntax error returns error-severity result', () => {
-    const code = `{{{{{ invalid syntax`;
-    const errors = validator.validate(code);
-    // The parser may or may not throw — if it does, we get an error
-    // The code is intentionally broken; if no parser error, that's okay too
-    // We just check the shape
-    expect(Array.isArray(errors)).toBe(true);
+    const errors = validator.validate(`object Cube {`);
+    expect(errors.length).toBe(1);
+    expect(errors[0].severity).toBe('error');
+    expect(errors[0].line).toBeGreaterThanOrEqual(1);
+  });
+
+  it('known gap: the code parser accepts `{{{{{ invalid syntax`', () => {
+    // Measured: HoloScriptCodeParser.parse returns success:true, errors:[] for
+    // this input, so the validator has nothing to report. This pins today's
+    // verdict on purpose — when the grammar learns to reject it, this test
+    // fails and should be flipped to expect an error.
+    expect(validator.validate(`{{{{{ invalid syntax`)).toEqual([]);
   });
 
   // ─── Directive Warnings ────────────────────────────────────────────
@@ -74,15 +80,16 @@ describe('HoloScriptValidator — Production', () => {
 
   // ─── Error Shape ──────────────────────────────────────────────────
   it('validation errors have correct shape', () => {
-    const code = `@unknownDirective\nworld main {\n}\n`;
+    // An input the parser rejects, so the shape is actually checked (the old
+    // input validated clean and the `if (errors.length > 0)` guard skipped it).
+    const code = `@unknownDirective\nobject {\n}\n`;
     const errors = validator.validate(code);
-    if (errors.length > 0) {
-      const e = errors[0];
-      expect(typeof e.line).toBe('number');
-      expect(typeof e.column).toBe('number');
-      expect(typeof e.message).toBe('string');
-      expect(['error', 'warning']).toContain(e.severity);
-    }
+    expect(errors.length).toBeGreaterThan(0);
+    const e = errors[0];
+    expect(typeof e.line).toBe('number');
+    expect(typeof e.column).toBe('number');
+    expect(typeof e.message).toBe('string');
+    expect(['error', 'warning']).toContain(e.severity);
   });
 
   // ─── Multi-line Complex Code ──────────────────────────────────────
