@@ -49,7 +49,14 @@ function isWithin(child: string, root: string): boolean {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
-export function absorbAllowedRoots(env: NodeJS.ProcessEnv = process.env): string[] {
+/**
+ * The environment keys the policy reads. A plain record, not NodeJS.ProcessEnv, so a
+ * caller can pass only the roots it allows: frameworks that require keys such as
+ * NODE_ENV on ProcessEnv (Next.js) otherwise reject a literal like { ABSORB_ALLOWED_ROOTS }.
+ */
+export type AbsorbRootEnv = Readonly<Record<string, string | undefined>>;
+
+export function absorbAllowedRoots(env: AbsorbRootEnv = process.env): string[] {
   const configured = (env.ABSORB_ALLOWED_ROOTS ?? '')
     .split(path.delimiter)
     .map((entry) => entry.trim())
@@ -72,7 +79,7 @@ export function absorbAllowedRoots(env: NodeJS.ProcessEnv = process.env): string
  * here: Studio clones a local import into <cache>/workspaces/<id>, and an
  * operator may allowlist that.
  */
-export function serverStateDirs(env: NodeJS.ProcessEnv = process.env): string[] {
+export function serverStateDirs(env: AbsorbRootEnv = process.env): string[] {
   const workspaceRoot = env.HOLOSCRIPT_WORKSPACE_ROOT?.trim() || process.cwd();
   const cacheDir = env.HOLOSCRIPT_CACHE_DIR?.trim() || path.join(os.homedir(), '.holoscript');
   const candidates = [
@@ -92,7 +99,7 @@ export function insideServerState(target: string, dirs: string[] = serverStateDi
 /** Why `requested` may not be scanned, or null when it sits inside an allowed root. */
 export function absorbRootRefusal(
   requested: string,
-  env: NodeJS.ProcessEnv = process.env
+  env: AbsorbRootEnv = process.env
 ): string | null {
   // A caller that passes its own env (Studio's runner names only ABSORB_ALLOWED_ROOTS)
   // still has the real process's state folders protected.

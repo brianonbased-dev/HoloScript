@@ -267,4 +267,5 @@ export {
   absorbRootRefusal,
   insideServerState,
   serverStateDirs,
+  type AbsorbRootEnv,
 } from './absorb-root-policy';
