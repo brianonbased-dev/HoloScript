@@ -1101,6 +1101,78 @@ describe('impact --since: a helper passes a change on to the tests that use it',
     expect(report.tests.fullSuitePackages).toEqual([]);
   });
 
+  // No test run executes a benchmark, so no selection ever lists one: a lone
+  // benchmark would make `vitest run <selection>` exit 1 ("No test files found").
+  const BENCH = 'packages/a/src/__tests__/Chunker.benchmark.ts';
+
+  it('a benchmark that imports the changed file is not selected', async () => {
+    const deps = repo2({
+      files: [BENCH],
+      importers: {
+        'packages/a/src/unrelated.ts': ['packages/a/src/__tests__/unrelated.test.ts', BENCH],
+      },
+      changes: [{ status: 'M', file: 'packages/a/src/unrelated.ts' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.affectedFiles).toContain(BENCH);
+    expect(report.tests.selected).toEqual(['packages/a/src/__tests__/unrelated.test.ts']);
+  });
+
+  it('a whole package suite never includes its benchmarks', async () => {
+    const deps = repo2({
+      files: [BENCH],
+      changes: [{ status: 'M', file: 'packages/a/src/__tests__/fixtures/data.json' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages.map((f) => f.pkg)).toEqual(['packages/a']);
+    expect(report.tests.selected).toEqual(A_TESTS);
+    expect(report.tests.fullSet).not.toContain(BENCH);
+  });
+
+  it('an edited benchmark nothing imports or names keeps no suite, selects nothing and is listed', async () => {
+    const deps = repo2({ files: [BENCH], changes: [{ status: 'M', file: BENCH }] });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.selected).toEqual([]);
+    expect(report.tests.viaHelpers).toEqual([
+      { helper: BENCH, reason: 'changed', tests: [], runsAlone: 'benchmark' },
+    ]);
+    expect(report.brief).toContain(
+      `Via helper: ${BENCH} changed; it is a benchmark run by hand with vitest bench, and no test imports it or names it by name`
+    );
+  });
+
+  it('an edited benchmark a test imports selects that test, not a whole suite', async () => {
+    const user = 'packages/a/src/__tests__/chunker-bench-wrap.test.ts';
+    const deps = repo2({
+      files: [BENCH, user],
+      importers: { [BENCH]: [user] },
+      changes: [{ status: 'M', file: BENCH }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([user]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.viaHelpers).toEqual([]);
+  });
+
+  it('without the graph an edited benchmark keeps its package suite (nobody can say who uses it)', async () => {
+    const deps = repo2({ files: [BENCH], changes: [{ status: 'M', file: BENCH }], noGraph: true });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.mode).toBe('package-fallback');
+    expect(report.tests.fullSuitePackages).toEqual([
+      {
+        pkg: 'packages/a',
+        reason: `${BENCH} changed and is test support code (a setup file, helper or fixture): a runner or a test can load it by path, so the tests that use it cannot all be listed`,
+      },
+    ]);
+    expect(report.tests.selected).toEqual(A_TESTS);
+  });
+
   it('a helper that reads code files by pattern selects its users for a code change, not every test in the package', async () => {
     // Like core's holotorch parity harness, which mentions `*.test.ts` in a comment.
     const harness = 'packages/a/src/__tests__/harness.ts';

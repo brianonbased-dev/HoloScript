@@ -887,6 +887,11 @@ export async function analyzeChangeImpact(
     );
   };
   const keepSuite = (f: string, why: string) => keepScope(pkgOf(f), why);
+  const keepChangedSupportSuite = (f: string) =>
+    keepSuite(
+      f,
+      `${f} changed and is test support code (a setup file, helper or fixture): a runner or a test can load it by path, so the tests that use it cannot all be listed`
+    );
 
   // Tests and runner configs that name a file by path depend on it with no
   // import edge. One search covers every test; a failed search keeps everything.
@@ -1023,17 +1028,21 @@ export async function analyzeChangeImpact(
         f,
         `${f} changed and is not code the graph can trace (a test may read it as data, fixture or snapshot)`
       );
-    } else if (isTestSupport(f)) {
-      keepSuite(
-        f,
-        `${f} changed and is test support code (a setup file, helper or fixture): a runner or a test can load it by path, so the tests that use it cannot all be listed`
-      );
+    } else if (isTestSupport(f) && !BENCH_FILE_RE.test(f)) {
+      keepChangedSupportSuite(f);
     }
     if (CODE_FILE_RE.test(f)) keepIfRunnerLoads(f);
   }
+  // An edited benchmark under a test folder is decided with the graph (below):
+  // listed when nothing imports or names it, else its importers are reached.
+  // Without the graph nobody can say, so it keeps its suite like other support code.
+  const changedBenchmarks = changedFiles.filter(
+    (f) => isTestSupport(f) && BENCH_FILE_RE.test(f) && !isDeleted(f)
+  );
   const fullSuiteEntries = () => Array.from(fullSuite, ([pkg, reason]) => ({ pkg, reason }));
 
   const fallback = (reason: string, cacheNote?: string): ChangeImpactReport => {
+    for (const f of changedBenchmarks) keepChangedSupportSuite(f);
     for (const [helper, why] of helpersNaming(changedFiles)) {
       keepHelperSuite(helper, why, 'without the graph the tests that use it cannot be listed');
     }
@@ -1225,6 +1234,28 @@ export async function analyzeChangeImpact(
       for (const f of importers) join(f);
     }
     frontier = next;
+  }
+
+  // An edited benchmark is run by hand with vitest bench, never by a test run.
+  // If nothing imports it or names it, no test can see the edit: it is listed
+  // and keeps no suite. If something imports it, those files are already in
+  // the reach. When the graph cannot answer, it keeps its suite.
+  for (const bench of changedBenchmarks) {
+    const answer = asRecord(
+      await deps.handleCodebaseTool('holo_impact_analysis', {
+        changedFiles: [toPosix(path.join(repoRoot, bench))],
+        maxAffectedFiles: 20_000,
+      })
+    );
+    const benchReach = answer.error ? null : readImpact(answer);
+    if (!benchReach || benchReach.cut || benchReach.unresolved.size > 0) {
+      keepChangedSupportSuite(bench);
+      continue;
+    }
+    const importers = [...benchReach.files].filter((f) => f !== bench && !isDeleted(f));
+    if (importers.length === 0 && readersByName(bench).length === 0) {
+      viaHelpers.push({ helper: bench, reason: 'changed', tests: [], runsAlone: 'benchmark' });
+    }
   }
 
   // A setup file the change reaches (it imports a changed file, or a helper
