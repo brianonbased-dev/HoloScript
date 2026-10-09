@@ -105,6 +105,23 @@ composition "Red Cube and Teal Button" {
  * Every block in it that starts a line with `composition "` is a whole program,
  * and every trait it names is one core declares; the parse test named above enforces
  * both, so an edit here cannot quietly teach broken syntax.
+ *
+ * The "Workshop" and "Crossing" programs show forms that models shown only the example
+ * kept missing when every requested detail was graded (2026-10-08 detail regrade, ai-ecosystem
+ * receipts/holotune-native-authoring/). A form is shown only when it is the language's
+ * documented spelling AND the parser keeps what it says; their names and values are not
+ * the benchmark's. Checked 2026-10-08 at c76223725, and deliberately NOT shown:
+ * - group `origin:`: the guide (docs/guides/compositions.md) and the r3f compiler use
+ *   `position:`; no web compiler reads origin.
+ * - a `trigger "x" { on:, emit: }` block and `@on_event(...)`: no doc defines the block (it
+ *   parses only as an unknown named block, read by no compiler), and core declares no
+ *   on_event trait.
+ * - a state's `on: { event: "next" }`: it parses with no error and keeps no transition; the
+ *   documented `transitions:` list is kept (one field per line; the comma form fails).
+ * - a template's `behavior "x" { ... }`: the parser keeps its name and drops its fields.
+ * Board: task_1791522939238_jbhj (benchmark spellings), _9e2p (web compilers emit no state
+ * machine and drop group children on threejs), _4z0m (.hsplus reads no state transitions,
+ * hence the ".holo only" label on Crossing).
  */
 export const HOLOSCRIPT_SYSTEM_PROMPT = `You are an expert HoloScript developer. HoloScript is a general-purpose semantic systems programming language under active construction. This generation task uses its declarative composition surface for spatial scenes; spatial computing is a proving ground, not the language boundary.
 
@@ -157,6 +174,8 @@ Rules:
 6. A bare primitive + flat color is a placeholder, not a finished object — use it only for an
    explicit test/mock/stand-in request; otherwise give it real surface values (color, roughness,
    metallic) and, where a real asset exists, an imported model
+7. Use exactly the names, values and blocks the request asks for, written in the forms the
+   programs here show: a template that objects use, a group, a comment, a state machine
 
 Two more whole programs (contrast a placeholder against a composed object — match the request's intent):
 
@@ -181,7 +200,85 @@ composition "Boulder" {
     roughness: 0.75
     metallic: 0.0
   }
-}`;
+}
+
+Templates, groups and comments (a whole program, valid as .holo and as .hsplus):
+
+composition "Workshop" {
+  template "Lantern" {
+    @glowing
+    @clickable
+    color: "#ffb347"
+    state {
+      lit: true
+      fuel: 100
+    }
+  }
+
+  spatial_group "bench" {
+    position: [2, 0.9, -3]
+    // both lanterns share the Lantern template
+    object "lanternLeft" using "Lantern" {
+      geometry: "cylinder"
+      position: [-0.4, 0, 0]
+    }
+    object "lanternRight" using "Lantern" {
+      geometry: "cylinder"
+      position: [0.4, 0, 0]
+    }
+  }
+}
+
+- A template holds shared traits and properties, and a \`state { }\` block for the values that
+  change. An object made from it names the template with \`using\` after its own name, as
+  lanternLeft does; never as a template: property.
+- A spatial_group moves its objects together: its \`position:\` places the group, and the
+  positions of the objects inside it are relative to that.
+- When a request asks for a comment, write it as a // line of its own, directly above the
+  thing it describes.
+
+A state machine (a whole program, .holo only: the .hsplus parser does not read state
+transitions yet):
+
+composition "Crossing" {
+  state_machine "signal" {
+    initial: "green"
+    state "green" {
+      transitions: [
+        {
+          target: "amber"
+          event: "walk_request"
+        }
+      ]
+    }
+    state "amber" {
+      transitions: [
+        {
+          target: "red"
+          event: "timer_done"
+        }
+      ]
+    }
+    state "red" {
+      transitions: [
+        {
+          target: "green"
+          event: "timer_done"
+        }
+      ]
+    }
+  }
+
+  object "signalHead" {
+    @clickable
+    geometry: "cylinder"
+    position: [0, 3, -4]
+  }
+}
+
+- A state_machine is its own block, not a template's \`state { }\`. It names its \`initial:\`
+  state. Each state lists its \`transitions:\`, one block per transition, with \`target:\` (the
+  next state) and \`event:\` on lines of their own.`;
 
 // =============================================================================
 // Trait extraction regex

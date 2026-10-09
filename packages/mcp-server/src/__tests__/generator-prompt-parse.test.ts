@@ -97,22 +97,97 @@ describe('the programs the HoloScript generator prompt shows are real programs',
       const result = parseHolo(program);
       expect(result.errors).toEqual([]);
       expect(result.success).toBe(true);
-      expect(result.ast?.objects?.length ?? 0).toBeGreaterThan(0);
+      // Objects inside a spatial_group count: they are objects of the program.
+      const grouped = (result.ast?.spatialGroups ?? []).flatMap((g) => g.objects ?? []);
+      expect((result.ast?.objects?.length ?? 0) + grouped.length).toBeGreaterThan(0);
     }
   );
 
   // The prompt goes out with whichever format the caller asks for: generate_scene asks
   // for .holo, while generate_object and generateHoloScript default to .hsplus. A
   // program that is valid only as .holo (a `material "Name" { }` block, for one)
-  // would teach an .hsplus request something its parser refuses.
+  // would teach an .hsplus request something its parser refuses. The one exception
+  // is a program with a state_machine: the .hsplus parser reads no state transitions
+  // (board task_1791522939238_4z0m), so that program is labelled ".holo only" in the
+  // prompt and checked as .holo here.
+  const holoOnly = (program: string) => /^\s*state_machine "/m.test(program);
   it.each(
     programsIn(HOLOSCRIPT_SYSTEM_PROMPT).flatMap((p) =>
-      (['holo', 'hsplus'] as const).map((surface) => [p.split('\n')[0], surface, p] as const)
+      (holoOnly(p) ? (['holo'] as const) : (['holo', 'hsplus'] as const)).map(
+        (surface) => [p.split('\n')[0], surface, p] as const
+      )
     )
   )('%s is valid as .%s under the canonical validator', (_first, surface, program) => {
     const result = validateCanonicalSource({ source: program, surface });
     expect(result.errors).toEqual([]);
     expect(result.valid).toBe(true);
+  });
+
+  it('labels the state-machine program .holo only, for as long as .hsplus refuses it', () => {
+    const machines = programs.filter(holoOnly);
+    expect(machines.length).toBeGreaterThan(0);
+    for (const program of machines) {
+      const label = HOLOSCRIPT_SYSTEM_PROMPT.slice(0, HOLOSCRIPT_SYSTEM_PROMPT.indexOf(program));
+      expect(label.slice(label.lastIndexOf('\n\n', label.length - 3))).toMatch(/\.holo only/);
+      // When this starts passing, .hsplus reads state transitions: drop the label and
+      // the holoOnly exception above, so the program is checked on both surfaces.
+      expect(validateCanonicalSource({ source: program, surface: 'hsplus' }).valid).toBe(false);
+    }
+  });
+
+  // What the parser drops, the program never said. Each form below is shown because
+  // it is the language's documented spelling AND the parser keeps it; a later edit
+  // that swaps in a spelling the parser drops fails here.
+  it('every template an object uses exists and is kept as that object’s template', () => {
+    const shown = programs.filter((p) => /\busing "/.test(p));
+    expect(shown.length).toBeGreaterThan(0);
+    for (const program of shown) {
+      const ast = parseHolo(program).ast!;
+      const all = [...(ast.objects ?? []), ...(ast.spatialGroups ?? []).flatMap((g) => g.objects ?? [])];
+      const using = [...program.matchAll(/object "([^"]+)" using "([^"]+)"/g)];
+      expect(using.length).toBeGreaterThan(0);
+      for (const [, name, template] of using) {
+        expect(all.find((o) => o.name === name)?.template).toBe(template);
+        expect((ast.templates ?? []).some((t) => t.name === template)).toBe(true);
+      }
+    }
+  });
+
+  it('every template state block the prompt shows is kept with its values', () => {
+    const templates = programs.flatMap((p) => parseHolo(p).ast?.templates ?? []);
+    const withState = templates.filter((t) => t.state);
+    expect(withState.length).toBeGreaterThan(0);
+    for (const template of withState) {
+      expect(template.state!.properties.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('every spatial_group is placed with position:, which the compilers read', () => {
+    const groups = programs.flatMap((p) => parseHolo(p).ast?.spatialGroups ?? []);
+    expect(groups.length).toBeGreaterThan(0);
+    for (const group of groups) {
+      const keys = (group.properties ?? []).map((prop) => prop.key);
+      expect(keys).toContain('position');
+    }
+  });
+
+  it('every state transition the prompt shows is kept with its target and event', () => {
+    const machines = programs.flatMap((p) => parseHolo(p).ast?.stateMachines ?? []);
+    expect(machines.length).toBeGreaterThan(0);
+    for (const machine of machines) {
+      const states = Object.values(machine.states ?? {});
+      expect(states.length).toBeGreaterThan(1);
+      for (const state of states) {
+        // `on: { event: "next" }` parses with no error and keeps no transition, and
+        // the comma form `{ target: "x", event: "y" }` does not parse at all.
+        expect(state.transitions.length).toBeGreaterThan(0);
+        for (const t of state.transitions) {
+          expect(t.target).toMatch(/\S/);
+          expect(t.event).toMatch(/\S/);
+          expect(Object.keys(machine.states)).toContain(t.target);
+        }
+      }
+    }
   });
 
   it.each(programsIn(HOLOSCRIPT_SYSTEM_PROMPT).map((p) => [p.split('\n')[0], p]))(

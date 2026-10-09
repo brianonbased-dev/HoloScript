@@ -49,6 +49,37 @@ describe('the prompt that asks a model to write HoloScript', () => {
     expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/@(position|rotation|scale)\b/);
   });
 
+  // Graded on every requested detail, models shown only the example missed forms it
+  // never shows (2026-10-08, ai-ecosystem receipts/holotune-native-authoring/
+  // 2026-10-08-generator-prompt-detail-regrade.json). These are shown now.
+  it('shows the forms models missed, each in a spelling the parser keeps', () => {
+    // An object made from a template.
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).toMatch(/^ +object "[^"]+" using "[^"]+" \{$/m);
+    // A group placed with position: (what the language guide and the compilers use).
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).toMatch(/^ +spatial_group "[^"]+" \{\n +position: \[/m);
+    // A comment line directly above an object.
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).toMatch(/^ +\/\/ [^\n]+\n +object "/m);
+    // A state transition, one field per line.
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).toMatch(
+      /transitions: \[\n +\{\n +target: "[^"]+"\n +event: "[^"]+"\n +\}/
+    );
+  });
+
+  it('teaches no spelling the language does not define or the parser drops', () => {
+    // Group `origin:` is read by no web compiler; the guide places a group with position:.
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/\borigin:/);
+    // A `trigger "x" { }` block parses only as an unknown named block, and `@on_event`
+    // is not a trait core declares (board task_1791522939238_jbhj).
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/^\s*trigger "/m);
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/@on_event\b/);
+    // A state's `on: { event: "next" }` parses and keeps no transition.
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/\bon: \{/);
+    // A template's behavior block keeps its name and drops its fields until the .holo
+    // reader keeps block bodies (HoloScript claude9/holo-keeps-what-it-reads); show one
+    // only after that lands.
+    expect(HOLOSCRIPT_SYSTEM_PROMPT).not.toMatch(/^\s*behavior "/m);
+  });
+
   it.each([
     ['a cloud adapter', () => new MockAdapter()],
     ['the local-model adapter', () => new LocalLLMAdapter()],
