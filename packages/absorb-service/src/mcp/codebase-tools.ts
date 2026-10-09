@@ -2631,7 +2631,25 @@ interface GraphRootAuthorityPin {
   coverageAtScan: GraphCoverageStatus;
 }
 
+/**
+ * Version of what the scanner extracts into a graph. Bump it whenever a change
+ * adds or removes edges or symbols for files that did not change, because an
+ * incremental patch only rescans changed files and would keep the old
+ * extraction everywhere else. A cache written by another version is read as
+ * missing, so the next absorb is a full scan.
+ *
+ * 1 (implicit, no field): before re-export import edges and .js -> .ts import
+ *   resolution (claudecode/holoci-uses-absorb 4ffa25628).
+ * 2: re-exports are import edges; ./x.js resolves to x.ts.
+ */
+export const GRAPH_EXTRACTOR_VERSION = 2;
+
+/** The last cache refused for an older extractor, so status can say why it found none. */
+let lastOutdatedGraphCache: { cacheFile: string; found: number; required: number } | null = null;
+
 interface GraphCacheEnvelope {
+  /** GRAPH_EXTRACTOR_VERSION when written; absent on caches from before it existed. */
+  extractorVersion?: number;
   version: 1 | 2;
   cacheGenerationId?: string;
   rootDir: string;
@@ -4799,6 +4817,7 @@ function saveGraphCache(
     graph.localCodebaseSnapshotReceipt = localCodebaseSnapshotReceipt;
     const envelope: GraphCacheEnvelope = {
       version: 2,
+      extractorVersion: GRAPH_EXTRACTOR_VERSION,
       ...(cacheGenerationId && { cacheGenerationId }),
       rootDir,
       rootDirs: normalizedRootDirs,
@@ -5257,6 +5276,18 @@ function readGraphCache(
       }
       const envelope: GraphCacheEnvelope = JSON.parse(raw);
       if (envelope.version !== 1 && envelope.version !== 2) continue;
+      const extractorVersion = envelope.extractorVersion ?? 1;
+      if (extractorVersion !== GRAPH_EXTRACTOR_VERSION) {
+        lastOutdatedGraphCache = {
+          cacheFile,
+          found: extractorVersion,
+          required: GRAPH_EXTRACTOR_VERSION,
+        };
+        console.warn(
+          `[CacheDebug][codebase] ${cacheFile} was extracted by graph extractor v${extractorVersion}; v${GRAPH_EXTRACTOR_VERSION} is required, so it is not used and the next absorb is a full scan`
+        );
+        continue;
+      }
       if (generationId && envelope.cacheGenerationId !== generationId) {
         console.warn(
           `[CacheDebug][codebase] generation manifest ${generationId} does not match graph envelope ${envelope.cacheGenerationId ?? 'missing'}`
@@ -5341,10 +5372,16 @@ function getCacheAge(
   rootDirs?: string[];
   rootSetId?: string;
   rootAuthorityPins?: GraphRootAuthorityPin[];
+  outdatedExtractor?: { cacheFile: string; found: number; required: number };
 } {
   try {
+    lastOutdatedGraphCache = null;
     const cacheRead = readGraphCache(rootDir, { allowExpiredV1: true, rootDirs });
-    if (!cacheRead) return { exists: false };
+    if (!cacheRead) {
+      return lastOutdatedGraphCache
+        ? { exists: false, outdatedExtractor: lastOutdatedGraphCache }
+        : { exists: false };
+    }
     const envelope = cacheRead.envelope;
     return {
       exists: true,
@@ -11519,7 +11556,10 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
         }
       : {
           exists: false,
-          hint: 'No disk cache found. Call holo_absorb_repo to create one.',
+          ...(cache.outdatedExtractor && { outdatedExtractor: cache.outdatedExtractor }),
+          hint: cache.outdatedExtractor
+            ? `A disk cache exists but was built by graph extractor v${cache.outdatedExtractor.found}; v${cache.outdatedExtractor.required} extracts edges it lacks, so it is not used. Call holo_absorb_repo: the next absorb is a full scan.`
+            : 'No disk cache found. Call holo_absorb_repo to create one.',
         },
   };
 }

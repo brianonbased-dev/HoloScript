@@ -48,10 +48,11 @@ import { isPremiumEntry, premiumTeaser, premiumTeaserText } from '../premium-vie
 import { getConsolidationBridge } from '../consolidation-bridge';
 import { buildMoltbookCrosspostPayload, createMoltbookPost } from '../../moltbook/moltbook-post.js';
 import { resolveSecretWithLease, VaultLeaseError } from '../identity/vault-lease-registry';
+import { getAuditLogger } from '../../security/audit-log';
 
 /**
  * Phase 3 wrapper around `process.env.MOLTBOOK_API_KEY` for the per-request
- * knowledge-entry crosspost handler (`POST .../knowledge/:id/crosspost-moltbook`).
+ * knowledge-entry crosspost handler (`POST /api/holomesh/crosspost/moltbook`).
  * This is a per-task MCP fetch helper that reads an outbound API key, which
  * is exactly the medium-risk Phase 3 tier the task description targets.
  *
@@ -2107,6 +2108,30 @@ export async function handleKnowledgeRoutes(
     const caller = requireAuth(req, res);
     if (!caller) return true;
 
+    // Board task x0iv: the post goes out under the server's own Moltbook key,
+    // publicly, as HoloScript. Registration is open and any agent can author an
+    // entry with any text, so "you wrote it" cannot be the whole gate: only the
+    // server's operator (a founder key in the key registry) may post here.
+    // Refused before the body is read or the Moltbook key is touched. Studio's
+    // /api/social/crosspost/moltbook gets the same founder-only rule in this change;
+    // POST /api/moltbook/crosspost and the MCP crosspost tools still take tools:write
+    // on main and become tools:admin with board task zeoq (claude8/mcp-publish-auth).
+    if (caller.isFounder !== true) {
+      getAuditLogger().logAuthEvent({
+        event: 'auth_failure',
+        agentId: caller.id,
+        ip: req.socket?.remoteAddress,
+        reason: '/api/holomesh/crosspost/moltbook refused: founder key required',
+      });
+      json(res, 403, {
+        error: 'Founder authorization required.',
+        reason:
+          "This posts publicly under HoloScript's own Moltbook account, so only the " +
+          'server operator (a founder key) can use it. Nothing was posted.',
+      });
+      return true;
+    }
+
     const rawBody = await parseJsonBody(req);
     const { effectiveBody, ctx: signingCtx } = await extractAndVerifySigning(rawBody, {
       bypassSigning: caller?.isFounder ?? false,
@@ -2129,6 +2154,8 @@ export async function handleKnowledgeRoutes(
       return true;
     }
 
+    // Kept for the operator too: the founder key decides that HoloScript posts,
+    // the author still owns the words (and a premium entry's paid text).
     if (entry.authorId !== caller.id) {
       json(res, 403, { error: 'Only the entry author can crosspost' });
       return true;

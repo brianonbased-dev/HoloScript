@@ -176,9 +176,9 @@ export function analyze(source, deps, options = {}) {
     }
   }
 
-  // Run the parser itself and carry its own findings through unchanged,
-  // except that their positions are mapped from the lexer's convention to
-  // real 1-based ones.
+  // Run the parser itself and carry its findings through, with positions
+  // mapped from the lexer's convention to real 1-based ones. Only the first
+  // error on a token is kept (see the loop below).
   let parsed;
   try {
     parsed = parseHolo(source);
@@ -187,7 +187,17 @@ export function analyze(source, deps, options = {}) {
     return { ast: null, diagnostics };
   }
   for (const err of parsed.errors || []) {
-    push(diag("HS1007", "error", messageOf(err), anchors.fromParser(err)));
+    const where = anchors.fromParser(err);
+    // A token that already carries an error (from the checks above, such as an
+    // unclosed "{" or a nameless "@", or from an earlier parser error) keeps
+    // only that first one: later reports on the same token are knock-ons.
+    if (diagnostics.some((d) => d.severity === "error" && d.line === where.line && d.column === where.column)) {
+      continue;
+    }
+    // The parser names some findings with a contract code itself (HS1005 for a
+    // nameless "@"); keep it. Everything else is carried as HS1007.
+    const code = typeof err?.code === "string" && /^HS1\d{3}$/.test(err.code) ? err.code : "HS1007";
+    push(diag(code, "error", messageOf(err), where));
   }
   for (const warn of parsed.warnings || []) {
     push(diag("HS1008", "warning", messageOf(warn), anchors.fromParser(warn)));

@@ -7,7 +7,17 @@ import {
 
 export type CanonicalSourceSurface = 'holo' | 'hsplus' | 'hs';
 
-export type CanonicalValidator = 'holo-parser' | 'typescript-hsplus' | 'rust-wasm';
+/**
+ * Which authority produced the verdict. `empty-source-check` means the source
+ * was empty or whitespace-only and was refused before any parser ran, so no
+ * parser (and no Rust/WASM build) can be credited with the answer.
+ */
+export type CanonicalValidator =
+  'holo-parser' | 'typescript-hsplus' | 'rust-wasm' | 'empty-source-check';
+
+/** Error code for a source that is empty or contains only whitespace. */
+const EMPTY_SOURCE_CODE = 'HS1001';
+const EMPTY_SOURCE_MESSAGE = 'Source is empty. A HoloScript file needs at least one item.';
 
 export interface CanonicalDiagnostic {
   severity: 'error' | 'warning';
@@ -26,6 +36,17 @@ export interface CanonicalSourceValidationRequest {
    */
   fileName?: string;
   surface?: CanonicalSourceSurface | `.${CanonicalSourceSurface}`;
+  /**
+   * Accept a source that is empty or whitespace-only. Default `false`.
+   *
+   * Editors pass `true`, so a brand-new file that has nothing in it yet shows
+   * no error while the author starts typing. The CLI (`holoscript validate`),
+   * the MCP `validate_holoscript` tool and CI leave it unset: there an empty
+   * file is a failed write or an empty generation, and calling it valid would
+   * report success for nothing. Unset, empty source is refused with `HS1001`
+   * on every surface, before any parser or Rust/WASM authority runs.
+   */
+  allowEmpty?: boolean;
 }
 
 export type CanonicalHsDetailedValidator = (source: string) => string | unknown;
@@ -294,18 +315,47 @@ function validateHs(
   }
 }
 
+function refuseEmptySource(surface: CanonicalSourceSurface): CanonicalSourceValidationResult {
+  return {
+    valid: false,
+    surface,
+    validator: 'empty-source-check',
+    errors: [
+      {
+        severity: 'error',
+        code: EMPTY_SOURCE_CODE,
+        message: EMPTY_SOURCE_MESSAGE,
+        line: 1,
+        column: 1,
+      },
+    ],
+    warnings: [],
+  };
+}
+
 /**
  * Validate one HoloScript source with the authority assigned to its extension:
  *
  * - `.holo` -> `HoloCompositionParser`
  * - `.hsplus` -> `HoloScriptPlusParser` (with explicit `#brain` preprocessing)
  * - `.hs` -> Rust/WASM `validate_detailed`
+ *
+ * Empty or whitespace-only source is refused with `HS1001` on every surface
+ * before routing, unless the caller passes `allowEmpty: true` (editors do).
+ * Comment-only source is not caught here; it still routes to the parser.
  */
 export function validateCanonicalSource(
   request: CanonicalSourceValidationRequest,
   dependencies: CanonicalSourceValidationDependencies = {}
 ): CanonicalSourceValidationResult {
   const surface = resolveCanonicalSourceSurface(request);
+  if (
+    request.allowEmpty !== true &&
+    typeof request.source === 'string' &&
+    request.source.trim() === ''
+  ) {
+    return refuseEmptySource(surface);
+  }
   if (surface === 'holo') return validateHolo(request.source);
   if (surface === 'hsplus') return validateHsplus(request.source);
   return validateHs(request.source, dependencies.validateHsDetailed);

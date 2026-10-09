@@ -1093,5 +1093,35 @@ composition "Hololand Central" {
       expect(node!.name).toBe('jump');
       expect(node!.params).toEqual([]);
     });
+
+    // Typed params used to spin forever: expectIdentifier() reported `:` without
+    // consuming it, and the param loop never advanced.
+    it('terminates on typed params and keeps the names', () => {
+      const result = parser.parse(`action go(n: i32, label: string) {
+  animation: leap
+}`);
+      const node = result.ast.find((n) => n.type === 'action-decl') as ActionDeclNode | undefined;
+      expect(node).toBeDefined();
+      expect(node!.params).toEqual(['n', 'label']);
+    });
+
+    it('skips whole generic, array and union types instead of reading them as names', () => {
+      const result = parser.parse(
+        'action go(m: Map<string, Array<i32>>, xs: i32[], s: string | null, k) { }'
+      );
+      const node = result.ast.find((n) => n.type === 'action-decl') as ActionDeclNode | undefined;
+      expect(node!.params).toEqual(['m', 'xs', 's', 'k']);
+      expect(result.errors).toEqual([]);
+    });
+
+    it('terminates inside a composition and reports a bad param token', () => {
+      const result = parser.parse('composition "C" { action go(n: i32, 5) { } }');
+      expect(result.errors.some((e) => /Expected identifier/.test(e.message))).toBe(true);
+    });
+
+    it('terminates on a non-property token in a trait config', () => {
+      const result = parser.parse('orb o { @glow(1) }');
+      expect(result).toBeDefined();
+    });
   });
 });

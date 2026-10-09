@@ -1,8 +1,11 @@
 import { expect, test, vi } from 'vitest';
 import { handleTool } from '../handlers';
 
-vi.mock('@holoscript/llm-provider', () => {
+// Keep the real module and replace only the provider manager: a full replacement
+// broke the whole file the day ollama-client.ts started importing LOCAL_DEFAULT_MODEL.
+vi.mock('@holoscript/llm-provider', async (importOriginal) => {
   return {
+    ...(await importOriginal<typeof import('@holoscript/llm-provider')>()),
     createProviderManager: vi.fn(() => ({
       getRegisteredProviders: () => ['mock'],
       getProvider: () => ({

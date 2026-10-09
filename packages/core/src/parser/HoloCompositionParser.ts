@@ -393,10 +393,18 @@ export class HoloCompositionParser {
             // parseDomainBlock handles traits. But at ROOT level, there is no
             // "previous domain block", so we handle @world/@environment decorators.
             this.advance(); // consume @
-            const decoratorName = this.current().value.toLowerCase();
-            this.advance(); // consume decorator name
+            const decoratorName = this.parseTraitName().toLowerCase();
 
-            if (decoratorName === 'world' || decoratorName === 'environment') {
+            if (decoratorName === '') {
+              // Nameless '@': parseTraitName() recorded HS1005; attach nothing.
+              this.discardOrphanTraitConfig(true);
+            } else if (decoratorName === 'world' || decoratorName === 'environment') {
+              // `@world "Name"` names a wrapperless file the way
+              // `composition "Name"` names a wrapped one.
+              if (this.check('STRING')) {
+                const worldName = this.advance().value;
+                if (composition.name === 'implicit') composition.name = worldName;
+              }
               composition.environment = this.parseEnvironmentBody();
             } else if (decoratorName === 'state') {
               composition.state = this.parseStateBody();
@@ -411,7 +419,11 @@ export class HoloCompositionParser {
             } else {
               // Capture unknown root-level traits (e.g., @page, @metadata)
               composition.traits = composition.traits || [];
-              const config = this.parseOptionalTraitConfig();
+              // `@version "5.7.0"`: a bare string argument is the `: value`
+              // form without the colon, so it lands in the same `_arg0` slot.
+              const config = this.check('STRING')
+                ? { _arg0: this.advance().value }
+                : this.parseOptionalTraitConfig();
               composition.traits.push({ type: 'ObjectTrait', name: decoratorName, config });
             }
           }
@@ -544,13 +556,30 @@ export class HoloCompositionParser {
           this.advance(); // skip comments
         } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
           composition.lights.push(this.parseLightPrimitive());
-        } else {
-          // Skip unknown tokens at root level
+        } else if (!this.parseCompositionMember(composition, true)) {
+          // Same contract as a `composition { }` body: anything the body accepts
+          // is accepted here, and unknown input is reported, then skipped.
+          // Skipping silently let `zzz qqq 123 !!!` "parse" to an empty
+          // composition with success: true.
+          this.error(
+            `Unexpected token at file level: ${this.current().type}` +
+              (this.current().value ? ` '${this.current().value}'` : '') +
+              '. Expected composition, object, template, @world, import, light, or another top-level block'
+          );
           this.advance();
         }
-        this.skipNewlines();
-      } catch (_err) {
-        // Error recovery: skip to next statement
+        // A `;` ends a statement here as it does in a composition body
+        // (`import "./x.holo";` is how real files write it).
+        this.skipStatementSeparators();
+      } catch (err) {
+        if (!this.options.tolerant) throw err;
+        // A sub-parser threw instead of reporting; keep its message rather than
+        // swallowing it, then skip to the next statement.
+        this.errors.push({
+          message: err instanceof Error ? err.message : String(err),
+          loc: this.currentLocation(),
+          severity: 'error',
+        });
         this.advance();
       }
     }
@@ -558,6 +587,307 @@ export class HoloCompositionParser {
     this.popContext();
     composition.loc = { start: startLoc, end: this.currentLocation() };
     return composition;
+  }
+
+  /**
+   * Parse one member of a composition body. Returns false, consuming nothing,
+   * when the current token starts no known member. Both a `composition { }`
+   * body and a wrapperless file use it, so a construct accepted in one is
+   * accepted in the other; before this the file level kept an older copy of
+   * the list and silently dropped `ui`, `zone`, `action`, `if`, `for`, and more.
+   */
+  private parseCompositionMember(composition: HoloComposition, fileLevel = false): boolean {
+    if (this.peek(1).type === 'COLON' && (this.isPropertyName() || this.check('METADATA_BLOCK'))) {
+      const key = this.advance().value;
+      this.advance(); // consume ':'
+      const value = !this.check('RBRACE') && !this.isAtEnd() ? this.parseValue() : null;
+      if (key === 'metadata' && value && typeof value === 'object' && !Array.isArray(value)) {
+        composition.metadata = { ...(composition.metadata ?? {}), ...value };
+      }
+    } else if (
+      this.check('IDENTIFIER') &&
+      this.current().value === 'nft' &&
+      HoloCompositionParser.DOMAIN_TOKENS.has(this.peek(1).type)
+    ) {
+      // Documented form (docs/nft-marketplace-dsl.md): `nft marketplace "X" { }` is
+      // the marketplace block carrying the nft trait, i.e. `marketplace "X" @nft { }`.
+      this.advance(); // nft
+      const block = this.parseDomainBlock();
+      if (!block.traits.includes('nft')) block.traits.push('nft');
+      composition.domainBlocks!.push(block);
+    } else if (this.check('IMPORT')) {
+      composition.imports.push(this.parseImport());
+    } else if (this.check('THEME')) {
+      composition.theme = this.parseTheme();
+    } else if (this.check('ENVIRONMENT')) {
+      composition.environment = this.parseEnvironment();
+    } else if (this.check('SCENE')) {
+      if (!composition.scenes) composition.scenes = [];
+      composition.scenes.push(this.parseScene());
+    } else if (this.check('STATE') && this.peek(1).type !== 'COLON') {
+      composition.state = this.parseState();
+    } else if (this.check('METADATA_BLOCK')) {
+      this.advance();
+      const block = this.parseBlockTraitConfig();
+      composition.metadata = { ...(composition.metadata ?? {}), ...block };
+    } else if (this.check('TEMPLATE')) {
+      composition.templates.push(this.parseTemplate());
+    } else if (this.check('OBJECT')) {
+      composition.objects.push(this.parseObject());
+    } else if (this.check('SPATIAL_GROUP')) {
+      composition.spatialGroups.push(this.parseSpatialGroup());
+    } else if (this.check('LIGHT')) {
+      composition.lights.push(this.parseLight());
+    } else if (this.check('EFFECTS')) {
+      composition.effects = this.parseEffects();
+    } else if (this.check('CAMERA')) {
+      composition.camera = this.parseCamera();
+    } else if (this.check('LOGIC')) {
+      composition.logic = this.parseLogic();
+    } else if (this.check('TIMELINE')) {
+      composition.timelines.push(this.parseTimeline());
+    } else if (this.check('AUDIO')) {
+      composition.audio.push(this.parseAudio());
+    } else if (this.check('ZONE')) {
+      composition.zones.push(this.parseZone());
+    } else if (this.check('UI')) {
+      composition.ui = this.parseUI();
+    } else if (this.check('TRANSITION')) {
+      composition.transitions.push(this.parseTransition());
+    } else if (this.check('IF')) {
+      composition.conditionals.push(this.parseConditionalBlock());
+    } else if (this.check('FOR')) {
+      composition.iterators.push(this.parseForEachBlock());
+    } else if (this.check('SPATIAL_AGENT')) {
+      composition.objects.push(this.parseSpatialObject('spatial_agent'));
+    } else if (this.check('SPATIAL_CONTAINER')) {
+      composition.spatialGroups.push(this.parseSpatialGroup());
+    } else if (this.current().type.startsWith('UI_')) {
+      composition.objects.push(this.parseSpatialObject(this.current().value.toLowerCase()));
+    } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
+      // Handle point_light { }, ambient_light { }, directional_light { } syntax
+      composition.lights.push(this.parseLightPrimitive());
+    } else if (this.check('IDENTIFIER') && this.isPrimitiveShape(this.current().value)) {
+      // Handle primitive#id or primitive #id { } syntax
+      composition.objects.push(this.parsePrimitiveObject());
+    } else if (this.check('NPC')) {
+      composition.npcs.push(this.parseNPC());
+    } else if (this.check('SHAPE')) {
+      composition.shapes.push(this.parseShapeDeclaration());
+    } else if (this.check('QUEST')) {
+      composition.quests.push(this.parseQuest());
+    } else if (this.check('ABILITY')) {
+      composition.abilities.push(this.parseAbility());
+    } else if (this.check('DIALOGUE')) {
+      composition.dialogues.push(this.parseDialogue());
+    } else if (this.check('STATE_MACHINE')) {
+      composition.stateMachines.push(this.parseStateMachine());
+    } else if (this.check('ACHIEVEMENT')) {
+      composition.achievements.push(this.parseAchievement());
+    } else if (this.check('TALENT_TREE')) {
+      composition.talentTrees.push(this.parseTalentTree());
+      // Spatial primitives (v4)
+    } else if (this.check('SPAWN_GROUP')) {
+      composition.spawnGroups!.push(this.parseSpawnGroup());
+    } else if (this.check('WAYPOINTS')) {
+      composition.waypointSets!.push(this.parseWaypointsBlock());
+    } else if (this.check('CONSTRAINT')) {
+      composition.constraints!.push(this.parseConstraintBlock());
+    } else if (this.check('TERRAIN')) {
+      composition.terrains!.push(this.parseTerrainBlock());
+      // Norm lifecycle blocks (v4.5 — CRSEC model)
+    } else if (this.check('NORM')) {
+      composition.norms!.push(this.parseNormBlock());
+    } else if (this.check('METANORM')) {
+      composition.metanorms!.push(this.parseMetanormBlock());
+      // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
+    } else if (this.check('HOLO_CONTRACT')) {
+      composition.contract = this.parseContractBlock();
+    } else if (this.check('IDENTIFIER') && this.current().value === 'policy_pack') {
+      composition.policyPacks!.push(this.parsePolicyPackBlock());
+      // Pub/sub messaging primitives (v6.4)
+    } else if (this.check('HOLO_TOPIC')) {
+      if (!composition.topics) composition.topics = [];
+      composition.topics.push(this.parseTopicBlock());
+    } else if (this.check('HOLO_CHANNEL')) {
+      if (!composition.channels) composition.channels = [];
+      composition.channels.push(this.parseChannelBlock());
+    } else if (this.check('CONNECT')) {
+      if (!composition.connections) composition.connections = [];
+      composition.connections.push(this.parseConnectionStmt());
+    } else if (this.check('IDENTIFIER') && this.current().value === 'shareplay') {
+      composition.metadata = {
+        ...(composition.metadata ?? {}),
+        shareplay: this.parseSharePlayBlock(),
+      };
+      // MMO/AAA game constructs (v6.2)
+    } else if (this.check('LOOT_TABLE')) {
+      composition.lootTables!.push(this.parseLootTable());
+    } else if (this.check('WORLD_CHUNK')) {
+      composition.worldChunks!.push(this.parseWorldChunk());
+    } else if (this.check('SPAWN_POINT')) {
+      composition.spawnPoints!.push(this.parseSpawnPoint());
+    } else if (this.check('GAME_TRIGGER')) {
+      composition.triggers!.push(this.parseGameTrigger());
+    } else if (this.check('MOVEMENT_PATH')) {
+      composition.movementPaths!.push(this.parseMovementPath());
+    } else if (this.check('REACTION_TRIGGER')) {
+      composition.reactionTriggers!.push(this.parseReactionTrigger());
+    } else if (this.check('WORLD_LAYER')) {
+      composition.worldLayers!.push(this.parseWorldLayer());
+    } else if (this.check('DUNGEON_INSTANCE')) {
+      composition.dungeonInstances!.push(this.parseDungeonInstance());
+    } else if (this.check('WORLD_SHARD')) {
+      composition.worldShards!.push(this.parseWorldShard());
+    } else if (this.check('REAL_ESTATE')) {
+      // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
+      composition.domainBlocks!.push(this.parseDomainBlock());
+      // Domain-specific blocks (v4)
+    } else if (this.isDomainBlockToken()) {
+      composition.domainBlocks!.push(this.parseDomainBlock());
+    } else if (this.isLooseDomainBlockStart() || this.isLooseNamedDomainBlockStart()) {
+      composition.domainBlocks!.push(this.parseDomainBlock());
+    } else if (this.check('MODULE')) {
+      composition.domainBlocks!.push(this.parseDomainBlock());
+    } else if (this.check('AT')) {
+      // Check for @platform(...) decorator at composition level
+      if (this.peek(1).type === 'IDENTIFIER' && this.peek(1).value.toLowerCase() === 'platform') {
+        this.advance(); // consume @
+        this.advance(); // consume 'platform'
+        const constraint = this.parsePlatformConstraint();
+        this.skipNewlines();
+        // Attach the constraint to the next block
+        if (this.check('TEMPLATE')) {
+          const tmpl = this.parseTemplate();
+          tmpl.platformConstraint = constraint;
+          composition.templates.push(tmpl);
+        } else if (this.check('OBJECT')) {
+          const obj = this.parseObject();
+          obj.platformConstraint = constraint;
+          composition.objects.push(obj);
+        } else if (this.check('NORM')) {
+          const norm = this.parseNormBlock();
+          norm.platformConstraint = constraint;
+          composition.norms!.push(norm);
+        } else if (this.check('SPATIAL_GROUP')) {
+          const grp = this.parseSpatialGroup();
+          grp.platformConstraint = constraint;
+          composition.spatialGroups.push(grp);
+        } else if (this.check('LIGHT')) {
+          const light = this.parseLight();
+          light.platformConstraint = constraint;
+          composition.lights.push(light);
+        } else {
+          // Unknown block after @platform — best-effort skip
+          if (this.check('LBRACE')) this.skipBlock();
+        }
+      } else {
+        // Handle @state, @world, and other decorators at composition level
+        this.advance(); // consume @
+        const decoratorName = this.parseTraitName().toLowerCase();
+
+        if (decoratorName === '') {
+          // Nameless '@': parseTraitName() recorded HS1005; attach nothing.
+          this.discardOrphanTraitConfig(true);
+        } else if (decoratorName === 'state') {
+          composition.state = this.parseStateBody();
+        } else if (decoratorName === 'world' || decoratorName === 'environment') {
+          composition.environment = this.parseEnvironmentBody();
+        } else if (decoratorName === 'state_machine') {
+          // @state_machine [Name] { initial: "..." state "name" { ... } ... }
+          // Route through the real SM body parser so it lands in composition.stateMachines.
+          const name = this.parseOptionalStateMachineName('implicit');
+          if (this.check('LBRACE')) {
+            composition.stateMachines.push(this.parseStateMachineFromDecorator(name));
+          }
+        } else {
+          // Capture unknown decorator arguments (e.g. @page, @metadata)
+          composition.traits = composition.traits || [];
+          // `@version "5.7.0"`: a bare string argument is the `: value`
+          // form without the colon, so it lands in the same `_arg0` slot.
+          const config = this.check('STRING')
+            ? { _arg0: this.advance().value }
+            : this.parseOptionalTraitConfig();
+          composition.traits.push({ type: 'ObjectTrait', name: decoratorName, config });
+        }
+      }
+    } else if (this.check('ACTION') || this.check('ASYNC')) {
+      // action / async action at composition level
+      composition.actions = composition.actions || [];
+      composition.actions.push(this.parseAction());
+    } else if (this.check('FUNCTION')) {
+      // Helper blocks such as `function "rgbToHex" { params: [...] logic: { ... } }`.
+      // The composition AST has no stable functions collection, so preserve parser health
+      // by consuming the helper without inventing a schema field.
+      this.skipFunctionDeclaration();
+    } else if (this.check('USING')) {
+      // using "path/to/module" [as Name] at composition level
+      this.advance(); // consume USING
+      if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // path or name
+      if (this.check('IDENTIFIER') && this.current().value === 'as') {
+        this.advance(); // as
+        if (this.check('IDENTIFIER')) this.advance(); // alias
+      }
+    } else if (this.isLooseOnHandlerStart()) {
+      this.skipLooseOnHandler();
+    } else if (this.check('COLON')) {
+      // Stray colon at composition level (e.g. from @anchored_to: "value")
+      this.advance(); // skip colon
+      if (!this.check('RBRACE') && !this.isAtEnd()) this.parseValue();
+    } else if (this.check('IDENTIFIER') && !fileLevel) {
+      // Not at file level: there it would swallow `foo { object "Cube" {} }`
+      // whole, so an unknown word there is reported and skipped one token at a
+      // time, and the blocks inside it still parse.
+      // Generic IDENTIFIER handler for DSL-level blocks:
+      // config { }, anchor "name" { }, activity "name" { }, module "name" { },
+      // permissions: [...], panel "HUD" { }, networked { }, gesture "pinch" { }, etc.
+      const identValue = this.current().value;
+
+      // Typo detection: check if identifier is a typo of a known composition-level keyword
+      const knownBlocks = [
+        'environment',
+        'state',
+        'logic',
+        'template',
+        'object',
+        'spatial_group',
+        'import',
+        'light',
+        'norm',
+        'metanorm',
+      ];
+      const typoMatch = TypoDetector.findClosestMatch(identValue, knownBlocks);
+      if (typoMatch && typoMatch !== identValue) {
+        this.error(
+          `Unknown block "${identValue}"`,
+          `Did you mean "${typoMatch}"? Check for typos in the keyword.`
+        );
+      }
+
+      this.advance(); // consume IDENTIFIER
+      if (this.check('COLON')) {
+        // identifier: value — property at composition level
+        this.advance(); // consume :
+        if (!this.check('RBRACE') && !this.isAtEnd()) this.parseValue();
+      } else if (this.check('LBRACKET')) {
+        // Brain-format string-array block: traits [ "name1", "name2" ]
+        // HoloCompositionParser handles @DecoratorName syntax; this form is
+        // emitted by .hsplus brain compositions and must be skipped here so
+        // the token stream stays valid. Trait extraction in compile scripts
+        // uses the extractBrainTraits() regex before parsing.
+        this.advance(); // consume [
+        while (!this.check('RBRACKET') && !this.isAtEnd()) this.advance();
+        if (this.check('RBRACKET')) this.advance(); // consume ]
+      } else {
+        // identifier [optional-name] [(params)] [{ block }]
+        if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // optional quoted/bare name
+        if (this.check('LPAREN')) this.skipParens();
+        if (this.check('LBRACE')) this.skipBlock();
+      }
+    } else {
+      return false;
+    }
+    return true;
   }
 
   /**
@@ -642,7 +972,12 @@ export class HoloCompositionParser {
     // Parse traits after name: @grabbable @glowing etc.
     while (this.check('AT')) {
       this.advance(); // consume @
-      const traitName = this.expectIdentifier();
+      const traitName = this.parseTraitName();
+      if (!traitName) {
+        // HS1005 recorded; no trait from a nameless '@'. A `{` here is the orb's body.
+        this.discardOrphanTraitConfig(false);
+        continue;
+      }
       const config = this.parseOptionalTraitConfig(true);
       traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
     }
@@ -658,9 +993,13 @@ export class HoloCompositionParser {
 
         if (this.check('AT')) {
           this.advance();
-          const traitName = this.expectIdentifier();
-          const config = this.parseOptionalTraitConfig();
-          traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
+          const traitName = this.parseTraitName();
+          if (traitName) {
+            const config = this.parseOptionalTraitConfig();
+            traits.push({ type: 'ObjectTrait' as const, name: traitName, config });
+          } else {
+            this.discardOrphanTraitConfig(true);
+          }
         } else if (this.isPropertyName()) {
           const key = this.parsePropertyKey();
           if (this.check('COLON')) {
@@ -783,280 +1122,7 @@ export class HoloCompositionParser {
         this.skipBlockMemberSeparators();
         if (this.check('RBRACE')) break;
 
-        if (
-          this.peek(1).type === 'COLON' &&
-          (this.isPropertyName() || this.check('METADATA_BLOCK'))
-        ) {
-          const key = this.advance().value;
-          this.advance(); // consume ':'
-          const value = !this.check('RBRACE') && !this.isAtEnd() ? this.parseValue() : null;
-          if (key === 'metadata' && value && typeof value === 'object' && !Array.isArray(value)) {
-            composition.metadata = { ...(composition.metadata ?? {}), ...value };
-          }
-        } else if (this.check('IMPORT')) {
-          composition.imports.push(this.parseImport());
-        } else if (this.check('THEME')) {
-          composition.theme = this.parseTheme();
-        } else if (this.check('ENVIRONMENT')) {
-          composition.environment = this.parseEnvironment();
-        } else if (this.check('SCENE')) {
-          if (!composition.scenes) composition.scenes = [];
-          composition.scenes.push(this.parseScene());
-        } else if (this.check('STATE') && this.peek(1).type !== 'COLON') {
-          composition.state = this.parseState();
-        } else if (this.check('METADATA_BLOCK')) {
-          this.advance();
-          const block = this.parseBlockTraitConfig();
-          composition.metadata = { ...(composition.metadata ?? {}), ...block };
-        } else if (this.check('TEMPLATE')) {
-          composition.templates.push(this.parseTemplate());
-        } else if (this.check('OBJECT')) {
-          composition.objects.push(this.parseObject());
-        } else if (this.check('SPATIAL_GROUP')) {
-          composition.spatialGroups.push(this.parseSpatialGroup());
-        } else if (this.check('LIGHT')) {
-          composition.lights.push(this.parseLight());
-        } else if (this.check('EFFECTS')) {
-          composition.effects = this.parseEffects();
-        } else if (this.check('CAMERA')) {
-          composition.camera = this.parseCamera();
-        } else if (this.check('LOGIC')) {
-          composition.logic = this.parseLogic();
-        } else if (this.check('TIMELINE')) {
-          composition.timelines.push(this.parseTimeline());
-        } else if (this.check('AUDIO')) {
-          composition.audio.push(this.parseAudio());
-        } else if (this.check('ZONE')) {
-          composition.zones.push(this.parseZone());
-        } else if (this.check('UI')) {
-          composition.ui = this.parseUI();
-        } else if (this.check('TRANSITION')) {
-          composition.transitions.push(this.parseTransition());
-        } else if (this.check('IF')) {
-          composition.conditionals.push(this.parseConditionalBlock());
-        } else if (this.check('FOR')) {
-          composition.iterators.push(this.parseForEachBlock());
-        } else if (this.check('SPATIAL_AGENT')) {
-          composition.objects.push(this.parseSpatialObject('spatial_agent'));
-        } else if (this.check('SPATIAL_CONTAINER')) {
-          composition.spatialGroups.push(this.parseSpatialGroup());
-        } else if (this.current().type.startsWith('UI_')) {
-          composition.objects.push(this.parseSpatialObject(this.current().value.toLowerCase()));
-        } else if (this.check('IDENTIFIER') && this.isLightPrimitive(this.current().value)) {
-          // Handle point_light { }, ambient_light { }, directional_light { } syntax
-          composition.lights.push(this.parseLightPrimitive());
-        } else if (this.check('IDENTIFIER') && this.isPrimitiveShape(this.current().value)) {
-          // Handle primitive#id or primitive #id { } syntax
-          composition.objects.push(this.parsePrimitiveObject());
-        } else if (this.check('NPC')) {
-          composition.npcs.push(this.parseNPC());
-        } else if (this.check('SHAPE')) {
-          composition.shapes.push(this.parseShapeDeclaration());
-        } else if (this.check('QUEST')) {
-          composition.quests.push(this.parseQuest());
-        } else if (this.check('ABILITY')) {
-          composition.abilities.push(this.parseAbility());
-        } else if (this.check('DIALOGUE')) {
-          composition.dialogues.push(this.parseDialogue());
-        } else if (this.check('STATE_MACHINE')) {
-          composition.stateMachines.push(this.parseStateMachine());
-        } else if (this.check('ACHIEVEMENT')) {
-          composition.achievements.push(this.parseAchievement());
-        } else if (this.check('TALENT_TREE')) {
-          composition.talentTrees.push(this.parseTalentTree());
-          // Spatial primitives (v4)
-        } else if (this.check('SPAWN_GROUP')) {
-          composition.spawnGroups!.push(this.parseSpawnGroup());
-        } else if (this.check('WAYPOINTS')) {
-          composition.waypointSets!.push(this.parseWaypointsBlock());
-        } else if (this.check('CONSTRAINT')) {
-          composition.constraints!.push(this.parseConstraintBlock());
-        } else if (this.check('TERRAIN')) {
-          composition.terrains!.push(this.parseTerrainBlock());
-          // Norm lifecycle blocks (v4.5 — CRSEC model)
-        } else if (this.check('NORM')) {
-          composition.norms!.push(this.parseNormBlock());
-        } else if (this.check('METANORM')) {
-          composition.metanorms!.push(this.parseMetanormBlock());
-          // SimulationContract block (v6.3 — NORTH_STAR thesis: simulation IS the proof)
-        } else if (this.check('HOLO_CONTRACT')) {
-          composition.contract = this.parseContractBlock();
-        } else if (this.check('IDENTIFIER') && this.current().value === 'policy_pack') {
-          composition.policyPacks!.push(this.parsePolicyPackBlock());
-          // Pub/sub messaging primitives (v6.4)
-        } else if (this.check('HOLO_TOPIC')) {
-          if (!composition.topics) composition.topics = [];
-          composition.topics.push(this.parseTopicBlock());
-        } else if (this.check('HOLO_CHANNEL')) {
-          if (!composition.channels) composition.channels = [];
-          composition.channels.push(this.parseChannelBlock());
-        } else if (this.check('CONNECT')) {
-          if (!composition.connections) composition.connections = [];
-          composition.connections.push(this.parseConnectionStmt());
-        } else if (this.check('IDENTIFIER') && this.current().value === 'shareplay') {
-          composition.metadata = {
-            ...(composition.metadata ?? {}),
-            shareplay: this.parseSharePlayBlock(),
-          };
-          // MMO/AAA game constructs (v6.2)
-        } else if (this.check('LOOT_TABLE')) {
-          composition.lootTables!.push(this.parseLootTable());
-        } else if (this.check('WORLD_CHUNK')) {
-          composition.worldChunks!.push(this.parseWorldChunk());
-        } else if (this.check('SPAWN_POINT')) {
-          composition.spawnPoints!.push(this.parseSpawnPoint());
-        } else if (this.check('GAME_TRIGGER')) {
-          composition.triggers!.push(this.parseGameTrigger());
-        } else if (this.check('MOVEMENT_PATH')) {
-          composition.movementPaths!.push(this.parseMovementPath());
-        } else if (this.check('REACTION_TRIGGER')) {
-          composition.reactionTriggers!.push(this.parseReactionTrigger());
-        } else if (this.check('WORLD_LAYER')) {
-          composition.worldLayers!.push(this.parseWorldLayer());
-        } else if (this.check('DUNGEON_INSTANCE')) {
-          composition.dungeonInstances!.push(this.parseDungeonInstance());
-        } else if (this.check('WORLD_SHARD')) {
-          composition.worldShards!.push(this.parseWorldShard());
-        } else if (this.check('REAL_ESTATE')) {
-          // real_estate maps to a domain block (RealEstateTrait + ZoneWorldConstraints)
-          composition.domainBlocks!.push(this.parseDomainBlock());
-          // Domain-specific blocks (v4)
-        } else if (this.isDomainBlockToken()) {
-          composition.domainBlocks!.push(this.parseDomainBlock());
-        } else if (this.isLooseDomainBlockStart() || this.isLooseNamedDomainBlockStart()) {
-          composition.domainBlocks!.push(this.parseDomainBlock());
-        } else if (this.check('MODULE')) {
-          composition.domainBlocks!.push(this.parseDomainBlock());
-        } else if (this.check('AT')) {
-          // Check for @platform(...) decorator at composition level
-          if (
-            this.peek(1).type === 'IDENTIFIER' &&
-            this.peek(1).value.toLowerCase() === 'platform'
-          ) {
-            this.advance(); // consume @
-            this.advance(); // consume 'platform'
-            const constraint = this.parsePlatformConstraint();
-            this.skipNewlines();
-            // Attach the constraint to the next block
-            if (this.check('TEMPLATE')) {
-              const tmpl = this.parseTemplate();
-              tmpl.platformConstraint = constraint;
-              composition.templates.push(tmpl);
-            } else if (this.check('OBJECT')) {
-              const obj = this.parseObject();
-              obj.platformConstraint = constraint;
-              composition.objects.push(obj);
-            } else if (this.check('NORM')) {
-              const norm = this.parseNormBlock();
-              norm.platformConstraint = constraint;
-              composition.norms!.push(norm);
-            } else if (this.check('SPATIAL_GROUP')) {
-              const grp = this.parseSpatialGroup();
-              grp.platformConstraint = constraint;
-              composition.spatialGroups.push(grp);
-            } else if (this.check('LIGHT')) {
-              const light = this.parseLight();
-              light.platformConstraint = constraint;
-              composition.lights.push(light);
-            } else {
-              // Unknown block after @platform — best-effort skip
-              if (this.check('LBRACE')) this.skipBlock();
-            }
-          } else {
-            // Handle @state, @world, and other decorators at composition level
-            this.advance(); // consume @
-            const decoratorName = this.current().value.toLowerCase();
-            this.advance(); // consume decorator name
-
-            if (decoratorName === 'state') {
-              composition.state = this.parseStateBody();
-            } else if (decoratorName === 'world' || decoratorName === 'environment') {
-              composition.environment = this.parseEnvironmentBody();
-            } else if (decoratorName === 'state_machine') {
-              // @state_machine [Name] { initial: "..." state "name" { ... } ... }
-              // Route through the real SM body parser so it lands in composition.stateMachines.
-              const name = this.parseOptionalStateMachineName('implicit');
-              if (this.check('LBRACE')) {
-                composition.stateMachines.push(this.parseStateMachineFromDecorator(name));
-              }
-            } else {
-              // Capture unknown decorator arguments (e.g. @page, @metadata)
-              composition.traits = composition.traits || [];
-              const config = this.parseOptionalTraitConfig();
-              composition.traits.push({ type: 'ObjectTrait', name: decoratorName, config });
-            }
-          }
-        } else if (this.check('ACTION') || this.check('ASYNC')) {
-          // action / async action at composition level
-          composition.actions = composition.actions || [];
-          composition.actions.push(this.parseAction());
-        } else if (this.check('FUNCTION')) {
-          // Helper blocks such as `function "rgbToHex" { params: [...] logic: { ... } }`.
-          // The composition AST has no stable functions collection, so preserve parser health
-          // by consuming the helper without inventing a schema field.
-          this.skipFunctionDeclaration();
-        } else if (this.check('USING')) {
-          // using "path/to/module" [as Name] at composition level
-          this.advance(); // consume USING
-          if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // path or name
-          if (this.check('IDENTIFIER') && this.current().value === 'as') {
-            this.advance(); // as
-            if (this.check('IDENTIFIER')) this.advance(); // alias
-          }
-        } else if (this.isLooseOnHandlerStart()) {
-          this.skipLooseOnHandler();
-        } else if (this.check('COLON')) {
-          // Stray colon at composition level (e.g. from @anchored_to: "value")
-          this.advance(); // skip colon
-          if (!this.check('RBRACE') && !this.isAtEnd()) this.parseValue();
-        } else if (this.check('IDENTIFIER')) {
-          // Generic IDENTIFIER handler for DSL-level blocks:
-          // config { }, anchor "name" { }, activity "name" { }, module "name" { },
-          // permissions: [...], panel "HUD" { }, networked { }, gesture "pinch" { }, etc.
-          const identValue = this.current().value;
-
-          // Typo detection: check if identifier is a typo of a known composition-level keyword
-          const knownBlocks = [
-            'environment',
-            'state',
-            'logic',
-            'template',
-            'object',
-            'spatial_group',
-            'import',
-            'light',
-            'norm',
-            'metanorm',
-          ];
-          const typoMatch = TypoDetector.findClosestMatch(identValue, knownBlocks);
-          if (typoMatch && typoMatch !== identValue) {
-            this.error(
-              `Unknown block "${identValue}"`,
-              `Did you mean "${typoMatch}"? Check for typos in the keyword.`
-            );
-          }
-
-          this.advance(); // consume IDENTIFIER
-          if (this.check('COLON')) {
-            // identifier: value — property at composition level
-            this.advance(); // consume :
-            if (!this.check('RBRACE') && !this.isAtEnd()) this.parseValue();
-          } else if (this.check('LBRACKET')) {
-            // Brain-format string-array block: traits [ "name1", "name2" ]
-            // HoloCompositionParser handles @DecoratorName syntax; this form is
-            // emitted by .hsplus brain compositions and must be skipped here so
-            // the token stream stays valid. Trait extraction in compile scripts
-            // uses the extractBrainTraits() regex before parsing.
-            this.advance(); // consume [
-            while (!this.check('RBRACKET') && !this.isAtEnd()) this.advance();
-            if (this.check('RBRACKET')) this.advance(); // consume ]
-          } else {
-            // identifier [optional-name] [(params)] [{ block }]
-            if (this.check('STRING') || this.check('IDENTIFIER')) this.advance(); // optional quoted/bare name
-            if (this.check('LPAREN')) this.skipParens();
-            if (this.check('LBRACE')) this.skipBlock();
-          }
-        } else {
+        if (!this.parseCompositionMember(composition)) {
           let suggestion: string | undefined;
 
           // Check if this unexpected identifier is a typo of a keyword
@@ -1376,7 +1442,8 @@ export class HoloCompositionParser {
 
     const inlineTraitProperties: HoloLightProperty[] = [];
     while (this.check('AT')) {
-      inlineTraitProperties.push(this.parseTraitAsLightProperty(true));
+      const property = this.parseTraitAsLightProperty(true);
+      if (property) inlineTraitProperties.push(property);
     }
 
     this.expect('LBRACE');
@@ -1391,7 +1458,8 @@ export class HoloCompositionParser {
       // instead of canonical key:value properties. Capture each as a light property (collapsing
       // positional args to an array) so nothing is lost; native-2d ignores lights anyway.
       if (this.check('AT')) {
-        properties.push(this.parseTraitAsLightProperty());
+        const property = this.parseTraitAsLightProperty();
+        if (property) properties.push(property);
         this.skipNewlines();
         continue;
       }
@@ -1437,9 +1505,15 @@ export class HoloCompositionParser {
     };
   }
 
-  private parseTraitAsLightProperty(requireBodyAfterBareBrace = false): HoloLightProperty {
+  private parseTraitAsLightProperty(requireBodyAfterBareBrace = false): HoloLightProperty | null {
     this.expect('AT');
     const traitName = this.parseTraitName();
+    if (!traitName) {
+      // HS1005 recorded; no property from a nameless '@'. In the header (the caller passes
+      // requireBodyAfterBareBrace) a `{` is the light's own body, so keep it.
+      this.discardOrphanTraitConfig(!requireBodyAfterBareBrace);
+      return null;
+    }
     const cfg = this.parseOptionalTraitConfig(requireBodyAfterBareBrace);
     const cfgKeys = Object.keys(cfg);
     let traitValue: HoloValue;
@@ -1532,7 +1606,7 @@ export class HoloCompositionParser {
       // Handle AT decorators in camera body: @camera_3d, @perspective etc.
       if (this.check('AT')) {
         this.advance(); // consume @
-        if (!this.check('RBRACE') && !this.isAtEnd()) this.advance(); // decorator name
+        this.parseTraitName(); // decorator name (discarded); records HS1005 when missing
         if (this.check('LPAREN')) this.skipParens();
         if (this.check('LBRACE')) this.skipBlock();
         this.skipNewlines();
@@ -1682,7 +1756,7 @@ export class HoloCompositionParser {
       if (this.check('AT')) {
         // @trait annotations inside audio block (e.g., @spatial_audio)
         this.advance(); // consume @
-        if (!this.isAtEnd()) this.advance(); // trait name
+        this.parseTraitName(); // trait name (discarded); records HS1005 when missing
         if (this.check('LPAREN')) this.skipParens();
         else if (this.check('LBRACE')) this.skipBlock();
         this.skipNewlines();
@@ -2053,9 +2127,12 @@ export class HoloCompositionParser {
       } else if (this.check('AT')) {
         // @trait support in templates
         this.advance(); // consume @
-        const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name (e.g., @ui_panel)
+        const traitName = this.parseTraitName(); // '' (HS1005 recorded) when no name follows
 
-        if (traitName === 'version') {
+        if (!traitName) {
+          // Nameless '@': no trait, no directive.
+          this.discardOrphanTraitConfig(true);
+        } else if (traitName === 'version') {
           // @version(N) — set template schema version for hot-reload
           this.expect('LPAREN');
           const versionToken = this.advance();
@@ -2221,6 +2298,11 @@ export class HoloCompositionParser {
     while (this.check('AT')) {
       this.advance(); // consume @
       const traitName = this.parseTraitName(); // handles digit-leading names like @2d_canvas
+      if (!traitName) {
+        // HS1005 recorded. `object "X" @ {` keeps its body brace; only a `(...)` is dropped.
+        this.discardOrphanTraitConfig(false);
+        continue;
+      }
       if (String(traitName).toLowerCase() === 'platform') {
         platformConstraint = this.parsePlatformConstraint();
         this.skipNewlines();
@@ -2295,14 +2377,23 @@ export class HoloCompositionParser {
         });
       } else if (this.check('AT')) {
         this.advance(); // consume @
-        const traitName = this.isAtEnd() ? '' : this.advance().value; // accept any token as trait name
+        const traitName = this.parseTraitName(); // '' (HS1005 recorded) when no name follows
+        // Nameless '@': no trait, no directive.
+        if (!traitName) {
+          this.discardOrphanTraitConfig(true);
+          continue;
+        }
         if (String(traitName).toLowerCase() === 'platform') {
           const constraint = this.parsePlatformConstraint();
           this.skipNewlines();
 
           if (this.check('AT')) {
             this.advance(); // consume @
-            const nextTraitName = this.isAtEnd() ? '' : this.advance().value;
+            const nextTraitName = this.parseTraitName();
+            if (!nextTraitName) {
+              this.discardOrphanTraitConfig(true); // HS1005 recorded
+              continue;
+            }
             const config = this.parseOptionalTraitConfig();
             const trait = {
               type: 'ObjectTrait' as const,
@@ -2617,7 +2708,7 @@ export class HoloCompositionParser {
         if (this.check('LBRACE')) this.skipBlock();
       } else if (this.check('AT')) {
         this.advance(); // consume @
-        if (!this.isAtEnd()) this.advance(); // trait name
+        this.parseTraitName(); // trait name (discarded); records HS1005 when missing
         if (this.check('LPAREN')) this.skipParens();
         else if (this.check('LBRACE')) this.skipBlock();
       } else if (this.isStatementKeyword()) {
@@ -3190,10 +3281,8 @@ export class HoloCompositionParser {
       return this.parseBindValue();
     }
     if (this.match('AT')) {
-      const traitName = this.parseTraitName();
-      if (traitName) return `@${traitName}`;
-      this.error(`Expected trait name after '@', got ${this.current().type}`);
-      return null;
+      const traitName = this.parseTraitName(); // records HS1005 when no name follows
+      return traitName ? `@${traitName}` : null;
     }
     if (this.match('HASH')) {
       return this.parseHashLiteral();
@@ -3764,8 +3853,12 @@ export class HoloCompositionParser {
         if (this.check('AT')) {
           this.advance(); // consume @
           const name = this.parseTraitName(); // handles digit-leading names like @2d_canvas
-          const config = this.parseOptionalTraitConfig();
-          traits.push({ type: 'ObjectTrait' as const, name, config });
+          if (name) {
+            const config = this.parseOptionalTraitConfig();
+            traits.push({ type: 'ObjectTrait' as const, name, config });
+          } else {
+            this.discardOrphanTraitConfig(true);
+          }
         } else if (this.isPropertyName()) {
           const key = this.parsePropertyKey();
           if (this.check('COLON')) {
@@ -3884,26 +3977,89 @@ export class HoloCompositionParser {
    * error via expectIdentifier; the object body silently captured only "2", dropping the rest —
    * which also silently corrupted the shipped 2d-revolution template). Also accepts a quoted
    * name (@"2d_canvas") and keyword-as-identifier names.
+   *
+   * Call it with the '@' already consumed. When no name follows it records HS1005 at the '@'
+   * and returns '' WITHOUT consuming the next token, so a newline, `{` or `}` stays for the
+   * enclosing block. Callers must not create a trait from ''. (It used to take ANY next token
+   * as the name, so `@` before a newline became a trait named "\n" and `@ }` ate the brace.)
    */
   private parseTraitName(): string {
-    if (this.check('STRING')) {
-      return this.advance().value;
+    const length = this.traitNameLength(this.pos);
+    if (length === 0) {
+      this.reportMissingTraitName();
+      // `@""` names nothing either; consume the empty string, it is the name slot.
+      if (this.check('STRING')) this.advance();
+      return '';
     }
-    if (this.check('NUMBER')) {
-      let name = this.advance().value;
-      // Reassemble a digit-leading name split by the lexer: NUMBER + IDENTIFIER (2 + d_canvas).
-      if (this.check('IDENTIFIER')) {
-        name += this.advance().value;
-      }
-      return name;
+    let name = this.advance().value;
+    // Reassemble a digit-leading name split by the lexer: NUMBER + IDENTIFIER (2 + d_canvas).
+    if (length === 2) name += this.advance().value;
+    return name;
+  }
+
+  /**
+   * How many tokens, starting at `index`, form a trait name after '@': 0 when none does.
+   * A name is a non-blank quoted string, a digit-leading name (NUMBER, plus the IDENTIFIER
+   * the lexer split off: 2 + d_canvas), an identifier, or any keyword (keywords lex to their
+   * own token types but are still words: @state, @world, @light). Punctuation, NEWLINE, EOF
+   * and another '@' are not names.
+   */
+  private traitNameLength(index: number): number {
+    const token = this.tokens[index];
+    if (!token) return 0;
+    switch (token.type) {
+      case 'STRING':
+        return token.value.trim() === '' ? 0 : 1;
+      case 'NUMBER':
+        if (!/^\d/.test(token.value)) return 0;
+        return this.tokens[index + 1]?.type === 'IDENTIFIER' ? 2 : 1;
+      case 'IDENTIFIER':
+        return 1;
+      case 'EOF':
+      case 'NEWLINE':
+        return 0;
+      default:
+        return /^[A-Za-z_][A-Za-z0-9_]*$/.test(token.value) ? 1 : 0;
     }
-    if (this.check('IDENTIFIER')) {
-      return this.advance().value;
+  }
+
+  /**
+   * Tokens parseTraitName() consumes at `index`: the name, or a blank `""` standing in the
+   * name slot. The lookahead helpers skip exactly this much after an '@', so a nameless '@'
+   * skips nothing and the construct is still recognised and reported with HS1005.
+   */
+  private traitNameSpan(index: number): number {
+    const length = this.traitNameLength(index);
+    if (length > 0) return length;
+    return this.tokens[index]?.type === 'STRING' ? 1 : 0;
+  }
+
+  /**
+   * After a nameless '@' (HS1005 already recorded), drop the config group written right after
+   * it, so `@(x: 1)` or `@ { ... }` costs one error instead of a cascade and leaves no node
+   * built from the orphaned group. `{` is skipped only where it cannot be the enclosing
+   * declaration's own body: pass allowBlock=false in headers (`object "X" @ {`).
+   */
+  private discardOrphanTraitConfig(allowBlock: boolean): void {
+    if (this.check('LPAREN')) this.skipParens();
+    else if (allowBlock && this.check('LBRACE')) this.skipBlock();
+  }
+
+  /**
+   * Record HS1005 (packages/core/strict/ERROR_CONTRACT.md) for an '@' with no trait name
+   * after it. The location is the '@' token itself, the same place the strict layer reports
+   * it. Throws in non-tolerant mode, like error().
+   */
+  private reportMissingTraitName(): void {
+    const previous = this.tokens[this.pos - 1];
+    const at = previous?.type === 'AT' ? previous : this.current();
+    const loc: SourceLocation = { line: at.line, column: at.column };
+    const message = '`@` is not followed by a trait name.';
+    const suggestion = 'Write a trait as @name, for example @grabbable.';
+    this.errors.push({ message, loc, code: 'HS1005', suggestion, severity: 'error' });
+    if (!this.options.tolerant) {
+      throw new Error(`Parse error at line ${loc.line}: ${message}\n  Suggestion: ${suggestion}`);
     }
-    if (this.isKeywordAsIdentifierType(this.current().type)) {
-      return this.advance().value;
-    }
-    return this.isAtEnd() ? '' : this.advance().value;
   }
 
   private expectIdentifier(): string {
@@ -4113,6 +4269,8 @@ export class HoloCompositionParser {
         const traitName = this.parseTraitName();
         if (traitName) {
           config[`@${traitName}`] = this.parseOptionalTraitConfig();
+        } else {
+          this.discardOrphanTraitConfig(true);
         }
       } else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
         const nestedKey = this.parsePropertyKey();
@@ -4184,7 +4342,9 @@ export class HoloCompositionParser {
       hasTrait = true;
       index++;
       if (this.tokens[index]?.type === 'EOF') return false;
-      index++;
+      // Skip exactly the name parseTraitName() will read; a nameless '@' skips nothing, so
+      // `key @ {` is still recognised and parseInlineTraitNamesBeforeBlock reports HS1005.
+      index += this.traitNameSpan(index);
 
       if (this.tokens[index]?.type === 'LPAREN') {
         index = this.indexAfterBalancedTokens(index, 'LPAREN', 'RPAREN');
@@ -4465,8 +4625,12 @@ export class HoloCompositionParser {
         // (e.g. @verbalFingerprint { style { ... } }, @reputationLedger { ... }).
         this.advance(); // consume @
         const traitName = this.parseTraitName();
-        const config = this.parseOptionalTraitConfig(true);
-        (npc.traits ??= []).push({ type: 'ObjectTrait', name: traitName, config });
+        if (traitName) {
+          const config = this.parseOptionalTraitConfig(true);
+          (npc.traits ??= []).push({ type: 'ObjectTrait', name: traitName, config });
+        } else {
+          this.discardOrphanTraitConfig(true);
+        }
       } else {
         const key = this.expectIdentifier();
         this.expect('COLON');
@@ -6360,6 +6524,9 @@ export class HoloCompositionParser {
     'FORCE_FIELD',
     'ARTICULATION',
     'PARTICLES',
+    // `particle_system` is parseParticleSystem's synonym for `particles`; without
+    // it here a file-level `particle_system "X" { }` was dropped unparsed.
+    'PARTICLE_SYSTEM',
     'EMITTER',
     'VFX',
     'PARTICLE_FIELD',
@@ -6498,6 +6665,7 @@ export class HoloCompositionParser {
     FORCE_FIELD: 'physics',
     ARTICULATION: 'physics',
     PARTICLES: 'vfx',
+    PARTICLE_SYSTEM: 'vfx',
     EMITTER: 'vfx',
     VFX: 'vfx',
     PARTICLE_FIELD: 'particle_field',
@@ -6620,7 +6788,7 @@ export class HoloCompositionParser {
       index++;
     }
     while (this.tokens[index]?.type === 'AT') {
-      index += 2;
+      index += 1 + this.traitNameSpan(index + 1); // '@' + exactly the name parseTraitName reads
       if (this.tokens[index]?.type === 'LPAREN') {
         let depth = 1;
         index++;
@@ -6649,7 +6817,7 @@ export class HoloCompositionParser {
     index++;
 
     while (this.tokens[index]?.type === 'AT') {
-      index += 2;
+      index += 1 + this.traitNameSpan(index + 1); // '@' + exactly the name parseTraitName reads
       if (this.tokens[index]?.type === 'LPAREN') {
         let depth = 1;
         index++;
@@ -8056,13 +8224,15 @@ export class HoloCompositionParser {
     const traits: string[] = [];
     while (this.check('AT')) {
       this.advance(); // @
-      if (this.check('IDENTIFIER') || this.current().type !== 'EOF') {
-        traits.push(this.current().value);
-        this.advance();
+      const traitName = this.parseTraitName(); // '' (HS1005 recorded) when no name follows
+      if (traitName) {
+        traits.push(traitName);
         // Handle trait with parenthesized config: @trait(key: value)
         if (this.check('LPAREN')) {
           this.skipParens();
         }
+      } else {
+        this.discardOrphanTraitConfig(false); // a `{` here is the block's own body
       }
     }
 
@@ -8151,10 +8321,14 @@ export class HoloCompositionParser {
       // Bare domain decorators used as body directives, e.g. service { @cors_policy }.
       else if (this.check('AT')) {
         this.advance();
-        const traitName = this.parseTraitName();
-        if (traitName) traits.push(traitName);
-        if (this.check('LPAREN') || this.check('LBRACE') || this.check('COLON')) {
-          properties[`@${traitName}`] = this.parseOptionalTraitConfig();
+        const traitName = this.parseTraitName(); // '' (HS1005 recorded) when no name follows
+        if (traitName) {
+          traits.push(traitName);
+          if (this.check('LPAREN') || this.check('LBRACE') || this.check('COLON')) {
+            properties[`@${traitName}`] = this.parseOptionalTraitConfig();
+          }
+        } else {
+          this.discardOrphanTraitConfig(true);
         }
       }
       // Nested domain property block: post_processing { bloom { intensity: 0.3 } }

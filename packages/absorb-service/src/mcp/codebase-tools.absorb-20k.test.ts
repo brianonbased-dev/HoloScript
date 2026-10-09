@@ -4,7 +4,11 @@ import * as path from 'path';
 import { execFileSync } from 'child_process';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CodebaseScanner } from '../engine/CodebaseScanner';
-import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
+import {
+  handleCodebaseTool,
+  resetCodebaseToolStateForTests,
+  GRAPH_EXTRACTOR_VERSION,
+} from './codebase-tools';
 
 const RUN_20K_VERIFIER = process.env.ABSORB_RUN_20K_VERIFIER === '1';
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
@@ -103,6 +107,7 @@ describe('20k authoritative absorb refresh verifier', () => {
         cacheFile,
         JSON.stringify({
           version: 2,
+          extractorVersion: GRAPH_EXTRACTOR_VERSION,
           rootDir,
           timestamp: Date.now(),
           stats: { totalFiles: 20_005, totalSymbols: 0 },
