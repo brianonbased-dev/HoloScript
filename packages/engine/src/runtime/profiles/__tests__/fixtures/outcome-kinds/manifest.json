@@ -1,0 +1,267 @@
+{
+  "about": "Shared outcome-kinds corpus (board task_1791419247017_jri7): holoscript validate (validateCanonicalSource) and the deterministic headless runtime admission must reach the same verdict on every file. valid=false files name the diagnostic codes the checker reports; v06 is valid with a warning.",
+  "cases": {
+    "v01-declared-decisions.hsplus": {
+      "valid": true,
+      "codes": [],
+      "why": "every decision action declares its outcomes; every answer matches; refusals come before any change",
+      "invocations": [
+        {
+          "entrypoint": "rent",
+          "args": {
+            "count": 1
+          },
+          "expect": {
+            "allowed": true,
+            "outcome": "rented"
+          }
+        },
+        {
+          "entrypoint": "rent",
+          "args": {
+            "count": 5
+          },
+          "expect": {
+            "allowed": false,
+            "outcome": "over_limit"
+          }
+        },
+        {
+          "entrypoint": "rent",
+          "args": {
+            "count": 0
+          },
+          "expect": {
+            "allowed": false,
+            "outcome": "bad_count"
+          }
+        },
+        {
+          "entrypoint": "payFine",
+          "args": {
+            "amount": 3
+          },
+          "expect": {
+            "allowed": false,
+            "outcome": "nothing_owed"
+          }
+        },
+        {
+          "entrypoint": "account",
+          "kind": "observation",
+          "args": {
+            "viewerId": "staff"
+          }
+        }
+      ]
+    },
+    "v02-lists-on-own-lines.hsplus": {
+      "valid": true,
+      "codes": [],
+      "why": "outcome lists may sit on their own lines and in either order",
+      "invocations": [
+        {
+          "entrypoint": "giveBack",
+          "args": {
+            "hoursLate": 0
+          },
+          "expect": {
+            "allowed": false,
+            "outcome": "nothing_out"
+          }
+        }
+      ]
+    },
+    "v03-accepted-may-change-nothing.hsplus": {
+      "valid": true,
+      "codes": [],
+      "why": "an accepted outcome may change state, but does not have to",
+      "invocations": [
+        {
+          "entrypoint": "check",
+          "args": {
+            "level": 1
+          },
+          "expect": {
+            "allowed": true,
+            "outcome": "low"
+          }
+        },
+        {
+          "entrypoint": "check",
+          "args": {
+            "level": 5
+          },
+          "expect": {
+            "allowed": true,
+            "outcome": "fine"
+          }
+        },
+        {
+          "entrypoint": "check",
+          "args": {
+            "level": -1
+          },
+          "expect": {
+            "allowed": false,
+            "outcome": "bad_level"
+          }
+        }
+      ]
+    },
+    "v04-change-on-branch-that-answers-accepted.hsplus": {
+      "valid": true,
+      "codes": [],
+      "why": "a change inside a branch that always answers accepted does not reach the refusal after it",
+      "invocations": [
+        {
+          "entrypoint": "decide",
+          "args": {
+            "x": 2
+          },
+          "expect": {
+            "allowed": true,
+            "outcome": "done"
+          }
+        },
+        {
+          "entrypoint": "decide",
+          "args": {
+            "x": 0
+          },
+          "expect": {
+            "allowed": false,
+            "outcome": "no"
+          }
+        }
+      ]
+    },
+    "v05-no-declarations.hsplus": {
+      "valid": true,
+      "codes": [],
+      "why": "a program that declares no outcomes is read exactly as before",
+      "invocations": [
+        {
+          "entrypoint": "borrow",
+          "args": {
+            "days": 3
+          },
+          "expect": {
+            "allowed": true,
+            "outcome": "borrowed"
+          }
+        }
+      ]
+    },
+    "v06-declared-outcome-never-answered.hsplus": {
+      "valid": true,
+      "codes": [
+        "HSP506"
+      ],
+      "why": "a declared outcome that is never answered is a warning, not a failure",
+      "invocations": [
+        {
+          "entrypoint": "ping",
+          "args": {
+            "x": 1
+          },
+          "expect": {
+            "allowed": true,
+            "outcome": "sent"
+          }
+        }
+      ]
+    },
+    "v07-choice-between-names.hsplus": {
+      "valid": true,
+      "codes": [],
+      "why": "an outcome written as a choice between quoted names is checked as every name it can be",
+      "invocations": [
+        {
+          "entrypoint": "reading",
+          "args": {
+            "degrees": 10
+          },
+          "expect": {
+            "allowed": true,
+            "outcome": "heating"
+          }
+        },
+        {
+          "entrypoint": "reading",
+          "args": {
+            "degrees": 25
+          },
+          "expect": {
+            "allowed": true,
+            "outcome": "idle"
+          }
+        }
+      ]
+    },
+    "i01-refused-after-state-change.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP503"
+      ],
+      "why": "the refused outcome bad_hours is answered after the action already took a bike back"
+    },
+    "i02-refused-after-announcement.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP503"
+      ],
+      "why": "the refused outcome blocked is answered after the action already announced pinged"
+    },
+    "i03-refused-after-possible-change.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP503"
+      ],
+      "why": "a branch that may change state falls through to a refusal"
+    },
+    "i04-undeclared-outcome.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP501"
+      ],
+      "why": "the action answers too_many, which it does not declare"
+    },
+    "i05-wrong-kind.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP502"
+      ],
+      "why": "fine_unpaid is declared refused but answered with allowed: true"
+    },
+    "i06-outcome-not-checkable.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP504",
+        "HSP506"
+      ],
+      "why": "the outcome is taken from an input, so it cannot be checked against the declaration (and the declared outcome is never written as an answer)"
+    },
+    "i07-partial-declaration.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP505"
+      ],
+      "why": "one decision action declares its outcomes and another decision action does not"
+    },
+    "i08-outcome-listed-twice.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP500"
+      ],
+      "why": "the same outcome name is listed twice"
+    },
+    "i09-outcome-both-kinds.hsplus": {
+      "valid": false,
+      "codes": [
+        "HSP500"
+      ],
+      "why": "one outcome is listed as both accepted and refused"
+    }
+  }
+}

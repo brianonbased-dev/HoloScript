@@ -90,7 +90,9 @@ NEVER  → Put a secret LITERAL on a NON-git surface. Reading a token from .env 
          (the git scanners are structurally blind to all three). (F.106, 6th
          occurrence root-caused 2026-06-16: prevention is a doctrine rule, not a tool.)
 NEVER  → Create UPPERCASE .md files in docs/ root (they go in docs/_archive/)
-NEVER  → Add doc pages without updating docs/.vitepress/config.ts sidebar
+NEVER  → Add or change doc pages without running pnpm docs:counts:drift and
+         pnpm docs:roadmap:drift (the vitepress site and its sidebar were retired
+         2026-07-03 in 6951822090; docs/ is repository source documentation)
 NEVER  → Raw curl against /api/holomesh/team/* /knowledge /message /presence
          /suggestions — use /room skill instead. Recurrent multi-agent
          antipattern; full reasoning in AGENTS.md §"⛔ ANTIPATTERN:
@@ -168,7 +170,7 @@ User is modifying TypeScript (packages/*)?
   → NO  ↓
 
 User is writing docs?
-  → YES → lowercase filenames → add to docs/.vitepress/config.ts sidebar → NO UPPERCASE
+  → YES → lowercase filenames → pnpm docs:counts:drift + docs:roadmap:drift → NO UPPERCASE
 
 MCP tools unavailable / tool call errors?
   → Step 1: DETECT   → any tool call returns error or tool not in schema
@@ -268,7 +270,7 @@ BRITTNEY    ../Hololand/packages/brittney/mcp-server/ — runtime AI, optional
 TEST        pnpm test | pnpm test --filter @holoscript/core | createComposition() pattern
 BUILD       pnpm build | pre-commit: ESLint + tsc + tests (auto-runs)
 WINDOWS     git add -A creates nul file — ALWAYS explicit: git add specific/file.ts
-DOCS        docs/.vitepress/config.ts controls ALL navigation — update sidebar on every new page
+DOCS        docs/ is source documentation, no site or sidebar (vitepress retired 2026-07-03) — check with pnpm docs:counts:drift / docs:roadmap:drift / docs:api
 ARCHIVE     UPPERCASE .md → docs/_archive/ | lowercase .md → docs/[section]/
 ```
 
@@ -349,7 +351,7 @@ docs/_archive/         Dev notes, phase guides, session notes (NOT user-facing)
 □ Did I call holo_graph_status then holo_absorb_repo BEFORE refactoring ANY TypeScript package?
 □ If any MCP tool failed, did I attempt recovery (diagnose → start → retry) before falling back to CLI?
 □ Did I use explicit git add (never git add -A)?
-□ Did I update docs/.vitepress/config.ts if I created a new doc page?
+□ Did I run pnpm docs:counts:drift and docs:roadmap:drift if I changed docs?
 □ Does the output match what the user actually asked for?
 □ Did I state clearly what I created/changed and why?
 ```
@@ -379,7 +381,7 @@ GitHub `README.md` is not the V1 storefront until `docs/storefront/github-v1-gat
 ## ∞ CONTRIBUTING CONTRACT
 
 - UPPERCASE `.md` files → `docs/_archive/` only
-- Every new doc page → add entry to `docs/.vitepress/config.ts` sidebar
+- Every new doc page → run `pnpm docs:counts:drift` and `pnpm docs:roadmap:drift` (there is no sidebar: the vitepress site was retired 2026-07-03)
 - New packages → add to `typedoc.json` entryPoints
 - All tests must pass before commit
 - **Plan Completeness Gap Reporting**: Every technical plan MUST end with an honest "What Remains After This Plan" section that clearly lays out the real-world usability or feature gaps that are deliberately left unaddressed, preventing agents from prematurely concluding that a major initiative is "finished".

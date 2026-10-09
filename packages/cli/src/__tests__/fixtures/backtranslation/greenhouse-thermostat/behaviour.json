@@ -1,0 +1,12 @@
+{
+  "id": "greenhouse-thermostat",
+  "title": "Greenhouse Thermostat",
+  "publicStateKeys": ["heaterOn", "target", "lastReading"],
+  "minSteps": 6,
+  "maxSteps": 16,
+  "actions": [
+    { "name": "reading", "kind": "action", "weight": 4, "params": { "degrees": { "type": "int", "min": 12, "max": 28, "edges": [17, 18, 19, 21, 22, 23] } } },
+    { "name": "setTarget", "kind": "action", "weight": 1, "params": { "target": { "type": "int", "min": 5, "max": 35, "edges": [9, 10, 20, 22, 30, 31] } } },
+    { "name": "status", "kind": "observation", "params": { "viewerId": { "type": "enum", "values": ["grower-1", "grower-2"] } } }
+  ]
+}

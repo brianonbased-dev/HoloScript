@@ -730,6 +730,36 @@ A field inside a brace block may carry the same two marks the `.hs` reader store
 }
 ```
 
+An `action` inside `logic` may list the outcomes it answers with, after its inputs: `accepted(...)` for outcomes whose answer has `allowed: true` (the action may change state and announce events) and `refused(...)` for outcomes whose answer has `allowed: false` (the action changes nothing and announces nothing). Each list is optional; they may come in either order and sit on their own lines. Both the plus reader and the composition reader read the lists and run the same checker (`packages/core/src/parser/ActionOutcomes.ts`), so the same file gets the same verdict in `.hsplus` and `.holo`, and the deterministic headless runtime refuses exactly what `holoscript validate` refuses. An action that declares no outcomes, in a `logic` block where no action declares them, is read as before. Added 2026-10-07 (board task_1791419247017_jri7); the rules and codes are in `docs/language/reference-hsplus-state.md`. This block is accepted:
+
+```hsplus
+composition "Bike Share" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action rent(count) accepted(rented) refused(fine_unpaid, bad_count, over_limit) {
+      if (state.fineOwed > 0) {
+        return { allowed: false, outcome: "fine_unpaid" }
+      }
+      if (count < 1) {
+        return { allowed: false, outcome: "bad_count" }
+      }
+      if (state.bikesOut + count > 2) {
+        return { allowed: false, outcome: "over_limit" }
+      }
+      state.bikesOut += count
+      emit("bikes_rented", { count: count })
+      return { allowed: true, outcome: "rented" }
+    }
+  }
+}
+```
+
+Proposal record, as the no-break policy below asks. What: outcome lists on actions, checked against the action's answers. Why: in the back-translation proof, 18 of 20 false alarms on the keypad door came from one unstated fact, whether a wrong code is refused or accepted; a hand-written card that marked each kind removed that misreading, and a declaration lets the card be derived from source instead. What breaks: nothing that parsed before. `accepted(` or `refused(` after an action's inputs was an error in `.hsplus` ("not allowed inside logic") and read as stray event handlers in `.holo`; no `.holo`, `.hsplus` or `.hs` file in the repository wrote it before this change. Proof: `syntax-reference-conformance.test.ts` (topic `outcomes`, both readers), `ActionOutcomes.test.ts`, and the shared validate-versus-runtime corpus in `OutcomeKindsAgreement.test.ts`. Approval route: the gate stack and a review by a different seat (founder rule, 2026-10-05); review pending.
+
 ### Forms it rejects
 
 `zone`, `spatial`, and `layer` are rejected at any depth in a `.hsplus` file, not only at the top. The reader names the word that was written, reports one error, and stores no node. A `zone` block says `HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.` A `spatial` or `layer` block says `HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.` (the same sentence, with `"layer"` in place of `"spatial"`). The same zone, with a quoted name and a brace block, stays valid inside a `.holo` composition. A property named `layer`, as in `layer: 2`, is an ordinary property.
@@ -765,6 +795,26 @@ Three `@` signs with no name. Message: `HSP201: Expected directive name, got AT.
 
 ```hsplus reject
 @@@
+```
+
+A refused outcome answered after the action already changed state. Both readers print the same message: `HSP503: action "giveBack" answers the refused outcome "bad_hours" on line 10 after it changes state.bikesOut (line 8). A refused outcome must change nothing and announce nothing: check before changing anything, or declare "bad_hours" accepted.`
+
+```hsplus reject
+composition "Bike Share" {
+  state {
+    bikesOut: 0
+  }
+
+  logic {
+    action giveBack(hoursLate) accepted(returned) refused(bad_hours) {
+      state.bikesOut -= 1
+      if (hoursLate < 0) {
+        return { allowed: false, outcome: "bad_hours" }
+      }
+      return { allowed: true, outcome: "returned" }
+    }
+  }
+}
 ```
 
 ## Known gaps
@@ -815,7 +865,7 @@ Everything else the grammar prints is a sentence with no code. Measured sentence
 
 ### `.holo` (composition reader)
 
-No error codes. `error()` (`HoloCompositionParser.ts` line 3978) stores a sentence. Measured sentences include:
+No error codes, except the outcome codes `HSP500`–`HSP506` it shares with `.hsplus` (see below), which it reports with the same sentences. `error()` (`HoloCompositionParser.ts` line 3978) stores a sentence. Measured sentences include:
 
 - `Expected string, got SCENE (in composition)`
 - `Expected RBRACE, got EOF (in composition)`
@@ -825,9 +875,11 @@ No error codes. `error()` (`HoloCompositionParser.ts` line 3978) stores a senten
 
 ### `.hsplus`
 
-Codes are defined in `packages/core/src/parser/RichErrors.ts` lines 42–63 (`HSP001` through `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, and `HSP300`). The message text is `HSP###: ` plus the sentence (`createRichError`, line 266).
+Codes are defined in `packages/core/src/parser/RichErrors.ts` lines 42–73 (`HSP001` through `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, `HSP300`, and `HSP500` through `HSP506`). The message text is `HSP###: ` plus the sentence (`createRichError`, line 276).
 
 Codes this reader passes into `error()` or `detectCommonMistake` in `HoloScriptPlusParser.ts`: `HSP001`, `HSP002`, `HSP003`, `HSP004`, `HSP005`, `HSP006`, `HSP009`, `HSP100`, `HSP101`, `HSP109`, `HSP200`, `HSP201`, `HSP300`.
+
+Outcome codes, added 2026-10-07 and raised by both readers through `packages/core/src/parser/ActionOutcomes.ts`: `HSP500` (malformed outcome list), `HSP501` (answer names an undeclared outcome), `HSP502` (answer's `allowed` contradicts its outcome's kind), `HSP503` (refused outcome after a state change or announcement), `HSP504` (answer cannot be checked), `HSP505` (a decision action in a declaring `logic` block declares nothing), and the warning `HSP506` (declared outcome never answered).
 
 Measured messages:
 

@@ -1,0 +1,7 @@
+[
+  {
+    "classification": "b-error",
+    "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+    "pathPatterns": ["^\\$\\.actions\\[\\d+\\]\\.emittedEvents\\[\\d+\\]\\.payload\\.still_owed$"]
+  }
+]

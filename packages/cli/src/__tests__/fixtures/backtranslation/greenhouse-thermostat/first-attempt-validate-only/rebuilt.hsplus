@@ -1,0 +1,49 @@
+composition "Greenhouse Thermostat" {
+  state {
+    heaterOn: false
+    target: 20
+    lastReading: 20
+  }
+
+  logic {
+    action reading(degrees) {
+      state.lastReading = degrees
+      if (state.heaterOn && degrees >= state.target + 2) {
+        state.heaterOn = false
+        emit("heater_off", { at: degrees })
+        return { allowed: true, outcome: "idle" }
+      } else if (!state.heaterOn && degrees <= state.target - 2) {
+        state.heaterOn = true
+        emit("heater_on", { at: degrees })
+        return { allowed: true, outcome: "heating" }
+      } else {
+        if (state.heaterOn) {
+          return { allowed: true, outcome: "heating" }
+        } else {
+          return { allowed: true, outcome: "idle" }
+        }
+      }
+    }
+
+    action setTarget(target) {
+      if (target < 10 || target > 30) {
+        return { allowed: false, outcome: "target_out_of_range" }
+      } else if (target == state.target) {
+        return { allowed: false, outcome: "target_unchanged" }
+      } else {
+        state.target = target
+        emit("target_changed", { target: target })
+        return { allowed: true, outcome: "target_set" }
+      }
+    }
+
+    action status(viewerId) {
+      return {
+        viewer: viewerId,
+        heater_on: state.heaterOn,
+        target: state.target,
+        last_reading: state.lastReading
+      }
+    }
+  }
+}

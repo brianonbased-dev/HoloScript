@@ -1,0 +1,179 @@
+{
+  "schema": "which-is-right.answer-key.v1",
+  "roundId": "round-20261006T003412-2b5a8603",
+  "createdAt": "2026-10-06T00:34:12.548Z",
+  "salt": "e337832935cd7f936ec34c629c2daa87",
+  "seed": 727352835,
+  "questions": [
+    {
+      "n": 1,
+      "class": "planted-fault",
+      "behaviourId": "deli-counter-queue",
+      "correctSide": "A",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault boolean-flip#0"
+      },
+      "otherVersion": "planted fault boolean-flip#0",
+      "why": "The correct version follows the written rules. The other version had one change planted on purpose: true changed to false (line 5: \"true\" -> \"false\").",
+      "situation": {
+        "seed": 388818,
+        "iteration": 0,
+        "shownSteps": 1
+      }
+    },
+    {
+      "n": 2,
+      "class": "rebuild-disagreement",
+      "behaviourId": "car-park-barrier",
+      "correctSide": "A",
+      "shown": {
+        "A": "correct",
+        "B": "rebuild r2"
+      },
+      "otherVersion": "rebuild r2",
+      "why": "The correct version follows the written rules; a fresh rebuild from the rules disagreed. When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+      "situation": {
+        "seed": 388818,
+        "iteration": 15,
+        "shownSteps": 5
+      }
+    },
+    {
+      "n": 3,
+      "class": "planted-fault",
+      "behaviourId": "bike-share-account",
+      "correctSide": "A",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault drop-statement#0"
+      },
+      "otherVersion": "planted fault drop-statement#0",
+      "why": "The correct version follows the written rules. The other version had one change planted on purpose: statement removed: state.bikesOut += count (line 18: \"      state.bikesOut += count\" -> \"\").",
+      "situation": {
+        "seed": 388818,
+        "iteration": 8,
+        "shownSteps": 1
+      }
+    },
+    {
+      "n": 4,
+      "class": "rebuild-disagreement",
+      "behaviourId": "car-park-barrier",
+      "correctSide": "A",
+      "shown": {
+        "A": "correct",
+        "B": "rebuild r3"
+      },
+      "otherVersion": "rebuild r3",
+      "why": "The correct version follows the written rules; a fresh rebuild from the rules disagreed. When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+      "situation": {
+        "seed": 388818,
+        "iteration": 33,
+        "shownSteps": 6
+      }
+    },
+    {
+      "n": 5,
+      "class": "planted-fault",
+      "behaviourId": "bike-share-account",
+      "correctSide": "A",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault comparison-flip#0"
+      },
+      "otherVersion": "planted fault comparison-flip#0",
+      "why": "The correct version follows the written rules. The other version had one change planted on purpose: comparison \">\" changed to \"<=\" (line 9: \">\" -> \"<=\").",
+      "situation": {
+        "seed": 388818,
+        "iteration": 2,
+        "shownSteps": 1
+      }
+    },
+    {
+      "n": 6,
+      "class": "planted-fault",
+      "behaviourId": "deli-counter-queue",
+      "correctSide": "B",
+      "shown": {
+        "A": "planted fault arith-flip#0",
+        "B": "correct"
+      },
+      "otherVersion": "planted fault arith-flip#0",
+      "why": "The correct version follows the written rules. The other version had one change planted on purpose: arithmetic \"+\" changed to \"-\" (line 18: \"+\" -> \"-\").",
+      "situation": {
+        "seed": 388818,
+        "iteration": 49,
+        "shownSteps": 6
+      }
+    },
+    {
+      "n": 7,
+      "class": "planted-fault",
+      "behaviourId": "car-park-barrier",
+      "correctSide": "B",
+      "shown": {
+        "A": "planted fault constant-change#6",
+        "B": "correct"
+      },
+      "otherVersion": "planted fault constant-change#6",
+      "why": "The correct version follows the written rules. The other version had one change planted on purpose: number 1 changed to 2 (line 26: \"1\" -> \"2\").",
+      "situation": {
+        "seed": 388818,
+        "iteration": 6,
+        "shownSteps": 4
+      }
+    },
+    {
+      "n": 8,
+      "class": "planted-fault",
+      "behaviourId": "car-park-barrier",
+      "correctSide": "A",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault drop-refusal#0"
+      },
+      "otherVersion": "planted fault drop-refusal#0",
+      "why": "The correct version follows the written rules. The other version had one change planted on purpose: refusal removed: if (state.carInside) { ... } (line 11: \"      if (state.carInside) {\\n        return { allowed: false, outcome: \\\"car_already_inside\\\" }\\n      }\" -> \"\").",
+      "situation": {
+        "seed": 388818,
+        "iteration": 8,
+        "shownSteps": 2
+      }
+    },
+    {
+      "n": 9,
+      "class": "planted-fault",
+      "behaviourId": "bike-share-account",
+      "correctSide": "B",
+      "shown": {
+        "A": "planted fault event-rename#0",
+        "B": "correct"
+      },
+      "otherVersion": "planted fault event-rename#0",
+      "why": "The correct version follows the written rules. The other version had one change planted on purpose: event name \"bikes_rented\" changed to \"bikes_rented_renamed\" (line 19: \"\\\"bikes_rented\\\"\" -> \"\\\"bikes_rented_renamed\\\"\").",
+      "situation": {
+        "seed": 388818,
+        "iteration": 8,
+        "shownSteps": 1
+      }
+    },
+    {
+      "n": 10,
+      "class": "planted-fault",
+      "behaviourId": "car-park-barrier",
+      "correctSide": "B",
+      "shown": {
+        "A": "planted fault drop-statement#0",
+        "B": "correct"
+      },
+      "otherVersion": "planted fault drop-statement#0",
+      "why": "The correct version follows the written rules. The other version had one change planted on purpose: statement removed: state.carInside = true (line 14: \"      state.carInside = true\" -> \"\").",
+      "situation": {
+        "seed": 388818,
+        "iteration": 2,
+        "shownSteps": 1
+      }
+    }
+  ]
+}

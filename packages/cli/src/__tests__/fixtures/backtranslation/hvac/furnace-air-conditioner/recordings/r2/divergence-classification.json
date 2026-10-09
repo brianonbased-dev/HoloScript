@@ -1,0 +1,22 @@
+[
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      2,
+      3,
+      7,
+      8,
+      23,
+      24,
+      30,
+      32,
+      34,
+      35,
+      36
+    ],
+    "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+  }
+]

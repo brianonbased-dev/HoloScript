@@ -1,0 +1,3 @@
+{
+  "verdict": "Fails the false-alarm bar. The rebuild treated a wrong code as refused while still counting it, which the runner does not allow, so it broke in 18 of 20 situations. Because it broke, it could only judge the author program in the 2 situations where nobody typed a wrong code, and it showed 3 of 6 planted mistakes. The cause is one unclear point in the rules: whether a wrong try counts as accepted or refused. An earlier recording with a different example in the reference card misread a different rule (it answered the word none instead of the number 0) in 11 of 20 situations. Door rules that are clear to a person still leave room for two different readings."
+}

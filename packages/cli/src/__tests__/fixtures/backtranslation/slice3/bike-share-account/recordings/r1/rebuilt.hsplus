@@ -1,0 +1,64 @@
+composition "Bike Share Account" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action rent(count) {
+      if (state.fineOwed > 0) {
+        return { allowed: false, outcome: "fine_unpaid" }
+      }
+      if (count < 1) {
+        return { allowed: false, outcome: "bad_count" }
+      }
+      if (state.bikesOut + count > 2) {
+        return { allowed: false, outcome: "over_limit" }
+      }
+      state.bikesOut = state.bikesOut + count
+      emit("bikes_rented", { count: count, now_out: state.bikesOut })
+      return { allowed: true, outcome: "rented" }
+    }
+
+    action giveBack(hoursLate) {
+      if (state.bikesOut < 1) {
+        return { allowed: false, outcome: "nothing_out" }
+      }
+      if (hoursLate < 0) {
+        return { allowed: false, outcome: "bad_hours" }
+      }
+      state.bikesOut = state.bikesOut - 1
+      if (hoursLate == 0) {
+        emit("returned", { now_out: state.bikesOut })
+        return { allowed: true, outcome: "returned" }
+      }
+      state.fineOwed = state.fineOwed + 2 * hoursLate
+      if (state.fineOwed > 10) {
+        state.fineOwed = 10
+      }
+      emit("returned_late", { hours_late: hoursLate, fine_owed: state.fineOwed })
+      return { allowed: true, outcome: "returned_late" }
+    }
+
+    action payFine(amount) {
+      if (state.fineOwed == 0) {
+        return { allowed: false, outcome: "nothing_owed" }
+      }
+      if (amount < state.fineOwed) {
+        return { allowed: false, outcome: "not_enough" }
+      }
+      emit("fine_paid", { paid: state.fineOwed, change: amount - state.fineOwed })
+      state.fineOwed = 0
+      return { allowed: true, outcome: "fine_paid" }
+    }
+
+    action account(viewerId) {
+      return {
+        viewer: viewerId,
+        bikes_out: state.bikesOut,
+        fine_owed: state.fineOwed,
+        can_rent: state.fineOwed == 0 && state.bikesOut < 2
+      }
+    }
+  }
+}

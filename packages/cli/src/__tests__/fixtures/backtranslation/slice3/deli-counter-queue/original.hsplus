@@ -1,0 +1,93 @@
+composition "Deli Counter Queue" {
+  state {
+    waitingNormal: 0
+    waitingPriority: 0
+    open: true
+    nextNumber: 1
+    priorityStreak: 0
+  }
+
+  logic {
+    action join(kind) accepted(joined, joined_bumping_normal) refused(counter_closed, unknown_kind, queue_full) {
+      if (!state.open) {
+        return { allowed: false, outcome: "counter_closed" }
+      }
+      if (kind != "normal" && kind != "priority") {
+        return { allowed: false, outcome: "unknown_kind" }
+      }
+      if (state.waitingNormal + state.waitingPriority >= 5) {
+        if (kind == "priority" && state.waitingNormal > 0) {
+          state.waitingNormal -= 1
+          state.waitingPriority += 1
+          emit("bumped", { kind: "normal" })
+          emit("ticket_taken", { number: state.nextNumber, kind: kind })
+          state.nextNumber += 1
+          return { allowed: true, outcome: "joined_bumping_normal" }
+        }
+        return { allowed: false, outcome: "queue_full" }
+      }
+      if (kind == "priority") {
+        state.waitingPriority += 1
+      } else {
+        state.waitingNormal += 1
+      }
+      emit("ticket_taken", { number: state.nextNumber, kind: kind })
+      state.nextNumber += 1
+      return { allowed: true, outcome: "joined" }
+    }
+
+    action serve() accepted(served_priority, served_normal) refused(nobody_waiting) {
+      if (state.waitingNormal + state.waitingPriority == 0) {
+        return { allowed: false, outcome: "nobody_waiting" }
+      }
+      if (state.waitingPriority > 0 && (state.priorityStreak < 2 || state.waitingNormal == 0)) {
+        state.waitingPriority -= 1
+        state.priorityStreak += 1
+        emit("now_serving", { kind: "priority" })
+        return { allowed: true, outcome: "served_priority" }
+      }
+      state.waitingNormal -= 1
+      state.priorityStreak = 0
+      emit("now_serving", { kind: "normal" })
+      return { allowed: true, outcome: "served_normal" }
+    }
+
+    action giveUp(kind) accepted(left_queue) refused(unknown_kind, none_of_that_kind) {
+      if (kind != "normal" && kind != "priority") {
+        return { allowed: false, outcome: "unknown_kind" }
+      }
+      if (kind == "priority" && state.waitingPriority < 1) {
+        return { allowed: false, outcome: "none_of_that_kind" }
+      }
+      if (kind == "normal" && state.waitingNormal < 1) {
+        return { allowed: false, outcome: "none_of_that_kind" }
+      }
+      if (kind == "priority") {
+        state.waitingPriority -= 1
+      } else {
+        state.waitingNormal -= 1
+      }
+      emit("gave_up", { kind: kind })
+      return { allowed: true, outcome: "left_queue" }
+    }
+
+    action closeJoining() accepted(closed) refused(already_closed) {
+      if (!state.open) {
+        return { allowed: false, outcome: "already_closed" }
+      }
+      state.open = false
+      emit("joining_closed", { still_waiting: state.waitingNormal + state.waitingPriority })
+      return { allowed: true, outcome: "closed" }
+    }
+
+    action board(viewerId) {
+      return {
+        viewer: viewerId,
+        waiting_normal: state.waitingNormal,
+        waiting_priority: state.waitingPriority,
+        open: state.open,
+        next_number: state.nextNumber
+      }
+    }
+  }
+}

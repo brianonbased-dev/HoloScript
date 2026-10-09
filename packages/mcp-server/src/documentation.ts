@@ -1393,6 +1393,36 @@ interface TraitDoc {
 
 // === SYNTAX DOCUMENTATION ===
 
+/**
+ * The outcome-kinds example, shared byte for byte with
+ * docs/language/reference-hsplus-state.md (§ Outcome kinds on actions).
+ * syntax-reference-conformance.test.ts parses it through both production
+ * parsers and checks the docs page still shows exactly this text.
+ */
+export const OUTCOME_KINDS_EXAMPLE = `composition "Bike Share" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action rent(count) accepted(rented) refused(fine_unpaid, bad_count, over_limit) {
+      if (state.fineOwed > 0) {
+        return { allowed: false, outcome: "fine_unpaid" }
+      }
+      if (count < 1) {
+        return { allowed: false, outcome: "bad_count" }
+      }
+      if (state.bikesOut + count > 2) {
+        return { allowed: false, outcome: "over_limit" }
+      }
+      state.bikesOut += count
+      emit("bikes_rented", { count: count })
+      return { allowed: true, outcome: "rented" }
+    }
+  }
+}`;
+
 export const SYNTAX_DOCS: Record<string, SyntaxDoc> = {
   orb: {
     topic: 'orb',
@@ -1693,6 +1723,21 @@ composition "Scene" {
     if (score >= 100) scene.load("victory")
   }
 }`,
+      },
+    ],
+  },
+
+  outcomes: {
+    topic: 'outcomes',
+    description:
+      'Declare the outcomes an action answers with, and the kind of each: accepted (the answer has allowed: true; the action may change state and announce events) or refused (allowed: false; the action changes nothing and announces nothing). Both parsers check every answer against the declaration (HSP500-HSP506), and the headless runtime refuses exactly the programs `holoscript validate` refuses.',
+    syntax: `action <name>(<inputs>) accepted(<outcome>, ...) refused(<outcome>, ...) {
+  // every answer: return { allowed: true|false, outcome: "<declared outcome>" }
+}`,
+    examples: [
+      {
+        description: 'Bike share: three refusals checked before any change, one accepted outcome',
+        code: OUTCOME_KINDS_EXAMPLE,
       },
     ],
   },

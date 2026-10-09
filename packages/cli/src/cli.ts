@@ -898,6 +898,7 @@ async function main(): Promise<void> {
               message: diagnostic.message,
               code: diagnostic.code,
               severity: diagnostic.severity,
+              suggestion: diagnostic.suggestion,
             })
           );
 
@@ -1075,6 +1076,7 @@ async function main(): Promise<void> {
             console.log(`\x1b[33m✓ Validation passed with ${errorList.length} warnings:\x1b[0m`);
             errorList.forEach((err) => {
               console.log(`  Line ${err.line}:${err.column}: ${err.message}`);
+              if (err.suggestion) console.log(`    Fix: ${err.suggestion}`);
             });
           } else {
             console.log(`\x1b[32m✓ Validation successful!\x1b[0m\n`);
@@ -1084,6 +1086,7 @@ async function main(): Promise<void> {
           console.error(`\x1b[31mValidation failed with ${errorList.length} errors:\x1b[0m`);
           errorList.forEach((err) => {
             console.error(`  Line ${err.line}:${err.column}: ${err.message}`);
+            if (err.suggestion) console.error(`    Fix: ${err.suggestion}`);
           });
           process.exit(1);
         }

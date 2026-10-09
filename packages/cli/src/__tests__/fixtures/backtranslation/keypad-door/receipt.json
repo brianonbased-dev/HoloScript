@@ -1,0 +1,358 @@
+{
+  "behaviourId": "keypad-door",
+  "catch": {
+    "catchRate": 0.5,
+    "caught": 3,
+    "mutants": [
+      {
+        "attributableDivergentSituations": 2,
+        "caught": true,
+        "change": "line 17: \"==\" -> \"!=\"",
+        "description": "comparison \"==\" changed to \"!=\"",
+        "id": "comparison-flip#0",
+        "inDecision": true,
+        "operator": "comparison-flip",
+        "oracleDivergentSituations": 20,
+        "rawDivergentSituations": 20,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 0,
+        "caught": false,
+        "change": "line 24: \"3\" -> \"4\"",
+        "description": "number 3 changed to 4",
+        "id": "constant-change#4",
+        "inDecision": true,
+        "operator": "constant-change",
+        "oracleDivergentSituations": 11,
+        "rawDivergentSituations": 18,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 0,
+        "caught": false,
+        "change": "line 11: \"      if (state.lockedOut) {\\n        return { allowed: false, outcome: \\\"locked_out\\\" }\\n      }\" -> \"\"",
+        "description": "refusal removed: if (state.lockedOut) { ... }",
+        "id": "drop-refusal#0",
+        "inDecision": true,
+        "operator": "drop-refusal",
+        "oracleDivergentSituations": 7,
+        "rawDivergentSituations": 18,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 2,
+        "caught": true,
+        "change": "line 3: \"true\" -> \"false\"",
+        "description": "true changed to false",
+        "id": "boolean-flip#0",
+        "inDecision": false,
+        "operator": "boolean-flip",
+        "oracleDivergentSituations": 20,
+        "rawDivergentSituations": 20,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 0,
+        "caught": false,
+        "change": "line 60: \"-\" -> \"+\"",
+        "description": "arithmetic \"-\" changed to \"+\"",
+        "id": "arith-flip#0",
+        "inDecision": false,
+        "operator": "arith-flip",
+        "oracleDivergentSituations": 15,
+        "rawDivergentSituations": 18,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 2,
+        "caught": true,
+        "change": "line 18: \"        emit(\\\"door_unlocked\\\", { wrong_tries_before: state.wrongTries })\" -> \"\"",
+        "description": "statement removed: emit(\"door_unlocked\", { wrong_tries_before: state.wrongTries })",
+        "id": "drop-statement#0",
+        "inDecision": false,
+        "operator": "drop-statement",
+        "oracleDivergentSituations": 11,
+        "rawDivergentSituations": 20,
+        "situations": 20
+      }
+    ],
+    "oracleVisible": 6,
+    "planted": 6
+  },
+  "checklist": {
+    "author": "Claude (Anthropic), seat claude7, session 670fb727",
+    "behaviourId": "keypad-door",
+    "lines": [
+      {
+        "n": 1,
+        "text": "The door starts locked, with no wrong tries counted, and not locked out."
+      },
+      {
+        "n": 2,
+        "text": "The door code is 4721. The manager's code is 9000."
+      },
+      {
+        "n": 3,
+        "text": "Trying a code while the door is locked out is refused, and nothing changes."
+      },
+      {
+        "n": 4,
+        "text": "Trying a code while the door is already open is refused, and nothing changes."
+      },
+      {
+        "n": 5,
+        "text": "The right code opens the door and wipes the count of wrong tries. The announcement that it opened says how many wrong tries there had been before."
+      },
+      {
+        "n": 6,
+        "text": "A wrong code adds one to the count of wrong tries and announces the new count."
+      },
+      {
+        "n": 7,
+        "text": "On the third wrong try, the door locks out instead: it announces the lockout with the count, and answers that the code was wrong and the door is now locked out."
+      },
+      {
+        "n": 8,
+        "text": "Locking the door when it is already locked is refused. Otherwise the door locks, and it announces that the keypad locked it."
+      },
+      {
+        "n": 9,
+        "text": "Clearing a lockout is refused when there is no lockout. It is also refused when the manager's code is wrong."
+      },
+      {
+        "n": 10,
+        "text": "Otherwise the lockout ends, the count of wrong tries goes back to none, and it announces that the manager cleared it. Clearing a lockout does not open the door."
+      },
+      {
+        "n": 11,
+        "text": "Asking for the status tells who asked, whether the door is locked, whether it is locked out, and how many more wrong tries it would take to lock it out: 3 when none have been made, none once it is locked out. Asking changes nothing."
+      },
+      {
+        "n": 12,
+        "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+      }
+    ],
+    "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/keypad-door/original.hsplus"
+  },
+  "falseAlarms": {
+    "byClass": {
+      "b-error": 18,
+      "checklist-ambiguity": 0,
+      "real-fault": 0
+    },
+    "divergences": [
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 0,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 1,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 2,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 4,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 6,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 7,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 8,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 9,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 10,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 11,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 12,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 13,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 14,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 15,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 16,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 17,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 18,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      },
+      {
+        "classification": "b-error",
+        "difference": "b-threw: {\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"enterCode\\\" attempted a state change or event\"}",
+        "iteration": 19,
+        "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+        "reason": "b-threw"
+      }
+    ],
+    "divergentSituations": 18,
+    "situations": 20
+  },
+  "generatedAt": "2026-10-05T22:59:43.579Z",
+  "interfaceCard": "Behaviour name: \"Keypad Door\"\n\nState fields others can see: locked, wrongTries, lockedOut\n\nActions (each answers with allowed and outcome; outcome is one of the names listed):\n- enterCode(code) — outcomes: unlocked, wrong_code, wrong_code_now_locked_out, locked_out, already_open\n- lockDoor() — outcomes: locked, already_locked\n- resetLockout(managerCode) — outcomes: lockout_cleared, not_locked_out, wrong_manager_code\n\nObservations (answer only):\n- status(viewerId) — answer fields: viewer, locked, locked_out, tries_left\n\nEvents (event name: payload fields):\n- door_unlocked: wrong_tries_before\n- wrong_code: wrong_tries\n- door_locked_out: wrong_tries\n- door_locked: by\n- lockout_cleared: by\n",
+  "plainLanguageCheck": {
+    "exitCode": 0,
+    "findings": "Files with findings: 0; BLOCK-tier 0; WARN-tier 0",
+    "tool": "C:/holo-dev/ai-ecosystem/scripts/check-plain-language.mjs --profile canon --check --strict"
+  },
+  "precheck": {
+    "originalRanAllSituations": true,
+    "situationsRun": 20
+  },
+  "rebuild": {
+    "checker": "validateCanonicalSource + deterministic headless runtime admission",
+    "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/keypad-door/exchanges",
+    "inputs": [
+      "language-reference-v2.md",
+      "interface-card.md (names only)",
+      "checklist.json (rules, rendered as numbered lines)",
+      "checker errors (repair rounds only)"
+    ],
+    "model": "grok-4.3",
+    "note": "A first recording checked with the language checker alone is kept in first-attempt-validate-only/. That checker let through code the headless runner refuses, which is why the checker now also asks the runner.",
+    "provider": "xai",
+    "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/keypad-door/rebuilt.hsplus",
+    "recordedNotLive": true,
+    "rounds": 2,
+    "seesOriginalSource": false,
+    "validated": true
+  },
+  "runSurface": {
+    "branch": "feat/back-translation-proof (worktree, on top of b6bd26573)",
+    "commit": "b6bd2657380036ba4248701ef523a955179769b1",
+    "note": "origin/main base: .holo without a composition wrapper is still lenient (PR #509 not merged); all sources here use the composition wrapper."
+  },
+  "schema": "holoscript.back-translation-proof.v2",
+  "title": "Keypad Door",
+  "twin": {
+    "edgeSituations": 5,
+    "excludedFields": [
+      {
+        "field": "sourceBundleHash",
+        "why": "hash of the source text itself; differs for any two files"
+      },
+      {
+        "field": "canonicalFields.actionReceiptRoot",
+        "why": "chained ledger root seeded with sourceBundleHash (ledgerGenesis/appendLedger), so it differs whenever the source text differs"
+      },
+      {
+        "field": "canonicalFields.executedScheduleHash",
+        "why": "schedule payloads carry outcomeHashes, which are chained roots seeded with sourceBundleHash"
+      },
+      {
+        "field": "actionLedger[].payload.rollbackReference.priorActionRoot",
+        "why": "chained action root, seeded with sourceBundleHash"
+      },
+      {
+        "field": "terminal.* roots, terminalCommitment, entryHash/previousHash",
+        "why": "all chained over sourceBundleHash and the manifest (which carries the probed final state)"
+      },
+      {
+        "field": "sourceRunReceipt (engine provenance, plan bytecode hash)",
+        "why": "identity of the plan program text, not behaviour"
+      }
+    ],
+    "generator": "generic: seeded random action sequences from behaviour.json (action list, parameter ranges, named edge values); every 4th situation is an edge situation",
+    "harness": "@holoscript/core/testing runTwinTest",
+    "oracleFields": [
+      "canonicalFields.canonicalSceneHash",
+      "canonicalFields.canonicalPoseHash",
+      "canonicalFields.logicalClockHash",
+      "canonicalFields.publicStateHash",
+      "canonicalFields.residentObservationHash",
+      "publicStateSnapshots[].payload",
+      "observationLedger[].payload",
+      "actionLedger[].payload (minus rollbackReference.priorActionRoot)",
+      "scheduleLedger[].payload (minus outcomeHashes)",
+      "terminal.actualCounts"
+    ],
+    "runner": "runHeadlessExperimentSources (world=model-village village.holo, plan=generated .hs per situation, behaviour=under test)",
+    "seed": 388818,
+    "situations": 20
+  },
+  "verdict": "Fails the false-alarm bar. The rebuild treated a wrong code as refused while still counting it, which the runner does not allow, so it broke in 18 of 20 situations. Because it broke, it could only judge the author program in the 2 situations where nobody typed a wrong code, and it showed 3 of 6 planted mistakes. The cause is one unclear point in the rules: whether a wrong try counts as accepted or refused. An earlier recording with a different example in the reference card misread a different rule (it answered the word none instead of the number 0) in 11 of 20 situations. Door rules that are clear to a person still leave room for two different readings."
+}

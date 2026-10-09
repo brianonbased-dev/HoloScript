@@ -1,0 +1,35 @@
+{
+  "machine": "Bike share account",
+  "kinds": { "accepted": "", "refused": "Refused." },
+  "steps": {
+    "rent": "A member asks to rent {count} {count:bike|bikes}.",
+    "giveBack": { "default": "The member brings a bike back {hoursLate} {hoursLate:hour|hours} late.", "when": { "hoursLate=0": "The member brings a bike back on time." } },
+    "payFine": "The member pays {amount} toward the fine.",
+    "account": "The {viewerId} checks the account."
+  },
+  "outcomes": {
+    "rent.rented": "The bikes go out.",
+    "rent.fine_unpaid": "A fine is still owed.",
+    "rent.bad_count": "That is fewer than one bike.",
+    "rent.over_limit": "That would be more than 2 bikes out.",
+    "giveBack.returned": "The bike is taken back.",
+    "giveBack.returned_late": "The bike is taken back late.",
+    "giveBack.nothing_out": "No bikes are out.",
+    "giveBack.bad_hours": "The hours late are below zero.",
+    "payFine.fine_paid": "The fine is paid.",
+    "payFine.nothing_owed": "No fine is owed.",
+    "payFine.not_enough": "That is not the whole fine."
+  },
+  "events": {
+    "bikes_rented": "It says {count} rented and {now_out} out now.",
+    "returned": "It says {now_out} still out.",
+    "returned_late": "It says {hours_late} {hours_late:hour|hours} late and a fine of {fine_owed} now owed.",
+    "fine_paid": "It says a fine of {paid} paid and {change} change."
+  },
+  "observations": {
+    "account": "It shows {bikes_out} {bikes_out:bike|bikes} out, a fine of {fine_owed}, and {can_rent?renting allowed|no renting}."
+  },
+  "state": "Inside, it now counts {bikesOut} {bikesOut:bike|bikes} out and a fine of {fineOwed}.",
+  "values": { "viewerId": { "member": "member", "staff": "staff member" } },
+  "avoid": { "rent.count": [-1], "giveBack.hoursLate": [-1] }
+}

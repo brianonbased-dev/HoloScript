@@ -1,0 +1,55 @@
+{
+  "behaviourId": "keypad-door",
+  "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/keypad-door/original.hsplus",
+  "author": "Claude (Anthropic), seat claude7, session 670fb727",
+  "lines": [
+    {
+      "n": 1,
+      "text": "The door starts locked, with no wrong tries counted, and not locked out."
+    },
+    {
+      "n": 2,
+      "text": "The door code is 4721. The manager's code is 9000."
+    },
+    {
+      "n": 3,
+      "text": "Trying a code while the door is locked out is refused, and nothing changes."
+    },
+    {
+      "n": 4,
+      "text": "Trying a code while the door is already open is refused, and nothing changes."
+    },
+    {
+      "n": 5,
+      "text": "The right code opens the door and wipes the count of wrong tries. The announcement that it opened says how many wrong tries there had been before."
+    },
+    {
+      "n": 6,
+      "text": "A wrong code adds one to the count of wrong tries and announces the new count."
+    },
+    {
+      "n": 7,
+      "text": "On the third wrong try, the door locks out instead: it announces the lockout with the count, and answers that the code was wrong and the door is now locked out."
+    },
+    {
+      "n": 8,
+      "text": "Locking the door when it is already locked is refused. Otherwise the door locks, and it announces that the keypad locked it."
+    },
+    {
+      "n": 9,
+      "text": "Clearing a lockout is refused when there is no lockout. It is also refused when the manager's code is wrong."
+    },
+    {
+      "n": 10,
+      "text": "Otherwise the lockout ends, the count of wrong tries goes back to none, and it announces that the manager cleared it. Clearing a lockout does not open the door."
+    },
+    {
+      "n": 11,
+      "text": "Asking for the status tells who asked, whether the door is locked, whether it is locked out, and how many more wrong tries it would take to lock it out: 3 when none have been made, none once it is locked out. Asking changes nothing."
+    },
+    {
+      "n": 12,
+      "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+    }
+  ]
+}

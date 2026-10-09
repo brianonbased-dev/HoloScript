@@ -572,6 +572,51 @@ export function validateCanonicalSource(
   dependencies?: CanonicalSourceValidationDependencies
 ): CanonicalSourceValidationResult;
 
+// Action outcome contracts (src/parser/ActionOutcomes.ts):
+// action rent(n) accepted(rented) refused(over_limit) { ... }
+export type OutcomeKind = 'accepted' | 'refused';
+export type HoloOutcomeKind = OutcomeKind;
+export interface HoloOutcomeDeclaration {
+  name: string;
+  kind: OutcomeKind;
+  loc?: { line: number; column: number; offset?: number };
+}
+export type OutcomeDiagnosticCode = 'HSP500' | 'HSP501' | 'HSP502' | 'HSP503' | 'HSP504' | 'HSP505' | 'HSP506';
+export const OUTCOME_DIAGNOSTIC_CODES: Readonly<Record<OutcomeDiagnosticCode, string>>;
+export const OUTCOME_KINDS: readonly OutcomeKind[];
+export interface OutcomeDiagnostic {
+  code: OutcomeDiagnosticCode;
+  severity: 'error' | 'warning';
+  action: string;
+  message: string;
+  line?: number;
+  column?: number;
+}
+export interface OutcomeCheckAction {
+  name: string;
+  outcomes?: readonly HoloOutcomeDeclaration[];
+  body: readonly HoloStatement[] | null;
+  bodyError?: string;
+  loc?: { line: number; column: number; offset?: number };
+}
+export interface ActionAnswer {
+  line?: number;
+  column?: number;
+  literal: boolean;
+  keys: string[];
+  allowed?: boolean;
+  outcome?: string;
+  hasAllowedKey: boolean;
+  hasOutcomeKey: boolean;
+}
+export function checkActionOutcomes(actions: readonly OutcomeCheckAction[]): OutcomeDiagnostic[];
+export function listActionAnswers(body: readonly HoloStatement[]): ActionAnswer[];
+export function forEachStatement(
+  body: readonly HoloStatement[],
+  visit: (statement: HoloStatement) => void
+): void;
+export function isDecisionAnswer(answer: ActionAnswer): boolean;
+
 export class HoloScriptCodeParser {
   parse(source: string): ParseResult;
   parseExpression(source: string): any;
@@ -588,6 +633,62 @@ export function parseHoloScriptPlus(
 ): HSPlusParseResult;
 export const holoFactory: any;
 export function generateHoloSource(ast: any): string;
+
+// Rule-conflict check (validation/RuleConflictChecker.ts): two rules that apply
+// at once and set the same state to different values, decided only by order.
+export type RuleJson = string | number | boolean | null | RuleJson[] | { [key: string]: RuleJson };
+export type RuleConflictKind = 'conflict' | 'priority-mismatch';
+export interface RuleConflictSide {
+  label?: string;
+  line: number;
+  writeLine: number;
+  value: RuleJson;
+  effect: string;
+}
+export interface RuleConflictWitness {
+  state: Record<string, RuleJson>;
+  args: Record<string, RuleJson>;
+  shown: Array<{ name: string; value: RuleJson; given: boolean }>;
+}
+export interface RuleConflict {
+  kind: RuleConflictKind;
+  action: string;
+  target: string;
+  first: RuleConflictSide;
+  second: RuleConflictSide;
+  witness: RuleConflictWitness;
+  declared?: { winner: string; loser: string; line: number };
+  message: string;
+  suggestion: string;
+}
+export interface RuleConflictReport {
+  conflicts: RuleConflict[];
+  skipped: Array<{ action: string; reason: string }>;
+  checkedActions: string[];
+  unconfirmed: number;
+}
+export interface RuleConflictOptions {
+  maxPathsPerAction?: number;
+  maxSolverSteps?: number;
+}
+export interface RuleConflictDiagnostic {
+  severity: 'warning';
+  code: 'RULE-CONFLICT' | 'RULE-PRIORITY-MISMATCH';
+  message: string;
+  line: number;
+  column: number;
+  suggestion: string;
+}
+export function findRuleConflicts(source: string, options?: RuleConflictOptions): RuleConflictReport;
+export function findRuleConflictsInComposition(
+  ast: any,
+  source: string,
+  options?: RuleConflictOptions
+): RuleConflictReport;
+export function ruleConflictDiagnostics(
+  input: { source: string; ast?: any },
+  options?: RuleConflictOptions
+): RuleConflictDiagnostic[];
 
 // uAAL cognitive front-end bridge (G3): HoloComposition behavior -> UAAL bytecode.
 export class UaalBehaviorCompiler {
@@ -7288,6 +7389,370 @@ export declare class DeterminismHarness {
   static compareResults(results: ProbeResult[]): DivergenceReport;
 }
 export declare function describeEnvironment(env: EnvironmentInfo): string;
+
+// ── Twin (differential) testing — src/testing/TwinTestHarness.ts ──
+export interface TwinImplementation<I, O> {
+  name: string;
+  run: (input: I) => O | Promise<O>;
+}
+export interface TwinTestSpec<I, O, S = O> {
+  name: string;
+  implementations: {
+    a: TwinImplementation<I, O>;
+    b: TwinImplementation<I, O>;
+  };
+  generate: (seed: number, iteration: number) => I;
+  oracle?: (output: O) => S;
+  equivalent?: (a: S, b: S) => boolean;
+  shrink?: (input: I) => I[];
+  iterations?: number;
+  seed?: number;
+  maxShrinkSteps?: number;
+  perIterationTimeoutMs?: number;
+  stopOnFirstDivergence?: boolean;
+}
+export type TwinDivergenceReason = 'syndrome-mismatch' | 'a-threw' | 'b-threw' | 'timeout';
+export interface TwinTestDivergence<I, O, S> {
+  iteration: number;
+  input: I;
+  outputA: O | { error: string };
+  outputB: O | { error: string };
+  syndromeA: S | { error: string };
+  syndromeB: S | { error: string };
+  shrunk: boolean;
+  shrinkSteps: number;
+  reason: TwinDivergenceReason;
+  originalInput?: I;
+}
+export interface TwinTestResult<I, O, S> {
+  passed: boolean;
+  spec: { name: string; implA: string; implB: string };
+  iterationsRun: number;
+  iterationsTotal: number;
+  durationMs: number;
+  divergences: TwinTestDivergence<I, O, S>[];
+  counts: {
+    syndromeMismatches: number;
+    aThrew: number;
+    bThrew: number;
+    timeouts: number;
+  };
+}
+export declare function defaultEquivalent<S>(a: S, b: S): boolean;
+export declare function runTwinTest<I, O, S = O>(
+  spec: TwinTestSpec<I, O, S>
+): Promise<TwinTestResult<I, O, S>>;
+export declare function expectTwinEquivalent<I, O, S = O>(
+  spec: TwinTestSpec<I, O, S>
+): Promise<void>;
+
+// ── Back-translation proof — src/testing/backtranslation/ ──
+export interface ChecklistLine {
+  n: number;
+  text: string;
+}
+export interface BehaviourChecklist {
+  behaviourId: string;
+  sourcePath: string;
+  author: string;
+  lines: ChecklistLine[];
+}
+export interface ModelExchange {
+  round: number;
+  kind: 'rebuild' | 'repair';
+  provider: string;
+  model: string;
+  reportedModel: string | null;
+  prompt: { system: string; user: string };
+  response: string;
+  extractedSource: string;
+  validation: { valid: boolean; errors: string[] };
+  usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number };
+  at: string;
+}
+export type DivergenceClass = 'real-fault' | 'checklist-ambiguity' | 'b-error';
+export interface ClassifiedDivergence {
+  iteration: number;
+  reason: string;
+  difference: string;
+  classification: DivergenceClass;
+  rationale: string;
+}
+export interface MutantOutcome {
+  id: string;
+  operator: string;
+  description: string;
+  change: string;
+  situations: number;
+  divergentSituations: number;
+  caught: boolean;
+  firstDivergence?: { iteration: number; reason: string; detail: string };
+}
+export interface BackTranslationReceipt {
+  schema: 'holoscript.back-translation-proof.v1';
+  behaviourId: string;
+  generatedAt: string;
+  runSurface: {
+    branch: string;
+    commit: string;
+    note: string;
+  };
+  checklist: BehaviourChecklist;
+  plainLanguageCheck: { tool: string; exitCode: number | null; findings: string };
+  rebuild: {
+    provider: string;
+    model: string;
+    seesOriginalSource: false;
+    inputs: string[];
+    rounds: number;
+    validated: boolean;
+    exchangesDir: string;
+    rebuiltSourcePath: string;
+    recordedNotLive: boolean;
+  };
+  twin: {
+    harness: string;
+    runner: string;
+    situations: number;
+    seed: number;
+    oracleFields: string[];
+    excludedFields: { field: string; why: string }[];
+  };
+  originalVsRebuild: {
+    passed: boolean;
+    divergentSituations: number;
+    divergences: ClassifiedDivergence[];
+    falseAlarms: number;
+  };
+  originalVsSelf: { passed: boolean; divergentSituations: number };
+  faults: {
+    planted: number;
+    caught: number;
+    mutants: MutantOutcome[];
+  };
+  verdict: string;
+  weakestLink: string;
+}
+export type MutationOperator =
+  | 'arith-flip'
+  | 'comparison-flip'
+  | 'constant-change'
+  | 'boolean-flip'
+  | 'drop-statement'
+  | 'event-rename'
+  | 'drop-refusal';
+export declare const MUTATION_OPERATORS: readonly MutationOperator[];
+export interface SourceMutant {
+  id: string;
+  operator: MutationOperator;
+  site: number;
+  line: number;
+  inDecision: boolean;
+  before: string;
+  after: string;
+  description: string;
+  source: string;
+}
+export type SpanKind = 'code' | 'string' | 'comment';
+export interface Span {
+  kind: SpanKind;
+  start: number;
+  end: number;
+}
+export declare function lexSpans(source: string): Span[];
+export declare function enumerateMutants(source: string): SourceMutant[];
+export declare function selectMutants(source: string, max?: number): SourceMutant[];
+export declare function selectDecisionMutants(source: string, max?: number): SourceMutant[];
+export declare function renderChecklist(checklist: BehaviourChecklist): string;
+export declare function extractFencedSource(response: string): string;
+export declare function stableReceiptJson(
+  receipt: BackTranslationReceipt | BackTranslationReceiptV2 | BackTranslationReceiptV3
+): string;
+export declare function renderPlainSummary(receipt: BackTranslationReceipt): string;
+export interface IntentCatchOutcome {
+  id: string;
+  operator: string;
+  description: string;
+  change: string;
+  inDecision: boolean;
+  situations: number;
+  oracleDivergentSituations: number;
+  rawDivergentSituations: number;
+  attributableDivergentSituations: number;
+  caught: boolean;
+}
+export interface BackTranslationReceiptV2 {
+  schema: 'holoscript.back-translation-proof.v2';
+  behaviourId: string;
+  title: string;
+  generatedAt: string;
+  runSurface: { branch: string; commit: string; note: string };
+  checklist: BehaviourChecklist;
+  interfaceCard: string;
+  plainLanguageCheck: { tool: string; exitCode: number | null; findings: string };
+  rebuild: {
+    provider: string;
+    model: string;
+    seesOriginalSource: false;
+    inputs: string[];
+    checker: string;
+    rounds: number;
+    validated: boolean;
+    exchangesDir: string;
+    rebuiltSourcePath: string;
+    recordedNotLive: boolean;
+    note?: string;
+  };
+  twin: {
+    harness: string;
+    runner: string;
+    generator: string;
+    situations: number;
+    edgeSituations: number;
+    seed: number;
+    oracleFields: string[];
+    excludedFields: { field: string; why: string }[];
+  };
+  precheck: { originalRanAllSituations: boolean; situationsRun: number };
+  falseAlarms: {
+    situations: number;
+    divergentSituations: number;
+    byClass: Record<DivergenceClass, number>;
+    divergences: ClassifiedDivergence[];
+  };
+  catch: {
+    planted: number;
+    oracleVisible: number;
+    caught: number;
+    catchRate: number;
+    mutants: IntentCatchOutcome[];
+  };
+  verdict: string;
+}
+export declare function renderPlainSummaryV2(receipt: BackTranslationReceiptV2): string;
+export declare function renderCombinedSummary(
+  receipts: BackTranslationReceiptV2[],
+  bar: { minCatchRate: number; targetCatchRate: number },
+  verdict: string
+): string;
+export type OutcomeKind = 'accepted' | 'refused';
+export interface InterfaceOutcome {
+  name: string;
+  kind: OutcomeKind;
+}
+export interface InterfaceAction {
+  name: string;
+  params: string[];
+  outcomes: InterfaceOutcome[];
+  extraAnswerFields?: Array<{ outcome: string; fields: string[] }>;
+}
+export interface InterfaceObservation {
+  name: string;
+  params: string[];
+  answerFields: string[];
+}
+export interface InterfaceEvent {
+  name: string;
+  fields: string[];
+}
+export interface InterfaceCardSpec {
+  title: string;
+  publicState: string[];
+  actions: InterfaceAction[];
+  observations: InterfaceObservation[];
+  events: InterfaceEvent[];
+}
+export declare const OUTCOME_KIND_LEGEND: string;
+export declare function renderInterfaceCard(spec: InterfaceCardSpec): string;
+export declare function outcomeKindsFromSource(source: string): Map<string, Set<OutcomeKind>>;
+export declare function interfaceCardKindMismatches(spec: InterfaceCardSpec, source: string): string[];
+export declare function interfaceCardSpecFromSource(
+  source: string,
+  options: { publicState: readonly string[] }
+): InterfaceCardSpec;
+export declare function declaredOutcomesFromSource(
+  source: string
+): Map<string, InterfaceOutcome[] | undefined>;
+export interface RecordingMeasurement {
+  recording: string;
+  model: string;
+  rounds: number;
+  validated: boolean;
+  exchangesDir: string;
+  rebuiltSourcePath: string;
+  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  falseAlarms: {
+    situations: number;
+    divergentSituations: number;
+    byClass: Record<DivergenceClass, number>;
+    divergences: ClassifiedDivergence[];
+  };
+  catch: {
+    planted: number;
+    oracleVisible: number;
+    caught: number;
+    catchRate: number;
+    mutants: IntentCatchOutcome[];
+  };
+}
+export interface SpreadStat {
+  min: number;
+  max: number;
+  mean: number;
+}
+export interface FalseAlarmTolerance {
+  maxPer20Situations: number;
+  why: string;
+}
+export interface BackTranslationReceiptV3 {
+  schema: 'holoscript.back-translation-proof.v3';
+  behaviourId: string;
+  title: string;
+  role: 'measured' | 'before-after';
+  generatedAt: string;
+  runSurface: { branch: string; commit: string; note: string };
+  checklist: BehaviourChecklist;
+  interfaceCard: string;
+  plainLanguageCheck: { tool: string; exitCode: number | null; findings: string };
+  rebuild: {
+    provider: string;
+    seesOriginalSource: false;
+    inputs: string[];
+    checker: string;
+    maxRepairRounds: number;
+    recordedNotLive: boolean;
+  };
+  twin: {
+    harness: string;
+    runner: string;
+    generator: string;
+    situations: number;
+    edgeSituations: number;
+    seed: number;
+    oracleFields: string[];
+    excludedFields: { field: string; why: string }[];
+  };
+  precheck: { originalRanAllSituations: boolean; situationsRun: number };
+  skippedMutants: Array<{ id: string; description: string; why: string }>;
+  recordings: RecordingMeasurement[];
+  spread: { catchRate: SpreadStat; falseAlarmSituations: SpreadStat };
+  verdict: string;
+}
+export declare function spreadOf(values: number[]): SpreadStat;
+export declare function withinFalseAlarmTolerance(
+  m: Pick<RecordingMeasurement, 'falseAlarms'>,
+  tolerance: FalseAlarmTolerance
+): boolean;
+export declare function renderPlainSummaryV3(
+  receipt: BackTranslationReceiptV3,
+  tolerance: FalseAlarmTolerance
+): string;
+export declare function renderCombinedSummaryV3(
+  receipts: BackTranslationReceiptV3[],
+  bar: { minCatchRate: number; targetCatchRate: number },
+  tolerance: FalseAlarmTolerance,
+  verdict: string
+): string;
 `;
 
 // HoloLand sovereign trait handlers (runtime bridge)

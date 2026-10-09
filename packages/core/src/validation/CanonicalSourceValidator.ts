@@ -4,6 +4,7 @@ import {
   preprocessAgentBrainSource,
   type AgentBrainSourceHeader,
 } from '../parser/HoloScriptPlusParser';
+import { ruleConflictDiagnostics } from './RuleConflictChecker';
 
 export type CanonicalSourceSurface = 'holo' | 'hsplus' | 'hs';
 
@@ -156,6 +157,10 @@ function validateHolo(source: string): CanonicalSourceValidationResult {
     const result = new HoloCompositionParser().parse(source);
     const errors = normalizeDiagnosticList(result.errors, 'error');
     const warnings = normalizeDiagnosticList(result.warnings, 'warning');
+    if (result.success === true && errors.length === 0 && result.ast) {
+      // Two rules that apply at once and disagree: a question for the owner, not an error.
+      warnings.push(...ruleConflictDiagnostics({ source, ast: result.ast }));
+    }
     return {
       valid: result.success === true && errors.length === 0,
       surface: 'holo',
@@ -202,6 +207,9 @@ function validateHsplus(source: string): CanonicalSourceValidationResult {
       const locationMap = agentBrainLocationMap;
       errors = errors.map((diagnostic) => remapAgentBrainDiagnostic(diagnostic, locationMap));
       warnings = warnings.map((diagnostic) => remapAgentBrainDiagnostic(diagnostic, locationMap));
+    } else if (result.success === true && errors.length === 0) {
+      // Two rules that apply at once and disagree: a question for the owner, not an error.
+      warnings = [...warnings, ...ruleConflictDiagnostics({ source })];
     }
     return {
       valid: result.success === true && errors.length === 0,

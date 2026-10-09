@@ -1,0 +1,67 @@
+[
+  {
+    "id": "swing-off-by-one",
+    "description": "heat waits one degree too long: comes on at the setting minus the swing minus 1",
+    "edits": [
+      {
+        "find": "if (room <= state.setPoint - state.swing) {",
+        "replace": "if (room <= state.setPoint - state.swing - 1) {"
+      }
+    ]
+  },
+  {
+    "id": "wait-5-not-7",
+    "description": "compressor waits 5 minutes instead of 7",
+    "edits": [
+      {
+        "find": "state.minutesSinceCompressorStopped >= 7",
+        "replace": "state.minutesSinceCompressorStopped >= 5",
+        "all": true
+      }
+    ]
+  },
+  {
+    "id": "cutoff-20-not-25",
+    "description": "outdoor cut-off starts at 20 instead of 25",
+    "edits": [
+      {
+        "find": "cutoff: 25",
+        "replace": "cutoff: 20"
+      }
+    ]
+  },
+  {
+    "id": "backup-2-not-3",
+    "description": "backup strips come on 2 degrees below the setting instead of 3",
+    "edits": [
+      {
+        "find": "room <= state.setPoint - 3",
+        "replace": "room <= state.setPoint - 2"
+      }
+    ]
+  },
+  {
+    "id": "fan-on-auto-swapped",
+    "description": "fan auto and fan on swapped: auto always runs, on runs only with heat or cooling",
+    "edits": [
+      {
+        "find": "fan_running: state.fan == \"on\" ||",
+        "replace": "fan_running: state.fan == \"auto\" ||"
+      }
+    ]
+  },
+  {
+    "id": "heat-cool-swapped",
+    "description": "heat mode and cool mode swapped",
+    "edits": [
+      {
+        "find": "if (state.mode == \"heat\" || state.mode == \"auto\") {",
+        "replace": "if (state.mode == \"cool\" || state.mode == \"auto\") {"
+      },
+      {
+        "find": "if ((state.mode == \"cool\" || state.mode == \"auto\") && !state.heatCall) {",
+        "replace": "if ((state.mode == \"heat\" || state.mode == \"auto\") && !state.heatCall) {"
+      }
+    ]
+  }
+]

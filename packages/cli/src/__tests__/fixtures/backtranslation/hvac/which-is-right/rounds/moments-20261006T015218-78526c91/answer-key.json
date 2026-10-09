@@ -1,0 +1,104 @@
+{
+  "schema": "which-is-right.moment-key.v1",
+  "roundId": "moments-20261006T015218-78526c91",
+  "createdAt": "2026-10-06T01:52:18.856Z",
+  "salt": "843b3c168a35627d41d3702a8bf1ab77",
+  "seed": 2018667665,
+  "questions": [
+    {
+      "n": 1,
+      "class": "planted-fault",
+      "behaviourId": "furnace-air-conditioner",
+      "otherVersion": "planted fault swing-off-by-one",
+      "correctSide": "B",
+      "correctChoice": "heat",
+      "otherChoice": "off",
+      "shown": {
+        "A": "planted fault swing-off-by-one",
+        "B": "correct"
+      },
+      "why": "The correct version follows his rules. The other has one planted fault: heat waits one degree too long: comes on at the setting minus the swing minus 1.",
+      "situation": {
+        "seed": 388818,
+        "iteration": 12,
+        "step": 13
+      }
+    },
+    {
+      "n": 2,
+      "class": "planted-fault",
+      "behaviourId": "furnace-air-conditioner",
+      "otherVersion": "planted fault fan-on-auto-swapped",
+      "correctSide": "A",
+      "correctChoice": "off",
+      "otherChoice": "fan",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault fan-on-auto-swapped"
+      },
+      "why": "The correct version follows his rules. The other has one planted fault: fan auto and fan on swapped: auto always runs, on runs only with heat or cooling.",
+      "situation": {
+        "seed": 388818,
+        "iteration": 0,
+        "step": 1
+      }
+    },
+    {
+      "n": 3,
+      "class": "planted-fault",
+      "behaviourId": "heat-pump",
+      "otherVersion": "planted fault heat-cool-swapped",
+      "correctSide": "A",
+      "correctChoice": "off",
+      "otherChoice": "backup",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault heat-cool-swapped"
+      },
+      "why": "The correct version follows his rules. The other has one planted fault: heat mode and cool mode swapped.",
+      "situation": {
+        "seed": 388818,
+        "iteration": 9,
+        "step": 12
+      }
+    },
+    {
+      "n": 4,
+      "class": "planted-fault",
+      "behaviourId": "heat-pump",
+      "otherVersion": "planted fault wait-5-not-7",
+      "correctSide": "A",
+      "correctChoice": "off",
+      "otherChoice": "cool",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault wait-5-not-7"
+      },
+      "why": "The correct version follows his rules. The other has one planted fault: compressor waits 5 minutes instead of 7.",
+      "situation": {
+        "seed": 388818,
+        "iteration": 35,
+        "step": 9
+      }
+    },
+    {
+      "n": 5,
+      "class": "rebuild-disagreement",
+      "behaviourId": "heat-pump",
+      "otherVersion": "rebuild r3",
+      "correctSide": "B",
+      "correctChoice": "cool",
+      "otherChoice": "off",
+      "shown": {
+        "A": "rebuild r3",
+        "B": "correct"
+      },
+      "why": "The correct version follows his rules; a rebuild from his rules misread one. In auto mode the rebuild returns \"idle\" from the heat part as soon as the room is at or above the setting, so it never reaches cooling. His auto rule: heats or cools as needed.",
+      "situation": {
+        "seed": 388818,
+        "iteration": 2,
+        "step": 1
+      }
+    }
+  ]
+}
