@@ -229,7 +229,7 @@ describe('LlamaServerCompiler', () => {
     expect(gbnf).toBeDefined();
     // One `composition "Name" { ... }` program, the root the generator prompt teaches.
     expect(gbnf).toContain('root ::= ws composition ws');
-    expect(gbnf).toContain('trait ::= "@" ident');
+    expect(gbnf).toContain('trait ::= "@" trait-ident');
     expect(files['grammars/holoscript-subset.gbnf']).toBeUndefined();
 
     const bundle = JSON.parse(

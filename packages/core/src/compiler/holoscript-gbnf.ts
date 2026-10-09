@@ -26,9 +26,11 @@
  *     Every program the grammar can produce
  *     is built to parse with zero errors under parseHolo and the strict layer, and
  *     holoscript-gbnf.acceptance.test.ts checks that two ways: it samples 400 programs
- *     on every run (20,000 parsed with 0 errors on 2026-10-09), and it re-measures every
- *     excluded property name, state-machine key, transition key and trait name against
- *     the parser, failing when the grammar and the parser disagree.
+ *     on every run (20,000 parsed with 0 errors on 2026-10-09), and it re-measures the
+ *     excluded property names, state-machine keys, transition keys and trait names against
+ *     the parser, over every lexer keyword and every identifier quoted anywhere in the
+ *     parser's source, failing when the grammar and the parser disagree. A name the parser
+ *     builds at run time instead of quoting would escape that measurement.
  *   - `definitions`: the first subset, root-less top-level definitions (keyword
  *     objects, material blocks, primitives). Kept byte-identical for the
  *     `holoscript-subset` preset so receipts that name it can be re-derived. Do NOT
@@ -338,9 +340,15 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     'state-transitions ::= "transitions" hs ":" hs "[" ws (transition (transition-sep transition)* (hs ",")?)? ws "]"',
     'transition-sep ::= wsp | hs "," ws',
     `transition ::= "{" ws ${items('transition-pair')} ws "}"`,
-    // `from` takes only a string (the parser lower-cases it; `from: 1` throws), so the
-    // names exclude it with the other group keywords and it is written here.
-    'transition-pair ::= group-name hs ":" hs value | "from" hs ":" hs string',
+    // `from` takes only a string (the parser lower-cases it; `from: 1` throws), and
+    // `condition` / `when` are read as expressions, which refuse a quoted key anywhere
+    // inside (`condition: { "a": 1 }`). Their names are left out and written here.
+    'transition-pair ::= transition-name hs ":" hs value | "from" hs ":" hs string | condition-key hs ":" hs cond-value',
+    'condition-key ::= "condition" | "when"',
+    'cond-value ::= number | string | boolean | null | cond-array | cond-object',
+    'cond-array ::= "[" ws (cond-value (ws "," ws cond-value)*)? ws "]"',
+    'cond-object ::= "{" ws (cond-pair (ws "," ws cond-pair)*)? ws "}"',
+    'cond-pair ::= name hs ":" hs cond-value',
     'animation ::= "animation" sp string hs props',
     'state-block ::= "state" hs props',
     'behavior ::= "behavior" sp string hs props',
@@ -362,8 +370,11 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     '',
     '# A trait in a body may carry a settings block (`@grabbable { hand: "both" }`);',
     '# before an object body (`object "X" @grabbable {`) the brace is the body.',
-    'trait ::= "@" ident (trait-args | hs props)?',
-    'header-trait ::= "@" ident trait-args?',
+    '# On an object, `@platform` needs at least one name (`@platform(quest)`); bare, empty',
+    '# or with a settings block it is an error, so it is written on its own.',
+    'trait ::= "@" trait-ident (trait-args | hs props)? | platform-trait',
+    'header-trait ::= "@" trait-ident trait-args? | platform-trait',
+    'platform-trait ::= "@platform(" ws arg (hs "," ws arg)* ws ")"',
     'trait-args ::= "(" ws (arg (hs "," ws arg)*)? ws ")"',
     'arg ::= (group-name hs ":" hs)? value',
     '',
@@ -380,7 +391,6 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     'string ::= "\\"" str-char* "\\""',
     'str-char ::= [^"\\\\\\n\\r] | escape',
     'escape ::= "\\\\" ( "\\"" | "\\\\" | "\'" | "n" | "t" | "r" )',
-    'ident ::= [a-zA-Z_] ident-tail',
     'ident-tail ::= [a-zA-Z0-9_]*',
     '',
     '# Property names: identifiers minus the keywords the parser refuses there.',
@@ -394,6 +404,17 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     '',
     '# Template trait names: any identifier but `version` (written as `@version(N)`).',
     ...identExcluding('trait-name', ['version']),
+    '',
+    '# Other trait names: any identifier but `platform` (written as `@platform(...)`).',
+    ...identExcluding('trait-ident', ['platform']),
+    '',
+    '# Transition keys: group names minus the ones written above (`from` is a group name).',
+    ...identExcluding('transition-name', [
+      ...RESERVED_PROPERTY_NAMES,
+      ...RESERVED_GROUP_NAMES,
+      'condition',
+      'when',
+    ]),
     '',
     'sp ::= [ \\t]+',
     'hs ::= [ \\t]*',

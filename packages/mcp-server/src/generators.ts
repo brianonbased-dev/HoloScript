@@ -314,6 +314,8 @@ interface AIGenerationMetadata {
   source?: 'ai' | 'heuristic';
   provider?: LLMProviderName;
   attemptedProviders?: LLMProviderName[];
+  /** A local server refused the whole-program grammar, so the answer was not held to it. */
+  grammarDropped?: boolean;
 }
 
 // F.112: generation is SOVEREIGN-default. Sovereign serving (Brittney Cloud =
@@ -592,6 +594,16 @@ function grammarFor(
   return (holoProgramGrammar ??= generateHoloScriptGbnf());
 }
 
+/**
+ * True when a server refused the grammar itself: HoloServe takes a grammar NAME and answers
+ * 400 to a GBNF body. A 5xx, a timeout or a network error is not that, and the adapter has
+ * already retried those, so they never trigger a second call without the grammar.
+ */
+function refusedTheGrammar(err: unknown): boolean {
+  const status = (err as { statusCode?: unknown } | null)?.statusCode;
+  return status === 400 || status === 422;
+}
+
 async function tryGenerateWithAI(
   prompt: string,
   targetFormat: 'hs' | 'hsplus' | 'holo'
@@ -600,6 +612,7 @@ async function tryGenerateWithAI(
   provider: LLMProviderName;
   attemptedProviders: LLMProviderName[];
   detectedTraits: string[];
+  grammarDropped?: boolean;
 } | null> {
   let manager;
 
@@ -619,6 +632,7 @@ async function tryGenerateWithAI(
     provider: LLMProviderName;
     detectedTraits: string[];
   } | null = null;
+  let grammarDropped = false;
 
   for (const providerName of getAIProviderOrder(manager.getRegisteredProviders())) {
     const provider = manager.getProvider(providerName);
@@ -644,14 +658,18 @@ async function tryGenerateWithAI(
         });
       } catch (err) {
         // Not every local-llm endpoint takes a GBNF grammar (HoloServe takes a grammar name
-        // and answers 400), so a call that failed with one is sent once more without it.
-        if (grammar) {
+        // and answers 400), so a call the server refused for its grammar is sent once more
+        // without it; the result then says so (grammarDropped).
+        if (grammar && refusedTheGrammar(err)) {
           if (debugAI) {
+            // The server's message may echo the request, grammar included: keep it short.
+            const message = err instanceof Error ? err.message : String(err);
             console.debug(
-              `[generators] ${providerName} failed with the grammar (${err instanceof Error ? err.message : String(err)}); retrying without it`
+              `[generators] ${providerName} refused the grammar (${message.slice(0, 160)}); retrying without it`
             );
           }
           grammar = undefined;
+          grammarDropped = true;
           attempt--;
           continue;
         }
@@ -672,6 +690,7 @@ async function tryGenerateWithAI(
           provider: result.provider,
           attemptedProviders: [...attemptedProviders],
           detectedTraits: result.detectedTraits,
+          ...(grammarDropped ? { grammarDropped } : {}),
         };
       }
 
@@ -702,6 +721,7 @@ async function tryGenerateWithAI(
       provider: lastCandidate.provider,
       attemptedProviders: [...attemptedProviders],
       detectedTraits: lastCandidate.detectedTraits,
+      ...(grammarDropped ? { grammarDropped } : {}),
     };
   }
 
@@ -726,6 +746,7 @@ export async function generateObjectForMCP(
       source: 'ai',
       provider: aiResult.provider,
       attemptedProviders: aiResult.attemptedProviders,
+      ...(aiResult.grammarDropped ? { grammarDropped: true } : {}),
     };
   }
 
@@ -734,6 +755,7 @@ export async function generateObjectForMCP(
     source: 'heuristic',
     provider: aiResult?.provider,
     attemptedProviders: aiResult?.attemptedProviders,
+    ...(aiResult?.grammarDropped ? { grammarDropped: true } : {}),
   };
 }
 
@@ -761,6 +783,7 @@ export async function generateSceneForMCP(
       source: 'ai',
       provider: aiResult.provider,
       attemptedProviders: aiResult.attemptedProviders,
+      ...(aiResult.grammarDropped ? { grammarDropped: true } : {}),
     };
   }
 
@@ -769,6 +792,7 @@ export async function generateSceneForMCP(
     source: 'heuristic',
     provider: aiResult?.provider,
     attemptedProviders: aiResult?.attemptedProviders,
+    ...(aiResult?.grammarDropped ? { grammarDropped: true } : {}),
   };
 
   if (debugAI && aiResult) {
