@@ -21,12 +21,10 @@ export const SIMPLE_MODIFIERS_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'visual_effect',
   },
   collidable: {
-    material: { roughness: 0.5 },
     tags: ['solid', 'physics'],
     layer: 'physical',
   },
   clickable: {
-    material: { roughness: 0.4 },
     emissive: { color: '#4488FF', intensity: 0.1 },
     tags: ['interactive', 'ui'],
     layer: 'physical',
@@ -38,7 +36,6 @@ export const SIMPLE_MODIFIERS_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'lighting',
   },
   interactive: {
-    material: { roughness: 0.4 },
     emissive: { color: '#44AAFF', intensity: 0.1 },
     tags: ['responsive', 'ui'],
     layer: 'physical',

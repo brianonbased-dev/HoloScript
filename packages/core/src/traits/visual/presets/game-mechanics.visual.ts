@@ -18,7 +18,6 @@ export const GAME_MECHANICS_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'visual_effect',
   },
   destructible: {
-    material: { roughness: 0.5 },
     tags: ['breakable', 'interactive'],
     layer: 'physical',
   },
@@ -29,7 +28,6 @@ export const GAME_MECHANICS_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'visual_effect',
   },
   damageable: {
-    material: { roughness: 0.5 },
     tags: ['combat', 'interactive'],
     layer: 'physical',
   },

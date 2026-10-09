@@ -47,12 +47,10 @@ export const HUMANOID_AVATAR_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'mood',
   },
   locomotion: {
-    material: { roughness: 0.5 },
     tags: ['movement', 'animated'],
     layer: 'physical',
   },
   poseable: {
-    material: { roughness: 0.5 },
     tags: ['animated', 'interactive'],
     layer: 'physical',
   },

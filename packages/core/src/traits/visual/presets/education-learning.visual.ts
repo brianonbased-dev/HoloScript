@@ -40,7 +40,6 @@ export const EDUCATION_LEARNING_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'base_material',
   },
   dissectable: {
-    material: { roughness: 0.6 },
     tags: ['interactive', 'anatomical'],
     layer: 'physical',
   },

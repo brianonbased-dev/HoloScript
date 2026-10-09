@@ -16,12 +16,10 @@ export const LOCOMOTION_MOVEMENT_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'physical',
   },
   mountable: {
-    material: { roughness: 0.6 },
     tags: ['rideable', 'interactive'],
     layer: 'physical',
   },
   climbable: {
-    material: { roughness: 0.8 },
     tags: ['grip', 'vertical'],
     layer: 'physical',
   },
@@ -31,7 +29,6 @@ export const LOCOMOTION_MOVEMENT_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'physical',
   },
   flyable: {
-    material: { roughness: 0.3 },
     emissive: { color: '#88CCFF', intensity: 0.1 },
     tags: ['aerial', 'dynamic'],
     layer: 'physical',
@@ -43,27 +40,22 @@ export const LOCOMOTION_MOVEMENT_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'visual_effect',
   },
   walkable: {
-    material: { roughness: 0.6 },
     tags: ['surface', 'stable'],
     layer: 'physical',
   },
   jumpable: {
-    material: { roughness: 0.5 },
     tags: ['dynamic', 'bouncy'],
     layer: 'physical',
   },
   sittable: {
-    material: { roughness: 0.5 },
     tags: ['furniture', 'rest'],
     layer: 'physical',
   },
   crawlable: {
-    material: { roughness: 0.7 },
     tags: ['low', 'tight'],
     layer: 'physical',
   },
   slidable: {
-    material: { roughness: 0.1 },
     tags: ['smooth', 'fast'],
     layer: 'physical',
   },

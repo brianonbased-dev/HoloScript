@@ -91,16 +91,92 @@ describe('SceneIRCompiler material precedence', () => {
     expect(mat(rock).color === undefined || mat(rock).color === '#8a8378').toBe(true);
   });
 
-  it('control: a trait still sets the look where the author wrote nothing', () => {
+  it('control: a look trait still sets the look where the author wrote nothing', () => {
     const scene = compile(`composition "S" {
   object "Plain" {
-    @grabbable
+    @weathered
     geometry: "cube"
   }
 }`);
-    const m = mat(find(scene, 'Plain'));
-    expect(m.roughness).toBeTypeOf('number');
+    expect(mat(find(scene, 'Plain')).roughness).toBe(0.8);
+  });
+
+  it('an interaction trait says how a thing behaves, not how it looks: no roughness', () => {
+    // The visual registry used to give @grabbable 0.5, @clickable 0.4, @collidable 0.5 and
+    // 50 other physical-layer traits a lone roughness; once traits outrank presets, that
+    // placeholder would turn stone + @collidable back to 0.5. The emissive hints stay.
+    const scene = compile(`composition "S" {
+  object "Rock" {
+    @collidable
+    @grabbable
+    geometry: "sphere"
+    material: "stone"
+  }
+}`);
+    const m = mat(find(scene, 'Rock'));
+    expect(m.roughness).toBe(0.85);
     expect(m.emissive).toBeDefined();
+  });
+
+  it('a look trait replaces a named preset (as in glTF): stone + @mossy is mossy', () => {
+    const scene = compile(`composition "S" {
+  object "Rock" {
+    @mossy
+    geometry: "sphere"
+    material: "stone"
+  }
+}`);
+    expect(mat(find(scene, 'Rock'))).toMatchObject({ color: '#4A7C3F', roughness: 0.9 });
+  });
+
+  it('what the author wrote beats a look trait', () => {
+    const scene = compile(`composition "S" {
+  object "Rock" {
+    @weathered
+    geometry: "sphere"
+    material: { preset: "stone", roughness: 0.3 }
+  }
+}`);
+    expect(mat(find(scene, 'Rock')).roughness).toBe(0.3);
+  });
+
+  it("an explicit color beats a look trait's color; the rest of the look stays", () => {
+    const scene = compile(`composition "S" {
+  object "Rock" {
+    @mossy
+    geometry: "sphere"
+    color: "#22aa22"
+  }
+}`);
+    const rock = find(scene, 'Rock');
+    expect(rock.props.color).toBe('#22aa22');
+    expect(mat(rock).color).toBeUndefined();
+    expect(mat(rock).roughness).toBe(0.9);
+  });
+
+  it('an explicit color beats the color of a preset inside an inline material', () => {
+    const scene = compile(`composition "S" {
+  object "Rock" {
+    geometry: "sphere"
+    material: { preset: "stone", roughness: 0.3 }
+    color: "#123456"
+  }
+}`);
+    expect(mat(find(scene, 'Rock')).color).toBeUndefined();
+  });
+
+  it('`@material(preset: ...)` reads like `material:`: an explicit color beats its preset color', () => {
+    const scene = compile(`composition "S" {
+  object "Coin" {
+    @material(preset: "gold")
+    geometry: "cylinder"
+    color: "#ff0000"
+  }
+}`);
+    const coin = find(scene, 'Coin');
+    expect(coin.props.color).toBe('#ff0000');
+    expect(mat(coin).color).toBeUndefined();
+    expect(mat(coin).metalness).toBe(1);
   });
 
   it('an explicit color beats the color a named preset brings in', () => {

@@ -3365,6 +3365,11 @@ export class SceneIRCompiler {
     let geometryType = 'cube';
     // The color a named material preset brought in, so an explicit `color` can beat it.
     let presetColor: unknown;
+    // Material keys the author wrote (inline material, `@material(...)`, top-level
+    // roughness/metallic/opacity/emissive). The look order is: a named preset, then the
+    // traits' look, then what the author wrote; so a trait look replaces a preset's value
+    // but never an authored one. GLTFPipeline and BrowserRuntime apply the same order.
+    const authoredMaterialKeys = new Set<string>();
 
     // Merge template traits onto the object if it uses a template
     if (obj.template && templateMap) {
@@ -3493,30 +3498,38 @@ export class SceneIRCompiler {
                 ...inline,
                 ...currentMaterialProps,
               };
+              for (const k of Object.keys(inline)) authoredMaterialKeys.add(k);
               if (inline.color === undefined) presetColor = MATERIAL_PRESETS[valObj.preset].color;
             } else {
-              props.materialProps = { ...currentMaterialProps, ...normalizeInlineMaterial(valObj) };
+              const inline = normalizeInlineMaterial(valObj);
+              props.materialProps = { ...currentMaterialProps, ...inline };
+              for (const k of Object.keys(inline)) authoredMaterialKeys.add(k);
             }
           }
         } else if (key === 'roughness' || key === 'metalness' || key === 'metallic') {
           const mProps = (props.materialProps || {}) as Record<string, unknown>;
-          mProps[key === 'metallic' ? 'metalness' : key] = value;
+          const name = key === 'metallic' ? 'metalness' : key;
+          mProps[name] = value;
+          authoredMaterialKeys.add(name);
           props.materialProps = mProps;
         } else if (key === 'opacity') {
           const mProps = (props.materialProps || {}) as Record<string, unknown>;
           mProps.opacity = value;
           mProps.transparent = (value as number) < 1;
+          authoredMaterialKeys.add('opacity').add('transparent');
           props.materialProps = mProps;
         } else if (key === 'emissive') {
           props.materialProps = {
             ...((props.materialProps || {}) as Record<string, unknown>),
             emissive: value,
           };
+          authoredMaterialKeys.add('emissive');
         } else if (key === 'emissiveIntensity' || key === 'emissive_intensity') {
           props.materialProps = {
             ...((props.materialProps || {}) as Record<string, unknown>),
             emissiveIntensity: value,
           };
+          authoredMaterialKeys.add('emissiveIntensity');
         } else if (key === 'size') {
           if (Array.isArray(value)) {
             props.args = value;
@@ -3602,19 +3615,28 @@ export class SceneIRCompiler {
           if (trait.config?.mapSize)
             props['shadow-mapSize'] = [trait.config.mapSize, trait.config.mapSize];
         } else if (name === 'material') {
+          // `@material(...)` reads like `material: { ... }`: glTF-style names are mapped and
+          // count as authored, and its preset's color yields to an explicit `color`.
           const presetName = trait.config?.preset;
           if (presetName && typeof presetName === 'string' && MATERIAL_PRESETS[presetName]) {
             const { preset: _, ...rest } = trait.config;
+            const inline = normalizeInlineMaterial(rest);
             props.materialProps = {
               ...MATERIAL_PRESETS[presetName],
-              ...rest,
+              ...inline,
               ...(props.materialProps as Record<string, unknown>),
             };
+            for (const k of Object.keys(inline)) authoredMaterialKeys.add(k);
+            if (inline.color === undefined && presetColor === undefined) {
+              presetColor = MATERIAL_PRESETS[presetName].color;
+            }
           } else {
+            const inline = normalizeInlineMaterial((trait.config ?? {}) as Record<string, unknown>);
             props.materialProps = {
               ...(props.materialProps as Record<string, unknown>),
-              ...trait.config,
+              ...inline,
             };
+            for (const k of Object.keys(inline)) authoredMaterialKeys.add(k);
           }
         } else if (name === 'networked') {
           props.networked = trait.config || true;
@@ -3881,15 +3903,17 @@ export class SceneIRCompiler {
       const compositor = new TraitCompositor();
       const composedMaterial = compositor.compose(traitNames);
       if (Object.keys(composedMaterial).length > 0) {
-        // Traits suggest a look; what the author wrote wins. With the trait look
-        // spread last, @collidable/@grabbable/@clickable overwrote an authored
-        // roughness (0.85 became 0.5) on every quickstart object.
+        // Preset, then the traits' look, then what the author wrote: a trait look
+        // replaces a named preset's value (stone + `@mossy` is mossy, as in glTF) but
+        // never an authored one (with the look spread last, @collidable used to
+        // overwrite every quickstart object's authored roughness).
         const fromTraits: Record<string, unknown> = { ...composedMaterial };
         if (props.color != null) delete fromTraits.color;
-        props.materialProps = {
-          ...fromTraits,
-          ...(props.materialProps as Record<string, unknown>),
-        };
+        const merged = { ...((props.materialProps || {}) as Record<string, unknown>) };
+        for (const [k, v] of Object.entries(fromTraits)) {
+          if (!authoredMaterialKeys.has(k)) merged[k] = v;
+        }
+        props.materialProps = merged;
       }
     }
 

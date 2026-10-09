@@ -6,23 +6,19 @@ import type { TraitVisualConfig } from '../types';
  */
 export const PARSER_CORE_UI_VISUALS: Record<string, TraitVisualConfig> = {
   physics: {
-    material: { roughness: 0.5 },
     tags: ['simulated', 'dynamic'],
     layer: 'physical',
   },
   draggable: {
-    material: { roughness: 0.5 },
     emissive: { color: '#44AAFF', intensity: 0.05 },
     tags: ['interactive', 'movable'],
     layer: 'physical',
   },
   static: {
-    material: { roughness: 0.6 },
     tags: ['fixed', 'immovable'],
     layer: 'physical',
   },
   kinematic: {
-    material: { roughness: 0.5 },
     tags: ['animated', 'scripted'],
     layer: 'physical',
   },

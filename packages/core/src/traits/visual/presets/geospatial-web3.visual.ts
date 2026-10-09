@@ -61,7 +61,6 @@ export const GEOSPATIAL_WEB3_VISUALS: Record<string, TraitVisualConfig> = {
     layer: 'visual_effect',
   },
   portable: {
-    material: { roughness: 0.4 },
     tags: ['transferable', 'lightweight'],
     layer: 'physical',
   },
