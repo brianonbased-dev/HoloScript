@@ -27,8 +27,11 @@
  *      any test, code from tests in its own package or outside every package.
  *      Tests that read Markdown or code files by pattern (`*.md`,
  *      `.endsWith('.ts')`) count as naming every such file. A helper (test
- *      support code) that names a file keeps its package suite, and so does a
- *      setup file a runner config names. Prose no test names selects nothing;
+ *      support code) that names a file passes the change on to its users: with
+ *      the graph, the tests that reach the helper are selected
+ *      (`tests.viaHelpers`); without it, or when the graph cannot list them,
+ *      the helper's package suite is kept. A setup file a runner config names
+ *      keeps that config's suite. Prose no test names selects nothing;
  *      that is the only inert change. Every git call pins its output shape
  *      (--no-color, -z, fixed diff prefixes), and a search whose output cannot
  *      be read keeps every test.
@@ -142,6 +145,13 @@ export interface ChangeImpactReport {
      * not searched for: data names are not matched across packages.
      */
     untracedDataFiles: string[];
+    /**
+     * Helpers (test support code the runner does not run alone) that name a
+     * changed or reached file by path, or read such files by pattern. With the
+     * graph, the tests that reach a helper are selected (`tests`); a helper
+     * whose users the graph cannot list keeps its package suite instead.
+     */
+    viaHelpers: Array<{ helper: string; reason: string; tests: string[] }>;
   };
   callers: {
     available: boolean;
@@ -375,6 +385,37 @@ function kindOf(token: string): ChangedSymbol['kind'] {
   return 'const';
 }
 
+/** C escapes git uses in a quoted path, besides octal bytes and the literal \" and \\. */
+const GIT_PATH_ESCAPES: Record<string, number> = { a: 7, b: 8, f: 12, n: 10, r: 13, t: 9, v: 11 };
+
+/**
+ * Undo git's C-style path quoting. A path with non-ASCII bytes (core.quotePath,
+ * on by default) or a quote, backslash or control character arrives quoted:
+ * `"b/src/caf\303\251.ts"` is `b/src/café.ts`. Anything unquoted is returned as is.
+ */
+export function unquoteGitPath(p: string): string {
+  if (p.length < 2 || !p.startsWith('"') || !p.endsWith('"')) return p;
+  // Work on UTF-8 bytes: a backslash (0x5c) is never part of a multi-byte character.
+  const src = Buffer.from(p.slice(1, -1), 'utf8');
+  const out: number[] = [];
+  for (let i = 0; i < src.length; i++) {
+    if (src[i] !== 0x5c || i + 1 >= src.length) {
+      out.push(src[i]);
+      continue;
+    }
+    const octal = src.subarray(i + 1, i + 4).toString('latin1');
+    if (/^[0-7]{3}$/.test(octal)) {
+      out.push(parseInt(octal, 8));
+      i += 3;
+      continue;
+    }
+    const next = src[i + 1];
+    out.push(GIT_PATH_ESCAPES[String.fromCharCode(next)] ?? next);
+    i += 1;
+  }
+  return Buffer.from(out).toString('utf8');
+}
+
 /**
  * Exported symbols whose declaration line changed in a unified diff (`-U0` is
  * enough). A declaration that appears on a removed line is "signature" when a
@@ -405,12 +446,12 @@ export function extractChangedExportedSymbols(diff: string): ChangedSymbol[] {
       continue;
     }
     if (!inHunk && raw.startsWith('+++ ')) {
-      const target = raw.slice(4).trim();
+      const target = unquoteGitPath(raw.slice(4).trim());
       if (target !== '/dev/null') file = target.replace(/^b\//, '');
       continue;
     }
     if (!inHunk && raw.startsWith('--- ')) {
-      const source = raw.slice(4).trim();
+      const source = unquoteGitPath(raw.slice(4).trim());
       if (source !== '/dev/null') file = source.replace(/^a\//, '');
       continue;
     }
@@ -583,6 +624,13 @@ export function renderReviewerBrief(report: Omit<ChangeImpactReport, 'brief'>): 
   }
   if (named.length > 5) {
     lines.push(`  Named by path: ${named.length - 5} more file(s), listed in tests.namedBy.`);
+  }
+  for (const via of (report.tests.viaHelpers ?? []).slice(0, 5)) {
+    const shown = via.tests.slice(0, 3).join(', ');
+    const more = via.tests.length > 3 ? ` (+${via.tests.length - 3} more)` : '';
+    lines.push(
+      `  Via helper: ${via.helper} ${via.reason}; ${via.tests.length} test file(s) use it: ${shown}${more}`
+    );
   }
   const data = report.tests.untracedDataFiles ?? [];
   if (data.length > 0) {
@@ -821,38 +869,55 @@ export async function analyzeChangeImpact(
     const pb = pkgOf(b);
     return pa === null || pb === null || pa === pb;
   };
-  /** Files that name `f` by path: runnable tests, and test support code (a helper) that tests run through. */
-  const readersNaming = (f: string): { tests: string[]; support: string[] } => {
+  /**
+   * Files that name `f` by path: runnable tests, and helpers (test support code
+   * the runner does not run alone), each with how it names `f`.
+   */
+  const readersNaming = (
+    f: string
+  ): { tests: string[]; helpers: Array<{ helper: string; why: string }> } => {
     const posix = toPosix(f);
     const base = path.posix.basename(posix).toLowerCase();
-    const readers = INERT_FILE_RE.test(posix)
-      ? [...(named.prose.get(base) ?? []), ...named.prosePattern]
-      : CODE_FILE_RE.test(posix)
-        ? [...(named.code.get(base.replace(CODE_EXT_RE, '')) ?? []), ...named.codePattern].filter(
-            (r) => sharesScope(r, posix)
-          )
-        : [];
-    const live = readers.filter((r) => r !== posix && !isDeleted(r));
+    const prose = INERT_FILE_RE.test(posix);
+    if (!prose && !CODE_FILE_RE.test(posix)) return { tests: [], helpers: [] };
+    const byName =
+      (prose ? named.prose.get(base) : named.code.get(base.replace(CODE_EXT_RE, ''))) ?? [];
+    const byPattern = prose ? named.prosePattern : named.codePattern;
+    const fits = (r: string) => r !== posix && !isDeleted(r) && (prose || sharesScope(r, posix));
+    const nameReaders = byName.filter(fits);
+    const patternReaders = byPattern.filter((r) => fits(r) && !nameReaders.includes(r));
+    const isHelper = (r: string) =>
+      !RUNNABLE_TEST_RE.test(r) && (isTestFile(r) || isTestSupport(r));
     return {
-      tests: live.filter((r) => RUNNABLE_TEST_RE.test(r)),
-      support: live.filter((r) => !RUNNABLE_TEST_RE.test(r) && (isTestFile(r) || isTestSupport(r))),
+      tests: [...nameReaders, ...patternReaders].filter((r) => RUNNABLE_TEST_RE.test(r)),
+      helpers: [
+        ...nameReaders.filter(isHelper).map((helper) => ({ helper, why: `names ${f} by path` })),
+        ...patternReaders.filter(isHelper).map((helper) => ({
+          helper,
+          why: `reads ${prose ? 'Markdown' : 'code'} files by pattern`,
+        })),
+      ],
     };
   };
   const testsNaming = (f: string) => readersNaming(f).tests;
-  /**
-   * A helper that names a file by path is not a test the runner runs: the
-   * tests that call it cannot all be listed, so its package suite is kept.
-   */
-  const keepSuitesOfHelpersNaming = (files: Iterable<string>) => {
+  /** Helpers that name any of `files`, each with how (a name wins over a pattern). */
+  const helpersNaming = (files: Iterable<string>): Map<string, string> => {
+    const out = new Map<string, string>();
     for (const f of files) {
-      for (const helper of readersNaming(f).support) {
-        keepSuite(
-          helper,
-          `${helper} names ${f} by path and is test support code, so the tests that use it cannot all be listed`
-        );
+      for (const { helper, why } of readersNaming(f).helpers) {
+        const had = out.get(helper);
+        if (had === undefined || (had.startsWith('reads') && why.startsWith('names'))) {
+          out.set(helper, why);
+        }
       }
     }
+    return out;
   };
+  const keepHelperSuite = (helper: string, why: string, because: string) =>
+    keepSuite(
+      helper,
+      `${helper} ${why} and is test support code; ${because}, so its package suite is kept`
+    );
   /**
    * A runner config that names test support code, or a setup/teardown file,
    * loads it for every test in its scope. (Other code a config names, such as
@@ -911,7 +976,9 @@ export async function analyzeChangeImpact(
   const fullSuiteEntries = () => Array.from(fullSuite, ([pkg, reason]) => ({ pkg, reason }));
 
   const fallback = (reason: string, cacheNote?: string): ChangeImpactReport => {
-    keepSuitesOfHelpersNaming(changedFiles);
+    for (const [helper, why] of helpersNaming(changedFiles)) {
+      keepHelperSuite(helper, why, 'without the graph the tests that use it cannot be listed');
+    }
     const selected = new Set(testsIn([...touchedPackages, ...fullSuite.keys()]));
     addTestsNaming(changedFiles, selected);
     const fullSet = Array.from(selected).sort();
@@ -933,6 +1000,7 @@ export async function analyzeChangeImpact(
         fullSuitePackages: fullSuiteEntries(),
         namedBy: namedByEntries(),
         untracedDataFiles,
+        viaHelpers: [],
       },
       callers: {
         available: false,
@@ -974,20 +1042,6 @@ export async function analyzeChangeImpact(
     const why = typeof receipt.reason === 'string' ? receipt.reason : String(impact.error);
     return fallback(`no authoritative codebase graph (${why})`);
   }
-  const traversal = asRecord(impact.traversal);
-  const traversalReasons = Array.isArray(traversal.truncationReasons)
-    ? (traversal.truncationReasons as string[])
-    : [];
-  // An unindexed changed file is handled per package below; any other cut
-  // (deadline, depth, size) means the reach is a lower bound — unsafe to narrow.
-  const unsafeCuts = traversalReasons.filter((r) => r !== 'changed_file_not_indexed');
-  if (unsafeCuts.length > 0 || impact.communityGroupingComplete === false) {
-    return fallback(
-      `graph traversal was cut short (${unsafeCuts.join(', ') || 'grouping deadline'})`,
-      cacheNote
-    );
-  }
-
   const rootKey = key(repoRoot);
   // Graph paths may be absolute or relative to the graph root; report every
   // path relative to the git top level.
@@ -1000,21 +1054,40 @@ export async function analyzeChangeImpact(
     const k = key(p);
     return k.startsWith(`${rootKey}/`) ? posix.slice(rootKey.length + 1) : posix;
   };
-  const affectedRel = new Set<string>();
-  for (const files of Object.values(asRecord(impact.impactByCommunity))) {
-    if (Array.isArray(files)) for (const f of files) affectedRel.add(toRel(String(f)));
-  }
+  /**
+   * One holo_impact_analysis answer: the reach (repo paths), the asked files
+   * the graph holds no node for (keys), and `cut` when the traversal stopped
+   * early. An unindexed input is not a cut (callers handle it per file); any
+   * other cut (deadline, depth, size) means the reach is a lower bound.
+   */
+  const readImpact = (answer: Record<string, unknown>) => {
+    const reasons = asRecord(answer.traversal).truncationReasons;
+    const unsafe = (Array.isArray(reasons) ? (reasons as string[]) : []).filter(
+      (r) => r !== 'changed_file_not_indexed'
+    );
+    const cut =
+      unsafe.length > 0 || answer.communityGroupingComplete === false
+        ? unsafe.join(', ') || 'grouping deadline'
+        : null;
+    const files = new Set<string>();
+    for (const list of Object.values(asRecord(answer.impactByCommunity))) {
+      if (Array.isArray(list)) for (const f of list) files.add(toRel(String(f)));
+    }
+    const unplaced = Array.isArray(answer.unresolvedChangedFiles)
+      ? answer.unresolvedChangedFiles
+      : [];
+    return { files, unresolved: new Set(unplaced.map((f) => key(toRel(String(f))))), cut };
+  };
+  const reach = readImpact(impact);
+  if (reach.cut) return fallback(`graph traversal was cut short (${reach.cut})`, cacheNote);
+  const affectedRel = reach.files;
   const affectedKeys = new Set(Array.from(affectedRel, (f) => key(f)));
 
   // Changed code files the graph has no node for: their reach is unknown, so
   // their package keeps its whole suite. A deleted file is the common case — a
   // graph absorbed after the delete has no node for it, and the files that
   // still import it are not linked to anything.
-  const unresolved = new Set(
-    (Array.isArray(impact.unresolvedChangedFiles) ? impact.unresolvedChangedFiles : []).map((f) =>
-      key(toRel(String(f)))
-    )
-  );
+  const unresolved = reach.unresolved;
   for (const f of changedFiles) {
     if (isInertFile(f) || !CODE_FILE_RE.test(f) || PACKAGE_WIDE_FILE_RE.test(f)) continue;
     // A *.test / *.spec file runs on its own when present; nothing imports one.
@@ -1030,7 +1103,44 @@ export async function analyzeChangeImpact(
   // A setup file the change reaches (it imports a changed file) runs before
   // every test its runner config covers.
   for (const f of affectedRel) keepIfRunnerLoads(f);
-  keepSuitesOfHelpersNaming([...changedFiles, ...affectedRel]);
+
+  // A helper that names a changed or reached file (or reads such files by
+  // pattern) passes the change on to the tests that use it: select the tests
+  // that reach the helper. Keep its package suite only when the graph cannot
+  // list them. A helper already in the reach needs nothing more: so are its users.
+  const viaHelpers: Array<{ helper: string; reason: string; tests: string[] }> = [];
+  const helperTests = new Set<string>();
+  for (const [helper, why] of helpersNaming([...changedFiles, ...affectedRel])) {
+    if (affectedKeys.has(key(helper))) continue;
+    const answer = asRecord(
+      await deps.handleCodebaseTool('holo_impact_analysis', {
+        changedFiles: [toPosix(path.join(repoRoot, helper))],
+        maxAffectedFiles: 20_000,
+      })
+    );
+    const users = answer.error ? null : readImpact(answer);
+    if (!users || users.cut) {
+      const detail = users ? `traversal cut short: ${users.cut}` : String(answer.error);
+      keepHelperSuite(helper, why, `the graph could not list the tests that use it (${detail})`);
+      continue;
+    }
+    if (users.unresolved.size > 0) {
+      keepHelperSuite(helper, why, 'it is not in the graph');
+      continue;
+    }
+    keepIfRunnerLoads(helper);
+    const tests = new Set(
+      [...users.files, ...testsNaming(helper)].filter(
+        (t) => RUNNABLE_TEST_RE.test(t) && !isDeleted(t)
+      )
+    );
+    if (tests.size === 0) {
+      keepHelperSuite(helper, why, 'no test reaches it through imports or names it');
+      continue;
+    }
+    for (const t of tests) helperTests.add(t);
+    viaHelpers.push({ helper, reason: why, tests: Array.from(tests).sort() });
+  }
 
   const affectedPackages = new Set(touchedPackages);
   for (const f of affectedRel) {
@@ -1044,6 +1154,7 @@ export async function analyzeChangeImpact(
     else for (const t of conventionTestsFor(f, repoRoot, deps.fileExists)) selected.add(t);
   }
   for (const t of testsIn(fullSuite.keys())) selected.add(t);
+  for (const t of helperTests) selected.add(t);
   // A test that spawns, reads or loads a reached file by path (a CLI, a worker)
   // depends on everything that file imports.
   addTestsNaming([...changedFiles, ...affectedRel], selected);
@@ -1120,6 +1231,7 @@ export async function analyzeChangeImpact(
       fullSuitePackages: fullSuiteEntries(),
       namedBy: namedByEntries(),
       untracedDataFiles,
+      viaHelpers,
     },
     callers: {
       available: callersAvailable,
