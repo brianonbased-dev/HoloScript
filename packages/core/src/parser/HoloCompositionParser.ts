@@ -597,10 +597,7 @@ export class HoloCompositionParser {
    * the list and silently dropped `ui`, `zone`, `action`, `if`, `for`, and more.
    */
   private parseCompositionMember(composition: HoloComposition, fileLevel = false): boolean {
-    if (
-      this.peek(1).type === 'COLON' &&
-      (this.isPropertyName() || this.check('METADATA_BLOCK'))
-    ) {
+    if (this.peek(1).type === 'COLON' && (this.isPropertyName() || this.check('METADATA_BLOCK'))) {
       const key = this.advance().value;
       this.advance(); // consume ':'
       const value = !this.check('RBRACE') && !this.isAtEnd() ? this.parseValue() : null;
@@ -754,10 +751,7 @@ export class HoloCompositionParser {
       composition.domainBlocks!.push(this.parseDomainBlock());
     } else if (this.check('AT')) {
       // Check for @platform(...) decorator at composition level
-      if (
-        this.peek(1).type === 'IDENTIFIER' &&
-        this.peek(1).value.toLowerCase() === 'platform'
-      ) {
+      if (this.peek(1).type === 'IDENTIFIER' && this.peek(1).value.toLowerCase() === 'platform') {
         this.advance(); // consume @
         this.advance(); // consume 'platform'
         const constraint = this.parsePlatformConstraint();

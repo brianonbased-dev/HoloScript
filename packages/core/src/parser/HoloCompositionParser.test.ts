@@ -54,7 +54,9 @@ describe('HoloCompositionParser', () => {
 
     it('reads the documented `nft marketplace` form as a marketplace with the nft trait', () => {
       const bare = parseHolo('nft marketplace "Art" {\n  symbol: "ART"\n}\n');
-      const wrapped = parseHolo('composition "C" {\n  nft marketplace "Art" {\n    symbol: "ART"\n  }\n}\n');
+      const wrapped = parseHolo(
+        'composition "C" {\n  nft marketplace "Art" {\n    symbol: "ART"\n  }\n}\n'
+      );
       for (const result of [bare, wrapped]) {
         expect(result.success).toBe(true);
         const block = result.ast?.domainBlocks?.find((d) => d.name === 'Art');
