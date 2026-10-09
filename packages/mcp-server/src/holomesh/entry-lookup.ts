@@ -5,6 +5,7 @@ import type { HoloMeshOrchestratorClient } from './orchestrator-client';
 import type { MeshKnowledgeEntry, Team } from './types';
 import { paidAccessStore, teamStore } from './state';
 import { hidePremiumText, isPremiumEntry } from './premium-view';
+import { getTeamMember } from './utils';
 
 // ── Who may read a premium entry (doors audit 2026-09-15) ────────────────────
 //
@@ -96,6 +97,42 @@ export function entitledSearchRows<
     const id = typeof entry.id === 'string' ? entry.id : '';
     return premiumEntryAccess(viewer, id, entryAuthorId(entry)) !== null;
   });
+}
+
+const TEAM_WORKSPACE_PREFIX = 'team:';
+
+/**
+ * Who may point `holomesh_query` (or any other caller-directed knowledge query)
+ * at a SPECIFIC team workspace, before that query ever reaches the
+ * orchestrator (task_1790079366686_qvr6). This is a different axis from the
+ * premium gate above: `entitledSearchRows`/`entryForViewer` decide whether a
+ * PAID row's content may be read, but say nothing about whether the caller
+ * may search this WORKSPACE at all. The orchestrator itself cannot enforce
+ * this either -- `HoloMeshOrchestratorClient` authenticates every request
+ * with this server's own shared API key (`x-mcp-api-key`), never the
+ * individual end caller's identity, so per-caller workspace access has to be
+ * decided here or nowhere.
+ *
+ * A public team's workspace is open to anyone; anything else needs
+ * membership, checked the same way `utils.ts`'s HTTP route guards already do
+ * (`getTeamMember`). An unknown team id is refused rather than distinguished
+ * from "exists but you're not in it" -- otherwise this function becomes an
+ * oracle for which team ids exist.
+ *
+ * Scoped to the `team:<id>` workspace-id namespace (`getTeamWorkspaceId`),
+ * which is what `holomesh_query`'s `workspace` argument names in practice.
+ * Other namespaces (`private:`, `recruit:`, ...) are not covered here and
+ * pass through unchanged -- each would need its own verified access model
+ * before a check could be added without either breaking it or rubber-stamping
+ * it.
+ */
+export function viewerMayQueryTeamWorkspace(viewer: PremiumViewer, workspaceId: string): boolean {
+  if (!workspaceId.startsWith(TEAM_WORKSPACE_PREFIX)) return true;
+  const team = teamStore.get(workspaceId.slice(TEAM_WORKSPACE_PREFIX.length));
+  if (!team) return false;
+  if (team.visibility === 'public') return true;
+  if (!viewer.authenticated) return false;
+  return !!getTeamMember(team, viewer.id);
 }
 
 /**

@@ -17,10 +17,12 @@ export const maxDuration = 300;
  */
 
 import { NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/api-auth';
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { listDaemonJobs, getTelemetrySummary, createDaemonJob } from '@/app/api/daemon/jobs/store';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
 import type { DaemonProfile } from '@/lib/daemon/types';
 import {
   HOLO_DAEMON_MISSIONS,
@@ -86,8 +88,10 @@ async function loadCompositionSource(): Promise<{
 // ---------------------------------------------------------------------------
 
 export async function GET() {
-  const jobs = listDaemonJobs();
-  const telemetry = getTelemetrySummary();
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
+  const jobs = listDaemonJobs(auth.user.id);
+  const telemetry = getTelemetrySummary(auth.user.id);
   const composition = await loadCompositionSource();
 
   const runningJobs = jobs.filter((j) => j.status === 'running');
@@ -171,6 +175,8 @@ export async function GET() {
 // ---------------------------------------------------------------------------
 
 export async function POST(request: Request) {
+  const auth = await requireAuth();
+  if (auth instanceof NextResponse) return auth;
   let body: {
     action: 'start' | 'stop';
     profile?: DaemonProfile;
@@ -189,6 +195,21 @@ export async function POST(request: Request) {
   }
 
   if (body.action === 'start') {
+    // P0 2026-10-05: a HoloHeal run copies and later patches projectPath, so it
+    // must name a workspace the caller OWNS. The runner's realpath confinement
+    // (#515, lib/daemon/projectPathPolicy.ts) still applies on top of this.
+    // No path is refused here rather than queued: there is no cwd fallback.
+    if (typeof body.projectPath !== 'string' || body.projectPath.trim() === '') {
+      return NextResponse.json(
+        { error: 'projectPath is required: HoloHeal only runs on a workspace you own' },
+        { status: 400 }
+      );
+    }
+    const owned = assertWorkspaceOwner(auth, body.projectPath);
+    if (!owned.ok) {
+      return NextResponse.json({ error: owned.error }, { status: owned.status });
+    }
+
     const mission = getHoloDaemonMission(body.missionProfile);
     const profile = body.profile ?? mission.defaultMode;
     const daemonAgent = buildHoloDaemonAgentConfig({
@@ -200,7 +221,7 @@ export async function POST(request: Request) {
     });
 
     // Check if a job is already running
-    const jobs = listDaemonJobs();
+    const jobs = listDaemonJobs(auth.user.id);
     const running = jobs.find((j) => j.status === 'running');
     if (running) {
       return NextResponse.json(
@@ -231,13 +252,14 @@ export async function POST(request: Request) {
         daemonAgent,
       },
       projectPath: body.projectPath,
+      userId: auth.user.id,
     });
 
     return NextResponse.json({ job }, { status: 201 });
   }
 
   if (body.action === 'stop') {
-    const jobs = listDaemonJobs();
+    const jobs = listDaemonJobs(auth.user.id);
     const running = jobs.find((j) => j.status === 'running');
 
     if (!running) {

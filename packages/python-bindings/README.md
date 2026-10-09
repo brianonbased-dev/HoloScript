@@ -1,58 +1,90 @@
 # holoscript
 
-Python bindings for [HoloScript](https://github.com/brianonbased-dev/HoloScript) — parse, validate, and bridge Python and domain-specific scientific tools into HoloScript's general-purpose semantic systems language stack.
+Python bridges that carry scientific tooling into
+[HoloScript](https://github.com/brianonbased-dev/HoloScript) — DICOM imaging,
+radio astronomy, ROS 2, molecular docking and Narupa molecular dynamics — plus
+the decision surfaces under `holoscript.cognition`. The AlphaFold bridge ships
+but is a stub: nothing in it predicts a structure yet.
 
-The README you see on [pypi.org/project/holoscript](https://pypi.org/project/holoscript/) comes from this file in the published wheel and sdist. Bump the package version (e.g. 6.0.7) when refreshing PyPI-facing docs so the project page picks up changes after the next release.
+**Parsing is not in this package yet.** `parse()` and `validate()` raise
+`NotImplementedError` in 6.0.8. Through 6.0.7 they returned success for any
+non-empty string, including text that is not HoloScript at all. Real parsing
+is planned for 6.1.0, on the same grammar the npm package uses, so Python and
+JavaScript cannot disagree about what valid HoloScript is. Until then, parse
+with [`@holoscript/core`](https://www.npmjs.com/package/@holoscript/core) and
+check the result: core is permissive and can return an empty composition for
+text that is not HoloScript.
+
+**Python 3.10 or newer.** 6.0.8 drops 3.8 and 3.9, which are past end of life
+and were never tested here. On those versions pip keeps installing 6.0.7.
+
+The README you see on [pypi.org/project/holoscript](https://pypi.org/project/holoscript/)
+comes from this file in the published wheel.
 
 ## Install
 
 ```bash
-pip install holoscript
+pip install holoscript                    # bridges only, no heavy dependencies
+pip install 'holoscript[medical]'         # DICOM imaging
+pip install 'holoscript[alphafold]'       # AlphaFold bridge (a stub: predicts nothing yet)
+pip install 'holoscript[astronomy]'       # radio astronomy
+pip install 'holoscript[robotics]'        # ROS 2
+pip install 'holoscript[scientific]'      # numpy only; docking also needs: pip install vina
+pip install 'holoscript[all]'             # every extra above
 ```
 
-## Quick Start
+No extra installs AutoDock Vina (`pip install vina`) or Narupa's `nanover-server`.
+
+What happens when a dependency is missing:
+
+- `medical` raises `ImportError` at import, naming the install line.
+- `alphafold`, `robotics`, `scientific` and `narupa` import fine, then report the
+  missing dependency in the result they return, naming what to install:
+  `status: failed` (`narupa` says `status: error`).
+- `radio_astronomy` needs no extra package.
+
+None of them ends your process.
+
+## What this version implements
 
 ```python
 import holoscript
 
-# Parse a .holo composition
-result = holoscript.parse('object Cube { position: [0, 1, 0] }')
-print(result.success)  # True
-print(result.ast)      # {"type": "composition", "source": "..."}
-
-# Validate
-validation = holoscript.validate('object Cube { position: [0, 1, 0] }')
-print(validation.valid)  # True
-
-# List available traits
-traits = holoscript.list_traits()
-print(traits)  # ["@grabbable", "@physics", "@clickable", "@color", "@position"]
+print(holoscript.__version__)
+print(holoscript.capabilities())
 ```
+
+`capabilities()` is the machine-readable answer — agents and CI should branch on
+it rather than on this README.
+
+| Not here | Where it is | When |
+| --- | --- | --- |
+| `parse`, `validate` | `@holoscript/core` on npm (permissive) | planned for 6.1.0 |
+| `generate`, scene rendering, `share` | MCP server tools (`generate_object` / `generate_scene`, `render_preview`, `create_share_link`); not in the Python package | not planned here |
+| AlphaFold structure prediction | nowhere yet: the bridge is a stub (`capabilities()` lists it under `not_implemented`) | unscheduled |
+| Full trait registry | `@holoscript/core` | with 6.1.0 |
+
+`list_traits()` returns a static five-name snapshot, not the registry. Of those
+five only `@grabbable` is in the core registry today; the registry's size changes
+with every deploy, so verify it the way `docs/NUMBERS.md` prescribes rather than
+trusting a number written here.
 
 ## Domain Bridges
-
-HoloScript bridges Python scientific libraries into spatial computing. Install the extras you need:
-
-```bash
-pip install holoscript[medical]           # DICOM imaging
-pip install holoscript[alphafold]         # Protein structure prediction
-pip install holoscript[astronomy]         # Radio astronomy
-pip install holoscript[robotics]          # ROS2 integration
-pip install holoscript[scientific]        # Molecular docking (AutoDock)
-pip install holoscript[all]              # Everything
-```
 
 ### Medical — DICOM Bridge
 
 ```python
-from holoscript.bridges.medical import load_dicom_series, extract_volume
+from holoscript.bridges.medical import DICOMBridge
 
-# Load a DICOM series and extract 3D volume for HoloScript visualization
-series = load_dicom_series("/path/to/dicom/")
-volume = extract_volume(series)
+bridge = DICOMBridge()
+image = bridge.load_dicom("/path/to/scan.dcm")
+volume = bridge.extract_3d_volume("/path/to/dicom/")
 ```
 
-Requires: `pydicom`, `numpy`
+Requires: `pydicom`, `numpy` (`pip install 'holoscript[medical]'`).
+`extract_3d_volume` returns the volume's dimensions, spacing and value range,
+not the voxels. `dicom_to_mesh` is not implemented: it always returns
+`success: False`.
 
 ### AlphaFold — Protein Structure
 
@@ -60,10 +92,18 @@ Requires: `pydicom`, `numpy`
 from holoscript.bridges.alphafold import AlphaFoldBridge
 
 bridge = AlphaFoldBridge(api_key="your_key")
-structure = bridge.predict("MKFLILLFNILCLFPVLAADNHGVS")
+result = bridge.predict_structure({
+    "sequence": "MKFLILLFNILCLFPVLAADNHGVS",
+    "job_name": "demo",
+})
 ```
 
-Requires: `requests`
+**A stub.** No path in this bridge returns a structure: the AlphaFold API
+endpoint it calls is a placeholder that does not resolve, and the local
+ColabFold path (`mode: "local"`) returns "not yet implemented" even with
+ColabFold installed. Every call fails closed with `status: failed`. Without an
+API key it fails before reaching the network. `capabilities()` lists it under
+`not_implemented`.
 
 ### Astronomy — Radio Telescope Data
 
@@ -76,6 +116,8 @@ flux = calculate_synchrotron({
 })
 ```
 
+The synchrotron calculation is a placeholder formula, as its own docstring says.
+
 ### Robotics — ROS2
 
 ```python
@@ -83,7 +125,7 @@ from holoscript.bridges.robotics import ROS2Bridge
 
 bridge = ROS2Bridge("ws://localhost:9090")
 bridge.connect()
-bridge.publish_joint_command("/joint_states", {"position": [0, 0.5, 1.0]})
+bridge.publish_joint_command("/joint_states", {"joint1": 0.0, "joint2": 0.5, "joint3": 1.0})
 ```
 
 Requires: `roslibpy`
@@ -96,16 +138,44 @@ from holoscript.bridges.scientific import AutoDockBridge
 bridge = AutoDockBridge()
 results = bridge.run_docking({
     "protein_pdb": "receptor.pdb",
-    "ligand_mol": "compound.mol"
+    "ligand_mol": "compound.mol",
+    "box_center": [0.0, 0.0, 0.0],  # search box centre, angstroms
+    "box_size": [20.0, 20.0, 20.0],  # search box size, angstroms
 })
 ```
 
+Needs AutoDock Vina: `pip install vina`. The `[scientific]` extra installs
+only numpy. Without Vina this returns a `status: failed` dict rather than
+raising.
+
+### Narupa — molecular dynamics servers
+
+```python
+from holoscript.bridges.narupa import NarupaBridge
+
+bridge = NarupaBridge()
+bridge.start_server({"pdb_path": "protein.pdb"})
+```
+
+Needs `nanover-server`, which no extra installs. Without it `start_server`
+returns `status: error` naming the install line.
+
+## Cognition
+
+```python
+from holoscript.cognition import record_decision, read_log, render
+```
+
+Feeds a shared decision stream that renders through the SVG compiler.
+`render` shells out to the npm `holo-decision` program and raises `RuntimeError`
+when it is not installed.
+
 ## MCP Server
 
-HoloScript also runs as an MCP server with 214 tools (verify via `curl mcp.holoscript.net/health`). The Python package provides local parsing — the MCP server provides compilation, rendering, and deployment.
+HoloScript also runs as an MCP server. The Python package provides bridges —
+the MCP server provides compilation, rendering, and deployment.
 
 ```bash
-# No auth needed for parsing
 curl -X POST https://mcp.holoscript.net/api/compile \
   -H "Content-Type: application/json" \
   -d '{"code": "object Cube { position: [0,1,0] }", "target": "r3f"}'
@@ -113,11 +183,9 @@ curl -X POST https://mcp.holoscript.net/api/compile \
 
 ## npm Ecosystem
 
-The full HoloScript ecosystem is on npm:
-
 ```bash
-npx create-holoscript my-app    # Scaffold a project
-npm install @holoscript/core    # Core library
+npx create-holoscript my-app     # scaffold a project
+npm install @holoscript/core     # core library, including the parser
 ```
 
 ## Links

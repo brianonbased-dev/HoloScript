@@ -8,12 +8,11 @@ import sys
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
 
-try:
-    import pydicom
-    import numpy as np
-except ImportError:
-    print("ERROR: Missing dependencies. Install: pip install pydicom numpy", file=sys.stderr)
-    sys.exit(1)
+from .._deps import require as _require
+
+_medical_deps = _require(("pydicom", "numpy"), "medical")
+pydicom = _medical_deps["pydicom"]
+np = _medical_deps["numpy"]
 
 
 class DICOMBridge:
@@ -214,7 +213,7 @@ def main():
             elif method == 'applyWindowLevel':
                 result = bridge.apply_window_level(params['center'], params['width'])
             elif method == 'extract3DVolume':
-                result = bridge.extract3d_volume(params['seriesPath'])
+                result = bridge.extract_3d_volume(params['seriesPath'])
             elif method == 'dicomToMesh':
                 result = bridge.dicom_to_mesh(
                     params['threshold'],

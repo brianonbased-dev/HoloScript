@@ -24,14 +24,12 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 import path from 'path';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../../_lib/cors';
 import { getWorkspacesRoot } from '@/lib/workspace/workspaceFs';
-
-const execFileAsync = promisify(execFile);
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
 
 function isInside(root: string, target: string): boolean {
   const rel = path.relative(root, target);
@@ -79,6 +77,17 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // P0 2026-10-05: containment is not ownership. The workspace must belong
+  // to the caller; anything else (missing, ownerless, another account's) gets
+  // one uniform answer. Blame then runs against the realpathed workspace.
+  const owned = assertWorkspaceOwner(auth, workspacePath);
+  if (!owned.ok) {
+    return NextResponse.json(
+      { ok: false, error: owned.error, entries: [] },
+      { status: owned.status }
+    );
+  }
+
   // SEC-T06: filePath must resolve inside resolvedWorkspace. We reject both
   // absolute paths that escape the workspace root and relative paths that
   // climb out via `..`.
@@ -111,8 +120,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { stdout } = await execFileAsync(
-      'git',
+    const { stdout } = await runGit(
       ['blame', '--porcelain', '-L', `${startLine},${endLine}`, '--', absPath],
       { cwd: resolvedWorkspace }
     );

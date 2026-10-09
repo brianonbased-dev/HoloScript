@@ -6817,6 +6817,7 @@ export function auditTargetTiers(io: TierAuditIO, tiers?: Readonly<Record<string
 export function targetTier(target: string): TargetTier | undefined;
 export function describeTargetLimits(target: string): string;
 export function compilePipelineSourceToNode(source: string, options?: any): any;
+export function summarizePipelineIo(source: string): { success: boolean; envReads: string[]; hosts: string[]; dynamicHost: boolean; errors?: string[] };
 
 /**
  * Native2D — the sovereign HoloScript-native 2D/UI compiler (.holo -> @generated .tsx). Its

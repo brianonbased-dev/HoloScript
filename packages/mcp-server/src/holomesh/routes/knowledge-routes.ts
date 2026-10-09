@@ -24,7 +24,14 @@ import {
   selfImprovingWorldStore,
   reloadTeam,
 } from '../state';
-import { json, parseQuery, parseJsonBody, extractParam, getTeamMember } from '../utils';
+import {
+  answerUnacceptedWrite,
+  json,
+  parseQuery,
+  parseJsonBody,
+  extractParam,
+  getTeamMember,
+} from '../utils';
 import { resolveRequestingAgent, requireAuth } from '../auth-utils';
 import { extractAndVerifySigning } from '../identity/signing-middleware';
 import { getClient } from '../orchestrator-client';
@@ -576,20 +583,10 @@ export async function handleKnowledgeRoutes(
 
     // w6ui: synced counts only what the orchestrator accepted; a refusal is named.
     const outcome = await c.contributeKnowledgeDetailed([entry]);
-    if (!outcome.accepted) {
-      // This route keeps no copy of its own, so a write the orchestrator did not
-      // accept is stored nowhere readable (GET /entry/<id> answers 404). It must not
-      // answer 201 with an entryId and a signed audit for it (claude3's review of
-      // #319): 502 when the orchestrator answered and did not accept, 503 when it
-      // could not be reached.
-      const unreachable = outcome.status === null;
-      json(res, unreachable ? 503 : 502, {
-        success: false,
-        error: unreachable ? 'orchestrator_unreachable' : 'orchestrator_refused',
-        orchestrator: { accepted: false, status: outcome.status, reason: outcome.reason },
-      });
-      return true;
-    }
+    // This route keeps no copy of its own, so a write the orchestrator did not accept is stored
+    // nowhere readable (GET /entry/<id> answers 404). It must not answer 201 with an entryId and a
+    // signed audit for it (claude3's review of #319).
+    if (answerUnacceptedWrite(res, outcome)) return true;
     const synced = outcome.synced;
 
     // Bridge into ConsolidationEngine (explicit trigger path)

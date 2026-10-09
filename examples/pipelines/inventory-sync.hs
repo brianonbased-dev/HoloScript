@@ -1,5 +1,10 @@
 // HoloScript Pipeline — Dispensary Inventory Sync
 // Compiles to: Node.js cron job, Python script, or AWS Lambda
+//
+// Reads environment variables, so name them when you run it:
+//   holoscript run inventory-sync.hs --allow-env POS_API_URL --allow-env STORE_API --allow-env ANALYTICS_WEBHOOK
+// (or HOLOSCRIPT_PIPELINE_ALLOW_ENV=POS_API_URL,STORE_API,ANALYTICS_WEBHOOK). A pipeline
+// that is not allowed to read a variable refuses before making any request.
 
 pipeline "InventorySync" {
   schedule: "*/5 * * * *"   // every 5 minutes

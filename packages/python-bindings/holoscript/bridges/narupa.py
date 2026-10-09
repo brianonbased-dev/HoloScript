@@ -13,12 +13,9 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.FileHandler('narupa_bridge.log'), logging.StreamHandler(sys.stderr)]
-)
+# A library module configures no logging. Importing this one must not create a
+# file in the caller's working directory or take over the host's root logger;
+# main() attaches the bridge's handlers when it runs as a program.
 logger = logging.getLogger(__name__)
 
 
@@ -309,7 +306,12 @@ def main():
     )
     args = parser.parse_args()
 
-    # Update log level
+    # Running as the JSON-RPC program: this process is ours, so set up logging here.
+    logging.basicConfig(
+        level=getattr(logging, args.log_level),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[logging.FileHandler('narupa_bridge.log'), logging.StreamHandler(sys.stderr)]
+    )
     logger.setLevel(getattr(logging, args.log_level))
 
     bridge = NarupaBridge()

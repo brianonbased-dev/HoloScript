@@ -5,6 +5,7 @@ import { getToken } from 'next-auth/jwt';
 import { questProofGuardReason } from './lib/questProofGuards';
 import { callerCredentialRuleFor, classifyApiPath, publicRuleFor } from './lib/api-public-paths';
 import { SESSION_COOKIE_NAMES } from './lib/session-cookie-names';
+import { INVITE_ONLY_PATH, isInviteAllowlistedToken } from './lib/inviteAllowlist';
 
 /** The header the mesh reads a caller key from. */
 const MESH_KEY_HEADER = 'x-mcp-api-key';
@@ -62,6 +63,14 @@ function isBenchmarkRunner(request: NextRequest, pathname: string): boolean {
 }
 
 /**
+ * none:          no verifiable session.
+ * allowed:       a verified session on the invite allowlist.
+ * invite-denied: a verified session NOT on the allowlist. It is treated as
+ *                signed out and its cookies are cleared.
+ */
+type StudioSessionState = 'none' | 'allowed' | 'invite-denied';
+
+/**
  * A real, signature-verified Studio session — not merely a cookie that exists.
  *
  * BOTH cookie names are tried, and that is the point. `getToken` picks exactly
@@ -79,20 +88,51 @@ function isBenchmarkRunner(request: NextRequest, pathname: string): boolean {
  * way; only the name of the container changes. A cookie that fails to verify
  * under one name must not stop the other name from being tried.
  */
-async function hasStudioSession(request: NextRequest): Promise<boolean> {
+async function studioSessionState(request: NextRequest): Promise<StudioSessionState> {
   const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
   // With no secret no session can be verified, so none is trusted. That refuses
   // a misconfigured deploy rather than waving it through, and the refusal says
   // which variable is missing instead of looking like a login bug.
-  if (!secret) return false;
+  if (!secret) return 'none';
   for (const cookieName of SESSION_COOKIE_NAMES) {
     try {
-      if ((await getToken({ req: request, secret, cookieName })) !== null) return true;
+      const token = await getToken({ req: request, secret, cookieName });
+      if (token !== null) {
+        // Invite-only (lib/inviteAllowlist.ts). A correctly signed token that
+        // is not on the allowlist, including one issued before the allowlist
+        // existed, counts as NO session here.
+        return isInviteAllowlistedToken(token) ? 'allowed' : 'invite-denied';
+      }
     } catch {
       // Malformed under this name; the other name still gets its turn.
     }
   }
-  return false;
+  return 'none';
+}
+
+/** Does the request carry a NextAuth session cookie at all (including chunked `.0`, `.1`)? */
+function sessionCookieNames(request: NextRequest): string[] {
+  return request.cookies
+    .getAll()
+    .map((cookie) => cookie.name)
+    .filter((name) =>
+      SESSION_COOKIE_NAMES.some((base) => name === base || name.startsWith(`${base}.`))
+    );
+}
+
+/** Expire every session cookie the request carried, so a refused token is signed out. */
+function clearSessionCookies(request: NextRequest, response: NextResponse): NextResponse {
+  for (const name of sessionCookieNames(request)) {
+    response.cookies.set(name, '', {
+      path: '/',
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: 'lax',
+      // A `__Secure-` cookie is only replaced by a Set-Cookie that is Secure too.
+      secure: name.startsWith('__Secure-'),
+    });
+  }
+  return response;
 }
 
 /**
@@ -174,16 +214,19 @@ async function apiGate(request: NextRequest): Promise<NextResponse | null> {
   // escape (`/api/%62rittney`) would read as the benchmark's path to one reader
   // and as a different route to the other.
   if (isBenchmarkRunner(request, rawPathname) && isBenchmarkRunner(request, pathname)) return null;
-  if (await hasStudioSession(request)) return null;
+  const session = await studioSessionState(request);
+  if (session === 'allowed') return null;
 
-  return NextResponse.json(
+  const refusal = NextResponse.json(
     {
       error:
         'This endpoint needs a caller. Sign in to HoloScript Studio, or send your own API key as "x-mcp-api-key: <your key>".',
       signInRequired: true,
+      ...(session === 'invite-denied' ? { inviteOnly: true } : {}),
     },
     { status: 401 }
   );
+  return session === 'invite-denied' ? clearSessionCookies(request, refusal) : refusal;
 }
 
 function hasQuestProofIntent(request: NextRequest): boolean {
@@ -249,6 +292,22 @@ export async function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('Content-Security-Policy', cspHeader);
+
+  // Invite-only (lib/inviteAllowlist.ts). A signed-in visitor whose token is
+  // not on the allowlist is signed out and sent to INVITE_ONLY_PATH. That page
+  // needs no session, and visitors without a session cookie skip this check.
+  if (pathname !== INVITE_ONLY_PATH && sessionCookieNames(request).length > 0) {
+    if ((await studioSessionState(request)) === 'invite-denied') {
+      const url = request.nextUrl.clone();
+      url.pathname = INVITE_ONLY_PATH;
+      url.search = '';
+      return applySecurityHeaders(
+        clearSessionCookies(request, NextResponse.redirect(url)),
+        cspHeader,
+        permissionsPolicy
+      );
+    }
+  }
 
   if (hasQuestProofIntent(request)) {
     const guardedReason = questProofGuardReason(request.nextUrl.pathname);

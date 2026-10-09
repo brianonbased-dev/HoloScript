@@ -281,6 +281,12 @@ export interface CLIOptions {
   compileFormat?: string;
   /** Public deployment device profile or auto-detection request */
   device?: string;
+  /**
+   * Environment variable names a pipeline run may read (repeatable --allow-env NAME).
+   * No variable is readable without being named, HOLOSCRIPT_MCP_URL included.
+   * Board task task_1791176003202_obsc.
+   */
+  allowEnv?: string[];
 }
 
 const DEFAULT_OPTIONS: CLIOptions = {
@@ -527,6 +533,16 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--host':
         options.host = args[++i];
         break;
+      case '--allow-env': {
+        const name = args[++i];
+        if (!name || name.startsWith('-')) {
+          throw new Error(
+            '--allow-env requires an environment variable name, e.g. --allow-env API_URL'
+          );
+        }
+        (options.allowEnv ??= []).push(name);
+        break;
+      }
       case '-u':
       case '--username':
         options.username = args[++i];

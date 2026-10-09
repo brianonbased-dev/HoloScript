@@ -15,7 +15,8 @@ import { authOptions } from '@/lib/auth';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
-import { execFile, type ExecFileOptions } from 'child_process';
+import type { ExecFileOptions } from 'child_process';
+import { runGit } from '@/lib/git/safeGit';
 import { randomUUID } from 'crypto';
 import {
   buildConversionCandidates,
@@ -28,7 +29,9 @@ import {
   type PublishWorthinessLLMReview,
   type PublishWorthinessProjectDNA,
 } from '@/lib/workspace/publishWorthinessDetector';
-import { upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
+import { listDurableAbsorbProjects, upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
+import { resolveInsideWorkspace } from '@/lib/workspace/workspaceFs';
+import { assertWorkspaceOwner, callerUserId } from '@/lib/workspace/workspaceOwner';
 import { getGitHubToken } from '@/app/api/github/_shared';
 import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 import { isGitHubRepoApproved, normalizeGitHubRepo } from '@/lib/workspace/repoConsent';
@@ -121,15 +124,7 @@ function execGit(
   args: string[],
   options: ExecFileOptions = {}
 ): Promise<{ stdout: string; stderr: string }> {
-  return new Promise((resolve, reject) => {
-    execFile('git', args, options, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve({ stdout: String(stdout ?? ''), stderr: String(stderr ?? '') });
-    });
-  });
+  return runGit(args, options);
 }
 
 function publicCloneError(err: unknown): { error: string; code?: string; hint: string } {
@@ -184,7 +179,9 @@ function canBypassRepoConsent(session: Session | null): boolean {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  // The clone is recorded as owned by this user id; without one it would be
+  // an ownerless workspace nobody (including its creator) could ever open.
+  if (!session?.user || !callerUserId(session)) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
@@ -305,8 +302,7 @@ export async function POST(req: NextRequest) {
     const absorbProject = upsertDurableAbsorbProject({
       id,
       name: safeName,
-      ownerId:
-        typeof session.user.id === 'string' && session.user.id.trim() ? session.user.id : null,
+      ownerId: callerUserId(session),
       sourceType: 'github',
       sourceUrl: repoRef.cloneUrl,
       localPath,
@@ -361,7 +357,11 @@ export async function POST(req: NextRequest) {
 }
 
 function readPaperUnlockState(localPath: string): Record<string, unknown> | null {
-  const statePath = path.join(localPath, 'research', 'paper-unlock-state.json');
+  // Must resolve inside the workspace after symlinks: a cloned repo could ship
+  // `research/` as a link to someone else's files.
+  const inside = resolveInsideWorkspace(localPath, 'research/paper-unlock-state.json');
+  if (!inside.ok) return null;
+  const statePath = inside.absolute;
   try {
     if (!fs.existsSync(statePath)) return null;
     const parsed = JSON.parse(fs.readFileSync(statePath, 'utf-8')) as Record<string, unknown>;
@@ -372,32 +372,35 @@ function readPaperUnlockState(localPath: string): Record<string, unknown> | null
 }
 
 /**
- * GET /api/workspace/import — List existing workspaces on disk.
+ * GET /api/workspace/import — List the CALLER's workspaces.
+ *
+ * P0 2026-10-05: this used to readdir the shared workspaces root and return
+ * every account's workspace (id + absolute localPath) with no session check
+ * of its own, which handed any caller the exact paths to feed /files. It now
+ * requires a session itself (not only the edge gate) and lists only registry
+ * rows owned by the caller whose directory still passes the owner check.
  */
 export async function GET() {
-  try {
-    const workspacesDir = path.resolve(getWorkspacesDir());
-    if (!fs.existsSync(workspacesDir)) {
-      return NextResponse.json({ workspaces: [] });
-    }
+  const session = await getServerSession(authOptions);
+  const ownerId = callerUserId(session);
+  if (!session?.user || !ownerId) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
 
-    const entries = fs.readdirSync(workspacesDir, { withFileTypes: true });
-    const workspaces = entries
-      .filter((e) => e.isDirectory())
-      .map((e) => {
-        const wsDir = path.join(workspacesDir, e.name);
-        const subDirs = fs
-          .readdirSync(wsDir, { withFileTypes: true })
-          .filter((d) => d.isDirectory());
-        const repoDir = subDirs[0]?.name;
-        const localPath = repoDir ? path.join(wsDir, repoDir) : wsDir;
-        return {
-          id: e.name,
-          name: repoDir ?? e.name,
-          localPath,
-          paperUnlockState: readPaperUnlockState(localPath),
-        };
-      });
+  try {
+    const workspaces = listDurableAbsorbProjects(ownerId).flatMap((project) => {
+      if (!project.localPath) return [];
+      const owned = assertWorkspaceOwner(session, project.localPath);
+      if (!owned.ok) return [];
+      return [
+        {
+          id: project.id,
+          name: path.basename(owned.resolved),
+          localPath: project.localPath,
+          paperUnlockState: readPaperUnlockState(owned.resolved),
+        },
+      ];
+    });
 
     return NextResponse.json({ workspaces });
   } catch {

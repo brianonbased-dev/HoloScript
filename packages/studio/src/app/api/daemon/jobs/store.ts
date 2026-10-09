@@ -6,13 +6,18 @@
  * concrete patch proposals that users can review and apply through Studio.
  */
 
-import { execFileSync } from 'child_process';
+import { runGitSync } from '@/lib/git/safeGit';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { runDaemonJob, type AbsorbGraphData } from './runner';
+import { absorbEmptyLabel, CHECKS_SKIPPED_LABEL } from '@/lib/daemon/honestyLabels';
 import { buildDaemonPlan, projectDNAFromLegacySignals } from '@/lib/daemon/profilePlanner';
-import { getWorkspacesRoot, isInsidePath } from '@/lib/workspace/workspaceFs';
+import {
+  getWorkspacesRoot,
+  isInsidePath,
+  resolveInsideWorkspace,
+} from '@/lib/workspace/workspaceFs';
 import type {
   CreateDaemonJobInput,
   DaemonAbsorbSnapshot,
@@ -117,7 +122,9 @@ async function executeDaemonJob(jobId: string): Promise<void> {
   });
   emitTelemetry({ eventType: 'job_started', jobId, timestamp: now, profile: job.profile });
 
-  const projectPath = job.projectPath || process.cwd();
+  // No fallback: a job without a workspace path is refused by the runner
+  // (it used to scan process.cwd(), i.e. the Studio deployment tree).
+  const projectPath = job.projectPath ?? '';
 
   try {
     const result = await runDaemonJob(
@@ -148,6 +155,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
           communities: result.absorb.communities,
           totalFiles: result.absorb.totalFiles,
           totalSymbols: result.absorb.totalSymbols,
+          filesScanned: result.absorb.filesScanned,
           durationMs: result.absorb.durationMs,
           graphJson: result.absorb.graphJson,
           hubFiles: Object.entries(result.absorb.inDegree)
@@ -158,24 +166,25 @@ async function executeDaemonJob(jobId: string): Promise<void> {
         }
       : undefined;
 
-    const zeroDelta =
-      result.success &&
-      result.patches.length === 0 &&
-      result.qualityDelta === 0;
+    const zeroDelta = result.success && result.patches.length === 0 && result.qualityDelta === 0;
     const emptyAbsorb =
       result.success &&
       (result.absorb == null || result.absorb.totalFiles === 0) &&
       result.patches.length === 0;
     const status = result.success ? 'completed' : 'failed';
     const statusMessage = !result.success
-      ? result.error ?? result.summary
-      : emptyAbsorb
-        ? 'Blocked — Absorb empty'
-        : zeroDelta && result.filesAnalyzed === 0
-          ? 'Finished, nothing examined'
-          : zeroDelta
-            ? 'Finished, nothing to change'
-            : result.summary || 'Complete';
+      ? (result.error ?? result.summary)
+      : result.checksSkipped
+        ? CHECKS_SKIPPED_LABEL
+        : emptyAbsorb
+          ? result.absorb && result.absorb.filesScanned > 0
+            ? absorbEmptyLabel(result.absorb.filesScanned)
+            : 'Blocked — Absorb empty'
+          : zeroDelta && result.filesAnalyzed === 0
+            ? 'Finished, nothing examined'
+            : zeroDelta
+              ? 'Finished, nothing to change'
+              : result.summary || 'Complete';
 
     setDaemonJob(jobId, {
       ...final,
@@ -184,7 +193,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       statusMessage,
       updatedAt: nowIso(),
       summary: result.summary,
-      error: result.success ? undefined : result.error ?? result.summary,
+      error: result.success ? undefined : (result.error ?? result.summary),
       metrics: {
         qualityDelta: result.qualityDelta,
         qualityBefore: result.qualityBefore,
@@ -197,6 +206,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       patches: result.patches,
       logs: result.logs,
       absorb: absorbSnapshot,
+      checksSkipped: result.checksSkipped === true ? true : undefined,
     });
 
     emitTelemetry({
@@ -208,7 +218,7 @@ async function executeDaemonJob(jobId: string): Promise<void> {
       qualityDelta: result.qualityDelta,
       filesChanged: result.filesChanged,
       patchCount: result.patches.length,
-      error: result.success ? undefined : result.error ?? result.summary,
+      error: result.success ? undefined : (result.error ?? result.summary),
     });
   } catch (err: unknown) {
     const errorMessage = err instanceof Error ? err.message : String(err);
@@ -268,12 +278,20 @@ export function createDaemonJob(input: CreateDaemonJobInput): DaemonJob {
   return created;
 }
 
-export function listDaemonJobs(): DaemonJob[] {
-  return Array.from(daemonJobs.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+/**
+ * Jobs belong to the signed-in user who created them. Every read is scoped to
+ * the caller; a job with no recorded owner is visible to no one.
+ */
+export function listDaemonJobs(userId: string): DaemonJob[] {
+  return Array.from(daemonJobs.values())
+    .filter((job) => job.userId !== undefined && job.userId === userId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function getDaemonJob(id: string): DaemonJob | null {
-  return daemonJobs.get(id) ?? null;
+/** The job, or null when it does not exist OR belongs to someone else. */
+export function getDaemonJob(id: string, userId: string): DaemonJob | null {
+  const job = daemonJobs.get(id);
+  return job && job.userId !== undefined && job.userId === userId ? job : null;
 }
 
 export function getJobPatches(jobId: string): PatchProposal[] {
@@ -285,9 +303,8 @@ export function getJobLogs(jobId: string): DaemonLogEntry[] {
 }
 
 function runGit(cwd: string, args: string[]): string {
-  return execFileSync('git', args, {
+  return runGitSync(args, {
     cwd,
-    encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   }).trim();
 }
@@ -340,6 +357,12 @@ function assertPatchTarget(
   const relativePath = path.relative(workspacePath, absolute);
   if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
     throw new Error(`Patch target escapes workspace: ${filePath}`);
+  }
+  // P0b: where the write LANDS must stay inside the workspace and outside
+  // .git (a `gitalias -> .git` or an outside symlink in the clone).
+  const inside = resolveInsideWorkspace(workspacePath, relativePath);
+  if (!inside.ok) {
+    throw new Error(`Patch target refused (${inside.error}): ${filePath}`);
   }
   return { absolute, relative: relativePath.replace(/\\/g, '/') };
 }
@@ -494,12 +517,19 @@ export function recordPatchAction(
   }
 }
 
-export function getTelemetrySummary(): DaemonTelemetrySummary {
-  const jobs = Array.from(daemonJobs.values());
+/**
+ * Telemetry for ONE user: only their jobs and only events of their jobs. The
+ * event log is global (it carries other users' error text and paths), so it is
+ * never returned unfiltered.
+ */
+export function getTelemetrySummary(userId: string): DaemonTelemetrySummary {
+  const jobs = listDaemonJobs(userId);
+  const ownJobIds = new Set(jobs.map((j) => j.id));
+  const ownEvents = telemetryLog.filter((e) => ownJobIds.has(e.jobId));
   const completed = jobs.filter((j) => j.status === 'completed');
   const failed = jobs.filter((j) => j.status === 'failed');
   const totalPatches = completed.reduce((sum, j) => sum + (j.patches?.length ?? 0), 0);
-  const appliedPatches = telemetryLog.filter((e) => e.eventType === 'patch_applied').length;
+  const appliedPatches = ownEvents.filter((e) => e.eventType === 'patch_applied').length;
   const avgDelta =
     completed.length > 0
       ? completed.reduce((sum, j) => sum + (j.metrics?.qualityDelta ?? 0), 0) / completed.length
@@ -520,6 +550,6 @@ export function getTelemetrySummary(): DaemonTelemetrySummary {
     avgQualityDelta: Math.round(avgDelta * 100) / 100,
     avgDurationMs: Math.round(avgDuration),
     profileUsage,
-    recentEvents: telemetryLog.slice(-50),
+    recentEvents: ownEvents.slice(-50),
   };
 }

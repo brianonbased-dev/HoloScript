@@ -1,0 +1,10 @@
+@trait {
+  name: "@particle_feedback",
+  category: "ui",
+  description: "Physics-based micro-interactions (particles, bursts, ripples).",
+  props: {
+    on: enum("hover" | "intent" | "bounty" | "success" | "error"),
+    type: enum("burst" | "ripple" | "swarm" | "spark"),
+    intensity: number = 1.0
+  }
+}

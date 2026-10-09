@@ -1,0 +1,27 @@
+composition "ThreeSurfaceAgent" {
+  import { TriadAgent } from "./agent.hsplus"
+  import { decide } from "./policy.hs"
+
+  state {
+    approved: false
+    decision_count: 0
+  }
+
+  object "DecisionBeacon" {
+    geometry: "sphere"
+    position: [0, 1, -2]
+    scale: [0.25, 0.25, 0.25]
+  }
+
+  logic {
+    action apply_decision() {
+      state.approved = true
+      state.decision_count += 1
+      emit "decision_applied"
+    }
+
+    on_start {
+      apply_decision()
+    }
+  }
+}

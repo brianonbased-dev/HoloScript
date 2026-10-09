@@ -142,6 +142,11 @@ export interface DaemonAbsorbSnapshot {
   totalFiles: number;
   /** Total symbols found */
   totalSymbols: number;
+  /**
+   * Files the scanner was handed (non-ignored files in the workspace copy).
+   * Optional: jobs persisted before 2026-10-05 do not carry it.
+   */
+  filesScanned?: number;
   /** Absorb scan duration in ms */
   durationMs: number;
   /** Serialized CodebaseGraph JSON (compatible with MCP holo_absorb_repo format) */
@@ -170,6 +175,8 @@ export interface DaemonJob {
   error?: string;
   /** GitHub-resolved user ID who initiated this job */
   userId?: string;
+  /** Repo checks (tsc/vitest/eslint) were skipped: no sandbox (HOLOHEAL_RUN_REPO_TOOLS off). */
+  checksSkipped?: boolean;
   /** Codebase graph snapshot from Phase 0 absorb. Available once job completes. */
   absorb?: DaemonAbsorbSnapshot;
 }

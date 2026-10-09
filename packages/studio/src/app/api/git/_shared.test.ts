@@ -8,6 +8,7 @@ import {
   resolveWorkspaceGitPath,
   validateRelativeGitPaths,
 } from './_shared';
+import { registerWorkspaceRows, sessionFor } from '@/lib/workspace/testing/ownedWorkspaceFixture';
 
 describe('git API shared validation', () => {
   let tempRoot: string;
@@ -21,6 +22,9 @@ describe('git API shared validation', () => {
     repoPath = path.join(workspaceRoot, 'project-1', 'repo');
     fs.mkdirSync(path.join(repoPath, '.git'), { recursive: true });
     process.env.HOLOSCRIPT_WORKSPACES_DIR = workspaceRoot;
+    registerWorkspaceRows(workspaceRoot, [
+      { id: 'project-1', localPath: repoPath, ownerId: 'user-a' },
+    ]);
   });
 
   afterEach(() => {
@@ -29,9 +33,9 @@ describe('git API shared validation', () => {
   });
 
   it('accepts git repositories inside the configured workspace root', () => {
-    expect(resolveWorkspaceGitPath(repoPath)).toEqual({
+    expect(resolveWorkspaceGitPath(repoPath, sessionFor('user-a'))).toEqual({
       ok: true,
-      resolved: path.resolve(repoPath),
+      resolved: fs.realpathSync(repoPath),
     });
   });
 
@@ -39,7 +43,7 @@ describe('git API shared validation', () => {
     const outside = path.join(tempRoot, 'workspaces-other', 'repo');
     fs.mkdirSync(path.join(outside, '.git'), { recursive: true });
 
-    expect(resolveWorkspaceGitPath(outside)).toEqual(
+    expect(resolveWorkspaceGitPath(outside, sessionFor('user-a'))).toEqual(
       expect.objectContaining({
         ok: false,
         status: 403,
