@@ -7,6 +7,7 @@ import {
   isInertFile,
   isTestFile,
   parseNameStatus,
+  unquoteGitPath,
   type ChangeImpactDeps,
 } from '../commands/change-impact';
 import { parseArgs } from '../args';
@@ -374,6 +375,8 @@ function repo2(opts: {
   renamedDiff?: string;
   callers?: Record<string, Array<{ file: string; line: number }>>;
   noGraph?: boolean;
+  /** Impact queries that ask about any of these files stop early (a deadline). */
+  cutFor?: string[];
 }): ChangeImpactDeps {
   const tree = new Set([...REPO2, ...(opts.files ?? [])]);
   for (const c of opts.changes) {
@@ -447,6 +450,7 @@ function repo2(opts: {
     readFile: (p) => {
       const r = rel(p);
       if (MANIFESTS[r]) return MANIFESTS[r];
+      if (opts.contents?.[r] !== undefined) return opts.contents[r];
       throw new Error(`no file ${r}`);
     },
     handleCodebaseTool: vi.fn(async (name: string, args: Record<string, unknown>) => {
@@ -464,13 +468,17 @@ function repo2(opts: {
             }
           }
         }
+        const cut = requested.some((f) => opts.cutFor?.includes(f));
         return {
           impactByCommunity: { c1: Array.from(reach, abs) },
           unresolvedChangedFiles: unresolved.map(abs),
           communityGroupingComplete: true,
           traversal: {
-            complete: unresolved.length === 0,
-            truncationReasons: unresolved.length > 0 ? ['changed_file_not_indexed'] : [],
+            complete: unresolved.length === 0 && !cut,
+            truncationReasons: [
+              ...(unresolved.length > 0 ? ['changed_file_not_indexed'] : []),
+              ...(cut ? ['deadline'] : []),
+            ],
           },
         };
       }
@@ -841,29 +849,6 @@ describe('impact --since: test support code a runner or a test loads by path', (
     expect(report.tests.fullSuitePackages.map((f) => f.pkg)).toEqual(['packages/a']);
   });
 
-  it('a helper that names a changed file keeps its package suite (the tests that call it cannot all be listed)', async () => {
-    const helper = 'packages/a/src/__tests__/helpers/load-docs.ts';
-    for (const noGraph of [false, true]) {
-      const deps = repo2({
-        files: ['docs/guide.md', helper],
-        contents: {
-          [helper]: "export const load = () => readFileSync(join(root, 'docs/guide.md'));",
-        },
-        changes: [{ status: 'M', file: 'docs/guide.md' }],
-        noGraph,
-      });
-      const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
-
-      expect(report.tests.selected).toEqual([...A_TESTS, helper].sort());
-      expect(report.tests.fullSuitePackages).toEqual([
-        {
-          pkg: 'packages/a',
-          reason: `${helper} names docs/guide.md by path and is test support code, so the tests that use it cannot all be listed`,
-        },
-      ]);
-    }
-  });
-
   it('a setup file outside a test folder that a runner config names keeps that suite', async () => {
     const setup = 'packages/a/src/setupTests.ts';
     for (const noGraph of [false, true]) {
@@ -908,6 +893,211 @@ describe('impact --since: test support code a runner or a test loads by path', (
         reason: `${SETUP} is named by packages/a/vitest.config.ts, which loads it for every test it runs, and the change reaches it`,
       },
     ]);
+  });
+});
+
+describe('impact --since: a helper passes a change on to the tests that use it', () => {
+  const HELPER = 'packages/a/src/__tests__/helpers/load-docs.ts';
+  const USER = 'packages/a/src/__tests__/docs-loader.test.ts';
+  const BASE = {
+    files: ['docs/guide.md', HELPER, USER],
+    importers: { [HELPER]: [USER] },
+    contents: {
+      [HELPER]: "export const load = () => readFileSync(join(root, 'docs/guide.md'));",
+    },
+    changes: [{ status: 'M' as const, file: 'docs/guide.md' }],
+  };
+  const KEPT = [...A_TESTS, HELPER, USER].sort();
+
+  it('with the graph, a helper naming a changed file selects the tests that reach it, not its package', async () => {
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, repo2(BASE));
+
+    expect(report.tests.selected).toEqual([USER]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.viaHelpers).toEqual([
+      { helper: HELPER, reason: 'names docs/guide.md by path', tests: [USER] },
+    ]);
+    // The helper is not a test that reads the file: nothing lists it as one.
+    expect(report.tests.namedBy).toEqual([]);
+    expect(report.brief).toContain(
+      `Via helper: ${HELPER} names docs/guide.md by path; 1 test file(s) use it directly: ${USER}`
+    );
+    expect(report.brief).toContain('a test that reaches a helper through a path alias');
+  });
+
+  // The helper's reach goes through the same rules as the change's own reach.
+  it('a setup file that imports the helper keeps the suite its runner config loads it for', async () => {
+    const setup = 'packages/a/src/__tests__/setup.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, setup],
+      importers: { [HELPER]: [setup] },
+      contents: {
+        ...BASE.contents,
+        'packages/a/vitest.config.ts':
+          "export default { test: { setupFiles: ['./src/__tests__/setup.ts'] } };",
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages).toEqual([
+      {
+        pkg: 'packages/a',
+        reason: `${setup} is named by packages/a/vitest.config.ts, which loads it for every test it runs, and the change reaches it`,
+      },
+    ]);
+    expect(report.tests.selected).toEqual([...A_TESTS, HELPER, setup].sort());
+  });
+
+  it('a worker that imports the helper selects the test that starts it by path', async () => {
+    const worker = 'packages/a/src/workers/render.ts';
+    const starter = 'packages/a/src/__tests__/render-worker.test.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, worker, starter],
+      importers: { [HELPER]: [worker] },
+      contents: {
+        ...BASE.contents,
+        [starter]: "new Worker(new URL('../workers/render.ts', import.meta.url));",
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([starter]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+  });
+
+  it('a scenario file that imports the helper is selected, and so is the runner that names it', async () => {
+    // A runner config can run *.scenario.ts itself (packages/studio does), and
+    // a test can run one by path: both are kept.
+    const scenario = 'packages/a/src/__tests__/scenarios/login.scenario.ts';
+    const runner = 'packages/a/src/__tests__/scenarios.test.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, scenario, runner],
+      importers: { [HELPER]: [scenario] },
+      contents: {
+        ...BASE.contents,
+        [runner]: "await runScenario('./scenarios/login.scenario.ts');",
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([runner, scenario]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+  });
+
+  it('a helper that runs the helper by path passes the change on to its own users', async () => {
+    const runs = 'packages/a/src/__tests__/helpers/run-docs.ts';
+    const user = 'packages/a/src/__tests__/run-docs.test.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, runs, user],
+      importers: { [runs]: [user] },
+      contents: {
+        ...BASE.contents,
+        [runs]: "execFileSync('tsx', [join(__dirname, 'load-docs.ts')]);",
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([user]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.viaHelpers).toEqual([
+      { helper: HELPER, reason: 'names docs/guide.md by path', tests: [] },
+      { helper: runs, reason: `names ${HELPER} by path`, tests: [user] },
+    ]);
+    expect(report.brief).toContain(
+      `Via helper: ${HELPER} names docs/guide.md by path; its users are reached through other files`
+    );
+  });
+
+  it('a test that reads code files by pattern does not count as a user of the helper', async () => {
+    const globber = 'packages/a/src/__tests__/globber.test.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, globber],
+      importers: {},
+      contents: { ...BASE.contents, [globber]: "files.filter((f) => f.endsWith('.ts'))" },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages.map((f) => f.pkg)).toEqual(['packages/a']);
+    expect(report.tests.selected).toEqual([...A_TESTS, HELPER, globber].sort());
+  });
+
+  it('a program (#! first line) that nothing runs from a test keeps no suite', async () => {
+    const program = 'packages/a/src/__tests__/gen-docs.ts';
+    const deps = repo2({
+      files: ['docs/guide.md', program],
+      contents: {
+        [program]: '#!/usr/bin/env node\n// rewrites docs/guide.md from the trait list\n',
+      },
+      changes: [{ status: 'M', file: 'docs/guide.md' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.selected).toEqual([]);
+  });
+
+  it('a helper that reads code files by pattern selects its users for a code change, not every test in the package', async () => {
+    // Like core's holotorch parity harness, which mentions `*.test.ts` in a comment.
+    const harness = 'packages/a/src/__tests__/harness.ts';
+    const parity = 'packages/a/src/__tests__/parity.test.ts';
+    const deps = repo2({
+      files: [harness, parity],
+      importers: { [harness]: [parity] },
+      contents: { [harness]: '// compares the outputs of every *.test.ts in this package' },
+      changes: [{ status: 'M', file: 'packages/a/src/unrelated.ts' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([parity, 'packages/a/src/__tests__/unrelated.test.ts']);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.viaHelpers).toEqual([
+      { helper: harness, reason: 'reads code files by pattern', tests: [parity] },
+    ]);
+  });
+
+  it('without a graph the helper keeps its package suite, with the reason', async () => {
+    const deps = repo2({ ...BASE, noGraph: true });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual(KEPT);
+    expect(report.tests.fullSuitePackages).toEqual([
+      {
+        pkg: 'packages/a',
+        reason: `${HELPER} names docs/guide.md by path and is test support code; without the graph the tests that use it cannot be listed, so its package suite is kept`,
+      },
+    ]);
+  });
+
+  it.each([
+    ['the graph does not hold the helper', { graphNodes: CODE_NODES }, 'it is not in the graph'],
+    [
+      'the walk from the helper is cut short',
+      { cutFor: [HELPER] },
+      'the graph could not list the tests that use it (traversal cut short: deadline)',
+    ],
+    [
+      'nothing reaches the helper',
+      { importers: {} },
+      'nothing imports it or names it by name, so the tests that use it cannot be seen',
+    ],
+  ])('the helper keeps its package suite when %s', async (_label, extra, because) => {
+    const report = await analyzeChangeImpact(
+      { repoRoot: ROOT, since: 'HEAD' },
+      repo2({ ...BASE, ...extra })
+    );
+
+    expect(report.tests.fullSuitePackages).toEqual([
+      {
+        pkg: 'packages/a',
+        reason: `${HELPER} names docs/guide.md by path and is test support code; ${because}, so its package suite is kept`,
+      },
+    ]);
+    expect(report.tests.selected).toEqual(KEPT);
   });
 });
 
@@ -1077,6 +1267,23 @@ describe('extractChangedExportedSymbols', () => {
     ]);
   });
 
+  it('reads paths git quotes (a non-ASCII name under core.quotePath)', () => {
+    // As git 2.51 prints it for src/café.ts.
+    const symbols = extractChangedExportedSymbols(
+      [
+        'diff --git "a/src/caf\\303\\251.ts" "b/src/caf\\303\\251.ts"',
+        '--- "a/src/caf\\303\\251.ts"',
+        '+++ "b/src/caf\\303\\251.ts"',
+        '@@ -1 +1 @@',
+        '-export function brew(a: number) {',
+        '+export function brew(a: number, b: number) {',
+      ].join('\n')
+    );
+    expect(symbols).toEqual([
+      { name: 'brew', kind: 'function', file: 'src/café.ts', change: 'signature' },
+    ]);
+  });
+
   it('ignores test files and declaration files', () => {
     const symbols = extractChangedExportedSymbols(
       [
@@ -1095,6 +1302,14 @@ describe('extractChangedExportedSymbols', () => {
       ].join('\n')
     );
     expect(symbols).toEqual([]);
+  });
+});
+
+describe('unquoteGitPath', () => {
+  it('undoes git C-style quoting and leaves a plain path alone', () => {
+    expect(unquoteGitPath('"b/src/caf\\303\\251.ts"')).toBe('b/src/café.ts');
+    expect(unquoteGitPath('"a/we\\"ird\\\\name\\t.ts"')).toBe('a/we"ird\\name\t.ts');
+    expect(unquoteGitPath('b/plain.ts')).toBe('b/plain.ts');
   });
 });
 
