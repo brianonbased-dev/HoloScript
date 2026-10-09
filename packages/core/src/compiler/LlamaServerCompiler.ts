@@ -9,7 +9,7 @@
 
 import { CompilerBase } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
-import { generateHoloScriptGbnf, isHoloScriptGrammarPreset } from './holoscript-gbnf';
+import { holoScriptGrammarForPreset, isHoloScriptGrammarPreset } from './holoscript-gbnf';
 import type {
   HoloComposition,
   HoloObjectDecl,
@@ -605,9 +605,12 @@ export class LlamaServerCompiler extends CompilerBase {
     // An author-supplied grammar path wins — don't also emit (and point away from) the
     // preset file. Only generate the preset GBNF when nothing else claimed grammarPath.
     if (cfg.grammarPath) return null;
-    const path = 'grammars/holoscript-subset.gbnf';
+    // `holoscript` is the whole-program grammar (one `composition` root);
+    // `holoscript-subset` is the root-less first subset.
+    if (!isHoloScriptGrammarPreset(cfg.grammarPreset)) return null;
+    const { path, content } = holoScriptGrammarForPreset(cfg.grammarPreset);
     cfg.grammarPath = path;
-    return { path, content: generateHoloScriptGbnf() };
+    return { path, content };
   }
 
   /**

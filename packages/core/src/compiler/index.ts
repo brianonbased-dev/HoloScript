@@ -574,8 +574,11 @@ export type {
 // HoloScript -> GBNF grammar generator — the `grammar: "holoscript"` constrained-decode path.
 export {
   generateHoloScriptGbnf,
+  holoScriptGrammarForPreset,
   isHoloScriptGrammarPreset,
   HOLOSCRIPT_GRAMMAR_PRESETS,
+  RESERVED_PROPERTY_NAMES,
+  RESERVED_GROUP_NAMES,
   DEFAULT_OBJECT_KEYWORDS,
   DEFAULT_PRIMITIVE_SHAPES,
   DEFAULT_MATERIAL_KEYWORDS,

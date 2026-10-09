@@ -354,7 +354,7 @@ describe('@holoscript/holollama', () => {
 
     expect(check.ok).toBe(true);
     expect(bundle.target).toBe('llama-server');
-    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript-subset.gbnf');
+    expect(bundle.launch.command).toContain('--grammar-file grammars/holoscript.gbnf');
     expect(bundle.launch.command).toContain('-m /opt/holoscript/models/qwen3-4b-instruct.gguf');
     expect(bundle.launch.command).toContain(
       '--lora /opt/holoscript/models/brittney-edge-v0-4.lora.gguf'
