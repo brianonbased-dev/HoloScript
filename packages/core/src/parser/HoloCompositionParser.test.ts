@@ -1325,6 +1325,30 @@ describe('HoloCompositionParser', () => {
       const result = parseHolo(source);
       expect(result.errors.length).toBeGreaterThan(0);
     });
+
+    // task_1791571249671_lhzu: inside composition { } a member whose sub-parser threw was
+    // dropped, with everything after it, while the parse reported success and no errors.
+    // The root-less path already kept the message; the composition body now does too.
+    it('reports a member whose sub-parser throws instead of dropping it silently', () => {
+      const transitionFromNumber = `composition "T" {
+        state_machine "door" {
+          state "closed" {
+            transitions: [ { target: "open" from: 1 } ]
+          }
+        }
+        object "after" { geometry: "cube" }
+      }`;
+      const deep = 8000;
+      const tooDeep = `composition "T" {
+        object "o" { v: ${'['.repeat(deep)}${']'.repeat(deep)} }
+        object "after" { geometry: "cube" }
+      }`;
+      for (const source of [transitionFromNumber, tooDeep]) {
+        const result = parseHolo(source);
+        expect(result.success).toBe(false);
+        expect(result.errors.length).toBeGreaterThan(0);
+      }
+    });
   });
 
   describe('Event handler blocks (regression: task_1780212452397_ma1z)', () => {

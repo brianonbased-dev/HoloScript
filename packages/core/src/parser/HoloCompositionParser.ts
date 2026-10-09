@@ -1144,6 +1144,14 @@ export class HoloCompositionParser {
         this.skipNewlines();
       } catch (err) {
         if (!this.options.tolerant) throw err;
+        // A sub-parser threw instead of reporting. Keep its message, as the root-less
+        // path does: recovering without it dropped the member and what followed while
+        // the parse still reported success with no errors.
+        this.errors.push({
+          message: err instanceof Error ? err.message : String(err),
+          loc: this.currentLocation(),
+          severity: 'error',
+        });
         this.recoverToNextStatement();
       }
     }
