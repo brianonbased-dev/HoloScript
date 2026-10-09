@@ -271,7 +271,50 @@ regardless of extension, on `origin/main` 257191940.
   now share one `parseParamNames()` that always makes progress and skips a whole `: Type`,
   including `Map<string, Array<i32>>`, `i32[]`, and `string | null`.
 
+**#13 (2026-10-08, directive 2 slice, board `task_1791502999374_vvnz`).** Inside a `.holo`
+body, the composition reader lost content with `success: true` in several ways, found by
+grading AI-written programs (ai-ecosystem receipt
+`receipts/holotune-native-authoring/2026-10-08-frontier-authoring-detail-regrade.json`):
+
+- An unquoted labelled block in an object, `animation fadeIn { property: "opacity" from: 0 to: 0.95 }`,
+  became two plain properties, `animation: true` and `fadeIn: { property: "opacity" }`, and
+  `from`/`to`/`duration`/`easing` were lost. A template body already read the same text as an
+  animation block. Claude Opus 5.5 wrote this form on all 6 of its hc-10 samples.
+- A template's labelled or bare block (`behavior "IoTSensor" { protocol: "MQTT" }`) kept its
+  name and an empty body.
+- A state's `on: { open: "opened" }`, `on open -> "opened"`, unknown `key: value`, and unknown
+  `key { }` were read and thrown away. The `state_machine` and `@state_machine` readers each did
+  this in their own copy.
+- A `spatial_group` inside an object was skipped token by token. Its closing brace then closed
+  the outer object, so every later sibling moved up to the composition
+  (`examples/export-pipelines/gltf-pbr-export.holo`, `usd-workflow.holo`).
+- An unknown token in an object body or a state was skipped with no word.
+
+**Fixed with this entry:**
+- Labelled blocks keep their body. It is read as `key: value` settings, or, when it is not
+  settings (code, a numeric-keyed table), kept token for token as `bodySource` with a
+  `HOLO_BODY_KEPT_AS_TEXT` warning.
+- An unquoted block name in an object reads as it does in a template.
+- State transitions become `StateTransition`s with `from`, `event` and `target`. Other members
+  are kept on a new `HoloState_Machine.properties`.
+- A nested `spatial_group` is kept as a directive, and its objects stay the object's children.
+- A token that can start no member is reported: `Unexpected "42" in object "a"`,
+  `Unexpected "on" followed by string "open" in state "closed"`.
+- A property test inserts 11 kinds of foreign token into object, template and state bodies,
+  and finds none that disappears with success.
+
+Measured by parsing all 1,956 tracked `.holo` files before and after:
+- No verdict changes (1,845 parse clean before and after).
+- 68 block bodies that were dropped are kept, 6 of them as text: C# `component` code in
+  `export-to-unity.holo`, a numeric `lod` table in `realistic-forest.holo`, and positioned
+  `hud_panel`/`light_ring` blocks in `uaal-collective.world.holo`.
+- The two export pipelines now nest correctly.
+
 **Still open:** #1 (routing), #2–#9, #11, #12; `zone` and `ui` taking a name plus traits.
+Also open: a file that starts with `composition` drops anything after that block with
+`success: true` (`gltf-pbr-export.holo:797-992`, `affordances/01-interactive-controls.holo:444`).
+Refusing it would fail about 20 examples, so it waits for its own task. Event-handler bodies
+(`on_click { ... }`) are still skipped unread.
 The JSON `.holo` files, and the two hololand examples, are also served by the MCP examples
 catalog (`packages/mcp-server/src/examples-catalog.ts`) as HoloScript examples (board task
 `task_1791229046894_rh9h`; tree-sitter #12 is `task_1791229046894_m209`).

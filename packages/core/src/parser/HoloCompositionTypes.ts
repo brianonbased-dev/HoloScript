@@ -1498,6 +1498,12 @@ export interface HoloState_Machine extends HoloNode {
   onDamage?: HoloStatement[];
   timeout?: number;
   onTimeout?: HoloStatement[];
+  /**
+   * Members the reader has no field for (`color: "red"`, `highlight { ... }`), kept as
+   * written rather than dropped. A block body that is not key: value settings is kept as
+   * `{ bodySource }`.
+   */
+  properties?: Record<string, HoloValue>;
 }
 
 export interface HoloStateTransition extends HoloNode {

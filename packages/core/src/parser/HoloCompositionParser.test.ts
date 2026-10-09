@@ -1717,3 +1717,151 @@ describe('Trait marker with no name (HS1005)', () => {
     });
   });
 });
+
+// Language directive 2 (board task_1791502999374_vvnz): every token is kept or refused.
+// Each case below parsed with success:true and lost its content before this change.
+describe('Keeps or refuses every token in object, template and state bodies', () => {
+  const directivesOf = (node: { directives?: unknown[] } | undefined) =>
+    (node?.directives ?? []) as Array<Record<string, any>>;
+
+  it('an unquoted labelled block in an object is the block, not two plain properties', () => {
+    // Claude Opus 5.5 wrote this form on all 6 of its hc-10 samples (2026-10-08 frontier eval).
+    const result = parseHolo(
+      'composition "Pulse" {\n  object "orb" {\n    geometry: "sphere"\n    animation fadeIn {\n      property: "opacity"\n      from: 0\n      to: 0.95\n      duration: 500\n      easing: "easeOutCubic"\n    }\n  }\n}'
+    );
+    expect(result.errors).toEqual([]);
+    const orb = result.ast!.objects[0];
+    expect(orb.properties.map((p) => p.key)).toEqual(['geometry']);
+    expect(directivesOf(orb)).toContainEqual(
+      expect.objectContaining({
+        type: 'animation',
+        name: 'fadeIn',
+        body: { property: 'opacity', from: 0, to: 0.95, duration: 500, easing: 'easeOutCubic' },
+      })
+    );
+  });
+
+  it('a template behavior block keeps its fields', () => {
+    const result = parseHolo(
+      'composition "Plant" { template "TempSensor" { @sensor behavior "IoTSensor" { protocol: "MQTT", qos: 1, samplingHz: 0.5 } } }'
+    );
+    expect(result.errors).toEqual([]);
+    expect(directivesOf(result.ast!.templates[0])).toContainEqual(
+      expect.objectContaining({
+        type: 'behavior',
+        name: 'IoTSensor',
+        body: { protocol: 'MQTT', qos: 1, samplingHz: 0.5 },
+      })
+    );
+  });
+
+  it('a block body that is not settings is kept as text with a warning, in a template and an object', () => {
+    const template = parseHolo(
+      'composition "T" { template "B" { behavior "Brain" { if (x > 1) { go() } } } }'
+    );
+    expect(template.success).toBe(true);
+    const brain = directivesOf(template.ast!.templates[0]).find((d) => d.name === 'Brain');
+    expect(brain?.bodySource).toBe('if ( x > 1 ) { go ( ) }');
+    expect(template.warnings.map((w) => w.code)).toContain('HOLO_BODY_KEPT_AS_TEXT');
+
+    const object = parseHolo('composition "O" { object "a" { gesture "near" { 0 { mesh: "hi" } } } }');
+    const gesture = directivesOf(object.ast!.objects[0]).find((d) => d.type === 'gesture');
+    expect(gesture?.bodySource).toContain('mesh');
+    expect(object.warnings.map((w) => w.code)).toContain('HOLO_BODY_KEPT_AS_TEXT');
+  });
+
+  it('a labelled block with no body in a template is kept', () => {
+    const result = parseHolo('composition "T" { template "B" { animation "idle"\n  color: "red" } }');
+    expect(directivesOf(result.ast!.templates[0])).toContainEqual(
+      expect.objectContaining({ type: 'animation', name: 'idle' })
+    );
+  });
+
+  it('state transitions written as on: { event: "target" } or on event -> "target" are kept, in both readers', () => {
+    const forms = [
+      'state "closed" { on: { open: "opened" } } state "opened" { on: { close: "closed" } }',
+      'state "closed" {\n on open -> "opened"\n }\n state "opened" {\n on close -> "closed"\n }',
+    ];
+    for (const states of forms) {
+      for (const machine of [
+        `state_machine "door" {\n initial: "closed"\n ${states}\n }`,
+        `@state_machine door {\n initial: "closed"\n ${states}\n }`,
+      ]) {
+        const result = parseHolo(`composition "Portal" {\n ${machine}\n}`);
+        expect(result.errors, machine).toEqual([]);
+        const door = result.ast!.stateMachines[0];
+        const transitions = Object.values(door.states).flatMap((s) => s.transitions);
+        expect(
+          transitions.map((t) => `${t.from}:${t.event}->${t.target}`),
+          machine
+        ).toEqual(['closed:open->opened', 'opened:close->closed']);
+      }
+    }
+  });
+
+  it('a token that cannot start a state member is reported, not dropped', () => {
+    const result = parseHolo(
+      'composition "Portal" {\n state_machine door {\n initial: "closed"\n state "closed" {\n on "open" transition to "opened"\n }\n }\n}'
+    );
+    expect(result.success).toBe(false);
+    expect(result.errors[0].message).toMatch(/^Unexpected "on" followed by string "open" in state "closed"/);
+  });
+
+  it('a token that cannot start an object member is reported, not dropped', () => {
+    const result = parseHolo('composition "X" { object "a" { geometry: "cube" 42 } }');
+    expect(result.success).toBe(false);
+    expect(result.errors[0].message).toMatch(/^Unexpected "42" in object "a"/);
+  });
+
+  it('a spatial_group inside an object is kept, and the objects after it stay inside the object', () => {
+    // examples/export-pipelines/gltf-pbr-export.holo: the group used to be skipped token by
+    // token, its closing brace then closed the OUTER object, and every later sibling moved
+    // up to the composition.
+    const result = parseHolo(
+      'composition "S" {\n object "Scene" {\n spatial_group "Materials" {\n object "Metal" { geometry: "sphere" }\n }\n object "Character" { geometry: "cube" }\n }\n}'
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.ast!.objects.map((o) => o.name)).toEqual(['Scene']);
+    const scene = result.ast!.objects[0];
+    expect((scene.children ?? []).map((c) => c.name)).toEqual(['Metal', 'Character']);
+    expect(directivesOf(scene)).toContainEqual(
+      expect.objectContaining({ type: 'spatial_group', name: 'Materials' })
+    );
+  });
+
+  it('property test: a foreign token in an object, template or state body is never lost with success', () => {
+    // Each fragment carries a marker. Either the parse fails, or the marker is somewhere in
+    // what the parser returned (AST, kept text, or a warning). Nothing vanishes in silence.
+    const fragments = [
+      (m: string) => `${m}`,
+      (m: string) => `"${m}"`,
+      (m: string) => `${m} { a: 1 }`,
+      (m: string) => `${m} "label" { a: 1 }`,
+      (m: string) => `${m} "label" { if (x) { y() } }`,
+      (m: string) => `animation ${m} { from: 0 }`,
+      (m: string) => `# ${m}`,
+      (m: string) => `${m} = 3`,
+      (m: string) => `${m}: 3`,
+      (m: string) => `42 ${m}`,
+      (m: string) => `-> ${m}`,
+    ];
+    const sites = [
+      (f: string) => `composition "P" { object "o" { geometry: "cube"\n ${f}\n } }`,
+      (f: string) => `composition "P" { template "t" { color: "red"\n ${f}\n } }`,
+      (f: string) =>
+        `composition "P" { state_machine "m" { initial: "s"\n state "s" {\n ${f}\n }\n } }`,
+    ];
+    const lost: string[] = [];
+    fragments.forEach((fragment, i) => {
+      sites.forEach((site, j) => {
+        const marker = `zzmark${i}x${j}`;
+        const source = site(fragment(marker));
+        const result = parseHolo(source);
+        if (!result.success) return;
+        const kept = JSON.stringify({ ast: result.ast, warnings: result.warnings });
+        if (!kept.includes(marker)) lost.push(source);
+      });
+    });
+    expect(lost).toEqual([]);
+  });
+});

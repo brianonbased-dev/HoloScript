@@ -1031,6 +1031,84 @@ export class HoloCompositionParser {
   }
 
   /**
+   * Skip a block { ... }, returning its inner tokens as text instead of losing them.
+   * Strings are re-quoted and line breaks kept, so the text reads as written.
+   */
+  private skipBlockCapturingSource(): string {
+    if (!this.check('LBRACE')) return '';
+    this.advance(); // {
+    let depth = 1;
+    const parts: string[] = [];
+    while (!this.isAtEnd()) {
+      if (this.check('LBRACE')) depth++;
+      if (this.check('RBRACE')) {
+        depth--;
+        if (depth === 0) break;
+      }
+      const token = this.current();
+      parts.push(
+        token.type === 'NEWLINE' ? '\n' : token.type === 'STRING' ? JSON.stringify(token.value) : String(token.value)
+      );
+      this.advance();
+    }
+    if (this.check('RBRACE')) this.advance(); // }
+    return parts.join(' ').replace(/ ?\n ?/g, '\n').trim();
+  }
+
+  /**
+   * The body of a labelled block: `animation "fadeIn" { ... }`, `behavior "Sensor" { ... }`.
+   * It is read as key: value settings when it is one. When it is not, it is kept, token for
+   * token, as `bodySource`, with a warning naming the first thing that could not be read.
+   * Skipping it, as the reader used to, dropped a behavior's protocol and an animation's
+   * timing while reporting success (language directive 2, board task_1791502999374_vvnz).
+   */
+  private parseLabeledBlockBody(blockType: string): {
+    body: Record<string, HoloValue> | '';
+    bodySource?: string;
+  } {
+    if (!this.check('LBRACE')) return { body: '' };
+    const startPos = this.pos;
+    const errorCount = this.errors.length;
+    let firstProblem = '';
+    try {
+      const body = this.parseBlockTraitConfig();
+      if (this.errors.length === errorCount) return { body };
+      firstProblem = this.errors[errorCount]?.message ?? '';
+    } catch (error) {
+      // Strict (non-tolerant) mode throws on the first problem; this is a speculative read.
+      firstProblem = error instanceof Error ? error.message : String(error);
+    }
+    this.pos = startPos;
+    this.errors.length = errorCount;
+    const loc = this.currentLocation();
+    const bodySource = this.skipBlockCapturingSource();
+    this.warnings.push({
+      message:
+        `The ${blockType} block's body is not key: value settings, so it is kept as text, not read` +
+        (firstProblem ? ` (${firstProblem.replace(/ \(in .*\)$/, '')})` : ''),
+      loc,
+      code: 'HOLO_BODY_KEPT_AS_TEXT',
+    });
+    return { body: '', bodySource };
+  }
+
+  /** The token type after the parenthesised group that starts at `offset` (an LPAREN). */
+  private peekPastParens(offset: number): string {
+    let index = offset;
+    let depth = 0;
+    while (true) {
+      const token = this.peek(index);
+      if (token.type === 'EOF') return 'EOF';
+      if (token.type === 'LPAREN') depth++;
+      if (token.type === 'RPAREN') {
+        depth--;
+        if (depth === 0) return this.peek(index + 1).type;
+      }
+      index++;
+    }
+  }
+
+  /**
    * Skip a block { ... } including nested blocks
    */
   private skipBlock(): void {
@@ -2229,27 +2307,26 @@ export class HoloCompositionParser {
         if (this.check('LPAREN')) {
           this.skipParens();
         }
-        if (this.check('LBRACE')) {
-          this.skipBlock(); // skip HoloScript property block (not code statements)
-          template.directives!.push({
-            type: blockType,
-            name: blockName,
-            parameters: [],
-            body: [],
-          });
-        }
+        // The body is read (or kept as text), never skipped; a label with no block is kept too.
+        const { body, bodySource } = this.parseLabeledBlockBody(blockType);
+        template.directives!.push({
+          type: blockType,
+          name: blockName,
+          parameters: [],
+          body,
+          ...(bodySource !== undefined ? { bodySource } : {}),
+        });
       } else if (this.isPropertyName() && this.peek(1).type === 'LBRACE') {
         // audio { } or unknown_block { } — bare block with no name
         const blockType = this.parsePropertyKey();
-        if (this.check('LBRACE')) {
-          this.skipBlock(); // skip HoloScript property block (not code statements)
-          template.directives!.push({
-            type: blockType,
-            name: '',
-            parameters: [],
-            body: [],
-          });
-        }
+        const { body, bodySource } = this.parseLabeledBlockBody(blockType);
+        template.directives!.push({
+          type: blockType,
+          name: '',
+          parameters: [],
+          body,
+          ...(bodySource !== undefined ? { bodySource } : {}),
+        });
       } else {
         const key = this.parsePropertyKey();
         this.expect('COLON');
@@ -2341,6 +2418,15 @@ export class HoloCompositionParser {
       ) {
         const nestedType = this.check('OBJECT') ? undefined : this.current().value.toLowerCase();
         children.push(this.parseObject(nestedType));
+      } else if (this.check('SPATIAL_GROUP') && this.peek(1).type !== 'COLON') {
+        // `spatial_group "Name" { ... }` inside an object. Its objects stay children of the
+        // object, as they already ended up; the group itself (its name, properties, lights and
+        // nested groups) is kept as a directive. The reader used to skip the `spatial_group`
+        // keyword and the name token by token, so the group vanished with 0 errors
+        // (language directive 2; examples/export-pipelines/gltf-pbr-export.holo).
+        const group = this.parseSpatialGroup();
+        children.push(...group.objects);
+        directives.push({ type: 'spatial_group', name: group.name, parameters: [], body: '', group });
       } else if (this.check('SUB_ORB')) {
         subOrbs.push(this.parseSubOrb());
       } else if ((this.check('ACTION') && this.peek(1).type !== 'COLON') || this.check('ASYNC')) {
@@ -2500,14 +2586,21 @@ export class HoloCompositionParser {
           const blockName = this.advance().value; // consume quoted name
           if (this.check('LPAREN')) this.skipParens();
           let parsedBody: Record<string, any> | '' = '';
+          let bodySource: string | undefined;
           if (this.check('LBRACE')) {
             if (key === 'on' || key.startsWith('on_') || /^on[A-Z]/.test(key)) {
               this.skipBlock();
             } else {
-              parsedBody = this.parseBlockTraitConfig();
+              ({ body: parsedBody, bodySource } = this.parseLabeledBlockBody(key));
             }
           }
-          directives.push({ type: key, name: blockName, parameters: [], body: parsedBody });
+          directives.push({
+            type: key,
+            name: blockName,
+            parameters: [],
+            body: parsedBody,
+            ...(bodySource !== undefined ? { bodySource } : {}),
+          });
         } else if (this.check('LBRACE')) {
           // `key { ... }` written WITHOUT a colon — most often an event handler
           // (`on_click { toggle_trait "x" }`). Mirror the `key: { ... }` handling
@@ -2522,6 +2615,25 @@ export class HoloCompositionParser {
           } else {
             properties.push({ type: 'ObjectProperty', key, value: this.parseValue() });
           }
+        } else if (
+          this.check('IDENTIFIER') &&
+          (this.peek(1).type === 'LBRACE' ||
+            (this.peek(1).type === 'LPAREN' && this.peekPastParens(1) === 'LBRACE')) &&
+          !(key === 'on' || key.startsWith('on_') || /^on[A-Z]/.test(key))
+        ) {
+          // `animation fadeIn { ... }`: a labelled block with an unquoted name, read as a
+          // template body reads it. Before, this became `animation: true` plus a property
+          // named after the label holding only the block's first setting.
+          const blockName = this.advance().value;
+          if (this.check('LPAREN')) this.skipParens();
+          const { body, bodySource } = this.parseLabeledBlockBody(key);
+          directives.push({
+            type: key,
+            name: blockName,
+            parameters: [],
+            body,
+            ...(bodySource !== undefined ? { bodySource } : {}),
+          });
         } else {
           // Bare identifier (like a trait without @)
           properties.push({ type: 'ObjectProperty', key, value: true });
@@ -2533,10 +2645,14 @@ export class HoloCompositionParser {
         if (this.check('LPAREN')) {
           this.skipParens();
         }
-        if (this.check('LBRACE')) {
-          this.skipBlock(); // skip HoloScript property block (not code statements)
-        }
-        directives.push({ type: blockType, name: blockName, parameters: [], body: '' });
+        const { body, bodySource } = this.parseLabeledBlockBody(blockType);
+        directives.push({
+          type: blockType,
+          name: blockName,
+          parameters: [],
+          body,
+          ...(bodySource !== undefined ? { bodySource } : {}),
+        });
       } else if (this.check('COLON')) {
         // Stray colon (e.g., from @anchored_to: "value" where the : isn't consumed)
         this.advance(); // skip colon
@@ -2544,7 +2660,13 @@ export class HoloCompositionParser {
           this.parseValue(); // consume the value
         }
       } else {
-        // Skip unknown tokens silently to prevent infinite loop
+        // Not part of an object body. Report it and move on (to prevent an infinite loop);
+        // it used to be skipped with no word, so the object parsed "clean" without it.
+        const token = this.current();
+        this.error(
+          `Unexpected ${token.type === 'STRING' ? 'string' : `"${token.value}"`} in object "${name}"`,
+          'An object body holds key: value properties, @traits, and named blocks such as animation "name" { ... }.'
+        );
         this.advance();
       }
       this.skipNewlines();
@@ -5207,6 +5329,102 @@ export class HoloCompositionParser {
   // BRITTNEY AI FEATURES - STATE MACHINES
   // ===========================================================================
 
+  /**
+   * A token that cannot start a state member. Still skipped (the infinite-loop guard), but
+   * reported: it used to vanish with no word (language directive 2).
+   */
+  private reportUnreadStateToken(stateName: string): void {
+    const token = this.current();
+    this.error(
+      `Unexpected ${token.type === 'STRING' ? `string "${token.value}"` : `"${token.value}"`} in state "${stateName}"`,
+      'A state holds key: value members (entry, exit, on: { event: "target" }, ...) or on event -> "target".'
+    );
+  }
+
+  /** `on event -> "target"` inside a state. True when one was read; it used to be dropped token by token. */
+  private parseStateOnShorthand(state: HoloState_Machine, stateName: string): boolean {
+    if (
+      this.current().value !== 'on' ||
+      !this.isStateNameToken(1) ||
+      !(this.peek(2).type === 'ARROW' || (this.peek(2).type === 'MINUS' && this.peek(3).type === 'GREATER'))
+    ) {
+      return false;
+    }
+    this.advance(); // on
+    const event = this.parseStateNameValue();
+    this.consumeStateTransitionArrow();
+    state.transitions.push({ type: 'StateTransition', from: stateName, event, target: this.parseStateNameValue() });
+    return true;
+  }
+
+  /** The text of a parenthesised group, consumed: `("placing", 2)`. */
+  private skipParensCapturingSource(): string {
+    if (!this.check('LPAREN')) return '';
+    let depth = 0;
+    const parts: string[] = [];
+    while (!this.isAtEnd()) {
+      if (this.check('LPAREN')) depth++;
+      if (this.check('RPAREN')) depth--;
+      const token = this.current();
+      parts.push(token.type === 'STRING' ? JSON.stringify(token.value) : String(token.value));
+      this.advance();
+      if (depth === 0) break;
+    }
+    return parts.join('').replace(/,/g, ', ');
+  }
+
+  /**
+   * A state member the reader has no field for, kept on `state.properties` (directive 2):
+   * `key: value` (a call such as `transition("placing")` kept as its text), or `key { ... }`.
+   * Both used to be read and thrown away.
+   */
+  private keepStateMember(state: HoloState_Machine, key: string, form: 'value' | 'block'): void {
+    state.properties ??= {};
+    if (form === 'block') {
+      const { body, bodySource } = this.parseLabeledBlockBody(key);
+      state.properties[key] = bodySource !== undefined ? { bodySource } : body;
+      return;
+    }
+    if (this.check('RBRACE') || this.isAtEnd()) {
+      state.properties[key] = null;
+      return;
+    }
+    let value = this.parseValue();
+    if (this.check('LPAREN')) value = `${String(value)}${this.skipParensCapturingSource()}`;
+    if (this.check('LBRACE')) {
+      const { body, bodySource } = this.parseLabeledBlockBody(key);
+      value = { call: value, body: bodySource !== undefined ? { bodySource } : body } as HoloValue;
+    }
+    state.properties[key] = value;
+  }
+
+  /**
+   * A member key with no `:`, `{` or `(` after it. Alone on its line it is kept as a flag,
+   * as a bare word is in an object body; followed by anything else it is refused, since
+   * nothing the reader knows starts that way (`animation fadeIn { }`, `open "opened"`).
+   */
+  private keepOrRefuseBareStateKey(state: HoloState_Machine, stateName: string, key: string): void {
+    if (this.check(['NEWLINE', 'RBRACE', 'SEMICOLON', 'COMMA', 'EOF'])) {
+      state.properties ??= {};
+      state.properties[key] = true;
+      return;
+    }
+    this.error(
+      `Unexpected "${key}" followed by ${this.current().type === 'STRING' ? `string "${this.current().value}"` : `"${this.current().value}"`} in state "${stateName}"`,
+      'A state holds key: value members (entry, exit, on: { event: "target" }, ...) or on event -> "target".'
+    );
+  }
+
+  /** `on: { open: "opened", close: "closed" }` inside a state; it used to be read and thrown away. */
+  private parseStateOnMap(state: HoloState_Machine, stateName: string): void {
+    const map = this.parseValue();
+    if (map && typeof map === 'object' && !Array.isArray(map)) {
+      for (const [event, target] of Object.entries(map as Record<string, HoloValue>)) {
+        state.transitions.push({ type: 'StateTransition', from: stateName, event, target: String(target) });
+      }
+    }
+  }
+
   private parseStateMachine(): HoloStateMachine {
     const startLoc = this.currentLocation();
     this.expect('STATE_MACHINE');
@@ -5266,9 +5484,14 @@ export class HoloCompositionParser {
               this.current().type !== 'IDENTIFIER' &&
               !this.isKeywordAsIdentifierType(this.current().type)
             ) {
+              this.reportUnreadStateToken(stateName);
               if (this.check('LPAREN')) this.skipParens();
               else if (this.check('LBRACE')) this.skipBlock();
               else this.advance();
+              continue;
+            }
+            if (this.parseStateOnShorthand(state, stateName)) {
+              this.skipNewlines();
               continue;
             }
             const key = this.expectIdentifier();
@@ -5296,17 +5519,12 @@ export class HoloCompositionParser {
                 state.timeout = this.parseValue() as number;
               } else if (key === 'onTimeout') {
                 state.onTimeout = this.parseStatementBlock();
+              } else if (key === 'on' && this.check('LBRACE')) {
+                this.parseStateOnMap(state, stateName);
               } else {
-                // Unknown key:value — consume the value (which may include
-                // a call expression like `transition("placing")`).
-                if (!this.check('RBRACE') && !this.isAtEnd()) {
-                  const v = this.parseValue();
-                  // parseValue() reads the identifier but NOT a following call
-                  // expression — skip any trailing parens/block.
-                  if (this.check('LPAREN')) this.skipParens();
-                  if (this.check('LBRACE')) this.skipBlock();
-                  void v;
-                }
+                // Unknown key:value (a call such as `transition("placing")` included):
+                // kept on state.properties, no longer read and thrown away.
+                this.keepStateMember(state, key, 'value');
               }
             } else if (this.check('LBRACE')) {
               // key { ... } shorthand (e.g., enter { ... })
@@ -5321,12 +5539,15 @@ export class HoloCompositionParser {
                 state.exit = this.parseStatementBlock();
                 this.expect('RBRACE');
               } else {
-                this.skipBlock();
+                this.keepStateMember(state, key, 'block');
               }
             } else if (this.check('LPAREN')) {
-              // Bare call expression (e.g. key was already the fn name): skip args.
-              this.skipParens();
-              if (this.check('LBRACE')) this.skipBlock();
+              // A bare call such as `go("x")`: kept as its text.
+              state.properties ??= {};
+              state.properties[key] = `${key}${this.skipParensCapturingSource()}`;
+              if (this.check('LBRACE')) this.keepStateMember(state, key, 'block');
+            } else {
+              this.keepOrRefuseBareStateKey(state, stateName, key);
             }
             this.skipNewlines();
           }
@@ -5447,9 +5668,14 @@ export class HoloCompositionParser {
               this.current().type !== 'IDENTIFIER' &&
               !this.isKeywordAsIdentifierType(this.current().type)
             ) {
+              this.reportUnreadStateToken(stateName);
               if (this.check('LPAREN')) this.skipParens();
               else if (this.check('LBRACE')) this.skipBlock();
               else this.advance();
+              continue;
+            }
+            if (this.parseStateOnShorthand(state, stateName)) {
+              this.skipNewlines();
               continue;
             }
             const key = this.expectIdentifier();
@@ -5473,12 +5699,10 @@ export class HoloCompositionParser {
                 state.transitions = this.parseStateTransitions();
               } else if (key === 'timeout') {
                 state.timeout = this.parseValue() as number;
+              } else if (key === 'on' && this.check('LBRACE')) {
+                this.parseStateOnMap(state, stateName);
               } else {
-                if (!this.check('RBRACE') && !this.isAtEnd()) {
-                  this.parseValue();
-                  if (this.check('LPAREN')) this.skipParens();
-                  if (this.check('LBRACE')) this.skipBlock();
-                }
+                this.keepStateMember(state, key, 'value');
               }
             } else if (this.check('LBRACE')) {
               if (key === 'enter' || key === 'entry' || key === 'on_entry') {
@@ -5494,11 +5718,14 @@ export class HoloCompositionParser {
               } else if (key === 'transitions') {
                 state.transitions = this.parseStateTransitions();
               } else {
-                this.skipBlock();
+                this.keepStateMember(state, key, 'block');
               }
             } else if (this.check('LPAREN')) {
-              this.skipParens();
-              if (this.check('LBRACE')) this.skipBlock();
+              state.properties ??= {};
+              state.properties[key] = `${key}${this.skipParensCapturingSource()}`;
+              if (this.check('LBRACE')) this.keepStateMember(state, key, 'block');
+            } else {
+              this.keepOrRefuseBareStateKey(state, stateName, key);
             }
             this.skipNewlines();
           }
