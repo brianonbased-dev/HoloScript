@@ -43,8 +43,15 @@ describe('generateHoloScriptGbnf', () => {
       // number = -?[0-9]+(\.[0-9]+)? — the production lexer allows no exponent form.
       expect(gbnf).toContain('number ::= "-"? [0-9]+ ("." [0-9]+)?');
       expect(gbnf).not.toContain('[eE]');
-      // identifiers cannot start with a digit.
-      expect(gbnf).toMatch(/ident ::= \[a-zA-Z_\] (\[a-zA-Z0-9_\]\*|ident-tail)/);
+      // identifiers cannot start with a digit: the subset's `ident`, and in the whole-program
+      // grammar the first character class of every name rule (`name ::= [...] ident-tail`).
+      if (_root === 'definitions') {
+        expect(gbnf).toMatch(/ident ::= \[a-zA-Z_\] \[a-zA-Z0-9_\]\*/);
+      } else {
+        const starts = [...gbnf.matchAll(/^[\w-]+ ::= \[([^\]]*)\] ident-tail/gm)].map((m) => m[1]);
+        expect(starts.length).toBeGreaterThan(3);
+        for (const start of starts) expect(start).not.toMatch(/[0-9]/);
+      }
     }
   );
 

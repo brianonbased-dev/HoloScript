@@ -301,13 +301,18 @@ describe('whole-program HoloScript grammar (composition root)', () => {
   );
   const quoted = (pattern: RegExp) => [...parserSource.matchAll(pattern)].map((m) => m[1]);
   const parserKeys = quoted(/\bkey === '(\w+)'/g);
-  const parserTraitNames = quoted(/\b(?:traitName|decoratorName) === '(\w+)'/g);
+  // Every identifier the parser quotes anywhere: names it compares a trait to are not
+  // always written `traitName === '...'` (`@platform` is `.toLowerCase() === 'platform'`).
+  const parserNames = [...new Set(quoted(/'([A-Za-z_][A-Za-z0-9_]*)'/g))];
   const keywordsAndShapes = [...Object.keys(KEYWORDS), ...PRIMITIVE_SHAPES];
   const notPropertyNames = (words: string[]) =>
-    [...new Set(words)].filter((w) => !(RESERVED_PROPERTY_NAMES as readonly string[]).includes(w));
+    [...new Set(words)].filter(
+      (w) => !(RESERVED_PROPERTY_NAMES as readonly string[]).includes(w.toLowerCase())
+    );
 
   it('the reserved state-machine names are exactly the keys a state machine refuses', () => {
     expect(parserKeys.length).toBeGreaterThan(100);
+    expect(parserNames.length).toBeGreaterThan(500);
     const sm = (body: string) => `composition "C" {\n  state_machine "d" {\n${body}\n  }\n}`;
     // Each key is followed by another property: `onDamage:` reads statements up to the `}`.
     const positions = [
@@ -315,7 +320,7 @@ describe('whole-program HoloScript grammar (composition root)', () => {
       (k: string, v: string) => sm(`    state "s" {\n      ${k}: ${v}\n      x: 1\n    }`),
     ];
     const values = ['1', '"s"', '{ a: 1 }'];
-    const refused = notPropertyNames([...parserKeys, ...keywordsAndShapes])
+    const refused = notPropertyNames([...parserNames, ...keywordsAndShapes])
       .filter((k) => positions.some((mk) => values.some((v) => errorsOf(mk(k, v)).length > 0)))
       .sort();
     expect(refused).toEqual([...RESERVED_MACHINE_NAMES].sort());
@@ -324,34 +329,61 @@ describe('whole-program HoloScript grammar (composition root)', () => {
     }
   }, 120_000);
 
-  it('a transition refuses only a `from` that is not a string, and the grammar writes it as one', () => {
+  it('a transition refuses only `from` that is not a string and a quoted key in `condition` / `when`; the grammar writes those', () => {
     const transition = (pair: string) =>
       `composition "C" {\n  state_machine "d" {\n    state "s" {\n      transitions: [ { target: "s" ${pair} } ]\n    }\n  }\n}`;
-    const values = ['1', '"s"', '{ a: 1 }', '[1, 2]', 'true'];
-    const refused = notPropertyNames([...parserKeys, ...keywordsAndShapes])
+    const values = ['1', '"s"', '{ a: 1 }', '[1, 2]', 'true', '{ "a": 1 }', '[1, { "a": 2 }]'];
+    const refused = notPropertyNames([...parserNames, ...keywordsAndShapes])
       .filter((k) => values.some((v) => errorsOf(transition(`${k}: ${v}`)).length > 0))
       .sort();
-    expect(refused).toEqual(['from']);
+    expect(refused).toEqual(['condition', 'from', 'when']);
     expect(gbnfAccepts(grammar, transition('from: "s"'))).toBe(true);
     expect(gbnfAccepts(grammar, transition('from: 1'))).toBe(false);
+    for (const key of ['condition', 'when']) {
+      expect(gbnfAccepts(grammar, transition(`${key}: { a: [1, { b: "x" }] }`)), key).toBe(true);
+      expect(gbnfAccepts(grammar, transition(`${key}: { "a": 1 }`)), key).toBe(false);
+      expect(gbnfAccepts(grammar, transition(`${key}: [1, { "a": 2 }]`)), key).toBe(false);
+    }
+    // Another key may still hold a quoted key.
+    expect(gbnfAccepts(grammar, transition('event: { "a": 1 }'))).toBe(true);
   }, 120_000);
 
-  it('a trait name is refused only as `@version` in a template, which the grammar writes as `@version(N)`', () => {
+  it('a trait name is refused only as `@version` in a template and `@platform` on an object; the grammar writes both', () => {
     const at = (body: string) => `composition "C" {\n${body}\n}`;
     const positions: Record<string, (t: string) => string> = {
       object: (t) => at(`  object "o" {\n    ${t}\n    x: 1\n  }`),
+      child: (t) => at(`  object "o" {\n    object "c" {\n      ${t}\n      x: 1\n    }\n  }`),
       template: (t) => at(`  template "T" {\n    ${t}\n    x: 1\n  }`),
       material: (t) => at(`  material "m" {\n    ${t}\n    x: 1\n  }`),
+      primitive: (t) => at(`  cube {\n    ${t}\n    x: 1\n  }`),
+      objectHeader: (t) => at(`  object "o" ${t} {\n    x: 1\n  }`),
+      materialHeader: (t) => at(`  material "m" ${t} {\n    x: 1\n  }`),
     };
-    const forms = ['', '(a: 1)', ' { a: 1 }'];
+    const forms = (where: string) =>
+      where.endsWith('Header') ? ['', '()', '(a: 1)'] : ['', '()', '(a: 1)', ' { a: 1 }'];
     const refused: string[] = [];
-    for (const word of new Set([...keywordsAndShapes, ...parserTraitNames])) {
+    for (const word of new Set([...keywordsAndShapes, ...parserNames])) {
       for (const [where, mk] of Object.entries(positions)) {
-        if (forms.some((f) => errorsOf(mk(`@${word}${f}`)).length > 0))
+        if (forms(where).some((f) => errorsOf(mk(`@${word}${f}`)).length > 0))
           refused.push(`${where} @${word}`);
       }
     }
-    expect(refused).toEqual(['template @version']);
+    expect(refused.sort()).toEqual([
+      'child @platform',
+      'object @platform',
+      'objectHeader @platform',
+      'template @version',
+    ]);
+    for (const where of ['object', 'child', 'objectHeader']) {
+      const mk = positions[where];
+      expect(errorsOf(mk('@platform("quest", "web")')), where).toEqual([]);
+      expect(gbnfAccepts(grammar, mk('@platform("quest", "web")')), where).toBe(true);
+      expect(gbnfAccepts(grammar, mk('@platform')), where).toBe(false);
+      expect(gbnfAccepts(grammar, mk('@platform()')), where).toBe(false);
+      expect(gbnfAccepts(grammar, mk('@Platform("quest")')), where).toBe(false);
+      expect(gbnfAccepts(grammar, mk('@platforms')), where).toBe(true);
+    }
+    expect(gbnfAccepts(grammar, positions.object('@platform { a: 1 }'))).toBe(false);
     const template = positions.template;
     expect(errorsOf(template('@version(2)'))).toEqual([]);
     expect(gbnfAccepts(grammar, template('@version(2)'))).toBe(true);

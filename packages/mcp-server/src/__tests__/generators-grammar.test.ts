@@ -13,8 +13,9 @@ import { generateHoloScriptGbnf } from '@holoscript/core/compiler';
 const state = vi.hoisted(() => ({
   registered: ['local-llm'] as string[],
   calls: [] as Array<{ provider: string; request: Record<string, unknown> }>,
-  // A server that refuses a GBNF grammar (HoloServe takes a grammar name and answers 400).
-  refuseGrammar: false,
+  // How the server fails a request that carries the grammar: a status code (HoloServe takes
+  // a grammar name and answers 400), or a failure with none (a timeout); null succeeds.
+  failWithGrammar: null as null | { statusCode?: number; message: string },
 }));
 
 vi.mock('@holoscript/llm-provider', () => ({
@@ -23,8 +24,9 @@ vi.mock('@holoscript/llm-provider', () => ({
     getProvider: (name: string) => ({
       generateHoloScript: async (request: Record<string, unknown>) => {
         state.calls.push({ provider: name, request });
-        if (state.refuseGrammar && 'grammar' in request) {
-          throw new Error('400 Bad Request: unknown grammar');
+        if (state.failWithGrammar && 'grammar' in request) {
+          const { statusCode, message } = state.failWithGrammar;
+          throw Object.assign(new Error(message), statusCode ? { statusCode } : {});
         }
         return {
           code: 'composition "Lamp" {\n  object "lamp" {\n    geometry: "sphere"\n  }\n}',
@@ -39,13 +41,16 @@ vi.mock('@holoscript/llm-provider', () => ({
 describe('generators — grammar guard for local models', () => {
   beforeEach(() => {
     state.calls.length = 0;
-    state.refuseGrammar = false;
+    state.failWithGrammar = null;
     delete process.env.HOLOSCRIPT_MCP_AI_PROVIDER;
   });
 
   it('a local-llm server that refuses the grammar is asked once more without it', async () => {
     state.registered = ['local-llm'];
-    state.refuseGrammar = true;
+    state.failWithGrammar = {
+      statusCode: 400,
+      message: 'Local LLM server returned 400: unknown grammar',
+    };
     const { generateSceneForMCP } = await import('../generators');
     const result = await generateSceneForMCP('a lamp');
     expect(result.source).toBe('ai');
@@ -54,7 +59,27 @@ describe('generators — grammar guard for local models', () => {
     expect(state.calls[0].request.grammar).toBe(generateHoloScriptGbnf());
     expect(state.calls[1].provider).toBe('local-llm');
     expect(state.calls[1].request).not.toHaveProperty('grammar');
+    expect(result.grammarDropped).toBe(true);
   });
+
+  // claude6, rnbt round 2: only a refusal of the grammar earns the second call. The adapter
+  // already retried a 5xx, and a timeout repeated without the grammar doubles the wait.
+  it.each([
+    ['a 503', { statusCode: 503, message: 'Local LLM server returned 503: busy' }],
+    ['a timeout', { message: 'The operation was aborted due to timeout' }],
+  ])(
+    '%s with the grammar makes exactly one call and keeps the grammar',
+    async (_label, failure) => {
+      state.registered = ['local-llm'];
+      state.failWithGrammar = failure;
+      const { generateSceneForMCP } = await import('../generators');
+      const result = await generateSceneForMCP('a lamp');
+      expect(state.calls).toHaveLength(1);
+      expect(state.calls[0].request.grammar).toBe(generateHoloScriptGbnf());
+      expect(result.source).toBe('heuristic');
+      expect(result.grammarDropped).toBeUndefined();
+    }
+  );
 
   it('a .holo scene request to local-llm carries the whole-program grammar', async () => {
     state.registered = ['local-llm'];
