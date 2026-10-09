@@ -44,7 +44,11 @@ const KEEP_ENV = new Set(
 const keepEnv = (k: string) =>
   KEEP_ENV.has(k.toUpperCase()) || k.startsWith('VITEST') || k.startsWith('TINYPOOL');
 
-export type Reply = { status: number; body: Record<string, unknown> };
+export type Reply = {
+  status: number;
+  body: Record<string, unknown>;
+  headers?: http.IncomingHttpHeaders;
+};
 
 export interface RealHttpServer {
   port: number;
@@ -142,7 +146,7 @@ export async function bootRealHttpServer(options: {
             } catch {
               body = { raw: text };
             }
-            resolve({ status: res.statusCode ?? 0, body });
+            resolve({ status: res.statusCode ?? 0, body, headers: res.headers });
           });
         }
       );

@@ -1,5 +1,24 @@
 # @holoscript/studio-api
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @holoscript/core@8.9.0
+
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [7c22951]
+- Updated dependencies [664f178]
+- Updated dependencies [d587a34]
+- Updated dependencies [64f7022]
+- Updated dependencies [d26629c]
+  - @holoscript/core@8.7.0
+  - @holoscript/mcp-server@8.1.0
+
 ## 1.0.4
 
 ### Patch Changes
