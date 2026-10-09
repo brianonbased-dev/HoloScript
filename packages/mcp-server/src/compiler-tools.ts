@@ -2238,8 +2238,8 @@ export const compilerTools: Tool[] = [
       'perceivers (webgpu = the human eye, agent-inference = the agent context, urdf = the ' +
       'robot stack), re-derives world facts from each EMITTED artifact (never the shared AST), ' +
       'and diffs them into a PerceiverConsensusReceipt. Any disagreement flips the verdict to ' +
-      'FALSIFIED. FALSIFIED is a hard failure (fail the pipeline, exit non-zero), never a ' +
-      'warning. Needs at least 2 perceivers.',
+      'FALSIFIED. FALSIFIED is LOAD-BEARING: a hard failure (fail the pipeline, exit ' +
+      'non-zero) that must NEVER be demoted to a warning. Needs at least 2 perceivers.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2275,8 +2275,9 @@ export const compilerTools: Tool[] = [
       'Provenance oracle for an agent-authored 2D .holo surface: does every data-bound element ' +
       'prove what it renders? Re-derives the @verified_view contract Native2DCompiler enforces ' +
       'and returns EVERY violation at once (mismatched-node, missing-projects, ' +
-      'hallucinated-root, projects-without-binding, no-verified-view). complete: false is a ' +
-      'hard failure, never a warning; unverifiable input is an error, never a false clean.',
+      'hallucinated-root, projects-without-binding, no-verified-view). complete: false is ' +
+      'LOAD-BEARING: a hard failure, never demoted to a warning; unverifiable input is an ' +
+      'error, never a false clean.',
     inputSchema: {
       type: 'object',
       properties: {
