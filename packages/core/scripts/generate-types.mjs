@@ -6464,6 +6464,7 @@ export declare function holoScriptGrammarForPreset(preset: HoloScriptGrammarPres
 };
 export declare const RESERVED_PROPERTY_NAMES: readonly string[];
 export declare const RESERVED_GROUP_NAMES: readonly string[];
+export declare const RESERVED_MACHINE_NAMES: readonly string[];
 export declare const DEFAULT_OBJECT_KEYWORDS: readonly string[];
 export declare const DEFAULT_PRIMITIVE_SHAPES: readonly string[];
 export declare const DEFAULT_MATERIAL_KEYWORDS: readonly string[];

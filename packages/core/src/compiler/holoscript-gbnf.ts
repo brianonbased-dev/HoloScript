@@ -18,11 +18,17 @@
  *     values include inline objects (`material: { baseColor: "#ff6b6b" }`), traits may
  *     carry a settings block (`@grabbable { hand: "both" }`), and line breaks and `//`
  *     comments go between items; a block header and a `key: value` stay on one line,
- *     because the parser refuses a line break there in several block kinds. Every quickstart scene
- *     (examples/quickstart/*.holo) and every author_holo reference answer of the
- *     edge coding benchmark is accepted; every program the grammar can produce
- *     parses with zero errors under parseHolo and the strict layer
- *     (holoscript-gbnf.acceptance.test.ts samples hundreds to prove it).
+ *     because the parser refuses a line break there in several block kinds. A state
+ *     machine's states list `transitions: [ { target: "b" event: "go" } ]` in the one
+ *     shape its parser takes. Every quickstart scene (examples/quickstart/*.holo), every
+ *     author_holo reference answer of the edge coding benchmark and the two whole
+ *     programs written for the generator prompt (Workshop, Crossing) are accepted.
+ *     Every program the grammar can produce
+ *     is built to parse with zero errors under parseHolo and the strict layer, and
+ *     holoscript-gbnf.acceptance.test.ts checks that two ways: it samples 400 programs
+ *     on every run (20,000 parsed with 0 errors on 2026-10-09), and it re-measures every
+ *     excluded property name, state-machine key, transition key and trait name against
+ *     the parser, failing when the grammar and the parser disagree.
  *   - `definitions`: the first subset, root-less top-level definitions (keyword
  *     objects, material blocks, primitives). Kept byte-identical for the
  *     `holoscript-subset` preset so receipts that name it can be re-derived. Do NOT
@@ -93,6 +99,9 @@ export const DEFAULT_MATERIAL_KEYWORDS = ['material'] as const;
  * against the parser, not guessed: holoscript-gbnf.acceptance.test.ts re-measures every
  * lexer keyword in every one of those positions and fails when this list and the
  * parser disagree in either direction, so a new lexer keyword shows up there first.
+ * It is one list for all those positions, their union: a word the parser refuses in any
+ * of them is left out of all of them, so in some positions the grammar is narrower than
+ * the parser (never wider). The other reserved lists below work the same way.
  */
 // prettier-ignore
 export const RESERVED_PROPERTY_NAMES = [
@@ -119,6 +128,22 @@ export const RESERVED_GROUP_NAMES = [
   'achievement', 'action', 'animate', 'composition', 'element', 'emit', 'from', 'light',
   'node', 'on_error', 'return', 'spatial_container', 'spatial_group', 'state_machine',
   'talent_tree', 'template', 'theme',
+] as const;
+
+/**
+ * Keys a state machine's parser reads itself, so they take only its own shapes: in the
+ * machine body `states`, `transitions` and `listen` (`input` is a keyword, already in
+ * {@link RESERVED_PROPERTY_NAMES}); in a state `actions`, `enter`,
+ * `entry`, `exit`, `transitions`, the five `blend` spellings (one of two words each), and
+ * `onDamage` / `onTimeout`, which read statements up to the state's `}` and so swallow the
+ * next property (measured: `transitions: 1`, `enter: 1` and `blend: 1` are errors). The
+ * grammar leaves them out of state-machine property names and writes a state's
+ * `transitions:` itself, in the one shape the parser takes (see `state-transitions`).
+ */
+// prettier-ignore
+export const RESERVED_MACHINE_NAMES = [
+  'actions', 'blend', 'blendMode', 'blendType', 'blend_mode', 'blend_type', 'enter', 'entry',
+  'exit', 'listen', 'onDamage', 'onTimeout', 'states', 'transitions',
 ] as const;
 
 /** GBNF alternation of quoted literals: ["a","b"] -> `"a" | "b"`. Empty -> a never-matching rule. */
@@ -287,7 +312,10 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     // `object "c" @g(1) {`, and a `using` grandchild of `object "c" @m {`.
     'object-item ::= trait | property | animation | state-block | behavior | child-object',
     `child-object ::= "object" sp string (sp "using" sp string)? hs "{" ws ${items('object-item')} ws "}"`,
-    `template ::= "template" sp string hs "{" ws ${items('object-item')} ws "}"`,
+    `template ::= "template" sp string hs "{" ws ${items('template-item')} ws "}"`,
+    // In a template body `@version` is the schema version and takes only `(N)`.
+    'template-item ::= template-trait | property | animation | state-block | behavior | child-object',
+    'template-trait ::= "@" trait-name (trait-args | hs props)? | "@version(" [0-9]+ ")"',
     `group ::= "spatial_group" sp string hs "{" ws ${items('group-item')} ws "}"`,
     'group-item ::= group-property | object | group',
     'trigger ::= "trigger" sp string hs props',
@@ -300,14 +328,28 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     'effect-sep ::= wsp | ws "," ws',
     // A state machine needs a non-empty name; the parser refuses `state_machine ""`.
     `state-machine ::= "state_machine" sp "\\"" str-char+ "\\"" hs "{" ws ${items('machine-item')} ws "}"`,
-    'machine-item ::= property | machine-state',
-    'machine-state ::= "state" sp string hs props',
+    'machine-item ::= machine-property | machine-state',
+    'machine-property ::= machine-name hs ":" hs value (hs ",")?',
+    `machine-state ::= "state" sp string hs "{" ws ${items('state-item')} ws "}"`,
+    'state-item ::= machine-property | state-transitions',
+    // A state's transitions are blocks whose pairs are separated by whitespace, never by
+    // commas (`{ target: "b", event: "go" }` is an error); a comma may follow a block on
+    // the same line (`}` then a line break then `,` is an error).
+    'state-transitions ::= "transitions" hs ":" hs "[" ws (transition (transition-sep transition)* (hs ",")?)? ws "]"',
+    'transition-sep ::= wsp | hs "," ws',
+    `transition ::= "{" ws ${items('transition-pair')} ws "}"`,
+    // `from` takes only a string (the parser lower-cases it; `from: 1` throws), so the
+    // names exclude it with the other group keywords and it is written here.
+    'transition-pair ::= group-name hs ":" hs value | "from" hs ":" hs string',
     'animation ::= "animation" sp string hs props',
     'state-block ::= "state" hs props',
     'behavior ::= "behavior" sp string hs props',
-    `material ::= material-kw sp string (sp header-trait)* hs "{" ws ${items('trait-or-property')} ws "}"`,
-    `primitive ::= prim-shape (sp string)? hs "{" ws ${items('trait-or-property')} ws "}"`,
-    'trait-or-property ::= trait | property',
+    // Primitive and material bodies refuse the group-position keywords too
+    // (`cube { emit: 1 }` is "Unexpected token in primitive object: EMIT").
+    `material ::= material-kw sp string (sp header-trait)* hs "{" ws ${items('trait-or-body-property')} ws "}"`,
+    `primitive ::= prim-shape (sp string)? hs "{" ws ${items('trait-or-body-property')} ws "}"`,
+    'trait-or-body-property ::= trait | body-property',
+    'body-property ::= group-name hs ":" hs value (hs ",")?',
     '',
     `object-kw ::= ${literalAlternation(objectKeywords)}`,
     `material-kw ::= ${literalAlternation(materialKeywords)}`,
@@ -346,6 +388,12 @@ function compositionGrammar(options: HoloScriptGbnfOptions): string {
     '',
     '# Group property, trait-argument and effect names exclude a few more.',
     ...identExcluding('group-name', [...RESERVED_PROPERTY_NAMES, ...RESERVED_GROUP_NAMES]),
+    '',
+    '# State-machine property names exclude the keys its parser reads itself.',
+    ...identExcluding('machine-name', [...RESERVED_PROPERTY_NAMES, ...RESERVED_MACHINE_NAMES]),
+    '',
+    '# Template trait names: any identifier but `version` (written as `@version(N)`).',
+    ...identExcluding('trait-name', ['version']),
     '',
     'sp ::= [ \\t]+',
     'hs ::= [ \\t]*',

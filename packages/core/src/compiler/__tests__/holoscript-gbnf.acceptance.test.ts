@@ -17,6 +17,7 @@ import {
   generateHoloScriptGbnf,
   holoScriptGrammarForPreset,
   RESERVED_GROUP_NAMES,
+  RESERVED_MACHINE_NAMES,
   RESERVED_PROPERTY_NAMES,
 } from '../holoscript-gbnf';
 import { parseHolo, tokenizeHoloSource } from '../../parser/HoloCompositionParser';
@@ -97,7 +98,84 @@ const UNCONSTRAINED_QWEN: Record<string, string> = {
     'composition "Portal" {\n  object "Door" {\n    @collidable\n    @physics\n    @state_machine {\n      initial: "closed"\n      states: {\n        "closed": {\n          transitions: {\n            "open": { condition: "triggered", action: "set state to \'opened\'" }\n          }\n        },\n        "opened": {\n          transitions: {\n            "close": { condition: "triggered", action: "set state to \'closed\'" }\n          }\n        }\n      }\n    }\n    geometry: "plane"\n    position: [0, 1, 0]\n    scale: [2, 0.5, 2]\n    material: { baseColor: "#333333", roughness: 0.8, metallic: 0.1 }\n  }\n}',
 };
 
+// The two whole programs written for the generator prompt beside its example (claude10,
+// packages/llm-provider/src/base-adapter.ts at cef2eb6ad, not yet on main), copied
+// verbatim: a model held to the grammar must be able to write what the prompt shows it.
+const PROMPT_PROGRAMS: Record<string, string> = {
+  Workshop: [
+    'composition "Workshop" {',
+    '  template "Lantern" {',
+    '    @glowing',
+    '    @clickable',
+    '    color: "#ffb347"',
+    '    state {',
+    '      lit: true',
+    '      fuel: 100',
+    '    }',
+    '  }',
+    '',
+    '  spatial_group "bench" {',
+    '    position: [2, 0.9, -3]',
+    '    // both lanterns share the Lantern template',
+    '    object "lanternLeft" using "Lantern" {',
+    '      geometry: "cylinder"',
+    '      position: [-0.4, 0, 0]',
+    '    }',
+    '    object "lanternRight" using "Lantern" {',
+    '      geometry: "cylinder"',
+    '      position: [0.4, 0, 0]',
+    '    }',
+    '  }',
+    '}',
+  ].join('\n'),
+  Crossing: [
+    'composition "Crossing" {',
+    '  state_machine "signal" {',
+    '    initial: "green"',
+    '    state "green" {',
+    '      transitions: [',
+    '        {',
+    '          target: "amber"',
+    '          event: "walk_request"',
+    '        }',
+    '      ]',
+    '    }',
+    '    state "amber" {',
+    '      transitions: [',
+    '        {',
+    '          target: "red"',
+    '          event: "timer_done"',
+    '        }',
+    '      ]',
+    '    }',
+    '    state "red" {',
+    '      transitions: [',
+    '        {',
+    '          target: "green"',
+    '          event: "timer_done"',
+    '        }',
+    '      ]',
+    '    }',
+    '  }',
+    '',
+    '  object "signalHead" {',
+    '    @clickable',
+    '    geometry: "cylinder"',
+    '    position: [0, 3, -4]',
+    '  }',
+    '}',
+  ].join('\n'),
+};
+
 describe('whole-program HoloScript grammar (composition root)', () => {
+  it.each(Object.entries(PROMPT_PROGRAMS))(
+    'accepts the generator prompt program %s',
+    (_id, source) => {
+      expect(errorsOf(source)).toEqual([]);
+      expect(gbnfAccepts(grammar, source)).toBe(true);
+    }
+  );
+
   it.each(Object.entries(UNCONSTRAINED_QWEN))(
     'accepts what Qwen3-4B wrote unconstrained for %s',
     (_id, source) => {
@@ -156,6 +234,13 @@ describe('whole-program HoloScript grammar (composition root)', () => {
     'an exponent number': 'composition "A" {\n  object "a" {\n    x: 1e3\n  }\n}',
     'an unterminated string': 'composition "A" {\n  object "a" {\n    x: "open\n  }\n}',
     'a named environment': 'composition "A" {\n  environment "e" {\n    x: 1\n  }\n}',
+    'a comma on the line after a transition':
+      'composition "A" {\n  state_machine "d" {\n    state "s" {\n      transitions: [\n        { target: "s" }\n        ,\n      ]\n    }\n  }\n}',
+    'a comma between the pairs of a transition':
+      'composition "A" {\n  state_machine "d" {\n    state "s" {\n      transitions: [ { target: "s", event: "go" } ]\n    }\n  }\n}',
+    '`blend` as a state property':
+      'composition "A" {\n  state_machine "d" {\n    state "s" {\n      blend: 1\n    }\n  }\n}',
+    'a bare `@version` in a template': 'composition "A" {\n  template "T" {\n    @version\n  }\n}',
   };
   it.each(Object.entries(NEGATIVES))('refuses %s', (_label, source) => {
     expect(gbnfAccepts(grammar, source)).toBe(false);
@@ -196,6 +281,9 @@ describe('whole-program HoloScript grammar (composition root)', () => {
       (k) => at(`  spatial_group "g" {\n    ${k}: 1\n  }`),
       (k) => at(`  object "o" {\n    @physics(${k}: 1)\n  }`),
       (k) => at(`  post_processing {\n    ${k} {\n      a: 1\n    }\n  }`),
+      // Primitive and material bodies refuse the group keywords too (`cube { emit: 1 }`).
+      (k) => at(`  material "m" {\n    ${k}: 1\n  }`),
+      (k) => at(`  cube {\n    ${k}: 1\n  }`),
     ];
     const refused = (positions: Array<(k: string) => string>) =>
       words.filter((k) => positions.some((mk) => errorsOf(mk(k)).length > 0)).sort();
@@ -204,6 +292,73 @@ describe('whole-program HoloScript grammar (composition root)', () => {
     expect(property).toEqual([...RESERVED_PROPERTY_NAMES].sort());
     const group = refused(groupPositions).filter((k) => !property.includes(k));
     expect(group).toEqual([...RESERVED_GROUP_NAMES].sort());
+  }, 120_000);
+
+  // Every name the composition parser compares a key or a trait to, plus every keyword.
+  const parserSource = readFileSync(
+    join(repoRoot, 'packages', 'core', 'src', 'parser', 'HoloCompositionParser.ts'),
+    'utf8'
+  );
+  const quoted = (pattern: RegExp) => [...parserSource.matchAll(pattern)].map((m) => m[1]);
+  const parserKeys = quoted(/\bkey === '(\w+)'/g);
+  const parserTraitNames = quoted(/\b(?:traitName|decoratorName) === '(\w+)'/g);
+  const keywordsAndShapes = [...Object.keys(KEYWORDS), ...PRIMITIVE_SHAPES];
+  const notPropertyNames = (words: string[]) =>
+    [...new Set(words)].filter((w) => !(RESERVED_PROPERTY_NAMES as readonly string[]).includes(w));
+
+  it('the reserved state-machine names are exactly the keys a state machine refuses', () => {
+    expect(parserKeys.length).toBeGreaterThan(100);
+    const sm = (body: string) => `composition "C" {\n  state_machine "d" {\n${body}\n  }\n}`;
+    // Each key is followed by another property: `onDamage:` reads statements up to the `}`.
+    const positions = [
+      (k: string, v: string) => sm(`    ${k}: ${v}\n    x: 1`),
+      (k: string, v: string) => sm(`    state "s" {\n      ${k}: ${v}\n      x: 1\n    }`),
+    ];
+    const values = ['1', '"s"', '{ a: 1 }'];
+    const refused = notPropertyNames([...parserKeys, ...keywordsAndShapes])
+      .filter((k) => positions.some((mk) => values.some((v) => errorsOf(mk(k, v)).length > 0)))
+      .sort();
+    expect(refused).toEqual([...RESERVED_MACHINE_NAMES].sort());
+    for (const k of RESERVED_MACHINE_NAMES) {
+      for (const mk of positions) expect(gbnfAccepts(grammar, mk(k, '1')), k).toBe(false);
+    }
+  }, 120_000);
+
+  it('a transition refuses only a `from` that is not a string, and the grammar writes it as one', () => {
+    const transition = (pair: string) =>
+      `composition "C" {\n  state_machine "d" {\n    state "s" {\n      transitions: [ { target: "s" ${pair} } ]\n    }\n  }\n}`;
+    const values = ['1', '"s"', '{ a: 1 }', '[1, 2]', 'true'];
+    const refused = notPropertyNames([...parserKeys, ...keywordsAndShapes])
+      .filter((k) => values.some((v) => errorsOf(transition(`${k}: ${v}`)).length > 0))
+      .sort();
+    expect(refused).toEqual(['from']);
+    expect(gbnfAccepts(grammar, transition('from: "s"'))).toBe(true);
+    expect(gbnfAccepts(grammar, transition('from: 1'))).toBe(false);
+  }, 120_000);
+
+  it('a trait name is refused only as `@version` in a template, which the grammar writes as `@version(N)`', () => {
+    const at = (body: string) => `composition "C" {\n${body}\n}`;
+    const positions: Record<string, (t: string) => string> = {
+      object: (t) => at(`  object "o" {\n    ${t}\n    x: 1\n  }`),
+      template: (t) => at(`  template "T" {\n    ${t}\n    x: 1\n  }`),
+      material: (t) => at(`  material "m" {\n    ${t}\n    x: 1\n  }`),
+    };
+    const forms = ['', '(a: 1)', ' { a: 1 }'];
+    const refused: string[] = [];
+    for (const word of new Set([...keywordsAndShapes, ...parserTraitNames])) {
+      for (const [where, mk] of Object.entries(positions)) {
+        if (forms.some((f) => errorsOf(mk(`@${word}${f}`)).length > 0))
+          refused.push(`${where} @${word}`);
+      }
+    }
+    expect(refused).toEqual(['template @version']);
+    const template = positions.template;
+    expect(errorsOf(template('@version(2)'))).toEqual([]);
+    expect(gbnfAccepts(grammar, template('@version(2)'))).toBe(true);
+    expect(gbnfAccepts(grammar, template('@version'))).toBe(false);
+    expect(gbnfAccepts(grammar, template('@version { a: 1 }'))).toBe(false);
+    expect(gbnfAccepts(grammar, template('@versions { a: 1 }'))).toBe(true);
+    expect(gbnfAccepts(grammar, positions.object('@version { a: 1 }'))).toBe(true);
   }, 120_000);
 });
 

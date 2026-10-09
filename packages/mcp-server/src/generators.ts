@@ -581,7 +581,8 @@ let holoProgramGrammar: string | undefined;
  * whole-program grammar can only emit one `composition "Name" { ... }` that parses, so
  * `.holo` requests to `local-llm` carry it; llama.cpp applies it on the OpenAI-compatible
  * path. Cloud and other providers never receive it, and `.hs` / `.hsplus` requests do
- * not either: the grammar describes `.holo` programs only.
+ * not either: the grammar describes `.holo` programs only. A local endpoint that fails
+ * the call with the grammar is asked again without it (see tryGenerateWithAI).
  */
 function grammarFor(
   providerName: LLMProviderName,
@@ -627,7 +628,7 @@ async function tryGenerateWithAI(
 
     // Local providers (small models) need conservative settings to stay coherent
     const isLocalProvider = providerName === 'bitnet' || providerName === 'local-llm';
-    const grammar = grammarFor(providerName, targetFormat);
+    let grammar = grammarFor(providerName, targetFormat);
     let attemptPrompt = prompt;
 
     for (let attempt = 1; attempt <= MAX_GEN_RETRIES_PER_PROVIDER; attempt++) {
@@ -641,7 +642,19 @@ async function tryGenerateWithAI(
           temperature: (isLocalProvider ? 0.1 : 0.35) * (attempt > 1 ? 0.6 : 1),
           ...(grammar ? { grammar } : {}),
         });
-      } catch {
+      } catch (err) {
+        // Not every local-llm endpoint takes a GBNF grammar (HoloServe takes a grammar name
+        // and answers 400), so a call that failed with one is sent once more without it.
+        if (grammar) {
+          if (debugAI) {
+            console.debug(
+              `[generators] ${providerName} failed with the grammar (${err instanceof Error ? err.message : String(err)}); retrying without it`
+            );
+          }
+          grammar = undefined;
+          attempt--;
+          continue;
+        }
         // Provider call failed entirely — abandon this provider, try the next.
         break;
       }
