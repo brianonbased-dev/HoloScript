@@ -450,6 +450,7 @@ function repo2(opts: {
     readFile: (p) => {
       const r = rel(p);
       if (MANIFESTS[r]) return MANIFESTS[r];
+      if (opts.contents?.[r] !== undefined) return opts.contents[r];
       throw new Error(`no file ${r}`);
     },
     handleCodebaseTool: vi.fn(async (name: string, args: Record<string, unknown>) => {
@@ -919,8 +920,125 @@ describe('impact --since: a helper passes a change on to the tests that use it',
     // The helper is not a test that reads the file: nothing lists it as one.
     expect(report.tests.namedBy).toEqual([]);
     expect(report.brief).toContain(
-      `Via helper: ${HELPER} names docs/guide.md by path; 1 test file(s) use it: ${USER}`
+      `Via helper: ${HELPER} names docs/guide.md by path; 1 test file(s) use it directly: ${USER}`
     );
+    expect(report.brief).toContain('a test that reaches a helper through a path alias');
+  });
+
+  // The helper's reach goes through the same rules as the change's own reach.
+  it('a setup file that imports the helper keeps the suite its runner config loads it for', async () => {
+    const setup = 'packages/a/src/__tests__/setup.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, setup],
+      importers: { [HELPER]: [setup] },
+      contents: {
+        ...BASE.contents,
+        'packages/a/vitest.config.ts':
+          "export default { test: { setupFiles: ['./src/__tests__/setup.ts'] } };",
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages).toEqual([
+      {
+        pkg: 'packages/a',
+        reason: `${setup} is named by packages/a/vitest.config.ts, which loads it for every test it runs, and the change reaches it`,
+      },
+    ]);
+    expect(report.tests.selected).toEqual([...A_TESTS, HELPER, setup].sort());
+  });
+
+  it('a worker that imports the helper selects the test that starts it by path', async () => {
+    const worker = 'packages/a/src/workers/render.ts';
+    const starter = 'packages/a/src/__tests__/render-worker.test.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, worker, starter],
+      importers: { [HELPER]: [worker] },
+      contents: {
+        ...BASE.contents,
+        [starter]: "new Worker(new URL('../workers/render.ts', import.meta.url));",
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([starter]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+  });
+
+  it('a scenario file that imports the helper is selected, and so is the runner that names it', async () => {
+    // A runner config can run *.scenario.ts itself (packages/studio does), and
+    // a test can run one by path: both are kept.
+    const scenario = 'packages/a/src/__tests__/scenarios/login.scenario.ts';
+    const runner = 'packages/a/src/__tests__/scenarios.test.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, scenario, runner],
+      importers: { [HELPER]: [scenario] },
+      contents: {
+        ...BASE.contents,
+        [runner]: "await runScenario('./scenarios/login.scenario.ts');",
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([runner, scenario]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+  });
+
+  it('a helper that runs the helper by path passes the change on to its own users', async () => {
+    const runs = 'packages/a/src/__tests__/helpers/run-docs.ts';
+    const user = 'packages/a/src/__tests__/run-docs.test.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, runs, user],
+      importers: { [runs]: [user] },
+      contents: {
+        ...BASE.contents,
+        [runs]: "execFileSync('tsx', [join(__dirname, 'load-docs.ts')]);",
+      },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toEqual([user]);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.viaHelpers).toEqual([
+      { helper: HELPER, reason: 'names docs/guide.md by path', tests: [] },
+      { helper: runs, reason: `names ${HELPER} by path`, tests: [user] },
+    ]);
+    expect(report.brief).toContain(
+      `Via helper: ${HELPER} names docs/guide.md by path; its users are reached through other files`
+    );
+  });
+
+  it('a test that reads code files by pattern does not count as a user of the helper', async () => {
+    const globber = 'packages/a/src/__tests__/globber.test.ts';
+    const deps = repo2({
+      ...BASE,
+      files: ['docs/guide.md', HELPER, globber],
+      importers: {},
+      contents: { ...BASE.contents, [globber]: "files.filter((f) => f.endsWith('.ts'))" },
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages.map((f) => f.pkg)).toEqual(['packages/a']);
+    expect(report.tests.selected).toEqual([...A_TESTS, HELPER, globber].sort());
+  });
+
+  it('a program (#! first line) that nothing runs from a test keeps no suite', async () => {
+    const program = 'packages/a/src/__tests__/gen-docs.ts';
+    const deps = repo2({
+      files: ['docs/guide.md', program],
+      contents: {
+        [program]: '#!/usr/bin/env node\n// rewrites docs/guide.md from the trait list\n',
+      },
+      changes: [{ status: 'M', file: 'docs/guide.md' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.selected).toEqual([]);
   });
 
   it('a helper that reads code files by pattern selects its users for a code change, not every test in the package', async () => {
@@ -965,7 +1083,7 @@ describe('impact --since: a helper passes a change on to the tests that use it',
     [
       'nothing reaches the helper',
       { importers: {} },
-      'no test reaches it through imports or names it',
+      'nothing imports it or names it by name, so the tests that use it cannot be seen',
     ],
   ])('the helper keeps its package suite when %s', async (_label, extra, because) => {
     const report = await analyzeChangeImpact(

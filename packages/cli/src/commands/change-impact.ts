@@ -28,10 +28,12 @@
  *      Tests that read Markdown or code files by pattern (`*.md`,
  *      `.endsWith('.ts')`) count as naming every such file. A helper (test
  *      support code) that names a file passes the change on to its users: with
- *      the graph, the tests that reach the helper are selected
- *      (`tests.viaHelpers`); without it, or when the graph cannot list them,
- *      the helper's package suite is kept. A setup file a runner config names
- *      keeps that config's suite. Prose no test names selects nothing;
+ *      the graph, the helper's own reach joins the selection reach and goes
+ *      through these same rules, repeating until no new helper appears
+ *      (`tests.viaHelpers`). Without the graph, when the graph cannot list a
+ *      helper's users, or when nothing imports it or names it by name, the
+ *      helper's package suite is kept (a `#!` program excepted: it is run on
+ *      its own). A setup file a runner config names keeps that config's suite. Prose no test names selects nothing;
  *      that is the only inert change. Every git call pins its output shape
  *      (--no-color, -z, fixed diff prefixes), and a search whose output cannot
  *      be read keeps every test.
@@ -47,7 +49,10 @@
  * ANOTHER package's data file (JSON, YAML, .rs, ...) by path is not found: data
  * names are not matched across packages (`res.json()` reads like a file name).
  * The brief says so whenever a changed data file sits inside a package
- * (`tests.untracedDataFiles`).
+ * (`tests.untracedDataFiles`). Path aliases and vi.importActual are not import
+ * edges the graph holds either: a test that reaches a changed file, or a
+ * helper, only that way is not found. The brief says so whenever a helper was
+ * followed.
  */
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -625,11 +630,19 @@ export function renderReviewerBrief(report: Omit<ChangeImpactReport, 'brief'>): 
   if (named.length > 5) {
     lines.push(`  Named by path: ${named.length - 5} more file(s), listed in tests.namedBy.`);
   }
-  for (const via of (report.tests.viaHelpers ?? []).slice(0, 5)) {
+  const helpers = report.tests.viaHelpers ?? [];
+  for (const via of helpers.slice(0, 5)) {
     const shown = via.tests.slice(0, 3).join(', ');
     const more = via.tests.length > 3 ? ` (+${via.tests.length - 3} more)` : '';
+    const users =
+      via.tests.length > 0
+        ? `${via.tests.length} test file(s) use it directly: ${shown}${more}`
+        : 'its users are reached through other files';
+    lines.push(`  Via helper: ${via.helper} ${via.reason}; ${users}`);
+  }
+  if (helpers.length > 0) {
     lines.push(
-      `  Via helper: ${via.helper} ${via.reason}; ${via.tests.length} test file(s) use it: ${shown}${more}`
+      '  Helper users are found through relative imports and file names only; a test that reaches a helper through a path alias or vi.importActual is not found.'
     );
   }
   const data = report.tests.untracedDataFiles ?? [];
@@ -900,6 +913,23 @@ export async function analyzeChangeImpact(
     };
   };
   const testsNaming = (f: string) => readersNaming(f).tests;
+  /** Every file (test, helper or runner config) that names `f` by its exact name: evidence it is used. */
+  const readersByName = (f: string): string[] => {
+    const posix = toPosix(f);
+    const base = path.posix.basename(posix).toLowerCase();
+    const prose = INERT_FILE_RE.test(posix);
+    const byName =
+      (prose ? named.prose.get(base) : named.code.get(base.replace(CODE_EXT_RE, ''))) ?? [];
+    return byName.filter((r) => r !== posix && !isDeleted(r) && (prose || sharesScope(r, posix)));
+  };
+  /** A program (`#!` first line) is run on its own, not loaded by tests. */
+  const isProgram = (f: string): boolean => {
+    try {
+      return deps.readFile(path.join(repoRoot, f)).startsWith('#!');
+    } catch {
+      return false;
+    }
+  };
   /** Helpers that name any of `files`, each with how (a name wins over a pattern). */
   const helpersNaming = (files: Iterable<string>): Map<string, string> => {
     const out = new Map<string, string>();
@@ -1100,64 +1130,89 @@ export async function analyzeChangeImpact(
     );
   }
 
-  // A setup file the change reaches (it imports a changed file) runs before
-  // every test its runner config covers.
-  for (const f of affectedRel) keepIfRunnerLoads(f);
-
-  // A helper that names a changed or reached file (or reads such files by
-  // pattern) passes the change on to the tests that use it: select the tests
-  // that reach the helper. Keep its package suite only when the graph cannot
-  // list them. A helper already in the reach needs nothing more: so are its users.
+  // ── Helpers: test support code that names a reached file ──────────────────
+  // A helper that names a changed or reached file by path (or matches such
+  // files by pattern) passes the change on to whatever uses it. Its own reach
+  // joins the selection reach, and goes through the same rules as the rest of
+  // it below (setup files a runner loads, files tests load by path, further
+  // helpers), repeating until no new helper appears. A helper's package suite
+  // is kept when the graph cannot list its users, or when nothing imports it
+  // or names it by name: then its users cannot be seen. A program (a `#!`
+  // first line) is run on its own, so it needs no such fallback. A helper
+  // already in the reach is handled like any reached file.
+  const selectionReach = new Set(affectedRel);
   const viaHelpers: Array<{ helper: string; reason: string; tests: string[] }> = [];
-  const helperTests = new Set<string>();
-  for (const [helper, why] of helpersNaming([...changedFiles, ...affectedRel])) {
-    if (affectedKeys.has(key(helper))) continue;
-    const answer = asRecord(
-      await deps.handleCodebaseTool('holo_impact_analysis', {
-        changedFiles: [toPosix(path.join(repoRoot, helper))],
-        maxAffectedFiles: 20_000,
-      })
-    );
-    const users = answer.error ? null : readImpact(answer);
-    if (!users || users.cut) {
-      const detail = users ? `traversal cut short: ${users.cut}` : String(answer.error);
-      keepHelperSuite(helper, why, `the graph could not list the tests that use it (${detail})`);
-      continue;
+  const followed = new Set<string>();
+  let frontier = [...changedFiles, ...affectedRel];
+  while (frontier.length > 0) {
+    const next: string[] = [];
+    const join = (f: string) => {
+      if (selectionReach.has(f)) return;
+      selectionReach.add(f);
+      next.push(f);
+    };
+    for (const [helper, why] of helpersNaming(frontier)) {
+      if (followed.has(helper) || selectionReach.has(helper)) continue;
+      followed.add(helper);
+      const answer = asRecord(
+        await deps.handleCodebaseTool('holo_impact_analysis', {
+          changedFiles: [toPosix(path.join(repoRoot, helper))],
+          maxAffectedFiles: 20_000,
+        })
+      );
+      const users = answer.error ? null : readImpact(answer);
+      if (!users || users.cut) {
+        const detail = users ? `traversal cut short: ${users.cut}` : String(answer.error);
+        keepHelperSuite(helper, why, `the graph could not list the tests that use it (${detail})`);
+        continue;
+      }
+      if (users.unresolved.size > 0) {
+        keepHelperSuite(helper, why, 'it is not in the graph');
+        continue;
+      }
+      const importers = [...users.files].filter((f) => f !== helper && !isDeleted(f));
+      const nameReaders = readersByName(helper);
+      if (importers.length === 0 && nameReaders.length === 0) {
+        if (!isProgram(helper)) {
+          keepHelperSuite(
+            helper,
+            why,
+            'nothing imports it or names it by name, so the tests that use it cannot be seen'
+          );
+        }
+        continue;
+      }
+      const direct = [...importers, ...nameReaders].filter((t) => RUNNABLE_TEST_RE.test(t));
+      viaHelpers.push({ helper, reason: why, tests: Array.from(new Set(direct)).sort() });
+      join(helper);
+      for (const f of importers) join(f);
     }
-    if (users.unresolved.size > 0) {
-      keepHelperSuite(helper, why, 'it is not in the graph');
-      continue;
-    }
-    keepIfRunnerLoads(helper);
-    const tests = new Set(
-      [...users.files, ...testsNaming(helper)].filter(
-        (t) => RUNNABLE_TEST_RE.test(t) && !isDeleted(t)
-      )
-    );
-    if (tests.size === 0) {
-      keepHelperSuite(helper, why, 'no test reaches it through imports or names it');
-      continue;
-    }
-    for (const t of tests) helperTests.add(t);
-    viaHelpers.push({ helper, reason: why, tests: Array.from(tests).sort() });
+    frontier = next;
   }
 
+  // A setup file the change reaches (it imports a changed file, or a helper
+  // that does) runs before every test its runner config covers.
+  for (const f of selectionReach) keepIfRunnerLoads(f);
+
   const affectedPackages = new Set(touchedPackages);
-  for (const f of affectedRel) {
+  for (const f of selectionReach) {
     const pkg = pkgOf(f);
     if (pkg) affectedPackages.add(pkg);
   }
   const selected = new Set<string>();
   for (const f of affectedRel) if (isTestFile(f)) selected.add(f);
+  // The helpers' reach selects test files by the same rule (a runner config
+  // can run more than *.test files, e.g. *.scenario.ts), except the helpers
+  // followed: they name files, they are not tests.
+  for (const f of selectionReach) if (isTestFile(f) && !followed.has(f)) selected.add(f);
   for (const f of present) {
     if (isTestFile(f)) selected.add(f);
     else for (const t of conventionTestsFor(f, repoRoot, deps.fileExists)) selected.add(t);
   }
   for (const t of testsIn(fullSuite.keys())) selected.add(t);
-  for (const t of helperTests) selected.add(t);
   // A test that spawns, reads or loads a reached file by path (a CLI, a worker)
   // depends on everything that file imports.
-  addTestsNaming([...changedFiles, ...affectedRel], selected);
+  addTestsNaming([...changedFiles, ...selectionReach], selected);
   // The reach of a deleted file (from a graph absorbed before the delete) can
   // include deleted tests; the runner must not be handed missing files.
   for (const f of Array.from(selected)) if (isDeleted(f)) selected.delete(f);
