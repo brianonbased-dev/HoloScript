@@ -619,30 +619,48 @@ export class GRPORewardOrchestrator {
   }
 
   /**
+   * The reward terms TRL gets, as [name, function] pairs in order: the five TypeScript
+   * terms, then each enabled extended term. Same rule as evaluate(): with the HoloScript
+   * term on, a TypeScript term weighted 0 is left out, so TRL does not run it either.
+   */
+  private rewardFuncEntries(): Array<[string, GRPORewardFunction]> {
+    const entries: Array<[string, GRPORewardFunction]> = (
+      [
+        ['testPassReward', this.rewardFns.testPassReward],
+        ['typeCheckReward', this.rewardFns.typeCheckReward],
+        ['lintReward', this.rewardFns.lintReward],
+        ['coverageReward', this.rewardFns.coverageReward],
+        ['circuitBreakerReward', this.rewardFns.circuitBreakerReward],
+      ] as Array<[keyof typeof GRPO_REWARD_WEIGHTS, GRPORewardFunction]>
+    ).filter(([name]) => !(this.config.enableHoloScriptCheck && this.resolvedWeights[name] === 0));
+    if (this.config.enableProvenanceValidity)
+      entries.push(['provenanceValidityReward', provenanceValidityReward]);
+    if (this.config.enableFaithfulCalibration)
+      entries.push(['faithfulCalibrationReward', faithfulCalibrationReward]);
+    if (this.config.enableUaalResolution)
+      entries.push(['uaalResolutionReward', uaalResolutionReward]);
+    if (this.config.enableHoloScriptCheck)
+      entries.push(['holoScriptCheckReward', holoScriptCheckReward]);
+    if (this.config.beneficiaryHolarchy) {
+      entries.push(['agentBenefitReward', agentBenefitReward]);
+      entries.push(['humanBenefitReward', humanBenefitReward]);
+    }
+    return entries;
+  }
+
+  /**
    * Get the individual reward functions for direct use with TRL's
    * `reward_funcs` parameter (which expects a list of callables).
-   *
-   * Returns the 5 functions as an array matching TRL's expected format.
+   * Pair them with getRewardFuncNames(), which is in the same order; getWeights() is
+   * keyed by name and can hold terms this list leaves out.
    */
   getRewardFuncsArray(): GRPORewardFunction[] {
-    const base: Array<[keyof typeof GRPO_REWARD_WEIGHTS, GRPORewardFunction]> = [
-      ['testPassReward', this.rewardFns.testPassReward],
-      ['typeCheckReward', this.rewardFns.typeCheckReward],
-      ['lintReward', this.rewardFns.lintReward],
-      ['coverageReward', this.rewardFns.coverageReward],
-      ['circuitBreakerReward', this.rewardFns.circuitBreakerReward],
-    ];
-    // Same rule as evaluate(): with the HoloScript term on, a TypeScript term weighted 0
-    // is left out, so TRL does not run it either.
-    const fns: GRPORewardFunction[] = base
-      .filter(([name]) => !(this.config.enableHoloScriptCheck && this.resolvedWeights[name] === 0))
-      .map(([, fn]) => fn);
-    if (this.config.enableProvenanceValidity) fns.push(provenanceValidityReward);
-    if (this.config.enableFaithfulCalibration) fns.push(faithfulCalibrationReward);
-    if (this.config.enableUaalResolution) fns.push(uaalResolutionReward);
-    if (this.config.enableHoloScriptCheck) fns.push(holoScriptCheckReward);
-    if (this.config.beneficiaryHolarchy) fns.push(agentBenefitReward, humanBenefitReward);
-    return fns;
+    return this.rewardFuncEntries().map(([, fn]) => fn);
+  }
+
+  /** The names of getRewardFuncsArray()'s functions, index-aligned with it. */
+  getRewardFuncNames(): string[] {
+    return this.rewardFuncEntries().map(([name]) => name);
   }
 
   /**

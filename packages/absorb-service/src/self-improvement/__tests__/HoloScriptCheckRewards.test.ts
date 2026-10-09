@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseHolo } from '@holoscript/core';
+import { buildKnownTraitSet, DERIVED_TRAIT_SCHEMAS, parseHolo } from '@holoscript/core';
 import { tokenizeHoloSource } from '@holoscript/core/parser';
 // The strict layer is not a workspace package; the test reads it in place to hold the
 // mirrored HS1004 / HS1006 rules equal to it.
@@ -12,7 +12,6 @@ import { GRPORewardOrchestrator } from '../GRPORewardOrchestrator';
 import {
   gradeHoloScriptCompletion,
   holoScriptCheckReward,
-  holoScriptTraitVocabulary,
   HOLOSCRIPT_CHECK_REWARDS,
 } from '../HoloScriptCheckRewards';
 
@@ -45,6 +44,45 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
     expect(gradeHoloScriptCompletion(`import "./parts.holo"\n\n${PROGRAM}`).rung).not.toBe(
       'not-a-program'
     );
+  });
+
+  it('valid programs are one program however they are laid out', () => {
+    // 603890a40 mapped lexer positions back to the text and scored these 0: single-symbol
+    // columns are 0-based and lines drift after a multi-line string.
+    for (const source of [
+      'composition "A" { object "o" { geometry: "cube" } }',
+      'composition "A" {\n  object "o" {\n    geometry: "cube"\n  }\n  }',
+      'composition "A" {\n\tobject "o" {\n\t\tgeometry: "cube"\n\t}\n\t}\n',
+      'composition "A" {\n  object "o" {\n    label: "two\nlines"\n    geometry: "cube"\n  }\n}',
+    ]) {
+      const receipt = gradeHoloScriptCompletion(source);
+      expect(receipt.rung, `${JSON.stringify(source)}: ${receipt.detail}`).not.toBe(
+        'not-a-program'
+      );
+    }
+  });
+
+  it('a well-formed import, even across lines, may lead; a malformed one may not', () => {
+    const multiLine = `import {\n  Lamp,\n  Desk\n} from "./parts.holo"\n\n${PROGRAM}`;
+    expect(gradeHoloScriptCompletion(multiLine).rung).not.toBe('not-a-program');
+    expect(gradeHoloScriptCompletion(`import "a.holo" then words\n${PROGRAM}`).rung).toBe(
+      'not-a-program'
+    );
+  });
+
+  it('a registry-only trait and a digit-leading trait are known, as in the strict layer', () => {
+    expect(buildKnownTraitSet().has('agent_badge')).toBe(false);
+    for (const trait of ['@agent_badge', '@2d_canvas']) {
+      const receipt = gradeHoloScriptCompletion(PROGRAM.replace('@grabbable', trait));
+      expect(receipt.rung, `${trait}: ${receipt.detail}`).toBe('clean');
+    }
+  });
+
+  it('a trait the source declares itself (`@trait { name: ... }`) is known', () => {
+    const source =
+      'composition "A" {\n  object "o" {\n    @trait { name: "glint" }\n    @glint\n    geometry: "cube"\n  }\n}';
+    const receipt = gradeHoloScriptCompletion(source);
+    expect(receipt.rung, receipt.detail).not.toBe('unknown-traits');
   });
 
   it('a bare root name is still one program (the parser takes it); the checker grades the rest', () => {
@@ -135,27 +173,35 @@ describe('gradeHoloScriptCompletion — the reward ladder', () => {
   });
 });
 
-describe('the mirrored rules equal the strict layer on its own corpus', () => {
+describe('the mirrored rules equal the strict layer on its corpus (real/ included)', () => {
   const corpus = join(repoRoot, 'packages', 'core', 'strict', 'corpus');
-  const files = ['valid', 'warns', 'invalid'].flatMap((kind) =>
+  const files = ['valid', 'warns', 'invalid', 'real'].flatMap((kind) =>
     readdirSync(join(corpus, kind))
       .filter((f) => f.endsWith('.holo'))
       .map((f) => join(corpus, kind, f))
   );
-  const deps = { tokenizeHoloSource, parseHolo, traitIds: holoScriptTraitVocabulary() };
-
-  it('covers the corpus', () => {
-    expect(files.length).toBeGreaterThan(10);
-  });
+  // Strict's vocabulary built the way packages/core/strict/index.mjs builds it, NOT the
+  // term's own (which is what is under test): core's known set, the traits .holo files
+  // declare, and the trait registry read from disk.
+  const registry = JSON.parse(
+    readFileSync(join(repoRoot, 'packages', 'core', 'src', 'traits', 'trait-registry.json'), 'utf8')
+  ) as Record<string, unknown>;
+  const traitIds = new Set<string>([
+    ...buildKnownTraitSet(),
+    ...DERIVED_TRAIT_SCHEMAS.map((schema) => String(schema.name)),
+    ...Object.keys(registry),
+  ]);
+  const deps = { tokenizeHoloSource, parseHolo, traitIds };
+  const compared: string[] = [];
+  const MIN_COMPARED = 20;
 
   it.each(files.map((f) => [f.slice(corpus.length + 1), f]))(
     '%s: empty <=> HS1004, unknown trait <=> HS1006',
-    (_name, file) => {
+    (name, file) => {
       const source = readFileSync(file, 'utf8');
       const receipt = gradeHoloScriptCompletion(source);
       if (receipt.rung === 'not-a-program' || receipt.rung === 'errors') return;
-      // Traits a source declares itself (`@trait { name: ... }`) are not read by the term.
-      if (/@trait\b/.test(source)) return;
+      compared.push(name);
       const codes = new Set(
         (analyze(source, deps).diagnostics as Array<{ code: string }>).map((d) => d.code)
       );
@@ -167,6 +213,10 @@ describe('the mirrored rules equal the strict layer on its own corpus', () => {
       }
     }
   );
+
+  it('compares enough of the corpus for "equal" to mean something', () => {
+    expect(compared.length, compared.join(', ')).toBeGreaterThanOrEqual(MIN_COMPARED);
+  });
 });
 
 /** A runner that counts every TypeScript tool call. */
@@ -235,8 +285,9 @@ describe('GRPORewardOrchestrator HoloScript-check registration (flag-gated, defa
     expect(result.functionResults.map((f) => f.name)).toEqual(['holoScriptCheckReward']);
     expect(runner.calls).toBe(0);
     expect(orch.getWeights().holoScriptCheckReward).toBe(1);
-    // The TRL path gets the same list.
+    // The TRL path gets the same list, with names in the same order.
     expect(orch.getRewardFuncsArray()).toEqual([holoScriptCheckReward]);
+    expect(orch.getRewardFuncNames()).toEqual(['holoScriptCheckReward']);
   });
 
   it('with the flag OFF a TypeScript term weighted 0 still runs and reports', async () => {

@@ -20,18 +20,21 @@
  *    and LSP use), so every refusal it gains reaches this reward the day it lands.
  *  - One bare program: this term. The completion is exactly one `composition "Name" { ... }`
  *    (name quoted or bare, as the parser takes it), with only whitespace, `//` or block
- *    comments and `import` lines around it: no prose, no ``` or ~~~ fence, no second root,
- *    which the tolerant parser drops silently. Checked on the raw text, because the lexer
- *    drops characters it does not know (backticks, tildes).
+ *    comments and well-formed `import` statements around it: no prose, no ``` or ~~~ fence,
+ *    no second root, which the tolerant parser drops silently. Scanned on the raw text with
+ *    strings and comments understood, because the lexer drops characters it does not know
+ *    (backticks, tildes) and its positions do not map back to the text reliably.
+ *  - Errors also: a trait parsed with an empty name (the strict layer's HS1005).
  *  - Empty: the strict layer's HS1004 rule (packages/core/strict/holo_strict.mjs): every
  *    composition field except `type`, `loc`, `provenance` and `name` counts as content.
- *  - Unknown trait: the strict layer's HS1006 vocabulary and spelling rules (core's known
- *    set, the traits `.holo` files declare, and the trait registry; @camelCase, kebab-case
- *    and snake_case compare alike, and so do names without underscores). Not read: traits
- *    the same source declares with `@trait { name: ... }`.
- * The strict layer is not importable from here (it is not a workspace package), so the two
- * rules above are mirrored; HoloScriptCheckRewards.test.ts holds them equal to the strict
- * layer on its own corpus, so a drift goes red.
+ *  - Unknown trait: the strict layer's HS1006 rule. Traits are read from the AST (every
+ *    `ObjectTrait`/`Trait` node, on any block), checked against core's known set, the traits
+ *    `.holo` files declare and the trait registry, with its spelling rules (@camelCase,
+ *    kebab-case and snake_case compare alike, and so do names without underscores), and
+ *    against what the source declares itself (`@trait { name: ... }`, `trait X { ... }`).
+ * The strict layer is not importable from here (it is not a workspace package), so these
+ * rules are mirrored; HoloScriptCheckRewards.test.ts holds them equal to the strict layer
+ * on its corpus (real/ included) with a vocabulary built independently, so a drift goes red.
  *
  * The ladder. Each rung is strictly above the one below, so within a GRPO group the
  * advantage always points one step up, and no rung can be reached without passing the
@@ -54,7 +57,6 @@ import {
   DERIVED_TRAIT_SCHEMAS,
   validateCanonicalSource,
 } from '@holoscript/core';
-import { tokenizeHoloSource } from '@holoscript/core/parser';
 import type { GRPORewardFunction } from './GRPORewardFunctions';
 
 /** Which rung a completion reached. */
@@ -151,67 +153,139 @@ function isKnownTrait(name: string): boolean {
 // =============================================================================
 // ONE BARE PROGRAM
 // =============================================================================
+// Scanned on the raw text, aware of strings and comments: the lexer drops characters it
+// does not know (backticks, tildes) and its positions cannot be mapped back reliably
+// (single-character symbols report 0-based columns; lines drift after a multi-line string).
 
-interface Token {
-  type: string;
-  value: string;
-  line: number;
-  column: number;
-}
-
-/** Remove `//` and block comments, then whitespace; what remains is not a comment. */
-function stripCommentsAndSpace(text: string): string {
-  return text
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/[^\n]*/g, '')
-    .replace(/\s+/g, '');
-}
-
-/** Offset in `source` of a token's (1-based line, 1-based column). */
-function offsetOf(source: string, token: Token): number {
-  let offset = 0;
-  for (let line = 1; line < token.line; line++) {
-    const next = source.indexOf('\n', offset);
-    if (next < 0) return source.length;
-    offset = next + 1;
+/** Index after any whitespace and comments from `i`; -1 for an unclosed block comment. */
+function skipSpace(s: string, i: number): number {
+  for (;;) {
+    while (i < s.length && /\s/.test(s[i])) i++;
+    if (s.startsWith('//', i)) {
+      const nl = s.indexOf('\n', i);
+      i = nl < 0 ? s.length : nl + 1;
+    } else if (s.startsWith('/*', i)) {
+      const end = s.indexOf('*/', i + 2);
+      if (end < 0) return -1;
+      i = end + 2;
+    } else {
+      return i;
+    }
   }
-  return offset + Math.max(0, token.column - 1);
+}
+
+/** Index after the quoted string starting at `i` (`s[i]` is the quote); -1 if unclosed. */
+function skipString(s: string, i: number): number {
+  const quote = s[i];
+  for (let j = i + 1; j < s.length; j++) {
+    if (s[j] === '\\') j++;
+    else if (s[j] === quote) return j + 1;
+  }
+  return -1;
+}
+
+/** `import "x"`, `import X from "x"`, `import * as X from "x"`, `import { A, B } from "x"`. */
+const IMPORT_RE =
+  /^import\s+(?:(?:\{[^{}]*\}|\*\s+as\s+[A-Za-z_]\w*|[A-Za-z_]\w*)\s+from\s+)?(?:"[^"\n]*"|'[^'\n]*')[ \t]*;?/;
+
+/** Index after one well-formed import at `i` (nothing but a comment after it on its line), or -1. */
+function skipImport(s: string, i: number): number {
+  const m = IMPORT_RE.exec(s.slice(i));
+  if (!m) return -1;
+  const end = i + m[0].length;
+  const nl = s.indexOf('\n', end);
+  return /^[ \t]*(\/\/.*)?$/.test(s.slice(end, nl < 0 ? s.length : nl)) ? end : -1;
 }
 
 /**
  * True when the whole completion is one `composition "Name" { ... }` and nothing else:
- * comments, blank lines and leading `import` lines may surround it; anything else may not.
+ * whitespace, comments and well-formed leading `import` statements may surround it.
  */
-function isOneBareComposition(source: string, tokens: Token[]): boolean {
-  const significant = tokens.filter((t) => t.type !== 'NEWLINE');
-  const root = significant.findIndex((t) => t.type === 'COMPOSITION');
-  if (root < 0) return false;
-  if (
-    (significant[root + 1]?.type !== 'STRING' && significant[root + 1]?.type !== 'IDENTIFIER') ||
-    significant[root + 2]?.type !== 'LBRACE'
-  ) {
-    return false;
+function isOneBareComposition(s: string): boolean {
+  let i = skipSpace(s, 0);
+  while (i >= 0 && /^import\b/.test(s.slice(i, i + 7))) {
+    const end = skipImport(s, i);
+    if (end < 0) return false;
+    i = skipSpace(s, end);
   }
-  // Before the root: only comments, whitespace and `import` lines, checked on the raw text.
-  const before = source
-    .slice(0, offsetOf(source, significant[root]))
-    .split('\n')
-    .filter((line) => !/^\s*import\b/.test(line))
-    .join('\n');
-  if (stripCommentsAndSpace(before) !== '') return false;
-
+  if (i < 0) return false;
+  // The lexer looks keywords up in lower case, so `Composition` is the keyword too.
+  const head = /^composition\b/i.exec(s.slice(i));
+  if (!head) return false;
+  i = skipSpace(s, i + head[0].length);
+  if (i < 0) return false;
+  if (s[i] === '"' || s[i] === "'") {
+    i = skipString(s, i);
+    if (i < 0) return false;
+  } else {
+    const name = /^[A-Za-z_][A-Za-z0-9_]*/.exec(s.slice(i));
+    if (!name) return false;
+    i += name[0].length;
+  }
+  i = skipSpace(s, i);
+  if (i < 0 || s[i] !== '{') return false;
   let depth = 0;
-  for (let i = root + 2; i < significant.length; i++) {
-    const type = significant[i].type;
-    if (type === 'LBRACE') depth++;
-    else if (type === 'RBRACE' && --depth === 0) {
-      if (!significant.slice(i + 1).every((t) => t.type === 'EOF')) return false;
-      // After the root: only comments and whitespace, checked on the raw text.
-      const after = source.slice(offsetOf(source, significant[i]) + 1);
-      return stripCommentsAndSpace(after) === '';
+  for (; i < s.length; i++) {
+    const c = s[i];
+    if (c === '"' || c === "'") {
+      const end = skipString(s, i);
+      if (end < 0) return false;
+      i = end - 1;
+    } else if (s.startsWith('//', i)) {
+      const nl = s.indexOf('\n', i);
+      i = (nl < 0 ? s.length : nl) - 1;
+    } else if (s.startsWith('/*', i)) {
+      const end = s.indexOf('*/', i + 2);
+      if (end < 0) return false;
+      i = end + 1;
+    } else if (c === '{') {
+      depth++;
+    } else if (c === '}' && --depth === 0) {
+      return skipSpace(s, i + 1) === s.length;
     }
   }
   return false;
+}
+
+// =============================================================================
+// TRAITS, AS THE STRICT LAYER READS THEM (collectTraits / declaredTraits)
+// =============================================================================
+
+type Node = Record<string, unknown>;
+
+/** Every trait node in the AST (`ObjectTrait` / `Trait`), wherever it sits. */
+function collectTraitNodes(node: unknown, found: Node[] = []): Node[] {
+  if (!node || typeof node !== 'object') return found;
+  if (Array.isArray(node)) {
+    for (const item of node) collectTraitNodes(item, found);
+    return found;
+  }
+  const n = node as Node;
+  if (n.type === 'ObjectTrait' || n.type === 'Trait') found.push(n);
+  for (const value of Object.values(n)) {
+    if (value && typeof value === 'object') collectTraitNodes(value, found);
+  }
+  return found;
+}
+
+/** Traits the source makes known itself: `@trait { name: ... }`, `trait X { ... }`, `trait`. */
+function declaredTraitNames(ast: unknown, traits: Node[]): Set<string> {
+  const names = new Set<string>(['trait']);
+  for (const trait of traits) {
+    const config = trait.config as Node | undefined;
+    const bare = String(trait.name ?? '')
+      .replace(/^@/, '')
+      .toLowerCase();
+    if (bare === 'trait' && config && typeof config.name === 'string') {
+      names.add(normalizeTraitName(config.name));
+    }
+  }
+  const definitions = (ast as Node | null)?.traitDefinitions;
+  for (const definition of Array.isArray(definitions) ? definitions : []) {
+    const name = (definition as Node | null)?.name;
+    if (name) names.add(normalizeTraitName(String(name)));
+  }
+  return names;
 }
 
 // =============================================================================
@@ -228,14 +302,7 @@ export function gradeHoloScriptCompletion(completion: unknown): HoloScriptCheckR
   if (typeof completion !== 'string') {
     return rung('not-a-program', `not text (${completion === null ? 'null' : typeof completion})`);
   }
-
-  let tokens: Token[];
-  try {
-    tokens = tokenizeHoloSource(completion);
-  } catch (error) {
-    return rung('not-a-program', `the lexer could not read it: ${String(error)}`);
-  }
-  if (!isOneBareComposition(completion, tokens)) {
+  if (!isOneBareComposition(completion)) {
     return rung(
       'not-a-program',
       'not exactly one bare `composition "Name" { ... }` (prose, a fence, JSON or a second root)'
@@ -253,16 +320,24 @@ export function gradeHoloScriptCompletion(completion: unknown): HoloScriptCheckR
     return rung('errors', `${result.errors.length} error(s); first: ${first}`);
   }
 
+  const traits = collectTraitNodes(result.ast);
+  const bareNames = traits.map((trait) =>
+    String(trait.name ?? '')
+      .trim()
+      .replace(/^@/, '')
+  );
+  if (bareNames.some((bare) => !/^[A-Za-z0-9_]/.test(bare))) {
+    return rung('errors', 'a trait was parsed with an empty name (HS1005)');
+  }
+
   if (!compositionHasContent(result.ast)) {
     return rung('empty', 'valid, but nothing in it parsed into a composition (HS1004)');
   }
 
-  const unknown = new Set<string>();
-  for (let i = 0; i + 1 < tokens.length; i++) {
-    if (tokens[i].type === 'AT' && !isKnownTrait(tokens[i + 1].value)) {
-      unknown.add(tokens[i + 1].value);
-    }
-  }
+  const declared = declaredTraitNames(result.ast, traits);
+  const unknown = new Set(
+    bareNames.filter((bare) => !isKnownTrait(bare) && !declared.has(normalizeTraitName(bare)))
+  );
   if (unknown.size > 0) {
     return rung('unknown-traits', `traits the language does not know: ${[...unknown].join(', ')}`);
   }
