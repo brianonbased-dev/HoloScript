@@ -291,24 +291,33 @@ grading AI-written programs (ai-ecosystem receipt
 - An unknown token in an object body or a state was skipped with no word.
 
 **Fixed with this entry:**
-- Labelled blocks keep their body. It is read as `key: value` settings, or, when it is not
-  settings (code, a numeric-keyed table), kept token for token as `bodySource` with a
-  `HOLO_BODY_KEPT_AS_TEXT` warning.
+- Labelled blocks keep their body, read as `key: value` settings. A broken body, such as a
+  missing colon, is an error, as it always was where bodies were read. Two kinds of body
+  are kept token for token as `bodySource`, with a `HOLO_BODY_KEPT_AS_TEXT` warning: plain
+  code (a call, `if`, `=`, `=>`) and a table keyed by numbers. That only happens where the
+  reader used to skip the body unread (template and state bodies), so nothing refused before
+  is accepted now.
 - An unquoted block name in an object reads as it does in a template.
-- State transitions become `StateTransition`s with `from`, `event` and `target`. Other members
-  are kept on a new `HoloState_Machine.properties`.
-- A nested `spatial_group` is kept as a directive, and its objects stay the object's children.
-- A token that can start no member is reported: `Unexpected "42" in object "a"`,
+- State transitions become `StateTransition`s with `from`, `event` and `target`.
+  - `on: { open: { target: "opened" } }` reads the nested target.
+  - Any other value is an error, never a state named "[object Object]".
+  - A later `transitions:` adds to them instead of replacing them.
+  - Other members are kept on a new `HoloState_Machine.properties`.
+- A nested `spatial_group` is kept as a directive. Its objects, and those of groups nested
+  inside it, stay the object's children.
+- A token that can start no member is reported once: `Unexpected "42" in object "a"`,
   `Unexpected "on" followed by string "open" in state "closed"`.
-- A property test inserts 11 kinds of foreign token into object, template and state bodies,
-  and finds none that disappears with success.
+- A property test inserts 14 kinds of foreign token into object, template and state bodies,
+  three of them inside a block body. It finds none that disappears with success.
 
 Measured by parsing all 1,956 tracked `.holo` files before and after:
 - No verdict changes (1,845 parse clean before and after).
-- 68 block bodies that were dropped are kept, 6 of them as text: C# `component` code in
-  `export-to-unity.holo`, a numeric `lod` table in `realistic-forest.holo`, and positioned
-  `hud_panel`/`light_ring` blocks in `uaal-collective.world.holo`.
+- 70 block bodies that were dropped are now read as settings.
+- One body is kept as text, a real call: `onClick: removeFromCart(item)` in
+  `examples/real-world/vr-showroom.holo`.
 - The two export pipelines now nest correctly.
+- The strict layer still refuses a typo in a labelled block (`animation "fade" { duration 500 }`
+  gives HS1007).
 
 **Still open:** #1 (routing), #2–#9, #11, #12; `zone` and `ui` taking a name plus traits.
 Also open: a file that starts with `composition` drops anything after that block with

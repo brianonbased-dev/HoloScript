@@ -1057,39 +1057,95 @@ export class HoloCompositionParser {
 
   /**
    * The body of a labelled block: `animation "fadeIn" { ... }`, `behavior "Sensor" { ... }`.
-   * It is read as key: value settings when it is one. When it is not, it is kept, token for
-   * token, as `bodySource`, with a warning naming the first thing that could not be read.
-   * Skipping it, as the reader used to, dropped a behavior's protocol and an animation's
-   * timing while reporting success (language directive 2, board task_1791502999374_vvnz).
+   * Skipping it, as the reader used to in template and state bodies, dropped a behavior's
+   * protocol and an animation's timing while reporting success (language directive 2,
+   * board task_1791502999374_vvnz).
+   *
+   * It is read as key: value settings, and a broken body (`duration 500`, a missing colon) is
+   * an error, as it always was where bodies were read. Only a body that is plainly code (a
+   * call, `if`, `=`, `=>`) or a table keyed by numbers is kept, token for token, as
+   * `bodySource` with a warning; and only where the reader used to skip it unread
+   * (`allowText`), so nothing that was refused before is accepted now.
    */
-  private parseLabeledBlockBody(blockType: string): {
+  private parseLabeledBlockBody(
+    blockType: string,
+    { allowText = true }: { allowText?: boolean } = {}
+  ): {
     body: Record<string, HoloValue> | '';
     bodySource?: string;
   } {
     if (!this.check('LBRACE')) return { body: '' };
-    const startPos = this.pos;
-    const errorCount = this.errors.length;
-    let firstProblem = '';
-    try {
-      const body = this.parseBlockTraitConfig();
-      if (this.errors.length === errorCount) return { body };
-      firstProblem = this.errors[errorCount]?.message ?? '';
-    } catch (error) {
-      // Strict (non-tolerant) mode throws on the first problem; this is a speculative read.
-      firstProblem = error instanceof Error ? error.message : String(error);
-    }
-    this.pos = startPos;
-    this.errors.length = errorCount;
+    if (!allowText || !this.blockIsCodeOrTable()) return { body: this.parseBlockTraitConfig() };
     const loc = this.currentLocation();
     const bodySource = this.skipBlockCapturingSource();
     this.warnings.push({
-      message:
-        `The ${blockType} block's body is not key: value settings, so it is kept as text, not read` +
-        (firstProblem ? ` (${firstProblem.replace(/ \(in .*\)$/, '')})` : ''),
+      message: `The ${blockType} block's body is code or a numbered table, not key: value settings, so it is kept as text (bodySource), not read`,
       loc,
       code: 'HOLO_BODY_KEPT_AS_TEXT',
     });
     return { body: '', bodySource };
+  }
+
+  private static readonly CODE_TOKENS = new Set<string>([
+    'IF',
+    'ELSE',
+    'FOR',
+    'WHILE',
+    'RETURN',
+    'LET',
+    'VAR',
+    'CONST',
+    'FUNCTION',
+    'ARROW',
+    'EQUALS',
+  ]);
+
+  /**
+   * Whether the `{ ... }` block at the cursor holds code (a call, `if`/`for`/`while`/`return`,
+   * `let`/`const`, `=`, `=>`) or a table whose members start with a number, rather than
+   * key: value settings. It looks ahead only. A `(` straight after `@name` is a trait's
+   * arguments, which settings may hold, not a call.
+   */
+  private blockIsCodeOrTable(): boolean {
+    let depth = 0;
+    // Inside [ ... ] a comma separates list items, not members: `axis: [0, 0, 1]` is settings.
+    let bracketDepth = 0;
+    let memberStart = true;
+    for (let i = 0; ; i++) {
+      const token = this.peek(i);
+      if (token.type === 'EOF') return false;
+      if (token.type === 'LBRACKET') {
+        bracketDepth++;
+        memberStart = false;
+        continue;
+      }
+      if (token.type === 'RBRACKET') {
+        bracketDepth = Math.max(0, bracketDepth - 1);
+        continue;
+      }
+      if (token.type === 'LBRACE') {
+        depth++;
+        memberStart = true;
+        continue;
+      }
+      if (token.type === 'RBRACE') {
+        depth--;
+        if (depth === 0) return false;
+        memberStart = true;
+        continue;
+      }
+      if (
+        bracketDepth === 0 &&
+        (token.type === 'NEWLINE' || token.type === 'COMMA' || token.type === 'SEMICOLON')
+      ) {
+        memberStart = true;
+        continue;
+      }
+      if (HoloCompositionParser.CODE_TOKENS.has(token.type)) return true;
+      if (token.type === 'LPAREN' && !(this.peek(i - 2).type === 'AT')) return true;
+      if (depth === 1 && bracketDepth === 0 && memberStart && token.type === 'NUMBER') return true;
+      memberStart = false;
+    }
   }
 
   /** The token type after the parenthesised group that starts at `offset` (an LPAREN). */
@@ -2425,7 +2481,12 @@ export class HoloCompositionParser {
         // keyword and the name token by token, so the group vanished with 0 errors
         // (language directive 2; examples/export-pipelines/gltf-pbr-export.holo).
         const group = this.parseSpatialGroup();
-        children.push(...group.objects);
+        // Every object in the group, including those in groups nested inside it.
+        const collect = (g: HoloSpatialGroup): HoloObjectDecl[] => [
+          ...g.objects,
+          ...(g.groups ?? []).flatMap(collect),
+        ];
+        children.push(...collect(group));
         directives.push({ type: 'spatial_group', name: group.name, parameters: [], body: '', group });
       } else if (this.check('SUB_ORB')) {
         subOrbs.push(this.parseSubOrb());
@@ -2591,7 +2652,8 @@ export class HoloCompositionParser {
             if (key === 'on' || key.startsWith('on_') || /^on[A-Z]/.test(key)) {
               this.skipBlock();
             } else {
-              ({ body: parsedBody, bodySource } = this.parseLabeledBlockBody(key));
+              // Always read as settings here: a broken body stays an error.
+              ({ body: parsedBody, bodySource } = this.parseLabeledBlockBody(key, { allowText: false }));
             }
           }
           directives.push({
@@ -2626,7 +2688,8 @@ export class HoloCompositionParser {
           // named after the label holding only the block's first setting.
           const blockName = this.advance().value;
           if (this.check('LPAREN')) this.skipParens();
-          const { body, bodySource } = this.parseLabeledBlockBody(key);
+          // Read as the quoted form is: settings, with a broken body an error.
+          const { body, bodySource } = this.parseLabeledBlockBody(key, { allowText: false });
           directives.push({
             type: key,
             name: blockName,
@@ -5413,15 +5476,53 @@ export class HoloCompositionParser {
       `Unexpected "${key}" followed by ${this.current().type === 'STRING' ? `string "${this.current().value}"` : `"${this.current().value}"`} in state "${stateName}"`,
       'A state holds key: value members (entry, exit, on: { event: "target" }, ...) or on event -> "target".'
     );
+    this.skipToStateMemberEnd();
   }
 
-  /** `on: { open: "opened", close: "closed" }` inside a state; it used to be read and thrown away. */
+  /**
+   * After a reported state member, skip the rest of it (to the end of its line, past any
+   * nested block or call) so one mistake is reported once, not once per token.
+   */
+  private skipToStateMemberEnd(): void {
+    while (!this.check(['NEWLINE', 'RBRACE', 'SEMICOLON', 'EOF'])) {
+      if (this.check('LBRACE')) this.skipBlock();
+      else if (this.check('LPAREN')) this.skipParens();
+      else this.advance();
+    }
+  }
+
+  /**
+   * `on: { open: "opened", close: "closed" }` inside a state; it used to be read and thrown
+   * away. A target is a state name: `open: { target: "opened" }` reads its `target`, and any
+   * other value (a list, a map with no target) is an error, never a state named
+   * "[object Object]" or "opened,half".
+   */
   private parseStateOnMap(state: HoloState_Machine, stateName: string): void {
+    const loc = this.currentLocation();
     const map = this.parseValue();
-    if (map && typeof map === 'object' && !Array.isArray(map)) {
-      for (const [event, target] of Object.entries(map as Record<string, HoloValue>)) {
-        state.transitions.push({ type: 'StateTransition', from: stateName, event, target: String(target) });
+    if (!map || typeof map !== 'object' || Array.isArray(map)) {
+      this.errors.push({
+        message: `on: in state "${stateName}" must map events to target states, as on: { open: "opened" }`,
+        loc,
+        severity: 'error',
+      });
+      return;
+    }
+    for (const [event, value] of Object.entries(map as Record<string, HoloValue>)) {
+      const nested =
+        value && typeof value === 'object' && !Array.isArray(value)
+          ? (value as Record<string, HoloValue>).target
+          : undefined;
+      const target = typeof value === 'string' ? value : typeof nested === 'string' ? nested : undefined;
+      if (target === undefined) {
+        this.errors.push({
+          message: `Transition "${event}" in state "${stateName}" has no target state name; write ${event}: "stateName"`,
+          loc,
+          severity: 'error',
+        });
+        continue;
       }
+      state.transitions.push({ type: 'StateTransition', from: stateName, event, target });
     }
   }
 
@@ -5512,14 +5613,14 @@ export class HoloCompositionParser {
               } else if (this.parseAnimationStateMetadata(state, key)) {
                 // Metadata consumed by parseAnimationStateMetadata.
               } else if (key === 'transitions') {
-                state.transitions = this.parseStateTransitions();
+                state.transitions = [...state.transitions, ...this.parseStateTransitions()];
               } else if (key === 'onDamage') {
                 state.onDamage = this.parseStatementBlock();
               } else if (key === 'timeout') {
                 state.timeout = this.parseValue() as number;
               } else if (key === 'onTimeout') {
                 state.onTimeout = this.parseStatementBlock();
-              } else if (key === 'on' && this.check('LBRACE')) {
+              } else if (key === 'on') {
                 this.parseStateOnMap(state, stateName);
               } else {
                 // Unknown key:value (a call such as `transition("placing")` included):
@@ -5696,10 +5797,10 @@ export class HoloCompositionParser {
               } else if (this.parseAnimationStateMetadata(state, key)) {
                 // Metadata consumed by parseAnimationStateMetadata.
               } else if (key === 'transitions') {
-                state.transitions = this.parseStateTransitions();
+                state.transitions = [...state.transitions, ...this.parseStateTransitions()];
               } else if (key === 'timeout') {
                 state.timeout = this.parseValue() as number;
-              } else if (key === 'on' && this.check('LBRACE')) {
+              } else if (key === 'on') {
                 this.parseStateOnMap(state, stateName);
               } else {
                 this.keepStateMember(state, key, 'value');
@@ -5716,7 +5817,7 @@ export class HoloCompositionParser {
                 state.exit = this.parseStatementBlock();
                 this.expect('RBRACE');
               } else if (key === 'transitions') {
-                state.transitions = this.parseStateTransitions();
+                state.transitions = [...state.transitions, ...this.parseStateTransitions()];
               } else {
                 this.keepStateMember(state, key, 'block');
               }
@@ -5819,7 +5920,7 @@ export class HoloCompositionParser {
         } else if (key === 'onDamage') state.onDamage = this.parseStatementBlock();
         else if (key === 'timeout') state.timeout = this.parseValue() as number;
         else if (key === 'onTimeout') state.onTimeout = this.parseStatementBlock();
-        else if (key === 'transitions') state.transitions = this.parseStateTransitions();
+        else if (key === 'transitions') state.transitions = [...state.transitions, ...this.parseStateTransitions()];
 
         this.skipNewlines();
       }

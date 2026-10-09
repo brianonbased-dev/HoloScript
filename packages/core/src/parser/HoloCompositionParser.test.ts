@@ -1764,10 +1764,29 @@ describe('Keeps or refuses every token in object, template and state bodies', ()
     expect(brain?.bodySource).toBe('if ( x > 1 ) { go ( ) }');
     expect(template.warnings.map((w) => w.code)).toContain('HOLO_BODY_KEPT_AS_TEXT');
 
-    const object = parseHolo('composition "O" { object "a" { gesture "near" { 0 { mesh: "hi" } } } }');
-    const gesture = directivesOf(object.ast!.objects[0]).find((d) => d.type === 'gesture');
-    expect(gesture?.bodySource).toContain('mesh');
-    expect(object.warnings.map((w) => w.code)).toContain('HOLO_BODY_KEPT_AS_TEXT');
+    const table = parseHolo('composition "T" { template "B" { lod "near" { 0 { mesh: "hi" } } } }');
+    expect(table.success).toBe(true);
+    const lod = directivesOf(table.ast!.templates[0]).find((d) => d.type === 'lod');
+    expect(lod?.bodySource).toContain('mesh');
+    expect(table.warnings.map((w) => w.code)).toContain('HOLO_BODY_KEPT_AS_TEXT');
+  });
+
+  it('a broken settings body is still an error, never kept as text', () => {
+    // An object's labelled block was always read as settings: a numbered table there was
+    // refused before and is refused now. A typo (missing colon) is refused everywhere,
+    // including template blocks the reader used to skip unread.
+    const broken = [
+      'composition "C" { object "a" { animation "fade" { duration 500 } } }',
+      'composition "C" { object "a" { animation fade { duration 500 } } }',
+      'composition "C" { template "t" { animation "fade" { duration 500 } } }',
+      'composition "C" { object "a" { gesture "near" { 0 { mesh: "hi" } } } }',
+    ];
+    for (const source of broken) {
+      const result = parseHolo(source);
+      expect(result.success, source).toBe(false);
+      expect(result.warnings.map((w) => w.code), source).not.toContain('HOLO_BODY_KEPT_AS_TEXT');
+      expect(() => parseHoloStrict(source), source).toThrow();
+    }
   });
 
   it('a labelled block with no body in a template is kept', () => {
@@ -1799,6 +1818,44 @@ describe('Keeps or refuses every token in object, template and state bodies', ()
     }
   });
 
+  it('a transition target is a state name: a nested { target } is read, anything else is refused', () => {
+    const nested = parseHolo(
+      'composition "P" { state_machine "door" { initial: "closed"\n state "closed" { on: { open: { target: "opened" } } }\n state "opened" { } } }'
+    );
+    expect(nested.errors).toEqual([]);
+    expect(nested.ast!.stateMachines[0].states.closed.transitions.map((t) => t.target)).toEqual(['opened']);
+    for (const bad of ['on: { open: ["opened", "half"] }', 'on: { open: { when: "x" } }', 'on: "opened"']) {
+      const result = parseHolo(
+        `composition "P" { state_machine "door" { initial: "closed"\n state "closed" { ${bad} }\n } }`
+      );
+      expect(result.success, bad).toBe(false);
+      const targets = Object.values(result.ast?.stateMachines[0]?.states ?? {}).flatMap((s) =>
+        s.transitions.map((t) => t.target)
+      );
+      expect(targets.filter((t) => /object|,/.test(String(t))), bad).toEqual([]);
+    }
+  });
+
+  it('transitions: after on: adds to the transitions, it does not erase them', () => {
+    const result = parseHolo(
+      'composition "P" { state_machine "door" { initial: "closed"\n state "closed" {\n on: { open: "opened" }\n transitions: [ { target: "locked" } ]\n }\n } }'
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.ast!.stateMachines[0].states.closed.transitions.map((t) => t.target)).toEqual([
+      'opened',
+      'locked',
+    ]);
+  });
+
+  it('one mistake in a state is reported once', () => {
+    for (const member of ['emit "done"', 'animation "label" { a: 1 }']) {
+      const result = parseHolo(
+        `composition "P" { state_machine "m" { initial: "s"\n state "s" {\n ${member}\n }\n } }`
+      );
+      expect(result.errors.length, member).toBe(1);
+    }
+  });
+
   it('a token that cannot start a state member is reported, not dropped', () => {
     const result = parseHolo(
       'composition "Portal" {\n state_machine door {\n initial: "closed"\n state "closed" {\n on "open" transition to "opened"\n }\n }\n}'
@@ -1827,6 +1884,13 @@ describe('Keeps or refuses every token in object, template and state bodies', ()
     expect(directivesOf(scene)).toContainEqual(
       expect.objectContaining({ type: 'spatial_group', name: 'Materials' })
     );
+
+    // Objects in a group nested inside that group are children too.
+    const deep = parseHolo(
+      'composition "S" {\n object "Scene" {\n spatial_group "Outer" {\n object "A" { geometry: "cube" }\n spatial_group "Inner" {\n object "B" { geometry: "cube" }\n }\n }\n }\n}'
+    );
+    expect(deep.errors).toEqual([]);
+    expect((deep.ast!.objects[0].children ?? []).map((c) => c.name)).toEqual(['A', 'B']);
   });
 
   it('property test: a foreign token in an object, template or state body is never lost with success', () => {
@@ -1844,6 +1908,10 @@ describe('Keeps or refuses every token in object, template and state bodies', ()
       (m: string) => `${m}: 3`,
       (m: string) => `42 ${m}`,
       (m: string) => `-> ${m}`,
+      // Markers INSIDE a block body: a reader that skipped the body unread would lose them.
+      (m: string) => `behavior "b" { ${m}: 1 }`,
+      (m: string) => `behavior "b" { k: "${m}" }`,
+      (m: string) => `behavior "b" { if (x) { ${m}() } }`,
     ];
     const sites = [
       (f: string) => `composition "P" { object "o" { geometry: "cube"\n ${f}\n } }`,
