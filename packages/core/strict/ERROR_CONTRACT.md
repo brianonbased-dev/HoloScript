@@ -110,10 +110,10 @@ still runs. `coreInfo()` says which vocabularies were loaded (`traitSources`)
 and whether the check is on (`traitCheck`); the corpus test asserts all four
 load inside this repo, so the check cannot switch itself off unnoticed here.
 
-When the parser has read a trait name differently from how it is written (it
-reads `@2d_canvas` at composition level as a trait named `2`), `HS1006` says
-so, as a warning, and names the written form: that is a parser defect, not a
-fault in the source.
+When the parser has read a trait name differently from how it is written,
+`HS1006` says so, as a warning, and names the written form: that is a parser
+defect, not a fault in the source. (The first known case, `@2d_canvas` read as
+a trait named `2`, is fixed: the parser now reads digit-leading names whole.)
 
 ## How it is enforced
 

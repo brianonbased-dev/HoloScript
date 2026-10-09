@@ -226,20 +226,20 @@ regardless of extension, on `origin/main` 257191940.
 
 **What the study found** (each item was reproduced by running a parser):
 
-| # | Mismatch | Effect on someone moving code |
-| --- | --- | --- |
-| 1 | `holoscript parse x.hs` runs the TypeScript `HoloScriptCodeParser`, not the Rust/WASM authority; `holoscript validate` runs the authority | `parse` passes code `validate` rejects (`let` reassignment, `let mut`, generics) |
-| 2 | Functions: real and type-checked in `.hs`; in `.hsplus` a return type is a parse error and the body is kept as unchecked text; in `.holo` `function` is consumed and dropped | A `.hs` function moved elsewhere fails or vanishes |
-| 3 | Loops: `for (i in 0..3)` is `.hs`-only; `for i in xs` and C-style loops are `.holo`-only; `for (x of xs)` is tree-sitter-only; `..` exists only in `.hs` | No loop form is portable |
-| 4 | `let`/`const` immutability is enforced only in `.hs`; `.holo` accepts reassigning a `const` and UAAL lowering drops the binding kind | Moving `.holo` logic to `.hs` turns working code into errors |
-| 5 | `@unknown` on a struct field: an epistemic field in `.hs`/`.hsplus`; in `.holo`, `struct Sensor` becomes an IoT domain block, and other structs vanish, leaving a composition trait named `unknown` | The ignorance marker changes meaning |
-| 6 | Names: `.hs` accepts only `object Ball`; tree-sitter accepts only `object "Ball"` | Every `.hs` scene shows red in a tree-sitter editor |
-| 7 | Trait definition is `@trait Name {}` in `.hs` and `trait Name {}` in `.hsplus`/tree-sitter; `.hs` rejects the `@physics(mass: 2)` paren form the docs use | Each surface misreads the other's spelling |
-| 8 | Imports have four spellings; in `.hsplus` a bare `import "x"` becomes an element node and never resolves | Imports silently fail to resolve |
-| 9 | Tree-sitter's `@effects(physics:force)` is not read by the effect checker (the function counts as pure); in `.holo`, `effects { }` means post-processing | The advertised effect syntax declares nothing |
-| 10 | `.holo` without a `composition` wrapper skipped every unknown top-level token: `zzz qqq 123 !!!` parsed to an empty composition with `success: true` | Content is lost with no signal |
-| 11 | `#` comments, semicolons, template literals, `else if`, and `on_click`/`onClick` are each rejected by at least one surface | Small paste failures |
-| 12 | `packages/tree-sitter-holoscript` runs `tree-sitter test \|\| exit 0`, and the committed `.wasm` predates later grammar commits | The editor grammar's checks cannot fail |
+| #   | Mismatch                                                                                                                                                                                            | Effect on someone moving code                                                    |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | `holoscript parse x.hs` runs the TypeScript `HoloScriptCodeParser`, not the Rust/WASM authority; `holoscript validate` runs the authority                                                           | `parse` passes code `validate` rejects (`let` reassignment, `let mut`, generics) |
+| 2   | Functions: real and type-checked in `.hs`; in `.hsplus` a return type is a parse error and the body is kept as unchecked text; in `.holo` `function` is consumed and dropped                        | A `.hs` function moved elsewhere fails or vanishes                               |
+| 3   | Loops: `for (i in 0..3)` is `.hs`-only; `for i in xs` and C-style loops are `.holo`-only; `for (x of xs)` is tree-sitter-only; `..` exists only in `.hs`                                            | No loop form is portable                                                         |
+| 4   | `let`/`const` immutability is enforced only in `.hs`; `.holo` accepts reassigning a `const` and UAAL lowering drops the binding kind                                                                | Moving `.holo` logic to `.hs` turns working code into errors                     |
+| 5   | `@unknown` on a struct field: an epistemic field in `.hs`/`.hsplus`; in `.holo`, `struct Sensor` becomes an IoT domain block, and other structs vanish, leaving a composition trait named `unknown` | The ignorance marker changes meaning                                             |
+| 6   | Names: `.hs` accepts only `object Ball`; tree-sitter accepts only `object "Ball"`                                                                                                                   | Every `.hs` scene shows red in a tree-sitter editor                              |
+| 7   | Trait definition is `@trait Name {}` in `.hs` and `trait Name {}` in `.hsplus`/tree-sitter; `.hs` rejects the `@physics(mass: 2)` paren form the docs use                                           | Each surface misreads the other's spelling                                       |
+| 8   | Imports have four spellings; in `.hsplus` a bare `import "x"` becomes an element node and never resolves                                                                                            | Imports silently fail to resolve                                                 |
+| 9   | Tree-sitter's `@effects(physics:force)` is not read by the effect checker (the function counts as pure); in `.holo`, `effects { }` means post-processing                                            | The advertised effect syntax declares nothing                                    |
+| 10  | `.holo` without a `composition` wrapper skipped every unknown top-level token: `zzz qqq 123 !!!` parsed to an empty composition with `success: true`                                                | Content is lost with no signal                                                   |
+| 11  | `#` comments, semicolons, template literals, `else if`, and `on_click`/`onClick` are each rejected by at least one surface                                                                          | Small paste failures                                                             |
+| 12  | `packages/tree-sitter-holoscript` runs `tree-sitter test \|\| exit 0`, and the committed `.wasm` predates later grammar commits                                                                     | The editor grammar's checks cannot fail                                          |
 
 **Fixed with this entry:**
 

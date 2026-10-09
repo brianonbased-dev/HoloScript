@@ -72,12 +72,7 @@ describe('strict corpus: manifest integrity', () => {
           .map((name) => `${dir}/${name}`)
       )
       .sort();
-    const listed = [
-      ...manifest.valid,
-      ...manifest.real,
-      ...manifest.warns,
-      ...manifest.invalid,
-    ]
+    const listed = [...manifest.valid, ...manifest.real, ...manifest.warns, ...manifest.invalid]
       .map((entry) => entry.file)
       .sort();
 

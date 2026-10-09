@@ -54,10 +54,12 @@ want consumers to opt in without a core release.
 
 ## Scope
 
-This layer rejects. The validator behind `holoscript validate`, the
-`validate_holoscript` tool and the LSP (`validateCanonicalSource` in core)
-gives the same accept-or-refuse verdict on every file in `corpus/`;
-`src/validation/__tests__/rejection-corpus.test.ts` holds it to that.
+This layer rejects. The validator behind `holoscript validate` and the
+`validate_holoscript` tool (`validateCanonicalSource` in core) gives the same
+accept-or-refuse verdict on every file in `corpus/`;
+`src/validation/__tests__/rejection-corpus.test.ts` holds it to that. The LSP
+and Studio's editor call the same validator with `allowEmpty`, so they also
+accept `invalid/empty.holo`: a brand-new empty file is not an error in an editor.
 `HoloScriptValidator` reports what the legacy `.hs` code parser finds and is
 deprecated in favour of `validateCanonicalSource`.
 
