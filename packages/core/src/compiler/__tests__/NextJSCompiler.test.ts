@@ -141,4 +141,74 @@ describe('NextJSCompiler', () => {
     expect(compiled.code).toContain("'use client'");
     expect(compiled.code).not.toContain('export const metadata');
   });
+
+  // x4dx (2026-10-08): the invite-only refusal page must stay out of search
+  // results. Until robots was emitted, that page could not be generated at all.
+  it('emits title, description and robots metadata for a server page', async () => {
+    const result = parseHolo(`
+      composition "ServerMetaPage" {
+        @page { route: "/server-meta", client: false }
+        @metadata {
+          title: "Server Page"
+          description: "Ships its metadata"
+          robots: { index: false }
+        }
+
+        object "Body" {
+          @text { content: "Hello" }
+        }
+      }
+    `);
+
+    expect(result.success).toBe(true);
+    const compiled = await new NextJSCompiler().compile(result.ast!, 'test-token');
+
+    expect(compiled.code).not.toContain("'use client'");
+    expect(compiled.code).toContain('export const metadata = {');
+    expect(compiled.code).toContain('  title: "Server Page",');
+    expect(compiled.code).toContain('  description: "Ships its metadata",');
+    expect(compiled.code).toContain('  robots: {"index":false},');
+  });
+
+  it('passes a string robots value through and leaves robots out when absent', async () => {
+    const withString = parseHolo(`
+      composition "NoIndexPage" {
+        @page { route: "/no-index", client: false }
+        @metadata { title: "No Index", robots: "noindex" }
+        object "Body" { @text { content: "x" } }
+      }
+    `);
+    const without = parseHolo(`
+      composition "PlainPage" {
+        @page { route: "/plain", client: false }
+        @metadata { title: "Plain" }
+        object "Body" { @text { content: "x" } }
+      }
+    `);
+
+    expect(withString.success).toBe(true);
+    expect(without.success).toBe(true);
+    const compiler = new NextJSCompiler();
+    const a = await compiler.compile(withString.ast!, 'test-token');
+    const b = await compiler.compile(without.ast!, 'test-token');
+
+    expect(a.code).toContain('  robots: "noindex",');
+    expect(b.code).toContain('  title: "Plain",');
+    expect(b.code).not.toContain('robots');
+  });
+
+  it('carries robots on a redirect page too', async () => {
+    const result = parseHolo(`
+      composition "MovedPage" {
+        @page { route: "/moved", redirect: "/new-home" }
+        @metadata { title: "Moved", robots: { index: false, follow: true } }
+      }
+    `);
+
+    expect(result.success).toBe(true);
+    const compiled = await new NextJSCompiler().compile(result.ast!, 'test-token');
+
+    expect(compiled.code).toContain('redirect("/new-home")');
+    expect(compiled.code).toContain('  robots: {"index":false,"follow":true},');
+  });
 });

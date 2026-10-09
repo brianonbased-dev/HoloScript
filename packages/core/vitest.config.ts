@@ -126,6 +126,10 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/hsplus-files.test.ts',
+      // The strict layer (strict/) is its own package with node:test suites, run by
+      // its own `test` script (`node --test test/corpus.test.mjs`). Vitest would
+      // collect strict/test/*.test.mjs and fail it with "No test suite found".
+      'strict/**',
       // Flaky files are excluded from the sharded pass and run separately in a
       // dedicated sequential pass (maxWorkers=1) by run-vitest.mjs. This flag
       // is set by the sharded-pass invocation only.

@@ -631,6 +631,40 @@ async function checkAuth(req: http.IncomingMessage): Promise<boolean> {
 }
 
 /**
+ * Does an authenticated caller hold at least one of `required`? `admin:*` holds everything, the
+ * same rule Gate 2 applies to tools (security/tool-scopes.ts authorizeToolCall). Scopes arrive
+ * already expanded by oauth21 expandScopes, so `admin` is admin:* + tools:admin and
+ * `tools:execute` is tools:write here; no hierarchy is re-derived. A valid token is not
+ * permission: a `tools:read` key must not write, post publicly, or spend through an HTTP route
+ * that only checked `auth.active`.
+ */
+function authHasAnyScope(auth: TokenIntrospection, required: readonly string[]): boolean {
+  const granted = auth.scopes ?? [];
+  if (granted.includes('admin:*')) return true;
+  return required.some((scope) => granted.includes(scope));
+}
+
+/** 403 for a valid token that lacks the scope a route needs (RFC 6750 §3.1). */
+function refuseInsufficientScope(res: http.ServerResponse, required: readonly string[]): void {
+  res.writeHead(403, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'WWW-Authenticate': `Bearer realm="holoscript-mcp", error="insufficient_scope", scope="${required.join(' ')}"`,
+  });
+  res.end(
+    JSON.stringify({
+      error: 'insufficient_scope',
+      required: [...required],
+      message: `This route needs one of: ${required.join(', ')} (or admin:*). A read-only token cannot use it.`,
+    })
+  );
+}
+
+/** Spending another account's credits is an operator action. */
+const CREDIT_DEDUCT_SCOPES = ['tools:admin'] as const;
+/** Publishing, posting publicly, or changing stored records. */
+const ROUTE_WRITE_SCOPES = ['tools:write'] as const;
+
+/**
  * Check if the request carries a founder-level key from the HoloMesh key
  * registry. Founders bypass credit gates — their operations are always
  * authorized regardless of credit_accounts balance.
@@ -3166,8 +3200,8 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (url === '/api/credits/deduct' && req.method === 'POST') {
     // Auth required
-    const authed = await checkAuth(req);
-    if (!authed) {
+    const deductAuth = await authenticateRequest(req);
+    if (!deductAuth.active) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
@@ -3176,6 +3210,12 @@ const httpServer = http.createServer(async (req, res) => {
     if (isFounderRequest(req)) {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, cost: 0, founderBypass: true }));
+      return;
+    }
+    // The body names whose credits to spend, so only an operator may call this. The one caller
+    // (studio creditGate.ts) sends the server's own key, which resolves to admin:*.
+    if (!authHasAnyScope(deductAuth, CREDIT_DEDUCT_SCOPES)) {
+      refuseInsufficientScope(res, CREDIT_DEDUCT_SCOPES);
       return;
     }
     try {
@@ -3258,10 +3298,16 @@ const httpServer = http.createServer(async (req, res) => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   if (url === '/api/moltbook/crosspost' && req.method === 'POST') {
-    const authed = await checkAuth(req);
-    if (!authed) {
+    const crosspostAuth = await authenticateRequest(req);
+    if (!crosspostAuth.active) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: false, error: 'Authentication required' }));
+      return;
+    }
+    // A public post under the server's Moltbook account. tools:write, not admin: the
+    // ai-ecosystem knowledge crosspost script calls this with an agent key, not an operator key.
+    if (!authHasAnyScope(crosspostAuth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
       return;
     }
     // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
@@ -4204,6 +4250,10 @@ const httpServer = http.createServer(async (req, res) => {
       );
       return;
     }
+    if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const contentHash = body.contentHash as string;
@@ -4258,6 +4308,10 @@ const httpServer = http.createServer(async (req, res) => {
           registration_endpoint: '/oauth/register',
         })
       );
+      return;
+    }
+    if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
       return;
     }
     try {
@@ -4742,6 +4796,11 @@ const httpServer = http.createServer(async (req, res) => {
           registration_endpoint: '/oauth/register',
         })
       );
+      return;
+    }
+    // Collecting mints editions on a stored record: a write, not a read.
+    if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
       return;
     }
     const hash = url.replace('/api/collect/', '');

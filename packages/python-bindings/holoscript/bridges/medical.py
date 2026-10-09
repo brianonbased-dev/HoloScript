@@ -213,7 +213,7 @@ def main():
             elif method == 'applyWindowLevel':
                 result = bridge.apply_window_level(params['center'], params['width'])
             elif method == 'extract3DVolume':
-                result = bridge.extract3d_volume(params['seriesPath'])
+                result = bridge.extract_3d_volume(params['seriesPath'])
             elif method == 'dicomToMesh':
                 result = bridge.dicom_to_mesh(
                     params['threshold'],

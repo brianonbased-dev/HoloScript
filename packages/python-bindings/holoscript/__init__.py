@@ -6,9 +6,10 @@ Python package, and this version stops pretending it is: ``parse`` and
 is planned for 6.1.0, built on the strict rejection layer for the grammar
 ``@holoscript/core`` uses, so the two runtimes cannot drift.
 
-What works today: the domain bridges under ``holoscript.bridges`` and the
-decision surfaces under ``holoscript.cognition``. Ask the package what it
-implements with ``holoscript.capabilities()``.
+What works today: the domain bridges under ``holoscript.bridges`` (except
+``alphafold``, which is a stub) and the decision surfaces under
+``holoscript.cognition``. Ask the package what it implements, and the limits of
+each part, with ``holoscript.capabilities()``.
 """
 
 from dataclasses import dataclass, field
@@ -92,9 +93,14 @@ def capabilities() -> Dict[str, Any]:
     record_decision and read_log are also exercised end to end. Gaps that check
     cannot see are stated under ``limits``.
 
-    ``not_implemented`` names top-level functions. ``scene_render`` is rendering a
-    HoloScript scene, which nothing here does; ``holoscript.cognition.render``
-    (an SVG of a decision log) is implemented and listed under ``cognition``.
+    ``not_implemented`` names top-level functions, plus ``bridges.alphafold``: that
+    module ships and imports, but no path in it returns a structure (the AlphaFold
+    API endpoint is a placeholder that does not resolve, and the local ColabFold
+    path is not written), so it is not listed under ``implemented``. A value is the
+    release a name is planned for; ``None`` means unscheduled. ``scene_render`` is
+    rendering a HoloScript scene, which nothing here does;
+    ``holoscript.cognition.render`` (an SVG of a decision log) is implemented and
+    listed under ``cognition``.
     """
     return {
         "version": __version__,
@@ -102,7 +108,6 @@ def capabilities() -> Dict[str, Any]:
         "implemented": {
             "list_traits": "static snapshot of 5 names; only @grabbable is in the core's trait registry",
             "bridges": [
-                "alphafold",
                 "medical",
                 "narupa",
                 "radio_astronomy",
@@ -112,9 +117,12 @@ def capabilities() -> Dict[str, Any]:
             "cognition": ["record_decision", "read_log", "render"],
         },
         "limits": {
-            "alphafold": "predict_structure via the AlphaFold API is a stub that fails closed; "
-            "the ColabFold path needs a local ColabFold install",
+            "medical": "dicom_to_mesh is not implemented; extract_3d_volume returns "
+            "dimensions and value range only, not voxels",
+            "narupa": "needs nanover-server, which no extra installs",
             "radio_astronomy": "calculate_synchrotron is a placeholder formula",
+            "scientific": "needs AutoDock Vina: pip install vina; the [scientific] extra "
+            "does not install it",
             "cognition.render": "shells out to the npm holo-decision program; raises "
             "RuntimeError when it is not installed",
         },
@@ -124,6 +132,7 @@ def capabilities() -> Dict[str, Any]:
             "generate": None,
             "scene_render": None,
             "share": None,
+            "bridges.alphafold": None,
         },
     }
 

@@ -18,15 +18,12 @@
       "@holoscript/formatter",
       "@holoscript/linter",
       "@holoscript/lsp",
-      "@holoscript/mcp-server",
       "@holoscript/partner-sdk",
       "@holoscript/registry",
-      "@holoscript/runtime",
-      "@holoscript/sdk",
-      "@holoscript/std",
       "@holoscript/visual",
       "@holoscript/wasm"
-    ]
+    ],
+    ["@holoscript/runtime", "@holoscript/sdk"]
   ],
   "access": "public",
   "baseBranch": "main",

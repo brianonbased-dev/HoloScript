@@ -1,0 +1,74 @@
+// Aerospace Benchmark Composition
+// OpenXR Target Optimization: Meta Quest compatible (low-poly meshes, optimized physics)
+composition "Aerospace Benchmark" {
+  metadata {
+    name: 'Aerospace Cross-Compilation Benchmark'
+    category: 'aerospace'
+    platforms: ['unity', 'unreal', 'webxr', 'babylonjs', 'r3f', 'openxr', 'dtdl']
+    performance_target: 'mobile_vr'  // Meta Quest 2/3/Pro optimization
+  }
+
+  environment {
+    skybox: "space"
+    ambient_light: 0.1
+    physics_engine: "bullet"
+    gravity: [0, 0, 0]
+  }
+
+  template "SpacecraftComponent" {
+    @physics
+    @collidable
+    @trackable
+    state {
+      temperature: 0
+      pressure: 0
+      operational: true
+    }
+  }
+
+  spatial_group "Satellite" {
+    origin: [0, 0, -5]
+    object "MainBody" using "SpacecraftComponent" {
+      geometry: "cube"
+      position: [0, 0, 0]
+      scale: [1, 1, 1]
+      color: "#cccccc"
+      state: { temperature: 273, pressure: 0 }
+    }
+    object "SolarPanel1" using "SpacecraftComponent" {
+      geometry: "plane"
+      position: [-1.5, 0, 0]
+      scale: [0.8, 2, 1]
+      color: "#001144"
+      state: { temperature: 250 }
+    }
+    object "SolarPanel2" using "SpacecraftComponent" {
+      geometry: "plane"
+      position: [1.5, 0, 0]
+      scale: [0.8, 2, 1]
+      color: "#001144"
+      state: { temperature: 250 }
+    }
+    object "Antenna" {
+      @glowing
+      geometry: "cylinder"
+      position: [0, 0.8, 0]
+      scale: [0.05, 0.6, 0.05]
+      color: "#888888"
+    }
+  }
+
+  object "TelemetryPanel" {
+    @billboard
+    @anchor
+    geometry: "plane"
+    position: [2, 0, -5]
+    scale: [0.5, 0.7, 1]
+    color: "#000033"
+  }
+
+  system "DigitalTwin" {
+    protocol: "DTDL"
+    telemetry: ["temperature", "pressure", "power_output", "orientation"]
+  }
+}

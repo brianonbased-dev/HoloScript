@@ -1,0 +1,18 @@
+// Public HoloNode starter. This file is the product source of truth.
+// Device profiles select packaging and runtime adapters without replacing it.
+
+composition "Public Holon Node" {
+  metadata {
+    title: "Public Holon Node"
+    description: "Portable owned-agent node for selectable edge device packaging"
+    version: "0.1.0"
+    capabilities: ["health", "signed_update", "rollback", "receipt"]
+  }
+
+  object "Node Runtime" {
+    role: "owned_edge_agent"
+    health_endpoint: "/health"
+    update_policy: "signed_manifest"
+    rollback_policy: "predecessor_hash"
+  }
+}
