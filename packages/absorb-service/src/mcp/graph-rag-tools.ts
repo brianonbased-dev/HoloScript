@@ -293,12 +293,21 @@ export function isGraphRAGReady(): boolean {
   return cachedEmbeddingIndex !== null && cachedGraphRAGEngine !== null;
 }
 
+/**
+ * The semantic state as the current caller may see it. Another caller's
+ * upload state reads as no state at all: holo_graph_status reported its root
+ * (semanticIndex.rootDir, localGraph.rootDir) to every caller, the same gate
+ * evictAnotherCallersUploadState applies to reads. Status does not evict.
+ */
 export function getGraphRAGStateStatus(): {
   ready: boolean;
   rootDir: string | null;
   timestamp: number | null;
   ageMs: number | null;
 } {
+  if (cachedGraphRAGEngine && !uploadBelongsToCaller(cachedGraphRAGEngine.graph)) {
+    return { ready: false, rootDir: null, timestamp: null, ageMs: null };
+  }
   return {
     ready: isGraphRAGReady(),
     rootDir: cachedGraphRAGRootDir,

@@ -519,6 +519,103 @@ describe('code read access', () => {
     expect(JSON.stringify(workspace).slice(0, 2000)).toContain('freshness.ts');
   }, 120_000);
 
+  const WORKSPACE_ROOT_ARG = '<workspace-root>';
+  it.each([
+    ['holo_query_codebase', { query: 'find', symbol: 'tenantAlphaPricingRule' }, null],
+    ['holo_query_codebase', { query: 'symbols', filePath: 'src/freshness.ts' }, 'isCachedMapFresh'],
+    // An empty answer explains itself from the map (nearest names): that map too.
+    ['holo_query_codebase', { query: 'callers', symbol: 'tenantAlphaPricing' }, null],
+    ['holo_impact_analysis', { changedSymbol: 'tenantAlphaPricing' }, null],
+    [
+      'holo_impact_analysis',
+      { changedSymbol: 'isCachedMapFresh' },
+      'files affected by changes to isCachedMapFresh',
+    ],
+    ['holo_resolve_symbol', { symbolName: 'tenantAlphaPricingRule' }, null],
+    ['holo_resolve_symbol', { symbolName: 'isCachedMapFresh' }, 'freshness.ts'],
+    ['holo_detect_drift', { rootDir: WORKSPACE_ROOT_ARG }, null],
+  ] as const)(
+    "%s %j answers from the graph it was entitled to when another caller's upload installs during its load",
+    async (tool, rawArgs, mustContain) => {
+      // ensureCachedGraph checked the owner once, then awaited (git HEAD, the
+      // coverage walk); an upload installed in the shared graph meanwhile, and
+      // the structural handlers reread the shared graph after the await, so
+      // tenant B was answered from tenant A's upload. ask and semantic search
+      // already kept the state they checked; the structural tools now use the
+      // graph ensureCachedGraph returns.
+      await absorbFixture('graph');
+      const args: Record<string, unknown> = Object.fromEntries(
+        Object.entries(rawArgs).map(([key, value]) => [
+          key,
+          value === WORKSPACE_ROOT_ARG ? process.env.HOLOSCRIPT_WORKSPACE_ROOT : value,
+        ])
+      );
+      // holo_resolve_symbol also asks the orchestrator: keep that offline.
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('fetch failed'));
+      const upload = uploadDuringTenantBHeadLookup('graph');
+      const other = await runWithCodeReadAccess(
+        false,
+        () => handleCodebaseTool(tool, args),
+        'tenant-b'
+      );
+      expect(upload().ran, 'the upload never ran inside tenant B call').toBe(true);
+      expect(upload().error).toBeUndefined();
+      // The symbol may be echoed back; only the upload holds this file.
+      expect(JSON.stringify(other)).not.toContain('tenantA.ts');
+      if (mustContain) {
+        expect(JSON.stringify(other).slice(0, 4000)).toContain(mustContain);
+      }
+    },
+    120_000
+  );
+
+  it("holo_graph_status never shows one caller another caller's upload, fresh or from the snapshot cache", async () => {
+    // holo_graph_status read the shared graph with no owner check: tenant A saw
+    // tenant B's upload root, its file count and coverage, and the semantic
+    // index root. Its snapshot cache key ignored the caller, so B's own status
+    // was replayed to A from the cache.
+    await absorbFixture('graph');
+    process.env.ABSORB_GRAPH_STATUS_SNAPSHOT_TTL_MS = '30000';
+    const asTenantA = <T>(fn: () => T) => runWithCodeReadAccess(false, fn, 'tenant-a');
+    const asTenantB = <T>(fn: () => T) => runWithCodeReadAccess(false, fn, 'tenant-b');
+    type Status = {
+      rootDir?: string | null;
+      coverage?: { graphFileCount?: number };
+      statusSnapshot?: { cacheHit?: boolean };
+    };
+    const before = (await asTenantA(() => handleCodebaseTool('holo_graph_status', {}))) as Status;
+    const betaFiles = ['Ledger', 'Payroll', 'Invoices'].map((name) => ({
+      path: `src/tenantBeta${name}.ts`,
+      content: `export function tenantBeta${name}Rule(): number { return 7; }\n`,
+    }));
+    const upload = (await asTenantB(() =>
+      handleCodebaseTool('holo_absorb_repo', { sourceFiles: betaFiles, outputFormat: 'graph' })
+    )) as { error?: string };
+    expect(upload.error, JSON.stringify(upload).slice(0, 300)).toBeUndefined();
+
+    // Tenant B sees its own upload, and its status fills the snapshot cache.
+    const own = (await asTenantB(() => handleCodebaseTool('holo_graph_status', {}))) as Status;
+    expect(own.coverage?.graphFileCount).toBe(betaFiles.length);
+    expect(own.rootDir).toBeTruthy();
+    expect(own.rootDir).not.toBe(before.rootDir);
+    // Compare by folder name: JSON doubles every Windows backslash.
+    const uploadFolder = path.basename(String(own.rootDir));
+
+    for (const call of ['first', 'second']) {
+      const status = (await asTenantA(() =>
+        handleCodebaseTool('holo_graph_status', {})
+      )) as Status;
+      const text = JSON.stringify(status);
+      expect(text, `${call} call names the upload's folder`).not.toContain(uploadFolder);
+      expect(text, `${call} call names an uploaded file`).not.toContain('tenantBeta');
+      expect(status.coverage?.graphFileCount, `${call} call counts the upload`).toBe(
+        before.coverage?.graphFileCount
+      );
+      // The second call is answered from tenant A's own cached snapshot.
+      expect(status.statusSnapshot?.cacheHit, `${call} call cacheHit`).toBe(call === 'second');
+    }
+  }, 120_000);
+
   it("refuses a named root on an upload from a caller that may not name this server's folders", async () => {
     // Pre-existing on main (claude4's round 2 review): rootDir '.' or a
     // receipt's roots resolved against the server workspace and the upload was

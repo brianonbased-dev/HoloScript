@@ -6992,10 +6992,21 @@ function startBackgroundGraphRAGWarm(
  *   1. Already in memory (cachedGraph set)
  *   2. Disk cache (if younger than 24 h)
  *   3. Nothing available → returns loaded=false
+ *
+ * When loaded, `graph` is the graph this call checked (owner, authority,
+ * freshness), with its `rootDir` and `timestamp`. Callers answer from it and
+ * never reread the shared cachedGraph afterwards: this function awaits (git
+ * HEAD, the coverage walk, a hydrate), and another caller's inline upload can
+ * install itself as cachedGraph meanwhile. Rereading the shared variable after
+ * the await answered tenant B's structural queries from tenant A's upload, as
+ * ask and semantic search did before graph-rag-tools pinned its state.
  */
 async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Promise<{
   loaded: boolean;
   source: 'memory' | 'disk-cache' | 'none';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  graph?: any;
+  timestamp?: number;
   ageMs?: number;
   rootDir?: string;
   stale?: boolean;
@@ -7026,6 +7037,7 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     // with this graph's envelope, which published it as this root's cache
     // generation (claude4's round 3 review of claudecode/absorb-agent-brief).
     const servedRootDir = cachedRootDir;
+    const servedProvenance = cacheProvenance;
     const memoryRootDir = cachedRootDir || resolveWorkspaceRoot();
     const workspaceRoot = resolveWorkspaceRoot();
     const memoryGraph = cachedGraph as {
@@ -7213,11 +7225,15 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
         console.warn(`[AbsorbCacheWarm] memory GraphRAG hydrate skipped: ${String(err)}`);
       }
     }
+    // The graph validated above and what was captured with it, never the
+    // shared variables, which another call may have replaced by now.
     return {
       loaded: true,
-      source: cacheProvenance === 'disk-cache' ? 'disk-cache' : 'memory',
+      source: servedProvenance === 'disk-cache' ? 'disk-cache' : 'memory',
+      graph: memoryGraph,
+      timestamp: memoryTimestamp,
       ageMs,
-      rootDir: cachedRootDir,
+      rootDir: servedRootDir,
       stale: false,
       ...(coverage && { coverage }),
       ...(warmJobId && { warmJobId }),
@@ -7398,6 +7414,8 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       return {
         loaded: true,
         source: 'disk-cache',
+        graph: diskGraph,
+        timestamp: envelope.timestamp,
         ageMs,
         rootDir: envelope.rootDir,
         stale: !freshByAge,
@@ -7494,11 +7512,12 @@ export async function getAuthoritativeGraphForVisualContext(): Promise<{
   timestamp: number;
 } | null> {
   const state = await ensureCachedGraph({ warmGraphRAG: false });
-  if (!state.loaded || !cachedGraph || !cachedRootDir) return null;
+  // The graph ensureCachedGraph checked, not whatever is shared after its awaits.
+  if (!state.loaded || !state.graph || !state.rootDir) return null;
   return {
-    graph: cachedGraph,
-    rootDir: cachedRootDir,
-    timestamp: cacheTimestamp || Date.now(),
+    graph: state.graph,
+    rootDir: state.rootDir,
+    timestamp: state.timestamp || Date.now(),
   };
 }
 
@@ -11012,6 +11031,8 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
       ...(graphState.coverage && { coverage: graphState.coverage }),
     };
   }
+  // Only the graph ensureCachedGraph checked answers this call (see there).
+  const graph = graphState.graph;
   const fromCache = graphState.source === 'disk-cache';
   const cacheNote = fromCache
     ? `[auto-loaded from disk cache, ${
@@ -11048,7 +11069,6 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
   switch (effectiveType) {
     case 'callers': {
       const name = symbolName ?? extractSymbolFromQuery(query);
-      const graph = cachedGraph;
       // An `<anonymous>` caller (arrow function, callback) is named by the
       // function it sits inside (tester agent 7, 2026-10-05: two of four
       // callers of getSymbolImpact were only "<anonymous>").
@@ -11063,14 +11083,14 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         query: `callers of ${symbolOwner ? `${symbolOwner}.` : ''}${name}`,
         results: callers,
         count: callers.length,
-        ...(callers.length === 0 && explainEmptySymbolAnswer(name, 'callers')),
+        ...(callers.length === 0 && explainEmptySymbolAnswer(graph, name, 'callers')),
         ...(cacheNote && { cacheNote }),
       };
     }
 
     case 'callees': {
       const name = symbolName ?? extractSymbolFromQuery(query);
-      const callees = cachedGraph.getCalleesOf(name);
+      const callees = graph.getCalleesOf(name);
       return {
         query: `callees of ${name}`,
         results: callees,
@@ -11081,7 +11101,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'imports': {
       const file = filePath ?? extractFileFromQuery(query);
-      const imports = cachedGraph.getImportsOf(file);
+      const imports = graph.getImportsOf(file);
       return {
         query: `imports of ${file}`,
         results: imports,
@@ -11092,7 +11112,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'imported_by': {
       const file = filePath ?? extractFileFromQuery(query);
-      const importedBy = cachedGraph.getImportedBy(file);
+      const importedBy = graph.getImportedBy(file);
       return {
         query: `files that import ${file}`,
         results: importedBy,
@@ -11103,7 +11123,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
 
     case 'symbols': {
       const file = filePath ?? extractFileFromQuery(query);
-      const symbols = cachedGraph.getSymbolsInFile(file);
+      const symbols = graph.getSymbolsInFile(file);
       return {
         query: `symbols in ${file}`,
         results: symbols,
@@ -11122,14 +11142,14 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         return { error: 'code_read_not_allowed', queryType: 'source', message: CODE_READ_REFUSED };
       }
       const name = symbolName ?? extractSymbolFromQuery(query);
-      const definitions = cachedGraph
+      const definitions = graph
         .findSymbolsByName(name)
         .filter((sym) => !symbolOwner || sym.owner === symbolOwner)
         .slice(0, SOURCE_MAX_DEFINITIONS);
-      const rootDir = cachedGraph.getRootDir();
+      const rootDir = graph.getRootDir();
       // A graph built from inline sourceFiles is read from its upload, never
       // from the disk at its root (claude4's review, 2026-10-08).
-      const readSource = inlineSourceReaderFor(cachedGraph);
+      const readSource = inlineSourceReaderFor(graph);
       // `match` reads the whole definition and returns only the lines holding
       // a word, with context: tester 7 had to filter a 375-line body by hand.
       const match = typeof args.match === 'string' ? args.match.trim().toLowerCase() : '';
@@ -11195,7 +11215,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
           count: matched.length,
           ...(matched.length === 0 &&
             (definitions.length === 0
-              ? explainEmptySymbolAnswer(name, 'find')
+              ? explainEmptySymbolAnswer(graph, name, 'find')
               : unreadable > 0
                 ? {
                     note:
@@ -11240,7 +11260,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         count: sources.length,
         ...(sources.length === 0 &&
           (definitions.length === 0
-            ? explainEmptySymbolAnswer(name, 'find')
+            ? explainEmptySymbolAnswer(graph, name, 'find')
             : { note: `${name} is defined but its file could not be read from the absorbed root.` })),
         ...(cacheNote && { cacheNote }),
       };
@@ -11252,7 +11272,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         matchMode,
         truncated,
         results: found,
-      } = cachedGraph.searchSymbolsByName(name, {
+      } = graph.searchSymbolsByName(name, {
         limit: 50,
       });
       return {
@@ -11260,7 +11280,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
         matchMode,
         results: found,
         count: found.length,
-        ...(found.length === 0 && explainEmptySymbolAnswer(name, 'find')),
+        ...(found.length === 0 && explainEmptySymbolAnswer(graph, name, 'find')),
         ...(truncated && {
           truncated: true,
           note: 'Result set capped at 50; refine the query for more.',
@@ -11276,7 +11296,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
           ? 'tropical-min-plus'
           : 'bfs';
         const strategy = traceStrategy ?? inferredStrategy;
-        const chain = cachedGraph.traceCallChain(parts[1], parts[2], maxDepth, {
+        const chain = graph.traceCallChain(parts[1], parts[2], maxDepth, {
           algorithm: strategy,
         });
         return {
@@ -11291,7 +11311,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
     }
 
     case 'communities': {
-      const communities: Map<string, string[]> = cachedGraph.detectCommunities();
+      const communities: Map<string, string[]> = graph.detectCommunities();
       // Cap output: only show file counts + top 10 files per community to prevent token overflow
       const MAX_FILES_PER_COMMUNITY = 10;
       return {
@@ -11313,7 +11333,7 @@ async function handleQuery(args: Record<string, unknown>): Promise<unknown> {
     case 'stats':
       return {
         query: 'stats',
-        result: cachedGraph.getStats(),
+        result: graph.getStats(),
         ...(cacheNote && { cacheNote }),
       };
 
@@ -11355,6 +11375,8 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
       ...(graphState.coverage && { coverage: graphState.coverage }),
     };
   }
+  // Only the graph ensureCachedGraph checked answers this call (see there).
+  const graph = graphState.graph;
   const cacheNote =
     graphState.source === 'disk-cache'
       ? `auto-loaded from disk cache (${
@@ -11394,7 +11416,7 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
     const maxDepth = boundedImpactInteger(args.maxDepth, IMPACT_DEFAULT_MAX_DEPTH, 0, 256);
     const deadlineMs = boundedImpactInteger(args.deadlineMs, IMPACT_DEFAULT_DEADLINE_MS, 1, 25_000);
     const startedAt = Date.now();
-    const impact = cachedGraph.getCommunityAwareImpactTraversal(changedFiles, {
+    const impact = graph.getCommunityAwareImpactTraversal(changedFiles, {
       maxAffectedFiles,
       maxDepth,
       deadlineMs,
@@ -11449,18 +11471,18 @@ async function handleImpact(args: Record<string, unknown>): Promise<unknown> {
   }
 
   if (changedSymbol) {
-    const defined = cachedGraph.findSymbolsByName(changedSymbol).length > 0;
+    const defined = graph.findSymbolsByName(changedSymbol).length > 0;
     if (!defined) {
       return {
         changedSymbol,
         affectedFiles: [],
         affectedCount: 0,
         blastRadius: `${changedSymbol} is not defined anywhere in this map, so its blast radius is unknown, not zero.`,
-        ...nearestSymbolNames(changedSymbol),
+        ...nearestSymbolNames(graph, changedSymbol),
         ...(cacheNote && { cacheNote }),
       };
     }
-    const affected: Set<string> = cachedGraph.getSymbolImpact(changedSymbol, symbolOwner);
+    const affected: Set<string> = graph.getSymbolImpact(changedSymbol, symbolOwner);
     return {
       changedSymbol: symbolOwner ? `${symbolOwner}.${changedSymbol}` : changedSymbol,
       affectedFiles: Array.from(affected),
@@ -11558,16 +11580,19 @@ async function handleDetectDrift(args: Record<string, unknown>): Promise<unknown
     };
   }
 
+  // Only the graph ensureCachedGraph checked answers this call (see there),
+  // taken before the module load below awaits.
+  const graph = graphState.graph;
   const rootDir = args.rootDir as string;
   const mod = await loadCodebaseModule();
   const { GitChangeDetector } = mod;
 
   const detector = new GitChangeDetector(rootDir);
-  const filePaths = cachedGraph.getFilePaths();
+  const filePaths = graph.getFilePaths();
   const currentHashes = detector.computeFileHashes(filePaths);
   const hashMap = Object.fromEntries(currentHashes.map((h: any) => [h.filePath, h.hash]));
 
-  const report = cachedGraph.detectDriftReport(hashMap);
+  const report = graph.detectDriftReport(hashMap);
   const drifted = report.driftedFiles;
   const staleEdges = report.staleEdges ?? [];
 
@@ -11604,9 +11629,34 @@ function graphStatusFileGeneration(filePath: string): string {
   }
 }
 
+/**
+ * The in-memory graph as the current caller may see it, taken once. Another
+ * caller's inline upload is not there for this caller: holo_graph_status used
+ * to report its root, file count and coverage to everyone (the structural and
+ * semantic tools already refused to answer from it).
+ */
+function inMemoryGraphForCaller(): {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  graph: any;
+  rootDir: string;
+  timestamp: number;
+  provenance: typeof cacheProvenance;
+} {
+  if (cachedGraph !== null && uploadBelongsToCaller(cachedGraph)) {
+    return {
+      graph: cachedGraph,
+      rootDir: cachedRootDir,
+      timestamp: cacheTimestamp,
+      provenance: cacheProvenance,
+    };
+  }
+  return { graph: null, rootDir: '', timestamp: 0, provenance: null };
+}
+
 function buildGraphStatusSnapshotKey(currentCwd: string): string {
-  const activeCacheRoot = cachedRootDir || currentCwd;
-  const activeRootDirs = (cachedGraph as { rootDirs?: string[] } | null)?.rootDirs ?? [
+  const own = inMemoryGraphForCaller();
+  const activeCacheRoot = own.rootDir || currentCwd;
+  const activeRootDirs = (own.graph as { rootDirs?: string[] } | null)?.rootDirs ?? [
     activeCacheRoot,
   ];
   const activeRootSetSelection = activeRootDirs.length > 1 ? activeRootDirs : undefined;
@@ -11622,10 +11672,13 @@ function buildGraphStatusSnapshotKey(currentCwd: string): string {
     .sort()
     .join('|');
   return [
+    // A snapshot answers only the caller it was computed for: what one caller
+    // sees (its own upload) is not what another may see.
+    currentCallerPrincipal(),
     currentCwd,
     activeCacheRoot,
-    cachedGraph === null ? 'cold' : 'loaded',
-    cacheTimestamp,
+    own.graph === null ? 'cold' : 'loaded',
+    own.timestamp,
     graphStatusFileGeneration(cachePaths.generationManifestFile),
     graphStatusFileGeneration(selectedGeneration?.graphFile ?? cachePaths.graphFile),
     graphStatusFileGeneration(cachePaths.writerReceiptsDirectory),
@@ -11739,8 +11792,18 @@ function readInMemoryGraphFileCount(graph: unknown): number {
 }
 
 async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapshot> {
-  const activeCacheRoot = cachedRootDir || currentCwd;
-  const activeRootDirs = (cachedGraph as { rootDirs?: string[] } | null)?.rootDirs ?? [
+  // The graph this status describes, taken once before any await and through
+  // the owner gate: another caller's inline upload reads as no graph in memory,
+  // so its root, file count, coverage and file names never reach this caller.
+  // Everything below uses these, never the shared variables.
+  const {
+    graph: statusGraph,
+    rootDir: statusRootDir,
+    timestamp: statusTimestamp,
+    provenance: statusProvenance,
+  } = inMemoryGraphForCaller();
+  const activeCacheRoot = statusRootDir || currentCwd;
+  const activeRootDirs = (statusGraph as { rootDirs?: string[] } | null)?.rootDirs ?? [
     activeCacheRoot,
   ];
   const activeRootSetSelection = activeRootDirs.length > 1 ? activeRootDirs : undefined;
@@ -11763,15 +11826,15 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   const cacheAgeMs = cache.ageMs;
   const diskCacheYoungerThanMaxAge = cacheAgeMs !== undefined && cacheAgeMs < CACHE_MAX_AGE_MS;
   const inMemoryAgeMs =
-    cachedGraph !== null && cacheTimestamp ? Date.now() - cacheTimestamp : undefined;
+    statusGraph !== null && statusTimestamp ? Date.now() - statusTimestamp : undefined;
   const activeAgeMs = inMemoryAgeMs ?? cacheAgeMs;
   const activeYoungerThanMaxAge =
-    activeAgeMs === undefined ? cachedGraph !== null : activeAgeMs < CACHE_MAX_AGE_MS;
+    activeAgeMs === undefined ? statusGraph !== null : activeAgeMs < CACHE_MAX_AGE_MS;
 
   // Scope freshness to the current repo root. A cache that was created for a
   // different directory (e.g. a temp absorb scratch dir) is NOT authoritative
   // for the workspace the agent is actually working in.
-  const cacheRootDir = cachedRootDir || cache.rootDir || null;
+  const cacheRootDir = statusRootDir || cache.rootDir || null;
   const declaredAuthorityRoots =
     cache.rootDirs && cache.rootDirs.length > 0
       ? cache.rootDirs
@@ -11804,10 +11867,10 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   const workspaceGitCommitHash =
     cacheMatchesCwd || diskCacheMatchesCwd ? await getCurrentGitCommit(currentCwd) : null;
   const activeGitCommitHash =
-    ((cachedGraph as { gitCommitHash?: string } | null)?.gitCommitHash ?? cache.gitCommitHash) ||
+    ((statusGraph as { gitCommitHash?: string } | null)?.gitCommitHash ?? cache.gitCommitHash) ||
     null;
   const activeScanPolicy = normalizeScanPolicy(
-    (cachedGraph as { scanPolicy?: GraphScanPolicy } | null)?.scanPolicy ?? cache.scanPolicy
+    (statusGraph as { scanPolicy?: GraphScanPolicy } | null)?.scanPolicy ?? cache.scanPolicy
   );
   const activeRootSetAuthority =
     activeRootDirs.length > 1
@@ -11815,9 +11878,9 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
           {
             rootDir: activeCacheRoot,
             rootDirs: activeRootDirs,
-            rootSetId: (cachedGraph as { rootSetId?: string } | null)?.rootSetId ?? cache.rootSetId,
+            rootSetId: (statusGraph as { rootSetId?: string } | null)?.rootSetId ?? cache.rootSetId,
             rootAuthorityPins:
-              (cachedGraph as { rootAuthorityPins?: GraphRootAuthorityPin[] } | null)
+              (statusGraph as { rootAuthorityPins?: GraphRootAuthorityPin[] } | null)
                 ?.rootAuthorityPins ?? cache.rootAuthorityPins,
             scanPolicy: activeScanPolicy,
           },
@@ -11829,24 +11892,24 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       ? buildGitWorktreeFingerprint(currentCwd, activeScanPolicy)
       : null;
   const activeWorktreeFingerprint =
-    (cachedGraph as { worktreeFingerprint?: string } | null)?.worktreeFingerprint ??
+    (statusGraph as { worktreeFingerprint?: string } | null)?.worktreeFingerprint ??
     cache.worktreeFingerprint;
   const diskGraphFileCount =
     cache.fileHashCount ??
     Number((cache.stats as { totalFiles?: unknown } | undefined)?.totalFiles ?? 0);
   const inMemoryGraphFileCount =
-    cachedGraph !== null ? readInMemoryGraphFileCount(cachedGraph) : undefined;
+    statusGraph !== null ? readInMemoryGraphFileCount(statusGraph) : undefined;
   const activeGraphFileCount = inMemoryGraphFileCount ?? diskGraphFileCount;
   const activeAndDiskShareCoverage =
-    (cachedGraph === null || cacheProvenance === 'disk-cache') &&
+    (statusGraph === null || statusProvenance === 'disk-cache') &&
     rootMatchesCurrentRepo(cacheRootDir, cache.rootDir ?? currentCwd) &&
     activeGraphFileCount === diskGraphFileCount;
   const activeFileHashes =
-    ((cachedGraph as { fileHashes?: Record<string, string> } | null)?.fileHashes ??
+    ((statusGraph as { fileHashes?: Record<string, string> } | null)?.fileHashes ??
       cache.fileHashes) ||
     undefined;
   const activeCoverage = buildGraphCoverageStatusForRoots(
-    (cachedGraph as { rootDirs?: string[] } | null)?.rootDirs ??
+    (statusGraph as { rootDirs?: string[] } | null)?.rootDirs ??
       cache.rootDirs ??
       [cacheMatchesCwd || diskCacheMatchesCwd ? currentCwd : cacheRootDir].filter(
         (entry): entry is string => Boolean(entry)
@@ -11951,7 +12014,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       : graphRAGState.ageMs < CACHE_MAX_AGE_MS ||
         (graphRAGState.ready && graphRAGMatchesCwd && activeContentProvenCurrent);
   const localGraphCoverageComplete =
-    cachedGraph === null && !cache.exists ? true : activeCoverageComplete;
+    statusGraph === null && !cache.exists ? true : activeCoverageComplete;
 
   // Cross-root authority (see cacheDescribesRealCurrentRepo): a cache is
   // authoritative for its own repo even when rootDir !== the workspace root,
@@ -11987,7 +12050,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
         freshByAge: diskCacheFreshByAge,
         coverage: diskCoverage,
       });
-  const noGraphCachePresent = cachedGraph === null && !cache.exists && !cacheRootDir;
+  const noGraphCachePresent = statusGraph === null && !cache.exists && !cacheRootDir;
   const currentGitCommitHash = cacheMatchesCwd
     ? workspaceGitCommitHash
     : activeCrossRootAuthority.currentGitCommitHash;
@@ -12053,12 +12116,12 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   const graphAuthoritative =
     !nestedWorkspaceSlice &&
     (activeRootSetAuthority
-      ? (cachedGraph !== null || cache.exists) &&
+      ? (statusGraph !== null || cache.exists) &&
         activeFreshByAge &&
         activeCoverageComplete &&
         activeRootSetAuthority.authoritative
       : (cacheMatchesCwd &&
-          (cachedGraph !== null || cache.exists) &&
+          (statusGraph !== null || cache.exists) &&
           activeFreshByAge &&
           activeFileHashFreshness.fresh &&
           (activeGitMatchesHead || activeFileHashFreshForHeadMismatch) &&
@@ -12124,18 +12187,18 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
     ? undefined
     : buildGraphUnavailableReceipt({
         reason:
-          (!cacheMatchesCwd && (cache.exists || cachedGraph !== null)) ||
+          (!cacheMatchesCwd && (cache.exists || statusGraph !== null)) ||
           (!graphRAGMatchesCwd && graphRAGState.ready)
             ? 'cache_root_mismatch'
-            : (cache.exists || cachedGraph !== null || graphRAGState.ready) && !activeFreshByAge
+            : (cache.exists || statusGraph !== null || graphRAGState.ready) && !activeFreshByAge
               ? 'cache_stale'
-              : (cache.exists || cachedGraph !== null) && !activeCoverageComplete
+              : (cache.exists || statusGraph !== null) && !activeCoverageComplete
                 ? 'cache_incomplete'
-                : (cache.exists || cachedGraph !== null || graphRAGState.ready) &&
+                : (cache.exists || statusGraph !== null || graphRAGState.ready) &&
                     (!activeFileHashFreshness.fresh ||
                       (!activeGitMatchesHead && !activeFileHashFreshForHeadMismatch))
                   ? 'cache_stale'
-                  : cache.exists || cachedGraph !== null || graphRAGState.ready
+                  : cache.exists || statusGraph !== null || graphRAGState.ready
                     ? 'cache_stale'
                     : 'cache_missing',
         requestedPath,
@@ -12164,10 +12227,10 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       );
 
   return {
-    inMemory: cachedGraph !== null,
-    rootDir: cachedRootDir || null,
+    inMemory: statusGraph !== null,
+    rootDir: statusRootDir || null,
     rootDirs: cache.rootDirs ?? activeRootDirs,
-    rootSetId: (cachedGraph as { rootSetId?: string } | null)?.rootSetId ?? cache.rootSetId ?? null,
+    rootSetId: (statusGraph as { rootSetId?: string } | null)?.rootSetId ?? cache.rootSetId ?? null,
     rootSetAuthority: activeRootSetAuthority,
     cacheStorage: {
       layout: activeCachePaths.layout,
@@ -12301,7 +12364,7 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
       freshForCurrentRepo: localGraphLive,
     },
     ...(graphUnavailableReceipt && { graphUnavailableReceipt }),
-    sessionProvenance: cacheProvenance ?? null,
+    sessionProvenance: statusProvenance ?? null,
     localCodebaseSnapshotReceipt: cache.localCodebaseSnapshotReceipt ?? null,
     localCodebaseSnapshot,
     diskCache: cache.exists
@@ -12653,14 +12716,17 @@ function extractSymbolFromQuery(query: string): string {
  * names) or present with no recorded callers, and what the map cannot see.
  */
 function explainEmptySymbolAnswer(
+  // The graph that answered the call, never the shared cachedGraph.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  graph: any,
   name: string,
   kind: 'callers' | 'find'
 ): { note: string; notInGraph?: true; nearestNames?: string[] } {
-  const defined = cachedGraph?.findSymbolsByName(name) ?? [];
+  const defined = graph?.findSymbolsByName(name) ?? [];
   if (defined.length === 0) {
     return {
       note: `${name} is not defined anywhere in this map, so this empty answer means "unknown name", not "unused". Check the spelling or the nearestNames.`,
-      ...nearestSymbolNames(name),
+      ...nearestSymbolNames(graph, name),
     };
   }
   if (kind === 'find') return { note: `${name} is in the map but did not match this search.` };
@@ -12677,8 +12743,12 @@ function explainEmptySymbolAnswer(
  * When a named symbol is not in the map, say so and offer the closest names,
  * so an empty answer is not read as "nothing uses it".
  */
-function nearestSymbolNames(name: string): { notInGraph: true; nearestNames: string[] } {
-  const graph = cachedGraph;
+function nearestSymbolNames(
+  // The graph that answered the call, never the shared cachedGraph.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  graph: any,
+  name: string
+): { notInGraph: true; nearestNames: string[] } {
   const nearest = new Set<string>();
   if (graph && name) {
     const lower = name.toLowerCase();
@@ -12721,8 +12791,9 @@ async function handleResolveSymbol(args: Record<string, unknown>): Promise<unkno
   const localResults: Array<Record<string, unknown>> = [];
   try {
     const graphState = await ensureCachedGraph();
-    if (graphState.loaded && cachedGraph) {
-      const { matchMode, results } = cachedGraph.searchSymbolsByName(symbolName, { limit });
+    // The graph ensureCachedGraph checked, not whatever is shared after its awaits.
+    if (graphState.loaded && graphState.graph) {
+      const { matchMode, results } = graphState.graph.searchSymbolsByName(symbolName, { limit });
       for (const sym of results) {
         localResults.push({
           repo: graphState.rootDir ?? 'local',
