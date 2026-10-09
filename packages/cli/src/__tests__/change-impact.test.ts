@@ -912,7 +912,7 @@ describe('impact --since: a helper passes a change on to the tests that use it',
   it('with the graph, a helper naming a changed file selects the tests that reach it, not its package', async () => {
     const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, repo2(BASE));
 
-    expect(report.tests.selected).toEqual([USER]);
+    expect(report.tests.selected).toEqual([HELPER, USER].sort());
     expect(report.tests.fullSuitePackages).toEqual([]);
     expect(report.tests.viaHelpers).toEqual([
       { helper: HELPER, reason: 'names docs/guide.md by path', tests: [USER] },
@@ -963,7 +963,7 @@ describe('impact --since: a helper passes a change on to the tests that use it',
     });
     const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
 
-    expect(report.tests.selected).toEqual([starter]);
+    expect(report.tests.selected).toEqual([HELPER, starter].sort());
     expect(report.tests.fullSuitePackages).toEqual([]);
   });
 
@@ -983,7 +983,7 @@ describe('impact --since: a helper passes a change on to the tests that use it',
     });
     const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
 
-    expect(report.tests.selected).toEqual([runner, scenario]);
+    expect(report.tests.selected).toEqual([HELPER, runner, scenario].sort());
     expect(report.tests.fullSuitePackages).toEqual([]);
   });
 
@@ -1001,7 +1001,7 @@ describe('impact --since: a helper passes a change on to the tests that use it',
     });
     const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
 
-    expect(report.tests.selected).toEqual([user]);
+    expect(report.tests.selected).toEqual([HELPER, runs, user].sort());
     expect(report.tests.fullSuitePackages).toEqual([]);
     expect(report.tests.viaHelpers).toEqual([
       { helper: HELPER, reason: 'names docs/guide.md by path', tests: [] },
@@ -1026,7 +1026,7 @@ describe('impact --since: a helper passes a change on to the tests that use it',
     expect(report.tests.selected).toEqual([...A_TESTS, HELPER, globber].sort());
   });
 
-  it('a program (#! first line) that nothing runs from a test keeps no suite', async () => {
+  it('a program (#! first line) that nothing runs from a test keeps no suite, and is listed, not dropped', async () => {
     const program = 'packages/a/src/__tests__/gen-docs.ts';
     const deps = repo2({
       files: ['docs/guide.md', program],
@@ -1039,6 +1039,48 @@ describe('impact --since: a helper passes a change on to the tests that use it',
 
     expect(report.tests.fullSuitePackages).toEqual([]);
     expect(report.tests.selected).toEqual([]);
+    expect(report.tests.viaHelpers).toEqual([
+      { helper: program, reason: 'names docs/guide.md by path', tests: [], program: true },
+    ]);
+    expect(report.brief).toContain(
+      `Via helper: ${program} names docs/guide.md by path; it is a program run on its own, and no test imports it or names it by name`
+    );
+    expect(report.brief).toContain('vi.importActual or a computed path is not found');
+  });
+
+  it('a scenario file the runner runs is kept even when it is followed as a helper', async () => {
+    // It names docs/guide.md itself, so it is followed as a helper; the runner
+    // config still runs it, so it must stay in the selection.
+    const scenario = 'packages/a/src/__tests__/scenarios/guide.scenario.ts';
+    const deps = repo2({
+      files: ['docs/guide.md', scenario, 'packages/a/src/__tests__/scenarios/index.ts'],
+      importers: { [scenario]: ['packages/a/src/__tests__/scenarios/index.ts'] },
+      contents: { [scenario]: "export const text = readFileSync('docs/guide.md', 'utf8');" },
+      changes: [{ status: 'M', file: 'docs/guide.md' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.selected).toContain(scenario);
+    expect(report.tests.fullSuitePackages).toEqual([]);
+  });
+
+  it('a benchmark file that reads code by pattern is a file a runner runs, not a helper', async () => {
+    // Like core's HybridChunker.benchmark.ts: nothing imports it. As a helper it
+    // kept the whole package for every code change; as a runner-run file it is
+    // one more selected file.
+    const bench = 'packages/a/src/__tests__/Chunker.benchmark.ts';
+    const deps = repo2({
+      files: [bench],
+      contents: { [bench]: "files.filter((f) => f.endsWith('.ts'))" },
+      changes: [{ status: 'M', file: 'packages/a/src/unrelated.ts' }],
+    });
+    const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
+
+    expect(report.tests.fullSuitePackages).toEqual([]);
+    expect(report.tests.selected).toEqual(
+      [bench, 'packages/a/src/__tests__/unrelated.test.ts'].sort()
+    );
+    expect(report.tests.viaHelpers).toEqual([]);
   });
 
   it('a helper that reads code files by pattern selects its users for a code change, not every test in the package', async () => {
@@ -1053,7 +1095,9 @@ describe('impact --since: a helper passes a change on to the tests that use it',
     });
     const report = await analyzeChangeImpact({ repoRoot: ROOT, since: 'HEAD' }, deps);
 
-    expect(report.tests.selected).toEqual([parity, 'packages/a/src/__tests__/unrelated.test.ts']);
+    expect(report.tests.selected).toEqual(
+      [harness, parity, 'packages/a/src/__tests__/unrelated.test.ts'].sort()
+    );
     expect(report.tests.fullSuitePackages).toEqual([]);
     expect(report.tests.viaHelpers).toEqual([
       { helper: harness, reason: 'reads code files by pattern', tests: [parity] },
