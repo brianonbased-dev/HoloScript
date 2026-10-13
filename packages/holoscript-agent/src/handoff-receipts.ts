@@ -12,7 +12,7 @@ import { appendFileSync, mkdirSync } from 'node:fs';
 import { homedir, hostname } from 'node:os';
 import { dirname, join } from 'node:path';
 
-export type HandoffResult = 'finished' | 'released' | 'failed';
+export type HandoffResult = 'finished' | 'released' | 'release_failed' | 'failed';
 
 export interface HandoffReceipt {
   schema: 'native-handoff-v1';

@@ -805,9 +805,9 @@ OPTIONAL ENV
   HOLOSCRIPT_AGENT_FIT_CHECK         1 force / 0 disable the pre-claim n_ctx fit check (default: on for non-hosted providers)
   HOLOSCRIPT_AGENT_FIT_LLM_BASE_URL  where GET /props is read for n_ctx (default HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL)
   HOLOSCRIPT_AGENT_NUM_CTX           n_ctx fallback when /props is unreachable
-  HOLOSCRIPT_AGENT_READ_CAP_CHARS    read_file result cap (default 12000)
-  HOLOSCRIPT_AGENT_RESPONSE_CAP_CHARS  http_request result cap (default 8000)
-  HOLOSCRIPT_AGENT_STDOUT_CAP_CHARS  bash result cap, head+tail (default 8000)
+  HOLOSCRIPT_AGENT_READ_CAP_CHARS    read_file result cap (edge-small default 12000; other profiles 200000)
+  HOLOSCRIPT_AGENT_RESPONSE_CAP_CHARS  http_request result cap (edge-small default 8000; other profiles 200000)
+  HOLOSCRIPT_AGENT_STDOUT_CAP_CHARS  bash result cap, head+tail (edge-small default 8000; other profiles uncapped)
   HOLOSCRIPT_AGENT_RELEASE_TAG_UPDATE  0 = don't try to add the route tag (ctx-16k+ / laptop-or-fleet) on release
   HOLOMESH_API_BASE                  default https://mcp.holoscript.net/api/holomesh
   HOLOSCRIPT_AGENT_COMMIT_RESPONSES  "1" or "true" → write responses as memos and git-commit them

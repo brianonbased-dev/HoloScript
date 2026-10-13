@@ -369,11 +369,21 @@ function envInt(v: string | undefined, d: number): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : d;
 }
 
+/**
+ * Tool-output caps. The small caps (read 12k / web 8k / exec 8k chars) exist for
+ * 4k-token edge windows, so they apply ONLY under the `edge-small` claim profile.
+ * Every other profile (big-context, legacy, hosted providers) keeps the pre-hand-off
+ * defaults: read_file and http_request 200k chars, bash output uncapped (runBash's
+ * 1MB collection cap still bounds memory). The env vars override in any profile.
+ * The profile is read from HOLOSCRIPT_AGENT_CLAIM_PROFILE directly (same
+ * normalisation as resolveClaimProfile) to avoid a claim-profile ↔ handoff cycle.
+ */
 export function promptCaps(env: NodeJS.ProcessEnv = process.env): PromptCaps {
+  const edge = (env.HOLOSCRIPT_AGENT_CLAIM_PROFILE ?? '').trim().toLowerCase() === 'edge-small';
   return {
-    readChars: envInt(env.HOLOSCRIPT_AGENT_READ_CAP_CHARS, 12_000),
-    responseChars: envInt(env.HOLOSCRIPT_AGENT_RESPONSE_CAP_CHARS, 8_000),
-    stdoutChars: envInt(env.HOLOSCRIPT_AGENT_STDOUT_CAP_CHARS, 8_000),
+    readChars: envInt(env.HOLOSCRIPT_AGENT_READ_CAP_CHARS, edge ? 12_000 : 200_000),
+    responseChars: envInt(env.HOLOSCRIPT_AGENT_RESPONSE_CAP_CHARS, edge ? 8_000 : 200_000),
+    stdoutChars: envInt(env.HOLOSCRIPT_AGENT_STDOUT_CAP_CHARS, edge ? 8_000 : Number.POSITIVE_INFINITY),
   };
 }
 

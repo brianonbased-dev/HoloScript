@@ -215,7 +215,7 @@ export class AgentRunner {
   readonly claimProfile: ClaimProfile;
   private readonly handoffReceipts: HandoffReceiptLog;
   private taskUsage: TokenUsage | null = null;
-  private lastRelease: { taskId: string; reason: string } | null = null;
+  private lastRelease: { taskId: string; reason: string; ok: boolean } | null = null;
 
   constructor(private readonly opts: AgentRunnerOptions) {
     this.claimProfile = opts.claimProfile ?? resolveClaimProfile();
@@ -551,9 +551,30 @@ export class AgentRunner {
     const claimedAt = Date.now();
     this.taskUsage = null;
     this.lastRelease = null;
-    const result = await this.executeClaimed(execCtx);
-    this.writeHandoffReceipt(target, lane, result, claimedAt);
-    return result;
+    // Receipt in `finally`: even if executeClaimed throws (e.g. blockAutomationTask
+    // throwing inside the automation catch), the hand-off receipt is still written.
+    let result: TickResult | undefined;
+    let thrown: unknown;
+    try {
+      result = await this.executeClaimed(execCtx);
+      return result;
+    } catch (err) {
+      thrown = err;
+      throw err;
+    } finally {
+      const forReceipt: TickResult = result ?? {
+        action: 'errored',
+        taskId: target.id,
+        spentUsd: costGuard.getState().spentUsd,
+        remainingUsd: costGuard.getRemainingUsd(),
+        message: `uncaught: ${thrown instanceof Error ? thrown.message : String(thrown)}`.slice(0, 400),
+      };
+      try {
+        this.writeHandoffReceipt(target, lane, forReceipt, claimedAt);
+      } catch {
+        // receipts are best-effort; never mask the real outcome
+      }
+    }
   }
 
   /** Execution half of tick() after a successful claim (split out so every exit writes a receipt). */
@@ -1464,7 +1485,13 @@ export class AgentRunner {
   ): void {
     const released = this.lastRelease?.taskId === target.id ? this.lastRelease : null;
     const result: HandoffResult =
-      res.action === 'executed' ? 'finished' : released ? 'released' : 'failed';
+      res.action === 'executed'
+        ? 'finished'
+        : released
+          ? released.ok
+            ? 'released'
+            : 'release_failed'
+          : 'failed';
     const u = this.taskUsage;
     const ended = Date.now();
     const ok = this.handoffReceipts.append({
@@ -1502,7 +1529,9 @@ export class AgentRunner {
     const reason =
       `[${this.opts.identity.handle}] ${kind}: ${detail}`.slice(0, 380) + ` [route:${route}]`;
     this.denylist.add(task.id, kind, reason, failureCooldownMs());
-    this.lastRelease = { taskId: task.id, reason };
+    // ok flips to true only after the reopen succeeds, so a failed reopen is
+    // receipted as `release_failed` (task may still be claimed), not `released`.
+    this.lastRelease = { taskId: task.id, reason, ok: false };
     if (process.env.HOLOSCRIPT_AGENT_RELEASE_TAG_UPDATE !== '0') {
       const tags = task.tags ?? [];
       if (!tags.includes(route)) {
@@ -1521,6 +1550,7 @@ export class AgentRunner {
     }
     try {
       const r = await mesh.releaseTask(task.id, reason);
+      this.lastRelease = { taskId: task.id, reason, ok: true };
       log({ ev: 'released', taskId: task.id, kind, route, messaged: r?.messaged ?? null });
     } catch (err) {
       log({

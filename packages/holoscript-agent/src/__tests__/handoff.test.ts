@@ -509,8 +509,8 @@ describe('(v) pre-claim fit check, prompt guard, caps', () => {
     expect(await fetchLocalFit(undefined, { env: {} })).toBeNull();
   });
 
-  it('prompt caps default to 12k read / 8k response / 8k stdout and are env-overridable; head-tail keeps the verdict', () => {
-    expect(promptCaps({})).toEqual({ readChars: 12_000, responseChars: 8_000, stdoutChars: 8_000 });
+  it('prompt caps (edge-small) default to 12k read / 8k response / 8k stdout and are env-overridable; head-tail keeps the verdict', () => {
+    expect(promptCaps({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' })).toEqual({ readChars: 12_000, responseChars: 8_000, stdoutChars: 8_000 });
     expect(promptCaps({ HOLOSCRIPT_AGENT_READ_CAP_CHARS: '3000' }).readChars).toBe(3000);
     const out = 'START' + 'z'.repeat(20_000) + 'Tests 12 passed';
     const capped = capText(out, 8_000, 'head-tail', 'stdout');
@@ -686,5 +686,66 @@ describe('native hand-off receipts (append-only NDJSON)', () => {
     const log = new HandoffReceiptLog(join(dir, 'file', 'sub', 'r.ndjson'), (e) => errs.push(e));
     expect(log.append({} as never)).toBe(false);
     expect(errs).toHaveLength(1);
+  });
+});
+
+describe('PR #553 review: receipt honesty + finally', () => {
+  it("reopen failure is receipted as 'release_failed', not 'released'", async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'r.ndjson');
+    const m = mesh([task('t-rf', { tags: ['edge-small'] })]);
+    m.releaseTask.mockRejectedValueOnce(new Error('HoloMesh PATCH 401: unsigned-rejected'));
+    await profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' }, {
+      p: provider({ tools: [] }),
+      receipts: new HandoffReceiptLog(path),
+    }).r.tick();
+    const [line] = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    expect(line).toMatchObject({ task_id: 't-rf', result: 'release_failed', action: 'no-artifact' });
+    expect(line.reason).toMatch(/no_artifact/);
+  });
+
+  it("a successful reopen is still receipted as 'released'", async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'r.ndjson');
+    const m = mesh([task('t-ok-rel', { tags: ['edge-small'] })]);
+    await profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' }, {
+      p: provider({ tools: [] }),
+      receipts: new HandoffReceiptLog(path),
+    }).r.tick();
+    expect(JSON.parse(readFileSync(path, 'utf8').trim())).toMatchObject({ result: 'released' });
+  });
+
+  it('a throw escaping execution (e.g. automation-lane park call) still writes a receipt, then rethrows', async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'r.ndjson');
+    const m = mesh([task('t-throw', { tags: ['edge-small'] })]);
+    const { r } = profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' }, {
+      receipts: new HandoffReceiptLog(path),
+    });
+    // Simulate blockAutomationTask throwing inside the automation catch: the error
+    // escapes executeClaimed.
+    vi.spyOn(r as never, 'executeClaimed' as never).mockRejectedValueOnce(
+      new Error('HoloMesh PATCH block 500') as never
+    );
+    await expect(r.tick()).rejects.toThrow(/block 500/);
+    const [line] = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    expect(line).toMatchObject({ task_id: 't-throw', result: 'failed', action: 'errored' });
+    expect(line.reason).toMatch(/uncaught: HoloMesh PATCH block 500/);
+  });
+
+  it('automation lane: blockAutomationTask throwing still yields a receipt', async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'r.ndjson');
+    const m = mesh([task('t-auto', { tags: ['edge-small'] })]);
+    const { r } = profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' }, {
+      receipts: new HandoffReceiptLog(path),
+    });
+    // Route through the real automation catch: runClaimedTask throws, then the park call throws.
+    const rr = r as unknown as Record<string, unknown>;
+    vi.spyOn(rr as never, 'runClaimedTask' as never).mockRejectedValueOnce(new Error('exec boom') as never);
+    vi.spyOn(rr as never, 'blockAutomationTask' as never).mockRejectedValueOnce(new Error('park failed') as never);
+    const exec = rr.executeClaimed as (ctx: Record<string, unknown>) => Promise<unknown>;
+    vi.spyOn(rr as never, 'executeClaimed' as never).mockImplementationOnce(((ctx: Record<string, unknown>) =>
+      exec.call(r, { ...ctx, lane: 'automation' })) as never);
+    await expect(r.tick()).rejects.toThrow(/park failed/);
+    const [line] = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    expect(line).toMatchObject({ task_id: 't-auto', result: 'failed' });
+    expect(line.reason).toMatch(/uncaught: park failed/);
   });
 });
