@@ -98,9 +98,23 @@ import {
   OAUTH2_PUBLIC_SCOPES,
   OAUTH2_PUBLIC_SCOPE_NAMES,
   OAUTH2_SCOPES,
+  PUBLIC_SOCIAL_SCOPES,
   prepareClientForUse,
   registerClientDurably,
 } from './auth/oauth2-provider';
+import { creditCheckSubject } from './security/credit-check-subject';
+import { verifyStudioConsent } from './security/studio-consent';
+import {
+  clientRequestLimiter,
+  registrationLimiter,
+  registrationsPerIpPerHour,
+} from './security/client-abuse-limits';
+import {
+  ClientNotApprovedError,
+  clientIsApproved,
+  isClientNotApprovedError,
+  type OAuthClientStatus,
+} from './auth/token-store';
 import {
   acceptsHtml,
   buildOAuthCallbackUri,
@@ -334,6 +348,7 @@ oauth.setDurableIntrospector(async (token) => {
     agentId: result.agentId,
     expiresAt: result.expiresAt,
     issuedAt: result.issuedAt,
+    ...(result.userId ? { userId: result.userId, grantId: result.grantId } : {}),
   };
 });
 
@@ -392,7 +407,9 @@ async function persistIssuedTokens(
     scope?: string;
   },
   clientId: string,
-  agentId?: string
+  agentId?: string,
+  /** The human the grant stamped (Muse Gap 9), read back from the issued token. */
+  human?: { userId: string; grantId?: string }
 ): Promise<void> {
   try {
     const now = Date.now();
@@ -405,6 +422,7 @@ async function persistIssuedTokens(
         issuedAt: now,
         expiresAt: now + (tokenResponse.expires_in || 3600) * 1000,
         agentId,
+        ...(human ? { userId: human.userId, grantId: human.grantId } : {}),
       });
     }
     if (tokenResponse.refresh_token) {
@@ -420,6 +438,11 @@ async function persistIssuedTokens(
         // Same stamped identity as the access token, so a rotation after a
         // deploy recovers it instead of dropping it.
         agentId: record?.agentId ?? agentId,
+        ...(record?.userId
+          ? { userId: record.userId, grantId: record.grantId }
+          : human
+            ? { userId: human.userId, grantId: human.grantId }
+            : {}),
       });
     }
   } catch (err) {
@@ -618,16 +641,28 @@ async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntr
   if (apiKey) {
     headers['x-mcp-api-key'] = apiKey;
   }
-  return oauth.authenticateRequestAsync(headers as Record<string, string | string[] | undefined>);
-}
-
-/**
- * Legacy authentication check (kept for simple boolean checks on non-tool routes)
- */
-
-async function checkAuth(req: http.IncomingMessage): Promise<boolean> {
-  const auth = await authenticateRequest(req);
-  return auth.active;
+  const auth = await oauth.authenticateRequestAsync(
+    headers as Record<string, string | string[] | undefined>
+  );
+  // Muse Gap 9: per-client request rate. Each registered client's rateLimit
+  // (req/min, set at registration, default 60) was stored but never enforced;
+  // with open self-registration it is the brake on one noisy client. Legacy
+  // keys, tenants and unregistered ids are not OAuth clients and are skipped.
+  if (auth.active && auth.clientId) {
+    const client = oauth.getClient(auth.clientId);
+    if (client) {
+      const hit = clientRequestLimiter.hit(client.clientId, client.rateLimit || 60);
+      if (!hit.allowed) {
+        auditLog.logAuthEvent({
+          event: 'rate_limited',
+          clientId: client.clientId,
+          reason: `client over ${client.rateLimit || 60} req/min`,
+        });
+        return { active: false };
+      }
+    }
+  }
+  return auth;
 }
 
 /**
@@ -661,6 +696,23 @@ function refuseInsufficientScope(res: http.ServerResponse, required: readonly st
 
 /** Spending another account's credits is an operator action. */
 const CREDIT_DEDUCT_SCOPES = ['tools:admin'] as const;
+/** Approving or suspending an OAuth client (Muse Gap 9). */
+const CLIENT_REVIEW_SCOPES = ['tools:admin'] as const;
+
+/** OAuth `unauthorized_client` for a client that is pending review or suspended. */
+function writeUnauthorizedClient(res: http.ServerResponse, err: ClientNotApprovedError): void {
+  res.writeHead(400, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(
+    JSON.stringify({
+      error: 'unauthorized_client',
+      error_description: err.message,
+      client_status: err.status,
+    })
+  );
+}
 /** Publishing, posting publicly, or changing stored records. */
 const ROUTE_WRITE_SCOPES = ['tools:write'] as const;
 
@@ -2165,6 +2217,28 @@ const httpServer = http.createServer(async (req, res) => {
       );
       return;
     }
+    // Muse Gap 9: registration is open on purpose (HoloMesh is a social
+    // network for agents); the brake is a per-IP rate, keyed on the TCP peer.
+    const regLimit = registrationsPerIpPerHour();
+    const regHit = registrationLimiter.hit(String(registrar ?? 'unknown'), regLimit);
+    if (!regHit.allowed) {
+      auditLog.logAuthEvent({
+        event: 'rate_limited',
+        ip: registrar,
+        reason: `client registration: over ${regLimit}/hour from this address`,
+      });
+      res.writeHead(429, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Retry-After': String(Math.max(1, Math.ceil((regHit.resetAt - Date.now()) / 1000))),
+      });
+      res.end(
+        JSON.stringify({
+          error: 'rate_limit_exceeded',
+          error_description: `Too many client registrations from this address (limit ${regLimit}/hour).`,
+        })
+      );
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const clientName = String(body.client_name || 'unnamed-client')
@@ -2183,7 +2257,8 @@ const httpServer = http.createServer(async (req, res) => {
         );
       }
 
-      const scopes = String(body.scope || 'tools:read')
+      // `social` works at once; anything else is held for a human's consent.
+      const scopes = String(body.scope || 'social tools:read')
         .split(' ')
         .filter(Boolean);
       const invalidScopes = getInvalidPublicOAuthScopes(scopes);
@@ -2207,7 +2282,10 @@ const httpServer = http.createServer(async (req, res) => {
         ? body.grant_types.filter((grantType): grantType is string => typeof grantType === 'string')
         : clientType === 'public'
           ? ['authorization_code', 'refresh_token']
-          : ['authorization_code', 'client_credentials', 'refresh_token'];
+          : // client_credentials has no human in the flow, so for a
+            // self-registered client it issues public social scopes only
+            // (consentFreeScopes, enforced in oauth21 issueTokenPair).
+            ['authorization_code', 'client_credentials', 'refresh_token'];
       const unsupportedGrantTypes = grantTypes.filter(
         (grantType) =>
           !['authorization_code', 'client_credentials', 'refresh_token'].includes(grantType)
@@ -2277,6 +2355,9 @@ const httpServer = http.createServer(async (req, res) => {
           rateLimit,
           ...(boundAgentId ? { agentId: boundAgentId } : {}),
           ...(registeredUnproven ? { registeredUnproven: true } : {}),
+          // Muse Gap 9: open registration, approved at once, but public social
+          // scopes only until a human consents in a signed-in Studio session.
+          selfRegistered: true,
         },
         { metrics: getPrometheusMetrics('holoscript') }
       );
@@ -2329,6 +2410,10 @@ const httpServer = http.createServer(async (req, res) => {
           scope: scopes.join(' '),
           scopes_supported: OAUTH2_PUBLIC_SCOPE_NAMES,
           client_id_issued_at: Math.floor(Date.now() / 1000),
+          // Not RFC 7591: what this client can do with no human in the flow.
+          scopes_without_consent: PUBLIC_SOCIAL_SCOPES,
+          consent_note:
+            "Without a signed-in Studio user approving this client, tokens carry public social scopes only. Other scopes need that human's consent at /oauth/authorize.",
           ...(clientType === 'confidential' ? { client_secret_expires_at: 0 } : {}),
         })
       );
@@ -2429,6 +2514,14 @@ const httpServer = http.createServer(async (req, res) => {
             null,
             2
           )
+        );
+        return;
+      }
+
+      if (!clientIsApproved(client)) {
+        writeUnauthorizedClient(
+          res,
+          new ClientNotApprovedError(clientId, client.status ?? 'suspended')
         );
         return;
       }
@@ -2559,6 +2652,9 @@ const httpServer = http.createServer(async (req, res) => {
       if (!client) {
         throw new Error('Unknown client_id');
       }
+      if (!clientIsApproved(client)) {
+        throw new ClientNotApprovedError(clientId, client.status ?? 'suspended');
+      }
       if (!client.redirectUris.includes(redirectUri)) {
         throw new Error('Invalid redirect_uri');
       }
@@ -2596,13 +2692,33 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
+      // Muse Gap 9: the human's consent comes from a signed-in Studio session,
+      // vouched for by a short-lived signed assertion bound to this client.
+      // Without one, a self-registered client gets public social scopes only.
+      const consent = verifyStudioConsent(
+        body.studio_consent ?? req.headers['x-studio-consent'],
+        clientId
+      );
       const code = oauth.createAuthorizationCode({
         clientId,
         redirectUri,
         scopes: requestedScopes,
         codeChallenge,
         codeChallengeMethod: 'S256',
+        ...(consent
+          ? {
+              consent: { userId: consent.userId, grantId: consent.grantId, scopes: consent.scopes },
+            }
+          : {}),
       });
+      if (consent) {
+        auditLog.logAuthEvent({
+          event: 'auth_success',
+          clientId,
+          ip: clientIP,
+          reason: `consent granted by Studio user (grant ${consent.grantId})`,
+        });
+      }
 
       if (isBrowserForm) {
         res.writeHead(302, {
@@ -2618,14 +2734,81 @@ const httpServer = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ code, state }));
       }
     } catch (err) {
+      if (isClientNotApprovedError(err)) {
+        writeUnauthorizedClient(res, err);
+        return;
+      }
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-store',
       });
-      res.end(JSON.stringify({ error: 'invalid_request', error_description: message }));
+      res.end(
+        JSON.stringify({
+          error: message.startsWith('consent_required') ? 'consent_required' : 'invalid_request',
+          error_description: message,
+        })
+      );
     }
     return;
+  }
+
+  // POST /oauth/clients/:id/{approve,suspend} — operator suspend/restore (Muse Gap 9)
+  {
+    const reviewMatch =
+      req.method === 'POST'
+        ? /^\/oauth\/clients\/([A-Za-z0-9_-]{1,128})\/(approve|suspend)$/.exec(url ?? '')
+        : null;
+    if (reviewMatch) {
+      const reviewAuth = await authenticateRequest(req);
+      if (!reviewAuth.active) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Authentication required' }));
+        return;
+      }
+      if (!authHasAnyScope(reviewAuth, CLIENT_REVIEW_SCOPES)) {
+        refuseInsufficientScope(res, CLIENT_REVIEW_SCOPES);
+        return;
+      }
+      const [, reviewedClientId, action] = reviewMatch;
+      const status: OAuthClientStatus = action === 'approve' ? 'approved' : 'suspended';
+      let reason: string | undefined;
+      try {
+        const body = await parseJsonBody(req);
+        if (typeof body.reason === 'string') reason = body.reason.slice(0, 500);
+      } catch {
+        // A body is optional.
+      }
+      const durable = await oauth2.setClientStatus(reviewedClientId, status);
+      const inMemory = oauth.setClientStatus(reviewedClientId, status);
+      if (!durable.found && !inMemory) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({ error: 'invalid_client', error_description: 'Unknown client_id' })
+        );
+        return;
+      }
+      auditLog.logAuthEvent({
+        event: status === 'approved' ? 'client_approved' : 'client_suspended',
+        clientId: reviewedClientId,
+        agentId: reviewAuth.agentId,
+        ip: clientIP,
+        reason: `by ${reviewAuth.agentId ?? reviewAuth.clientId ?? 'unknown'}${reason ? `: ${reason}` : ''}`,
+      });
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(
+        JSON.stringify({
+          client_id: reviewedClientId,
+          status,
+          access_tokens_deleted: durable.accessTokensDeleted,
+          refresh_tokens_deleted: durable.refreshTokensDeleted,
+        })
+      );
+      return;
+    }
   }
 
   // POST /oauth/token — Token exchange
@@ -2724,9 +2907,10 @@ const httpServer = http.createServer(async (req, res) => {
       // absent) until the next deploy wiped that map, after which
       // authenticateRequestAsync read the durable record and returned the
       // caller's chosen id as the principal.
-      const stampedAgentId = tokenResponse.access_token
-        ? oauth.introspect(tokenResponse.access_token).agentId
+      const stamped = tokenResponse.access_token
+        ? oauth.introspect(tokenResponse.access_token)
         : undefined;
+      const stampedAgentId = stamped?.agentId;
 
       // Write the issued tokens through to the durable registry so they
       // survive redeploys of the in-memory maps. Fire-and-forget: durable
@@ -2739,7 +2923,8 @@ const httpServer = http.createServer(async (req, res) => {
           scope?: string;
         },
         body.client_id as string,
-        stampedAgentId
+        stampedAgentId,
+        stamped?.userId ? { userId: stamped.userId, grantId: stamped.grantId } : undefined
       );
 
       res.writeHead(200, {
@@ -2757,8 +2942,17 @@ const httpServer = http.createServer(async (req, res) => {
         reason: message,
       });
 
+      if (isClientNotApprovedError(err)) {
+        writeUnauthorizedClient(res, err);
+        return;
+      }
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ error: 'invalid_grant', error_description: message }));
+      res.end(
+        JSON.stringify({
+          error: message.startsWith('consent_required') ? 'consent_required' : 'invalid_grant',
+          error_description: message,
+        })
+      );
     }
     return;
   }
@@ -2806,6 +3000,7 @@ const httpServer = http.createServer(async (req, res) => {
             agentId: durable.agentId,
             expiresAt: durable.expiresAt,
             issuedAt: durable.issuedAt,
+            ...(durable.userId ? { userId: durable.userId, grantId: durable.grantId } : {}),
           };
         }
       }
@@ -2817,6 +3012,7 @@ const httpServer = http.createServer(async (req, res) => {
           client_id: result.clientId,
           scope: result.scopes?.join(' '),
           agent_id: result.agentId,
+          ...(result.userId ? { user_id: result.userId, grant_id: result.grantId } : {}),
           exp: result.expiresAt ? Math.floor(result.expiresAt / 1000) : undefined,
           iat: result.issuedAt ? Math.floor(result.issuedAt / 1000) : undefined,
         })
@@ -3137,8 +3333,8 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (url === '/api/credits/check' && req.method === 'POST') {
     // Auth required
-    const authed = await checkAuth(req);
-    if (!authed) {
+    const checkAuthResult = await authenticateRequest(req);
+    if (!checkAuthResult.active) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
@@ -3149,13 +3345,22 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ ok: true, balance: 999_999_999, required: 0, founderBypass: true }));
       return;
     }
+    // Muse Gap 9: whose balance is read comes from the TOKEN, never the body.
+    // It used to take body.userId from any active token: a cross-user balance
+    // oracle. See creditCheckSubject for the one operator exception.
     try {
       const body = await parseJsonBody(req);
-      const userId = body.userId as string;
+      const subject = creditCheckSubject(checkAuthResult, body.userId);
+      if (!subject.ok) {
+        res.writeHead(subject.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: subject.error }));
+        return;
+      }
+      const userId = subject.userId;
       const operation = body.operation as string;
-      if (!userId || !operation) {
+      if (!operation) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: 'Missing required fields: userId, operation' }));
+        res.end(JSON.stringify({ error: 'Missing required field: operation' }));
         return;
       }
       const opCost = OPERATION_COSTS[operation];

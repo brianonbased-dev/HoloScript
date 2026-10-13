@@ -25,8 +25,16 @@ import {
   isProductionRuntime,
   openDevModeAllowed,
   OAUTH2_PUBLIC_SCOPE_NAMES,
+  consentFreeScopes,
 } from '../auth/oauth2-provider';
-import { ClientStoreFullError, DEFAULT_MAX_CLIENTS, scopesIssuedTo } from '../auth/token-store';
+import {
+  ClientNotApprovedError,
+  ClientStoreFullError,
+  DEFAULT_MAX_CLIENTS,
+  clientIsApproved,
+  scopesIssuedTo,
+  type OAuthClientStatus,
+} from '../auth/token-store';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -114,6 +122,24 @@ export interface RegisteredClient {
   agentId?: string;
   /** The registration proved nothing: tools:execute is issued as tools:write (scopesIssuedTo). */
   registeredUnproven?: boolean;
+  /** Review state (Muse Gap 9). Absent = legacy, treated as approved. */
+  status?: OAuthClientStatus;
+  /** Open self-registration: public social scopes only without a human's consent. */
+  selfRegistered?: boolean;
+}
+
+/**
+ * Refuse a client that is not approved (Muse Gap 9). Called by every grant and
+ * by authorize, after the client is found and before anything is issued.
+ */
+export const CONSENT_REQUIRED_ERROR =
+  'consent_required: this self-registered client can act without a human only on public social scopes (social). ' +
+  'Other scopes need the human to approve it while signed in to Studio.';
+
+function assertClientApproved(client: RegisteredClient): void {
+  if (!clientIsApproved(client)) {
+    throw new ClientNotApprovedError(client.clientId, client.status ?? 'suspended');
+  }
 }
 
 export interface AuthorizationCode {
@@ -125,6 +151,9 @@ export interface AuthorizationCode {
   codeChallengeMethod: 'S256';
   expiresAt: number;
   used: boolean;
+  /** Human who consented in a signed-in Studio session (Muse Gap 9). */
+  userId?: string;
+  grantId?: string;
 }
 
 export interface AccessToken {
@@ -137,6 +166,9 @@ export interface AccessToken {
   agentId?: string;
   /** DPoP thumbprint if DPoP was used */
   dpopThumbprint?: string;
+  /** Human this token acts for, from consent (Muse Gap 9). Absent: no human. */
+  userId?: string;
+  grantId?: string;
 }
 
 export interface RefreshToken {
@@ -159,6 +191,9 @@ export interface RefreshToken {
    * which is exactly the impersonation the binding refuses.
    */
   agentId?: string;
+  /** Consent carried across rotations (Muse Gap 9). */
+  userId?: string;
+  grantId?: string;
 }
 
 export interface TokenResponse {
@@ -176,6 +211,9 @@ export interface TokenIntrospection {
   agentId?: string;
   expiresAt?: number;
   issuedAt?: number;
+  /** Human the token acts for (consent in a Studio session). Never from a header or body. */
+  userId?: string;
+  grantId?: string;
   /**
    * Set only by http-server's trusted-loopback branch: the TCP peer is this machine. Never parsed
    * from a token, header or body. Lets the local agent name its own disk (host-path-args.ts).
@@ -274,6 +312,8 @@ export class OAuth21Service {
     agentId?: string;
     /** The registration proved nothing (see http-server, /oauth/register). */
     registeredUnproven?: boolean;
+    status?: OAuthClientStatus;
+    selfRegistered?: boolean;
   }): { clientId: string; clientSecret: string } {
     if (clients.size >= this.config.maxClients) {
       throw new ClientStoreFullError({
@@ -297,6 +337,8 @@ export class OAuth21Service {
       rateLimit: params.rateLimit || 60,
       ...(params.agentId ? { agentId: params.agentId } : {}),
       ...(params.registeredUnproven ? { registeredUnproven: true } : {}),
+      ...(params.status ? { status: params.status } : {}),
+      ...(params.selfRegistered ? { selfRegistered: true } : {}),
     };
 
     clients.set(clientId, client);
@@ -335,6 +377,31 @@ export class OAuth21Service {
     return refreshTokens.get(token);
   }
 
+  /**
+   * Set a client's review state in this registry (Muse Gap 9). Suspending or
+   * returning to pending drops every token the client holds here and revokes
+   * its refresh chains; the client record stays. False if unknown here.
+   */
+  setClientStatus(clientId: string, status: OAuthClientStatus): boolean {
+    const client = clients.get(clientId);
+    if (!client) return false;
+    client.status = status;
+    if (status !== 'approved') this.dropClientTokens(clientId);
+    return true;
+  }
+
+  private dropClientTokens(clientId: string): void {
+    for (const [key, token] of accessTokens) {
+      if (token.clientId === clientId) accessTokens.delete(key);
+    }
+    for (const [key, token] of refreshTokens) {
+      if (token.clientId === clientId) {
+        revokedChains.add(token.chainId);
+        refreshTokens.delete(key);
+      }
+    }
+  }
+
   revokeClient(clientId: string): boolean {
     // Revoke all tokens for this client
     for (const [key, token] of accessTokens) {
@@ -357,12 +424,15 @@ export class OAuth21Service {
     scopes: OAuthScope[];
     codeChallenge: string;
     codeChallengeMethod: 'S256';
+    /** Verified Studio-session consent (security/studio-consent.ts), if any. */
+    consent?: { userId: string; grantId: string; scopes?: string[] };
   }): string {
     const client = clients.get(params.clientId);
     if (!client)
       throw new Error(
         `Invalid client_id: '${String(params.clientId).slice(0, 12)}...' is not registered. Register at POST /oauth/register.`
       );
+    assertClientApproved(client);
 
     if (!client.redirectUris.includes(params.redirectUri)) {
       throw new Error('Invalid redirect_uri');
@@ -383,12 +453,24 @@ export class OAuth21Service {
       throw new Error('Only S256 code challenge method is supported (OAuth 2.1)');
     }
 
+    // Muse Gap 9: without a human's consent a self-registered client is granted
+    // public social scopes only; with consent, only what the human approved.
+    let grantedScopes = consentFreeScopes(client, params.scopes, params.consent);
+    if (params.consent?.scopes) {
+      const approved = params.consent.scopes;
+      grantedScopes = grantedScopes.filter((s) => approved.includes(s));
+    }
+    if (grantedScopes.length === 0) {
+      throw new Error(CONSENT_REQUIRED_ERROR);
+    }
+
     const code = generateToken();
     const authCode: AuthorizationCode = {
       code,
       clientId: params.clientId,
       redirectUri: params.redirectUri,
-      scopes: params.scopes,
+      scopes: grantedScopes,
+      ...(params.consent ? { userId: params.consent.userId, grantId: params.consent.grantId } : {}),
       codeChallenge: params.codeChallenge,
       codeChallengeMethod: 'S256',
       expiresAt: Date.now() + this.config.authCodeTTL * 1000,
@@ -429,6 +511,7 @@ export class OAuth21Service {
     // Verify client credentials
     const client = clients.get(params.clientId);
     if (!client) throw new Error('Invalid client');
+    assertClientApproved(client);
     if (
       client.clientType === 'confidential' &&
       (!params.clientSecret || !safeCompare(hashSecret(params.clientSecret), client.clientSecret))
@@ -465,7 +548,9 @@ export class OAuth21Service {
         clientAgentId: client.agentId,
         provenAgentId: params.provenAgentId,
       }),
-      params.dpopThumbprint
+      params.dpopThumbprint,
+      undefined,
+      authCode.userId ? { userId: authCode.userId, grantId: authCode.grantId } : undefined
     );
   }
 
@@ -483,6 +568,7 @@ export class OAuth21Service {
       throw new Error(
         `Invalid client_id: '${String(params.clientId).slice(0, 12)}...' is not registered. Register at POST /oauth/register.`
       );
+    assertClientApproved(client);
     if (client.clientType !== 'confidential') {
       throw new Error('Client credentials grant requires confidential client');
     }
@@ -553,6 +639,7 @@ export class OAuth21Service {
     // Verify client
     const client = clients.get(params.clientId);
     if (!client) throw new Error('Invalid client');
+    assertClientApproved(client);
     if (
       client.clientType === 'confidential' &&
       (!params.clientSecret || !safeCompare(hashSecret(params.clientSecret), client.clientSecret))
@@ -572,7 +659,8 @@ export class OAuth21Service {
       stored.scopes,
       stored.agentId,
       params.dpopThumbprint,
-      stored.chainId
+      stored.chainId,
+      stored.userId ? { userId: stored.userId, grantId: stored.grantId } : undefined
     );
   }
 
@@ -583,6 +671,11 @@ export class OAuth21Service {
     if (!stored || stored.expiresAt < Date.now()) {
       return { active: false };
     }
+    // Muse Gap 9: a pending or suspended client's tokens are never active.
+    const owner = clients.get(stored.clientId);
+    if (owner && !clientIsApproved(owner)) {
+      return { active: false };
+    }
 
     return {
       active: true,
@@ -591,6 +684,8 @@ export class OAuth21Service {
       agentId: stored.agentId,
       expiresAt: stored.expiresAt,
       issuedAt: stored.issuedAt,
+      ...(stored.userId ? { userId: stored.userId } : {}),
+      ...(stored.grantId ? { grantId: stored.grantId } : {}),
     };
   }
 
@@ -741,6 +836,8 @@ export class OAuth21Service {
             issuedAt: durable.issuedAt || Date.now(),
             expiresAt: durable.expiresAt || Date.now() + this.config.accessTokenTTL * 1000,
             agentId: durable.agentId,
+            ...(durable.userId ? { userId: durable.userId } : {}),
+            ...(durable.grantId ? { grantId: durable.grantId } : {}),
           });
           return {
             ...durable,
@@ -838,11 +935,22 @@ export class OAuth21Service {
     scopes: OAuthScope[],
     agentId?: string,
     dpopThumbprint?: string,
-    chainId?: string
+    chainId?: string,
+    consent?: { userId: string; grantId?: string }
   ): TokenResponse {
     // Every grant issues here, so this is where an unproven client's
-    // tools:execute narrows to tools:write (board task zkdg).
-    scopes = scopesIssuedTo(clients.get(clientId), scopes) as OAuthScope[];
+    // tools:execute narrows to tools:write (board task zkdg), and where a
+    // self-registered client with no human's consent narrows to public social
+    // scopes (Muse Gap 9) — client_credentials never carries consent.
+    const issuedClient = clients.get(clientId);
+    scopes = consentFreeScopes(issuedClient, scopes, consent);
+    if (issuedClient?.selfRegistered && scopes.length === 0) {
+      throw new Error(CONSENT_REQUIRED_ERROR);
+    }
+    scopes = scopesIssuedTo(issuedClient, scopes) as OAuthScope[];
+    const human = consent
+      ? { userId: consent.userId, ...(consent.grantId ? { grantId: consent.grantId } : {}) }
+      : {};
     const now = Date.now();
     const accessTokenValue = generateToken();
     const refreshTokenValue = generateToken();
@@ -856,6 +964,7 @@ export class OAuth21Service {
       expiresAt: now + this.config.accessTokenTTL * 1000,
       agentId,
       dpopThumbprint,
+      ...human,
     };
 
     const refresh: RefreshToken = {
@@ -869,6 +978,7 @@ export class OAuth21Service {
       // The chain remembers who it was issued to, so a rotation neither loses
       // the identity nor has to take the caller's word for it.
       agentId,
+      ...human,
     };
 
     accessTokens.set(accessTokenValue, access);
