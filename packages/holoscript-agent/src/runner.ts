@@ -29,6 +29,8 @@ import {
   selectAutomationTask,
   type TaskLane,
 } from './automation-lane.js';
+import { resolveClaimProfile, screenTaskForProfile, type ClaimProfile } from './claim-profile.js';
+import { HandoffReceiptLog, machineName, type HandoffResult } from './handoff-receipts.js';
 import {
   TaskDenylist,
   assessTaskFit,
@@ -140,6 +142,10 @@ export interface AgentRunnerOptions {
    * never fit-checked unless HOLOSCRIPT_AGENT_FIT_CHECK=1; =0 disables it everywhere.
    */
   localFit?: () => Promise<LocalFit | null>;
+  /** Claim profile (edge-small / big-context); default from HOLOSCRIPT_AGENT_CLAIM_PROFILE. */
+  claimProfile?: ClaimProfile;
+  /** Append-only native hand-off receipt log; default: none (index.ts wires the disk path). */
+  handoffReceipts?: HandoffReceiptLog;
 }
 
 /** Providers whose context is large and enforced server-side; no edge fit check. */
@@ -206,7 +212,19 @@ export class AgentRunner {
   static readonly CLAIM_CAP_BACKOFF_MS = 15 * 60_000;
   static readonly FIT_CACHE_MS = 10 * 60_000;
 
+  readonly claimProfile: ClaimProfile;
+  private readonly handoffReceipts: HandoffReceiptLog;
+  private taskUsage: TokenUsage | null = null;
+  private lastRelease: { taskId: string; reason: string } | null = null;
+
   constructor(private readonly opts: AgentRunnerOptions) {
+    this.claimProfile = opts.claimProfile ?? resolveClaimProfile();
+    // Small-jobs rule: a profile with its own capability tags replaces the brain's broad
+    // tags (research, paper, multi-step, ...) for presence, scoring and required_tags.
+    if (this.claimProfile.capabilityTags) {
+      opts.brain.capabilityTags = [...this.claimProfile.capabilityTags];
+    }
+    this.handoffReceipts = opts.handoffReceipts ?? new HandoffReceiptLog(null);
     this.denylist =
       opts.denylist ??
       new TaskDenylist(null, (message) =>
@@ -355,15 +373,32 @@ export class AgentRunner {
     // (v) Pre-claim fit check: never claim what can't fit 60% of the local n_ctx.
     // Unfit tasks stay open on the board for a laptop/fleet worker.
     this.currentFit = await this.resolveLocalFit();
-    let claimable = notCooling;
+    const profile = this.claimProfile;
+    const profileSkipped: Array<Record<string, unknown>> = [];
+    let claimable = notCooling.filter((t) => {
+      if (t.status !== 'open' || t.claimedBy) return true;
+      const sc = screenTaskForProfile(t, profile);
+      if (!sc.ok) profileSkipped.push({ taskId: t.id, reason: sc.reason, detail: sc.detail });
+      return sc.ok;
+    });
+    if (profileSkipped.length && profile.name !== 'legacy') {
+      log({
+        ev: 'claim-skip-profile',
+        profile: profile.name,
+        count: profileSkipped.length,
+        tasks: profileSkipped.slice(0, 5),
+      });
+    }
     if (this.currentFit) {
       const overheadTokens = this.fitOverheadTokens();
       const unfit: Array<Record<string, unknown>> = [];
-      claimable = notCooling.filter((t) => {
+      claimable = claimable.filter((t) => {
         if (t.status !== 'open' || t.claimedBy) return true; // pickClaimableTask drops these
         const v = assessTaskFit(t, this.currentFit!, {
           overheadTokens,
           capabilityTags: brain.capabilityTags,
+          claimBudgetFraction: profile.budgetFraction,
+          skipRouteTags: profile.skipRouteTags,
         });
         if (!v.fit)
           unfit.push({
@@ -513,6 +548,26 @@ export class AgentRunner {
     }
 
     const execCtx = { target, lane, identity, brain, mesh, costGuard, provider, log };
+    const claimedAt = Date.now();
+    this.taskUsage = null;
+    this.lastRelease = null;
+    const result = await this.executeClaimed(execCtx);
+    this.writeHandoffReceipt(target, lane, result, claimedAt);
+    return result;
+  }
+
+  /** Execution half of tick() after a successful claim (split out so every exit writes a receipt). */
+  private async executeClaimed(execCtx: {
+    target: BoardTask;
+    lane: TaskLane;
+    identity: AgentIdentity;
+    brain: RuntimeBrainConfig;
+    mesh: HolomeshClient;
+    costGuard: CostGuard;
+    provider: ILLMProvider;
+    log: (event: Record<string, unknown>) => void;
+  }): Promise<TickResult> {
+    const { target, lane, mesh, costGuard, log } = execCtx;
     if (lane === 'automation') {
       // a-058 loud-failure guarantee: an automation-lane execution error never
       // dies silently in runForever's generic tick-error catch. Park the task
@@ -801,6 +856,7 @@ export class AgentRunner {
       lastResponse = resp;
       // qf65: keep the cache fields; the pricer splits them out at recordUsage.
       aggUsage = addTokenUsage(aggUsage, resp.usage);
+      this.taskUsage = aggUsage;
       // If model called tools, execute them and feed results back.
       if (resp.finishReason === 'tool_use' && resp.toolUses && resp.toolUses.length > 0) {
         log({
@@ -890,6 +946,7 @@ export class AgentRunner {
         identity.llmModel
       );
       aggUsage = addTokenUsage(aggUsage, reResp.usage);
+      this.taskUsage = aggUsage;
       if (reResp.finishReason === 'tool_use' && reResp.toolUses && reResp.toolUses.length > 0) {
         log({
           ev: 'reprompt-tool-call',
@@ -955,6 +1012,7 @@ export class AgentRunner {
         identity.llmModel
       );
       aggUsage = addTokenUsage(aggUsage, vwResp.usage);
+      this.taskUsage = aggUsage;
       if (vwResp.finishReason === 'tool_use' && vwResp.toolUses && vwResp.toolUses.length > 0) {
         log({
           ev: 'vision-write-call',
@@ -1203,6 +1261,7 @@ export class AgentRunner {
           escalateOnFail: brain.reflect.escalateOnFail,
         });
         aggUsage = addTokenUsage(aggUsage, reflectVerdict.usage);
+      this.taskUsage = aggUsage;
         log({
           ev: 'reflect',
           taskId: target.id,
@@ -1396,6 +1455,42 @@ export class AgentRunner {
    * the reason and reopen it. Never throws — a failed release is logged loudly and
    * the denylist still keeps this agent off the task.
    */
+  /** One append-only native hand-off receipt per handled task (finished / released / failed). */
+  private writeHandoffReceipt(
+    target: BoardTask,
+    lane: TaskLane,
+    res: TickResult,
+    claimedAt: number
+  ): void {
+    const released = this.lastRelease?.taskId === target.id ? this.lastRelease : null;
+    const result: HandoffResult =
+      res.action === 'executed' ? 'finished' : released ? 'released' : 'failed';
+    const u = this.taskUsage;
+    const ended = Date.now();
+    const ok = this.handoffReceipts.append({
+      schema: 'native-handoff-v1',
+      task_id: target.id,
+      task_title: target.title,
+      machine: machineName(),
+      agent: this.opts.identity.handle,
+      provider: String(this.opts.identity.llmProvider),
+      model: this.currentFit?.model || this.opts.identity.llmModel,
+      claim_profile: this.claimProfile.name,
+      n_ctx: this.currentFit?.nCtx ?? null,
+      lane,
+      result,
+      action: res.action,
+      reason: released?.reason ?? (result === 'finished' ? null : (res.message ?? null)),
+      claimed_at: new Date(claimedAt).toISOString(),
+      ended_at: new Date(ended).toISOString(),
+      duration_ms: ended - claimedAt,
+      prompt_tokens: u ? u.promptTokens ?? null : null,
+      completion_tokens: u ? u.completionTokens ?? null : null,
+      total_tokens: u ? u.totalTokens ?? null : null,
+    });
+    if (ok) (this.opts.logger ?? (() => undefined))({ ev: 'handoff-receipt', taskId: target.id, result });
+  }
+
   private async releaseWithReason(
     mesh: HolomeshClient,
     task: BoardTask,
@@ -1407,6 +1502,7 @@ export class AgentRunner {
     const reason =
       `[${this.opts.identity.handle}] ${kind}: ${detail}`.slice(0, 380) + ` [route:${route}]`;
     this.denylist.add(task.id, kind, reason, failureCooldownMs());
+    this.lastRelease = { taskId: task.id, reason };
     if (process.env.HOLOSCRIPT_AGENT_RELEASE_TAG_UPDATE !== '0') {
       const tags = task.tags ?? [];
       if (!tags.includes(route)) {
@@ -1537,8 +1633,18 @@ export class AgentRunner {
         entries.push({ task: t, decision: 'skip', reason: `denylisted (${deny.kind})` });
         continue;
       }
+      const sc = screenTaskForProfile(t, this.claimProfile);
+      if (!sc.ok) {
+        entries.push({ task: t, decision: 'skip', reason: `${sc.reason}: ${sc.detail}` });
+        continue;
+      }
       if (fit) {
-        const v = assessTaskFit(t, fit, { overheadTokens, capabilityTags: brain.capabilityTags });
+        const v = assessTaskFit(t, fit, {
+          overheadTokens,
+          capabilityTags: brain.capabilityTags,
+          claimBudgetFraction: this.claimProfile.budgetFraction,
+          skipRouteTags: this.claimProfile.skipRouteTags,
+        });
         if (!v.fit) {
           entries.push({
             task: t,
@@ -1558,7 +1664,12 @@ export class AgentRunner {
       if (!pick) break;
       pool = pool.filter((t) => t !== pick);
       const verdict = fit
-        ? assessTaskFit(pick, fit, { overheadTokens, capabilityTags: brain.capabilityTags })
+        ? assessTaskFit(pick, fit, {
+            overheadTokens,
+            capabilityTags: brain.capabilityTags,
+            claimBudgetFraction: this.claimProfile.budgetFraction,
+            skipRouteTags: this.claimProfile.skipRouteTags,
+          })
         : undefined;
       if (remaining > 0) {
         entries.push({ task: pick, decision: 'would-claim', verdict });

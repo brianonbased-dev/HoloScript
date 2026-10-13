@@ -560,3 +560,131 @@ describe('planClaims (read-only dry-run)', () => {
     }
   });
 });
+
+// ─── claim profiles (small-jobs rule, 2026-10-12) ───────────────────────────
+import { resolveClaimProfile, screenTaskForProfile } from '../claim-profile.js';
+import { HandoffReceiptLog, defaultHandoffReceiptPath } from '../handoff-receipts.js';
+
+function profRunner(
+  m: ReturnType<typeof mesh>,
+  env: Record<string, string>,
+  opts: { p?: ILLMProvider; nCtx?: number; receipts?: HandoffReceiptLog; brain?: RuntimeBrainConfig } = {}
+) {
+  const brain = opts.brain ?? { ...BRAIN, capabilityTags: ['jetson', 'research', 'paper', 'multi-step'] };
+  const r = new AgentRunner({
+    identity: IDENTITY,
+    brain,
+    provider: opts.p ?? provider(),
+    costGuard: guard(),
+    mesh: m as never,
+    claimProfile: resolveClaimProfile(env),
+    handoffReceipts: opts.receipts,
+    localFit: async () => ({ nCtx: opts.nCtx ?? 4096, source: 'props' as const, model: 'qwen3-4b' }),
+  });
+  return { r, brain };
+}
+
+describe('claim profiles (edge-small / big-context)', () => {
+  it('resolves profiles from env, with comma-list overrides', () => {
+    const e = resolveClaimProfile({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' });
+    expect(e).toMatchObject({ name: 'edge-small', requireAnyTags: ['edge-small'], budgetFraction: 0.4 });
+    expect(e.excludeTags).toEqual(expect.arrayContaining(['ctx-16k+', 'laptop-or-fleet', 'repo-wide']));
+    expect(e.capabilityTags).not.toContain('research');
+    const b = resolveClaimProfile({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'big-context' });
+    expect(b).toMatchObject({ name: 'big-context', skipRouteTags: true, excludeTags: [] });
+    expect(b.requireAnyTags).toEqual(expect.arrayContaining(['ctx-16k+', 'laptop-or-fleet']));
+    expect(resolveClaimProfile({})).toMatchObject({ name: 'legacy', requireAnyTags: [], capabilityTags: null });
+    const o = resolveClaimProfile({
+      HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small',
+      HOLOSCRIPT_AGENT_CLAIM_REQUIRE_TAGS: 'Tiny, edge-small',
+      HOLOSCRIPT_AGENT_CLAIM_BUDGET_FRACTION: '0.3',
+      HOLOSCRIPT_AGENT_CAPABILITY_TAGS: 'jetson,tiny',
+    });
+    expect(o).toMatchObject({ requireAnyTags: ['tiny', 'edge-small'], budgetFraction: 0.3, capabilityTags: ['jetson', 'tiny'] });
+    expect(screenTaskForProfile(task('x', { tags: ['edge-small', 'repo-wide'] }), e)).toMatchObject({
+      ok: false,
+      reason: 'profile-excluded-tag',
+      detail: 'repo-wide',
+    });
+  });
+
+  it('edge-small: drops the broad brain tags, claims only edge-small-tagged tasks within 40% of n_ctx', async () => {
+    const tasks = [
+      task('t-research', { priority: 'critical', tags: ['research', 'paper', 'multi-step', 'jetson'] }),
+      task('t-big-small', { priority: 'critical', tags: ['edge-small'], description: 'x'.repeat(6_000) }), // ~1.7k tok > 1638
+      task('t-routed', { priority: 'critical', tags: ['edge-small', 'ctx-16k+'] }),
+      task('t-ok', { priority: 'low', tags: ['edge-small'] }),
+    ];
+    const m = mesh(tasks);
+    const { r, brain } = profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' });
+    expect(brain.capabilityTags).not.toContain('research');
+    expect(brain.capabilityTags).toContain('edge-small');
+    await r.tick();
+    expect(m.claim).toHaveBeenCalledTimes(1);
+    expect(m.claim).toHaveBeenCalledWith('t-ok');
+    const plan = await r.planClaims(tasks.map((t) => ({ ...t })), { heldClaims: 0 });
+    const by = Object.fromEntries(plan.entries.map((e) => [e.task.id, e]));
+    expect(by['t-research'].reason).toMatch(/profile-missing-tag/);
+    expect(by['t-routed'].reason).toMatch(/profile-excluded-tag: ctx-16k\+/);
+    expect(by['t-big-small'].reason).toMatch(/over-budget/);
+  });
+
+  it('big-context: takes the routed ctx-16k+ / laptop-or-fleet tasks the edge seat refuses, ignores the rest', async () => {
+    const tasks = [
+      task('t-plain', { priority: 'critical', tags: ['jetson'] }),
+      task('t-handoff', { priority: 'high', tags: ['laptop-or-fleet'], description: 'x'.repeat(20_000) }),
+    ];
+    const m = mesh(tasks);
+    const { r } = profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'big-context' }, { nCtx: 16384 });
+    await r.tick();
+    expect(m.claim).toHaveBeenCalledTimes(1);
+    expect(m.claim).toHaveBeenCalledWith('t-handoff');
+  });
+});
+
+describe('native hand-off receipts (append-only NDJSON)', () => {
+  it('default path names receipts/native-handoff.ndjson under the data dir', () => {
+    expect(defaultHandoffReceiptPath({ HOLOSCRIPT_AGENT_DATA_DIR: '/mnt/nvme/holo/agent-data' })).toBe(
+      '/mnt/nvme/holo/agent-data/receipts/native-handoff.ndjson'
+    );
+    expect(defaultHandoffReceiptPath({ HOLOSCRIPT_AGENT_HANDOFF_RECEIPTS: '/x/r.ndjson' })).toBe('/x/r.ndjson');
+  });
+
+  it('writes one line per handled task: finished (with tokens), then released with reason; never rewrites', async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'receipts', 'native-handoff.ndjson');
+    const env = { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' };
+    const tasks = [task('t-good', { tags: ['edge-small'] })];
+    const m1 = mesh(tasks);
+    await profRunner(m1, env, { receipts: new HandoffReceiptLog(path) }).r.tick();
+    const m2 = mesh([task('t-na', { tags: ['edge-small'] })]);
+    await profRunner(m2, env, { p: provider({ tools: [] }), receipts: new HandoffReceiptLog(path) }).r.tick();
+    const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    expect(lines).toHaveLength(2);
+    expect(lines[0]).toMatchObject({
+      schema: 'native-handoff-v1',
+      task_id: 't-good',
+      agent: 'jetson-orin-brittney',
+      model: 'qwen3-4b',
+      claim_profile: 'edge-small',
+      n_ctx: 4096,
+      result: 'finished',
+      action: 'executed',
+      reason: null,
+    });
+    expect(lines[0].prompt_tokens).toBeGreaterThan(0);
+    expect(lines[0].completion_tokens).toBeGreaterThan(0);
+    expect(typeof lines[0].machine).toBe('string');
+    expect(Date.parse(lines[0].ended_at)).toBeGreaterThanOrEqual(Date.parse(lines[0].claimed_at));
+    expect(lines[1]).toMatchObject({ task_id: 't-na', result: 'released', action: 'no-artifact' });
+    expect(lines[1].reason).toMatch(/no_artifact.*\[route:laptop-or-fleet\]$/);
+  });
+
+  it('an unwritable receipt path is reported, never thrown', () => {
+    const errs: string[] = [];
+    const dir = mkdtempSync(join(tmpdir(), 'rcpt-'));
+    writeFileSync(join(dir, 'file'), 'x');
+    const log = new HandoffReceiptLog(join(dir, 'file', 'sub', 'r.ndjson'), (e) => errs.push(e));
+    expect(log.append({} as never)).toBe(false);
+    expect(errs).toHaveLength(1);
+  });
+});

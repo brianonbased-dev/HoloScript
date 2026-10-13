@@ -242,6 +242,8 @@ export interface FitOptions {
   reserveTokens?: number;
   /** Agent presence capability tags (for required_tags screening). */
   capabilityTags?: string[];
+  /** Skip the hand-off / big-context route-tag refusals (big-context seats). */
+  skipRouteTags?: boolean;
 }
 
 export type FitVerdict =
@@ -282,7 +284,11 @@ export function assessTaskFit(
   const tags = (task.tags ?? []).map((t) => t.toLowerCase());
   const required = (task.required_tags ?? []).map((t) => t.toLowerCase());
   const caps = new Set((opts.capabilityTags ?? []).map((t) => t.toLowerCase()));
-  const handoff = [...tags, ...required].find((t) => HANDOFF_TAGS.includes(t));
+  // A big-context seat (claim profile `big-context`) is the hand-off target, so it
+  // skips the route-tag refusals below and only applies the size/capability checks.
+  const handoff = opts.skipRouteTags
+    ? undefined
+    : [...tags, ...required].find((t) => HANDOFF_TAGS.includes(t));
   if (handoff) {
     return {
       fit: false,
@@ -293,7 +299,9 @@ export function assessTaskFit(
       route: 'laptop-or-fleet',
     };
   }
-  const big = [...tags, ...required].find((t) => BIG_CONTEXT_TAGS.includes(t));
+  const big = opts.skipRouteTags
+    ? undefined
+    : [...tags, ...required].find((t) => BIG_CONTEXT_TAGS.includes(t));
   if (big) {
     return {
       fit: false,
