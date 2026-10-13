@@ -79,18 +79,9 @@ export interface CreditGateFailure {
 
 export type CreditGateResult = CreditGateSuccess | CreditGateFailure;
 
-/**
- * True when credit-gate bypasses (dev, benchmark, admin) must be refused.
- * Production is detected from NODE_ENV or a Railway production environment,
- * so a mis-set NODE_ENV on Railway cannot re-open them.
- */
-export function bypassesDisabled(): boolean {
-  return (
-    process.env.NODE_ENV === 'production' ||
-    process.env.RAILWAY_ENVIRONMENT_NAME === 'production' ||
-    process.env.RAILWAY_ENVIRONMENT === 'production'
-  );
-}
+// Shared with api-auth's benchmark gate; re-exported for existing callers.
+import { bypassesDisabled } from './prodBypass';
+export { bypassesDisabled };
 
 /**
  * Resolve user identity from SERVER-VERIFIED sources only:
