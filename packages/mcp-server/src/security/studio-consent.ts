@@ -18,9 +18,35 @@
  * is valid for at most CONSENT_MAX_TTL_S. With no secret configured, nothing
  * verifies and authorize can grant public social scopes only (fail closed).
  */
-import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, timingSafeEqual } from 'crypto';
 
 export const CONSENT_MAX_TTL_S = 300;
+
+/**
+ * Replay guard: each assertion verifies at most once (Muse Gap 9, Mapping
+ * note 1). Keyed by the assertion's SHA-256, kept until its exp. Bounded: when
+ * full of unexpired entries, new assertions are refused (fail closed) rather
+ * than evicting a live one. Per instance; a cross-replica replay inside the
+ * 300 s window is closed only when Studio sets gid per approval and authorize
+ * dedupes on it (see PR body, Gap 1).
+ */
+export const CONSENT_REPLAY_MAX = 10_000;
+const usedAssertions = new Map<string, number>(); // hash -> exp (s)
+
+function consumeOnce(hash: string, exp: number, now: number): boolean {
+  if (usedAssertions.has(hash)) return false;
+  if (usedAssertions.size >= CONSENT_REPLAY_MAX) {
+    for (const [k, e] of usedAssertions) if (e <= now) usedAssertions.delete(k);
+    if (usedAssertions.size >= CONSENT_REPLAY_MAX) return false;
+  }
+  usedAssertions.set(hash, exp);
+  return true;
+}
+
+/** Tests only. */
+export function resetConsentReplayGuard(): void {
+  usedAssertions.clear();
+}
 
 export interface VerifiedConsent {
   userId: string;
@@ -58,7 +84,8 @@ export function signStudioConsent(
 
 /**
  * Verify an assertion for `clientId`. Returns null on any doubt: no secret, bad
- * shape, bad signature, wrong client, expired, too long-lived, or no user.
+ * shape, bad signature, wrong client, expired, too long-lived, no user, or
+ * already used. A valid assertion is consumed: it verifies at most once.
  */
 export function verifyStudioConsent(
   assertion: unknown,
@@ -94,10 +121,12 @@ export function verifyStudioConsent(
   if (!Array.isArray(scp) || !scp.every((s) => typeof s === 'string')) return null;
   if (typeof iat !== 'number' || typeof exp !== 'number') return null;
   if (exp <= now || iat > now + 30 || exp - iat > CONSENT_MAX_TTL_S) return null;
+  const hash = createHash('sha256').update(assertion).digest('hex');
+  if (!consumeOnce(hash, exp, now)) return null;
   return {
     userId: sub,
     clientId,
     scopes: scp as string[],
-    grantId: typeof gid === 'string' && gid ? gid : `grant_${randomUUID().replace(/-/g, '')}`,
+    grantId: typeof gid === 'string' && gid ? gid : `grant_${hash.slice(0, 32)}`,
   };
 }

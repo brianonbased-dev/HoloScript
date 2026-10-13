@@ -48,3 +48,44 @@ export function registrationsPerIpPerHour(env: NodeJS.ProcessEnv = process.env):
 
 export const registrationLimiter = new FixedWindowLimiter(3_600_000);
 export const clientRequestLimiter = new FixedWindowLimiter(60_000);
+
+/**
+ * Requests the per-client limiter refused, with the window's reset time (ms).
+ * authenticateRequest marks the request; the route then answers "not active"
+ * with its usual 401, which installClientRateLimitStatus rewrites to 429 so the
+ * client backs off instead of re-authenticating. One central rewrite covers
+ * every route that authenticates, whatever its own 401 body says.
+ */
+export const clientRateLimitedRequests = new WeakMap<object, number>();
+
+interface WriteHeadable {
+  writeHead: (...args: any[]) => any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  setHeader?: (name: string, value: string) => unknown;
+}
+
+export function installClientRateLimitStatus(
+  req: object,
+  res: WriteHeadable,
+  marks: WeakMap<object, number> = clientRateLimitedRequests,
+  now: () => number = Date.now
+): void {
+  const original = res.writeHead.bind(res);
+  res.writeHead = (status: number, ...rest: unknown[]) => {
+    const resetAt = marks.get(req);
+    if (status === 401 && resetAt !== undefined) {
+      const retryAfter = String(Math.max(1, Math.ceil((resetAt - now()) / 1000)));
+      const headers = rest.find((r) => r && typeof r === 'object') as
+        | Record<string, unknown>
+        | undefined;
+      if (headers) {
+        delete headers['WWW-Authenticate'];
+        delete headers['www-authenticate'];
+        headers['Retry-After'] = retryAfter;
+      } else {
+        res.setHeader?.('Retry-After', retryAfter);
+      }
+      return original(429, ...rest);
+    }
+    return original(status, ...rest);
+  };
+}

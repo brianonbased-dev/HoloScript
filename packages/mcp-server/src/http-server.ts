@@ -106,6 +106,8 @@ import { creditCheckSubject } from './security/credit-check-subject';
 import { verifyStudioConsent } from './security/studio-consent';
 import {
   clientRequestLimiter,
+  clientRateLimitedRequests,
+  installClientRateLimitStatus,
   registrationLimiter,
   registrationsPerIpPerHour,
 } from './security/client-abuse-limits';
@@ -350,6 +352,16 @@ oauth.setDurableIntrospector(async (token) => {
     issuedAt: result.issuedAt,
     ...(result.userId ? { userId: result.userId, grantId: result.grantId } : {}),
   };
+});
+
+// Muse Gap 9 S1: the durable store is the source of truth for a client's
+// review status. oauth21 re-reads it (<= 30s cache) for every cached token, so
+// a suspend on any replica reaches this one, and a rehydrated token is never
+// accepted for an unknown or suspended client.
+oauth.setClientStatusResolver(async (clientId) => {
+  const stored = await oauth2.getClient(clientId);
+  if (!stored) return 'unknown';
+  return stored.status ?? 'approved';
 });
 
 /**
@@ -634,6 +646,7 @@ async function createAndStoreSessionTransport(
  * Returns token introspection with scopes and agent identity.
  */
 async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntrospection> {
+  clientRateLimitedRequests.delete(req);
   const headers = { ...req.headers };
   const queryString = req.url?.split('?')[1] || '';
   const params = new URLSearchParams(queryString);
@@ -658,6 +671,9 @@ async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntr
           clientId: client.clientId,
           reason: `client over ${client.rateLimit || 60} req/min`,
         });
+        // Over the limit is 429, not 401: the route's own "not active" reply
+        // is rewritten in the request handler (installClientRateLimitStatus).
+        clientRateLimitedRequests.set(req, hit.resetAt);
         return { active: false };
       }
     }
@@ -1289,6 +1305,7 @@ async function requireA2ACaller(
 // ── HTTP Server ──────────────────────────────────────────────────────────────
 
 const httpServer = http.createServer(async (req, res) => {
+  installClientRateLimitStatus(req, res, clientRateLimitedRequests);
   // CORS headers (extended for OAuth 2.1)
   // Default to wildcard for MCP/agent clients; restrict via CORS_ALLOWED_ORIGINS env var
   // in deployments that serve browser-based Studio traffic alongside the MCP endpoint.
@@ -3339,12 +3356,9 @@ const httpServer = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
     }
-    // Founder bypass: key-registry founders always pass the credit gate.
-    if (isFounderRequest(req)) {
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ ok: true, balance: 999_999_999, required: 0, founderBypass: true }));
-      return;
-    }
+    // No founder bypass (CoS no-bypass-in-prod policy, Muse Gap 9): founders
+    // use funded accounts and go through the same check. Operators that must
+    // name a user hold tools:admin (see creditCheckSubject).
     // Muse Gap 9: whose balance is read comes from the TOKEN, never the body.
     // It used to take body.userId from any active token: a cross-user balance
     // oracle. See creditCheckSubject for the one operator exception.

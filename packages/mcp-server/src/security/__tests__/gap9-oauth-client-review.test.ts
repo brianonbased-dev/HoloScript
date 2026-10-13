@@ -13,7 +13,7 @@ import {
   PUBLIC_SOCIAL_SCOPES,
 } from '../../auth/oauth2-provider';
 import { InMemoryTokenStore, isClientNotApprovedError } from '../../auth/token-store';
-import { signStudioConsent, verifyStudioConsent } from '../studio-consent';
+import { resetConsentReplayGuard, signStudioConsent, verifyStudioConsent } from '../studio-consent';
 import { creditCheckSubject } from '../credit-check-subject';
 import { FixedWindowLimiter, registrationsPerIpPerHour } from '../client-abuse-limits';
 import { authorizeToolCall, PUBLIC_SOCIAL_TOOL_SCOPES } from '../tool-scopes';
@@ -60,7 +60,10 @@ function codeFlow(
   });
 }
 
-beforeEach(() => resetOAuth21Service());
+beforeEach(() => {
+  resetOAuth21Service();
+  resetConsentReplayGuard();
+});
 afterEach(() => resetOAuth21Service());
 
 describe('(a) public social scope set', () => {

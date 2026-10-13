@@ -169,6 +169,12 @@ export interface AccessToken {
   /** Human this token acts for, from consent (Muse Gap 9). Absent: no human. */
   userId?: string;
   grantId?: string;
+  /**
+   * Rehydrated from the durable store by authenticateRequestAsync (Muse Gap 9
+   * S1). Its client may not be loaded here, so it is active only while a fresh
+   * (<= CLIENT_STATUS_TTL_MS) durable status check says the client is approved.
+   */
+  rehydrated?: true;
 }
 
 export interface RefreshToken {
@@ -229,6 +235,15 @@ const accessTokens = new Map<string, AccessToken>();
 const refreshTokens = new Map<string, RefreshToken>();
 const revokedChains = new Set<string>();
 
+/**
+ * Muse Gap 9 S1: short-TTL cache of each client's review status as last read
+ * from the durable store. Another replica (or an operator writing the store)
+ * can suspend a client; this replica learns of it within CLIENT_STATUS_TTL_MS.
+ */
+export const CLIENT_STATUS_TTL_MS = 30_000;
+export type DurableClientStatus = OAuthClientStatus | 'unknown';
+const clientStatusCache = new Map<string, { status: DurableClientStatus; at: number }>();
+
 // ── Utility Functions ────────────────────────────────────────────────────────
 
 function hashSecret(secret: string): string {
@@ -284,6 +299,64 @@ export class OAuth21Service {
 
   setDurableIntrospector(fn: (token: string) => Promise<TokenIntrospection | undefined>): void {
     this.durableIntrospector = fn;
+  }
+
+  /**
+   * Muse Gap 9 S1: read a client's review status from the durable store
+   * ('unknown' when the store has no such client). When set, every token whose
+   * client is loaded here or that was rehydrated from the store is active only
+   * while a status read no older than CLIENT_STATUS_TTL_MS says 'approved'.
+   * That is the multi-replica suspend: no instance trusts its own memory for
+   * longer than the TTL.
+   */
+  private clientStatusResolver?: (clientId: string) => Promise<DurableClientStatus>;
+
+  setClientStatusResolver(fn: (clientId: string) => Promise<DurableClientStatus>): void {
+    this.clientStatusResolver = fn;
+  }
+
+  private freshClientStatus(clientId: string, now = Date.now()): DurableClientStatus | undefined {
+    const hit = clientStatusCache.get(clientId);
+    if (!hit || now - hit.at > CLIENT_STATUS_TTL_MS) return undefined;
+    return hit.status;
+  }
+
+  private noteClientStatus(clientId: string, status: DurableClientStatus): void {
+    if (clientStatusCache.size >= 50_000) clientStatusCache.clear();
+    clientStatusCache.set(clientId, { status, at: Date.now() });
+  }
+
+  /**
+   * Re-read a client's status from the durable store and cache it. A store
+   * error keeps the client usable only if it is loaded here and approved in
+   * memory (a DB blip must not log everyone out); a rehydrated token's client
+   * that cannot be read is treated as unknown (fail closed).
+   */
+  private async refreshClientStatus(clientId: string): Promise<DurableClientStatus> {
+    if (!this.clientStatusResolver) {
+      const owner = clients.get(clientId);
+      return owner ? (clientIsApproved(owner) ? 'approved' : owner.status ?? 'suspended') : 'unknown';
+    }
+    try {
+      const status = await this.clientStatusResolver(clientId);
+      this.noteClientStatus(clientId, status);
+      const owner = clients.get(clientId);
+      if (owner && status !== 'unknown') owner.status = status;
+      if (status !== 'approved') this.dropClientTokens(clientId);
+      return status;
+    } catch {
+      const owner = clients.get(clientId);
+      if (owner && clientIsApproved(owner)) return 'approved';
+      return 'unknown';
+    }
+  }
+
+  /** Does introspect need a fresh durable status for this token's client before it can answer? */
+  private needsStatusRefresh(stored: AccessToken | undefined): boolean {
+    if (!stored || stored.expiresAt < Date.now()) return false;
+    if (!this.clientStatusResolver) return false;
+    if (!stored.rehydrated && !clients.has(stored.clientId)) return false;
+    return this.freshClientStatus(stored.clientId) === undefined;
   }
 
   constructor(config: Partial<OAuth21Config> = {}) {
@@ -380,14 +453,20 @@ export class OAuth21Service {
   /**
    * Set a client's review state in this registry (Muse Gap 9). Suspending or
    * returning to pending drops every token the client holds here and revokes
-   * its refresh chains; the client record stays. False if unknown here.
+   * its refresh chains; the client record stays. Returns whether the client was
+   * loaded here.
+   *
+   * Muse Gap 9 S1: tokens are dropped and the status cache updated even when
+   * the client is NOT loaded here: a token rehydrated from the durable store
+   * can be cached without its client, and returning early left it working
+   * until its TTL. The durable row is updated by the caller (OAuth2Provider).
    */
   setClientStatus(clientId: string, status: OAuthClientStatus): boolean {
     const client = clients.get(clientId);
-    if (!client) return false;
-    client.status = status;
+    if (client) client.status = status;
+    this.noteClientStatus(clientId, status);
     if (status !== 'approved') this.dropClientTokens(clientId);
-    return true;
+    return client !== undefined;
   }
 
   private dropClientTokens(clientId: string): void {
@@ -676,6 +755,19 @@ export class OAuth21Service {
     if (owner && !clientIsApproved(owner)) {
       return { active: false };
     }
+    // Muse Gap 9 S1: another replica may have suspended the client. With a
+    // durable status source, a loaded or rehydrated client's token is active
+    // only on a fresh 'approved' read; stale means inactive here, and
+    // authenticateRequestAsync refreshes and retries. A rehydrated token whose
+    // client is unknown or not approved is never active.
+    if (owner || stored.rehydrated) {
+      const fresh = this.freshClientStatus(stored.clientId);
+      if (this.clientStatusResolver || stored.rehydrated) {
+        if (fresh !== 'approved') return { active: false };
+      } else if (fresh !== undefined && fresh !== 'approved') {
+        return { active: false };
+      }
+    }
 
     return {
       active: true,
@@ -811,6 +903,18 @@ export class OAuth21Service {
   async authenticateRequestAsync(
     headers: Record<string, string | string[] | undefined>
   ): Promise<TokenIntrospection> {
+    // Muse Gap 9 S1: a cached token whose client status is stale gets a
+    // durable re-check before the sync path answers for it.
+    {
+      const h =
+        (typeof headers['authorization'] === 'string' ? headers['authorization'] : '') || '';
+      const t = h.startsWith('Bearer ') ? h.slice(7) : h.startsWith('DPoP ') ? h.slice(5) : '';
+      const cached = t ? accessTokens.get(t) : undefined;
+      if (cached && this.needsStatusRefresh(cached)) {
+        await this.refreshClientStatus(cached.clientId);
+      }
+    }
+
     const syncResult = this.authenticateRequest(headers);
     if (syncResult.active) return syncResult;
 
@@ -829,9 +933,16 @@ export class OAuth21Service {
       try {
         const durable = await this.durableIntrospector(token);
         if (durable?.active) {
+          // Muse Gap 9 S1: never cache (or accept) a durable token without a
+          // status read of its client. Unknown or not approved: inactive.
+          if (!durable.clientId) return { active: false };
+          const status = await this.refreshClientStatus(durable.clientId);
+          if (status !== 'approved') return { active: false };
+          this.noteClientStatus(durable.clientId, 'approved');
           accessTokens.set(token, {
+            rehydrated: true,
             token,
-            clientId: durable.clientId || 'durable-import',
+            clientId: durable.clientId,
             scopes: (durable.scopes || []) as OAuthScope[],
             issuedAt: durable.issuedAt || Date.now(),
             expiresAt: durable.expiresAt || Date.now() + this.config.accessTokenTTL * 1000,
@@ -943,6 +1054,8 @@ export class OAuth21Service {
     // self-registered client with no human's consent narrows to public social
     // scopes (Muse Gap 9) — client_credentials never carries consent.
     const issuedClient = clients.get(clientId);
+    // The grant paths above refused a non-approved client just now.
+    if (issuedClient && clientIsApproved(issuedClient)) this.noteClientStatus(clientId, 'approved');
     scopes = consentFreeScopes(issuedClient, scopes, consent);
     if (issuedClient?.selfRegistered && scopes.length === 0) {
       throw new Error(CONSENT_REQUIRED_ERROR);
@@ -1012,4 +1125,5 @@ export function resetOAuth21Service(): void {
   accessTokens.clear();
   refreshTokens.clear();
   revokedChains.clear();
+  clientStatusCache.clear();
 }
