@@ -335,7 +335,11 @@ export class OAuth21Service {
   private async refreshClientStatus(clientId: string): Promise<DurableClientStatus> {
     if (!this.clientStatusResolver) {
       const owner = clients.get(clientId);
-      return owner ? (clientIsApproved(owner) ? 'approved' : owner.status ?? 'suspended') : 'unknown';
+      return owner
+        ? clientIsApproved(owner)
+          ? 'approved'
+          : (owner.status ?? 'suspended')
+        : 'unknown';
     }
     try {
       const status = await this.clientStatusResolver(clientId);

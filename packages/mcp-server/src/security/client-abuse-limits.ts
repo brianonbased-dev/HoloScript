@@ -75,8 +75,7 @@ export function installClientRateLimitStatus(
     if (status === 401 && resetAt !== undefined) {
       const retryAfter = String(Math.max(1, Math.ceil((resetAt - now()) / 1000)));
       const headers = rest.find((r) => r && typeof r === 'object') as
-        | Record<string, unknown>
-        | undefined;
+        Record<string, unknown> | undefined;
       if (headers) {
         delete headers['WWW-Authenticate'];
         delete headers['www-authenticate'];

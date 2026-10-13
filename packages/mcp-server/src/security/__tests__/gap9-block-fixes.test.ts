@@ -165,7 +165,10 @@ describe('credits/check: no founder bypass', () => {
       ok: false,
       status: 403,
     });
-    expect(creditCheckSubject({ scopes: ['tools:admin'] }, 'u1')).toEqual({ ok: true, userId: 'u1' });
+    expect(creditCheckSubject({ scopes: ['tools:admin'] }, 'u1')).toEqual({
+      ok: true,
+      userId: 'u1',
+    });
   });
 });
 
@@ -176,7 +179,10 @@ describe('consent replay', () => {
     expect(first?.userId).toBe('u1');
     expect(first?.grantId).toMatch(/^grant_[0-9a-f]{32}$/);
     expect(verifyStudioConsent(a, 'hsc_1', SECRET)).toBeNull();
-    const b = signStudioConsent({ sub: 'u1', cid: 'hsc_1', scp: ['tools:execute'], gid: 'g2' }, SECRET);
+    const b = signStudioConsent(
+      { sub: 'u1', cid: 'hsc_1', scp: ['tools:execute'], gid: 'g2' },
+      SECRET
+    );
     expect(verifyStudioConsent(b, 'hsc_1', SECRET)?.grantId).toBe('g2');
   });
 
