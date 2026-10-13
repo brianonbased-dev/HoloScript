@@ -376,7 +376,7 @@ export async function POST(request: NextRequest) {
 
     // SEC-T03: credit check before first LLM token (pricing op = Brittney chat).
     __phase = 'credit';
-    const gate = await checkCredits(request, 'studio_chat');
+    const gate = await checkCredits(request, 'studio_chat', auth.user.id);
     if (gate.error) return gate.error;
 
     // Server-side write-through (task qq65 / D.053): persist the NEW user turn
