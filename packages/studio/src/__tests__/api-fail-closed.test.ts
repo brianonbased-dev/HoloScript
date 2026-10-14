@@ -287,6 +287,29 @@ describe('the allowlist keeps the signed-out site working', () => {
     }
   });
 
+  it('never honours the benchmark header in production (Gap 3: no prod bypass)', async () => {
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'configured-benchmark-key');
+    const header = { 'x-benchmark-key': 'configured-benchmark-key' };
+
+    // Non-prod control: the runner's own path still opens.
+    expect((await anonymous('/api/brittney', 'POST', header)).status).not.toBe(401);
+
+    vi.stubEnv('NODE_ENV', 'production');
+    expect((await anonymous('/api/brittney', 'POST', header)).status).toBe(401);
+
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'production');
+    expect((await anonymous('/api/brittney', 'POST', header)).status).toBe(401);
+  });
+
+  it('refuses a wrong-length benchmark key at the edge', async () => {
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'configured-benchmark-key');
+    for (const key of ['configured-benchmark-ke', 'configured-benchmark-keyy']) {
+      const response = await anonymous('/api/brittney', 'POST', { 'x-benchmark-key': key });
+      expect.soft(response.status, key).toBe(401);
+    }
+  });
+
   it('the benchmark header alone opens nothing when the key is not configured', async () => {
     vi.stubEnv('BRITTNEY_BENCHMARK_KEY', '');
 
