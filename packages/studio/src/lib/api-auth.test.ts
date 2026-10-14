@@ -24,7 +24,7 @@ vi.mock('drizzle-orm', () => ({ eq: (column: unknown, value: unknown) => ({ colu
 vi.mock('./brittney/userApiKeys', () => ({ validateApiKey: validateApiKeyStub }));
 
 import { NextResponse } from 'next/server';
-import { getSession, requireAuthOrApiKey, requireFounder } from './api-auth';
+import { getSession, requireAuth, requireAuthOrApiKey, requireFounder } from './api-auth';
 import { SESSION_COOKIE_NAMES } from './session-cookie-names';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
 
@@ -410,5 +410,43 @@ describe('requireAuthOrApiKey', () => {
 
     expect(auth.user.isFounder).toBe(true);
     expect(validateApiKeyStub).not.toHaveBeenCalled();
+  });
+});
+
+describe('requireAuth benchmark bypass (Muse Gap 3)', () => {
+  const benchReq = () =>
+    new Request('https://studio.test/api/x', { headers: { 'x-benchmark-key': 'bench-secret' } });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'bench-secret');
+    vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', '');
+    vi.stubEnv('RAILWAY_ENVIRONMENT', '');
+    getServerSessionStub.mockResolvedValue(null);
+    getTokenStub.mockResolvedValue(null);
+    cookiesStub.mockResolvedValue({ getAll: () => [] });
+  });
+
+  it('allows the benchmark sign-in skip outside production', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    const auth = await requireAuth(benchReq());
+    expect(auth).not.toBeInstanceOf(NextResponse);
+    expect((auth as { user: { id: string } }).user.id).toBe('benchmark');
+  });
+
+  it('refuses the benchmark skip when NODE_ENV=production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const auth = await requireAuth(benchReq());
+    expect(auth).toBeInstanceOf(NextResponse);
+    expect((auth as NextResponse).status).toBe(401);
+  });
+
+  it('refuses the benchmark skip on a Railway production env even if NODE_ENV is mis-set', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'production');
+    const auth = await requireAuth(benchReq());
+    expect(auth).toBeInstanceOf(NextResponse);
+    expect((auth as NextResponse).status).toBe(401);
   });
 });
