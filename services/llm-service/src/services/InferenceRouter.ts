@@ -71,7 +71,31 @@ export interface ChatRequest {
   maxTokens?: number;
   tier?: 'pro' | 'standard';
   lane?: BrittneyLane;
+  /**
+   * Runtime policy (external-agent access path, PR-5). `local-only` restricts
+   * the router to providers running on our own machines (Jetson, laptops) and
+   * HARD-DENIES paid APIs and rented GPUs (Fireworks, Kimi, Together, Fleet/Vast)
+   * with no fallthrough. Unset or `any` keeps today's behaviour.
+   */
+  runtimePolicy?: RuntimePolicy;
   onTelemetry?: (telemetry: InferenceTelemetry) => void;
+}
+
+export type RuntimePolicy = 'any' | 'local-only';
+
+/** Providers that run on owned local metal. Everything else is paid or rented. */
+export const LOCAL_PROVIDER_NAMES: ReadonlySet<string> = new Set(['ollama']);
+
+export const NEEDS_CREDITS_NOT_ENABLED = {
+  code: 'needs_credits_not_enabled',
+  message:
+    "This job needs paid or rented compute, which isn't enabled for this access. Only local runtimes are allowed.",
+  can_run_local: false,
+} as const;
+
+export function isProviderAllowed(name: string, policy: RuntimePolicy | undefined): boolean {
+  if (!policy || policy === 'any') return true;
+  return LOCAL_PROVIDER_NAMES.has(name);
 }
 
 export interface ToolDefinition {
@@ -665,6 +689,22 @@ export class InferenceRouter {
    */
   async *chat(rawRequest: ChatRequest): AsyncGenerator<StreamEvent> {
     const { request, lane } = applyLaneRouting(rawRequest);
+
+    // Local-only policy: never touch pro, preferred-paid, or any non-local
+    // provider. No fallthrough to paid on local failure.
+    if (request.runtimePolicy === 'local-only') {
+      for (const provider of this.providers) {
+        if (!isProviderAllowed(provider.name, 'local-only')) continue;
+        if (await provider.isAvailable()) {
+          logger.info(`[InferenceRouter] lane=${lane} local-only → ${provider.name}`);
+          yield* provider.stream(request);
+          return;
+        }
+      }
+      yield { type: 'error', payload: { ...NEEDS_CREDITS_NOT_ENABLED } };
+      yield { type: 'done', payload: null };
+      return;
+    }
 
     // Pro tier: route to Kimi K2.5
     if (request.tier === 'pro') {
