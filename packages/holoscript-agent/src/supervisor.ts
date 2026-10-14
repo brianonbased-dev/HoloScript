@@ -179,8 +179,7 @@ export class Supervisor {
       handoffReceipts: new HandoffReceiptLog(
         process.env.HOLOSCRIPT_AGENT_HANDOFF_RECEIPTS ??
           join(stateDir, `${effectiveSpec.handle}.native-handoff.ndjson`),
-        (message) =>
-          this.log({ agent: effectiveSpec.handle, ev: 'handoff-receipt-error', message })
+        (message) => this.log({ agent: effectiveSpec.handle, ev: 'handoff-receipt-error', message })
       ),
     });
     const status: SupervisorAgentStatus = {

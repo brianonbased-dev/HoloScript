@@ -70,7 +70,11 @@ describe('caps are edge-small only; other profiles get full output by default', 
       stdoutChars: 8_000,
     });
     expect(promptCaps({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: ' Edge-Small ' }).readChars).toBe(12_000);
-    for (const env of [{}, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'big-context' }, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'legacy' }]) {
+    for (const env of [
+      {},
+      { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'big-context' },
+      { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'legacy' },
+    ]) {
       expect(promptCaps(env)).toEqual({
         readChars: 200_000,
         responseChars: 200_000,
@@ -79,7 +83,10 @@ describe('caps are edge-small only; other profiles get full output by default', 
     }
     // explicit env override still wins in any profile
     expect(
-      promptCaps({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'big-context', HOLOSCRIPT_AGENT_READ_CAP_CHARS: '500' }).readChars
+      promptCaps({
+        HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'big-context',
+        HOLOSCRIPT_AGENT_READ_CAP_CHARS: '500',
+      }).readChars
     ).toBe(500);
   });
   it('read_file under big-context returns a 50k-char file whole; bash output is not capped', async () => {
@@ -87,7 +94,12 @@ describe('caps are edge-small only; other profiles get full output by default', 
     writeFileSync(p, 'b'.repeat(50_000));
     process.env.HOLOSCRIPT_AGENT_CLAIM_PROFILE = 'big-context';
     try {
-      const res = await runTool({ type: 'tool_use', id: 'bc1', name: 'read_file', input: { path: p } });
+      const res = await runTool({
+        type: 'tool_use',
+        id: 'bc1',
+        name: 'read_file',
+        input: { path: p },
+      });
       expect(res.is_error).toBeFalsy();
       expect(res.content).toBe('b'.repeat(50_000));
     } finally {

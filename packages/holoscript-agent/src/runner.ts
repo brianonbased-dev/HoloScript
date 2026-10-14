@@ -567,7 +567,10 @@ export class AgentRunner {
         taskId: target.id,
         spentUsd: costGuard.getState().spentUsd,
         remainingUsd: costGuard.getRemainingUsd(),
-        message: `uncaught: ${thrown instanceof Error ? thrown.message : String(thrown)}`.slice(0, 400),
+        message: `uncaught: ${thrown instanceof Error ? thrown.message : String(thrown)}`.slice(
+          0,
+          400
+        ),
       };
       try {
         this.writeHandoffReceipt(target, lane, forReceipt, claimedAt);
@@ -1282,7 +1285,7 @@ export class AgentRunner {
           escalateOnFail: brain.reflect.escalateOnFail,
         });
         aggUsage = addTokenUsage(aggUsage, reflectVerdict.usage);
-      this.taskUsage = aggUsage;
+        this.taskUsage = aggUsage;
         log({
           ev: 'reflect',
           taskId: target.id,
@@ -1511,11 +1514,12 @@ export class AgentRunner {
       claimed_at: new Date(claimedAt).toISOString(),
       ended_at: new Date(ended).toISOString(),
       duration_ms: ended - claimedAt,
-      prompt_tokens: u ? u.promptTokens ?? null : null,
-      completion_tokens: u ? u.completionTokens ?? null : null,
-      total_tokens: u ? u.totalTokens ?? null : null,
+      prompt_tokens: u ? (u.promptTokens ?? null) : null,
+      completion_tokens: u ? (u.completionTokens ?? null) : null,
+      total_tokens: u ? (u.totalTokens ?? null) : null,
     });
-    if (ok) (this.opts.logger ?? (() => undefined))({ ev: 'handoff-receipt', taskId: target.id, result });
+    if (ok)
+      (this.opts.logger ?? (() => undefined))({ ev: 'handoff-receipt', taskId: target.id, result });
   }
 
   private async releaseWithReason(

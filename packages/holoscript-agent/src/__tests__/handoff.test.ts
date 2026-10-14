@@ -510,7 +510,11 @@ describe('(v) pre-claim fit check, prompt guard, caps', () => {
   });
 
   it('prompt caps (edge-small) default to 12k read / 8k response / 8k stdout and are env-overridable; head-tail keeps the verdict', () => {
-    expect(promptCaps({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' })).toEqual({ readChars: 12_000, responseChars: 8_000, stdoutChars: 8_000 });
+    expect(promptCaps({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' })).toEqual({
+      readChars: 12_000,
+      responseChars: 8_000,
+      stdoutChars: 8_000,
+    });
     expect(promptCaps({ HOLOSCRIPT_AGENT_READ_CAP_CHARS: '3000' }).readChars).toBe(3000);
     const out = 'START' + 'z'.repeat(20_000) + 'Tests 12 passed';
     const capped = capText(out, 8_000, 'head-tail', 'stdout');
@@ -568,9 +572,17 @@ import { HandoffReceiptLog, defaultHandoffReceiptPath } from '../handoff-receipt
 function profRunner(
   m: ReturnType<typeof mesh>,
   env: Record<string, string>,
-  opts: { p?: ILLMProvider; nCtx?: number; receipts?: HandoffReceiptLog; brain?: RuntimeBrainConfig } = {}
+  opts: {
+    p?: ILLMProvider;
+    nCtx?: number;
+    receipts?: HandoffReceiptLog;
+    brain?: RuntimeBrainConfig;
+  } = {}
 ) {
-  const brain = opts.brain ?? { ...BRAIN, capabilityTags: ['jetson', 'research', 'paper', 'multi-step'] };
+  const brain = opts.brain ?? {
+    ...BRAIN,
+    capabilityTags: ['jetson', 'research', 'paper', 'multi-step'],
+  };
   const r = new AgentRunner({
     identity: IDENTITY,
     brain,
@@ -579,7 +591,11 @@ function profRunner(
     mesh: m as never,
     claimProfile: resolveClaimProfile(env),
     handoffReceipts: opts.receipts,
-    localFit: async () => ({ nCtx: opts.nCtx ?? 4096, source: 'props' as const, model: 'qwen3-4b' }),
+    localFit: async () => ({
+      nCtx: opts.nCtx ?? 4096,
+      source: 'props' as const,
+      model: 'qwen3-4b',
+    }),
   });
   return { r, brain };
 }
@@ -587,31 +603,54 @@ function profRunner(
 describe('claim profiles (edge-small / big-context)', () => {
   it('resolves profiles from env, with comma-list overrides', () => {
     const e = resolveClaimProfile({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' });
-    expect(e).toMatchObject({ name: 'edge-small', requireAnyTags: ['edge-small'], budgetFraction: 0.4 });
-    expect(e.excludeTags).toEqual(expect.arrayContaining(['ctx-16k+', 'laptop-or-fleet', 'repo-wide']));
+    expect(e).toMatchObject({
+      name: 'edge-small',
+      requireAnyTags: ['edge-small'],
+      budgetFraction: 0.4,
+    });
+    expect(e.excludeTags).toEqual(
+      expect.arrayContaining(['ctx-16k+', 'laptop-or-fleet', 'repo-wide'])
+    );
     expect(e.capabilityTags).not.toContain('research');
     const b = resolveClaimProfile({ HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'big-context' });
     expect(b).toMatchObject({ name: 'big-context', skipRouteTags: true, excludeTags: [] });
     expect(b.requireAnyTags).toEqual(expect.arrayContaining(['ctx-16k+', 'laptop-or-fleet']));
-    expect(resolveClaimProfile({})).toMatchObject({ name: 'legacy', requireAnyTags: [], capabilityTags: null });
+    expect(resolveClaimProfile({})).toMatchObject({
+      name: 'legacy',
+      requireAnyTags: [],
+      capabilityTags: null,
+    });
     const o = resolveClaimProfile({
       HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small',
       HOLOSCRIPT_AGENT_CLAIM_REQUIRE_TAGS: 'Tiny, edge-small',
       HOLOSCRIPT_AGENT_CLAIM_BUDGET_FRACTION: '0.3',
       HOLOSCRIPT_AGENT_CAPABILITY_TAGS: 'jetson,tiny',
     });
-    expect(o).toMatchObject({ requireAnyTags: ['tiny', 'edge-small'], budgetFraction: 0.3, capabilityTags: ['jetson', 'tiny'] });
-    expect(screenTaskForProfile(task('x', { tags: ['edge-small', 'repo-wide'] }), e)).toMatchObject({
-      ok: false,
-      reason: 'profile-excluded-tag',
-      detail: 'repo-wide',
+    expect(o).toMatchObject({
+      requireAnyTags: ['tiny', 'edge-small'],
+      budgetFraction: 0.3,
+      capabilityTags: ['jetson', 'tiny'],
     });
+    expect(screenTaskForProfile(task('x', { tags: ['edge-small', 'repo-wide'] }), e)).toMatchObject(
+      {
+        ok: false,
+        reason: 'profile-excluded-tag',
+        detail: 'repo-wide',
+      }
+    );
   });
 
   it('edge-small: drops the broad brain tags, claims only edge-small-tagged tasks within 40% of n_ctx', async () => {
     const tasks = [
-      task('t-research', { priority: 'critical', tags: ['research', 'paper', 'multi-step', 'jetson'] }),
-      task('t-big-small', { priority: 'critical', tags: ['edge-small'], description: 'x'.repeat(6_000) }), // ~1.7k tok > 1638
+      task('t-research', {
+        priority: 'critical',
+        tags: ['research', 'paper', 'multi-step', 'jetson'],
+      }),
+      task('t-big-small', {
+        priority: 'critical',
+        tags: ['edge-small'],
+        description: 'x'.repeat(6_000),
+      }), // ~1.7k tok > 1638
       task('t-routed', { priority: 'critical', tags: ['edge-small', 'ctx-16k+'] }),
       task('t-ok', { priority: 'low', tags: ['edge-small'] }),
     ];
@@ -622,7 +661,10 @@ describe('claim profiles (edge-small / big-context)', () => {
     await r.tick();
     expect(m.claim).toHaveBeenCalledTimes(1);
     expect(m.claim).toHaveBeenCalledWith('t-ok');
-    const plan = await r.planClaims(tasks.map((t) => ({ ...t })), { heldClaims: 0 });
+    const plan = await r.planClaims(
+      tasks.map((t) => ({ ...t })),
+      { heldClaims: 0 }
+    );
     const by = Object.fromEntries(plan.entries.map((e) => [e.task.id, e]));
     expect(by['t-research'].reason).toMatch(/profile-missing-tag/);
     expect(by['t-routed'].reason).toMatch(/profile-excluded-tag: ctx-16k\+/);
@@ -632,7 +674,11 @@ describe('claim profiles (edge-small / big-context)', () => {
   it('big-context: takes the routed ctx-16k+ / laptop-or-fleet tasks the edge seat refuses, ignores the rest', async () => {
     const tasks = [
       task('t-plain', { priority: 'critical', tags: ['jetson'] }),
-      task('t-handoff', { priority: 'high', tags: ['laptop-or-fleet'], description: 'x'.repeat(20_000) }),
+      task('t-handoff', {
+        priority: 'high',
+        tags: ['laptop-or-fleet'],
+        description: 'x'.repeat(20_000),
+      }),
     ];
     const m = mesh(tasks);
     const { r } = profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'big-context' }, { nCtx: 16384 });
@@ -644,10 +690,12 @@ describe('claim profiles (edge-small / big-context)', () => {
 
 describe('native hand-off receipts (append-only NDJSON)', () => {
   it('default path names receipts/native-handoff.ndjson under the data dir', () => {
-    expect(defaultHandoffReceiptPath({ HOLOSCRIPT_AGENT_DATA_DIR: '/mnt/nvme/holo/agent-data' })).toBe(
-      '/mnt/nvme/holo/agent-data/receipts/native-handoff.ndjson'
+    expect(
+      defaultHandoffReceiptPath({ HOLOSCRIPT_AGENT_DATA_DIR: '/mnt/nvme/holo/agent-data' })
+    ).toBe('/mnt/nvme/holo/agent-data/receipts/native-handoff.ndjson');
+    expect(defaultHandoffReceiptPath({ HOLOSCRIPT_AGENT_HANDOFF_RECEIPTS: '/x/r.ndjson' })).toBe(
+      '/x/r.ndjson'
     );
-    expect(defaultHandoffReceiptPath({ HOLOSCRIPT_AGENT_HANDOFF_RECEIPTS: '/x/r.ndjson' })).toBe('/x/r.ndjson');
   });
 
   it('writes one line per handled task: finished (with tokens), then released with reason; never rewrites', async () => {
@@ -657,8 +705,14 @@ describe('native hand-off receipts (append-only NDJSON)', () => {
     const m1 = mesh(tasks);
     await profRunner(m1, env, { receipts: new HandoffReceiptLog(path) }).r.tick();
     const m2 = mesh([task('t-na', { tags: ['edge-small'] })]);
-    await profRunner(m2, env, { p: provider({ tools: [] }), receipts: new HandoffReceiptLog(path) }).r.tick();
-    const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    await profRunner(m2, env, {
+      p: provider({ tools: [] }),
+      receipts: new HandoffReceiptLog(path),
+    }).r.tick();
+    const lines = readFileSync(path, 'utf8')
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
     expect(lines).toHaveLength(2);
     expect(lines[0]).toMatchObject({
       schema: 'native-handoff-v1',
@@ -694,38 +748,60 @@ describe('PR #553 review: receipt honesty + finally', () => {
     const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'r.ndjson');
     const m = mesh([task('t-rf', { tags: ['edge-small'] })]);
     m.releaseTask.mockRejectedValueOnce(new Error('HoloMesh PATCH 401: unsigned-rejected'));
-    await profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' }, {
-      p: provider({ tools: [] }),
-      receipts: new HandoffReceiptLog(path),
-    }).r.tick();
-    const [line] = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
-    expect(line).toMatchObject({ task_id: 't-rf', result: 'release_failed', action: 'no-artifact' });
+    await profRunner(
+      m,
+      { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' },
+      {
+        p: provider({ tools: [] }),
+        receipts: new HandoffReceiptLog(path),
+      }
+    ).r.tick();
+    const [line] = readFileSync(path, 'utf8')
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
+    expect(line).toMatchObject({
+      task_id: 't-rf',
+      result: 'release_failed',
+      action: 'no-artifact',
+    });
     expect(line.reason).toMatch(/no_artifact/);
   });
 
   it("a successful reopen is still receipted as 'released'", async () => {
     const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'r.ndjson');
     const m = mesh([task('t-ok-rel', { tags: ['edge-small'] })]);
-    await profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' }, {
-      p: provider({ tools: [] }),
-      receipts: new HandoffReceiptLog(path),
-    }).r.tick();
+    await profRunner(
+      m,
+      { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' },
+      {
+        p: provider({ tools: [] }),
+        receipts: new HandoffReceiptLog(path),
+      }
+    ).r.tick();
     expect(JSON.parse(readFileSync(path, 'utf8').trim())).toMatchObject({ result: 'released' });
   });
 
   it('a throw escaping execution (e.g. automation-lane park call) still writes a receipt, then rethrows', async () => {
     const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'r.ndjson');
     const m = mesh([task('t-throw', { tags: ['edge-small'] })]);
-    const { r } = profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' }, {
-      receipts: new HandoffReceiptLog(path),
-    });
+    const { r } = profRunner(
+      m,
+      { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' },
+      {
+        receipts: new HandoffReceiptLog(path),
+      }
+    );
     // Simulate blockAutomationTask throwing inside the automation catch: the error
     // escapes executeClaimed.
     vi.spyOn(r as never, 'executeClaimed' as never).mockRejectedValueOnce(
       new Error('HoloMesh PATCH block 500') as never
     );
     await expect(r.tick()).rejects.toThrow(/block 500/);
-    const [line] = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    const [line] = readFileSync(path, 'utf8')
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
     expect(line).toMatchObject({ task_id: 't-throw', result: 'failed', action: 'errored' });
     expect(line.reason).toMatch(/uncaught: HoloMesh PATCH block 500/);
   });
@@ -733,18 +809,30 @@ describe('PR #553 review: receipt honesty + finally', () => {
   it('automation lane: blockAutomationTask throwing still yields a receipt', async () => {
     const path = join(mkdtempSync(join(tmpdir(), 'rcpt-')), 'r.ndjson');
     const m = mesh([task('t-auto', { tags: ['edge-small'] })]);
-    const { r } = profRunner(m, { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' }, {
-      receipts: new HandoffReceiptLog(path),
-    });
+    const { r } = profRunner(
+      m,
+      { HOLOSCRIPT_AGENT_CLAIM_PROFILE: 'edge-small' },
+      {
+        receipts: new HandoffReceiptLog(path),
+      }
+    );
     // Route through the real automation catch: runClaimedTask throws, then the park call throws.
     const rr = r as unknown as Record<string, unknown>;
-    vi.spyOn(rr as never, 'runClaimedTask' as never).mockRejectedValueOnce(new Error('exec boom') as never);
-    vi.spyOn(rr as never, 'blockAutomationTask' as never).mockRejectedValueOnce(new Error('park failed') as never);
+    vi.spyOn(rr as never, 'runClaimedTask' as never).mockRejectedValueOnce(
+      new Error('exec boom') as never
+    );
+    vi.spyOn(rr as never, 'blockAutomationTask' as never).mockRejectedValueOnce(
+      new Error('park failed') as never
+    );
     const exec = rr.executeClaimed as (ctx: Record<string, unknown>) => Promise<unknown>;
-    vi.spyOn(rr as never, 'executeClaimed' as never).mockImplementationOnce(((ctx: Record<string, unknown>) =>
-      exec.call(r, { ...ctx, lane: 'automation' })) as never);
+    vi.spyOn(rr as never, 'executeClaimed' as never).mockImplementationOnce(((
+      ctx: Record<string, unknown>
+    ) => exec.call(r, { ...ctx, lane: 'automation' })) as never);
     await expect(r.tick()).rejects.toThrow(/park failed/);
-    const [line] = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+    const [line] = readFileSync(path, 'utf8')
+      .trim()
+      .split('\n')
+      .map((l) => JSON.parse(l));
     expect(line).toMatchObject({ task_id: 't-auto', result: 'failed' });
     expect(line.reason).toMatch(/uncaught: park failed/);
   });

@@ -383,7 +383,10 @@ export function promptCaps(env: NodeJS.ProcessEnv = process.env): PromptCaps {
   return {
     readChars: envInt(env.HOLOSCRIPT_AGENT_READ_CAP_CHARS, edge ? 12_000 : 200_000),
     responseChars: envInt(env.HOLOSCRIPT_AGENT_RESPONSE_CAP_CHARS, edge ? 8_000 : 200_000),
-    stdoutChars: envInt(env.HOLOSCRIPT_AGENT_STDOUT_CAP_CHARS, edge ? 8_000 : Number.POSITIVE_INFINITY),
+    stdoutChars: envInt(
+      env.HOLOSCRIPT_AGENT_STDOUT_CAP_CHARS,
+      edge ? 8_000 : Number.POSITIVE_INFINITY
+    ),
   };
 }
 
