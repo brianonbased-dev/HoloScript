@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { resolveGitHubToken } from './github-identity.js';
-import { getDb } from '../db/client.js';
 import {
   FallbackRateCounterStore,
   MemoryRateCounterStore,
@@ -75,8 +74,15 @@ const memoryCounters = new MemoryRateCounterStore();
 const cleanupTimer = setInterval(() => memoryCounters.sweep(RATE_LIMIT_WINDOW_MS, Date.now()), CLEANUP_INTERVAL_MS);
 cleanupTimer.unref(); // Don't block process exit
 
-function buildRateLimiter(): RateLimiter {
-  const db = getDb();
+// The DB client is imported lazily so modules that import auth.ts (mcp-handler,
+// transport auth, tests) do not pull the schema package at load time.
+async function buildRateLimiter(): Promise<RateLimiter> {
+  let db: ReturnType<typeof import('../db/client.js').getDb> = null;
+  try {
+    db = (await import('../db/client.js')).getDb();
+  } catch (e) {
+    console.warn('[auth] DB client unavailable, rate limits counted in memory:', (e as Error)?.message);
+  }
   if (!db) return new RateLimiter(memoryCounters, RATE_LIMIT_WINDOW_MS);
   const query: SqlQuery = async (text, params) => db.$client.query(text, params as unknown[]);
   return new RateLimiter(
@@ -87,15 +93,15 @@ function buildRateLimiter(): RateLimiter {
   );
 }
 
-let rateLimiter: RateLimiter | null = null;
-function getRateLimiter(): RateLimiter {
+let rateLimiter: Promise<RateLimiter> | null = null;
+function getRateLimiter(): Promise<RateLimiter> {
   if (!rateLimiter) rateLimiter = buildRateLimiter();
   return rateLimiter;
 }
 
 /** Test hook. */
 export function __setRateLimiterForTests(limiter: RateLimiter | null): void {
-  rateLimiter = limiter;
+  rateLimiter = limiter ? Promise.resolve(limiter) : null;
 }
 
 /**
@@ -217,7 +223,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
         authReq.tier = tier;
 
         if (tier === 'free') {
-          const { limited, remaining } = await getRateLimiter().check(
+          const { limited, remaining } = await (await getRateLimiter()).check(
             rateLimitInputs(authReq, identity.userId, FREE_USER_SCAN_LIMIT),
           );
           if (limited) {
