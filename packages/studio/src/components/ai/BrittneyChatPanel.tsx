@@ -21,6 +21,7 @@ import {
   Pencil,
   Archive,
 } from 'lucide-react';
+import { useCreateModeStore } from '@/components/create/createModeStore';
 import type { ConversationSummary } from '@/lib/brittney/conversationsClient';
 import {
   streamAssistant,
@@ -485,6 +486,17 @@ export function BrittneyChatPanel() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
   const [loadedThreadKey, setLoadedThreadKey] = useState<string | null>(null);
   const [input, setInput] = useState('');
+  // P1-1: the landing-page prompt (home -> /create) is handed to this chat.
+  // Prefill only (never auto-send), and only once the user can actually send:
+  // a signed-out user sees the sign-in CTA instead of the textarea, so the
+  // prompt stays in the store until they are signed in.
+  const landingPrompt = useCreateModeStore((s) => s.landingPrompt);
+  const clearLandingPrompt = useCreateModeStore((s) => s.clearLandingPrompt);
+  useEffect(() => {
+    if (!landingPrompt || isUnauthenticated) return;
+    setInput(landingPrompt);
+    clearLandingPrompt();
+  }, [landingPrompt, isUnauthenticated, clearLandingPrompt]);
   const [isThinking, setIsThinking] = useState(false);
   const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
