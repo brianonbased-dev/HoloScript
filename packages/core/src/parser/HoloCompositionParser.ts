@@ -3987,7 +3987,7 @@ export class HoloCompositionParser {
     const length = this.traitNameLength(this.pos);
     if (length === 0) {
       this.reportMissingTraitName();
-      // `@""` names nothing either; consume the empty string, it is the name slot.
+      // `@""` or `@"@"` names nothing either; consume the string, it is the name slot.
       if (this.check('STRING')) this.advance();
       return '';
     }
@@ -3999,7 +3999,7 @@ export class HoloCompositionParser {
 
   /**
    * How many tokens, starting at `index`, form a trait name after '@': 0 when none does.
-   * A name is a non-blank quoted string, a digit-leading name (NUMBER, plus the IDENTIFIER
+   * A name is a quoted trait word (letters, digits, `_`), a digit-leading name (NUMBER, plus the IDENTIFIER
    * the lexer split off: 2 + d_canvas), an identifier, or any keyword (keywords lex to their
    * own token types but are still words: @state, @world, @light). Punctuation, NEWLINE, EOF
    * and another '@' are not names.
@@ -4009,7 +4009,9 @@ export class HoloCompositionParser {
     if (!token) return 0;
     switch (token.type) {
       case 'STRING':
-        return token.value.trim() === '' ? 0 : 1;
+        // Quoted, the name must still be a trait word (@"2d_canvas"): @"@", @"}" or @"a b"
+        // used to become traits named "@", "}" and "a b".
+        return /^[A-Za-z0-9_]+$/.test(token.value) ? 1 : 0;
       case 'NUMBER':
         if (!/^\d/.test(token.value)) return 0;
         return this.tokens[index + 1]?.type === 'IDENTIFIER' ? 2 : 1;
@@ -8656,7 +8658,30 @@ export function parseHoloStrict(source: string): HoloComposition {
   if (!result.success || !result.ast) {
     throw new Error(`Failed to parse: ${result.errors[0]?.message}`);
   }
+  // HS1001 (packages/core/strict/ERROR_CONTRACT.md): nothing but whitespace and comments is
+  // refused, not returned as an empty composition. Tokenize only when the AST holds nothing.
+  if (isEmptyComposition(result.ast) && tokenizeHoloSource(source).every(isBlankToken)) {
+    throw new Error(
+      'Failed to parse: Source is empty (HS1001): nothing but whitespace and comments.'
+    );
+  }
   return result.ast;
+}
+
+/** True when every content field of the composition is empty (only its name and kind are set). */
+function isEmptyComposition(ast: HoloComposition): boolean {
+  return Object.entries(ast).every(
+    ([key, value]) =>
+      key === 'type' ||
+      key === 'name' ||
+      key === 'loc' ||
+      value === undefined ||
+      (Array.isArray(value) && value.length === 0)
+  );
+}
+
+function isBlankToken(token: HoloSourceToken): boolean {
+  return token.type === 'NEWLINE' || token.type === 'EOF';
 }
 
 /**

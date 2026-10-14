@@ -1718,4 +1718,44 @@ describe('Trait marker with no name (HS1005)', () => {
       expect(values.ast?.objects[0].properties[0].value).toEqual(['@grabbable', '@glowing']);
     });
   });
+  // @holoscript/core@8.9.0's parseHoloStrict('{{{@@@') returned a composition holding traits
+  // named "@" and "" with no error. Strict must refuse garbage and empty input, and neither mode
+  // may build a trait whose name is not a word: a quoted name counts only when it is one.
+  describe('garbage never yields a trait named "" or "@"', () => {
+    const WORD = /^[A-Za-z0-9_]+$/;
+    const expectOnlyWordNames = (source: string) => {
+      for (const result of [parseHolo(source), parseHolo(source, { tolerant: false })]) {
+        for (const name of traitNames(result.ast)) expect(name).toMatch(WORD);
+      }
+    };
+
+    it.each(['{{{@@@', '@', '@ ', ''])('strict refuses %j', (source) => {
+      expect(() => parseHoloStrict(source)).toThrow();
+      expectOnlyWordNames(source);
+    });
+
+    it.each(['  \n\t', '// nothing\n/* here */\n'])(
+      'strict refuses %j: only whitespace and comments (HS1001)',
+      (source) => {
+        expect(() => parseHoloStrict(source)).toThrow('Source is empty');
+      }
+    );
+
+    it.each([
+      '@"@"',
+      '@"@@"',
+      '@"}',
+      '@" "',
+      '@"a b"',
+      '@"{{"',
+      'object "X" {\n  @"@"\n}',
+      'object "X" @"}" {\n}',
+    ])('a quoted name that is not a trait word is refused: %j', (source) => {
+      const result = parseHolo(source);
+      expect(result.success).toBe(false);
+      expect(result.errors.some((error) => error.code === 'HS1005')).toBe(true);
+      expectOnlyWordNames(source);
+      expect(() => parseHoloStrict(source)).toThrow(MESSAGE);
+    });
+  });
 });
