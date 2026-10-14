@@ -122,6 +122,10 @@ export interface StoredAccessToken {
   expiresAt: number;
   agentId?: string;
   dpopThumbprint?: string;
+  /** Human who consented in a signed-in Studio session (Muse Gap 9). Absent: no human. */
+  userId?: string;
+  /** The consent grant this token belongs to. */
+  grantId?: string;
 }
 
 export interface StoredRefreshToken {
@@ -140,6 +144,9 @@ export interface StoredRefreshToken {
    * recover the identity from here instead of dropping it.
    */
   agentId?: string;
+  /** Carried across rotations, like agentId (Muse Gap 9). */
+  userId?: string;
+  grantId?: string;
 }
 
 export interface StoredAuthorizationCode {
@@ -193,6 +200,45 @@ export interface StoredClient {
    * earlier.
    */
   lastUsedAt?: number;
+  /**
+   * Review state (Muse Gap 9). Absent means 'approved'. Registration is open
+   * by design and starts approved; an operator can suspend a client (tokens
+   * deleted, record kept) and approve it again. Only an approved client may
+   * authorize, get tokens, or have a token introspect active.
+   */
+  status?: OAuthClientStatus;
+  /**
+   * Registered through open RFC 7591 registration (Muse Gap 9). Such a client
+   * gets the public social scopes on its own; every other scope needs a
+   * human's consent from a signed-in Studio session (see consentFreeScopes).
+   * Absent/false = pre-provisioned, or stored before this field existed:
+   * existing clients keep today's behaviour (Postgres column defaults FALSE).
+   */
+  selfRegistered?: boolean;
+}
+
+export type OAuthClientStatus = 'approved' | 'suspended';
+
+/** Absent status is legacy and counts as approved (see StoredClient.status). */
+export function clientIsApproved(client: { status?: OAuthClientStatus } | undefined): boolean {
+  return !!client && (client.status === undefined || client.status === 'approved');
+}
+
+/** Thrown when a known client is not approved; mapped to OAuth `unauthorized_client`. */
+export class ClientNotApprovedError extends Error {
+  readonly code = 'unauthorized_client';
+  constructor(
+    readonly clientId: string,
+    readonly status: OAuthClientStatus,
+    message?: string
+  ) {
+    super(message ?? `client ${String(clientId).slice(0, 12)}... is suspended`);
+    this.name = 'ClientNotApprovedError';
+  }
+}
+
+export function isClientNotApprovedError(err: unknown): err is ClientNotApprovedError {
+  return err instanceof Error && (err as { code?: string }).code === 'unauthorized_client';
 }
 
 /**
@@ -457,7 +503,8 @@ export class InMemoryTokenStore implements TokenStoreBackend {
       // An unproven mark is never cleared by a rewrite (zkdg).
       ...(stored?.registeredUnproven || client.registeredUnproven
         ? { registeredUnproven: true }
-        : {}),
+        : {}), // A write that names no status keeps the stored one (never un-suspends).
+      ...((client.status ?? stored?.status) ? { status: client.status ?? stored?.status } : {}),
     });
   }
 
@@ -828,6 +875,9 @@ export class TokenStore {
     agentId?: string;
     /** The registration proved nothing (see StoredClient.registeredUnproven). */
     registeredUnproven?: boolean;
+    /** Review state; omitted means legacy-approved (see StoredClient.status). */
+    status?: OAuthClientStatus;
+    selfRegistered?: boolean;
   }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     const maxClients = params.maxClients || DEFAULT_MAX_CLIENTS;
     const now = Date.now();
@@ -882,6 +932,8 @@ export class TokenStore {
         lastUsedAt: now,
         ...(params.agentId ? { agentId: params.agentId } : {}),
         ...(params.registeredUnproven ? { registeredUnproven: true } : {}),
+        ...(params.status ? { status: params.status } : {}),
+        ...(params.selfRegistered ? { selfRegistered: true } : {}),
       });
     } catch (err) {
       // Any clients retired above are already gone. Say which, so the caller
@@ -948,6 +1000,29 @@ export class TokenStore {
 
   async getClient(clientId: string): Promise<StoredClient | undefined> {
     return this.backend.getClient(clientId);
+  }
+
+  /**
+   * Move a client to a review state (Muse Gap 9). Suspending deletes every
+   * access and refresh token the client holds but keeps the client record, so
+   * the decision is reversible and auditable (unlike revokeClient). Approving
+   * issues nothing: the client has to sign in again. Resolves false when the
+   * store holds no such client.
+   */
+  async setClientStatus(
+    clientId: string,
+    status: OAuthClientStatus
+  ): Promise<{ found: boolean; accessTokensDeleted: number; refreshTokensDeleted: number }> {
+    const client = await this.backend.getClient(clientId);
+    if (!client) return { found: false, accessTokensDeleted: 0, refreshTokensDeleted: 0 };
+    await this.backend.setClient({ ...client, status });
+    let accessTokensDeleted = 0;
+    let refreshTokensDeleted = 0;
+    if (status !== 'approved') {
+      accessTokensDeleted = await this.backend.deleteAccessTokensByClient(clientId);
+      refreshTokensDeleted = await this.backend.deleteRefreshTokensByClient(clientId);
+    }
+    return { found: true, accessTokensDeleted, refreshTokensDeleted };
   }
 
   async revokeClient(clientId: string): Promise<boolean> {
