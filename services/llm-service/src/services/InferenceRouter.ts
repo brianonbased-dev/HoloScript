@@ -712,20 +712,25 @@ export class InferenceRouter {
     // provider. No fallthrough to paid on local failure.
     if (request.runtimePolicy === 'local-only') {
       const locals = localProviderNames();
-      for (const provider of this.providers) {
-        if (!isProviderAllowed(provider.name, 'local-only', locals)) continue;
-        if (await provider.isAvailable()) {
-          logger.info(`[InferenceRouter] lane=${lane} local-only → ${provider.name}`);
-          yield* provider.stream(request);
-          return;
-        }
-      }
-      // Computed, not assumed: we only reach here when no local provider is up.
+      // can_run_local reflects whether an owned local provider is actually up.
+      // If one is up but fails to serve this job (throws before producing any
+      // output), we still refuse paid fallthrough, with can_run_local: true.
       let canRunLocal = false;
       for (const provider of this.providers) {
-        if (isProviderAllowed(provider.name, 'local-only', locals) && (await provider.isAvailable())) {
-          canRunLocal = true;
-          break;
+        if (!isProviderAllowed(provider.name, 'local-only', locals)) continue;
+        if (!(await provider.isAvailable())) continue;
+        canRunLocal = true;
+        logger.info(`[InferenceRouter] lane=${lane} local-only → ${provider.name}`);
+        let produced = false;
+        try {
+          for await (const event of provider.stream(request)) {
+            produced = true;
+            yield event;
+          }
+          return;
+        } catch (error) {
+          if (produced) throw error;
+          logger.warn(`[InferenceRouter] local-only ${provider.name} failed: ${String(error)}`);
         }
       }
       yield {

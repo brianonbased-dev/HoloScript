@@ -116,4 +116,38 @@ describe('InferenceRouter local-only runtime gate (PR-5)', () => {
       delete process.env.LOCAL_OLLAMA_URLS;
     }
   });
+
+  it('can_run_local is true when a local provider is up but fails this job, and paid is still not called', async () => {
+    const fw = fake('fireworks', true);
+    const broken: InferenceProvider = {
+      name: 'ollama',
+      isAvailable: async () => true,
+      // eslint-disable-next-line require-yield
+      stream: async function* (): AsyncGenerator<StreamEvent> {
+        throw new Error('model too large for local metal');
+      },
+    };
+    const r = routerWith([fw.p, broken], fake('kimi', true).p);
+    const ev = await collect(r.chat({ ...base, runtimePolicy: 'local-only' }));
+    expect(ev[0].payload).toMatchObject({
+      error: 'needs_credits_not_enabled',
+      can_run_local: true,
+    });
+    expect(fw.stream).not.toHaveBeenCalled();
+  });
+
+  it('falls through to a second local endpoint when the first local one fails', async () => {
+    const broken: InferenceProvider = {
+      name: 'ollama',
+      isAvailable: async () => true,
+      // eslint-disable-next-line require-yield
+      stream: async function* (): AsyncGenerator<StreamEvent> {
+        throw new Error('down');
+      },
+    };
+    const ok = fake('ollama', true);
+    const r = routerWith([broken, ok.p], fake('kimi', true).p);
+    const ev = await collect(r.chat({ ...base, runtimePolicy: 'local-only' }));
+    expect(ev[0]).toEqual({ type: 'text', payload: 'from ollama' });
+  });
 });
