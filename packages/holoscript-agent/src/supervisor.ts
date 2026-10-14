@@ -1,5 +1,7 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { TaskDenylist } from './handoff.js';
+import { HandoffReceiptLog } from './handoff-receipts.js';
 import type { ILLMProvider } from '@holoscript/llm-provider';
 import { AgentRunner } from './runner.js';
 import { makeIdleAccrual } from './idle-accrual.js';
@@ -168,6 +170,17 @@ export class Supervisor {
       auditLog: this.auditLog,
       logger: (ev) => this.log({ agent: effectiveSpec.handle, ...ev }),
       idleAccrual,
+      // Hand-off fix (ii): per-agent disk-backed failure denylist next to its cost state.
+      denylist: new TaskDenylist(
+        join(stateDir, `${effectiveSpec.handle}.task-denylist.json`),
+        (message) => this.log({ agent: effectiveSpec.handle, ev: 'denylist-error', message })
+      ),
+      // Native hand-off receipts, one NDJSON file per agent next to its cost state.
+      handoffReceipts: new HandoffReceiptLog(
+        process.env.HOLOSCRIPT_AGENT_HANDOFF_RECEIPTS ??
+          join(stateDir, `${effectiveSpec.handle}.native-handoff.ndjson`),
+        (message) => this.log({ agent: effectiveSpec.handle, ev: 'handoff-receipt-error', message })
+      ),
     });
     const status: SupervisorAgentStatus = {
       handle: effectiveSpec.handle,

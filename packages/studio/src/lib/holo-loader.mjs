@@ -5,6 +5,22 @@ export default async function holoLoader(source) {
   const callback = this.async();
 
   try {
+    // A .holo artifact emitted as plain JSON data (e.g. holoscript-editor.holo, compiled
+    // from holoscript-editor.hs by compile_to_code_editor) is config, not a composition.
+    // Export it as data. parseHolo used to silently drop a bare `{` at file level; since
+    // 5a75ac718 (#542) it rejects it, which failed `next build`.
+    if (source.trimStart().startsWith('{')) {
+      let data;
+      try {
+        data = JSON.parse(source);
+      } catch {
+        data = undefined;
+      }
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        return callback(null, `export default ${JSON.stringify(data)};`);
+      }
+    }
+
     const parsed = parseHolo(source);
     if (!parsed.success) {
       return callback(
