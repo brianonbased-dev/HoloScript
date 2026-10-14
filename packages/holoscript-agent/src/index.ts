@@ -23,6 +23,8 @@ import { resolveBearerViaBroker } from './bearer-broker.js';
 import { decideWalletCoherence } from './wallet-coherence.js';
 import { withVaultSecrets, resolveVaultSecret } from './vault-secrets.js';
 import { AgentRunner } from './runner.js';
+import { TaskDenylist, defaultDenylistPath } from './handoff.js';
+import { HandoffReceiptLog, defaultHandoffReceiptPath } from './handoff-receipts.js';
 import { makeIdleAccrual } from './idle-accrual.js';
 import { makeCommitHook } from './commit-hook.js';
 import { runAblation, renderAblationMarkdown } from './ablation.js';
@@ -217,6 +219,16 @@ async function cmdRun(opts: { once: boolean }): Promise<void> {
     auditLog,
     signReceipt,
     idleAccrual,
+    // Hand-off fix (ii): disk-backed so a restart doesn't re-grab tasks this agent
+    // already failed ($HOLOSCRIPT_AGENT_DENYLIST_PATH, else
+    // $HOLOSCRIPT_AGENT_STATE_DIR/task-denylist.json).
+    denylist: new TaskDenylist(defaultDenylistPath(), (message) =>
+      log({ ev: 'denylist-error', message })
+    ),
+    // Native hand-off receipts: append-only NDJSON, one line per handled task.
+    handoffReceipts: new HandoffReceiptLog(defaultHandoffReceiptPath(), (message) =>
+      log({ ev: 'handoff-receipt-error', message })
+    ),
   });
 
   console.log(
@@ -783,6 +795,20 @@ OPTIONAL ENV
   HOLOSCRIPT_AGENT_TICK_MS           daemon tick interval, default 60000
   HOLOSCRIPT_AGENT_STATE_DIR         where to persist cost state (default ~/.holoscript-agent/cost-state)
   HOLOSCRIPT_AGENT_SURFACE           label for handoffs / presence (default = handle)
+  HOLOSCRIPT_AGENT_DENYLIST_PATH     failed-task denylist file (default $HOLOSCRIPT_AGENT_STATE_DIR/task-denylist.json)
+  HOLOSCRIPT_AGENT_FAILURE_COOLDOWN_MS  how long a failed task stays denylisted (default 604800000 = 7d)
+  HOLOSCRIPT_AGENT_CLAIM_PROFILE     edge-small (only edge-small-tagged tasks within 40% of n_ctx) | big-context (only ctx-16k+/laptop-or-fleet/... tasks) | unset = legacy
+  HOLOSCRIPT_AGENT_CLAIM_REQUIRE_TAGS / _EXCLUDE_TAGS / HOLOSCRIPT_AGENT_CAPABILITY_TAGS  comma-list overrides of the profile
+  HOLOSCRIPT_AGENT_CLAIM_BUDGET_FRACTION  claim-time prompt budget as a fraction of n_ctx (profile default 0.4 / 0.6)
+  HOLOSCRIPT_AGENT_HANDOFF_RECEIPTS  native hand-off receipt NDJSON (default $HOLOSCRIPT_AGENT_DATA_DIR or ~/.holoscript-agent + /receipts/native-handoff.ndjson)
+  HOLOSCRIPT_AGENT_CLAIM_CAP         claims held before the agent stops claiming (default 5; 403 claim_cap_exceeded → 15min backoff)
+  HOLOSCRIPT_AGENT_FIT_CHECK         1 force / 0 disable the pre-claim n_ctx fit check (default: on for non-hosted providers)
+  HOLOSCRIPT_AGENT_FIT_LLM_BASE_URL  where GET /props is read for n_ctx (default HOLOSCRIPT_AGENT_LOCAL_LLM_BASE_URL)
+  HOLOSCRIPT_AGENT_NUM_CTX           n_ctx fallback when /props is unreachable
+  HOLOSCRIPT_AGENT_READ_CAP_CHARS    read_file result cap (edge-small default 12000; other profiles 200000)
+  HOLOSCRIPT_AGENT_RESPONSE_CAP_CHARS  http_request result cap (edge-small default 8000; other profiles 200000)
+  HOLOSCRIPT_AGENT_STDOUT_CAP_CHARS  bash result cap, head+tail (edge-small default 8000; other profiles uncapped)
+  HOLOSCRIPT_AGENT_RELEASE_TAG_UPDATE  0 = don't try to add the route tag (ctx-16k+ / laptop-or-fleet) on release
   HOLOMESH_API_BASE                  default https://mcp.holoscript.net/api/holomesh
   HOLOSCRIPT_AGENT_COMMIT_RESPONSES  "1" or "true" → write responses as memos and git-commit them
   HOLOSCRIPT_AGENT_OUTPUT_DIR        memo output dir (rel to working dir, default "agent-out")

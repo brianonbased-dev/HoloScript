@@ -25,6 +25,7 @@
  * "what the LLM can do" contract that audits cleanly.
  */
 
+import { capText, promptCaps } from './handoff.js';
 import { readFile, writeFile, readdir, mkdir, stat } from 'node:fs/promises';
 import { resolve, dirname, delimiter, isAbsolute, sep } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -617,12 +618,9 @@ export async function runTool(
       const denied = checkReadAllowed(path);
       if (denied) return errResult(use.id, denied);
       const text = await readFile(path, 'utf8');
-      // Cap at 200KB to avoid context blowups
-      const truncated =
-        text.length > 200_000
-          ? text.slice(0, 200_000) + `\n…[truncated, full file is ${text.length} bytes]`
-          : text;
-      return okResult(use.id, truncated);
+      // Hand-off fix (v): cap at HOLOSCRIPT_AGENT_READ_CAP_CHARS (default 12k chars,
+      // was 200k) — a 200k read alone is ~57k tokens, 14x a 4096-token edge window.
+      return okResult(use.id, capText(text, promptCaps().readChars, 'head', 'file'));
     }
 
     if (use.name === 'list_dir') {
@@ -651,9 +649,21 @@ export async function runTool(
       const denied = checkBashAllowed(cmd);
       if (denied) return errResult(use.id, denied);
       const result = await runBash(cmd, cwd);
+      // Hand-off fix (v): what reaches the model is capped at HOLOSCRIPT_AGENT_STDOUT_CAP_CHARS
+      // (default 8k, head+tail so the build/test verdict at the end survives). The 1MB
+      // collection cap in runBash still bounds memory.
+      const cap = promptCaps().stdoutChars;
       return result.code === 0
-        ? okResult(use.id, result.stdout)
-        : errResult(use.id, `exit=${result.code}\n${result.stderr || result.stdout}`);
+        ? okResult(use.id, capText(result.stdout, cap, 'head-tail', 'stdout'))
+        : errResult(
+            use.id,
+            capText(
+              `exit=${result.code}\n${result.stderr || result.stdout}`,
+              cap,
+              'head-tail',
+              'output'
+            )
+          );
     }
 
     if (use.name === 'http_request') {
@@ -661,7 +671,8 @@ export async function runTool(
       const denied = checkHttpAllowed(rawUrl);
       if (denied) return errResult(use.id, denied);
       const userHeaders = (use.input.headers ?? {}) as Record<string, string>;
-      const RESPONSE_CAP = 200_000;
+      // Hand-off fix (v): HOLOSCRIPT_AGENT_RESPONSE_CAP_CHARS (default 8k, was 200k).
+      const RESPONSE_CAP = promptCaps().responseChars;
       const TIMEOUT_MS = 30_000;
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
