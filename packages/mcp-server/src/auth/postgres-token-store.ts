@@ -17,6 +17,7 @@
  * ```
  */
 
+import type { OAuthClientStatus } from './token-store';
 import type { Pool } from 'pg';
 import type {
   TokenStoreBackend,
@@ -100,6 +101,18 @@ ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS last_used_at BIGINT NOT NULL
 -- closed; a client that can prove itself registers again and is trusted. Every
 -- insert below passes the value, so the default only ever lands on old rows.
 ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS registered_unproven BOOLEAN NOT NULL DEFAULT TRUE;
+-- Review state (Muse Gap 9): 'approved' or 'suspended'. Existing rows default
+-- to 'approved', so this migration changes nothing for clients that work today.
+ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'approved';
+-- Open self-registration (Muse Gap 9): such clients get public social scopes
+-- only until a human consents. Existing rows default FALSE to keep today's
+-- behaviour; that is a deliberate, flagged choice (see the PR body).
+ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS self_registered BOOLEAN NOT NULL DEFAULT FALSE;
+-- The human (Studio user) and consent grant a token acts for. NULL = no human.
+ALTER TABLE oauth_access_tokens ADD COLUMN IF NOT EXISTS user_id TEXT;
+ALTER TABLE oauth_access_tokens ADD COLUMN IF NOT EXISTS grant_id TEXT;
+ALTER TABLE oauth_refresh_tokens ADD COLUMN IF NOT EXISTS user_id TEXT;
+ALTER TABLE oauth_refresh_tokens ADD COLUMN IF NOT EXISTS grant_id TEXT;
 
 CREATE TABLE IF NOT EXISTS oauth_revoked_chains (
   chain_id   TEXT PRIMARY KEY,
@@ -142,7 +155,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async getAccessToken(token: string): Promise<StoredAccessToken | undefined> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      `SELECT token, client_id, scopes, issued_at, expires_at, agent_id, dpop_thumbprint
+      `SELECT token, client_id, scopes, issued_at, expires_at, agent_id, dpop_thumbprint, user_id, grant_id
        FROM oauth_access_tokens WHERE token = $1 AND expires_at > $2`,
       [token, Date.now()]
     );
@@ -156,18 +169,21 @@ export class PostgresTokenStore implements TokenStoreBackend {
       expiresAt: Number(r.expires_at),
       agentId: r.agent_id ?? undefined,
       dpopThumbprint: r.dpop_thumbprint ?? undefined,
+      ...(r.user_id ? { userId: r.user_id as string } : {}),
+      ...(r.grant_id ? { grantId: r.grant_id as string } : {}),
     };
   }
 
   async setAccessToken(token: StoredAccessToken): Promise<void> {
     await this.ensureSchema();
     await this.pool.query(
-      `INSERT INTO oauth_access_tokens (token, client_id, scopes, issued_at, expires_at, agent_id, dpop_thumbprint)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO oauth_access_tokens (token, client_id, scopes, issued_at, expires_at, agent_id, dpop_thumbprint, user_id, grant_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        ON CONFLICT (token) DO UPDATE SET
          client_id = EXCLUDED.client_id, scopes = EXCLUDED.scopes,
          issued_at = EXCLUDED.issued_at, expires_at = EXCLUDED.expires_at,
-         agent_id = EXCLUDED.agent_id, dpop_thumbprint = EXCLUDED.dpop_thumbprint`,
+         agent_id = EXCLUDED.agent_id, dpop_thumbprint = EXCLUDED.dpop_thumbprint,
+         user_id = EXCLUDED.user_id, grant_id = EXCLUDED.grant_id`,
       [
         token.token,
         token.clientId,
@@ -176,6 +192,8 @@ export class PostgresTokenStore implements TokenStoreBackend {
         token.expiresAt,
         token.agentId ?? null,
         token.dpopThumbprint ?? null,
+        token.userId ?? null,
+        token.grantId ?? null,
       ]
     );
   }
@@ -202,7 +220,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async getRefreshToken(token: string): Promise<StoredRefreshToken | undefined> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      `SELECT token, client_id, scopes, issued_at, expires_at, chain_id, used, agent_id
+      `SELECT token, client_id, scopes, issued_at, expires_at, chain_id, used, agent_id, user_id, grant_id
        FROM oauth_refresh_tokens WHERE token = $1 AND expires_at > $2`,
       [token, Date.now()]
     );
@@ -217,19 +235,21 @@ export class PostgresTokenStore implements TokenStoreBackend {
       chainId: r.chain_id,
       used: r.used,
       ...(r.agent_id ? { agentId: r.agent_id as string } : {}),
+      ...(r.user_id ? { userId: r.user_id as string } : {}),
+      ...(r.grant_id ? { grantId: r.grant_id as string } : {}),
     };
   }
 
   async setRefreshToken(token: StoredRefreshToken): Promise<void> {
     await this.ensureSchema();
     await this.pool.query(
-      `INSERT INTO oauth_refresh_tokens (token, client_id, scopes, issued_at, expires_at, chain_id, used, agent_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO oauth_refresh_tokens (token, client_id, scopes, issued_at, expires_at, chain_id, used, agent_id, user_id, grant_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        ON CONFLICT (token) DO UPDATE SET
          client_id = EXCLUDED.client_id, scopes = EXCLUDED.scopes,
          issued_at = EXCLUDED.issued_at, expires_at = EXCLUDED.expires_at,
          chain_id = EXCLUDED.chain_id, used = EXCLUDED.used,
-         agent_id = EXCLUDED.agent_id`,
+         agent_id = EXCLUDED.agent_id, user_id = EXCLUDED.user_id, grant_id = EXCLUDED.grant_id`,
       [
         token.token,
         token.clientId,
@@ -239,6 +259,8 @@ export class PostgresTokenStore implements TokenStoreBackend {
         token.chainId,
         token.used,
         token.agentId ?? null,
+        token.userId ?? null,
+        token.grantId ?? null,
       ]
     );
   }
@@ -337,7 +359,7 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async getClient(clientId: string): Promise<StoredClient | undefined> {
     await this.ensureSchema();
     const { rows } = await this.pool.query(
-      `SELECT client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at, registered_unproven
+      `SELECT client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at, registered_unproven, status, self_registered
        FROM oauth_clients WHERE client_id = $1`,
       [clientId]
     );
@@ -354,6 +376,8 @@ export class PostgresTokenStore implements TokenStoreBackend {
       rateLimit: r.rate_limit,
       ...(r.agent_id ? { agentId: r.agent_id as string } : {}),
       ...(r.registered_unproven === true ? { registeredUnproven: true } : {}),
+      ...(r.status ? { status: r.status as OAuthClientStatus } : {}),
+      ...(r.self_registered === true ? { selfRegistered: true } : {}),
       lastUsedAt: Number(r.last_used_at),
     };
   }
@@ -361,14 +385,16 @@ export class PostgresTokenStore implements TokenStoreBackend {
   async setClient(client: StoredClient): Promise<void> {
     await this.ensureSchema();
     await this.pool.query(
-      `INSERT INTO oauth_clients (client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at, registered_unproven)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO oauth_clients (client_id, client_secret_hash, client_name, redirect_uris, scopes, created_at, client_type, rate_limit, agent_id, last_used_at, registered_unproven, status, self_registered)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, COALESCE($12::text, 'approved'), $13)
        ON CONFLICT (client_id) DO UPDATE SET
          client_secret_hash = EXCLUDED.client_secret_hash, client_name = EXCLUDED.client_name,
          redirect_uris = EXCLUDED.redirect_uris, scopes = EXCLUDED.scopes,
          created_at = EXCLUDED.created_at, client_type = EXCLUDED.client_type,
          rate_limit = EXCLUDED.rate_limit, agent_id = EXCLUDED.agent_id,
          registered_unproven = oauth_clients.registered_unproven OR EXCLUDED.registered_unproven,
+         -- A write that names no status keeps the stored one (never un-suspends).
+         status = COALESCE($12::text, oauth_clients.status), self_registered = oauth_clients.self_registered OR EXCLUDED.self_registered,
          last_used_at = GREATEST(oauth_clients.last_used_at, EXCLUDED.last_used_at)`,
       [
         client.clientId,
@@ -383,6 +409,8 @@ export class PostgresTokenStore implements TokenStoreBackend {
         // A client handed over without a last use starts its idle clock now.
         client.lastUsedAt ?? Date.now(),
         client.registeredUnproven === true,
+        client.status ?? null,
+        client.selfRegistered === true,
       ]
     );
   }

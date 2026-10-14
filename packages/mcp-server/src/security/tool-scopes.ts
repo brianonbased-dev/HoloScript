@@ -260,14 +260,14 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   absorb_get_project: ['tools:codebase'],
 
   // === HoloMesh (spatial mesh, A2A discovery) ===
-  holomesh_status: ['tools:read'],
-  holomesh_discover: ['tools:read'],
+  holomesh_status: ['tools:read', 'social:read'],
+  holomesh_discover: ['tools:read', 'social:read'],
   holomesh_publish_tool: ['tools:write'],
   holomesh_invoke_tool: ['tools:write'],
   holomesh_gossip: ['tools:write', 'tools:admin'],
   holomesh_contribute: ['tools:write'],
-  holomesh_query: ['tools:read'],
-  holomesh_subscribe: ['tools:read'],
+  holomesh_query: ['tools:read', 'social:read'],
+  holomesh_subscribe: ['tools:read', 'social:read'],
   holomesh_collect: ['tools:write'],
 
   // === HoloMesh Board / Slots / Mode ===
@@ -454,19 +454,19 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // task_1783805494038 names it a flow that must not break. Kept at tools:read (least-privilege that
   // preserves the liveness ping) even though it updates a presence timestamp — a human override of the
   // classifier's semantic write call, per the task's runtime-verify requirement.
-  holomesh_heartbeat: ['tools:read'],
-  holomesh_mark_read: ['tools:write'],
+  holomesh_heartbeat: ['tools:read', 'social:read'],
+  holomesh_mark_read: ['tools:write', 'social:write'],
   holomesh_moltbook_crosspost: ['tools:write'],
   holomesh_publish_agent_template: ['tools:write'],
-  holomesh_publish_insight: ['tools:write'],
-  holomesh_reply: ['tools:write'],
+  holomesh_publish_insight: ['tools:write', 'social:write'],
+  holomesh_reply: ['tools:write', 'social:write'],
   holomesh_scout: ['tools:write'],
-  holomesh_send_message: ['tools:write'],
+  holomesh_send_message: ['tools:write', 'social:write'],
   holomesh_suggest: ['tools:write'],
   holomesh_suggest_vote: ['tools:write'],
   holomesh_team_load_agents: ['tools:write'],
   holomesh_team_run_cycle: ['tools:write'],
-  holomesh_upvote_reply: ['tools:write'],
+  holomesh_upvote_reply: ['tools:write', 'social:write'],
   holoscript_compile_education: ['tools:write'],
   holoscript_compile_healthcare: ['tools:write'],
   holoscript_compile_iot: ['tools:write'],
@@ -544,8 +544,8 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   hololand_twin_earth_substrate_status: ['tools:read'],
   holomesh_agent_capabilities: ['tools:read'],
   holomesh_discussion: ['tools:read'],
-  holomesh_feed_source: ['tools:read'],
-  holomesh_inbox: ['tools:read'],
+  holomesh_feed_source: ['tools:read', 'social:read'],
+  holomesh_inbox: ['tools:read', 'social:read'],
   holomesh_knowledge_read: ['tools:read'],
   holomesh_marketplace_search: ['tools:read'],
   holomesh_notifications: ['tools:read'],
@@ -1005,3 +1005,29 @@ export function getToolsForScope(scope: OAuthScope): string[] {
     .filter(([, scopes]) => scopes.includes(scope))
     .map(([name]) => name);
 }
+
+/**
+ * Public HoloMesh social tools (Muse Gap 9): the only tools the internal
+ * social:read / social:write scopes reach. The OAuth `social` scope expands to
+ * exactly these two (auth/oauth2-provider.ts SCOPE_BRIDGE), and it is all a
+ * self-registered client gets with no human's consent. Acting as the agent
+ * itself on the public network: status/discovery/feed/inbox reads, replies,
+ * direct messages, upvotes, read-marks and public insights. Deliberately NOT
+ * here: crossposting to moltbook, wallet, board/team control, publishing
+ * tools, and every human-data tool (credits, workflows, memory, share links).
+ * Pinned by security/__tests__/public-social-scopes.test.ts.
+ */
+export const PUBLIC_SOCIAL_TOOL_SCOPES: Readonly<Record<string, 'social:read' | 'social:write'>> = {
+  holomesh_status: 'social:read',
+  holomesh_discover: 'social:read',
+  holomesh_query: 'social:read',
+  holomesh_subscribe: 'social:read',
+  holomesh_heartbeat: 'social:read',
+  holomesh_feed_source: 'social:read',
+  holomesh_inbox: 'social:read',
+  holomesh_reply: 'social:write',
+  holomesh_send_message: 'social:write',
+  holomesh_upvote_reply: 'social:write',
+  holomesh_mark_read: 'social:write',
+  holomesh_publish_insight: 'social:write',
+};

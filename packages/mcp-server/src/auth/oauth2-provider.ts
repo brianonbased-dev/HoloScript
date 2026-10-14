@@ -41,6 +41,8 @@ import {
   DEFAULT_MAX_CLIENTS,
   DEFAULT_CLIENT_IDLE_RETIREMENT_MS,
   isClientStoreFullError,
+  clientIsApproved,
+  type OAuthClientStatus,
   type TokenStoreTTL,
   type TokenStoreBackend,
   type StoredAccessToken,
@@ -129,6 +131,8 @@ export const OAUTH2_SCOPES = {
   'tools:execute': 'Execute tools that produce output (compile, render, generate, share)',
   'tasks:read': 'Read A2A task state and history',
   'tasks:write': 'Create, send, and cancel A2A tasks',
+  social:
+    'Public HoloMesh social actions as the agent itself: profile/status, discovery, feed and inbox reads, replies, messages, upvotes, insights (no human data)',
   admin: 'Full administrative access to all tools and endpoints',
 } as const;
 
@@ -145,7 +149,35 @@ export const OAUTH2_PUBLIC_SCOPES = {
   'tools:execute': OAUTH2_SCOPES['tools:execute'],
   'tasks:read': OAUTH2_SCOPES['tasks:read'],
   'tasks:write': OAUTH2_SCOPES['tasks:write'],
+  social: OAUTH2_SCOPES.social,
 } as const;
+
+/**
+ * Scopes a self-registered client may hold with no human in the flow (Muse
+ * Gap 9): HoloMesh is a social network for agents, so registering is open and
+ * these work at once. `social` expands to the internal social:read/social:write
+ * scopes, which security/tool-scopes.ts accepts ONLY on the public social tools
+ * listed there (PUBLIC_SOCIAL_TOOL_SCOPES). Everything else (tools:read reaches
+ * workflow_memory_read; tools:execute reaches credits-costing generation,
+ * execute_workflow, holo_memory_store, create_share_link) needs a human's
+ * consent from a signed-in Studio session (security/studio-consent.ts).
+ */
+export const PUBLIC_SOCIAL_SCOPES: readonly string[] = ['social'];
+
+/**
+ * The scopes a token may carry, given who consented. A self-registered client
+ * without a human's consent keeps public social scopes only; with consent, or
+ * for a pre-provisioned client, the request is unchanged (the client's own
+ * scope list was already checked). Every grant passes through this.
+ */
+export function consentFreeScopes(
+  client: { selfRegistered?: boolean } | undefined,
+  scopes: string[],
+  consent: { userId?: string } | undefined
+): string[] {
+  if (!client?.selfRegistered || consent?.userId) return scopes;
+  return scopes.filter((s) => PUBLIC_SOCIAL_SCOPES.includes(s));
+}
 
 export const OAUTH2_PUBLIC_SCOPE_NAMES = Object.keys(OAUTH2_PUBLIC_SCOPES);
 
@@ -179,6 +211,7 @@ export const SCOPE_BRIDGE: Record<string, string[]> = {
   'tools:execute': ['tools:write', 'tools:codebase', 'tools:browser'],
   'tasks:read': ['a2a:tasks', 'scenes:read'],
   'tasks:write': ['a2a:tasks', 'scenes:write'],
+  social: ['social:read', 'social:write'],
   admin: ['admin:*', 'tools:admin'],
 };
 
@@ -342,6 +375,8 @@ export async function registerClientDurably(
         rateLimit?: number;
         agentId?: string;
         registeredUnproven?: boolean;
+        status?: OAuthClientStatus;
+        selfRegistered?: boolean;
       }): { clientId: string; clientSecret: string };
       revokeClient(clientId: string): boolean;
     };
@@ -355,6 +390,9 @@ export async function registerClientDurably(
     rateLimit: number;
     agentId?: string;
     registeredUnproven?: boolean;
+    /** Review state (Muse Gap 9); omitted = approved. */
+    status?: OAuthClientStatus;
+    selfRegistered?: boolean;
   },
   observe: { metrics: RegistrationMetrics; logError?: (line: string) => void }
 ): Promise<DurableRegistrationOutcome> {
@@ -478,6 +516,8 @@ export async function prepareClientForUse(
         rateLimit: number;
         agentId?: string;
         registeredUnproven?: boolean;
+        status?: OAuthClientStatus;
+        selfRegistered?: boolean;
       }): void;
       revokeClient(clientId: string): boolean;
     };
@@ -535,6 +575,11 @@ export async function prepareClientForUse(
           // Same for an unproven registration: dropped here, a redeploy would
           // hand the client the full tools:execute it was never meant to hold.
           ...(durable.registeredUnproven ? { registeredUnproven: true } : {}),
+          // And the review state and origin (Muse Gap 9): a redeploy must not
+          // turn a suspended client back into a working one, or a
+          // self-registered one into a pre-provisioned one.
+          ...(durable.status ? { status: durable.status } : {}),
+          ...(durable.selfRegistered ? { selfRegistered: true } : {}),
         });
       }
     } catch (err) {
@@ -556,6 +601,8 @@ export interface TokenIntrospectionResult {
   agentId?: string;
   expiresAt?: number;
   issuedAt?: number;
+  userId?: string;
+  grantId?: string;
 }
 
 // ── Token Response ───────────────────────────────────────────────────────────
@@ -600,6 +647,8 @@ export class OAuth2Provider {
     agentId?: string;
     /** The registration proved nothing; see StoredClient.registeredUnproven. */
     registeredUnproven?: boolean;
+    status?: OAuthClientStatus;
+    selfRegistered?: boolean;
   }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     return this.store.registerClient({
       ...params,
@@ -619,6 +668,11 @@ export class OAuth2Provider {
 
   async revokeClient(clientId: string): Promise<boolean> {
     return this.store.revokeClient(clientId);
+  }
+
+  /** Review state change; suspending deletes the client's tokens. See TokenStore.setClientStatus. */
+  async setClientStatus(clientId: string, status: OAuthClientStatus) {
+    return this.store.setClientStatus(clientId, status);
   }
 
   /**
@@ -1250,6 +1304,14 @@ export class OAuth2Provider {
     if (!stored || stored.expiresAt < Date.now()) {
       return { active: false };
     }
+    // Muse Gap 9: a token whose client is pending or suspended is not active,
+    // even before suspension has deleted it. A token with no client row keeps
+    // its old behaviour (some first-party paths mint tokens for ids that are
+    // not registered clients).
+    const client = await this.store.getClient(stored.clientId);
+    if (client && !clientIsApproved(client)) {
+      return { active: false };
+    }
 
     return {
       active: true,
@@ -1258,6 +1320,8 @@ export class OAuth2Provider {
       agentId: stored.agentId,
       expiresAt: stored.expiresAt,
       issuedAt: stored.issuedAt,
+      ...(stored.userId ? { userId: stored.userId } : {}),
+      ...(stored.grantId ? { grantId: stored.grantId } : {}),
     };
   }
 
