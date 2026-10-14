@@ -259,6 +259,9 @@ function mockMesh(tasks: BoardTask[]) {
     getOpenTasks: vi.fn(async () => tasks),
     claim: vi.fn(async (id: string) => tasks.find((t) => t.id === id)!),
     blockTask: vi.fn(async () => undefined),
+    // Hand-off fix (i): non-automation failures release (reason + reopen) instead.
+    releaseTask: vi.fn(async () => ({ messaged: true })),
+    updateTask: vi.fn(async () => ({})),
     sendMessageOnTask: vi.fn(async () => undefined),
     markDone: vi.fn(async () => undefined),
     postAuditRecords: vi.fn(async () => ({ appended: 1, rejected: 0 })),
@@ -456,7 +459,11 @@ describe('AgentRunner automation lane (board-compass Phase 3)', () => {
     expect(failure?.kind).toBe('execution-error');
   });
 
-  it('a capability-lane execution error still propagates unchanged (loud-failure wrap is automation-only)', async () => {
+  // Hand-off fix (iii, 2026-10-07): a capability-lane execution error no longer
+  // propagates to runForever's generic tick-error catch (which left the task claimed
+  // until the 24h reaper). It is RELEASED with a reason (not blocked — block stays
+  // automation-only so the task returns to the open pool for another worker).
+  it('a capability-lane execution error is released with a reason (block stays automation-only)', async () => {
     const capabilityTask: BoardTask = {
       id: 'task_edge_err',
       title: 'jetson edge-inference calibration memo',
@@ -471,7 +478,12 @@ describe('AgentRunner automation lane (board-compass Phase 3)', () => {
       },
     });
     const { runner, mesh } = makeRunner({ tasks: [capabilityTask], provider });
-    await expect(runner.tick()).rejects.toThrow(/provider exploded/);
+    const result = await runner.tick();
+    expect(result.action).toBe('errored');
+    expect(result.message).toMatch(/exec_error: provider exploded/);
     expect(mesh.blockTask).not.toHaveBeenCalled();
+    expect(mesh.releaseTask).toHaveBeenCalledTimes(1);
+    expect(mesh.releaseTask.mock.calls[0][0]).toBe('task_edge_err');
+    expect(String(mesh.releaseTask.mock.calls[0][1])).toMatch(/route:laptop-or-fleet/);
   });
 });
