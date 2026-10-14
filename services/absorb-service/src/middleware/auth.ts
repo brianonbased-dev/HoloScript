@@ -1,6 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { resolveGitHubToken } from './github-identity.js';
+import { getDb } from '../db/client.js';
+import {
+  FallbackRateCounterStore,
+  MemoryRateCounterStore,
+  PostgresRateCounterStore,
+  RateLimiter,
+  type SqlQuery,
+} from './rateLimiter.js';
 
 export interface AuthenticatedRequest extends Request {
   authenticated?: boolean;
@@ -41,35 +49,37 @@ const PUBLIC_PATHS = ['/health', '/.well-known/mcp', '/.well-known/mcp.json'];
 // POST /api/absorb/scan (3/hr per IP, keyed on the client-supplied first
 // X-Forwarded-For entry, so trivially reset). That route scans `path` on the
 // SERVICE's own disk, so the tier let any stranger map the server's filesystem.
-const userRateLimitMap = new Map<string, { count: number; windowStart: number }>();
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const FREE_USER_SCAN_LIMIT = 10;
 const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
-// Periodically clean expired rate limit entries to prevent memory leak
-const cleanupTimer = setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of userRateLimitMap) {
-    if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-      userRateLimitMap.delete(key);
-    }
-  }
-}, CLEANUP_INTERVAL_MS);
+// Durable (Postgres) counters when DATABASE_URL is set, so limits survive
+// deploys and are shared by replicas; memory otherwise (see rateLimiter.ts).
+const memoryCounters = new MemoryRateCounterStore();
+const cleanupTimer = setInterval(() => memoryCounters.sweep(RATE_LIMIT_WINDOW_MS, Date.now()), CLEANUP_INTERVAL_MS);
 cleanupTimer.unref(); // Don't block process exit
 
-function checkRateLimit(
-  map: Map<string, { count: number; windowStart: number }>,
-  key: string,
-  limit: number,
-): { limited: boolean; remaining: number } {
-  const now = Date.now();
-  const entry = map.get(key);
-  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
-    map.set(key, { count: 1, windowStart: now });
-    return { limited: false, remaining: limit - 1 };
-  }
-  entry.count++;
-  return { limited: entry.count > limit, remaining: Math.max(0, limit - entry.count) };
+function buildRateLimiter(): RateLimiter {
+  const db = getDb();
+  if (!db) return new RateLimiter(memoryCounters, RATE_LIMIT_WINDOW_MS);
+  const query: SqlQuery = async (text, params) => db.$client.query(text, params as unknown[]);
+  return new RateLimiter(
+    new FallbackRateCounterStore(new PostgresRateCounterStore(query), memoryCounters, (e) =>
+      console.warn('[auth] durable rate counter unavailable, counting in memory:', (e as Error)?.message),
+    ),
+    RATE_LIMIT_WINDOW_MS,
+  );
+}
+
+let rateLimiter: RateLimiter | null = null;
+function getRateLimiter(): RateLimiter {
+  if (!rateLimiter) rateLimiter = buildRateLimiter();
+  return rateLimiter;
+}
+
+/** Test hook. */
+export function __setRateLimiterForTests(limiter: RateLimiter | null): void {
+  rateLimiter = limiter;
 }
 
 /**
@@ -191,7 +201,10 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
         authReq.tier = tier;
 
         if (tier === 'free') {
-          const { limited, remaining } = checkRateLimit(userRateLimitMap, identity.userId, FREE_USER_SCAN_LIMIT);
+          const { limited, remaining } = await getRateLimiter().check({
+            userId: identity.userId,
+            userLimit: FREE_USER_SCAN_LIMIT,
+          });
           if (limited) {
             res.status(429).json({
               error: 'Rate limit exceeded',
