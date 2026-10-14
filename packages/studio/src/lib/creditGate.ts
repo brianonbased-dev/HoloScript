@@ -21,6 +21,12 @@ import { getSession } from './api-auth';
 import { ENDPOINTS, getAbsorbKey, getMcpApiKey } from '@holoscript/config';
 import { ALLOWED_ABSORB_HOSTS, validateAbsorbBaseUrl } from './absorb-host-validator';
 import { adminGithubUsernames } from './inviteAllowlist';
+import {
+  benchmarkKeyMatches,
+  resolveStudioUser,
+  type IdentityDeps,
+  type ResolvedStudioUser,
+} from './creditGateIdentity';
 
 // Re-export the validator surface for any caller that already imports it
 // from this module (the implementation lives in ./absorb-host-validator so
@@ -79,45 +85,12 @@ export interface CreditGateFailure {
 
 export type CreditGateResult = CreditGateSuccess | CreditGateFailure;
 
-/**
- * Resolve user identity. Tries NextAuth session first, falls back to
- * x-user-id header (for API/CLI clients), then to the absorb API key
- * as an admin identity.
- */
-async function resolveUser(
-  request: Request
-): Promise<{ id: string | null; githubUsername: string }> {
-  // 1. Benchmark bypass — if BRITTNEY_BENCHMARK_KEY is configured and the
-  // request carries a matching x-benchmark-key header, treat as benchmark user.
-  if (process.env.BRITTNEY_BENCHMARK_KEY) {
-    const benchKey = request.headers.get('x-benchmark-key');
-    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
-      return { id: 'benchmark', githubUsername: '' };
-    }
-  }
-
-  // 2. NextAuth session (browser users)
-  try {
-    const session = await getSession();
-    if (session?.user?.id) {
-      const ghUser = ((session.user as Record<string, unknown>).githubUsername as string) || '';
-      return { id: session.user.id, githubUsername: ghUser };
-    }
-  } catch {
-    // NextAuth not configured — fall through
-  }
-
-  // 3. Explicit header (API/CLI clients)
-  const headerUserId = request.headers.get('x-user-id');
-  if (headerUserId) return { id: headerUserId, githubUsername: '' };
-
-  // 4. Authorization bearer token as user identity
-  const auth = request.headers.get('authorization');
-  if (auth?.startsWith('Bearer ')) {
-    return { id: `apikey:${auth.slice(7, 20)}`, githubUsername: '' };
-  }
-
-  return { id: null, githubUsername: '' };
+/** Resolve user identity from verified sources only (see creditGateIdentity.ts). */
+async function resolveUser(request: Request): Promise<ResolvedStudioUser> {
+  return resolveStudioUser(request, {
+    getSession: getSession as IdentityDeps['getSession'],
+    benchmarkKey: process.env.BRITTNEY_BENCHMARK_KEY,
+  });
 }
 
 /**
@@ -148,11 +121,8 @@ export async function checkCredits(
   // request carries a matching x-benchmark-key header, skip credit checks.
   // This lets the benchmark harness run against production without consuming
   // real credits or depending on the absorb service. Strictly opt-in.
-  if (process.env.BRITTNEY_BENCHMARK_KEY) {
-    const benchKey = request.headers.get('x-benchmark-key');
-    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
-      return { userId: userId || 'benchmark', error: null };
-    }
+  if (benchmarkKeyMatches(request, process.env.BRITTNEY_BENCHMARK_KEY)) {
+    return { userId: userId || 'benchmark', error: null };
   }
 
   // Admin bypass — founders/admins skip credit checks
@@ -166,7 +136,7 @@ export async function checkCredits(
       error: NextResponse.json(
         {
           error: 'Authentication required',
-          hint: 'Sign in or provide x-user-id header',
+          hint: 'Sign in, or connect your agent through an OAuth grant',
         },
         { status: 401 }
       ),
