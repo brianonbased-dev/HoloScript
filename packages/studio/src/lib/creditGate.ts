@@ -79,6 +79,14 @@ export interface CreditGateFailure {
 
 export type CreditGateResult = CreditGateSuccess | CreditGateFailure;
 
+// Folded from #558: length-checked constant-time compare for the (non-prod) benchmark key.
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 // Shared with api-auth's benchmark gate; re-exported for existing callers.
 import { bypassesDisabled } from './prodBypass';
 export { bypassesDisabled };
@@ -139,7 +147,7 @@ export async function checkCredits(
   // real credits or depending on the absorb service. Strictly opt-in.
   if (!prod && process.env.BRITTNEY_BENCHMARK_KEY) {
     const benchKey = request.headers.get('x-benchmark-key');
-    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
+    if (benchKey !== null && constantTimeEqual(benchKey, process.env.BRITTNEY_BENCHMARK_KEY)) {
       return { userId: userId || 'benchmark', error: null };
     }
   }
