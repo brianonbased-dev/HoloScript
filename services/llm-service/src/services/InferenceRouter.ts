@@ -27,6 +27,7 @@
  * unchanged. All `LLMStreamChunk` usage is INTERNAL, behind the shim.
  */
 
+import { buildPaymentRequiredBody } from './paymentRequired.js';
 import {
   OpenAICompatibleAdapter,
   VastServerlessAdapter,
@@ -83,19 +84,35 @@ export interface ChatRequest {
 
 export type RuntimePolicy = 'any' | 'local-only';
 
-/** Providers that run on owned local metal. Everything else is paid or rented. */
-export const LOCAL_PROVIDER_NAMES: ReadonlySet<string> = new Set(['ollama']);
+/**
+ * Providers that run on owned local metal (Jetson, laptops). Everything else is
+ * paid or rented. Configurable via BRITTNEY_LOCAL_PROVIDERS (comma list of
+ * provider names); default 'ollama'. Extra owned endpoints (Jetson, laptops)
+ * are served as 'ollama' providers via LOCAL_OLLAMA_URLS.
+ */
+export function localProviderNames(env: NodeJS.ProcessEnv = process.env): ReadonlySet<string> {
+  const raw = (env.BRITTNEY_LOCAL_PROVIDERS || 'ollama')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return new Set(raw.length ? raw : ['ollama']);
+}
 
-export const NEEDS_CREDITS_NOT_ENABLED = {
-  code: 'needs_credits_not_enabled',
-  message:
-    "This job needs paid or rented compute, which isn't enabled for this access. Only local runtimes are allowed.",
-  can_run_local: false,
-} as const;
+/** Owned Ollama-compatible endpoints beyond OLLAMA_URL (comma list). */
+export function localOllamaUrls(env: NodeJS.ProcessEnv = process.env): string[] {
+  return (env.LOCAL_OLLAMA_URLS || '')
+    .split(',')
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+}
 
-export function isProviderAllowed(name: string, policy: RuntimePolicy | undefined): boolean {
+export function isProviderAllowed(
+  name: string,
+  policy: RuntimePolicy | undefined,
+  locals: ReadonlySet<string> = localProviderNames()
+): boolean {
   if (!policy || policy === 'any') return true;
-  return LOCAL_PROVIDER_NAMES.has(name);
+  return locals.has(name);
 }
 
 export interface ToolDefinition {
@@ -468,8 +485,8 @@ class OllamaLocalProvider implements InferenceProvider {
   private url: string;
   private model: string;
 
-  constructor() {
-    this.url = process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
+  constructor(url?: string) {
+    this.url = url || process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
     this.model = process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL;
   }
 
@@ -677,6 +694,7 @@ export class InferenceRouter {
       new FleetProvider(),
       new TogetherProvider(),
       new OllamaLocalProvider(),
+      ...localOllamaUrls().map((url) => new OllamaLocalProvider(url)),
     ];
   }
 
@@ -693,15 +711,27 @@ export class InferenceRouter {
     // Local-only policy: never touch pro, preferred-paid, or any non-local
     // provider. No fallthrough to paid on local failure.
     if (request.runtimePolicy === 'local-only') {
+      const locals = localProviderNames();
       for (const provider of this.providers) {
-        if (!isProviderAllowed(provider.name, 'local-only')) continue;
+        if (!isProviderAllowed(provider.name, 'local-only', locals)) continue;
         if (await provider.isAvailable()) {
           logger.info(`[InferenceRouter] lane=${lane} local-only → ${provider.name}`);
           yield* provider.stream(request);
           return;
         }
       }
-      yield { type: 'error', payload: { ...NEEDS_CREDITS_NOT_ENABLED } };
+      // Computed, not assumed: we only reach here when no local provider is up.
+      let canRunLocal = false;
+      for (const provider of this.providers) {
+        if (isProviderAllowed(provider.name, 'local-only', locals) && (await provider.isAvailable())) {
+          canRunLocal = true;
+          break;
+        }
+      }
+      yield {
+        type: 'error',
+        payload: buildPaymentRequiredBody({ error: 'needs_credits_not_enabled', canRunLocal }),
+      };
       yield { type: 'done', payload: null };
       return;
     }

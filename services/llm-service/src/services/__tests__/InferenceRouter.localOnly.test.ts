@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   InferenceRouter,
   isProviderAllowed,
-  NEEDS_CREDITS_NOT_ENABLED,
+  localOllamaUrls,
+  localProviderNames,
   type ChatRequest,
   type InferenceProvider,
   type StreamEvent,
@@ -62,7 +63,13 @@ describe('InferenceRouter local-only runtime gate (PR-5)', () => {
     const ollama = fake('ollama', false);
     const r = routerWith([fw.p, fleet.p, ollama.p], fake('kimi', true).p);
     const ev = await collect(r.chat({ ...base, runtimePolicy: 'local-only' }));
-    expect(ev[0]).toEqual({ type: 'error', payload: { ...NEEDS_CREDITS_NOT_ENABLED } });
+    expect(ev[0].type).toBe('error');
+    expect(ev[0].payload).toMatchObject({
+      error: 'needs_credits_not_enabled',
+      unit: 'cents',
+      can_run_local: false,
+      topup_url: expect.any(String),
+    });
     expect(ev[1]).toEqual({ type: 'done', payload: null });
     expect(fw.stream).not.toHaveBeenCalled();
     expect(fleet.stream).not.toHaveBeenCalled();
@@ -76,5 +83,37 @@ describe('InferenceRouter local-only runtime gate (PR-5)', () => {
     const ev = await collect(r.chat(base));
     expect(ev[0]).toEqual({ type: 'text', payload: 'from fireworks' });
     delete process.env.BRITTNEY_PROVIDER;
+  });
+
+  it('local provider set and extra local endpoints are configurable', () => {
+    expect([...localProviderNames({})]).toEqual(['ollama']);
+    expect([...localProviderNames({ BRITTNEY_LOCAL_PROVIDERS: 'ollama, jetson-llm' })]).toEqual([
+      'ollama',
+      'jetson-llm',
+    ]);
+    expect(
+      isProviderAllowed(
+        'jetson-llm',
+        'local-only',
+        localProviderNames({ BRITTNEY_LOCAL_PROVIDERS: 'jetson-llm' })
+      )
+    ).toBe(true);
+    expect(
+      localOllamaUrls({ LOCAL_OLLAMA_URLS: 'http://holojetson.local:11434/, http://laptop:11434' })
+    ).toEqual(['http://holojetson.local:11434', 'http://laptop:11434']);
+    expect(localOllamaUrls({})).toEqual([]);
+  });
+
+  it('LOCAL_OLLAMA_URLS endpoints are served as ollama and so allowed under local-only', () => {
+    process.env.LOCAL_OLLAMA_URLS = 'http://holojetson.local:11434';
+    try {
+      const r = new InferenceRouter();
+      const names = (r as unknown as { providers: InferenceProvider[] }).providers.map(
+        (p) => p.name
+      );
+      expect(names.filter((n) => n === 'ollama')).toHaveLength(2);
+    } finally {
+      delete process.env.LOCAL_OLLAMA_URLS;
+    }
   });
 });
