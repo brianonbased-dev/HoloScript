@@ -2,8 +2,9 @@
  * Durable per-user and per-(user, app) rate limits (external-agent access path, PR-6).
  *
  * Replaces the in-process Map that reset on every deploy and was separate per
- * replica. Counters live in Postgres (`rate_counters`, fixed hourly window,
- * one atomic upsert per hit) when a database is configured, otherwise in memory.
+ * replica. Counters live in Postgres (`rate_counters`, migration 0002, fixed
+ * hourly window, one atomic upsert per hit) when a database is configured,
+ * otherwise in memory.
  *
  * Caps roll up to the human: every hit counts against the user's own key
  * (`u:<userId>`) AND, when the call comes through an app/agent client, against
@@ -42,12 +43,6 @@ export type SqlQuery = (
   params: unknown[]
 ) => Promise<{ rows: Array<Record<string, unknown>> }>;
 
-export const RATE_COUNTERS_DDL = `CREATE TABLE IF NOT EXISTS rate_counters (
-  key text PRIMARY KEY,
-  window_start timestamptz NOT NULL,
-  count integer NOT NULL
-)`;
-
 /** Atomic fixed-window increment: a stale window restarts at 1. */
 export const RATE_COUNTERS_HIT_SQL = `INSERT INTO rate_counters (key, window_start, count)
 VALUES ($1, to_timestamp($2 / 1000.0), 1)
@@ -56,19 +51,16 @@ ON CONFLICT (key) DO UPDATE SET
   window_start = CASE WHEN rate_counters.window_start <= to_timestamp(($2 - $3) / 1000.0) THEN EXCLUDED.window_start ELSE rate_counters.window_start END
 RETURNING count`;
 
+/**
+ * Postgres-backed counters. The `rate_counters` table is created by migration
+ * drizzle/0002_rate_counters.sql (applied by `drizzle-kit migrate` in the
+ * entrypoint), not at runtime. If it is missing the query errors and the
+ * FallbackRateCounterStore counts in memory instead.
+ */
 export class PostgresRateCounterStore implements RateCounterStore {
-  private ready: Promise<void> | null = null;
-
   constructor(private readonly query: SqlQuery) {}
 
   async hit(key: string, windowMs: number, now: number): Promise<number> {
-    if (!this.ready) {
-      this.ready = this.query(RATE_COUNTERS_DDL, []).then(() => undefined);
-      this.ready.catch(() => {
-        this.ready = null;
-      });
-    }
-    await this.ready;
     const { rows } = await this.query(RATE_COUNTERS_HIT_SQL, [key, now, windowMs]);
     return Number(rows[0]?.count ?? 0);
   }

@@ -1,10 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   effectiveAppLimit,
   FallbackRateCounterStore,
   MemoryRateCounterStore,
   PostgresRateCounterStore,
-  RATE_COUNTERS_DDL,
   RATE_COUNTERS_HIT_SQL,
   RateLimiter,
   type RateCounterStore,
@@ -81,15 +83,32 @@ describe('RateLimiter', () => {
 });
 
 describe('PostgresRateCounterStore', () => {
-  it('creates the table once, then issues the atomic upsert with key/now/window', async () => {
-    const query = vi.fn(async (text: string) => ({
-      rows: text === RATE_COUNTERS_HIT_SQL ? [{ count: 7 }] : [],
-    }));
+  it('issues only the atomic upsert (no runtime DDL; table comes from migration 0002)', async () => {
+    const query = vi.fn(async () => ({ rows: [{ count: 7 }] }));
     const store = new PostgresRateCounterStore(query);
-    expect(await store.hit('u:a', HOUR, 5)).toBe(7);
     expect(await store.hit('u:a', HOUR, 6)).toBe(7);
-    expect(query.mock.calls.filter((c) => c[0] === RATE_COUNTERS_DDL)).toHaveLength(1);
-    expect(query).toHaveBeenLastCalledWith(RATE_COUNTERS_HIT_SQL, ['u:a', 6, HOUR]);
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(query).toHaveBeenCalledWith(RATE_COUNTERS_HIT_SQL, ['u:a', 6, HOUR]);
+    expect(query.mock.calls.some((c) => /CREATE TABLE/i.test(String((c as unknown[])[0])))).toBe(
+      false
+    );
+  });
+});
+
+describe('migration 0002_rate_counters', () => {
+  it('exists, is journaled, and matches the columns the upsert uses', () => {
+    const dir = join(dirname(fileURLToPath(import.meta.url)), '../../drizzle');
+    const sqlText = readFileSync(join(dir, '0002_rate_counters.sql'), 'utf8');
+    expect(sqlText).toMatch(/CREATE TABLE "rate_counters"/);
+    for (const col of [
+      '"key" text PRIMARY KEY',
+      '"window_start" timestamp with time zone',
+      '"count" integer',
+    ]) {
+      expect(sqlText).toContain(col);
+    }
+    const journal = JSON.parse(readFileSync(join(dir, 'meta/_journal.json'), 'utf8'));
+    expect(journal.entries.map((e: { tag: string }) => e.tag)).toContain('0002_rate_counters');
   });
 });
 

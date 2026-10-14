@@ -22,6 +22,22 @@ export interface AuthenticatedRequest extends Request {
    * Absorb-service should skip its own credit deduction to prevent double billing.
    */
   orchestratorGated?: boolean;
+  /**
+   * Delegated access grant (an outside agent/app acting for this user).
+   * Set ONLY by server-side token resolution, never from headers or body.
+   * The per-(user, app) rate limit takes its app id and cap from here.
+   */
+  grant?: { clientId: string; hourlyLimit?: number };
+}
+
+/** Rate-limit inputs for a verified caller. App id/cap come from the grant only. */
+export function rateLimitInputs(req: AuthenticatedRequest, userId: string, userLimit: number) {
+  return {
+    userId,
+    userLimit,
+    clientId: req.grant?.clientId,
+    appLimit: req.grant?.hourlyLimit,
+  };
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -201,10 +217,9 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
         authReq.tier = tier;
 
         if (tier === 'free') {
-          const { limited, remaining } = await getRateLimiter().check({
-            userId: identity.userId,
-            userLimit: FREE_USER_SCAN_LIMIT,
-          });
+          const { limited, remaining } = await getRateLimiter().check(
+            rateLimitInputs(authReq, identity.userId, FREE_USER_SCAN_LIMIT),
+          );
           if (limited) {
             res.status(429).json({
               error: 'Rate limit exceeded',

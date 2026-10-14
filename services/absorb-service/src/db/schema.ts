@@ -472,3 +472,15 @@ export const characters = pgTable(
     idx_characters_owner: index('idx_characters_owner').on(t.ownerId)
   })
 );
+
+// =============================================================================
+// RATE COUNTERS (durable per-user / per-(user, app) limits)
+// =============================================================================
+// Fixed hourly windows keyed `u:<userId>` and `ua:<userId>:<clientId>`.
+// Written only by middleware/rateLimiter.ts (atomic upsert). Migration 0002.
+
+export const rateCounters = pgTable('rate_counters', {
+  key: text('key').primaryKey(),
+  windowStart: timestamp('window_start', { mode: 'date', withTimezone: true }).notNull(),
+  count: integer('count').notNull(),
+});
