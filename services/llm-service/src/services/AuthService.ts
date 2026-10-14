@@ -1,3 +1,4 @@
+import type { AccessGrant } from './runtimePolicy.js';
 import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'crypto';
 import { join } from 'path';
 import { v4 as uuid } from 'uuid';
@@ -43,6 +44,12 @@ export interface AuthPrincipal {
   role: Role;
   sessionId?: string;
   apiKeyId?: string;
+  /**
+   * Delegated access grant (outside agent acting for this user). Set ONLY by
+   * server-side token resolution, never from request input. Drives the
+   * runtime policy (see runtimePolicy.ts).
+   */
+  grant?: AccessGrant;
 }
 
 export interface LoginResult {
