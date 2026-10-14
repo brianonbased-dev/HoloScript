@@ -11,12 +11,7 @@
  */
 
 import type { AIAdapter } from './AIAdapter';
-class HoloScriptPlusParser {
-  constructor(_opts?: { strict?: boolean }) {}
-  parse(_code: string): any {
-    return { success: true, errors: [], ast: {} };
-  }
-}
+import { HoloScriptPlusParser } from '@holoscript/core/parser';
 
 import type { HSPlusCompileResult } from '@holoscript/core';
 import { GenerationCache } from './GenerationCache';
@@ -75,6 +70,43 @@ export interface GenerationSession {
 }
 
 // =============================================================================
+// STRICT VALIDATION
+// =============================================================================
+
+/**
+ * Validate HoloScript with the real core parser in strict mode.
+ *
+ * Replaces a stand-in that always returned success:true. Rules:
+ * - empty / whitespace-only output is never valid (the parser accepts an empty
+ *   program, but an empty generation is a failed generation);
+ * - a parser throw is a failure with the thrown message, never a success;
+ * - success requires parser success AND zero errors.
+ */
+export function validateHoloScript(
+  code: string,
+  parser: HoloScriptPlusParser = new HoloScriptPlusParser({ strict: true })
+): HSPlusCompileResult {
+  if (typeof code !== 'string' || code.trim() === '') {
+    return {
+      success: false,
+      errors: [{ message: 'Generated HoloScript is empty', line: 0, column: 0 }],
+      ast: null,
+    } as unknown as HSPlusCompileResult;
+  }
+  try {
+    const r = parser.parse(code) as unknown as HSPlusCompileResult & { errors?: unknown[] };
+    const errors = Array.isArray(r?.errors) ? r.errors : [];
+    return { ...r, errors, success: Boolean(r?.success) && errors.length === 0 } as HSPlusCompileResult;
+  } catch (e) {
+    return {
+      success: false,
+      errors: [{ message: `Parser threw: ${e instanceof Error ? e.message : String(e)}`, line: 0, column: 0 }],
+      ast: null,
+    } as unknown as HSPlusCompileResult;
+  }
+}
+
+// =============================================================================
 // AI-GUIDED GENERATOR
 // =============================================================================
 
@@ -87,10 +119,14 @@ export class HoloScriptGenerator {
   private cacheEnabled: boolean = true;
 
   constructor(enableCache: boolean = true) {
-    this.parser = new HoloScriptPlusParser({ strict: false });
+    this.parser = new HoloScriptPlusParser({ strict: true });
     this.cache = new GenerationCache();
     this.analytics = new GenerationAnalytics();
     this.cacheEnabled = enableCache;
+  }
+
+  private validate(code: string): HSPlusCompileResult {
+    return validateHoloScript(code, this.parser);
   }
 
   /**
@@ -128,7 +164,8 @@ export class HoloScriptGenerator {
     // Try cache first
     if (this.cacheEnabled) {
       const cachedEntry = this.cache.get(prompt, s.adapter.name);
-      if (cachedEntry) {
+      const cachedParse = cachedEntry ? this.validate(cachedEntry.code) : null;
+      if (cachedEntry && cachedParse?.success) {
         // Record cache hit in analytics
         this.analytics.recordMetric({
           promptLength: prompt.length,
@@ -143,7 +180,7 @@ export class HoloScriptGenerator {
           timestamp: new Date(),
         });
 
-        const parseResult = this.parser.parse(cachedEntry.code);
+        const parseResult = cachedParse;
         const generated: GeneratedCode = {
           holoScript: cachedEntry.code,
           aiConfidence: 1.0,
@@ -211,7 +248,7 @@ export class HoloScriptGenerator {
         }
 
         // Parse the generated code
-        const parseResult = this.parser.parse(result.holoScript);
+        const parseResult = this.validate(result.holoScript);
 
         let holoScript = result.holoScript;
         let wasFixed = false;
@@ -226,7 +263,7 @@ export class HoloScriptGenerator {
             parseResult.errors.map((e: any) => e.message)
           );
 
-          const fixedParseResult = this.parser.parse(fixResult.holoScript);
+          const fixedParseResult = this.validate(fixResult.holoScript);
 
           // If fixed version is better, use it
           if (
@@ -236,7 +273,7 @@ export class HoloScriptGenerator {
             holoScript = fixResult.holoScript;
             wasFixed = true;
             // Re-parse with fixed code
-            const reparseResult = this.parser.parse(holoScript);
+            const reparseResult = this.validate(holoScript);
             generated = {
               holoScript,
               aiConfidence: result.confidence ?? 0,
@@ -353,7 +390,7 @@ export class HoloScriptGenerator {
     const optimized = await s.adapter.optimizeHoloScript(code, targetPlatform);
 
     // Parse optimized code
-    const parseResult = this.parser.parse(optimized.holoScript);
+    const parseResult = this.validate(optimized.holoScript);
 
     return {
       holoScript: optimized.holoScript,
@@ -374,7 +411,7 @@ export class HoloScriptGenerator {
     }
 
     // Parse current code to find errors
-    const parseResult = this.parser.parse(code);
+    const parseResult = this.validate(code);
     const errors = parseResult.errors.map((e: any) => e.message);
 
     if (errors.length === 0) {
@@ -394,7 +431,7 @@ export class HoloScriptGenerator {
     const fixed = await s.adapter.fixHoloScript(code, errors);
 
     // Parse fixed code
-    const fixedParseResult = this.parser.parse(fixed.holoScript);
+    const fixedParseResult = this.validate(fixed.holoScript);
 
     return {
       holoScript: fixed.holoScript,
@@ -567,10 +604,10 @@ export async function generateBatch(
 export function validateBatch(
   codes: string[]
 ): Array<{ code: string; valid: boolean; errors: number }> {
-  const parser = new HoloScriptPlusParser({ strict: false });
+  const parser = new HoloScriptPlusParser({ strict: true });
 
   return codes.map((code) => {
-    const result = parser.parse(code);
+    const result = validateHoloScript(code, parser);
     return {
       code,
       valid: result.success,

@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { HoloScriptGenerator, validateBatch } from '../HoloScriptGenerator';
+import { HoloScriptGenerator, validateBatch, validateHoloScript } from '../HoloScriptGenerator';
 import type { AIAdapter } from '../AIAdapter';
 
-function mockAdapter(): AIAdapter {
+const VALID = 'object "Cube" {\n  geometry: "box"\n  color: "red"\n}';
+const GARBAGE = '{{{@@@';
+const UNCLOSED = 'scene { // comment swallows the brace }';
+
+function mockAdapter(code: string = VALID, confidence = 0.9): AIAdapter {
   return {
     id: 'mock-gen',
     name: 'Mock Generator Adapter',
     isReady: () => true,
-    generateHoloScript: vi.fn(async (prompt: string) => ({
-      holoScript: `scene { // ${prompt} }`,
-      confidence: 0.8,
-      objectCount: 1,
-    })),
+    generateHoloScript: vi.fn(async () => ({ holoScript: code, confidence, objectCount: 1 })),
     chat: vi.fn(async () => 'response'),
   };
 }
@@ -26,7 +26,6 @@ describe('HoloScriptGenerator', () => {
   it('createSession returns session object', () => {
     const adapter = mockAdapter();
     const session = gen.createSession(adapter);
-    expect(session).toBeDefined();
     expect(session.sessionId).toContain('session-');
     expect(session.adapter).toBe(adapter);
     expect(session.history).toEqual([]);
@@ -38,85 +37,149 @@ describe('HoloScriptGenerator', () => {
   });
 
   it('getCurrentSession returns latest', () => {
-    gen.createSession(mockAdapter());
-    expect(gen.getCurrentSession()).toBeDefined();
+    const s = gen.createSession(mockAdapter());
+    expect(gen.getCurrentSession()).toBe(s);
   });
 
   it('getCurrentSession undefined before createSession', () => {
     expect(gen.getCurrentSession()).toBeUndefined();
   });
 
-  // --- History ---
-  it('getHistory returns empty initially', () => {
+  // --- History (P2-7: was `length >= 0`, which can never fail) ---
+  it('generate records exactly one history entry, and clearHistory empties it', async () => {
     const session = gen.createSession(mockAdapter());
-    expect(gen.getHistory(session)).toEqual([]);
-  });
-
-  it('clearHistory removes entries', async () => {
-    const adapter = mockAdapter();
-    const session = gen.createSession(adapter);
-    // Generate to add to history
     await gen.generate('test prompt', session);
-    expect(gen.getHistory(session).length).toBeGreaterThanOrEqual(0);
+    const history = gen.getHistory(session);
+    expect(history).toHaveLength(1);
+    expect(history[0]!.prompt).toBe('test prompt');
+    expect(history[0]!.generated.holoScript).toBe(VALID);
     gen.clearHistory(session);
     expect(gen.getHistory(session)).toEqual([]);
   });
 
-  // --- Stats ---
-  it('getStats returns stats object', () => {
+  // --- Stats / cache / analytics ---
+  it('getStats counts real parse successes', async () => {
     const session = gen.createSession(mockAdapter());
-    const stats = gen.getStats(session);
-    expect(stats).toBeDefined();
-    expect(stats!.totalGenerations).toBe(0);
+    expect(gen.getStats(session)!.totalGenerations).toBe(0);
+    await gen.generate('a cube', session);
+    const stats = gen.getStats(session)!;
+    expect(stats.totalGenerations).toBe(1);
+    expect(stats.successCount).toBe(1);
   });
 
-  // --- Cache ---
-  it('getCacheStats returns stats', () => {
-    const stats = gen.getCacheStats();
-    expect(stats).toBeDefined();
+  it('getCacheStats / getAnalytics / generateReport are defined', () => {
+    expect(gen.getCacheStats()).toBeDefined();
+    expect(gen.getAnalytics()).toBeDefined();
+    expect(typeof gen.generateReport()).toBe('string');
   });
 
-  // --- Analytics ---
-  it('getAnalytics returns metrics', () => {
-    const analytics = gen.getAnalytics();
-    expect(analytics).toBeDefined();
-  });
-
-  it('generateReport returns string', () => {
-    const report = gen.generateReport();
-    expect(typeof report).toBe('string');
-  });
-
-  // --- generate (async) ---
-  it('generate creates code from prompt', async () => {
-    const adapter = mockAdapter();
-    const session = gen.createSession(adapter);
+  // --- generate: real parser ---
+  it('valid output parses with success and no errors', async () => {
+    const session = gen.createSession(mockAdapter());
     const result = await gen.generate('create a red cube', session);
-    expect(result).toBeDefined();
-    expect(result.holoScript).toBeDefined();
-    expect(result.attempts).toBeGreaterThanOrEqual(1);
+    expect(result.holoScript).toBe(VALID);
+    expect(result.parseResult.success).toBe(true);
+    expect(result.parseResult.errors).toHaveLength(0);
+    expect(result.attempts).toBe(1);
   });
 
-  it('generate handles adapter error gracefully', async () => {
+  it('garbage output is reported as a parse failure, never success', async () => {
+    const session = gen.createSession(mockAdapter(GARBAGE), { maxAttempts: 1, autoFix: false });
+    const result = await gen.generate('make garbage', session);
+    expect(result.parseResult.success).toBe(false);
+    expect(result.parseResult.errors.length).toBeGreaterThan(0);
+    expect(gen.getStats(session)!.successCount).toBe(0);
+  });
+
+  it('an unclosed block is a parse failure', async () => {
+    const session = gen.createSession(mockAdapter(UNCLOSED), { maxAttempts: 1, autoFix: false });
+    const result = await gen.generate('unclosed', session);
+    expect(result.parseResult.success).toBe(false);
+  });
+
+  it('empty output is a failure, not an empty-but-valid program', async () => {
+    const session = gen.createSession(mockAdapter('   \n'), { maxAttempts: 1, autoFix: false });
+    const result = await gen.generate('empty', session);
+    expect(result.parseResult.success).toBe(false);
+  });
+
+  it('never caches invalid output: a second identical prompt calls the adapter again', async () => {
+    const adapter = mockAdapter(GARBAGE);
+    const session = gen.createSession(adapter, { maxAttempts: 1, autoFix: false });
+    await gen.generate('same prompt', session);
+    await gen.generate('same prompt', session);
+    expect(adapter.generateHoloScript).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches valid output: a second identical prompt is served from cache', async () => {
+    const adapter = mockAdapter(VALID);
+    const session = gen.createSession(adapter);
+    await gen.generate('same prompt', session);
+    const second = await gen.generate('same prompt', session);
+    expect(adapter.generateHoloScript).toHaveBeenCalledTimes(1);
+    expect(second.parseResult.success).toBe(true);
+  });
+
+  it('auto-fix replaces invalid output with the adapter fix when the fix parses', async () => {
+    const adapter = mockAdapter(GARBAGE);
+    adapter.fixHoloScript = vi.fn(async () => ({ holoScript: VALID, fixes: [], confidence: 0.9 }) as any);
+    const session = gen.createSession(adapter, { maxAttempts: 2, autoFix: true });
+    const result = await gen.generate('fix me', session);
+    expect(adapter.fixHoloScript).toHaveBeenCalledTimes(1);
+    const errorsSent = (adapter.fixHoloScript as any).mock.calls[0][1] as string[];
+    expect(errorsSent.length).toBeGreaterThan(0);
+    expect(result.wasFixed).toBe(true);
+    expect(result.holoScript).toBe(VALID);
+    expect(result.parseResult.success).toBe(true);
+  });
+
+  // --- adapter error (P2-7: the old test passed whether or not it threw) ---
+  it('adapter error rejects with the adapter message after maxAttempts and records nothing', async () => {
     const adapter = mockAdapter();
     adapter.generateHoloScript = vi.fn(async () => {
-      throw new Error('fail');
+      throw new Error('upstream 503');
     });
+    const session = gen.createSession(adapter, { maxAttempts: 2 });
+    await expect(gen.generate('test', session)).rejects.toThrow('upstream 503');
+    expect(adapter.generateHoloScript).toHaveBeenCalledTimes(2);
+    expect(gen.getHistory(session)).toEqual([]);
+  });
+
+  it('fix() on valid code returns it unchanged without calling the adapter', async () => {
+    const adapter = mockAdapter();
+    adapter.fixHoloScript = vi.fn();
     const session = gen.createSession(adapter);
-    try {
-      await gen.generate('test', session);
-    } catch (_e) {
-      // Expected to throw
-    }
+    const r = await gen.fix(VALID, session);
+    expect(r.wasFixed).toBe(false);
+    expect(r.parseResult.success).toBe(true);
+    expect(adapter.fixHoloScript).not.toHaveBeenCalled();
   });
 });
 
-describe('validateBatch', () => {
-  it('validates array of code strings', () => {
-    const results = validateBatch(['scene { box {} }', 'invalid!!!']);
-    expect(results).toHaveLength(2);
-    expect(results[0]).toHaveProperty('valid');
-    expect(results[0]).toHaveProperty('errors');
+describe('validateHoloScript', () => {
+  it('accepts valid code and rejects garbage, empty and unclosed code', () => {
+    expect(validateHoloScript(VALID).success).toBe(true);
+    for (const bad of [GARBAGE, '', '   ', UNCLOSED, 'invalid!!!']) {
+      const r = validateHoloScript(bad);
+      expect(r.success, JSON.stringify(bad)).toBe(false);
+      expect(r.errors.length, JSON.stringify(bad)).toBeGreaterThan(0);
+    }
+  });
+
+  it('a parser that throws yields a failure, not success', () => {
+    const throwing = { parse: () => { throw new Error('boom'); } } as any;
+    const r = validateHoloScript(VALID, throwing);
+    expect(r.success).toBe(false);
+    expect(String((r.errors[0] as any).message)).toContain('boom');
+  });
+});
+
+describe('validateBatch (P2-7: was shape-only)', () => {
+  it('flags invalid entries and passes valid ones', () => {
+    const results = validateBatch([VALID, 'invalid!!!', GARBAGE, '']);
+    expect(results.map((r) => r.valid)).toEqual([true, false, false, false]);
+    expect(results[0]!.errors).toBe(0);
+    for (const r of results.slice(1)) expect(r.errors).toBeGreaterThan(0);
   });
 
   it('empty array returns empty', () => {
