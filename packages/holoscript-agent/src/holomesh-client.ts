@@ -178,6 +178,31 @@ export class HolomeshClient {
     );
   }
 
+  /**
+   * Release a claimed task back to the open pool WITH a visible reason (hand-off fix
+   * 2026-10-07, item i). The server's `reopen` action takes no reason field
+   * (board-routes `case 'reopen'`), so the reason is posted first as a task-scoped
+   * team message (`subject: task:<id>`, prefixed `[release]`), then the task is
+   * reopened. The message is best-effort (a failed message never blocks the
+   * release); the reopen itself throws so the caller can log a failed release.
+   * Both calls are signed like every other board write.
+   */
+  async releaseTask(taskId: string, reason: string): Promise<{ messaged: boolean }> {
+    let messaged = false;
+    try {
+      await this.sendMessageOnTask(taskId, `[release] ${reason}`.slice(0, 500));
+      messaged = true;
+    } catch {
+      /* best-effort: the reopen below is the part that frees the claim */
+    }
+    await this.req(
+      'PATCH',
+      `/team/${this.teamId}/board/${taskId}`,
+      await this.signBody({ action: 'reopen' })
+    );
+    return { messaged };
+  }
+
   async markDone(taskId: string, summary: string, commitHash?: string): Promise<void> {
     await this.req(
       'PATCH',
