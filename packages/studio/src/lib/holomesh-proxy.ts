@@ -27,6 +27,37 @@ function holomeshHeaders(req?: Request): Record<string, string> {
  * rows in the answer are cut to their teaser (premium-view.ts). A visitor who
  * sends its own key is judged by HoloMesh's own premium gate instead.
  */
+/**
+ * mcp-server outage 2026-10-15: with no timeout, every HoloMesh page in Studio
+ * waited on a dead upstream until the edge gave up (15s per hop, 30s+ for
+ * /agents/me). Upstream calls now give up after this long and answer with a
+ * clean JSON error the pages already know how to show.
+ */
+export const HOLOMESH_UPSTREAM_TIMEOUT_MS = 8_000;
+
+export function holoMeshUpstreamTimeoutMs(): number {
+  const fromEnv = Number(process.env.HOLOMESH_UPSTREAM_TIMEOUT_MS);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : HOLOMESH_UPSTREAM_TIMEOUT_MS;
+}
+
+/** 504 when the upstream timed out, 503 when it could not be reached at all. */
+export function upstreamFailure(err: unknown): {
+  status: 503 | 504;
+  body: { success: false; error: string; code: string };
+} {
+  const name = (err as { name?: string } | null)?.name;
+  if (name === 'TimeoutError' || name === 'AbortError') {
+    return {
+      status: 504,
+      body: { success: false, error: 'HoloMesh did not respond in time. Try again shortly.', code: 'holomesh_timeout' },
+    };
+  }
+  return {
+    status: 503,
+    body: { success: false, error: 'HoloMesh is unreachable right now. Try again shortly.', code: 'holomesh_unavailable' },
+  };
+}
+
 export function usesServerKeyFor(req?: Request): boolean {
   return !req?.headers.get('authorization');
 }
@@ -52,11 +83,18 @@ export async function fetchHoloMeshJson<T>(
   path: string,
   req?: Request
 ): Promise<{ ok: boolean; status: number; data: T | null }> {
-  const upstream = await fetch(`${BASE}${path}`, {
-    method: 'GET',
-    headers: holomeshHeaders(req),
-    cache: 'no-store',
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${BASE}${path}`, {
+      method: 'GET',
+      headers: holomeshHeaders(req),
+      cache: 'no-store',
+      signal: AbortSignal.timeout(holoMeshUpstreamTimeoutMs()),
+    });
+  } catch (err) {
+    const failure = upstreamFailure(err);
+    return { ok: false, status: failure.status, data: failure.body as T };
+  }
 
   let data: T | null = null;
   try {
@@ -232,11 +270,23 @@ export async function proxyHoloMesh(path: string, req: NextRequest): Promise<Res
   const url = `${BASE}${path}${req.nextUrl.search}`;
   const headers = holomeshHeaders(req);
 
-  const upstream = await fetch(url, {
-    method: req.method,
-    headers,
-    ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: await req.text() } : {}),
-  });
+  const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined;
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(url, {
+      method: req.method,
+      headers,
+      ...(body !== undefined ? { body } : {}),
+      signal: AbortSignal.timeout(holoMeshUpstreamTimeoutMs()),
+    });
+  } catch (err) {
+    const failure = upstreamFailure(err);
+    return new Response(JSON.stringify(failure.body), {
+      status: failure.status,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   const contentType = upstream.headers.get('Content-Type') || 'application/json';
   if (usesServerKeyFor(req) && contentType.includes('json')) {
@@ -287,11 +337,19 @@ export function callerHoloMeshHeaders(req: Request): Record<string, string> | nu
 export async function proxyHoloMeshSelf(path: string, req: NextRequest): Promise<Response> {
   const headers = callerHoloMeshHeaders(req);
   if (!headers) return noHoloMeshAgentResponse();
-  const upstream = await fetch(`${BASE}${path}${req.nextUrl.search}`, {
-    method: req.method,
-    headers,
-    ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: await req.text() } : {}),
-  });
+  const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined;
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${BASE}${path}${req.nextUrl.search}`, {
+      method: req.method,
+      headers,
+      ...(body !== undefined ? { body } : {}),
+      signal: AbortSignal.timeout(holoMeshUpstreamTimeoutMs()),
+    });
+  } catch (err) {
+    const failure = upstreamFailure(err);
+    return Response.json(failure.body, { status: failure.status });
+  }
   return new Response(upstream.body, {
     status: upstream.status,
     headers: { 'Content-Type': upstream.headers.get('Content-Type') || 'application/json' },
@@ -309,7 +367,18 @@ export async function fetchHoloMeshJsonSelf<T>(
 ): Promise<{ ok: boolean; status: number; data: T | null } | null> {
   const headers = callerHoloMeshHeaders(req);
   if (!headers) return null;
-  const upstream = await fetch(`${BASE}${path}`, { method: 'GET', headers, cache: 'no-store' });
+  let upstream: Response;
+  try {
+    upstream = await fetch(`${BASE}${path}`, {
+      method: 'GET',
+      headers,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(holoMeshUpstreamTimeoutMs()),
+    });
+  } catch (err) {
+    const failure = upstreamFailure(err);
+    return { ok: false, status: failure.status, data: failure.body as T };
+  }
   let data: T | null = null;
   try {
     data = (await upstream.json()) as T;
