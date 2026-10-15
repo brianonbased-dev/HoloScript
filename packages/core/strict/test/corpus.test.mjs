@@ -179,11 +179,19 @@ test("the likeness check (HS1011) is on: core's checkLikeness is wired in", asyn
 test("likeness fails closed when core's checkLikeness dep is absent", async () => {
   const parser = await import(pathToFileURL((await coreInfo()).parser).href);
   const deps = { tokenizeHoloSource: parser.tokenizeHoloSource, parseHolo: parser.parseHolo }; // no checkLikeness
-  const src = 'object "Ava" {\n  @consent_gate(grant: "g1")\n  @voice_print\n  @face_mesh\n  @body_scan\n  @lip_sync(source: "microphone")\n}\n';
+  const src = 'object "Ava" {\n  @consent_gate(grant: "g1")\n  @voice_print\n  @face_mesh\n  @body_scan\n  @lip_sync(source: "microphone")\n  @face_tracking(source: "live_self")\n  @body_tracking(source: "live_self")\n}\n';
   const { diagnostics } = analyze(src, deps, { consentRules: { g1: ["face", "voice", "body"] } });
   const hs = diagnostics.filter((d) => d.code === "HS1011");
-  assert.equal(hs.length, 4, JSON.stringify(diagnostics));
+  assert.equal(hs.length, 6, JSON.stringify(diagnostics));
   assert.ok(hs.every((d) => d.severity === "error" && /fail closed/.test(d.message)));
   const plain = analyze('object "Box" {\n  @grabbable\n}\n', deps, {}).diagnostics;
   assert.equal(plain.filter((d) => d.code === "HS1011").length, 0);
+});
+
+test("likeness: tracking with no live_self source fails the build; live_self passes statically", async () => {
+  for (const f of ["face-tracking-no-source", "body-tracking-remote-user", "face-tracking-recording"]) {
+    assert.deepEqual(likenessCodes(await parseStrict(read(`invalid/likeness-${f}.holo`))), [[2, 3]], f);
+  }
+  const live = await parseStrict('object "Ava" {\n  @face_tracking(source: "live_self")\n  @body_tracking(source: "live_self")\n}\n');
+  assert.deepEqual(likenessCodes(live), []);
 });

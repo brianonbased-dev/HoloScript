@@ -9,6 +9,7 @@ import type { Vector3 } from '../types';
  */
 
 import type { TraitHandler } from './TraitTypes';
+import { trackingEventAllowed, type TrackingSource } from './LocalCapture';
 
 // =============================================================================
 // TYPES
@@ -49,6 +50,8 @@ interface JointPose {
 }
 
 interface BodyTrackingState {
+  /** Set while refused live_self data has put the avatar on the generic fallback. */
+  genericFallback?: boolean;
   isTracking: boolean;
   joints: Map<BodyJoint, JointPose>;
   prevJoints: Map<BodyJoint, JointPose>;
@@ -60,6 +63,12 @@ interface BodyTrackingState {
 }
 
 interface BodyTrackingConfig {
+  /**
+   * Input source (Trust and Consent POLICY s3). live_self: the user's own local capture, verified
+   * at runtime (LocalCapture.ts); recording / remote_user: a likeness, gated by render_likeness.
+   * Absent: statically gated as a likeness. No default on purpose.
+   */
+  source?: TrackingSource;
   mode: BodyTrackingMode;
   joint_smoothing: number;
   prediction: boolean;
@@ -202,6 +211,20 @@ export const bodyTrackingHandler: TraitHandler<BodyTrackingConfig> = {
     if (!state) return;
 
     if (event.type === 'body_pose_update') {
+      if (!trackingEventAllowed(config.source, event.capture, 'body')) {
+        // Declared live_self but not from a local capture the runtime opened: do not apply it.
+        if (state.isTracking) state.isTracking = false;
+        if (!state.genericFallback) {
+          state.genericFallback = true;
+          context.emit?.('avatar_generic_fallback', {
+            node,
+            trait: 'body_tracking',
+            reason: 'live_self tracking data did not come from a local capture device opened by the runtime',
+          });
+        }
+        return;
+      }
+      state.genericFallback = false;
       const jointData = event.joints as Record<string, JointPose>;
       const trackedJoints = getTrackedJoints(config.mode, config.custom_joints);
       const wasTracking = state.isTracking;

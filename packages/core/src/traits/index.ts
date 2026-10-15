@@ -83,6 +83,7 @@ export * from './EncryptionTrait';
 export * from './EnvironmentalAudioTrait';
 export * from './EyeTrackedTrait';
 export * from './FaceTrackingTrait';
+export * from './LocalCapture';
 export * from './FactionTrait';
 export * from './FairnessMonitorTrait';
 export * from './FBXTrait';

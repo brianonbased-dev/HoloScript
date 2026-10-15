@@ -60,8 +60,38 @@ describe('canonical validator: HS1011 likeness (fail closed)', () => {
     // a commented-out `@lip_sync` does not shift the reported position
     const commented = v(`// @lip_sync in a comment\nobject "Ava" {\n  @lip_sync\n}\n`);
     expect(commented.errors.map((e) => [e.code, e.line, e.column])).toEqual([['HS1011', 3, 3]]);
-    // face_tracking and body_tracking declare no source parameter: ungated
-    expect(hs1011(v(obj('  @face_tracking\n  @body_tracking')))).toBe(0);
+    // face_tracking and body_tracking with no source: a likeness (see the tracking-source tests)
+    expect(hs1011(v(obj('  @face_tracking\n  @body_tracking')))).toBe(2);
+  });
+
+  describe('Trust and Consent: face_tracking / body_tracking source', () => {
+    const v = (src: string, consentRules?: Record<string, string[]>) =>
+      validateCanonicalSource({ source: src, surface: 'holo', consentRules });
+    const obj = (body: string) => `object "Ava" {\n${body}\n}\n`;
+    it.each(['face_tracking', 'body_tracking'])(
+      '1. %s with a missing or unknown source is a likeness (fail closed)',
+      (t) => {
+        expect(hs1011(v(obj(`  @${t}`)))).toBe(1);
+        expect(hs1011(v(obj(`  @${t}(source: "webcam")`)))).toBe(1);
+        expect(hs1011(v(obj(`  @${t}(source: 42)`)))).toBe(1);
+        expect(hs1011(v(obj(`  @${t}(source: "recording")`)))).toBe(1);
+      }
+    );
+    it.each([
+      ['face_tracking', 'face'],
+      ['body_tracking', 'body'],
+    ])('2. %s remote_user is gated; a grant with the rule yes passes', (t, src) => {
+      expect(hs1011(v(obj(`  @${t}(source: "remote_user")`)))).toBe(1);
+      const granted = obj(`  @consent_gate(grant: "${GRANT}")\n  @${t}(source: "remote_user")`);
+      expect(hs1011(v(granted))).toBe(1);
+      expect(v(granted, { [GRANT]: [src] }).valid).toBe(true);
+    });
+    it.each(['face_tracking', 'body_tracking'])(
+      '3. %s live_self passes the validator statically (runtime verifies the device)',
+      (t) => {
+        expect(hs1011(v(obj(`  @${t}(source: "live_self")`)))).toBe(0);
+      }
+    );
   });
 
   it('the @body_scan trait definition is not a use', () => {

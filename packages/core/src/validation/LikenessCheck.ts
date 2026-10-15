@@ -24,15 +24,18 @@ export const LIKENESS_SOURCES: Readonly<Record<string, LikenessSource>> = Object
  * Consent POLICY.md section 3). The exemption rests on the trait's declared input-source
  * parameter, not on its name: any other value (a recording, a file, a stream, TTS, external
  * data), or a missing, non-string or unknown value, makes it a likeness that needs the rule's yes.
- * Only traits whose definitions already declare such a parameter are listed (traits/audio/
- * lip_sync.holo and lipsync.holo). face_tracking and body_tracking declare none, so they stay
- * ungated until a source parameter exists.
+ * face_tracking and body_tracking declare `source: enum("live_self" | "recording" | "remote_user")`
+ * (no default): only "live_self" is exempt here, and the runtime traits then verify it against a
+ * capture the runtime opened itself (traits/LocalCapture.ts). "remote_user", "recording", a
+ * missing or any other source is a likeness that needs the rule's yes (fail closed).
  */
 export const SOURCE_GATED_TRACKING: Readonly<
   Record<string, { param: string; live: readonly string[]; source: LikenessSource }>
 > = Object.freeze({
   lip_sync: { param: 'source', live: ['microphone'], source: 'voice' },
   lipsync: { param: 'source', live: ['live_mic'], source: 'voice' },
+  face_tracking: { param: 'source', live: ['live_self'], source: 'face' },
+  body_tracking: { param: 'source', live: ['live_self'], source: 'body' },
 });
 
 /** The caller's `.hs` render_likeness result: grant -> the sources the rule said yes to. */
