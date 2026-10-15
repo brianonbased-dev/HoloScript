@@ -68,14 +68,15 @@ export function unsafeBranchInput(raw: string | null | undefined): string | null
   const value = raw.trim();
   if (!value) return null;
   if (
-    value === 'HEAD' ||
+    /^head$/i.test(value) || // HEAD, and head/Head on case-insensitive filesystems
     value === '@' ||
+    value.startsWith('-') ||
     value.startsWith('+') ||
     value.includes(':') ||
     value.includes('@{') ||
     /^(refs|heads)\//i.test(value)
   ) {
-    return `"${value}" is not a plain branch name. Give a branch name like "studio/my-change" (no refs/, heads/, HEAD, @, leading +, or ':').`;
+    return `"${value}" is not a plain branch name. Give a branch name like "studio/my-change" (no refs/, heads/, HEAD in any case, @, leading + or -, or ':').`;
   }
   return null;
 }
@@ -87,12 +88,18 @@ export function unsafeBranchInput(raw: string | null | undefined): string | null
  */
 export function resolveTargetRef(cwd: string, branch: string): string {
   try {
-    const full = String(
-      runGitSync(['rev-parse', '--symbolic-full-name', '--end-of-options', branch], {
+    // No --end-of-options: git 2.47 echoes it as a literal first line, which
+    // made every lookup fall back. A leading '-' is already refused by
+    // unsafeBranchInput, so the name cannot be read as an option. Parse
+    // defensively: last non-empty line, and it must be a full ref.
+    const out = String(
+      runGitSync(['rev-parse', '--symbolic-full-name', branch], {
         cwd,
         stdio: ['ignore', 'pipe', 'pipe'],
       })
-    ).trim();
+    );
+    const lines = out.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const full = lines[lines.length - 1] ?? '';
     if (full.startsWith('refs/')) return full;
   } catch {
     // not a local ref yet
