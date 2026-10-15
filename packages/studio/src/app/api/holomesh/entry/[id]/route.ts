@@ -103,16 +103,44 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Release/Mapping 2026-10-15 (sibling of #574): a keyless caller's POST went
+  // up under Studio's server key (the founder's), X-Payment included. Refuse
+  // like #570/#574: 404 no_holomesh_agent, nothing upstream. An X-Payment
+  // proof alone is not an identity.
+  if (usesServerKeyFor(req)) return noHoloMeshAgentResponse();
+
   const { id } = await params;
+  // Caller's own Authorization only; never the server-key fallback.
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: req.headers.get('authorization') as string,
+  };
+  const xPayment = req.headers.get('x-payment');
+  if (xPayment) headers['X-Payment'] = xPayment;
   const upstream = await fetch(`${BASE}/api/holomesh/entry/${id}${req.nextUrl.search}`, {
     method: 'POST',
-    headers: buildHeaders(req),
+    headers,
     body: await req.text(),
   });
   return new Response(upstream.body, {
     status: upstream.status,
     headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
   });
+}
+
+/**
+ * Same body as #570's NO_HOLOMESH_AGENT_BODY (lib/holomesh-proxy.ts) and the
+ * #574 purchase route. Inlined until #570 lands on main; fold in then.
+ */
+function noHoloMeshAgentResponse(): Response {
+  return Response.json(
+    {
+      success: false,
+      code: 'no_holomesh_agent',
+      error: 'No HoloMesh agent is linked to your account yet.',
+    },
+    { status: 404 }
+  );
 }
 
 export function OPTIONS(request: Request) {
