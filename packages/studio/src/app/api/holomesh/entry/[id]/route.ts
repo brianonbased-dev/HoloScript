@@ -5,7 +5,7 @@ import { getDb } from '../../../../../db/client';
 import { holomeshKnowledgeEntries } from '../../../../../db/schema';
 import { eq } from 'drizzle-orm';
 import { hidePremiumRowsDeep } from '../../../../../lib/premium-view';
-import { usesServerKeyFor } from '../../../../../lib/holomesh-proxy';
+import { noHoloMeshAgentResponse, usesServerKeyFor } from '../../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../../_lib/cors';
 const BASE =
@@ -126,21 +126,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     status: upstream.status,
     headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'application/json' },
   });
-}
-
-/**
- * Same body as #570's NO_HOLOMESH_AGENT_BODY (lib/holomesh-proxy.ts) and the
- * #574 purchase route. Inlined until #570 lands on main; fold in then.
- */
-function noHoloMeshAgentResponse(): Response {
-  return Response.json(
-    {
-      success: false,
-      code: 'no_holomesh_agent',
-      error: 'No HoloMesh agent is linked to your account yet.',
-    },
-    { status: 404 }
-  );
 }
 
 export function OPTIONS(request: Request) {

@@ -1,7 +1,11 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { noHoloMeshAgentResponse, proxyHoloMeshSelf } from '../../../../lib/holomesh-proxy';
+import {
+  callerHoloMeshHeaders,
+  noHoloMeshAgentResponse,
+  proxyHoloMeshSelf,
+} from '../../../../lib/holomesh-proxy';
 import { getDb } from '../../../../db/client';
 import { holomeshTransactions } from '../../../../db/schema';
 import { desc } from 'drizzle-orm';
@@ -10,7 +14,7 @@ import { corsHeaders } from '../../_lib/cors';
 export async function GET(req: NextRequest) {
   // Self route: a keyless caller has no ledger of its own here; refuse before
   // the DB path too (audit 2026-10-15, overlaps #570's per-caller filter).
-  if (!req.headers.get('authorization')) return noHoloMeshAgentResponse();
+  if (!callerHoloMeshHeaders(req)) return noHoloMeshAgentResponse();
   const db = getDb();
   const { searchParams } = req.nextUrl;
 
