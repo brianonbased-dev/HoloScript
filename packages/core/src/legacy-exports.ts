@@ -916,6 +916,18 @@ export {
 
 // HoloScript+ VR Traits (NEW)
 export { VRTraitRegistry, vrTraitRegistry } from './traits/VRTraitSystem';
+export {
+  openLocalCapture,
+  closeLocalCapture,
+  isLocalCapture,
+  startLocalCaptureSession,
+  trackingEventAllowed,
+  LOCAL_CAPTURE_EVENT,
+  type LocalCaptureHandle,
+  type LocalCaptureKind,
+  type LocalCaptureSession,
+  type TrackingSource,
+} from './traits/LocalCapture';
 
 // HoloScript+ Expanded Trait Handlers (Phases 1-13)
 export {

@@ -1793,6 +1793,25 @@ export class VRTraitRegistry {
 
 export declare const vrTraitRegistry: VRTraitRegistry;
 
+// Local capture handles (traits/LocalCapture.ts): live_self tracking verification.
+export type LocalCaptureKind = 'face' | 'body';
+export type TrackingSource = 'live_self' | 'recording' | 'remote_user';
+export interface LocalCaptureHandle {
+  readonly kind: LocalCaptureKind;
+  readonly deviceLabel: string;
+}
+export interface LocalCaptureSession {
+  readonly handle: LocalCaptureHandle;
+  event(data: Record<string, unknown>): Record<string, unknown>;
+  end(): void;
+}
+export declare function openLocalCapture(kind: LocalCaptureKind, deviceLabel?: string): LocalCaptureHandle;
+export declare function closeLocalCapture(handle: LocalCaptureHandle): void;
+export declare function isLocalCapture(handle: unknown, kind: LocalCaptureKind): boolean;
+export declare function startLocalCaptureSession(kind: LocalCaptureKind, deviceLabel?: string): LocalCaptureSession;
+export declare function trackingEventAllowed(source: unknown, capture: unknown, kind: LocalCaptureKind): boolean;
+export declare const LOCAL_CAPTURE_EVENT: Readonly<Record<LocalCaptureKind, string>>;
+
 // ============================================================================
 // TRAIT CONTEXT FACTORY (migrated from Hololand)
 // ============================================================================
