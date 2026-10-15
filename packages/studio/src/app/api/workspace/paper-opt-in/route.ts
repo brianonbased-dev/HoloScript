@@ -31,12 +31,12 @@ import * as os from 'os';
 
 import { resolveInsideWorkspace } from '@/lib/workspace/workspaceFs';
 import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
+import { callerHoloMeshHeaders, noHoloMeshAgentResponse } from '@/lib/holomesh-proxy';
 
 import { corsHeaders } from '../../_lib/cors';
 
 const HOLOMESH_API_URL =
   process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const HOLOMESH_API_KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 
 function getWorkspacesDir(): string {
   return (
@@ -47,12 +47,6 @@ function getWorkspacesDir(): string {
 function isInsidePath(parent: string, child: string): boolean {
   const relative = path.relative(parent, child);
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-}
-
-function holomeshHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (HOLOMESH_API_KEY) headers.Authorization = `Bearer ${HOLOMESH_API_KEY}`;
-  return headers;
 }
 
 function stringArray(value: unknown): string[] {
@@ -83,7 +77,8 @@ function readExistingPaperUnlockState(statePath: string): {
 
 async function createBoardTasks(
   teamId: string,
-  workspaceName: string
+  workspaceName: string,
+  holomeshHeaders: Record<string, string>
 ): Promise<{ taskIds: string[] }> {
   const tasks = [
     {
@@ -113,7 +108,7 @@ async function createBoardTasks(
     try {
       const res = await fetch(`${HOLOMESH_API_URL}/api/holomesh/team/${teamId}/board`, {
         method: 'POST',
-        headers: holomeshHeaders(),
+        headers: holomeshHeaders,
         body: JSON.stringify({ tasks: [task] }),
       });
       if (res.ok) {
@@ -130,7 +125,8 @@ async function createBoardTasks(
 
 async function createKnowledgeEntries(
   teamId: string,
-  workspaceName: string
+  workspaceName: string,
+  holomeshHeaders: Record<string, string>
 ): Promise<{ entryIds: string[] }> {
   const entries = [
     {
@@ -154,7 +150,7 @@ async function createKnowledgeEntries(
     try {
       const res = await fetch(`${HOLOMESH_API_URL}/api/holomesh/team/${teamId}/knowledge`, {
         method: 'POST',
-        headers: holomeshHeaders(),
+        headers: holomeshHeaders,
         body: JSON.stringify({ entries: [entry] }),
       });
       if (res.ok) {
@@ -213,6 +209,15 @@ export async function POST(req: NextRequest) {
       { error: 'teamId is required when syncPublicKnowledge is true' },
       { status: 400 }
     );
+  }
+
+  // Audit 2026-10-15: board tasks and team knowledge went up under Studio's
+  // server key. They land on the caller's team, so they need the caller's own
+  // HoloMesh key; keyless + either consent → 404 no_holomesh_agent before any
+  // write.
+  const callerHeaders = callerHoloMeshHeaders(req);
+  if ((createBoardTasksConsent || publicKnowledgeConsent) && !callerHeaders) {
+    return noHoloMeshAgentResponse();
   }
 
   const workspacesDir = path.resolve(getWorkspacesDir());
@@ -375,7 +380,7 @@ export async function POST(req: NextRequest) {
     createBoardTasksConsent &&
     boardTaskIds.length === 0
   ) {
-    const boardResult = await createBoardTasks(teamId, workspaceName);
+    const boardResult = await createBoardTasks(teamId, workspaceName, callerHeaders!);
     boardTaskIds = boardResult.taskIds;
   }
 
@@ -385,7 +390,7 @@ export async function POST(req: NextRequest) {
     publicKnowledgeConsent &&
     knowledgeEntryIds.length === 0
   ) {
-    const knowledgeResult = await createKnowledgeEntries(teamId, workspaceName);
+    const knowledgeResult = await createKnowledgeEntries(teamId, workspaceName, callerHeaders!);
     knowledgeEntryIds = knowledgeResult.entryIds;
   }
 

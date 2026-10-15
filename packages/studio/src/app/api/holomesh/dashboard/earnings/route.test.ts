@@ -7,7 +7,7 @@ const { requireAuthMock, proxyHoloMeshMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/api-auth', () => ({ requireAuth: requireAuthMock }));
-vi.mock('../../../../../lib/holomesh-proxy', () => ({ proxyHoloMesh: proxyHoloMeshMock }));
+vi.mock('../../../../../lib/holomesh-proxy', () => ({ proxyHoloMeshSelf: proxyHoloMeshMock }));
 
 import { GET } from './route';
 import { AUTHENTICATED_USER_HEADER } from '../../../_lib/earningsIdentity';

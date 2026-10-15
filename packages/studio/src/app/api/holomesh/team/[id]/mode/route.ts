@@ -2,6 +2,10 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { TEAM_MODES, type TeamMode } from '@holoscript/framework';
+import {
+  callerHoloMeshHeaders,
+  noHoloMeshAgentResponse,
+} from '../../../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../../../_lib/cors';
 interface DerivedTask {
@@ -287,9 +291,12 @@ const MODE_TASKS: Record<TeamMode, DerivedTask[]> = {
 
 const HOLOMESH_API_URL =
   process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const HOLOMESH_API_KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
-
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Audit 2026-10-15: mode switch and derived board tasks went up under
+  // Studio's server key. They act on the caller's team: caller key only.
+  const callerHeaders = callerHoloMeshHeaders(req);
+  if (!callerHeaders) return noHoloMeshAgentResponse();
+
   const { id } = await params;
 
   const body = (await req.json()) as { mode?: string; agentId?: string; agentName?: string };
@@ -303,22 +310,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // 1. Notify MCP of mode switch (best-effort, fire-and-forget)
-  if (HOLOMESH_API_KEY) {
-    fetch(`${HOLOMESH_API_URL}/api/holomesh/team/${id}/mode`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${HOLOMESH_API_KEY}`,
-      },
-      body: JSON.stringify(body),
-    }).catch(() => {});
-  }
+  fetch(`${HOLOMESH_API_URL}/api/holomesh/team/${id}/mode`, {
+    method: 'POST',
+    headers: callerHeaders,
+    body: JSON.stringify(body),
+  }).catch(() => {});
 
   // 2. Derive tasks for this mode
   const tasks = MODE_TASKS[mode];
   const posted: Array<{ title: string; ok: boolean }> = [];
-  const boardHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (HOLOMESH_API_KEY) boardHeaders['Authorization'] = `Bearer ${HOLOMESH_API_KEY}`;
+  const boardHeaders = callerHeaders;
 
   for (const task of tasks) {
     try {
