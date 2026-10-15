@@ -54,8 +54,10 @@ describe('/api/github/access route', () => {
 
     expect(res.status).toBe(200);
     expect(body.role).toBe('owner');
-    expect(body.canDirectShip).toBe(true);
-    expect(body.recommendedFlow).toBe('direct-ship');
+    // Owner role permits direct ship but does not turn it on (default branch-pr).
+    expect(body.rolePermitsDirectShip).toBe(true);
+    expect(body.canDirectShip).toBe(false);
+    expect(body.recommendedFlow).toBe('branch-pr');
 
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/user');
     expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/repos/brianonbased-dev/HoloScript');

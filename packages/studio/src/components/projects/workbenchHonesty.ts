@@ -310,5 +310,5 @@ export function directShipWarning(canDirectShip: boolean): string {
   if (canDirectShip) {
     return 'Direct ship pushes to the default branch without a PR. Prefer Open Draft PR unless you intend to land on main immediately.';
   }
-  return 'Direct ship is off for this account — use branch + Open Draft PR, or ask an admin to enable it in Settings.';
+  return 'Direct ship is off for this workspace (the default) — use branch + Open Draft PR. The workspace owner can turn it on in workspace Settings (Permission Review).';
 }

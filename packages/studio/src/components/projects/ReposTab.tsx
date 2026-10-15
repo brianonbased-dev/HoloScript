@@ -45,6 +45,8 @@ import {
 } from 'lucide-react';
 import { PatchReviewPanel } from '@/components/daemon/PatchReviewPanel';
 import { useGitHubRepos } from '@/hooks/useGitHubRepos';
+import type { GitHubRepoItem } from '@/hooks/useGitHubRepos';
+import { importCreditCost } from '@/lib/workspace/importCost';
 import {
   ResearchLanePrompt,
   ResearchLaneArtifacts,
@@ -190,6 +192,10 @@ interface BoardResponse {
 
 interface RepoAccess {
   role: 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown';
+  /** GitHub role allows direct ship (owner/maintainer). Does not turn it on. */
+  rolePermitsDirectShip?: boolean;
+  /** This workspace's own setting. Off by default. */
+  directShipEnabled?: boolean;
   canDirectShip: boolean;
   recommendedFlow: 'direct-ship' | 'branch-pr';
   user: string | null;
@@ -311,6 +317,16 @@ function statusTone(status: string | null | undefined): string {
     return 'border-rose-500/30 bg-rose-500/10 text-rose-300';
   }
   return 'border-slate-700 bg-slate-800 text-slate-300';
+}
+
+function findRepoForUrl(url: string, repos: GitHubRepoItem[]): GitHubRepoItem | null {
+  const key = url.trim().toLowerCase().replace(/\.git$/, '').replace(/\/+$/, '');
+  if (!key) return null;
+  return (
+    repos.find((repo) => repo.cloneUrl.toLowerCase().replace(/\.git$/, '') === key) ??
+    repos.find((repo) => key.endsWith(`github.com/${repo.fullName.toLowerCase()}`)) ??
+    null
+  );
 }
 
 async function fetchJson<T>(input: RequestInfo | URL, init?: RequestInit): Promise<T> {
@@ -481,6 +497,7 @@ export function ReposTab() {
 
   const [repoUrl, setRepoUrl] = useState('');
   const [importBranch, setImportBranch] = useState('');
+  const [directShipSaving, setDirectShipSaving] = useState(false);
   const [importName, setImportName] = useState('');
   const [importing, setImporting] = useState(false);
   const [addRepoOpen, setAddRepoOpen] = useState(false);
@@ -705,13 +722,14 @@ export function ReposTab() {
     }
   }, []);
 
-  const loadAccess = useCallback(async (repoRef: RepoRef | null) => {
+  const loadAccess = useCallback(async (repoRef: RepoRef | null, workspaceId?: string | null) => {
     if (!repoRef) {
       setAccess(null);
       return;
     }
     try {
       const params = new URLSearchParams({ owner: repoRef.owner, repo: repoRef.repo });
+      if (workspaceId) params.set('workspaceId', workspaceId);
       setAccess(await fetchJson<RepoAccess>(`/api/github/access?${params.toString()}`));
     } catch (err) {
       setAccess({
@@ -775,8 +793,32 @@ export function ReposTab() {
     setTreePath('');
     void loadWorkspaceRuntime(activeWorkspace);
     void loadTree(activeWorkspace, '');
-    void loadAccess(activeRepoRef);
+    void loadAccess(activeRepoRef, activeWorkspace.id);
   }, [activeRepoRef, activeWorkspace, loadAccess, loadTree, loadWorkspaceRuntime]);
+
+  // Default the import branch field to the repo's default branch when the URL
+  // is one of the signed-in user's GitHub repos.
+  useEffect(() => {
+    const match = findRepoForUrl(repoUrl, githubRepos.repos);
+    if (match?.defaultBranch) setImportBranch((current) => current || match.defaultBranch);
+  }, [repoUrl, githubRepos.repos]);
+
+  async function setWorkspaceDirectShip(enabled: boolean) {
+    if (!activeWorkspace) return;
+    setDirectShipSaving(true);
+    try {
+      await fetchJson('/api/workspace/ship-settings', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ workspaceId: activeWorkspace.id, directShip: enabled }),
+      });
+      await loadAccess(activeRepoRef, activeWorkspace.id);
+    } catch (err) {
+      setWorkspaceError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setDirectShipSaving(false);
+    }
+  }
 
   useEffect(() => {
     if (!activeWorkspace) return;
@@ -1203,7 +1245,7 @@ export function ReposTab() {
                   <input
                     value={importBranch}
                     onChange={(event) => setImportBranch(event.target.value)}
-                    placeholder="branch"
+                    placeholder={findRepoForUrl(repoUrl, githubRepos.repos)?.defaultBranch ?? 'default branch'}
                     className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
                   />
                   <input
@@ -1226,6 +1268,9 @@ export function ReposTab() {
                   )}
                   Import
                 </button>
+                <p className="text-[11px] text-slate-400" data-testid="import-credit-cost">
+                  {importCreditCost().label}
+                </p>
               </div>
               {workspaceError && <p className="mt-2 text-xs text-rose-300">{workspaceError}</p>}
             </section>
@@ -2228,6 +2273,21 @@ export function ReposTab() {
                       </a>
                     </span>
                   </div>
+                  {activeWorkspace && (
+                    <label className="flex items-center justify-between gap-3 text-xs text-slate-300">
+                      <span>
+                        Direct ship for this workspace
+                        {access.rolePermitsDirectShip === false && ' (needs owner or maintainer)'}
+                      </span>
+                      <input
+                        type="checkbox"
+                        checked={access.directShipEnabled === true}
+                        disabled={directShipSaving || access.rolePermitsDirectShip === false}
+                        onChange={(event) => void setWorkspaceDirectShip(event.target.checked)}
+                        aria-label="Direct ship for this workspace"
+                      />
+                    </label>
+                  )}
                   {access.error && <p className="text-xs text-amber-300">{access.error}</p>}
                 </div>
               ) : (
