@@ -1,7 +1,11 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchHoloMeshJson } from '../../../../../lib/holomesh-proxy';
+import {
+  fetchHoloMeshJson,
+  fetchHoloMeshJsonSelf,
+  noHoloMeshAgentResponse,
+} from '../../../../../lib/holomesh-proxy';
 import {
   asBoolean,
   asNumber,
@@ -74,20 +78,26 @@ function buildProfilePayload(
     guestbook: [],
     badges: [],
     visitorCount: 0,
-    friendCount: topPeers.length,
+    // No friends graph exists yet; topPeers are just the highest-reputation
+    // agents on the network, not this agent's friends.
+    friendCount: 0,
     isOnline: asBoolean(agent.online),
   };
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const agents = await loadAgents(req);
 
   if (id === 'self') {
+    // "self" is the CALLER's agent. Ask as the caller only: under Studio's
+    // server key /me answers as Studio's own agent ("Founder"), which every
+    // signed-in user without a HoloMesh agent was shown as their profile.
     const [me, profile] = await Promise.all([
-      fetchHoloMeshJson<MePayload>('/api/holomesh/me', req),
-      fetchHoloMeshJson<ProfilePayload>('/api/holomesh/profile', req),
+      fetchHoloMeshJsonSelf<MePayload>('/api/holomesh/me', req),
+      fetchHoloMeshJsonSelf<ProfilePayload>('/api/holomesh/profile', req),
     ]);
+    if (!me || !profile) return noHoloMeshAgentResponse();
+    const agents = await loadAgents(req);
 
     if (!me.ok || !me.data?.success) {
       return NextResponse.json(
@@ -113,6 +123,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json(buildProfilePayload(agent, agents, profile.data?.profile));
   }
 
+  const agents = await loadAgents(req);
   const agent = findAgent(agents, id);
   if (!agent) {
     return NextResponse.json({ success: false, error: 'Agent not found' }, { status: 404 });
