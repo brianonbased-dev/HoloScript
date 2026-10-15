@@ -17,6 +17,7 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
+import { normalizeEarnings } from '@/lib/holomesh/normalizeEarnings';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
@@ -196,7 +197,11 @@ function AgentMeInner() {
 
         const profileData = await profileRes.json();
         const knowledgeData = await knowledgeRes.json();
-        const earningsData = await earningsRes.json().catch(() => null);
+        // Only a 2xx body can carry earnings; normalize so an error body or a
+        // partial payload never renders as $NaN / undefined (audit item 4).
+        const earningsData = normalizeEarnings(
+          earningsRes.ok ? await earningsRes.json().catch(() => null) : null
+        );
         const dashboardData = await dashRes.json().catch(() => null);
 
         if (!cancelled) {
@@ -220,7 +225,7 @@ function AgentMeInner() {
           setEntries(knowledgeData.entries || []);
           if (earningsData) {
             setStorefront(earningsData);
-            setEarnings(earningsData?.earnings ?? earningsData ?? null);
+            setEarnings(earningsData);
           }
           if (dashboardData) setDashData(dashboardData);
         }
