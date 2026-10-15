@@ -19,8 +19,9 @@ Both modes run the same checks and report the same diagnostics at the same
 places; they differ only in what they return. Tolerant never throws and never
 hides a diagnostic. Strict never returns an AST it had to guess at.
 `parseHolo` keeps its current signature so nothing breaks; `parseHoloStrict`
-is the name that changes behaviour, and today it is the one that fabricates
-trait nodes named `"@"` and `""` from noise.
+is the name that changes behaviour. (It used to fabricate trait nodes named
+`"@"` and `""` from noise; it now throws on such input, e.g. `{{{@@@`, but
+throwing is not a diagnostic, so `parseStrict` remains the contract.)
 
 Both take an optional second argument:
 
