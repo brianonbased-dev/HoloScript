@@ -24,6 +24,7 @@ import {
   evaluatePush,
   resolveDefaultBranchForPush,
   resolveTargetRef,
+  explicitPushArgs,
   unsafeBranchInput,
   workspaceDirectShipEnabled,
 } from '@/lib/workspace/shipPolicy';
@@ -126,9 +127,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Build push args
-    const args = ['push', remote];
-    if (pushBranch) args.push(pushBranch);
-    if (force) args.push('--force');
+    if (!pushBranch) {
+      throw new Error('No branch to push');
+    }
+    // Explicit refs/heads/<b>:refs/heads/<b>; repo push config can't remap it.
+    const args = explicitPushArgs(remote, pushBranch, force);
 
     const { stdout, stderr } = await runGit(args, { cwd: resolved });
 

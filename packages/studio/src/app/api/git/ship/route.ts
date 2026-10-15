@@ -35,6 +35,7 @@ import {
   evaluatePush,
   resolveDefaultBranchForPush,
   resolveTargetRef,
+  explicitPushArgs,
   unsafeBranchInput,
   workspaceDirectShipEnabled,
 } from '@/lib/workspace/shipPolicy';
@@ -266,8 +267,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Push
-    const pushArgs = ['push', remote, branch];
-    if (force) pushArgs.push('--force');
+    // Explicit refs/heads/<b>:refs/heads/<b>; repo push config can't remap it.
+    const pushArgs = explicitPushArgs(remote, branch, force);
     const { stdout: pushStdout, stderr: pushStderr } = await runGit(pushArgs, {
       cwd,
       env,

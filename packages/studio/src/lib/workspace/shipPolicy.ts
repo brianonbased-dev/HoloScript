@@ -239,3 +239,28 @@ export async function resolveDefaultBranchForPush(input: {
   }
   return input.cwd ? resolveDefaultBranch(input.cwd, input.project) : null;
 }
+
+/**
+ * argv for a server push of ONE branch to the same-named remote branch.
+ *
+ * A bare `git push origin <b>` lets repo config pick the destination: a
+ * planted `remote.<name>.push = refs/heads/x:refs/heads/main`, or a branch
+ * upstream of main with `push.default=upstream`, lands the push on main. So:
+ *   - the refspec is explicit and full: refs/heads/<b>:refs/heads/<b>;
+ *   - with a refspec on the command line git ignores `remote.<name>.push`,
+ *     and push.default is pinned to simple. (An empty `-c remote.<name>.push=`
+ *     is not usable: git rejects it as "invalid refspec ''".)
+ * safeGit's hardening pins are still prepended by runGit/runGitSync.
+ */
+export function explicitPushArgs(remote: string, branch: string, force = false): string[] {
+  const ref = `refs/heads/${branch}`;
+  return [
+    '-c',
+    'push.default=simple',
+    'push',
+    ...(force ? ['--force'] : []),
+    '--',
+    remote,
+    `${ref}:${ref}`,
+  ];
+}

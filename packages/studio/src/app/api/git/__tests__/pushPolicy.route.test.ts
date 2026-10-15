@@ -70,7 +70,7 @@ function stubDefaultBranch(name: string) {
 function pushedRefs(): string[][] {
   return h.runGit.mock.calls
     .map((c) => c[0] as string[])
-    .filter((args) => args[0] === 'push');
+    .filter((args) => args.includes('push'));
 }
 
 describe('git push honors the per-workspace direct-ship setting', () => {
@@ -105,7 +105,7 @@ describe('git push honors the per-workspace direct-ship setting', () => {
       req('http://x/api/git/push', { workspacePath: '/ws/ws-1', branch: 'studio/fix' })
     );
     expect(res.status).toBe(200);
-    expect(pushedRefs()[0]).toContain('studio/fix');
+    expect(pushedRefs()[0]).toContain('refs/heads/studio/fix:refs/heads/studio/fix');
   });
 
   it('allows the default branch only when the workspace turned direct ship on', async () => {
