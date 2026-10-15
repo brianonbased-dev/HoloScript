@@ -20,7 +20,7 @@ import { corsHeaders } from '../../_lib/cors';
 import { isSafeGitRef, isSafeGitRemote, resolveWorkspaceGitPath } from '../_shared';
 import { getGitHubToken } from '@/app/api/github/_shared';
 import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
-import { evaluatePush, resolveDefaultBranch, workspaceDirectShipEnabled } from '@/lib/workspace/shipPolicy';
+import { evaluatePush, resolveDefaultBranchForPush, workspaceDirectShipEnabled } from '@/lib/workspace/shipPolicy';
 
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
@@ -77,10 +77,22 @@ export async function POST(req: NextRequest) {
       pushBranch = null;
     }
   }
+  let remoteForPolicy: string | null = null;
+  try {
+    remoteForPolicy = (await runGit(['remote', 'get-url', remote], { cwd: resolved })).stdout.trim();
+  } catch {
+    remoteForPolicy = null;
+  }
   const decision = evaluatePush({
     directShip: workspaceDirectShipEnabled(project),
     branch: pushBranch,
-    defaultBranch: resolveDefaultBranch(resolved, project),
+    // GitHub's current default_branch first (renames), then recorded metadata.
+    defaultBranch: await resolveDefaultBranchForPush({
+      token,
+      remoteUrl: remoteForPolicy,
+      cwd: resolved,
+      project,
+    }),
   });
   if (!decision.ok) {
     return NextResponse.json({ error: decision.error, reason: decision.reason }, { status: 403 });

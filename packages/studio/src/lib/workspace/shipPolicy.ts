@@ -105,3 +105,62 @@ export function evaluatePush(input: {
   }
   return { ok: true };
 }
+
+/** owner/repo from a GitHub remote URL (https, token-in-URL, or ssh). */
+export function parseGitHubRemote(remoteUrl: string | null | undefined): { owner: string; repo: string } | null {
+  if (!remoteUrl) return null;
+  const match = remoteUrl.trim().match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
+  return match ? { owner: match[1], repo: match[2] } : null;
+}
+
+/**
+ * The repo's CURRENT default branch from the GitHub API, looked up at push
+ * time. This wins over recorded metadata, so a repo that renamed its default
+ * (main -> trunk) after import is still protected. Null if the API can't say.
+ */
+export async function fetchGitHubDefaultBranch(
+  token: string | null | undefined,
+  owner: string,
+  repo: string
+): Promise<string | null> {
+  const base = (
+    process.env.GITHUB_API_URL ||
+    process.env.GITHUB_API_BASE_URL ||
+    'https://api.github.com'
+  ).replace(/\/+$/, '');
+  try {
+    const res = await fetch(`${base}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'HoloScript-Studio',
+      },
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { default_branch?: unknown };
+    return typeof data.default_branch === 'string' && data.default_branch.trim()
+      ? data.default_branch.trim()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Default branch for a push decision: GitHub API first, then the recorded
+ * metadata / origin/HEAD. evaluatePush also always protects main and master.
+ */
+export async function resolveDefaultBranchForPush(input: {
+  token?: string | null;
+  remoteUrl?: string | null;
+  cwd?: string;
+  project?: { metadata?: unknown } | null;
+}): Promise<string | null> {
+  const ref = parseGitHubRemote(input.remoteUrl);
+  if (ref) {
+    const fromApi = await fetchGitHubDefaultBranch(input.token, ref.owner, ref.repo);
+    if (fromApi) return fromApi;
+  }
+  return input.cwd ? resolveDefaultBranch(input.cwd, input.project) : null;
+}

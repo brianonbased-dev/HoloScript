@@ -51,6 +51,22 @@ function gitOk(stdoutFor: (args: readonly string[]) => string = () => '') {
   }));
 }
 
+function stubDefaultBranch(name: string) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string) =>
+      new Response(
+        JSON.stringify(
+          String(url).endsWith('/user')
+            ? { login: 'o' }
+            : { owner: { login: 'o' }, default_branch: name }
+        ),
+        { status: 200 }
+      )
+    )
+  );
+}
+
 function pushedRefs(): string[][] {
   return h.runGit.mock.calls
     .map((c) => c[0] as string[])
@@ -61,6 +77,7 @@ describe('git push honors the per-workspace direct-ship setting', () => {
   beforeEach(() => {
     h.runGit.mockReset();
     h.project = { metadata: { defaultBranch: 'main' } };
+    stubDefaultBranch('main');
   });
 
   it('refuses to push the default branch when direct ship is unset (default)', async () => {
@@ -121,5 +138,28 @@ describe('git push honors the per-workspace direct-ship setting', () => {
     expect((await res.json()).reason).toBe('direct_ship_off');
     expect(pushedRefs()).toHaveLength(0);
     vi.unstubAllGlobals();
+  });
+
+  it('honors a renamed default from the GitHub API over stale metadata (push)', async () => {
+    // Imported when the default was main; the repo has since renamed it to trunk.
+    h.project = { metadata: { defaultBranch: 'main' } };
+    stubDefaultBranch('trunk');
+    gitOk((args) => (args[0] === 'remote' ? 'https://github.com/o/r.git' : ''));
+    const res = await pushPOST(
+      req('http://x/api/git/push', { workspacePath: '/ws/ws-1', branch: 'trunk' })
+    );
+    expect(res.status).toBe(403);
+    expect(pushedRefs()).toHaveLength(0);
+  });
+
+  it('honors a renamed default from the GitHub API over stale metadata (ship)', async () => {
+    h.project = { metadata: { defaultBranch: 'main' } };
+    stubDefaultBranch('trunk');
+    gitOk((args) => (args[0] === 'remote' ? 'https://github.com/o/r.git' : ''));
+    const res = await shipPOST(
+      req('http://x/api/git/ship', { workspacePath: '/ws/ws-1', message: 'm', branch: 'trunk' })
+    );
+    expect(res.status).toBe(403);
+    expect(pushedRefs()).toHaveLength(0);
   });
 });

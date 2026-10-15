@@ -31,7 +31,7 @@ import {
 } from '../_shared';
 import { getGitHubToken } from '@/app/api/github/_shared';
 import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
-import { evaluatePush, resolveDefaultBranch, workspaceDirectShipEnabled } from '@/lib/workspace/shipPolicy';
+import { evaluatePush, resolveDefaultBranchForPush, workspaceDirectShipEnabled } from '@/lib/workspace/shipPolicy';
 const GITHUB_API_BASE_URL = (
   process.env.GITHUB_API_URL ||
   process.env.GITHUB_API_BASE_URL ||
@@ -176,10 +176,22 @@ export async function POST(req: NextRequest) {
       shipBranch = null;
     }
   }
+  let remoteForPolicy: string | null = null;
+  try {
+    remoteForPolicy = (await runGit(['remote', 'get-url', remote], { cwd, env })).stdout.trim();
+  } catch {
+    remoteForPolicy = null;
+  }
   const decision = evaluatePush({
     directShip: workspaceDirectShipEnabled(project),
     branch: shipBranch,
-    defaultBranch: resolveDefaultBranch(cwd, project),
+    // GitHub's current default_branch first (renames), then recorded metadata.
+    defaultBranch: await resolveDefaultBranchForPush({
+      token,
+      remoteUrl: remoteForPolicy,
+      cwd,
+      project,
+    }),
   });
   if (!decision.ok) {
     return NextResponse.json(
