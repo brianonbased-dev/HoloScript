@@ -3,17 +3,14 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { getTemplate } from '../../../../../../../lib/holomesh/room-templates';
 import { rateLimit } from '../../../../../../../lib/rate-limiter';
+import {
+  callerHoloMeshHeaders,
+  noHoloMeshAgentResponse,
+} from '../../../../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../../../../_lib/cors';
 const BASE =
   process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
-
-function boardHeaders(): Record<string, string> {
-  const h: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (KEY) h['Authorization'] = `Bearer ${KEY}`;
-  return h;
-}
 
 /**
  * POST /api/holomesh/team/[id]/templates/apply
@@ -33,6 +30,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const limited = rateLimit(req, { max: 10, label: 'team-template-apply' }, 'team-template-apply');
   if (!limited.ok) return limited.response;
 
+  // Audit 2026-10-15: this wrote the team's mode and board under Studio's
+  // server key for any caller. It acts on the caller's team, so only the
+  // caller's own key may do it; keyless → 404 no_holomesh_agent.
+  const headers = callerHoloMeshHeaders(req);
+  if (!headers) return noHoloMeshAgentResponse();
+
   const { id: teamId } = await params;
 
   const body = (await req.json()) as {
@@ -51,7 +54,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: `Template '${templateSlug}' not found` }, { status: 404 });
   }
 
-  const headers = boardHeaders();
   const posted: Array<{ title: string; ok: boolean; error?: string }> = [];
 
   // 1. Set team mode (fire-and-forget)

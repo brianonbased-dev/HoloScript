@@ -1,7 +1,10 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchHoloMeshJson } from '../../../../../../lib/holomesh-proxy';
+import {
+  fetchHoloMeshJsonSelf,
+  noHoloMeshAgentResponse,
+} from '../../../../../../lib/holomesh-proxy';
 import {
   asObjectArray,
   asString,
@@ -26,7 +29,9 @@ type SearchPayload = {
 
 export async function GET(req: NextRequest) {
   const limit = Math.min(Number(req.nextUrl.searchParams.get('limit') ?? 30) || 30, 100);
-  const me = await fetchHoloMeshJson<MePayload>('/api/holomesh/me', req);
+  // Self route: caller's own key only (never Studio's). Keyless → 404.
+  const me = await fetchHoloMeshJsonSelf<MePayload>('/api/holomesh/me', req);
+  if (!me) return noHoloMeshAgentResponse();
 
   if (!me.ok || !me.data?.success) {
     return NextResponse.json({ success: true, entries: [], count: 0 });
@@ -34,8 +39,8 @@ export async function GET(req: NextRequest) {
 
   const agentId = me.data.agentId ?? '';
   const agentName = me.data.name ?? '';
-  const feed = await fetchHoloMeshJson<FeedPayload>(`/api/holomesh/feed?limit=${limit}`, req);
-  const ownEntries = asObjectArray(feed.data?.entries).filter((entry) => {
+  const feed = await fetchHoloMeshJsonSelf<FeedPayload>(`/api/holomesh/feed?limit=${limit}`, req);
+  const ownEntries = asObjectArray(feed?.data?.entries).filter((entry) => {
     return asString(entry.authorId) === agentId || asString(entry.authorName) === agentName;
   });
 
@@ -46,9 +51,12 @@ export async function GET(req: NextRequest) {
 
   const query = encodeURIComponent(agentName || agentId);
   const search = query
-    ? await fetchHoloMeshJson<SearchPayload>(`/api/holomesh/search?q=${query}&limit=${limit}`, req)
+    ? await fetchHoloMeshJsonSelf<SearchPayload>(
+        `/api/holomesh/search?q=${query}&limit=${limit}`,
+        req
+      )
     : { data: null };
-  const entries = asObjectArray(search.data?.results)
+  const entries = asObjectArray(search?.data?.results)
     .filter(
       (entry) => asString(entry.authorId) === agentId || asString(entry.authorName) === agentName
     )

@@ -1,11 +1,11 @@
 export const maxDuration = 300;
 
 import { NextRequest } from 'next/server';
-import { proxyHoloMesh } from '../../../../lib/holomesh-proxy';
+import { proxyHoloMeshSelf } from '../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../_lib/cors';
 export async function POST(req: NextRequest) {
-  return proxyHoloMesh('/api/holomesh/contribute', req);
+  return proxyHoloMeshSelf('/api/holomesh/contribute', req);
 }
 
 export function OPTIONS(request: Request) {
