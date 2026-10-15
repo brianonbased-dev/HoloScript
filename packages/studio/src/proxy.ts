@@ -6,6 +6,7 @@ import { questProofGuardReason } from './lib/questProofGuards';
 import { callerCredentialRuleFor, classifyApiPath, publicRuleFor } from './lib/api-public-paths';
 import { SESSION_COOKIE_NAMES } from './lib/session-cookie-names';
 import { INVITE_ONLY_PATH, isInviteAllowlistedToken } from './lib/inviteAllowlist';
+import { benchmarkKeyMatches } from './lib/prodBypass';
 
 /** The header the mesh reads a caller key from. */
 const MESH_KEY_HEADER = 'x-mcp-api-key';
@@ -57,9 +58,10 @@ function isBenchmarkRunner(request: NextRequest, pathname: string): boolean {
   }
   // `BRITTNEY_BENCHMARK_KEY` is unset by default, so this is inert unless
   // someone deliberately configured it.
+  // Never in production (Muse Gap 3: no prod bypass of any kind); constant-time compare.
   const configured = process.env.BRITTNEY_BENCHMARK_KEY?.trim();
   if (!configured) return false;
-  return request.headers.get('x-benchmark-key')?.trim() === configured;
+  return benchmarkKeyMatches(request.headers.get('x-benchmark-key')?.trim(), configured);
 }
 
 /**
