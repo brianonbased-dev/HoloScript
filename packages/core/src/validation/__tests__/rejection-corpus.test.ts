@@ -289,11 +289,15 @@ describe('empty source is refused on every surface (HS1001)', () => {
     expect(refused.errors.length).toBeGreaterThan(0);
   });
 
-  it('known gap: comment-only source is not refused by HS1001 (it still routes to the parser)', () => {
-    // Out of scope for HS1001 by decision; tracked as an open issue. When the
-    // canonical path learns to refuse comment-only source, flip this test.
+  it('comment-only .holo source is refused with HS1001 by the parser', () => {
+    // Was a known gap: the canonical path routed comment-only source to the parser, which
+    // accepted it. The .holo parser now refuses it; allowEmpty still waives it for editors.
     const result = validateCanonicalSource({ surface: 'holo', source: '// a note\n' });
     expect(result.validator).toBe('holo-parser');
-    expect(result.valid).toBe(true);
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((error) => error.code)).toEqual(['HS1001']);
+    expect(
+      validateCanonicalSource({ surface: 'holo', source: '// a note\n', allowEmpty: true })
+    ).toMatchObject({ valid: true, validator: 'holo-parser', errors: [] });
   });
 });

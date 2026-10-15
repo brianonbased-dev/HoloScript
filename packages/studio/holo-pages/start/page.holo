@@ -1,4 +1,4 @@
 @page {
   route: "/start"
-  redirect: "/"
+  redirect: "/create?mode=world&chat=1"
 }
