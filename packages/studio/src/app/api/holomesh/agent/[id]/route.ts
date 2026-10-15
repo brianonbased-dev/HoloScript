@@ -81,10 +81,11 @@ function buildProfilePayload(
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const agents = await loadAgents(req);
 
   if (id === 'self') {
-    const [me, profile] = await Promise.all([
+    // One round: agents, me and profile in parallel (was agents, THEN me+profile).
+    const [agents, me, profile] = await Promise.all([
+      loadAgents(req),
       fetchHoloMeshJson<MePayload>('/api/holomesh/me', req),
       fetchHoloMeshJson<ProfilePayload>('/api/holomesh/profile', req),
     ]);
@@ -113,6 +114,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json(buildProfilePayload(agent, agents, profile.data?.profile));
   }
 
+  const agents = await loadAgents(req);
   const agent = findAgent(agents, id);
   if (!agent) {
     return NextResponse.json({ success: false, error: 'Agent not found' }, { status: 404 });
