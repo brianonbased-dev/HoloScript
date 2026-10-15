@@ -55,11 +55,9 @@ import {
   useOllama,
   buildKnownTraitSet,
   resolveCanonicalSourceSurface,
-  validateCanonicalSource,
   type ASTProgram,
   type HSPlusASTNode as HSPlusNode,
 } from '@holoscript/core';
-import { validate_detailed as validateCanonicalHsDetailed } from '@holoscript/wasm/node';
 
 import { getTraitDoc, formatTraitDocCompact, getAllTraitNames } from './traitDocs';
 import {
@@ -71,6 +69,7 @@ import { SemanticCompletionProvider } from './SemanticCompletionProvider';
 import { AICompletionProvider } from './ai/AICompletionProvider';
 import { TreeSitterManager, type ContentChange } from './TreeSitterManager';
 import { runSafetyDiagnostics } from './SafetyDiagnostics';
+import { canonicalSourceDiagnostics } from './canonicalDiagnostics';
 import { TraitRecommendationProvider } from './providers/TraitRecommendationProvider';
 
 // Create connection and document manager
@@ -434,42 +433,9 @@ async function validateDocument(document: TextDocument): Promise<void> {
 
   // ── Canonical extension-routed parser ────────────────────────────────────
   try {
-    // allowEmpty: a brand-new file with nothing typed yet is not an error in
-    // the editor. The CLI and MCP validate_holoscript still refuse it (HS1001).
-    const parseResult = validateCanonicalSource(
-      { source: text, surface, allowEmpty: true },
-      { validateHsDetailed: validateCanonicalHsDetailed }
-    );
-
-    // 1. Handle Parse Errors (Integrated Multi-Error Reporting)
-    if (parseResult.errors && parseResult.errors.length > 0) {
-      for (const error of parseResult.errors) {
-        diagnostics.push({
-          severity: DiagnosticSeverity.Error,
-          range: {
-            start: { line: (error.line || 1) - 1, character: (error.column || 1) - 1 },
-            end: { line: (error.line || 1) - 1, character: (error.column || 1) + 20 },
-          },
-          message: error.message,
-          source: `holoscript-${parseResult.validator}`,
-        });
-      }
-    }
-
-    // 2. Handle Warnings
-    if (parseResult.warnings && parseResult.warnings.length > 0) {
-      for (const warning of parseResult.warnings) {
-        diagnostics.push({
-          severity: DiagnosticSeverity.Warning,
-          range: {
-            start: { line: (warning.line || 1) - 1, character: (warning.column || 1) - 1 },
-            end: { line: (warning.line || 1) - 1, character: (warning.column || 1) + 20 },
-          },
-          message: warning.message,
-          source: `holoscript-${parseResult.validator}`,
-        });
-      }
-    }
+    // allowEmpty inside: a blank buffer gives no HS1001; garbage still reports errors.
+    const { parseResult, diagnostics: canonicalDiagnostics } = canonicalSourceDiagnostics(text, surface);
+    diagnostics.push(...canonicalDiagnostics);
 
     if (surface === 'hsplus' && parseResult.ast) {
       const ast = parseResult.ast as ASTProgram;

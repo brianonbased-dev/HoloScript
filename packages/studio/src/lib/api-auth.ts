@@ -15,7 +15,7 @@ import { SESSION_COOKIE_NAMES } from './session-cookie-names';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
 import { isInviteAllowlistedToken } from './inviteAllowlist';
 import { getDb } from '../db/client';
-import { bypassesDisabled } from './prodBypass';
+import { benchmarkKeyMatches, bypassesDisabled } from './prodBypass';
 import { users as usersTable } from '../db/schema';
 
 /**
@@ -115,8 +115,12 @@ export async function requireAuth(request?: Request) {
   // This is strictly opt-in via env var — never active by default, and
   // never in production (Muse Gap 3: no prod bypass of any kind).
   if (request && process.env.BRITTNEY_BENCHMARK_KEY && !bypassesDisabled()) {
-    const benchKey = request.headers.get('x-benchmark-key');
-    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
+    if (
+      benchmarkKeyMatches(
+        request.headers.get('x-benchmark-key'),
+        process.env.BRITTNEY_BENCHMARK_KEY
+      )
+    ) {
       return {
         user: {
           id: 'benchmark',

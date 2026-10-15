@@ -256,10 +256,31 @@ export class HoloCompositionParser {
   parse(source: string): HoloParseResult {
     this.errors = [];
     this.warnings = [];
+    // HS1009 (packages/core/strict/ERROR_CONTRACT.md): a non-string is refused with a
+    // diagnostic. It is never coerced (123, {}, true) and never reaches the lexer (null throws).
+    if (typeof source !== 'string') {
+      this.errors.push({
+        message: `Source must be a string, got ${describeNonString(source)} (HS1009).`,
+        code: 'HS1009',
+        severity: 'error',
+        loc: { line: 1, column: 1 },
+      });
+      return { success: false, errors: this.errors, warnings: this.warnings };
+    }
     const lexer = new HoloLexer(source);
     this.tokens = lexer.tokenize();
     this.pos = 0;
     this.skipNewlines();
+    // HS1001: nothing but whitespace and comments is not a composition. The empty implicit
+    // AST is still returned below so editors keep a shape, but the parse does not succeed.
+    if (this.tokens.every((token) => token.type === 'NEWLINE' || token.type === 'EOF')) {
+      this.errors.push({
+        message: 'Source is empty (HS1001): nothing but whitespace and comments.',
+        code: 'HS1001',
+        severity: 'error',
+        loc: { line: 1, column: 1 },
+      });
+    }
 
     try {
       // Support files that don't start with 'composition' keyword
@@ -8658,30 +8679,13 @@ export function parseHoloStrict(source: string): HoloComposition {
   if (!result.success || !result.ast) {
     throw new Error(`Failed to parse: ${result.errors[0]?.message}`);
   }
-  // HS1001 (packages/core/strict/ERROR_CONTRACT.md): nothing but whitespace and comments is
-  // refused, not returned as an empty composition. Tokenize only when the AST holds nothing.
-  if (isEmptyComposition(result.ast) && tokenizeHoloSource(source).every(isBlankToken)) {
-    throw new Error(
-      'Failed to parse: Source is empty (HS1001): nothing but whitespace and comments.'
-    );
-  }
   return result.ast;
 }
 
-/** True when every content field of the composition is empty (only its name and kind are set). */
-function isEmptyComposition(ast: HoloComposition): boolean {
-  return Object.entries(ast).every(
-    ([key, value]) =>
-      key === 'type' ||
-      key === 'name' ||
-      key === 'loc' ||
-      value === undefined ||
-      (Array.isArray(value) && value.length === 0)
-  );
-}
-
-function isBlankToken(token: HoloSourceToken): boolean {
-  return token.type === 'NEWLINE' || token.type === 'EOF';
+function describeNonString(value: unknown): string {
+  if (value === null) return 'null';
+  if (Array.isArray(value)) return 'array';
+  return typeof value;
 }
 
 /**
