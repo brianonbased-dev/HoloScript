@@ -63,8 +63,12 @@ describe('POST /api/workspace/paper-opt-in', () => {
   });
 
   function makeReq(body: unknown) {
+    // The caller brings its own HoloMesh key; board/knowledge writes go up
+    // under it (audit 2026-10-15). Keyless is covered in
+    // src/__tests__/holomesh-server-key-routes.test.ts.
     return {
       json: vi.fn().mockResolvedValue(body),
+      headers: new Headers({ authorization: 'Bearer caller-own-key' }),
     } as unknown as Request;
   }
 
@@ -172,6 +176,11 @@ describe('POST /api/workspace/paper-opt-in', () => {
     expect(data.paperUnlockState.boardTaskIds).toContain('task_123');
     expect(data.paperUnlockState.knowledgeEntryIds).toEqual([]);
     expect(mockFetch.mock.calls.some(([url]) => String(url).includes('/knowledge'))).toBe(false);
+    for (const [, init] of mockFetch.mock.calls) {
+      expect((init as RequestInit).headers).toMatchObject({
+        Authorization: 'Bearer caller-own-key',
+      });
+    }
   });
 
   it('publishes public knowledge only with explicit consent', async () => {

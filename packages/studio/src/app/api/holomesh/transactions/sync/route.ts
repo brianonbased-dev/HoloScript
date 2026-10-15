@@ -3,6 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../../db/client';
 import { holomeshTransactions } from '../../../../../db/schema';
+import { requireFounder } from '../../../../../lib/api-auth';
 
 import { corsHeaders } from '../../../_lib/cors';
 const BASE =
@@ -31,7 +32,12 @@ interface McpTransaction {
  * Fetches all transactions from the HoloMesh MCP server and upserts them
  * into the local PostgreSQL ledger table.
  */
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
+  // Server-only ledger mirror under Studio's own key. Audit 2026-10-15: it was
+  // open to any caller; founder-gated now.
+  const founder = await requireFounder(req);
+  if (founder instanceof NextResponse) return founder;
+
   const db = getDb();
   if (!db) {
     return NextResponse.json(
