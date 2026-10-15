@@ -203,6 +203,7 @@ export const CODES = {
   HS1008: "parser warning",
   HS1009: "source is not a string",
   HS1010: "tokenizer or parser threw",
+  HS1011: "likeness source without the render_likeness rule's yes",
 };
 
 /**
@@ -210,6 +211,9 @@ export const CODES = {
  *   knownTraits    extra trait names for this call (for example a plugin's), the
  *                  same seam as core's `HoloParserOptions.knownTraits`
  *   unknownTraits  "warning" (default) or "error": the severity of HS1006
+ *   consentRules   the caller's .hs render_likeness result, { [grant]: ["face" | "voice" | "body"] }:
+ *                  the sources the rule said yes to for each grant. Without it every
+ *                  likeness source (@face_mesh, @voice_print, @body_scan) is refused (HS1011)
  */
 export async function analyze(source, options = {}) {
   return analyzeWith(source, await depsFor(source, options), options);
