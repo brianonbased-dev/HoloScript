@@ -91,7 +91,13 @@ async function loadCore() {
 
   const traitIds = new Set();
   const traitSources = [];
-  try {
+  // Core's one known-trait check (validation/KnownTraits.ts): VR_TRAITS, trait-registry.json,
+  // buildKnownTraitSet and DERIVED_TRAIT names, the same function the canonical validator,
+  // CLI, MCP and LSP use. The vocabulary loading below is only the fallback for an older core.
+  const coreKnown =
+    typeof parser.isKnownTrait === "function" && typeof parser.declaredTraitNames === "function";
+  if (coreKnown) traitSources.push("@holoscript/core/parser#isKnownTrait");
+  if (!coreKnown) try {
     const constants = await import(pathToFileURL(publicFile(coreRoot, manifest, "./constants")).href);
     if (Array.isArray(constants.VR_TRAITS) && constants.VR_TRAITS.length) {
       for (const id of constants.VR_TRAITS) traitIds.add(String(id));
@@ -100,7 +106,7 @@ async function loadCore() {
   } catch {
     // Not available in this core: the registry below may still be.
   }
-  try {
+  if (!coreKnown) try {
     const registryFile = publicFile(coreRoot, manifest, "./traits/trait-registry.json");
     const registry = JSON.parse(readFileSync(registryFile, "utf8"));
     const ids = Object.keys(registry);
@@ -119,6 +125,8 @@ async function loadCore() {
       tokenizeHoloSource: parser.tokenizeHoloSource,
       parseHolo: parser.parseHolo,
       traitIds,
+      isKnownTrait: coreKnown ? parser.isKnownTrait : undefined,
+      declaredTraitNames: coreKnown ? parser.declaredTraitNames : undefined,
       checkLikeness: typeof parser.checkLikeness === "function" ? parser.checkLikeness : undefined,
       likenessSources: parser.LIKENESS_SOURCES && { ...parser.LIKENESS_SOURCES, ...(parser.SOURCE_GATED_TRACKING || {}) },
     },
@@ -127,7 +135,7 @@ async function loadCore() {
       coreVersion: manifest.version,
       parser: parserFile,
       traitSources,
-      traitCheck: traitIds.size > 0,
+      traitCheck: coreKnown || traitIds.size > 0,
       likenessCheck: typeof parser.checkLikeness === "function" && !!parser.LIKENESS_SOURCES,
     },
     full: null,
@@ -144,6 +152,7 @@ async function loadCore() {
  *                          under packages/core/src/traits
  */
 function loadFullVocabulary(state) {
+  if (state.deps.isKnownTrait) return Promise.resolve();
   if (!state.full) {
     state.full = (async () => {
       try {

@@ -71,3 +71,14 @@ export {
   type LikenessFinding,
   type LikenessSource,
 } from '../validation/LikenessCheck';
+export {
+  isKnownTrait,
+  findUnknownTraits,
+  collectTraitUses,
+  declaredTraitNames,
+  normalizeTraitName,
+  coreKnownTraitNames,
+  UNKNOWN_TRAIT_CODE,
+  type KnownTraitOptions,
+  type TraitUse,
+} from '../validation/KnownTraits';

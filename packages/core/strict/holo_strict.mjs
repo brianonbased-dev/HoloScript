@@ -77,8 +77,10 @@ const START = { line: 1, column: 1 };
 
 /**
  * @param {string} source
- * @param {object} deps - { tokenizeHoloSource, parseHolo, traitIds?: Set<string>,
- *   checkLikeness?, likenessSources? } (core's HS1011 check, from @holoscript/core/parser)
+ * @param {object} deps - { tokenizeHoloSource, parseHolo, isKnownTrait?, declaredTraitNames?,
+ *   traitIds?: Set<string>, checkLikeness?, likenessSources? } (from @holoscript/core/parser)
+ *   `isKnownTrait` / `declaredTraitNames` are core's one known-trait check (KnownTraits.ts),
+ *   shared with the canonical validator, CLI, MCP and LSP; when present they decide HS1006.
  *   `traitIds` is the trait vocabulary, in any of the spellings normalizeTrait
  *   accepts. When it is missing or empty, the unknown-trait check (HS1006) is
  *   skipped.
@@ -91,6 +93,7 @@ const START = { line: 1, column: 1 };
  */
 export function analyze(source, deps, options = {}) {
   const { tokenizeHoloSource, parseHolo, traitIds, checkLikeness } = deps;
+  const coreKnown = typeof deps.isKnownTrait === "function" ? deps.isKnownTrait : null;
   const unknownTraitSeverity = options.unknownTraits === "error" ? "error" : "warning";
   const diagnostics = [];
   const seen = new Set();
@@ -224,8 +227,16 @@ export function analyze(source, deps, options = {}) {
 
   // HS1005 / HS1006 — trait names in the AST, located at their `@name` in the source.
   const traits = collectTraits(ast);
-  const checkTraits = !!(traitIds && traitIds.size);
-  const declared = checkTraits ? declaredTraits(ast, traits, options.knownTraits) : new Set();
+  const checkTraits = !!coreKnown || !!(traitIds && traitIds.size);
+  const declared = !checkTraits
+    ? new Set()
+    : coreKnown && typeof deps.declaredTraitNames === "function"
+      ? deps.declaredTraitNames(ast)
+      : declaredTraits(ast, traits, options.knownTraits);
+  const known = (bare) =>
+    coreKnown
+      ? coreKnown(bare, { declared, knownTraits: options.knownTraits })
+      : isKnownTrait(bare, traitIds) || declared.has(normalizeTrait(bare));
   const locator = traitLocator(source, real, anchors);
   const likenessAt = new Map();
   const shared = typeof checkLikeness === "function" && deps.likenessSources && typeof deps.likenessSources === "object";
@@ -249,7 +260,7 @@ export function analyze(source, deps, options = {}) {
     if (likenessSources && Object.prototype.hasOwnProperty.call(likenessSources, normalizeTrait(bare))) {
       likenessAt.set(trait, () => locate()?.at ?? anchors.fromNode(owner) ?? at(meaningful[0]));
     }
-    if (!checkTraits || isKnownTrait(bare, traitIds) || declared.has(normalizeTrait(bare))) continue;
+    if (!checkTraits || known(bare)) continue;
     const found = locate();
     const written = found && found.word;
     const misread = written && written.toLowerCase() !== bare.toLowerCase();

@@ -33,4 +33,7 @@ export const VISUAL_EFFECTS_TRAITS = [
   'metallic_sheen',
   'ink_wash',
   'cel_shaded',
+  // Runtime handlers registered by packages/runtime/src/browser/BrowserRuntime.ts, used in examples/
+  'particle_system', // packages/runtime/src/traits/AdvancedTraits.ts ParticleSystemTrait
+  'outline', // packages/runtime/src/traits/InteractionTraits.ts OutlineTrait
 ] as const;
