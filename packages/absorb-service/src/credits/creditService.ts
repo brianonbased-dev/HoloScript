@@ -217,6 +217,11 @@ export async function addCredits(
      * duplicate roll back here instead of crediting twice).
      */
     withinTransaction?: (tx: DbClient, result: { balanceCents: number }) => Promise<void>;
+    /**
+     * Whether this credit counts toward lifetime_purchased_cents. Default true
+     * (purchases, refunds). Admin grants pass false: free credit is not revenue.
+     */
+    countAsPurchase?: boolean;
   } = {}
 ): Promise<{ balanceCents: number } | null> {
   const db = getDb();
@@ -263,7 +268,11 @@ export async function addCredits(
       .update(creditAccounts)
       .set({
         balanceCents: sql`${creditAccounts.balanceCents} + ${amountCents}`,
-        lifetimePurchasedCents: sql`${creditAccounts.lifetimePurchasedCents} + ${amountCents}`,
+        ...(opts.countAsPurchase === false
+          ? {}
+          : {
+              lifetimePurchasedCents: sql`${creditAccounts.lifetimePurchasedCents} + ${amountCents}`,
+            }),
         updatedAt: new Date(),
       })
       .where(eq(creditAccounts.userId, userId))

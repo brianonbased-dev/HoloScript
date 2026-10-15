@@ -11,6 +11,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
+// Static (not per-request dynamic) imports for the credit-grant route: it runs
+// concurrently by design, and its race tests must see one module instance.
+import { users as usersTable, adminCreditGrants } from '../db/schema.js';
+import { eq as dEq, and as dAnd, gte as dGte, sql as dSql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -388,6 +392,25 @@ router.get('/operations-surface', async (req: Request, res: Response) => {
 /** Largest single grant: $500. Larger amounts need more than one reviewed call. */
 export const ADMIN_GRANT_MAX_CENTS = 50_000;
 
+/**
+ * Most one admin may grant per UTC day: $1,000. Enforced inside the grant's
+ * transaction under a per-admin advisory lock, so two concurrent grants by the
+ * same admin cannot both read the same "spent today" total and both pass.
+ */
+export const ADMIN_GRANT_DAILY_CAP_CENTS = 100_000;
+
+// One shared load of the credits module: concurrent grants await the same
+// promise instead of racing separate dynamic imports.
+let creditsModulePromise: Promise<any> | null = null;
+const loadCreditsModule = () =>
+  (creditsModulePromise ??= import('@holoscript/absorb-service/credits'));
+
+class DailyCapError extends Error {
+  constructor(public readonly grantedTodayCents: number) {
+    super('daily admin grant cap reached');
+  }
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isUniqueViolation(err: unknown): boolean {
@@ -448,8 +471,11 @@ router.post('/credits/grant', async (req: Request, res: Response) => {
       return;
     }
 
-    const { users, adminCreditGrants } = await import('../db/schema.js');
-    const { eq } = await import('drizzle-orm');
+    const users = usersTable;
+    const eq = dEq;
+    const and = dAnd;
+    const gte = dGte;
+    const sql = dSql;
 
     const findPrior = async () => {
       const [prior] = await db
@@ -493,7 +519,7 @@ router.post('/credits/grant', async (req: Request, res: Response) => {
 
     const admin = (req as AuthenticatedRequest).githubUsername || 'unknown-admin';
 
-    const creditsModule = await import('@holoscript/absorb-service/credits');
+    const creditsModule = await loadCreditsModule();
     const { addCredits } = ((creditsModule as any).default || creditsModule) as {
       addCredits: (
         userId: string,
@@ -508,8 +534,30 @@ router.post('/credits/grant', async (req: Request, res: Response) => {
     try {
       result = await addCredits(user.id, amountCents, `Admin grant by ${admin}: ${note}`, {
         type: 'admin_grant',
+        // Free credit is not revenue: keep it out of lifetime_purchased_cents.
+        countAsPurchase: false,
         metadata: { grantedBy: admin, idempotencyKey, note },
         withinTransaction: async (tx: any, applied: { balanceCents: number }) => {
+          // Serialize this admin's grants for the rest of the transaction, then
+          // read today's total. Released automatically at commit or rollback.
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(hashtext(${'admin-credit-grant:' + admin}))`
+          );
+          const [today] = await tx
+            .select({
+              total: sql<number>`coalesce(sum(${adminCreditGrants.amountCents}), 0)::int`,
+            })
+            .from(adminCreditGrants)
+            .where(
+              and(
+                eq(adminCreditGrants.adminGithubUsername, admin),
+                gte(adminCreditGrants.createdAt, sql`(date_trunc('day', now() at time zone 'utc') at time zone 'utc')`)
+              )
+            );
+          const grantedToday = Number(today?.total ?? 0);
+          if (grantedToday + amountCents > ADMIN_GRANT_DAILY_CAP_CENTS) {
+            throw new DailyCapError(grantedToday);
+          }
           const [row] = await tx
             .insert(adminCreditGrants)
             .values({
@@ -525,6 +573,14 @@ router.post('/credits/grant', async (req: Request, res: Response) => {
         },
       });
     } catch (err) {
+      if (err instanceof DailyCapError) {
+        res.status(429).json({
+          error: `Daily admin grant cap of ${ADMIN_GRANT_DAILY_CAP_CENTS} cents ($1,000) reached`,
+          grantedTodayCents: err.grantedTodayCents,
+          remainingTodayCents: Math.max(0, ADMIN_GRANT_DAILY_CAP_CENTS - err.grantedTodayCents),
+        });
+        return;
+      }
       // Lost a race with the same key: our transaction rolled back, the winner's stands.
       if (isUniqueViolation(err)) {
         const winner = await findPrior();

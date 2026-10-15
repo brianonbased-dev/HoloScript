@@ -11,7 +11,7 @@ import { addCredits, setDbProvider } from '../creditService';
 const USER = '11111111-2222-4333-8444-555555555555';
 
 function makeDb() {
-  const state = { balanceCents: 100, ledger: [] as any[] };
+  const state = { balanceCents: 100, ledger: [] as any[], sets: [] as any[] };
   const db: any = {
     select: () => {
       const c: any = { from: () => c, where: () => c, limit: async () => [{ userId: USER, balanceCents: state.balanceCents, tier: 'free' }] };
@@ -20,7 +20,7 @@ function makeDb() {
     update: () => {
       let amount = 0;
       const c: any = {
-        set: (v: any) => { amount = (v.balanceCents?.queryChunks ?? []).find((x: unknown) => typeof x === 'number') ?? 0; return c; },
+        set: (v: any) => { state.sets.push(v); amount = (v.balanceCents?.queryChunks ?? []).find((x: unknown) => typeof x === 'number') ?? 0; return c; },
         where: () => c,
         returning: async () => { state.balanceCents += amount; return [{ balanceCents: state.balanceCents }]; },
       };
@@ -68,5 +68,16 @@ describe('addCredits withinTransaction', () => {
     ).rejects.toThrow('dup');
     expect(db.state.balanceCents).toBe(before);
     expect(db.state.ledger).toHaveLength(0);
+  });
+
+  it('countAsPurchase:false leaves lifetime_purchased_cents alone; default still counts', async () => {
+    const db = makeDb();
+    setDbProvider(() => db);
+    await addCredits(USER, 2500, 'grant', { countAsPurchase: false });
+    await addCredits(USER, 700, 'purchase');
+    const balanceSets = db.state.sets.filter((v: any) => 'balanceCents' in v);
+    expect(balanceSets).toHaveLength(2);
+    expect('lifetimePurchasedCents' in balanceSets[0]).toBe(false);
+    expect('lifetimePurchasedCents' in balanceSets[1]).toBe(true);
   });
 });

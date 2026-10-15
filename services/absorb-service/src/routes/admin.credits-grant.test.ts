@@ -1,4 +1,4 @@
-﻿/**
+/**
  * POST /credits/grant: admin credit grant.
  * Twin tests: every case fails on main (route absent) and passes with it.
  * In-memory fakes only; no database, no keys, nothing in .env.
@@ -12,18 +12,30 @@ const state = {
   grants: [] as any[],
   balance: new Map<string, number>(),
   addCreditsCalls: 0,
+  lastOpts: null as any,
+  lockTail: Promise.resolve() as Promise<void>,
+  lockCalls: 0,
 };
 
 let mockDb: any = null;
 vi.mock('../db/client.js', () => ({ getDb: vi.fn(() => mockDb) }));
 vi.mock('../db/schema.js', () => ({
   users: { __t: 'users', id: 'users.id', email: 'users.email' },
-  adminCreditGrants: { __t: 'grants', idempotencyKey: 'grants.idempotencyKey' },
+  adminCreditGrants: {
+    __t: 'grants',
+    idempotencyKey: 'grants.idempotencyKey',
+    adminGithubUsername: 'grants.admin',
+    amountCents: 'grants.amountCents',
+    createdAt: 'grants.createdAt',
+  },
   accounts: {}, absorbProjects: {}, moltbookAgents: {},
 }));
 vi.mock('drizzle-orm', () => ({
   eq: (col: string, val: unknown) => ({ col, val }),
-  and: vi.fn(), desc: vi.fn(), sql: Object.assign(vi.fn(), { raw: vi.fn() }),
+  and: (...parts: any[]) => ({ and: parts }),
+  gte: (col: string, val: unknown) => ({ gte: col, val }),
+  desc: vi.fn(),
+  sql: Object.assign((strings: TemplateStringsArray, ...values: unknown[]) => ({ sql: strings.join('?'), values }), { raw: vi.fn() }),
 }));
 
 function rowsFor(table: any, clause: { col: string; val: unknown }): any[] {
@@ -50,11 +62,32 @@ function makeDb() {
 // unique key, and a throw inside the transaction rolls the balance back.
 const fakeAddCredits = async (userId: string, amount: number, _d: string, opts: any) => {
     state.addCreditsCalls++;
-    const before = state.balance.get(userId) ?? 0;
+    state.lastOpts = opts;
+    let release: (() => void) | null = null;
     await Promise.resolve(); // let a racing request interleave
-    const after = before + amount;
+    // Like SQL `balance + amount`: read and write in one step, no lost update.
+    const after = (state.balance.get(userId) ?? 0) + amount;
     state.balance.set(userId, after);
     const tx = {
+      // Models pg_advisory_xact_lock: held until this transaction ends.
+      execute: async (_q: unknown) => {
+        state.lockCalls++;
+        const prev = state.lockTail;
+        state.lockTail = new Promise<void>((res) => { release = res; });
+        await prev;
+      },
+      select: () => {
+        const q: any = {};
+        q.from = () => q;
+        q.where = (c: any) => {
+          const admin = c.and.find((p: any) => p.col === 'grants.admin').val;
+          const total = state.grants
+            .filter((g) => g.adminGithubUsername === admin)
+            .reduce((n, g) => n + g.amountCents, 0);
+          return Promise.resolve().then(() => Promise.resolve().then(() => [{ total }]));
+        };
+        return q;
+      },
       insert: () => ({
         values: (v: any) => ({
           returning: async () => {
@@ -73,6 +106,8 @@ const fakeAddCredits = async (userId: string, amount: number, _d: string, opts: 
     } catch (e) {
       state.balance.set(userId, (state.balance.get(userId) ?? 0) - amount);
       throw e;
+    } finally {
+      (release as (() => void) | null)?.();
     }
     return { balanceCents: after };
 };
@@ -109,6 +144,9 @@ beforeEach(() => {
   state.grants = [];
   state.balance = new Map([[USER_ID, 100]]);
   state.addCreditsCalls = 0;
+  state.lastOpts = null;
+  state.lockTail = Promise.resolve();
+  state.lockCalls = 0;
   mockDb = makeDb();
 });
 
@@ -195,6 +233,44 @@ describe('POST /credits/grant', () => {
     await handle(mockReq(good({ user: '99999999-2222-4333-8444-555555555555', idempotencyKey: 'k2' })), byId);
     expect(byId._status).toBe(404);
     expect(state.addCreditsCalls).toBe(0);
+  });
+
+  it('does not count a grant as a purchase (lifetime_purchased_cents untouched)', async () => {
+    const { handle } = await grantHandler();
+    await handle(mockReq(good()), mockRes());
+    expect(state.lastOpts.countAsPurchase).toBe(false);
+  });
+
+  it('holds the $1,000 per-admin daily total', async () => {
+    const { handle } = await grantHandler();
+    for (const k of ['d1', 'd2']) {
+      const r = mockRes();
+      await handle(mockReq(good({ amountCents: 50000, idempotencyKey: k })), r);
+      expect(r._status).toBe(201);
+    }
+    const over = mockRes();
+    await handle(mockReq(good({ amountCents: 1, idempotencyKey: 'd3' })), over);
+    expect(over._status).toBe(429);
+    expect(over._json).toMatchObject({ grantedTodayCents: 100000, remainingTodayCents: 0 });
+    expect(state.balance.get(USER_ID)).toBe(100100);
+    // Another admin has their own allowance.
+    const other = mockRes();
+    await handle(mockReq(good({ amountCents: 1, idempotencyKey: 'd4' }), { githubUsername: 'admin-two' }), other);
+    expect(other._status).toBe(201);
+  });
+
+  it('daily total is race-safe: concurrent grants cannot both squeeze under the cap', async () => {
+    const { handle } = await grantHandler();
+    await handle(mockReq(good({ amountCents: 50000, idempotencyKey: 'r0' })), mockRes());
+    await handle(mockReq(good({ amountCents: 20000, idempotencyKey: 'r1' })), mockRes());
+    const [a, b] = [mockRes(), mockRes()];
+    await Promise.all([
+      handle(mockReq(good({ amountCents: 20000, idempotencyKey: 'r2' })), a),
+      handle(mockReq(good({ amountCents: 20000, idempotencyKey: 'r3' })), b),
+    ]);
+    console.log('DBG', JSON.stringify([a._json, b._json]));expect([a._status, b._status].sort()).toEqual([201, 429]);
+    expect(state.grants.reduce((n, g) => n + g.amountCents, 0)).toBe(90000);
+    expect(state.lockCalls).toBeGreaterThanOrEqual(4);
   });
 
   it('finds a user by id', async () => {
