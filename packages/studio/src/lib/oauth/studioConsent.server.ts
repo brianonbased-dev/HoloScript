@@ -9,8 +9,16 @@
  *   v1.<base64url(JSON {sub, cid, scp, iat, exp, gid?})>.<base64url(HMAC-SHA256("v1.<payload>"))>
  *
  * sub = Studio user id, cid = OAuth client_id, scp = approved scopes,
- * exp - iat <= 300 s. The assertion is single-use on mcp-server and travels only
- * in the POST /oauth/authorize body (never a URL).
+ * exp - iat <= 300 s. It never travels in a URL (Release F3) and never reaches
+ * the browser. Contract at #578 89a487f0 (Release F2):
+ *   1. GET /oauth/authorize with `X-Studio-Consent: <assertion>` and
+ *      Accept: application/json. mcp verifies it WITHOUT consuming it (peek)
+ *      and returns a csrf_token bound to the assertion's sub.
+ *   2. POST /oauth/authorize (JSON) with that csrf_token and an assertion for
+ *      the SAME sub as `studio_consent` in the body; this one is consumed.
+ * Studio re-mints the assertion for the POST (same sub), so an assertion that
+ * lapsed while the user read the page (default TTL 120 s, CSRF TTL 600 s) does
+ * not break approval, and the assertion never has to round-trip the browser.
  */
 import { createHmac, randomUUID } from 'crypto';
 
@@ -47,6 +55,30 @@ export function signStudioConsent(
   const payload = b64url(Buffer.from(JSON.stringify(body)));
   const sig = b64url(createHmac('sha256', secret).update(`v1.${payload}`).digest());
   return `v1.${payload}.${sig}`;
+}
+
+/**
+ * Mint the assertion for this signed-in user and request, or null when the
+ * secret is not configured (fail closed). Used before the GET and again for
+ * the POST (same sub, so the sub-bound csrf_token still verifies).
+ */
+export function mintStudioConsentFor(
+  userId: string,
+  params: { client_id: string; scope: string },
+  nowMs: number = Date.now()
+): string | null {
+  const secret = getStudioConsentSecret();
+  if (!secret || !userId) return null;
+  return signStudioConsent(
+    {
+      sub: userId,
+      cid: params.client_id,
+      scp: params.scope.split(' ').filter(Boolean),
+      gid: newConsentGrantId(),
+    },
+    secret,
+    nowMs
+  );
 }
 
 export function newConsentGrantId(): string {
@@ -100,9 +132,15 @@ export interface AuthorizeRequestInfo {
   csrf_token: string;
 }
 
-/** GET /oauth/authorize (JSON variant): validates the request and yields csrf_token. */
+/**
+ * GET /oauth/authorize (JSON variant) for the signed-in user: the assertion goes
+ * in the X-Studio-Consent header (never the query string). Yields a csrf_token
+ * bound to the assertion's sub; without a valid assertion mcp sends
+ * login_required and no csrf_token, which is reported as a failure.
+ */
 export async function fetchAuthorizeRequest(
   params: AuthorizeRequestParams,
+  studioConsent: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<
   { ok: true; info: AuthorizeRequestInfo } | { ok: false; status: number; error: string }
@@ -110,7 +148,7 @@ export async function fetchAuthorizeRequest(
   const qs = new URLSearchParams(params as unknown as Record<string, string>);
   const res = await fetchImpl(`${mcpOAuthBaseUrl()}/oauth/authorize?${qs.toString()}`, {
     method: 'GET',
-    headers: { Accept: 'application/json' },
+    headers: { Accept: 'application/json', 'X-Studio-Consent': studioConsent },
     cache: 'no-store',
   });
   const json = (await res.json().catch(() => ({}))) as Record<string, any>;
@@ -119,7 +157,13 @@ export async function fetchAuthorizeRequest(
     return {
       ok: false,
       status: res.status,
-      error: String(json?.error_description || json?.error || 'authorize request rejected'),
+      error: String(
+        json?.error_description ||
+          json?.error ||
+          (req?.login_required
+            ? 'mcp-server did not accept the Studio sign-in (check STUDIO_CONSENT_SECRET on both sides)'
+            : 'authorize request rejected')
+      ),
     };
   }
   return { ok: true, info: req as AuthorizeRequestInfo };

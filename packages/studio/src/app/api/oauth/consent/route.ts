@@ -1,8 +1,9 @@
 /**
  * POST /api/oauth/consent — the signed-in user's decision on an OAuth client.
  *
- * Mints the v1 studio_consent assertion (sub = session user id) with
- * STUDIO_CONSENT_SECRET and POSTs it, in the body, to mcp-server's
+ * Re-mints the v1 studio_consent assertion for the SAME signed-in user the
+ * page minted one for before its GET (sub = session user id; the csrf_token
+ * from that GET is bound to the sub, Release F2) and POSTs it, in the body, to mcp-server's
  * /oauth/authorize together with the same client_id / redirect_uri /
  * code_challenge and the csrf_token from the GET. On success the browser is
  * sent to the redirect_uri mcp-server validated, with the code. The assertion
@@ -13,11 +14,9 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import {
   buildCallbackUrl,
-  getStudioConsentSecret,
-  newConsentGrantId,
   parseAuthorizeParams,
   postAuthorizeDecision,
-  signStudioConsent,
+  mintStudioConsentFor,
 } from '@/lib/oauth/studioConsent.server';
 
 export const dynamic = 'force-dynamic';
@@ -83,10 +82,12 @@ export async function POST(req: NextRequest) {
   }
   const decision = form.decision === 'deny' ? 'deny' : 'approve';
 
+  // Fresh assertion, same sub as the one sent on the page's GET: the GET only
+  // peeked at that one, and it may have lapsed while the user read the page.
   let studioConsent: string | undefined;
   if (decision === 'approve') {
-    const secret = getStudioConsentSecret();
-    if (!secret) {
+    studioConsent = mintStudioConsentFor(userId, params) ?? undefined;
+    if (!studioConsent) {
       return NextResponse.json(
         {
           error: 'consent_unavailable',
@@ -95,15 +96,6 @@ export async function POST(req: NextRequest) {
         { status: 503, headers: NO_STORE }
       );
     }
-    studioConsent = signStudioConsent(
-      {
-        sub: userId,
-        cid: params.client_id,
-        scp: params.scope.split(' ').filter(Boolean),
-        gid: newConsentGrantId(),
-      },
-      secret
-    );
   }
 
   const upstream = await postAuthorizeDecision({ params, csrfToken, decision, studioConsent });
