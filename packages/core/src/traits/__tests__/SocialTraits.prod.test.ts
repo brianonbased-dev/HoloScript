@@ -165,6 +165,22 @@ describe('collaborativeHandler — Production', () => {
     expect(node.__collaborativeState).toBeDefined();
   });
 
+  it('B1: the mic stream reaches the network layer only with the speaker share grant', async () => {
+    const { grantLikenessShare } = await import('../LikenessShareGrant');
+    const run = (node: any) => {
+      const ctx = makeCtx();
+      collaborativeHandler.onAttach!(node, { ...collaborativeHandler.defaultConfig, voice: true, sessionId: 's1', audience: ['bob'] } as any, ctx as any);
+      const req = (ctx.emit as any).mock.calls.find((c: any[]) => c[0] === 'request_mic_access');
+      req[1].onStream({ id: 'stream' });
+      return (ctx.emit as any).mock.calls.map((c: any[]) => c[0]);
+    };
+    const n1 = makeNode();
+    expect(run(n1)).not.toContain('local_voice_stream_ready');
+    const n2 = makeNode();
+    grantLikenessShare(n2, { grantorId: 'ava', trackedPersonId: 'ava', sessionId: 's1', audience: ['bob'], renderLikenessYes: true });
+    expect(run(n2)).toContain('local_voice_stream_ready');
+  });
+
   it('user_join event emits on_user_join', () => {
     const node = makeNode();
     const ctx = makeCtx();

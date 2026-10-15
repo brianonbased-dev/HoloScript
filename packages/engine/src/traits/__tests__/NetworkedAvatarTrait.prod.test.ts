@@ -168,7 +168,7 @@ describe('networkedAvatarHandler.onUpdate (isLocal=true)', () => {
   it('no self share grant: broadcasts the generic avatar with no live pose (POLICY §3)', () => {
     const { node, ctx, config } = attach({ isLocal: true, updateRate: 30 });
     networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { node, generic: true });
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
     expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
   });
 
@@ -177,7 +177,7 @@ describe('networkedAvatarHandler.onUpdate (isLocal=true)', () => {
     (node as any).traits = new Map([['body_tracking', { source: 'live_self' }], ['avatar_embodiment', { tracking_source: 'headset' }]]);
     networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { node, generic: true });
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
   });
 
   it('emits the live pose with the self grant; audience mismatch and revoke fall back next frame', () => {
@@ -190,14 +190,28 @@ describe('networkedAvatarHandler.onUpdate (isLocal=true)', () => {
     ctx.emit.mockClear();
     getState(node).lastUpdate = 0;
     networkedAvatarHandler.onUpdate!(node as any, { ...config, audience: ['bob', 'eve'] } as any, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { node, generic: true });
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
     // revoke: the very next frame is generic
     ctx.emit.mockClear();
     getState(node).lastUpdate = 0;
     revokeLikenessShare(node);
     networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { node, generic: true });
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
     expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
+  });
+
+  it('generic payload serializes with no node, pose or joints (Release B1 note)', async () => {
+    const { node, ctx, config } = await attach({ isLocal: true, updateRate: 30, sessionId: 's1', audience: ['bob'] });
+    (node as any).traits = new Map([['body_tracking', { source: 'live_self' }]]);
+    (node as any).__bodyTrackingState = { joints: new Map([['head', { position: [1, 2, 3] }]]) };
+    await networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    const sent = ctx.emit.mock.calls.filter((c: any[]) => c[0] === 'avatar_pose_update');
+    expect(sent.length).toBeGreaterThan(0);
+    for (const [, payload] of sent) {
+      expect(Object.keys(payload).sort()).toEqual(['avatarId', 'generic']);
+      const wire = JSON.stringify(payload);
+      expect(wire).not.toMatch(/joint|pose|node|position|rotation|head|blend|__/i);
+    }
   });
 
   it('does NOT emit on second call within interval', () => {

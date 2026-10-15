@@ -9,6 +9,7 @@
  */
 
 import type { TraitHandler, HSPlusNode, TraitContext } from './TraitTypes';
+import { avatarRenderAllowed } from './AvatarEmbodimentTrait';
 
 // =============================================================================
 // TYPES
@@ -31,6 +32,10 @@ interface CollaborativeConfig {
   cursors: boolean;
   voice: boolean;
   presence: boolean;
+  /** Share-grant scope for the live mic stream (Trust POLICY §3). */
+  sessionId?: string;
+  /** Peers that receive the mic stream; every one must be inside the granted audience. */
+  audience?: string[];
 }
 
 interface TweetableConfig {
@@ -127,7 +132,7 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
     // Initialize Voice Chat if enabled
     if (config.voice) {
       // @ts-expect-error PENDING_STRUCTURAL_HARDENING - Resolving implicit any / unknown property assignment during Singularity V2
-      this.initializeVoice(node, context);
+      this.initializeVoice(node, context, config);
     }
   },
 
@@ -147,7 +152,7 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
     // Sync logic handled by WebRTC layer
   },
 
-  async initializeVoice(node: HSPlusNode, context: TraitContext) {
+  async initializeVoice(node: HSPlusNode, context: TraitContext, config?: Partial<CollaborativeConfig>) {
     try {
       // In a real browser environment, this would request mic access
       // navigator.mediaDevices.getUserMedia({ audio: true })
@@ -162,6 +167,14 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
             state.localStream = stream;
             // Provide stream to network layer
             // This assumes context has access to the transport or we emit an event
+            // Live voice is likeness data (Trust POLICY §3, Release B1): it leaves the device only
+            // with the speaker's own share grant for this session and audience. No grant: the
+            // stream stays local and the host is told sharing needs the speaker's opt-in.
+            const scope = { sessionId: config?.sessionId, audience: config?.audience ?? [], livePose: true };
+            if (!avatarRenderAllowed(node as unknown as Record<string, unknown>, true, scope)) {
+              context.emit('voice_share_needs_grant', { avatarId: typeof node.id === 'string' ? node.id : null });
+              return;
+            }
             context.emit('local_voice_stream_ready', { stream });
           }
         },

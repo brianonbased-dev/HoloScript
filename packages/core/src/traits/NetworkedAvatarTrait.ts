@@ -159,7 +159,8 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         // with generic motion: no live pose. Re-checked every frame, so a revoke bites next frame.
         const scope = { sessionId: config.sessionId, audience: config.audience ?? [], livePose: true };
         if (!avatarRenderAllowed(node, true, scope)) {
-          context.emit('avatar_pose_update', { node, generic: true });
+          // No node, no pose: only the generic flag and an opaque scene id (no likeness).
+          context.emit('avatar_pose_update', genericAvatarPayload(node));
           return;
         }
 
@@ -187,3 +188,11 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
     }
   },
 };
+
+/**
+ * The only payload others get without the share grant: no node reference, no pose, no joints.
+ * `avatarId` is the scene node id, which identifies the avatar slot, not a person's likeness.
+ */
+export function genericAvatarPayload(node: { id?: unknown }): { generic: true; avatarId: string | null } {
+  return { generic: true, avatarId: typeof node.id === 'string' ? node.id : null };
+}

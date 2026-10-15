@@ -198,7 +198,11 @@ export const bodyTrackingHandler: TraitHandler<BodyTrackingConfig> = {
     }
 
     if (config.avatar_binding && state.joints.size > 0) {
-      context.emit?.('avatar_pose_update', {
+      // Local-only (Trust POLICY §3, Release B1): live joints drive the user's own self-preview.
+      // This is NOT the network event (avatar_pose_update); network senders must go through
+      // NetworkedAvatar's avatarRenderAllowed gate. AvatarReplicationGuard fails any network
+      // file that touches LOCAL_LIVE_EVENTS without that gate.
+      context.emit?.('local_avatar_pose', {
         node,
         joints: Object.fromEntries(state.joints),
         deltaTime: delta,
