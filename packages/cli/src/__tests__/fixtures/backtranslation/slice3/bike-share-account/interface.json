@@ -1,0 +1,32 @@
+{
+  "title": "Bike Share Account",
+  "publicState": ["bikesOut", "fineOwed"],
+  "actions": [
+    { "name": "rent", "params": ["count"], "outcomes": [
+      { "name": "rented", "kind": "accepted" },
+      { "name": "fine_unpaid", "kind": "refused" },
+      { "name": "bad_count", "kind": "refused" },
+      { "name": "over_limit", "kind": "refused" }
+    ] },
+    { "name": "giveBack", "params": ["hoursLate"], "outcomes": [
+      { "name": "returned", "kind": "accepted" },
+      { "name": "returned_late", "kind": "accepted" },
+      { "name": "nothing_out", "kind": "refused" },
+      { "name": "bad_hours", "kind": "refused" }
+    ] },
+    { "name": "payFine", "params": ["amount"], "outcomes": [
+      { "name": "fine_paid", "kind": "accepted" },
+      { "name": "nothing_owed", "kind": "refused" },
+      { "name": "not_enough", "kind": "refused" }
+    ] }
+  ],
+  "observations": [
+    { "name": "account", "params": ["viewerId"], "answerFields": ["viewer", "bikes_out", "fine_owed", "can_rent"] }
+  ],
+  "events": [
+    { "name": "bikes_rented", "fields": ["count", "now_out"] },
+    { "name": "returned", "fields": ["now_out"] },
+    { "name": "returned_late", "fields": ["hours_late", "fine_owed"] },
+    { "name": "fine_paid", "fields": ["paid", "change"] }
+  ]
+}

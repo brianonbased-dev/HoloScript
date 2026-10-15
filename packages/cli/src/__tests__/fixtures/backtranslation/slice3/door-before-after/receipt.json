@@ -1,0 +1,695 @@
+{
+  "behaviourId": "door-before-after",
+  "checklist": {
+    "author": "Claude (Anthropic), seat claude7, session 670fb727",
+    "behaviourId": "keypad-door",
+    "lines": [
+      {
+        "n": 1,
+        "text": "The door starts locked, with no wrong tries counted, and not locked out."
+      },
+      {
+        "n": 2,
+        "text": "The door code is 4721. The manager's code is 9000."
+      },
+      {
+        "n": 3,
+        "text": "Trying a code while the door is locked out is refused, and nothing changes."
+      },
+      {
+        "n": 4,
+        "text": "Trying a code while the door is already open is refused, and nothing changes."
+      },
+      {
+        "n": 5,
+        "text": "The right code opens the door and wipes the count of wrong tries. The announcement that it opened says how many wrong tries there had been before."
+      },
+      {
+        "n": 6,
+        "text": "A wrong code adds one to the count of wrong tries and announces the new count."
+      },
+      {
+        "n": 7,
+        "text": "On the third wrong try, the door locks out instead: it announces the lockout with the count, and answers that the code was wrong and the door is now locked out."
+      },
+      {
+        "n": 8,
+        "text": "Locking the door when it is already locked is refused. Otherwise the door locks, and it announces that the keypad locked it."
+      },
+      {
+        "n": 9,
+        "text": "Clearing a lockout is refused when there is no lockout. It is also refused when the manager's code is wrong."
+      },
+      {
+        "n": 10,
+        "text": "Otherwise the lockout ends, the count of wrong tries goes back to none, and it announces that the manager cleared it. Clearing a lockout does not open the door."
+      },
+      {
+        "n": 11,
+        "text": "Asking for the status tells who asked, whether the door is locked, whether it is locked out, and how many more wrong tries it would take to lock it out: 3 when none have been made, none once it is locked out. Asking changes nothing."
+      },
+      {
+        "n": 12,
+        "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+      }
+    ],
+    "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/keypad-door/original.hsplus"
+  },
+  "generatedAt": "2026-10-05T17:30:00.000Z",
+  "interfaceCard": "Behaviour name: \"Keypad Door\"\n\nState fields others can see: locked, wrongTries, lockedOut\n\nActions (each answers with allowed and outcome; outcome is one of the names listed):\nEach outcome is marked with its kind:\n- accepted: the answer has allowed = true. The action may change state and announce events.\n- refused: the answer has allowed = false. The action changes nothing and announces nothing.\n\n- enterCode(code) — outcomes: unlocked (accepted), wrong_code (accepted), wrong_code_now_locked_out (accepted), locked_out (refused), already_open (refused)\n- lockDoor() — outcomes: locked (accepted), already_locked (refused)\n- resetLockout(managerCode) — outcomes: lockout_cleared (accepted), not_locked_out (refused), wrong_manager_code (refused)\n\nObservations (answer only):\n- status(viewerId) — answer fields: viewer, locked, locked_out, tries_left\n\nEvents (event name: payload fields):\n- door_unlocked: wrong_tries_before\n- wrong_code: wrong_tries\n- door_locked_out: wrong_tries\n- door_locked: by\n- lockout_cleared: by\n",
+  "plainLanguageCheck": {
+    "exitCode": 0,
+    "findings": "Files with findings: 0; BLOCK-tier 0; WARN-tier 0",
+    "tool": "C:/holo-dev/ai-ecosystem/scripts/check-plain-language.mjs --profile canon --check --strict"
+  },
+  "precheck": {
+    "originalRanAllSituations": true,
+    "situationsRun": 20
+  },
+  "rebuild": {
+    "checker": "validateCanonicalSource + deterministic headless runtime admission",
+    "inputs": [
+      "language-reference-v2.md",
+      "interface-card.md (names only, each outcome marked accepted or refused)",
+      "checklist.json (rules, rendered as numbered lines)",
+      "checker errors (repair rounds only)"
+    ],
+    "maxRepairRounds": 3,
+    "provider": "xai",
+    "recordedNotLive": true,
+    "seesOriginalSource": false
+  },
+  "recordings": [
+    {
+      "catch": {
+        "catchRate": 0.6666666666666666,
+        "caught": 4,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 17: \"==\" -> \"!=\"",
+            "description": "comparison \"==\" changed to \"!=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 0,
+            "caught": false,
+            "change": "line 24: \"3\" -> \"4\"",
+            "description": "number 3 changed to 4",
+            "id": "constant-change#4",
+            "inDecision": true,
+            "operator": "constant-change",
+            "oracleDivergentSituations": 11,
+            "rawDivergentSituations": 11,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 0,
+            "caught": false,
+            "change": "line 11: \"      if (state.lockedOut) {\\n        return { allowed: false, outcome: \\\"locked_out\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.lockedOut) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 11,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 3: \"true\" -> \"false\"",
+            "description": "true changed to false",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 4,
+            "caught": true,
+            "change": "line 60: \"-\" -> \"+\"",
+            "description": "arithmetic \"-\" changed to \"+\"",
+            "id": "arith-flip#0",
+            "inDecision": false,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 15,
+            "rawDivergentSituations": 15,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 8,
+            "caught": true,
+            "change": "line 18: \"        emit(\\\"door_unlocked\\\", { wrong_tries_before: state.wrongTries })\" -> \"\"",
+            "description": "statement removed: emit(\"door_unlocked\", { wrong_tries_before: state.wrongTries })",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 11,
+            "rawDivergentSituations": 19,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/door-before-after/recordings/r1/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 0,
+          "checklist-ambiguity": 11,
+          "real-fault": 0
+        },
+        "divergences": [
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"fe6975467d30e9307aec15d20b5346e2ce2fd7d976e262843a63ae202464e077\" vs \"0c7d8c6c099c0cdd52e8ae214ff243bf183c732213331464815ad6410be13b71\"; $.observations[0].observation.tries_left: 0 vs \"none\"",
+            "iteration": 0,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"4a5391d1a1d28eaef085c52c8ca7cea3ac179558e31cdee3196737dcb785ca1b\" vs \"bc9a3fec4735c4dab0b6ce5c0057c8923d20bb510b2a3dd39e15047755d6c6eb\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 1,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"04b120d98fa214ff548fe6cb3e2a81f9e50c010f567b50b82e2e72c9f40e608f\" vs \"1698fce67a8eb679baa4087814d67b95619a5ae1153f07d4f7114612c10dcfc9\"; $.observations[0].observation.tries_left: 0 vs \"none\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 2,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"cd8b549741839f0cfedd0bb7e32e69c2888e3be8dddbc691b26e799192758475\" vs \"6dd847a3846d44faca8c1d2294c9a4a8524087c22f7a865bcc6e283ee0a6675d\"; $.observations[1].observation.tries_left: 0 vs \"none\"; $.observations[2].observation.tries_left: 0 vs \"none\"",
+            "iteration": 4,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"f9e77ceaafae96b16b806b123711fea33095afc7e23e52584785a884b56be8c8\" vs \"53affbf808d096771396928a9118671d76875f44e919fc52d965721fbd9e9161\"; $.observations[0].observation.tries_left: 0 vs \"none\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 7,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"2b96d174b333c7b633568facdb41e122474b737b0c15a52e72a59592cd09b9a6\" vs \"ef0a5470d168b6ef7b7fa6f0c5b73a94ea8ba804b742fa8f9d780acb66c28620\"; $.observations[0].observation.tries_left: 0 vs \"none\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 10,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"8adb2cb538b67526a7d5c00e1352b6416739fedfba038b282f9e52d69fed80f7\" vs \"56677c8155abc0b729ce6651cce0f52e17412720ea87d0aff9447c38d45ca042\"; $.observations[0].observation.tries_left: 0 vs \"none\"",
+            "iteration": 14,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"dff6b8725299e66720e0297b9e74c792f8e1105afbc10f75f83865e83f1caf2b\" vs \"59d7591619cd0a05a4e8ccad8c4e87a6770ea83aa097248213b13329ec3de03f\"; $.observations[0].observation.tries_left: 0 vs \"none\"",
+            "iteration": 15,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"4f5ca65c64075e7f84df9cbb00c441b2e62b2a2bb03b3a6ee98cd59fadb756b4\" vs \"1ec784a1954ec61691302499ef015b46067bcd7cc78f560939b0cfaf6a210c36\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 16,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"6b19796abae9100d6fe455bcdb52857f6bfe4bfd0c7f2b1d3a0ee7028459848e\" vs \"c7023845d07dd434d99a1451c84725e226ece187e60eaa89ead88d95dfb8313c\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 17,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"cc102c53255f3d93b06288549157855389fa7346aafcc9ff778b9a1dc933bb88\" vs \"fac3a15abc5a03936b854993f227d1f57e730bd892305fa7a987742a42fc826c\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 19,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          }
+        ],
+        "divergentSituations": 11,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/door-before-after/recordings/r1/rebuilt.hsplus",
+      "recording": "r1",
+      "rounds": 1,
+      "usage": {
+        "completionTokens": 499,
+        "promptTokens": 1666,
+        "totalTokens": 3105
+      },
+      "validated": true
+    },
+    {
+      "catch": {
+        "catchRate": 0.6666666666666666,
+        "caught": 4,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 17: \"==\" -> \"!=\"",
+            "description": "comparison \"==\" changed to \"!=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 0,
+            "caught": false,
+            "change": "line 24: \"3\" -> \"4\"",
+            "description": "number 3 changed to 4",
+            "id": "constant-change#4",
+            "inDecision": true,
+            "operator": "constant-change",
+            "oracleDivergentSituations": 11,
+            "rawDivergentSituations": 11,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 0,
+            "caught": false,
+            "change": "line 11: \"      if (state.lockedOut) {\\n        return { allowed: false, outcome: \\\"locked_out\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.lockedOut) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 11,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 3: \"true\" -> \"false\"",
+            "description": "true changed to false",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 4,
+            "caught": true,
+            "change": "line 60: \"-\" -> \"+\"",
+            "description": "arithmetic \"-\" changed to \"+\"",
+            "id": "arith-flip#0",
+            "inDecision": false,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 15,
+            "rawDivergentSituations": 15,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 8,
+            "caught": true,
+            "change": "line 18: \"        emit(\\\"door_unlocked\\\", { wrong_tries_before: state.wrongTries })\" -> \"\"",
+            "description": "statement removed: emit(\"door_unlocked\", { wrong_tries_before: state.wrongTries })",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 11,
+            "rawDivergentSituations": 19,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/door-before-after/recordings/r2/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 0,
+          "checklist-ambiguity": 11,
+          "real-fault": 0
+        },
+        "divergences": [
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"fe6975467d30e9307aec15d20b5346e2ce2fd7d976e262843a63ae202464e077\" vs \"0c7d8c6c099c0cdd52e8ae214ff243bf183c732213331464815ad6410be13b71\"; $.observations[0].observation.tries_left: 0 vs \"none\"",
+            "iteration": 0,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"4a5391d1a1d28eaef085c52c8ca7cea3ac179558e31cdee3196737dcb785ca1b\" vs \"bc9a3fec4735c4dab0b6ce5c0057c8923d20bb510b2a3dd39e15047755d6c6eb\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 1,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"04b120d98fa214ff548fe6cb3e2a81f9e50c010f567b50b82e2e72c9f40e608f\" vs \"1698fce67a8eb679baa4087814d67b95619a5ae1153f07d4f7114612c10dcfc9\"; $.observations[0].observation.tries_left: 0 vs \"none\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 2,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"cd8b549741839f0cfedd0bb7e32e69c2888e3be8dddbc691b26e799192758475\" vs \"6dd847a3846d44faca8c1d2294c9a4a8524087c22f7a865bcc6e283ee0a6675d\"; $.observations[1].observation.tries_left: 0 vs \"none\"; $.observations[2].observation.tries_left: 0 vs \"none\"",
+            "iteration": 4,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"f9e77ceaafae96b16b806b123711fea33095afc7e23e52584785a884b56be8c8\" vs \"53affbf808d096771396928a9118671d76875f44e919fc52d965721fbd9e9161\"; $.observations[0].observation.tries_left: 0 vs \"none\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 7,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"2b96d174b333c7b633568facdb41e122474b737b0c15a52e72a59592cd09b9a6\" vs \"ef0a5470d168b6ef7b7fa6f0c5b73a94ea8ba804b742fa8f9d780acb66c28620\"; $.observations[0].observation.tries_left: 0 vs \"none\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 10,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"8adb2cb538b67526a7d5c00e1352b6416739fedfba038b282f9e52d69fed80f7\" vs \"56677c8155abc0b729ce6651cce0f52e17412720ea87d0aff9447c38d45ca042\"; $.observations[0].observation.tries_left: 0 vs \"none\"",
+            "iteration": 14,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"dff6b8725299e66720e0297b9e74c792f8e1105afbc10f75f83865e83f1caf2b\" vs \"59d7591619cd0a05a4e8ccad8c4e87a6770ea83aa097248213b13329ec3de03f\"; $.observations[0].observation.tries_left: 0 vs \"none\"",
+            "iteration": 15,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"4f5ca65c64075e7f84df9cbb00c441b2e62b2a2bb03b3a6ee98cd59fadb756b4\" vs \"1ec784a1954ec61691302499ef015b46067bcd7cc78f560939b0cfaf6a210c36\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 16,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"6b19796abae9100d6fe455bcdb52857f6bfe4bfd0c7f2b1d3a0ee7028459848e\" vs \"c7023845d07dd434d99a1451c84725e226ece187e60eaa89ead88d95dfb8313c\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 17,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "checklist-ambiguity",
+            "difference": "$.canonical.residentObservationHash: \"cc102c53255f3d93b06288549157855389fa7346aafcc9ff778b9a1dc933bb88\" vs \"fac3a15abc5a03936b854993f227d1f57e730bd892305fa7a987742a42fc826c\"; $.observations[1].observation.tries_left: 0 vs \"none\"",
+            "iteration": 19,
+            "rationale": "Once the door is locked out, the rebuild answers tries_left with the word \"none\" instead of the number 0. Rule 11 literally says \"none once it is locked out\", so the word can be read as the text to show. The same misreading appeared in an earlier slice-2 recording; the rule should say \"0\".",
+            "reason": "syndrome-mismatch"
+          }
+        ],
+        "divergentSituations": 11,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/door-before-after/recordings/r2/rebuilt.hsplus",
+      "recording": "r2",
+      "rounds": 1,
+      "usage": {
+        "completionTokens": 499,
+        "promptTokens": 1666,
+        "totalTokens": 3143
+      },
+      "validated": true
+    },
+    {
+      "catch": {
+        "catchRate": 0.8333333333333334,
+        "caught": 5,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 17: \"==\" -> \"!=\"",
+            "description": "comparison \"==\" changed to \"!=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 8,
+            "caught": true,
+            "change": "line 24: \"3\" -> \"4\"",
+            "description": "number 3 changed to 4",
+            "id": "constant-change#4",
+            "inDecision": true,
+            "operator": "constant-change",
+            "oracleDivergentSituations": 11,
+            "rawDivergentSituations": 19,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 5,
+            "caught": true,
+            "change": "line 11: \"      if (state.lockedOut) {\\n        return { allowed: false, outcome: \\\"locked_out\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.lockedOut) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 16,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 3: \"true\" -> \"false\"",
+            "description": "true changed to false",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 60: \"-\" -> \"+\"",
+            "description": "arithmetic \"-\" changed to \"+\"",
+            "id": "arith-flip#0",
+            "inDecision": false,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 15,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 0,
+            "caught": false,
+            "change": "line 18: \"        emit(\\\"door_unlocked\\\", { wrong_tries_before: state.wrongTries })\" -> \"\"",
+            "description": "statement removed: emit(\"door_unlocked\", { wrong_tries_before: state.wrongTries })",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 11,
+            "rawDivergentSituations": 11,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/door-before-after/recordings/r3/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 11,
+          "checklist-ambiguity": 0,
+          "real-fault": 0
+        },
+        "divergences": [
+          {
+            "classification": "b-error",
+            "difference": "$.actions[2].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[3].allowed: false vs true; $.actions[3].emittedEvents[0]: missing vs {\"event\":\"wrong_code\",\"payload\":{\"wrong_tries\":1}}",
+            "iteration": 0,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[6].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[6].stateChanged: true vs false; $.actions[7].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"",
+            "iteration": 3,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[0].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[0].stateChanged: true vs false; $.actions[1].allowed: false vs true",
+            "iteration": 5,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[4].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[5].allowed: false vs true; $.actions[5].emittedEvents[0]: missing vs {\"event\":\"wrong_code\",\"payload\":{\"wrong_tries\":1}}",
+            "iteration": 6,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[0].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[0].stateChanged: true vs false; $.actions[1].allowed: false vs true",
+            "iteration": 7,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[2].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[3].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[3].prePublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"",
+            "iteration": 8,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[3].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[4].allowed: false vs true; $.actions[4].emittedEvents[0]: missing vs {\"event\":\"door_unlocked\",\"payload\":{\"wrong_tries_before\":0}}",
+            "iteration": 9,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[4].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[5].allowed: false vs true; $.actions[5].emittedEvents[0]: missing vs {\"event\":\"wrong_code\",\"payload\":{\"wrong_tries\":1}}",
+            "iteration": 11,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[4].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[4].stateChanged: true vs false; $.actions[5].allowed: false vs true",
+            "iteration": 12,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[0].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[0].stateChanged: true vs false; $.actions[1].allowed: false vs true",
+            "iteration": 16,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[7].postPublicStateHash: \"57d556412c231cb4c4979c3248fb7f66e864ab9c8f6e0dff9d3b391b33e5a1dd\" vs \"baee2c5dacf28fc91f7a09260d2f29d518afb0977d48d8b0053ae4d8d8d72c59\"; $.actions[8].allowed: false vs true; $.actions[8].emittedEvents[0]: missing vs {\"event\":\"wrong_code\",\"payload\":{\"wrong_tries\":1}}",
+            "iteration": 18,
+            "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+            "reason": "syndrome-mismatch"
+          }
+        ],
+        "divergentSituations": 11,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/door-before-after/recordings/r3/rebuilt.hsplus",
+      "recording": "r3",
+      "rounds": 2,
+      "usage": {
+        "completionTokens": 1004,
+        "promptTokens": 3893,
+        "totalTokens": 6125
+      },
+      "validated": true
+    }
+  ],
+  "role": "before-after",
+  "runSurface": {
+    "branch": "feat/back-translation-proof (worktree)",
+    "commit": "adb8f560793475a48b4242f4073277c325d64bfc",
+    "note": "slice 3 on top of slice 2; recordings replayed, not live"
+  },
+  "schema": "holoscript.back-translation-proof.v3",
+  "skippedMutants": [],
+  "spread": {
+    "catchRate": {
+      "max": 0.8333333333333334,
+      "mean": 0.7222222222222222,
+      "min": 0.6666666666666666
+    },
+    "falseAlarmSituations": {
+      "max": 11,
+      "mean": 11,
+      "min": 11
+    }
+  },
+  "title": "Keypad Door",
+  "twin": {
+    "edgeSituations": 5,
+    "excludedFields": [
+      {
+        "field": "sourceBundleHash",
+        "why": "hash of the source text itself; differs for any two files"
+      },
+      {
+        "field": "canonicalFields.actionReceiptRoot",
+        "why": "chained ledger root seeded with sourceBundleHash (ledgerGenesis/appendLedger), so it differs whenever the source text differs"
+      },
+      {
+        "field": "canonicalFields.executedScheduleHash",
+        "why": "schedule payloads carry outcomeHashes, which are chained roots seeded with sourceBundleHash"
+      },
+      {
+        "field": "actionLedger[].payload.rollbackReference.priorActionRoot",
+        "why": "chained action root, seeded with sourceBundleHash"
+      },
+      {
+        "field": "terminal.* roots, terminalCommitment, entryHash/previousHash",
+        "why": "all chained over sourceBundleHash and the manifest (which carries the probed final state)"
+      },
+      {
+        "field": "sourceRunReceipt (engine provenance, plan bytecode hash)",
+        "why": "identity of the plan program text, not behaviour"
+      }
+    ],
+    "generator": "generic: seeded random action sequences from behaviour.json (action list, parameter ranges, named edge values); every 4th situation is an edge situation",
+    "harness": "@holoscript/core/testing runTwinTest",
+    "oracleFields": [
+      "canonicalFields.canonicalSceneHash",
+      "canonicalFields.canonicalPoseHash",
+      "canonicalFields.logicalClockHash",
+      "canonicalFields.publicStateHash",
+      "canonicalFields.residentObservationHash",
+      "publicStateSnapshots[].payload",
+      "observationLedger[].payload",
+      "actionLedger[].payload (minus rollbackReference.priorActionRoot)",
+      "scheduleLedger[].payload (minus outcomeHashes)",
+      "terminal.actualCounts"
+    ],
+    "runner": "runHeadlessExperimentSources (world=model-village village.holo, plan=generated .hs per situation, behaviour=under test)",
+    "seed": 388818,
+    "situations": 20
+  },
+  "verdict": "Before/after check only, not part of the slice-3 score. Before (slice 2): 3 of 6 mistakes shown and 18 false alarms in 20 situations, all from reading a wrong code as refused. After, with the card marking a wrong code as accepted: that misreading is gone in all three rebuilds. But the door still has 11 false alarms in 20 situations in every rebuild, from two other causes: two rebuilds answered the word none instead of the number 0 for tries left (the rule says none, so this is the rule wording, which slice 2 already saw once), and one rebuild forgot to open the door on the right code (a rebuild mistake). Mistakes shown went up to 4, 4 and 5 of 6. The card fixed the problem it was aimed at; the door rules still need rule 11 to say 0."
+}

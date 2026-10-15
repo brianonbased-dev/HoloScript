@@ -1,0 +1,6 @@
+You answered 5 questions.
+On the 5 where we knew the answer, you chose right 4 times.
+You caught 3 of 4 planted faults.
+On the 1 where a copy built from your rules disagreed, you sided with your rules 1 time.
+You took about 46 seconds each.
+The answer key was sealed before you saw the questions, and it was not changed.

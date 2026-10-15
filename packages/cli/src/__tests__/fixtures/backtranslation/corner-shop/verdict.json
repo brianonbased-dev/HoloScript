@@ -1,0 +1,3 @@
+{
+  "verdict": "Passes. The rebuild acted the same as the author program in all 20 situations and showed all 6 planted mistakes, each in the same situations where the mistake really changes something. It needed one repair round because its first try used a private working value the runner does not allow."
+}

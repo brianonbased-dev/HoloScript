@@ -953,6 +953,25 @@ export interface HoloAction extends HoloNode {
   parameters: HoloParameter[];
   body: HoloStatement[];
   async?: boolean;
+  /**
+   * Declared outcomes, in the order written:
+   * `action rent(count) accepted(rented) refused(over_limit) { ... }`.
+   * Undefined when the action declares none. Checked by ActionOutcomes.ts.
+   */
+  outcomes?: HoloOutcomeDeclaration[];
+}
+
+/**
+ * accepted: the answer has `allowed: true`; the action may change state and announce events.
+ * refused: the answer has `allowed: false`; the action changes nothing and announces nothing.
+ */
+export type HoloOutcomeKind = 'accepted' | 'refused';
+
+/** One declared outcome of an action. */
+export interface HoloOutcomeDeclaration {
+  name: string;
+  kind: HoloOutcomeKind;
+  loc?: SourceLocation;
 }
 
 export interface HoloParameter extends HoloNode {

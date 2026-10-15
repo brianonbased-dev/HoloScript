@@ -1,0 +1,63 @@
+composition "Keypad Door" {
+  state {
+    locked: true
+    wrongTries: 0
+    lockedOut: false
+  }
+
+  logic {
+    action enterCode(code) {
+      if (state.lockedOut) {
+        return { allowed: false, outcome: "locked_out" }
+      }
+      if (!state.locked) {
+        return { allowed: false, outcome: "already_open" }
+      }
+      if (code == 4721) {
+        emit("door_unlocked", { wrong_tries_before: state.wrongTries })
+        state.locked = false
+        state.wrongTries = 0
+        return { allowed: true, outcome: "unlocked" }
+      }
+      state.wrongTries += 1
+      if (state.wrongTries == 3) {
+        emit("door_locked_out", { wrong_tries: 3 })
+        state.lockedOut = true
+        return { allowed: true, outcome: "wrong_code_now_locked_out" }
+      }
+      emit("wrong_code", { wrong_tries: state.wrongTries })
+      return { allowed: true, outcome: "wrong_code" }
+    }
+
+    action lockDoor() {
+      if (state.locked) {
+        return { allowed: false, outcome: "already_locked" }
+      }
+      state.locked = true
+      emit("door_locked", { by: "keypad" })
+      return { allowed: true, outcome: "locked" }
+    }
+
+    action resetLockout(managerCode) {
+      if (!state.lockedOut) {
+        return { allowed: false, outcome: "not_locked_out" }
+      }
+      if (managerCode != 9000) {
+        return { allowed: false, outcome: "wrong_manager_code" }
+      }
+      state.lockedOut = false
+      state.wrongTries = 0
+      emit("lockout_cleared", { by: "manager" })
+      return { allowed: true, outcome: "lockout_cleared" }
+    }
+
+    action status(viewerId) {
+      return {
+        viewer: viewerId,
+        locked: state.locked,
+        locked_out: state.lockedOut,
+        tries_left: state.lockedOut ? "none" : 3 - state.wrongTries
+      }
+    }
+  }
+}

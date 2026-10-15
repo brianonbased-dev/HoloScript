@@ -1,0 +1,42 @@
+[
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      2,
+      5,
+      32,
+      39
+    ],
+    "rationale": "In auto mode the rebuild returns \"idle\" from the heat part as soon as the room is at or above the setting, so it never reaches cooling. His auto rule: heats or cools as needed."
+  },
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      7
+    ],
+    "rationale": "Backup strips never come on while the compressor is heating, even 3 or more degrees below the setting. His backup rule has no such limit."
+  },
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      9,
+      12,
+      14,
+      18,
+      20,
+      23,
+      28,
+      35
+    ],
+    "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+  }
+]

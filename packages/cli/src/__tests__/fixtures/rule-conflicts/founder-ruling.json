@@ -1,0 +1,16 @@
+{
+  "behaviourId": "heat-pump",
+  "checklist": "packages/cli/src/__tests__/fixtures/backtranslation/hvac/heat-pump/checklist.json",
+  "rules": {
+    "14": "his rule 6: backup heat strips at 3 or more degrees below the setting",
+    "15": "his rule 7: below the outdoor cut-off, heat comes only from the backup strips"
+  },
+  "question": "Below the outdoor cut-off, with the room only 2 degrees below the setting, do the backup strips run?",
+  "ruling": "Below the cut-off the strips run whenever heat is called for, even when the room is only 2 degrees below the setting. Rule 15 wins over rule 14.",
+  "foundersWords": "strips run, I believe",
+  "date": "2026-10-07",
+  "decidedBy": "Joseph (founder, HVAC technician)",
+  "recordedBy": "Claude (Anthropic), seat claude7, session 670fb727, relayed from the founder by the coordinating session",
+  "matchesOriginal": "hvac/heat-pump/original.hsplus already behaves this way (rule 14 sits under 'not below the cut-off')",
+  "encodedIn": "heat-pump-rules-founder-ruling.hsplus (comment: // rule 15 wins over rule 14)"
+}

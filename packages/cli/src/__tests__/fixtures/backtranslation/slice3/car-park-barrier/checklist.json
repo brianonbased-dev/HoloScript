@@ -1,0 +1,63 @@
+{
+  "behaviourId": "car-park-barrier",
+  "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/car-park-barrier/original.hsplus",
+  "author": "Claude (Anthropic), seat claude7, session 670fb727",
+  "lines": [
+    {
+      "n": 1,
+      "text": "The car park starts empty: no car inside, no time counted, nothing paid, and no tickets issued yet."
+    },
+    {
+      "n": 2,
+      "text": "Arriving while a car is already inside is refused."
+    },
+    {
+      "n": 3,
+      "text": "Otherwise a ticket is issued: the car is inside, its time starts from 0, nothing is paid yet, and the ticket is announced with its number (1 for the first ticket ever, then 2, and so on)."
+    },
+    {
+      "n": 4,
+      "text": "Waiting when no car is inside is refused. Waiting less than 1 minute is refused. Otherwise the minutes are added to the time parked, and nothing is announced."
+    },
+    {
+      "n": 5,
+      "text": "The price depends on the total time parked: up to half an hour (30 minutes) is free, up to 2 hours (120 minutes) costs 3, up to 4 hours (240 minutes) costs 6, and longer costs 10. What is owed is the price minus what has already been paid."
+    },
+    {
+      "n": 6,
+      "text": "Paying when no car is inside is refused."
+    },
+    {
+      "n": 7,
+      "text": "Paying when nothing is owed is refused."
+    },
+    {
+      "n": 8,
+      "text": "Paying fewer than 1 coin is refused."
+    },
+    {
+      "n": 9,
+      "text": "Paying at least what is owed pays it off: it announces the change given back, and from then on the amount paid is the full price."
+    },
+    {
+      "n": 10,
+      "text": "Paying less than what is owed is not enough to leave: the coins count toward the price, and it announces how much is still owed."
+    },
+    {
+      "n": 11,
+      "text": "Leaving when no car is inside is refused. Leaving while anything is owed is refused. If time passes after paying and the stay reaches a dearer price, the difference is owed before leaving."
+    },
+    {
+      "n": 12,
+      "text": "Otherwise the barrier opens: it announces the minutes parked and the amount paid, and the car park is empty again, with the time and the amount paid back to 0."
+    },
+    {
+      "n": 13,
+      "text": "Looking at the display tells who asked, whether a car is inside, the minutes parked, and what is owed right now. Looking changes nothing."
+    },
+    {
+      "n": 14,
+      "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+    }
+  ]
+}

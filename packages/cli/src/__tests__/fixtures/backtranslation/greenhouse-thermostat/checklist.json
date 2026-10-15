@@ -1,0 +1,51 @@
+{
+  "behaviourId": "greenhouse-thermostat",
+  "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/greenhouse-thermostat/original.hsplus",
+  "author": "Claude (Anthropic), seat claude7, session 670fb727",
+  "lines": [
+    {
+      "n": 1,
+      "text": "The heater starts off. The target is 20 degrees, and the last reading is 20."
+    },
+    {
+      "n": 2,
+      "text": "Every new reading is accepted and remembered as the last reading."
+    },
+    {
+      "n": 3,
+      "text": "If the heater is on and the reading is 2 or more degrees above the target, the heater turns off, and this is announced with the reading."
+    },
+    {
+      "n": 4,
+      "text": "If the heater is off and the reading is 2 or more degrees below the target, the heater turns on, and this is announced with the reading."
+    },
+    {
+      "n": 5,
+      "text": "Any other reading leaves the heater as it was. This gap stops the heater flicking on and off."
+    },
+    {
+      "n": 6,
+      "text": "After a reading, the answer says heating if the heater is now on, and idle if it is now off."
+    },
+    {
+      "n": 7,
+      "text": "A new target below 10 or above 30 degrees is refused. 10 and 30 themselves are fine."
+    },
+    {
+      "n": 8,
+      "text": "Setting the target to what it already is, is refused."
+    },
+    {
+      "n": 9,
+      "text": "Otherwise the target changes, and this is announced with the new target. Changing the target does not switch the heater by itself; the next reading decides."
+    },
+    {
+      "n": 10,
+      "text": "Asking for the status tells who asked, whether the heater is on, the target, and the last reading. Asking changes nothing."
+    },
+    {
+      "n": 11,
+      "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "behaviourId": "bike-share-account",
+  "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/bike-share-account/original.hsplus",
+  "author": "Claude (Anthropic), seat claude7, session 670fb727",
+  "lines": [
+    {
+      "n": 1,
+      "text": "The account starts with no bikes out and no fine owed."
+    },
+    {
+      "n": 2,
+      "text": "Renting is refused while any fine is owed."
+    },
+    {
+      "n": 3,
+      "text": "Renting fewer than one bike is refused."
+    },
+    {
+      "n": 4,
+      "text": "A member can have at most 2 bikes out at once. Renting that would go over 2 is refused; reaching exactly 2 is fine."
+    },
+    {
+      "n": 5,
+      "text": "Otherwise the bikes go out, and the rental is announced with how many were rented and how many are now out."
+    },
+    {
+      "n": 6,
+      "text": "Giving a bike back when none are out is refused."
+    },
+    {
+      "n": 7,
+      "text": "Giving a bike back with fewer than 0 hours late is refused."
+    },
+    {
+      "n": 8,
+      "text": "Giving a bike back on time (0 hours late) brings one bike back, and the return is announced with how many are still out."
+    },
+    {
+      "n": 9,
+      "text": "Giving a bike back late brings one bike back and adds a fine of 2 for each hour late. The fine owed never goes above 10 in total; anything past 10 is dropped. The late return is announced with the hours late and the fine now owed."
+    },
+    {
+      "n": 10,
+      "text": "Paying a fine when nothing is owed is refused."
+    },
+    {
+      "n": 11,
+      "text": "Paying less than the whole fine is refused; part payments are not taken."
+    },
+    {
+      "n": 12,
+      "text": "Otherwise the whole fine is paid off, and the payment is announced with the amount of the fine and the change given back."
+    },
+    {
+      "n": 13,
+      "text": "Checking the account tells who asked, how many bikes are out, the fine owed, and whether renting is possible right now (no fine owed and fewer than 2 bikes out). Checking changes nothing."
+    },
+    {
+      "n": 14,
+      "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+    }
+  ]
+}

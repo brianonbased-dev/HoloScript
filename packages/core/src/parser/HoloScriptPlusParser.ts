@@ -352,6 +352,15 @@ interface Token {
 import { VR_TRAITS, LIFECYCLE_HOOKS, STRUCTURAL_DIRECTIVES } from '../constants';
 import { analyzeFunctionRegion, scanHsType } from './hsTypeAnnotation';
 import { checkTypedHsFunction, type RustFunctionDiagnostic } from './hsplusRustTypeCheck';
+import { parseHolo } from './HoloCompositionParser';
+import type { HoloOutcomeDeclaration, HoloStatement } from './HoloCompositionTypes';
+import {
+  checkActionOutcomes,
+  isOutcomeKindWord,
+  outcomeDeclarationsFromGroups,
+  type OutcomeCheckAction,
+  type OutcomeClauseGroup,
+} from './ActionOutcomes';
 import { RUNTIME_DIRECTIVE_TRAITS } from '../traits/knownTraitSet';
 import { ChunkDetector } from './ChunkDetector';
 import { ParseCache, globalParseCache } from './ParseCache';
@@ -372,6 +381,25 @@ import {
   type QuickFix,
   type ErrorCode as ErrorRecoveryErrorCode,
 } from './ErrorRecovery';
+
+/** One `action` of a logic block as the HoloScript+ parser records it. */
+interface LogicActionEntry {
+  name: string;
+  params: string[];
+  /** Body source between the braces (trimmed). */
+  body: string;
+  /** Declared outcomes (`accepted(...)` / `refused(...)`), in the order written. */
+  outcomes?: HoloOutcomeDeclaration[];
+}
+
+/** Where an action's body sits in the source (for the outcome check). */
+interface LogicActionSpan {
+  line: number;
+  column: number;
+  openOffset: number;
+  closeOffset: number;
+  openLine: number;
+}
 
 // =============================================================================
 // LEXER
@@ -5092,13 +5120,15 @@ export class HoloScriptPlusParser {
    */
   private parseLogicBlock(): {
     functions: Array<{ name: string; params: string[]; body: string }>;
-    actions: Array<{ name: string; params: string[]; body: string }>;
+    actions: LogicActionEntry[];
     eventHandlers: Array<{ event: string; params: string[]; body: string }>;
     tickHandlers: Array<{ interval: number; body: string }>;
   } {
+    // Where each action's body sits in the source, for the outcome check.
+    const actionSpans: Array<LogicActionSpan | null> = [];
     const result = {
       functions: [] as Array<{ name: string; params: string[]; body: string }>,
-      actions: [] as Array<{ name: string; params: string[]; body: string }>,
+      actions: [] as LogicActionEntry[],
       eventHandlers: [] as Array<{ event: string; params: string[]; body: string }>,
       tickHandlers: [] as Array<{ interval: number; body: string }>,
     };
@@ -5166,7 +5196,7 @@ export class HoloScriptPlusParser {
         }
         // Parse HoloScript action block: action name(args) { ... }
         else if (keyword === 'action') {
-          this.advance(); // action
+          const actionToken = this.advance(); // action
           const actionName =
             this.check('IDENTIFIER') || this.check('STRING') ? this.advance().value : 'anonymous';
           const params: string[] = [];
@@ -5192,8 +5222,37 @@ export class HoloScriptPlusParser {
             this.expect('RPAREN', 'Expected )');
           }
 
+          const outcomeGroups = this.parseOutcomeClauses();
+          const openToken = this.check('LBRACE') ? this.current() : null;
           const body = this.check('LBRACE') ? this.parseCodeBlock() : '';
-          result.actions.push({ name: actionName, params, body });
+          const entry: LogicActionEntry = { name: actionName, params, body };
+          if (outcomeGroups.length > 0) {
+            const { outcomes, problems } = outcomeDeclarationsFromGroups(actionName, outcomeGroups);
+            entry.outcomes = outcomes;
+            for (const problem of problems) {
+              this.errors.push(
+                createRichError(
+                  'HSP500',
+                  problem.message,
+                  problem.loc?.line ?? actionToken.line,
+                  problem.loc?.column ?? actionToken.column,
+                  { source: this.source, severity: 'error' }
+                )
+              );
+            }
+          }
+          actionSpans.push(
+            openToken
+              ? {
+                  line: actionToken.line,
+                  column: actionToken.column,
+                  openOffset: openToken.offset,
+                  closeOffset: this.previous().offset,
+                  openLine: openToken.line,
+                }
+              : null
+          );
+          result.actions.push(entry);
         }
         // Parse on_tick handler
         else if (keyword === 'on_tick') {
@@ -5311,7 +5370,107 @@ export class HoloScriptPlusParser {
     }
 
     this.expect('RBRACE', 'Expected }');
+    this.checkLogicOutcomes(result.actions, actionSpans);
     return result;
+  }
+
+  /**
+   * Outcome lists after an action's inputs: `accepted(a, b) refused(c)`, in
+   * either order, each on the header line or its own line. Consumes nothing
+   * when the next word is not `accepted(` / `refused(`. Same grammar as
+   * HoloCompositionParser.parseOutcomeClauses.
+   */
+  private parseOutcomeClauses(): OutcomeClauseGroup[] {
+    const groups: OutcomeClauseGroup[] = [];
+    const isBreak = (type: string) => type === 'NEWLINE' || type === 'INDENT' || type === 'DEDENT';
+    for (;;) {
+      let k = 0;
+      while (isBreak(this.peek(k).type)) k++;
+      const word = this.peek(k);
+      if (
+        word.type !== 'IDENTIFIER' ||
+        !isOutcomeKindWord(word.value) ||
+        this.peek(k + 1).type !== 'LPAREN'
+      ) {
+        return groups;
+      }
+      this.skipNewlines();
+      const kindToken = this.advance();
+      this.advance(); // (
+      const group: OutcomeClauseGroup = {
+        kind: kindToken.value as OutcomeClauseGroup['kind'],
+        names: [],
+        loc: { line: kindToken.line, column: kindToken.column },
+      };
+      while (!this.check('RPAREN') && !this.check('EOF')) {
+        const token = this.current();
+        if (token.type === 'COMMA' || isBreak(token.type)) {
+          this.advance();
+          continue;
+        }
+        group.names.push({
+          name: token.value,
+          loc: { line: token.line, column: token.column },
+          quoted: token.type === 'STRING',
+        });
+        this.advance();
+      }
+      this.expect('RPAREN', `Expected ) to close ${group.kind}(...)`);
+      groups.push(group);
+    }
+  }
+
+  /**
+   * Run the shared outcome checker (ActionOutcomes.ts) over one logic block,
+   * once any of its actions declares outcomes. Each body is read with the
+   * structured statement parser — the same reading the deterministic runtime
+   * evaluates — placed on its original lines so diagnostics point at the file.
+   */
+  private checkLogicOutcomes(
+    actions: LogicActionEntry[],
+    spans: Array<LogicActionSpan | null>
+  ): void {
+    if (!actions.some((action) => action.outcomes !== undefined)) return;
+    const inputs: OutcomeCheckAction[] = actions.map((action, index) => {
+      const span = spans[index];
+      const loc = span ? { line: span.line, column: span.column } : undefined;
+      if (!span) {
+        return { name: action.name, outcomes: action.outcomes, body: [], loc };
+      }
+      const rawBody = this.source.substring(span.openOffset + 1, span.closeOffset);
+      const synthetic =
+        '\n'.repeat(Math.max(0, span.openLine - 1)) +
+        `composition "outcome-check" { logic { action ${action.name}(${action.params.join(', ')}) {` +
+        rawBody +
+        '\n} } }\n';
+      const parsed = parseHolo(synthetic, { tolerant: true });
+      const structured = parsed.ast?.logic?.actions?.[0];
+      if (!parsed.success || !structured) {
+        const first = parsed.errors[0];
+        const body: readonly HoloStatement[] | null = null;
+        return {
+          name: action.name,
+          outcomes: action.outcomes,
+          body,
+          bodyError: first
+            ? `${first.message}${first.loc ? ` (line ${first.loc.line})` : ''}`
+            : 'the statements could not be read',
+          loc,
+        };
+      }
+      return { name: action.name, outcomes: action.outcomes, body: structured.body, loc };
+    });
+    for (const diagnostic of checkActionOutcomes(inputs)) {
+      const error = createRichError(
+        diagnostic.code,
+        diagnostic.message,
+        diagnostic.line ?? 1,
+        diagnostic.column ?? 1,
+        { source: this.source, severity: diagnostic.severity }
+      );
+      if (diagnostic.severity === 'warning') this.warnings.push(error);
+      else this.errors.push(error);
+    }
   }
 
   /**

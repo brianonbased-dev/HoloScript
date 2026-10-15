@@ -1,0 +1,591 @@
+{
+  "behaviourId": "heat-pump",
+  "generatedAt": "2026-10-06T01:36:09.797Z",
+  "checklist": {
+    "behaviourId": "heat-pump",
+    "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/hvac/heat-pump/original.hsplus",
+    "author": "Rules 9 to 16 are Joseph's own corrections (founder, HVAC technician), kept close to his words. Setting lines written by Claude (Anthropic), seat claude7, session 670fb727.",
+    "lines": [
+      {
+        "n": 1,
+        "text": "It starts in off mode, set to 70 degrees, with a swing of 1 degree, the fan on auto, a room reading of 70, an outdoor reading of 40, backup heat strips fitted and switched on, an outdoor cut-off of 25 degrees, nothing running, and the compressor last stopped 60 minutes ago."
+      },
+      {
+        "n": 2,
+        "text": "The mode can be heat, cool, auto or off. Any other mode is refused."
+      },
+      {
+        "n": 3,
+        "text": "The setting can be from 50 to 90 degrees. Anything else is refused."
+      },
+      {
+        "n": 4,
+        "text": "The swing can be from 1 to 3 degrees. Anything else is refused."
+      },
+      {
+        "n": 5,
+        "text": "The fan can be auto or on. Anything else is refused."
+      },
+      {
+        "n": 6,
+        "text": "The backup heat setting can be none (no strips fitted), off (strips fitted but switched off) or on. Anything else is refused."
+      },
+      {
+        "n": 7,
+        "text": "The outdoor cut-off can be from 0 to 50 degrees. Anything else is refused."
+      },
+      {
+        "n": 8,
+        "text": "A reading gives the room temperature, the outdoor temperature, and how many minutes have passed. A reading with fewer than 0 minutes is refused. While the compressor is not running, the minutes passed are added to the time since it stopped. When the compressor turns off, that time starts again from 0. While the compressor runs, that time does not change. Each reading then decides what runs, using the rules below."
+      },
+      {
+        "n": 9,
+        "text": "Heat mode: heat is called for when the room drops below the setting by the swing amount, and stops being called for when it reaches the setting. For example, set to 68 with a swing of 1: heat is called for at 67 or colder and stops at 68 or warmer. In between, it keeps doing what it was doing."
+      },
+      {
+        "n": 10,
+        "text": "Cool mode: the same the other way. Cooling is called for when the room rises above the setting by the swing amount, and stops when it reaches the setting. In between, it keeps doing what it was doing."
+      },
+      {
+        "n": 11,
+        "text": "Auto mode: heats or cools as needed, using the same two rules. Never both at once."
+      },
+      {
+        "n": 12,
+        "text": "Off mode: nothing heats or cools."
+      },
+      {
+        "n": 13,
+        "text": "The compressor does both the heating and the cooling. After the compressor turns off, it waits 7 minutes before it can start again. When it is needed before the 7 minutes are up, it is waiting and does not run yet."
+      },
+      {
+        "n": 14,
+        "text": "Backup heat strips come on only when the backup setting is on: while heat is called for, they come on when the room is 3 or more degrees below the setting, and go off when it is less than 3 degrees below. They have no wait."
+      },
+      {
+        "n": 15,
+        "text": "Outdoor cut-off: when the outdoor temperature is below the cut-off, heat comes only from the backup strips. The compressor does not heat, and if it was heating it turns off. If the strips are not fitted or switched off, no heat runs."
+      },
+      {
+        "n": 16,
+        "text": "Fan auto runs only while heating, backup heating, or cooling. Fan on always runs."
+      },
+      {
+        "n": 17,
+        "text": "Each reading answers with what is happening now: backup heating (whenever the strips are on), heating, cooling, waiting, or idle."
+      },
+      {
+        "n": 18,
+        "text": "Looking at the status tells who asked, the mode, the setting, the room and outdoor temperatures, whether heat is on, whether backup heat is on, whether cooling is on, whether the fan is running, and whether it is waiting. Looking changes nothing."
+      }
+    ]
+  },
+  "interfaceCard": "Behaviour name: \"Heat Pump\"\n\nState fields others can see: mode, setPoint, swing, fan, room, outdoor, backup, cutoff, heating, backupHeating, cooling, waiting, minutesSinceCompressorStopped\n\nActions (each answers with allowed and outcome; outcome is one of the names listed):\nEach outcome is marked with its kind:\n- accepted: the answer has allowed = true. The action may change state and announce events.\n- refused: the answer has allowed = false. The action changes nothing and announces nothing.\n\n- setMode(mode) — outcomes: mode_set (accepted), unknown_mode (refused)\n- setTemperature(degrees) — outcomes: temperature_set (accepted), out_of_range (refused)\n- setSwing(degrees) — outcomes: swing_set (accepted), bad_swing (refused)\n- setFan(setting) — outcomes: fan_set (accepted), unknown_fan (refused)\n- setBackup(setting) — outcomes: backup_set (accepted), unknown_backup (refused)\n- setCutoff(degrees) — outcomes: cutoff_set (accepted), out_of_range (refused)\n- reading(room, outdoor, minutes) — outcomes: backup_heating (accepted), heating (accepted), cooling (accepted), waiting (accepted), idle (accepted), bad_minutes (refused)\n\nObservations (answer only):\n- status(viewerId) — answer fields: viewer, mode, set_to, room, outdoor, heat_on, backup_heat_on, cool_on, fan_running, waiting\n\nEvents (event name: payload fields):\n",
+  "namedFaults": [
+    {
+      "id": "swing-off-by-one",
+      "description": "heat waits one degree too long: comes on at the setting minus the swing minus 1"
+    },
+    {
+      "id": "wait-5-not-7",
+      "description": "compressor waits 5 minutes instead of 7"
+    },
+    {
+      "id": "cutoff-20-not-25",
+      "description": "outdoor cut-off starts at 20 instead of 25"
+    },
+    {
+      "id": "backup-2-not-3",
+      "description": "backup strips come on 2 degrees below the setting instead of 3"
+    },
+    {
+      "id": "fan-on-auto-swapped",
+      "description": "fan auto and fan on swapped: auto always runs, on runs only with heat or cooling"
+    },
+    {
+      "id": "heat-cool-swapped",
+      "description": "heat mode and cool mode swapped"
+    }
+  ],
+  "recordings": [
+    {
+      "recording": "r1",
+      "rounds": 1,
+      "validated": true,
+      "model": "grok-4.3",
+      "caught": 3,
+      "planted": 6,
+      "mutants": [
+        {
+          "id": "swing-off-by-one",
+          "operator": "named",
+          "description": "heat waits one degree too long: comes on at the setting minus the swing minus 1",
+          "change": "line 0: \"if (room <= state.setPoint - state.swing) {\" -> \"if (room <= state.setPoint - state.swing - 1) {\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 2,
+          "rawDivergentSituations": 9,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "wait-5-not-7",
+          "operator": "named",
+          "description": "compressor waits 5 minutes instead of 7",
+          "change": "line 0: \"state.minutesSinceCompressorStopped >= 7\" -> \"state.minutesSinceCompressorStopped >= 5\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 1,
+          "rawDivergentSituations": 9,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "cutoff-20-not-25",
+          "operator": "named",
+          "description": "outdoor cut-off starts at 20 instead of 25",
+          "change": "line 0: \"cutoff: 25\" -> \"cutoff: 20\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 40,
+          "rawDivergentSituations": 40,
+          "attributableDivergentSituations": 31,
+          "caught": true
+        },
+        {
+          "id": "backup-2-not-3",
+          "operator": "named",
+          "description": "backup strips come on 2 degrees below the setting instead of 3",
+          "change": "line 0: \"room <= state.setPoint - 3\" -> \"room <= state.setPoint - 2\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 1,
+          "rawDivergentSituations": 9,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "fan-on-auto-swapped",
+          "operator": "named",
+          "description": "fan auto and fan on swapped: auto always runs, on runs only with heat or cooling",
+          "change": "line 0: \"fan_running: state.fan == \\\"on\\\" ||\" -> \"fan_running: state.fan == \\\"auto\\\" ||\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 37,
+          "rawDivergentSituations": 39,
+          "attributableDivergentSituations": 30,
+          "caught": true
+        },
+        {
+          "id": "heat-cool-swapped",
+          "operator": "named",
+          "description": "heat mode and cool mode swapped",
+          "change": "line 0: \"if (state.mode == \\\"heat\\\" || state.mode == \\\"auto\\\") { | if ((state.mode == \\\"cool\\\" || state.mode == \\\"auto\\\") && !state.heatCall) {\" -> \"if (state.mode == \\\"cool\\\" || state.mode == \\\"auto\\\") { | if ((state.mode == \\\"heat\\\" || state.mode == \\\"auto\\\") && !state.heatCall) {\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 11,
+          "rawDivergentSituations": 13,
+          "attributableDivergentSituations": 4,
+          "caught": true
+        }
+      ],
+      "falseAlarms": [
+        {
+          "iteration": 2,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[1].postPublicStateHash: \"6ded8ddba25983d07c5037c1bbb2299fb902361e13c5676289bbbbdc31aee7bc\" vs \"2bb607e492ec46af60de3ef2b06b48f468a872d98319ec964a9500d9c1c70d17\"; $.actions[2].postPublicStateHash: \"f83336734e6aa5c5735452177933e0085625985d24c92f586b40c36cd7adb4d2\" vs \"ed2ad09633dd24f6ad098d34d033c14c81b096c5ccd2516a828ae11c6807fadb\"; $.actions[2].prePublicStateHash: \"6ded8ddba25983d07c5037c1bbb2299fb902361e13c5676289bbbbdc31aee7bc\" vs \"2bb607e492ec46af60de3ef2b06b48f468a872d98319ec964a9500d9c1c70d17\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 5,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].postPublicStateHash: \"b5218ca9000b277a46cc71ae83b16918c8627578e285f77cc494dd34162c57f5\" vs \"1c7210a4033448521be58de691f028eda34fbb6771e470528ab071bacaf0a52b\"; $.actions[7].postPublicStateHash: \"1bc7df4b235b65331725e2c17e2ae790f97c5159543148dc9aaf75b201d1f3fe\" vs \"83d73cecfb37893b924e39ae08f5a68d33268507c5c8fa6043bc444661696d69\"; $.actions[7].prePublicStateHash: \"b5218ca9000b277a46cc71ae83b16918c8627578e285f77cc494dd34162c57f5\" vs \"1c7210a4033448521be58de691f028eda34fbb6771e470528ab071bacaf0a52b\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 7,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[13].outcome: \"backup_heating\" vs \"heating\"; $.actions[13].postPublicStateHash: \"c52923cbe6b30e198cbfe22933a8137a11bbc9bd2ccbb79d8ca19b9c5d3d0ef8\" vs \"eaadc6a22466a3809176baa04fd9e8343c8bf9db850b82f0e35f7cee7576f88d\"; $.actions[13].result.outcome: \"backup_heating\" vs \"heating\"",
+          "classification": "b-error",
+          "rationale": "Backup strips never come on while the compressor is heating, even 3 or more degrees below the setting. His backup rule has no such limit."
+        },
+        {
+          "iteration": 12,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[10].outcome: \"heating\" vs \"idle\"; $.actions[10].postPublicStateHash: \"bab0e997cd54e7d80a5aa5ef1fd3b93a310c84a4c053d2f707fa936bc6c6be97\" vs \"ae5fb846d5b91ec3882015f16647726554c999de0d5b4cc0eb2c5360c87bcfd6\"; $.actions[10].result.outcome: \"heating\" vs \"idle\"",
+          "classification": "b-error",
+          "rationale": "With no strips fitted, the rebuild gives no heat at all even with the outdoor temperature well above the cut-off. \"No heat runs\" belongs only to the cut-off rule (outdoor below the cut-off); above it the compressor heats."
+        },
+        {
+          "iteration": 14,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].postPublicStateHash: \"a34ff48849d05ed03e905bf339da20f0fb43c3a84b18188cb7649fba5e037ed7\" vs \"e469a81e5ad54acf37124846100e5ecf26c40bbc14eba4cce212eb1c2053005a\"; $.actions[7].outcome: \"cooling\" vs \"waiting\"; $.actions[7].postPublicStateHash: \"57fc1c2a3ebc311e1e600499afe0428ccc8202fab7c6d061119d063e23049117\" vs \"fcacfecd849066e43ba551d7ed46ef544877773a6f1f6f6d61ce1590feed049d\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 18,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[11].outcome: \"backup_heating\" vs \"heating\"; $.actions[11].postPublicStateHash: \"7f38d1f2efaaf3c07c7cd5c72ddacc27afc96e4c42c92fa7c8bb4c95fd0e3675\" vs \"49a451ca5a5942d0c492cfa932b5aecf063f43349262cbbad61ee1f40da64d9d\"; $.actions[11].result.outcome: \"backup_heating\" vs \"heating\"",
+          "classification": "b-error",
+          "rationale": "Backup strips never come on while the compressor is heating, even 3 or more degrees below the setting. His backup rule has no such limit."
+        },
+        {
+          "iteration": 32,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[8].outcome: \"cooling\" vs \"idle\"; $.actions[8].postPublicStateHash: \"6db83d1144eeaa808a852902943cd811e0e6d4215f94ad828f592b14191b7e60\" vs \"795213c97901e77a76ea36b8752631e5218c8026b2e0f236bd0e49281ddd69fa\"; $.actions[8].result.outcome: \"cooling\" vs \"idle\"",
+          "classification": "b-error",
+          "rationale": "Cooling comes on only above the setting plus the swing; \"the same the other way\" as the heat example means set to 70, swing 1, cooling at 71 or warmer."
+        },
+        {
+          "iteration": 35,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[4].postPublicStateHash: \"d5eb20d87bb7a2d574ba98f4dbfa70aa543ab1a51760c7934bf1d97a30641bf2\" vs \"ec5b4aecc0a5fa7d5081c867c52928243f6ca643b241076db0833a5f43e45103\"; $.actions[5].prePublicStateHash: \"d5eb20d87bb7a2d574ba98f4dbfa70aa543ab1a51760c7934bf1d97a30641bf2\" vs \"ec5b4aecc0a5fa7d5081c867c52928243f6ca643b241076db0833a5f43e45103\"; $.actions[5].rollbackReference.preStateHash: \"d5eb20d87bb7a2d574ba98f4dbfa70aa543ab1a51760c7934bf1d97a30641bf2\" vs \"ec5b4aecc0a5fa7d5081c867c52928243f6ca643b241076db0833a5f43e45103\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 39,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].postPublicStateHash: \"69b57611e2e00a530da736117e2826663feaa83208cd3b8b6103a55063d7afbc\" vs \"3c426176c2747aad8cd2fae2c58ae0dfe941554ab4884e80f681305e9f0138b0\"; $.actions[7].prePublicStateHash: \"69b57611e2e00a530da736117e2826663feaa83208cd3b8b6103a55063d7afbc\" vs \"3c426176c2747aad8cd2fae2c58ae0dfe941554ab4884e80f681305e9f0138b0\"; $.actions[7].rollbackReference.preStateHash: \"69b57611e2e00a530da736117e2826663feaa83208cd3b8b6103a55063d7afbc\" vs \"3c426176c2747aad8cd2fae2c58ae0dfe941554ab4884e80f681305e9f0138b0\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        }
+      ],
+      "situations": 40
+    },
+    {
+      "recording": "r2",
+      "rounds": 1,
+      "validated": true,
+      "model": "grok-4.3",
+      "caught": 3,
+      "planted": 6,
+      "mutants": [
+        {
+          "id": "swing-off-by-one",
+          "operator": "named",
+          "description": "heat waits one degree too long: comes on at the setting minus the swing minus 1",
+          "change": "line 0: \"if (room <= state.setPoint - state.swing) {\" -> \"if (room <= state.setPoint - state.swing - 1) {\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 2,
+          "rawDivergentSituations": 10,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "wait-5-not-7",
+          "operator": "named",
+          "description": "compressor waits 5 minutes instead of 7",
+          "change": "line 0: \"state.minutesSinceCompressorStopped >= 7\" -> \"state.minutesSinceCompressorStopped >= 5\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 1,
+          "rawDivergentSituations": 10,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "cutoff-20-not-25",
+          "operator": "named",
+          "description": "outdoor cut-off starts at 20 instead of 25",
+          "change": "line 0: \"cutoff: 25\" -> \"cutoff: 20\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 40,
+          "rawDivergentSituations": 40,
+          "attributableDivergentSituations": 30,
+          "caught": true
+        },
+        {
+          "id": "backup-2-not-3",
+          "operator": "named",
+          "description": "backup strips come on 2 degrees below the setting instead of 3",
+          "change": "line 0: \"room <= state.setPoint - 3\" -> \"room <= state.setPoint - 2\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 1,
+          "rawDivergentSituations": 10,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "fan-on-auto-swapped",
+          "operator": "named",
+          "description": "fan auto and fan on swapped: auto always runs, on runs only with heat or cooling",
+          "change": "line 0: \"fan_running: state.fan == \\\"on\\\" ||\" -> \"fan_running: state.fan == \\\"auto\\\" ||\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 37,
+          "rawDivergentSituations": 39,
+          "attributableDivergentSituations": 29,
+          "caught": true
+        },
+        {
+          "id": "heat-cool-swapped",
+          "operator": "named",
+          "description": "heat mode and cool mode swapped",
+          "change": "line 0: \"if (state.mode == \\\"heat\\\" || state.mode == \\\"auto\\\") { | if ((state.mode == \\\"cool\\\" || state.mode == \\\"auto\\\") && !state.heatCall) {\" -> \"if (state.mode == \\\"cool\\\" || state.mode == \\\"auto\\\") { | if ((state.mode == \\\"heat\\\" || state.mode == \\\"auto\\\") && !state.heatCall) {\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 11,
+          "rawDivergentSituations": 13,
+          "attributableDivergentSituations": 3,
+          "caught": true
+        }
+      ],
+      "falseAlarms": [
+        {
+          "iteration": 2,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[1].postPublicStateHash: \"6ded8ddba25983d07c5037c1bbb2299fb902361e13c5676289bbbbdc31aee7bc\" vs \"2bb607e492ec46af60de3ef2b06b48f468a872d98319ec964a9500d9c1c70d17\"; $.actions[2].postPublicStateHash: \"f83336734e6aa5c5735452177933e0085625985d24c92f586b40c36cd7adb4d2\" vs \"ed2ad09633dd24f6ad098d34d033c14c81b096c5ccd2516a828ae11c6807fadb\"; $.actions[2].prePublicStateHash: \"6ded8ddba25983d07c5037c1bbb2299fb902361e13c5676289bbbbdc31aee7bc\" vs \"2bb607e492ec46af60de3ef2b06b48f468a872d98319ec964a9500d9c1c70d17\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 5,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].postPublicStateHash: \"b5218ca9000b277a46cc71ae83b16918c8627578e285f77cc494dd34162c57f5\" vs \"1c7210a4033448521be58de691f028eda34fbb6771e470528ab071bacaf0a52b\"; $.actions[7].postPublicStateHash: \"1bc7df4b235b65331725e2c17e2ae790f97c5159543148dc9aaf75b201d1f3fe\" vs \"83d73cecfb37893b924e39ae08f5a68d33268507c5c8fa6043bc444661696d69\"; $.actions[7].prePublicStateHash: \"b5218ca9000b277a46cc71ae83b16918c8627578e285f77cc494dd34162c57f5\" vs \"1c7210a4033448521be58de691f028eda34fbb6771e470528ab071bacaf0a52b\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 7,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[13].postPublicStateHash: \"c52923cbe6b30e198cbfe22933a8137a11bbc9bd2ccbb79d8ca19b9c5d3d0ef8\" vs \"99fb52083edfa962965b676590009c7e71b6ff383e981b17d780132281415256\"; $.actions[14].outcome: \"backup_heating\" vs \"waiting\"; $.actions[14].postPublicStateHash: \"665f47b8dd21ea1c3b05f1571b9fc804d92f15d22d364d9543c3a0d7cc052fdc\" vs \"b5d0411b67177fd576903fea7266f872773045469cdc9650d57ddbbdbff2c70f\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 12,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[10].outcome: \"heating\" vs \"idle\"; $.actions[10].postPublicStateHash: \"bab0e997cd54e7d80a5aa5ef1fd3b93a310c84a4c053d2f707fa936bc6c6be97\" vs \"ae5fb846d5b91ec3882015f16647726554c999de0d5b4cc0eb2c5360c87bcfd6\"; $.actions[10].result.outcome: \"heating\" vs \"idle\"",
+          "classification": "b-error",
+          "rationale": "With no strips fitted, the rebuild gives no heat at all even with the outdoor temperature well above the cut-off. \"No heat runs\" belongs only to the cut-off rule."
+        },
+        {
+          "iteration": 14,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].postPublicStateHash: \"a34ff48849d05ed03e905bf339da20f0fb43c3a84b18188cb7649fba5e037ed7\" vs \"e469a81e5ad54acf37124846100e5ecf26c40bbc14eba4cce212eb1c2053005a\"; $.actions[7].outcome: \"cooling\" vs \"waiting\"; $.actions[7].postPublicStateHash: \"57fc1c2a3ebc311e1e600499afe0428ccc8202fab7c6d061119d063e23049117\" vs \"fcacfecd849066e43ba551d7ed46ef544877773a6f1f6f6d61ce1590feed049d\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 18,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[11].postPublicStateHash: \"7f38d1f2efaaf3c07c7cd5c72ddacc27afc96e4c42c92fa7c8bb4c95fd0e3675\" vs \"ebb2c674da194d2f139c8a15076d4cab37d2113a254d2b03cfe108f7e5d8c98f\"; $.actions[12].postPublicStateHash: \"7f38d1f2efaaf3c07c7cd5c72ddacc27afc96e4c42c92fa7c8bb4c95fd0e3675\" vs \"ebb2c674da194d2f139c8a15076d4cab37d2113a254d2b03cfe108f7e5d8c98f\"; $.actions[12].prePublicStateHash: \"7f38d1f2efaaf3c07c7cd5c72ddacc27afc96e4c42c92fa7c8bb4c95fd0e3675\" vs \"ebb2c674da194d2f139c8a15076d4cab37d2113a254d2b03cfe108f7e5d8c98f\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 23,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[8].outcome: \"backup_heating\" vs \"idle\"; $.actions[8].postPublicStateHash: \"d62aab95a397f782ef2d908e570b68543b6a506227b8197970e5d7c18497b7cf\" vs \"67d9c8c7089eca1fe5d52647a3f701e2b12ffb39bb666a8c32e49ee9aa0bdb45\"; $.actions[8].result.outcome: \"backup_heating\" vs \"idle\"",
+          "classification": "checklist-ambiguity",
+          "rationale": "Below the outdoor cut-off, with the room only 2 degrees below the setting: the correct program runs the strips as the only heat whenever heat is called for (his rule 7); the rebuild still waits for 3 degrees below (his rule 6). Both rules are his and the wording allows both readings. Not a fair question; a word for him to settle."
+        },
+        {
+          "iteration": 32,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[8].postPublicStateHash: \"6db83d1144eeaa808a852902943cd811e0e6d4215f94ad828f592b14191b7e60\" vs \"7506176deb6b186a9465effae765eac2f1ea28a07ba1a1857c82ad88c6d79098\"; $.actions[9].outcome: \"cooling\" vs \"waiting\"; $.actions[9].postPublicStateHash: \"52f2966d7373cf96f040cec796a68eb5b4aba8d7a4d8734f64e70a6960d721dc\" vs \"5adc69a63cbf8256473545623a1e14ed08b8903fd54d898b88d84ceff037fcda\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 35,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[4].postPublicStateHash: \"d5eb20d87bb7a2d574ba98f4dbfa70aa543ab1a51760c7934bf1d97a30641bf2\" vs \"ec5b4aecc0a5fa7d5081c867c52928243f6ca643b241076db0833a5f43e45103\"; $.actions[5].prePublicStateHash: \"d5eb20d87bb7a2d574ba98f4dbfa70aa543ab1a51760c7934bf1d97a30641bf2\" vs \"ec5b4aecc0a5fa7d5081c867c52928243f6ca643b241076db0833a5f43e45103\"; $.actions[5].rollbackReference.preStateHash: \"d5eb20d87bb7a2d574ba98f4dbfa70aa543ab1a51760c7934bf1d97a30641bf2\" vs \"ec5b4aecc0a5fa7d5081c867c52928243f6ca643b241076db0833a5f43e45103\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        },
+        {
+          "iteration": 39,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].postPublicStateHash: \"69b57611e2e00a530da736117e2826663feaa83208cd3b8b6103a55063d7afbc\" vs \"3c426176c2747aad8cd2fae2c58ae0dfe941554ab4884e80f681305e9f0138b0\"; $.actions[7].prePublicStateHash: \"69b57611e2e00a530da736117e2826663feaa83208cd3b8b6103a55063d7afbc\" vs \"3c426176c2747aad8cd2fae2c58ae0dfe941554ab4884e80f681305e9f0138b0\"; $.actions[7].rollbackReference.preStateHash: \"69b57611e2e00a530da736117e2826663feaa83208cd3b8b6103a55063d7afbc\" vs \"3c426176c2747aad8cd2fae2c58ae0dfe941554ab4884e80f681305e9f0138b0\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+        }
+      ],
+      "situations": 40
+    },
+    {
+      "recording": "r3",
+      "rounds": 1,
+      "validated": true,
+      "model": "grok-4.3",
+      "caught": 2,
+      "planted": 6,
+      "mutants": [
+        {
+          "id": "swing-off-by-one",
+          "operator": "named",
+          "description": "heat waits one degree too long: comes on at the setting minus the swing minus 1",
+          "change": "line 0: \"if (room <= state.setPoint - state.swing) {\" -> \"if (room <= state.setPoint - state.swing - 1) {\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 2,
+          "rawDivergentSituations": 13,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "wait-5-not-7",
+          "operator": "named",
+          "description": "compressor waits 5 minutes instead of 7",
+          "change": "line 0: \"state.minutesSinceCompressorStopped >= 7\" -> \"state.minutesSinceCompressorStopped >= 5\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 1,
+          "rawDivergentSituations": 13,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "cutoff-20-not-25",
+          "operator": "named",
+          "description": "outdoor cut-off starts at 20 instead of 25",
+          "change": "line 0: \"cutoff: 25\" -> \"cutoff: 20\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 40,
+          "rawDivergentSituations": 40,
+          "attributableDivergentSituations": 27,
+          "caught": true
+        },
+        {
+          "id": "backup-2-not-3",
+          "operator": "named",
+          "description": "backup strips come on 2 degrees below the setting instead of 3",
+          "change": "line 0: \"room <= state.setPoint - 3\" -> \"room <= state.setPoint - 2\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 1,
+          "rawDivergentSituations": 13,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        },
+        {
+          "id": "fan-on-auto-swapped",
+          "operator": "named",
+          "description": "fan auto and fan on swapped: auto always runs, on runs only with heat or cooling",
+          "change": "line 0: \"fan_running: state.fan == \\\"on\\\" ||\" -> \"fan_running: state.fan == \\\"auto\\\" ||\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 37,
+          "rawDivergentSituations": 40,
+          "attributableDivergentSituations": 27,
+          "caught": true
+        },
+        {
+          "id": "heat-cool-swapped",
+          "operator": "named",
+          "description": "heat mode and cool mode swapped",
+          "change": "line 0: \"if (state.mode == \\\"heat\\\" || state.mode == \\\"auto\\\") { | if ((state.mode == \\\"cool\\\" || state.mode == \\\"auto\\\") && !state.heatCall) {\" -> \"if (state.mode == \\\"cool\\\" || state.mode == \\\"auto\\\") { | if ((state.mode == \\\"heat\\\" || state.mode == \\\"auto\\\") && !state.heatCall) {\"",
+          "inDecision": true,
+          "situations": 40,
+          "oracleDivergentSituations": 11,
+          "rawDivergentSituations": 13,
+          "attributableDivergentSituations": 0,
+          "caught": false
+        }
+      ],
+      "falseAlarms": [
+        {
+          "iteration": 2,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[1].outcome: \"cooling\" vs \"idle\"; $.actions[1].postPublicStateHash: \"6ded8ddba25983d07c5037c1bbb2299fb902361e13c5676289bbbbdc31aee7bc\" vs \"aab89f14e3c36b99e6530a58ba5024581b90028a1c72efd1878a9e778e615f01\"; $.actions[1].result.outcome: \"cooling\" vs \"idle\"",
+          "classification": "b-error",
+          "rationale": "In auto mode the rebuild returns \"idle\" from the heat part as soon as the room is at or above the setting, so it never reaches cooling. His auto rule: heats or cools as needed."
+        },
+        {
+          "iteration": 5,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].outcome: \"cooling\" vs \"idle\"; $.actions[6].postPublicStateHash: \"b5218ca9000b277a46cc71ae83b16918c8627578e285f77cc494dd34162c57f5\" vs \"43ac1734c22f67540bdefc6a55d6b1e9a72198d1d0eec7adf112129aca57b96b\"; $.actions[6].result.outcome: \"cooling\" vs \"idle\"",
+          "classification": "b-error",
+          "rationale": "In auto mode the rebuild returns \"idle\" from the heat part as soon as the room is at or above the setting, so it never reaches cooling. His auto rule: heats or cools as needed."
+        },
+        {
+          "iteration": 7,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[13].outcome: \"backup_heating\" vs \"heating\"; $.actions[13].postPublicStateHash: \"c52923cbe6b30e198cbfe22933a8137a11bbc9bd2ccbb79d8ca19b9c5d3d0ef8\" vs \"eaadc6a22466a3809176baa04fd9e8343c8bf9db850b82f0e35f7cee7576f88d\"; $.actions[13].result.outcome: \"backup_heating\" vs \"heating\"",
+          "classification": "b-error",
+          "rationale": "Backup strips never come on while the compressor is heating, even 3 or more degrees below the setting. His backup rule has no such limit."
+        },
+        {
+          "iteration": 9,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[11].postPublicStateHash: \"0220611ffd76872dcba8e1ffcfaa45c99594023d4de4cb2e82de32bc0ec0fb8b\" vs \"fd6636dac927c086bc4610a86bfde5ea9ec7013edb43ee48c60de6336bf387f6\"; $.actions[12].postPublicStateHash: \"920fd597d7c880c0111a13f3f492a7d115fa55dc839560459571be7e31faa181\" vs \"bcd244b91a8aeaef79dd97bc4d4a3c5ea8994cc8c6e8e70d2895d9a30c3a708c\"; $.actions[12].prePublicStateHash: \"0220611ffd76872dcba8e1ffcfaa45c99594023d4de4cb2e82de32bc0ec0fb8b\" vs \"fd6636dac927c086bc4610a86bfde5ea9ec7013edb43ee48c60de6336bf387f6\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+        },
+        {
+          "iteration": 12,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].postPublicStateHash: \"745b90b475d772c3d7fbbd3407430665637fc42914f469f81f7feeb6e47a01e1\" vs \"025eadf51b66af42f89f172bb0c99dab556a50935b9b334a4c7dab4ebafa2fbb\"; $.actions[7].postPublicStateHash: \"40eb33b64013af01007e1e43daf98fdc650fe3f3fa7a1857ec72921b63a0d0f0\" vs \"50da9e709997ce7691fcbba04525d4592f0ab33c9b18be623dddd1be96b884c3\"; $.actions[7].prePublicStateHash: \"745b90b475d772c3d7fbbd3407430665637fc42914f469f81f7feeb6e47a01e1\" vs \"025eadf51b66af42f89f172bb0c99dab556a50935b9b334a4c7dab4ebafa2fbb\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+        },
+        {
+          "iteration": 14,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].postPublicStateHash: \"a34ff48849d05ed03e905bf339da20f0fb43c3a84b18188cb7649fba5e037ed7\" vs \"e469a81e5ad54acf37124846100e5ecf26c40bbc14eba4cce212eb1c2053005a\"; $.actions[7].outcome: \"cooling\" vs \"waiting\"; $.actions[7].postPublicStateHash: \"57fc1c2a3ebc311e1e600499afe0428ccc8202fab7c6d061119d063e23049117\" vs \"fcacfecd849066e43ba551d7ed46ef544877773a6f1f6f6d61ce1590feed049d\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+        },
+        {
+          "iteration": 18,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[3].postPublicStateHash: \"08c03a5d0d7a4aef5b9d8aec03610eb6871896bc08f085b2897a60103148af58\" vs \"1a17f41af0155a7e33b9d7474a2a2f8d07ff0d4f5099282fe3fbdb87d956173d\"; $.actions[4].postPublicStateHash: \"e75995a42da7386e6ea6fe4e558d4a43e6d79471636c55de410c8a02dd1e631c\" vs \"d6f2ea272d2b288bf5741e39b5b5826640d9a9764cffea68d99617611ee45dee\"; $.actions[4].prePublicStateHash: \"08c03a5d0d7a4aef5b9d8aec03610eb6871896bc08f085b2897a60103148af58\" vs \"1a17f41af0155a7e33b9d7474a2a2f8d07ff0d4f5099282fe3fbdb87d956173d\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+        },
+        {
+          "iteration": 20,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[11].postPublicStateHash: \"20dbe36ac5754023ab659c58cc5d109683b94158013baa19ee9d02722c6da59b\" vs \"d51679bf767a9fe25a5fb39c8eaf6544eaf11f5b76122f02cdfa7e0f605ffbcc\"; $.actions[12].postPublicStateHash: \"20dbe36ac5754023ab659c58cc5d109683b94158013baa19ee9d02722c6da59b\" vs \"d51679bf767a9fe25a5fb39c8eaf6544eaf11f5b76122f02cdfa7e0f605ffbcc\"; $.actions[12].prePublicStateHash: \"20dbe36ac5754023ab659c58cc5d109683b94158013baa19ee9d02722c6da59b\" vs \"d51679bf767a9fe25a5fb39c8eaf6544eaf11f5b76122f02cdfa7e0f605ffbcc\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+        },
+        {
+          "iteration": 23,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[2].postPublicStateHash: \"99e75ec1aaa9249e7730c621b5a237eb11192f9cb44b361d0dd2cdbf4e23e899\" vs \"69aafc72a9db84ec412e2b726d9729d755243590ca7eb5adb5b2be7208bbb4f1\"; $.actions[3].postPublicStateHash: \"152288adff554390d0a078b378eb3a5e615cdadce9697814f137bb13616e6e0a\" vs \"02279b38d192a1de92c6828591933fc63c6f0a256f8c8864812bd6a373b2764c\"; $.actions[3].prePublicStateHash: \"99e75ec1aaa9249e7730c621b5a237eb11192f9cb44b361d0dd2cdbf4e23e899\" vs \"69aafc72a9db84ec412e2b726d9729d755243590ca7eb5adb5b2be7208bbb4f1\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+        },
+        {
+          "iteration": 28,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[12].postPublicStateHash: \"dc5015d0e50beb20a6b55d806c654c28362488b17a7f661aca0c69a245a91e6e\" vs \"2dd20f7eb4d9f868d4ef45226ecb5d16ce1b9f4ce0dcae3d465b3b8b9817226c\"; $.actions[13].postPublicStateHash: \"dc5015d0e50beb20a6b55d806c654c28362488b17a7f661aca0c69a245a91e6e\" vs \"2dd20f7eb4d9f868d4ef45226ecb5d16ce1b9f4ce0dcae3d465b3b8b9817226c\"; $.actions[13].prePublicStateHash: \"dc5015d0e50beb20a6b55d806c654c28362488b17a7f661aca0c69a245a91e6e\" vs \"2dd20f7eb4d9f868d4ef45226ecb5d16ce1b9f4ce0dcae3d465b3b8b9817226c\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+        },
+        {
+          "iteration": 32,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[8].outcome: \"cooling\" vs \"idle\"; $.actions[8].postPublicStateHash: \"6db83d1144eeaa808a852902943cd811e0e6d4215f94ad828f592b14191b7e60\" vs \"b6a29cf3cf1f5a78cda837abf55879c3309dd5349c07db2230d65f81b6142fdd\"; $.actions[8].result.outcome: \"cooling\" vs \"idle\"",
+          "classification": "b-error",
+          "rationale": "In auto mode the rebuild returns \"idle\" from the heat part as soon as the room is at or above the setting, so it never reaches cooling. His auto rule: heats or cools as needed."
+        },
+        {
+          "iteration": 35,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[3].postPublicStateHash: \"885835087e5f72fafbae2f365158b2e27c0084f9c5a6106fa579a2abe1c658b5\" vs \"32aaab19f1bba318cc2b01f90d6c7fa3389d1cffc077d77e385b366a9d6d38e4\"; $.actions[4].postPublicStateHash: \"d5eb20d87bb7a2d574ba98f4dbfa70aa543ab1a51760c7934bf1d97a30641bf2\" vs \"ec5b4aecc0a5fa7d5081c867c52928243f6ca643b241076db0833a5f43e45103\"; $.actions[4].prePublicStateHash: \"885835087e5f72fafbae2f365158b2e27c0084f9c5a6106fa579a2abe1c658b5\" vs \"32aaab19f1bba318cc2b01f90d6c7fa3389d1cffc077d77e385b366a9d6d38e4\"",
+          "classification": "b-error",
+          "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 whenever the room reaches the setting, even when the compressor was not running. Setting line: that time starts again from 0 when the compressor turns off."
+        },
+        {
+          "iteration": 39,
+          "reason": "syndrome-mismatch",
+          "difference": "$.actions[6].outcome: \"cooling\" vs \"idle\"; $.actions[6].postPublicStateHash: \"69b57611e2e00a530da736117e2826663feaa83208cd3b8b6103a55063d7afbc\" vs \"a170b164ca977b6e91e22063021fbb731d045a34debf2d92aa02d413985175e0\"; $.actions[6].result.outcome: \"cooling\" vs \"idle\"",
+          "classification": "b-error",
+          "rationale": "In auto mode the rebuild returns \"idle\" from the heat part as soon as the room is at or above the setting, so it never reaches cooling. His auto rule: heats or cools as needed."
+        }
+      ],
+      "situations": 40
+    }
+  ]
+}

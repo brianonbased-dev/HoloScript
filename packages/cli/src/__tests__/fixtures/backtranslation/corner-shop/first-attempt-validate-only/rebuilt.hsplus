@@ -1,0 +1,45 @@
+composition "Corner Shop" {
+  state {
+    stock: 5
+    till: 0
+  }
+
+  logic {
+    action buy(quantity, payment) {
+      if (quantity < 1) {
+        return { allowed: false, outcome: "nothing_to_buy" }
+      }
+      if (quantity > state.stock) {
+        return { allowed: false, outcome: "not_enough_stock" }
+      }
+      price = (quantity >= 3) ? (3 * quantity) : (4 * quantity)
+      if (payment < price) {
+        return { allowed: false, outcome: "not_enough_money" }
+      }
+      state.stock -= quantity
+      state.till += price
+      emit("sold", { quantity: quantity, price: price })
+      return { allowed: true, outcome: "sold", change: payment - price }
+    }
+
+    action restock(amount) {
+      if (amount < 1) {
+        return { allowed: false, outcome: "nothing_to_add" }
+      }
+      if (state.stock + amount > 12) {
+        return { allowed: false, outcome: "shelf_full" }
+      }
+      state.stock += amount
+      emit("restocked", { amount: amount })
+      return { allowed: true, outcome: "restocked" }
+    }
+
+    action inventory(viewerId) {
+      return {
+        viewer: viewerId,
+        stock: state.stock,
+        till: state.till
+      }
+    }
+  }
+}

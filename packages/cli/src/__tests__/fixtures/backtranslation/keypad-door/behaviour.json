@@ -1,0 +1,13 @@
+{
+  "id": "keypad-door",
+  "title": "Keypad Door",
+  "publicStateKeys": ["locked", "wrongTries", "lockedOut"],
+  "minSteps": 5,
+  "maxSteps": 14,
+  "actions": [
+    { "name": "enterCode", "kind": "action", "weight": 3, "params": { "code": { "type": "int", "min": 1000, "max": 9999, "edges": [4721, 4720, 4722, 1234] } } },
+    { "name": "lockDoor", "kind": "action", "weight": 1, "params": {} },
+    { "name": "resetLockout", "kind": "action", "weight": 1, "params": { "managerCode": { "type": "int", "min": 1000, "max": 9999, "edges": [9000, 9001, 8999] } } },
+    { "name": "status", "kind": "observation", "params": { "viewerId": { "type": "enum", "values": ["visitor-1", "visitor-2"] } } }
+  ]
+}

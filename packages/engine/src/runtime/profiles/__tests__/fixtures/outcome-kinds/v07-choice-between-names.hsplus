@@ -1,0 +1,14 @@
+composition "Greenhouse Reading" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action reading(degrees) accepted(heating, idle) {
+      state.bikesOut = degrees
+      emit("read", { degrees: degrees })
+      return { allowed: true, outcome: degrees < 18 ? "heating" : "idle" }
+    }
+  }
+}

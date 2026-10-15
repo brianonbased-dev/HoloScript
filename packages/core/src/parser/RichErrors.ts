@@ -60,6 +60,16 @@ export const HSPLUS_ERROR_CODES = {
 
   // Expression Errors (HSP300-HSP399)
   HSP300: 'Invalid expression',
+
+  // Action outcome contracts (HSP500-HSP599) — see parser/ActionOutcomes.ts.
+  // Kept identical to OUTCOME_DIAGNOSTIC_CODES (a test holds them together).
+  HSP500: 'Malformed outcome declaration',
+  HSP501: 'Answer names an outcome the action does not declare',
+  HSP502: 'Answer has the wrong kind for its outcome',
+  HSP503: 'Refused outcome after a state change or event',
+  HSP504: 'Answer cannot be checked against the declared outcomes',
+  HSP505: 'Decision action declares no outcomes',
+  HSP506: 'Declared outcome is never answered',
 } as const;
 
 export type ErrorCode = keyof typeof HSPLUS_ERROR_CODES;
@@ -396,6 +406,7 @@ export function getErrorCodeDocumentation(): Array<{
     else if (num < 300) category = 'Traits';
     else if (num < 400) category = 'Expressions';
     else if (num < 500) category = 'Imports';
+    else if (num < 600) category = 'Outcomes';
     else if (num >= 900) category = 'Limits';
 
     docs.push({ code, description, category });

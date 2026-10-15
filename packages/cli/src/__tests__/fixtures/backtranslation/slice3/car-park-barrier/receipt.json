@@ -1,0 +1,541 @@
+{
+  "behaviourId": "car-park-barrier",
+  "checklist": {
+    "author": "Claude (Anthropic), seat claude7, session 670fb727",
+    "behaviourId": "car-park-barrier",
+    "lines": [
+      {
+        "n": 1,
+        "text": "The car park starts empty: no car inside, no time counted, nothing paid, and no tickets issued yet."
+      },
+      {
+        "n": 2,
+        "text": "Arriving while a car is already inside is refused."
+      },
+      {
+        "n": 3,
+        "text": "Otherwise a ticket is issued: the car is inside, its time starts from 0, nothing is paid yet, and the ticket is announced with its number (1 for the first ticket ever, then 2, and so on)."
+      },
+      {
+        "n": 4,
+        "text": "Waiting when no car is inside is refused. Waiting less than 1 minute is refused. Otherwise the minutes are added to the time parked, and nothing is announced."
+      },
+      {
+        "n": 5,
+        "text": "The price depends on the total time parked: up to half an hour (30 minutes) is free, up to 2 hours (120 minutes) costs 3, up to 4 hours (240 minutes) costs 6, and longer costs 10. What is owed is the price minus what has already been paid."
+      },
+      {
+        "n": 6,
+        "text": "Paying when no car is inside is refused."
+      },
+      {
+        "n": 7,
+        "text": "Paying when nothing is owed is refused."
+      },
+      {
+        "n": 8,
+        "text": "Paying fewer than 1 coin is refused."
+      },
+      {
+        "n": 9,
+        "text": "Paying at least what is owed pays it off: it announces the change given back, and from then on the amount paid is the full price."
+      },
+      {
+        "n": 10,
+        "text": "Paying less than what is owed is not enough to leave: the coins count toward the price, and it announces how much is still owed."
+      },
+      {
+        "n": 11,
+        "text": "Leaving when no car is inside is refused. Leaving while anything is owed is refused. If time passes after paying and the stay reaches a dearer price, the difference is owed before leaving."
+      },
+      {
+        "n": 12,
+        "text": "Otherwise the barrier opens: it announces the minutes parked and the amount paid, and the car park is empty again, with the time and the amount paid back to 0."
+      },
+      {
+        "n": 13,
+        "text": "Looking at the display tells who asked, whether a car is inside, the minutes parked, and what is owed right now. Looking changes nothing."
+      },
+      {
+        "n": 14,
+        "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+      }
+    ],
+    "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/car-park-barrier/original.hsplus"
+  },
+  "generatedAt": "2026-10-05T17:30:00.000Z",
+  "interfaceCard": "Behaviour name: \"Car Park Barrier\"\n\nState fields others can see: carInside, minutes, paid, ticketsIssued\n\nActions (each answers with allowed and outcome; outcome is one of the names listed):\nEach outcome is marked with its kind:\n- accepted: the answer has allowed = true. The action may change state and announce events.\n- refused: the answer has allowed = false. The action changes nothing and announces nothing.\n\n- arrive() — outcomes: ticket_issued (accepted), car_already_inside (refused)\n- wait(minutes) — outcomes: time_passed (accepted), no_car (refused), bad_minutes (refused)\n- pay(coins) — outcomes: paid_in_full (accepted), part_paid (accepted), no_car (refused), nothing_due (refused), no_coins (refused)\n- leave() — outcomes: barrier_opened (accepted), no_car (refused), payment_due (refused)\n\nObservations (answer only):\n- display(viewerId) — answer fields: viewer, car_inside, minutes, owed\n\nEvents (event name: payload fields):\n- ticket_issued: ticket\n- paid_in_full: change\n- part_paid: still_owed\n- barrier_opened: minutes_parked, paid\n",
+  "plainLanguageCheck": {
+    "exitCode": 0,
+    "findings": "Files with findings: 0; BLOCK-tier 0; WARN-tier 0",
+    "tool": "C:/holo-dev/ai-ecosystem/scripts/check-plain-language.mjs --profile canon --check --strict"
+  },
+  "precheck": {
+    "originalRanAllSituations": true,
+    "situationsRun": 20
+  },
+  "rebuild": {
+    "checker": "validateCanonicalSource + deterministic headless runtime admission",
+    "inputs": [
+      "language-reference-v2.md",
+      "interface-card.md (names only, each outcome marked accepted or refused)",
+      "checklist.json (rules, rendered as numbered lines)",
+      "checker errors (repair rounds only)"
+    ],
+    "maxRepairRounds": 3,
+    "provider": "xai",
+    "recordedNotLive": true,
+    "seesOriginalSource": false
+  },
+  "recordings": [
+    {
+      "catch": {
+        "catchRate": 1,
+        "caught": 6,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 12,
+            "caught": true,
+            "change": "line 26: \"<\" -> \">=\"",
+            "description": "comparison \"<\" changed to \">=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 12,
+            "rawDivergentSituations": 12,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 2,
+            "caught": true,
+            "change": "line 26: \"1\" -> \"2\"",
+            "description": "number 1 changed to 2",
+            "id": "constant-change#6",
+            "inDecision": true,
+            "operator": "constant-change",
+            "oracleDivergentSituations": 2,
+            "rawDivergentSituations": 2,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 14,
+            "caught": true,
+            "change": "line 11: \"      if (state.carInside) {\\n        return { allowed: false, outcome: \\\"car_already_inside\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.carInside) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 14,
+            "rawDivergentSituations": 14,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 20,
+            "caught": true,
+            "change": "line 3: \"false\" -> \"true\"",
+            "description": "false changed to true",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 1,
+            "caught": true,
+            "change": "line 37: \"-\" -> \"+\"",
+            "description": "arithmetic \"-\" changed to \"+\"",
+            "id": "arith-flip#0",
+            "inDecision": true,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 1,
+            "rawDivergentSituations": 1,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 18,
+            "caught": true,
+            "change": "line 14: \"      state.carInside = true\" -> \"\"",
+            "description": "statement removed: state.carInside = true",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 18,
+            "rawDivergentSituations": 18,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/car-park-barrier/recordings/r1/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 0,
+          "checklist-ambiguity": 0,
+          "real-fault": 0
+        },
+        "divergences": [],
+        "divergentSituations": 0,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/car-park-barrier/recordings/r1/rebuilt.hsplus",
+      "recording": "r1",
+      "rounds": 2,
+      "usage": {
+        "completionTokens": 1518,
+        "promptTokens": 4296,
+        "totalTokens": 8260
+      },
+      "validated": true
+    },
+    {
+      "catch": {
+        "catchRate": 1,
+        "caught": 6,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 7,
+            "caught": true,
+            "change": "line 26: \"<\" -> \">=\"",
+            "description": "comparison \"<\" changed to \">=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 12,
+            "rawDivergentSituations": 12,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 1,
+            "caught": true,
+            "change": "line 26: \"1\" -> \"2\"",
+            "description": "number 1 changed to 2",
+            "id": "constant-change#6",
+            "inDecision": true,
+            "operator": "constant-change",
+            "oracleDivergentSituations": 2,
+            "rawDivergentSituations": 6,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 11: \"      if (state.carInside) {\\n        return { allowed: false, outcome: \\\"car_already_inside\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.carInside) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 14,
+            "rawDivergentSituations": 14,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 15,
+            "caught": true,
+            "change": "line 3: \"false\" -> \"true\"",
+            "description": "false changed to true",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 1,
+            "caught": true,
+            "change": "line 37: \"-\" -> \"+\"",
+            "description": "arithmetic \"-\" changed to \"+\"",
+            "id": "arith-flip#0",
+            "inDecision": true,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 1,
+            "rawDivergentSituations": 6,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 13,
+            "caught": true,
+            "change": "line 14: \"      state.carInside = true\" -> \"\"",
+            "description": "statement removed: state.carInside = true",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 18,
+            "rawDivergentSituations": 18,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/car-park-barrier/recordings/r2/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 5,
+          "checklist-ambiguity": 0,
+          "real-fault": 0
+        },
+        "divergences": [
+          {
+            "classification": "b-error",
+            "difference": "$.actions[8].emittedEvents[0].payload.still_owed: 2 vs 1",
+            "iteration": 3,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[9].emittedEvents[0].payload.still_owed: 1 vs -1",
+            "iteration": 4,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[4].emittedEvents[0].payload.still_owed: 2 vs 1",
+            "iteration": 15,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[10].emittedEvents[0].payload.still_owed: 7 vs 4",
+            "iteration": 16,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[7].emittedEvents[0].payload.still_owed: 4 vs -2",
+            "iteration": 19,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          }
+        ],
+        "divergentSituations": 5,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/car-park-barrier/recordings/r2/rebuilt.hsplus",
+      "recording": "r2",
+      "rounds": 2,
+      "usage": {
+        "completionTokens": 1492,
+        "promptTokens": 4276,
+        "totalTokens": 7234
+      },
+      "validated": true
+    },
+    {
+      "catch": {
+        "catchRate": 1,
+        "caught": 6,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 7,
+            "caught": true,
+            "change": "line 26: \"<\" -> \">=\"",
+            "description": "comparison \"<\" changed to \">=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 12,
+            "rawDivergentSituations": 12,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 1,
+            "caught": true,
+            "change": "line 26: \"1\" -> \"2\"",
+            "description": "number 1 changed to 2",
+            "id": "constant-change#6",
+            "inDecision": true,
+            "operator": "constant-change",
+            "oracleDivergentSituations": 2,
+            "rawDivergentSituations": 6,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 9,
+            "caught": true,
+            "change": "line 11: \"      if (state.carInside) {\\n        return { allowed: false, outcome: \\\"car_already_inside\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.carInside) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 14,
+            "rawDivergentSituations": 14,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 15,
+            "caught": true,
+            "change": "line 3: \"false\" -> \"true\"",
+            "description": "false changed to true",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 20,
+            "rawDivergentSituations": 20,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 1,
+            "caught": true,
+            "change": "line 37: \"-\" -> \"+\"",
+            "description": "arithmetic \"-\" changed to \"+\"",
+            "id": "arith-flip#0",
+            "inDecision": true,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 1,
+            "rawDivergentSituations": 6,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 13,
+            "caught": true,
+            "change": "line 14: \"      state.carInside = true\" -> \"\"",
+            "description": "statement removed: state.carInside = true",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 18,
+            "rawDivergentSituations": 18,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/car-park-barrier/recordings/r3/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 5,
+          "checklist-ambiguity": 0,
+          "real-fault": 0
+        },
+        "divergences": [
+          {
+            "classification": "b-error",
+            "difference": "$.actions[8].emittedEvents[0].payload.still_owed: 2 vs 1",
+            "iteration": 3,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[9].emittedEvents[0].payload.still_owed: 1 vs -1",
+            "iteration": 4,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[4].emittedEvents[0].payload.still_owed: 2 vs 1",
+            "iteration": 15,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[10].emittedEvents[0].payload.still_owed: 7 vs 4",
+            "iteration": 16,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          },
+          {
+            "classification": "b-error",
+            "difference": "$.actions[7].emittedEvents[0].payload.still_owed: 4 vs -2",
+            "iteration": 19,
+            "rationale": "When a payment is not enough, the rebuild announces the amount still owed as the price minus what has been paid minus the coins again, so the coins are taken off twice. Rule 10 says the coins count toward the price and the announcement says how much is still owed; the rebuild misapplied a clear rule.",
+            "reason": "syndrome-mismatch"
+          }
+        ],
+        "divergentSituations": 5,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/car-park-barrier/recordings/r3/rebuilt.hsplus",
+      "recording": "r3",
+      "rounds": 2,
+      "usage": {
+        "completionTokens": 1471,
+        "promptTokens": 4269,
+        "totalTokens": 7099
+      },
+      "validated": true
+    }
+  ],
+  "role": "measured",
+  "runSurface": {
+    "branch": "feat/back-translation-proof (worktree)",
+    "commit": "adb8f560793475a48b4242f4073277c325d64bfc",
+    "note": "slice 3 on top of slice 2; recordings replayed, not live"
+  },
+  "schema": "holoscript.back-translation-proof.v3",
+  "skippedMutants": [],
+  "spread": {
+    "catchRate": {
+      "max": 1,
+      "mean": 1,
+      "min": 1
+    },
+    "falseAlarmSituations": {
+      "max": 5,
+      "mean": 3.3333333333333335,
+      "min": 0
+    }
+  },
+  "title": "Car Park Barrier",
+  "twin": {
+    "edgeSituations": 5,
+    "excludedFields": [
+      {
+        "field": "sourceBundleHash",
+        "why": "hash of the source text itself; differs for any two files"
+      },
+      {
+        "field": "canonicalFields.actionReceiptRoot",
+        "why": "chained ledger root seeded with sourceBundleHash (ledgerGenesis/appendLedger), so it differs whenever the source text differs"
+      },
+      {
+        "field": "canonicalFields.executedScheduleHash",
+        "why": "schedule payloads carry outcomeHashes, which are chained roots seeded with sourceBundleHash"
+      },
+      {
+        "field": "actionLedger[].payload.rollbackReference.priorActionRoot",
+        "why": "chained action root, seeded with sourceBundleHash"
+      },
+      {
+        "field": "terminal.* roots, terminalCommitment, entryHash/previousHash",
+        "why": "all chained over sourceBundleHash and the manifest (which carries the probed final state)"
+      },
+      {
+        "field": "sourceRunReceipt (engine provenance, plan bytecode hash)",
+        "why": "identity of the plan program text, not behaviour"
+      }
+    ],
+    "generator": "generic: seeded random action sequences from behaviour.json (action list, parameter ranges, named edge values); every 4th situation is an edge situation",
+    "harness": "@holoscript/core/testing runTwinTest",
+    "oracleFields": [
+      "canonicalFields.canonicalSceneHash",
+      "canonicalFields.canonicalPoseHash",
+      "canonicalFields.logicalClockHash",
+      "canonicalFields.publicStateHash",
+      "canonicalFields.residentObservationHash",
+      "publicStateSnapshots[].payload",
+      "observationLedger[].payload",
+      "actionLedger[].payload (minus rollbackReference.priorActionRoot)",
+      "scheduleLedger[].payload (minus outcomeHashes)",
+      "terminal.actualCounts"
+    ],
+    "runner": "runHeadlessExperimentSources (world=model-village village.holo, plan=generated .hs per situation, behaviour=under test)",
+    "seed": 388818,
+    "situations": 20
+  },
+  "verdict": "Catch bar met, false-alarm bar met by one rebuild of three. All three rebuilds showed all 6 planted mistakes. The first rebuild matched the correct program in all 20 situations. The second and third made the same slip: when a payment is not enough, they take the coins off twice in the announcement of what is still owed, which caused 5 false alarms in 20 situations each. The rule was clear; the rebuild misapplied it. A part payment was rebuilt as accepted every time, as the card says. Two planted mistakes were shown in only 1 or 2 of 20 situations, so the margin on those is thin."
+}

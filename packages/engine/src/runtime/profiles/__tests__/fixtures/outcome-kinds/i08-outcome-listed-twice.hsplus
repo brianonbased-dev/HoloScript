@@ -1,0 +1,12 @@
+composition "Listed Twice" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action ping(x) accepted(sent, sent) {
+      return { allowed: true, outcome: "sent" }
+    }
+  }
+}

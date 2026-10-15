@@ -1,0 +1,133 @@
+composition "Furnace And Air Conditioner" {
+  state {
+    mode: "off"
+    setPoint: 70
+    swing: 1
+    fan: "auto"
+    room: 70
+    heating: false
+    cooling: false
+    waiting: false
+    minutesSinceCompressorStopped: 60
+  }
+
+  logic {
+    action setMode(mode) {
+      if (mode == "heat" || mode == "cool" || mode == "auto" || mode == "off") {
+        state.mode = mode
+        return { allowed: true, outcome: "mode_set" }
+      }
+      return { allowed: false, outcome: "unknown_mode" }
+    }
+
+    action setTemperature(degrees) {
+      if (degrees >= 50 && degrees <= 90) {
+        state.setPoint = degrees
+        return { allowed: true, outcome: "temperature_set" }
+      }
+      return { allowed: false, outcome: "out_of_range" }
+    }
+
+    action setSwing(degrees) {
+      if (degrees >= 1 && degrees <= 3) {
+        state.swing = degrees
+        return { allowed: true, outcome: "swing_set" }
+      }
+      return { allowed: false, outcome: "bad_swing" }
+    }
+
+    action setFan(setting) {
+      if (setting == "auto" || setting == "on") {
+        state.fan = setting
+        return { allowed: true, outcome: "fan_set" }
+      }
+      return { allowed: false, outcome: "unknown_fan" }
+    }
+
+    action reading(room, minutes) {
+      if (minutes < 0) {
+        return { allowed: false, outcome: "bad_minutes" }
+      }
+      state.room = room
+      if (!state.cooling) {
+        state.minutesSinceCompressorStopped += minutes
+      }
+      state.waiting = false
+      if (state.mode == "off") {
+        state.heating = false
+        state.cooling = false
+      } else if (state.mode == "heat") {
+        if (state.room <= state.setPoint - state.swing) {
+          state.heating = true
+        } else if (state.room >= state.setPoint) {
+          state.heating = false
+        }
+        state.cooling = false
+      } else if (state.mode == "cool") {
+        if (state.room >= state.setPoint + state.swing) {
+          if (state.minutesSinceCompressorStopped >= 5) {
+            state.cooling = true
+            state.heating = false
+          } else {
+            state.cooling = false
+            state.heating = false
+            state.waiting = true
+          }
+        } else if (state.room <= state.setPoint) {
+          if (state.cooling) {
+            state.minutesSinceCompressorStopped = 0
+          }
+          state.cooling = false
+          state.heating = false
+        }
+      } else if (state.mode == "auto") {
+        if (state.room <= state.setPoint - state.swing) {
+          state.heating = true
+          state.cooling = false
+        } else if (state.room >= state.setPoint + state.swing) {
+          if (state.minutesSinceCompressorStopped >= 5) {
+            state.cooling = true
+            state.heating = false
+          } else {
+            state.cooling = false
+            state.heating = false
+            state.waiting = true
+          }
+        } else if (state.room >= state.setPoint && state.cooling) {
+          state.minutesSinceCompressorStopped = 0
+          state.cooling = false
+          state.heating = false
+        } else if (state.room <= state.setPoint && state.heating) {
+          state.heating = false
+        }
+      }
+      if (state.cooling) {
+        state.minutesSinceCompressorStopped = 0
+      }
+      if (state.heating || state.cooling) {
+        state.waiting = false
+      }
+      if (state.heating) {
+        return { allowed: true, outcome: "heating" }
+      } else if (state.cooling) {
+        return { allowed: true, outcome: "cooling" }
+      } else if (state.waiting) {
+        return { allowed: true, outcome: "waiting" }
+      }
+      return { allowed: true, outcome: "idle" }
+    }
+
+    action status(viewerId) {
+      return {
+        viewer: viewerId,
+        mode: state.mode,
+        set_to: state.setPoint,
+        room: state.room,
+        heat_on: state.heating,
+        cool_on: state.cooling,
+        fan_running: (state.fan == "on") || (state.fan == "auto" && (state.heating || state.cooling)),
+        waiting: state.waiting
+      }
+    }
+  }
+}

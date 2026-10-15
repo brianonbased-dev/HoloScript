@@ -1,0 +1,144 @@
+{
+  "schema": "which-is-right.receipt.v1",
+  "roundId": "round-20261006T004505-17fa38cf",
+  "keySha256": "c246952d3fc181c1c1d052bcdce6bacedf01748fc233c03ca87285761038f87d",
+  "sealVerified": true,
+  "questions": [
+    {
+      "n": 1,
+      "class": "rebuild-disagreement",
+      "shown": {
+        "A": "correct",
+        "B": "rebuild r2"
+      },
+      "chosen": "not-sure",
+      "correctSide": "A",
+      "correct": null,
+      "seconds": 196.3
+    },
+    {
+      "n": 2,
+      "class": "planted-fault",
+      "shown": {
+        "A": "planted fault drop-refusal#0",
+        "B": "correct"
+      },
+      "chosen": "not-sure",
+      "correctSide": "B",
+      "correct": null,
+      "seconds": 73.2
+    },
+    {
+      "n": 3,
+      "class": "planted-fault",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault boolean-flip#0"
+      },
+      "chosen": "not-sure",
+      "correctSide": "A",
+      "correct": null,
+      "seconds": 7.7
+    },
+    {
+      "n": 4,
+      "class": "planted-fault",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault drop-refusal#0"
+      },
+      "chosen": "not-sure",
+      "correctSide": "A",
+      "correct": null,
+      "seconds": 11.1
+    },
+    {
+      "n": 5,
+      "class": "planted-fault",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault comparison-flip#0"
+      },
+      "chosen": "not-sure",
+      "correctSide": "A",
+      "correct": null,
+      "seconds": 2.9
+    },
+    {
+      "n": 6,
+      "class": "planted-fault",
+      "shown": {
+        "A": "planted fault boolean-flip#0",
+        "B": "correct"
+      },
+      "chosen": "not-sure",
+      "correctSide": "B",
+      "correct": null,
+      "seconds": 1.2
+    },
+    {
+      "n": 7,
+      "class": "rebuild-disagreement",
+      "shown": {
+        "A": "correct",
+        "B": "rebuild r3"
+      },
+      "chosen": "not-sure",
+      "correctSide": "A",
+      "correct": null,
+      "seconds": 1.2
+    },
+    {
+      "n": 8,
+      "class": "planted-fault",
+      "shown": {
+        "A": "planted fault comparison-flip#0",
+        "B": "correct"
+      },
+      "chosen": "not-sure",
+      "correctSide": "B",
+      "correct": null,
+      "seconds": 1.1
+    },
+    {
+      "n": 9,
+      "class": "planted-fault",
+      "shown": {
+        "A": "planted fault arith-flip#0",
+        "B": "correct"
+      },
+      "chosen": "not-sure",
+      "correctSide": "B",
+      "correct": null,
+      "seconds": 1.2
+    },
+    {
+      "n": 10,
+      "class": "planted-fault",
+      "shown": {
+        "A": "correct",
+        "B": "planted fault drop-statement#0"
+      },
+      "chosen": "not-sure",
+      "correctSide": "A",
+      "correct": null,
+      "seconds": 1.1
+    }
+  ],
+  "totals": {
+    "shown": 10,
+    "answered": 10,
+    "notSure": 10,
+    "knownAnswered": 10,
+    "right": 0,
+    "plantedShown": 8,
+    "plantedCaught": 0,
+    "rebuildShown": 2,
+    "rebuildAnswered": 2,
+    "rebuildSidedWithRules": 0,
+    "averageSeconds": 30
+  },
+  "plain": "You answered 10 questions.\nOn the 10 where we knew the answer, you chose right 0 times.\nYou caught 0 of 8 planted faults.\nOn the 2 you answered where a copy built from the rules disagreed, you sided with the rules 0 times.\nYou said \"Not sure\" 10 times.\nYou took about 30 seconds each.\nThe answer key was sealed before you saw the questions, and it was not changed.",
+  "sealProblems": [],
+  "collectedAt": "2026-10-06T00:58:56.019Z"
+}

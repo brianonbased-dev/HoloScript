@@ -1,0 +1,51 @@
+{
+  "behaviourId": "corner-shop",
+  "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/corner-shop/original.hsplus",
+  "author": "Claude (Anthropic), seat claude7, session 670fb727",
+  "lines": [
+    {
+      "n": 1,
+      "text": "The shop starts with 5 items on the shelf and no money in the till."
+    },
+    {
+      "n": 2,
+      "text": "Items cost 4 each. Buying 3 or more at once makes them 3 each instead."
+    },
+    {
+      "n": 3,
+      "text": "Buying less than one item is refused."
+    },
+    {
+      "n": 4,
+      "text": "Buying more items than are on the shelf is refused."
+    },
+    {
+      "n": 5,
+      "text": "Buying is refused when the money handed over is less than the price."
+    },
+    {
+      "n": 6,
+      "text": "Otherwise the items leave the shelf, the price goes into the till, the sale is announced with how many items and the price, and the answer tells the customer their change."
+    },
+    {
+      "n": 7,
+      "text": "Restocking less than one item is refused."
+    },
+    {
+      "n": 8,
+      "text": "The shelf holds at most 12 items. Restocking that would go over 12 is refused; filling it to exactly 12 is fine."
+    },
+    {
+      "n": 9,
+      "text": "Otherwise the items go on the shelf and the restock is announced with how many were added."
+    },
+    {
+      "n": 10,
+      "text": "Checking the inventory tells who asked, how many items are on the shelf, and how much money is in the till. Checking changes nothing."
+    },
+    {
+      "n": 11,
+      "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+    }
+  ]
+}

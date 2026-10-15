@@ -1,0 +1,17 @@
+[
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      2,
+      7,
+      24,
+      32,
+      34,
+      36
+    ],
+    "rationale": "Timer bookkeeping: when cooling stops because auto mode switches to heat, the rebuild does not set the time since the compressor stopped back to 0. Setting line says it starts again from 0 when the compressor turns off. Misread of a clear line."
+  }
+]

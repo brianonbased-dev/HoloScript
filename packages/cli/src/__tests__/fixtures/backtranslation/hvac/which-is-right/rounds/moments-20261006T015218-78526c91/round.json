@@ -1,0 +1,420 @@
+{
+  "schema": "which-is-right.round-record.v1",
+  "roundId": "moments-20261006T015218-78526c91",
+  "keyFile": "answer-key.json",
+  "keySha256": "74fdf99671166382f7d79b00ed48e63c3574067b93c62d00e6a580e852fd2d04",
+  "keySealedAt": "2026-10-06T01:52:18.859Z",
+  "questionsSha256": "17e3cdf4f88736d36e8a93ff9a60a9ac188f8284e13b793233d684e737b98a94",
+  "publicRound": {
+    "schema": "which-is-right.moment-round.v1",
+    "roundId": "moments-20261006T015218-78526c91",
+    "keySha256": "74fdf99671166382f7d79b00ed48e63c3574067b93c62d00e6a580e852fd2d04",
+    "questionsSha256": "17e3cdf4f88736d36e8a93ff9a60a9ac188f8284e13b793233d684e737b98a94",
+    "questions": [
+      {
+        "type": "moment",
+        "title": "Furnace and air conditioner",
+        "mode": {
+          "label": "Mode: Heat",
+          "word": "Heat",
+          "tone": "heat"
+        },
+        "dials": [
+          {
+            "label": "Room",
+            "value": 67
+          },
+          {
+            "label": "Set to",
+            "value": 68
+          }
+        ],
+        "facts": [
+          {
+            "icon": "mode",
+            "text": "Mode: Heat"
+          },
+          {
+            "icon": "fan",
+            "text": "Fan: Auto"
+          },
+          {
+            "icon": "clock",
+            "text": "Compressor stopped more than 30 minutes ago"
+          },
+          {
+            "icon": "swing",
+            "text": "Swing: 1 degree"
+          },
+          {
+            "icon": "running",
+            "text": "Running just before: nothing"
+          }
+        ],
+        "prompt": "What should happen now?",
+        "n": 1,
+        "choices": [
+          {
+            "id": "heat",
+            "label": "Heat on",
+            "icon": "flame",
+            "tone": "heat"
+          },
+          {
+            "id": "off",
+            "label": "Stays off / waiting",
+            "icon": "power",
+            "tone": "off"
+          },
+          {
+            "id": "fan",
+            "label": "Fan only",
+            "icon": "fan",
+            "tone": "off"
+          }
+        ],
+        "a": {
+          "choice": "off"
+        },
+        "b": {
+          "choice": "heat"
+        }
+      },
+      {
+        "type": "moment",
+        "title": "Furnace and air conditioner",
+        "mode": {
+          "label": "Mode: Off",
+          "word": "Off",
+          "tone": "off"
+        },
+        "dials": [
+          {
+            "label": "Room",
+            "value": 69
+          },
+          {
+            "label": "Set to",
+            "value": 70
+          }
+        ],
+        "facts": [
+          {
+            "icon": "mode",
+            "text": "Mode: Off"
+          },
+          {
+            "icon": "fan",
+            "text": "Fan: Auto"
+          },
+          {
+            "icon": "clock",
+            "text": "Compressor stopped more than 30 minutes ago"
+          },
+          {
+            "icon": "swing",
+            "text": "Swing: 1 degree"
+          },
+          {
+            "icon": "running",
+            "text": "Running just before: nothing"
+          }
+        ],
+        "prompt": "What should happen now?",
+        "n": 2,
+        "choices": [
+          {
+            "id": "off",
+            "label": "Stays off / waiting",
+            "icon": "power",
+            "tone": "off"
+          },
+          {
+            "id": "fan",
+            "label": "Fan only",
+            "icon": "fan",
+            "tone": "off"
+          }
+        ],
+        "a": {
+          "choice": "off"
+        },
+        "b": {
+          "choice": "fan"
+        }
+      },
+      {
+        "type": "moment",
+        "title": "Heat pump",
+        "mode": {
+          "label": "Mode: Cool",
+          "word": "Cool",
+          "tone": "cool"
+        },
+        "dials": [
+          {
+            "label": "Room",
+            "value": 60
+          },
+          {
+            "label": "Set to",
+            "value": 70
+          },
+          {
+            "label": "Outdoors",
+            "value": 22
+          }
+        ],
+        "facts": [
+          {
+            "icon": "mode",
+            "text": "Mode: Cool"
+          },
+          {
+            "icon": "fan",
+            "text": "Fan: Auto"
+          },
+          {
+            "icon": "clock",
+            "text": "Compressor stopped more than 30 minutes ago"
+          },
+          {
+            "icon": "swing",
+            "text": "Swing: 1 degree"
+          },
+          {
+            "icon": "running",
+            "text": "Running just before: nothing"
+          },
+          {
+            "icon": "outdoor",
+            "text": "Outdoors: 22 degrees"
+          },
+          {
+            "icon": "strips",
+            "text": "Backup heat strips: fitted, switched on"
+          },
+          {
+            "icon": "cutoff",
+            "text": "Outdoor cut-off: 25 degrees"
+          }
+        ],
+        "prompt": "What should happen now?",
+        "n": 3,
+        "choices": [
+          {
+            "id": "cool",
+            "label": "Cool on",
+            "icon": "snowflake",
+            "tone": "cool"
+          },
+          {
+            "id": "backup",
+            "label": "Backup heat on",
+            "icon": "strips",
+            "tone": "heat"
+          },
+          {
+            "id": "off",
+            "label": "Stays off / waiting",
+            "icon": "power",
+            "tone": "off"
+          },
+          {
+            "id": "fan",
+            "label": "Fan only",
+            "icon": "fan",
+            "tone": "off"
+          }
+        ],
+        "a": {
+          "choice": "off"
+        },
+        "b": {
+          "choice": "backup"
+        }
+      },
+      {
+        "type": "moment",
+        "title": "Heat pump",
+        "mode": {
+          "label": "Mode: Cool",
+          "word": "Cool",
+          "tone": "cool"
+        },
+        "dials": [
+          {
+            "label": "Room",
+            "value": 76
+          },
+          {
+            "label": "Set to",
+            "value": 70
+          },
+          {
+            "label": "Outdoors",
+            "value": 40
+          }
+        ],
+        "facts": [
+          {
+            "icon": "mode",
+            "text": "Mode: Cool"
+          },
+          {
+            "icon": "fan",
+            "text": "Fan: Auto"
+          },
+          {
+            "icon": "clock",
+            "text": "Compressor stopped 6 minutes ago"
+          },
+          {
+            "icon": "swing",
+            "text": "Swing: 1 degree"
+          },
+          {
+            "icon": "running",
+            "text": "Running just before: nothing"
+          },
+          {
+            "icon": "outdoor",
+            "text": "Outdoors: 40 degrees"
+          },
+          {
+            "icon": "strips",
+            "text": "Backup heat strips: fitted, switched on"
+          },
+          {
+            "icon": "cutoff",
+            "text": "Outdoor cut-off: 25 degrees"
+          }
+        ],
+        "prompt": "What should happen now?",
+        "n": 4,
+        "choices": [
+          {
+            "id": "cool",
+            "label": "Cool on",
+            "icon": "snowflake",
+            "tone": "cool"
+          },
+          {
+            "id": "off",
+            "label": "Stays off / waiting",
+            "icon": "power",
+            "tone": "off"
+          },
+          {
+            "id": "fan",
+            "label": "Fan only",
+            "icon": "fan",
+            "tone": "off"
+          }
+        ],
+        "a": {
+          "choice": "off"
+        },
+        "b": {
+          "choice": "cool"
+        }
+      },
+      {
+        "type": "moment",
+        "title": "Heat pump",
+        "mode": {
+          "label": "Mode: Auto",
+          "word": "Auto",
+          "tone": "neutral"
+        },
+        "dials": [
+          {
+            "label": "Room",
+            "value": 72
+          },
+          {
+            "label": "Set to",
+            "value": 70
+          },
+          {
+            "label": "Outdoors",
+            "value": 26
+          }
+        ],
+        "facts": [
+          {
+            "icon": "mode",
+            "text": "Mode: Auto"
+          },
+          {
+            "icon": "fan",
+            "text": "Fan: Auto"
+          },
+          {
+            "icon": "clock",
+            "text": "Compressor stopped more than 30 minutes ago"
+          },
+          {
+            "icon": "swing",
+            "text": "Swing: 1 degree"
+          },
+          {
+            "icon": "running",
+            "text": "Running just before: nothing"
+          },
+          {
+            "icon": "outdoor",
+            "text": "Outdoors: 26 degrees"
+          },
+          {
+            "icon": "strips",
+            "text": "Backup heat strips: fitted, switched on"
+          },
+          {
+            "icon": "cutoff",
+            "text": "Outdoor cut-off: 25 degrees"
+          }
+        ],
+        "prompt": "What should happen now?",
+        "n": 5,
+        "choices": [
+          {
+            "id": "heat",
+            "label": "Heat on",
+            "icon": "flame",
+            "tone": "heat"
+          },
+          {
+            "id": "cool",
+            "label": "Cool on",
+            "icon": "snowflake",
+            "tone": "cool"
+          },
+          {
+            "id": "backup",
+            "label": "Backup heat on",
+            "icon": "strips",
+            "tone": "heat"
+          },
+          {
+            "id": "off",
+            "label": "Stays off / waiting",
+            "icon": "power",
+            "tone": "off"
+          }
+        ],
+        "a": {
+          "choice": "off"
+        },
+        "b": {
+          "choice": "cool"
+        }
+      }
+    ]
+  },
+  "published": {
+    "to": "http://127.0.0.1:3401",
+    "at": "2026-10-06T01:52:18.917Z",
+    "dashboardKeySha256": "74fdf99671166382f7d79b00ed48e63c3574067b93c62d00e6a580e852fd2d04"
+  }
+}

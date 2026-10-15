@@ -1,0 +1,63 @@
+{
+  "behaviourId": "furnace-air-conditioner",
+  "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/hvac/furnace-air-conditioner/original.hsplus",
+  "author": "Rules 7 to 12 are Joseph's own corrections (founder, HVAC technician), kept close to his words. Setting lines written by Claude (Anthropic), seat claude7, session 670fb727.",
+  "lines": [
+    {
+      "n": 1,
+      "text": "It starts in off mode, set to 70 degrees, with a swing of 1 degree, the fan on auto, a room reading of 70, nothing running, and the compressor last stopped 60 minutes ago."
+    },
+    {
+      "n": 2,
+      "text": "The mode can be heat, cool, auto or off. Any other mode is refused."
+    },
+    {
+      "n": 3,
+      "text": "The setting can be from 50 to 90 degrees. Anything else is refused."
+    },
+    {
+      "n": 4,
+      "text": "The swing can be from 1 to 3 degrees. Anything else is refused."
+    },
+    {
+      "n": 5,
+      "text": "The fan can be auto or on. Anything else is refused."
+    },
+    {
+      "n": 6,
+      "text": "A reading gives the room temperature and how many minutes have passed. A reading with fewer than 0 minutes is refused. While the compressor is not running, the minutes passed are added to the time since it stopped. When the compressor turns off, that time starts again from 0. While the compressor runs, that time does not change. Each reading then decides what runs, using the rules below."
+    },
+    {
+      "n": 7,
+      "text": "Heat mode: heat comes on when the room drops below the setting by the swing amount, and goes off when it reaches the setting. For example, set to 68 with a swing of 1: heat comes on at 67 or colder and goes off at 68 or warmer. In between, it keeps doing what it was doing."
+    },
+    {
+      "n": 8,
+      "text": "Cool mode: the same the other way. Cooling comes on when the room rises above the setting by the swing amount, and goes off when it reaches the setting. In between, it keeps doing what it was doing."
+    },
+    {
+      "n": 9,
+      "text": "Auto mode: heats or cools as needed, using the same two rules. Never both at once."
+    },
+    {
+      "n": 10,
+      "text": "Off mode: nothing heats or cools."
+    },
+    {
+      "n": 11,
+      "text": "The furnace heats. The air conditioner's compressor cools. After the compressor turns off, it waits 5 minutes before it can start again. When cooling is needed before the 5 minutes are up, it is waiting and does not cool yet. The furnace has no wait."
+    },
+    {
+      "n": 12,
+      "text": "Fan auto runs only while heating or cooling. Fan on always runs."
+    },
+    {
+      "n": 13,
+      "text": "Each reading answers with what is happening now: heating, cooling, waiting, or idle."
+    },
+    {
+      "n": 14,
+      "text": "Looking at the status tells who asked, the mode, the setting, the room temperature, whether heat is on, whether cooling is on, whether the fan is running, and whether it is waiting. Looking changes nothing."
+    }
+  ]
+}

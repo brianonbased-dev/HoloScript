@@ -1,0 +1,39 @@
+{
+  "machine": "Deli counter queue",
+  "kinds": { "accepted": "", "refused": "Refused." },
+  "steps": {
+    "join": "A {kind} customer takes a ticket.",
+    "serve": "The clerk serves the next customer.",
+    "giveUp": "A {kind} customer gives up and leaves.",
+    "closeJoining": "The clerk stops new people joining.",
+    "board": "The {viewerId} looks at the board."
+  },
+  "outcomes": {
+    "join.joined": "They join the queue.",
+    "join.joined_bumping_normal": "They join, and a normal customer is pushed out.",
+    "join.counter_closed": "Joining is closed.",
+    "join.unknown_kind": "That kind of customer is not on the list.",
+    "join.queue_full": "The queue is full.",
+    "serve.served_priority": "A priority customer is served.",
+    "serve.served_normal": "A normal customer is served.",
+    "serve.nobody_waiting": "Nobody is waiting.",
+    "giveUp.left_queue": "They leave the queue.",
+    "giveUp.unknown_kind": "That kind of customer is not on the list.",
+    "giveUp.none_of_that_kind": "Nobody of that kind is waiting.",
+    "closeJoining.closed": "Joining is now closed.",
+    "closeJoining.already_closed": "Joining was already closed."
+  },
+  "events": {
+    "bumped": "A {kind} customer is pushed out.",
+    "ticket_taken": "Ticket number {number} goes to a {kind} customer.",
+    "now_serving": "It calls a {kind} customer.",
+    "gave_up": "A {kind} customer gave up.",
+    "joining_closed": "It says {still_waiting} still waiting."
+  },
+  "observations": {
+    "board": "The board shows {waiting_normal} normal and {waiting_priority} priority waiting, joining {open?open|closed}, next ticket {next_number}."
+  },
+  "state": "Inside, it counts {waitingNormal} normal and {waitingPriority} priority waiting, joining {open?open|closed}, next ticket {nextNumber}.",
+  "values": { "kind": { "normal": "normal", "priority": "priority", "vip": "VIP" } },
+  "avoid": {}
+}

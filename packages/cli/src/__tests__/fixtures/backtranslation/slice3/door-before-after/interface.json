@@ -1,0 +1,32 @@
+{
+  "title": "Keypad Door",
+  "publicState": ["locked", "wrongTries", "lockedOut"],
+  "actions": [
+    { "name": "enterCode", "params": ["code"], "outcomes": [
+      { "name": "unlocked", "kind": "accepted" },
+      { "name": "wrong_code", "kind": "accepted" },
+      { "name": "wrong_code_now_locked_out", "kind": "accepted" },
+      { "name": "locked_out", "kind": "refused" },
+      { "name": "already_open", "kind": "refused" }
+    ] },
+    { "name": "lockDoor", "params": [], "outcomes": [
+      { "name": "locked", "kind": "accepted" },
+      { "name": "already_locked", "kind": "refused" }
+    ] },
+    { "name": "resetLockout", "params": ["managerCode"], "outcomes": [
+      { "name": "lockout_cleared", "kind": "accepted" },
+      { "name": "not_locked_out", "kind": "refused" },
+      { "name": "wrong_manager_code", "kind": "refused" }
+    ] }
+  ],
+  "observations": [
+    { "name": "status", "params": ["viewerId"], "answerFields": ["viewer", "locked", "locked_out", "tries_left"] }
+  ],
+  "events": [
+    { "name": "door_unlocked", "fields": ["wrong_tries_before"] },
+    { "name": "wrong_code", "fields": ["wrong_tries"] },
+    { "name": "door_locked_out", "fields": ["wrong_tries"] },
+    { "name": "door_locked", "fields": ["by"] },
+    { "name": "lockout_cleared", "fields": ["by"] }
+  ]
+}

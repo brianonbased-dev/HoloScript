@@ -1,0 +1,102 @@
+composition "Deli Counter Queue" {
+  state {
+    waitingNormal: 0
+    waitingPriority: 0
+    open: true
+    nextNumber: 1
+    consecutivePriority: 0
+  }
+
+  logic {
+    action join(kind) {
+      if (!state.open) {
+        return { allowed: false, outcome: "counter_closed" }
+      }
+      if (kind != "normal" && kind != "priority") {
+        return { allowed: false, outcome: "unknown_kind" }
+      }
+      if (state.waitingNormal + state.waitingPriority >= 5) {
+        if (kind == "normal") {
+          return { allowed: false, outcome: "queue_full" }
+        }
+        if (state.waitingNormal == 0) {
+          return { allowed: false, outcome: "queue_full" }
+        }
+        state.waitingNormal -= 1
+        emit("bumped", { kind: "normal" })
+        state.waitingPriority += 1
+        emit("ticket_taken", { number: state.nextNumber, kind: kind })
+        state.nextNumber += 1
+        return { allowed: true, outcome: "joined_bumping_normal" }
+      }
+      if (kind == "normal") {
+        state.waitingNormal += 1
+      } else {
+        state.waitingPriority += 1
+      }
+      emit("ticket_taken", { number: state.nextNumber, kind: kind })
+      state.nextNumber += 1
+      return { allowed: true, outcome: "joined" }
+    }
+
+    action serve() {
+      if (state.waitingPriority + state.waitingNormal == 0) {
+        return { allowed: false, outcome: "nobody_waiting" }
+      }
+      if (state.waitingPriority > 0 && state.consecutivePriority < 2) {
+        state.waitingPriority -= 1
+        state.consecutivePriority += 1
+        emit("now_serving", { kind: "priority" })
+        return { allowed: true, outcome: "served_priority" }
+      }
+      if (state.waitingNormal > 0) {
+        state.waitingNormal -= 1
+        state.consecutivePriority = 0
+        emit("now_serving", { kind: "normal" })
+        return { allowed: true, outcome: "served_normal" }
+      }
+      state.waitingPriority -= 1
+      state.consecutivePriority += 1
+      emit("now_serving", { kind: "priority" })
+      return { allowed: true, outcome: "served_priority" }
+    }
+
+    action giveUp(kind) {
+      if (kind != "normal" && kind != "priority") {
+        return { allowed: false, outcome: "unknown_kind" }
+      }
+      if (kind == "normal" && state.waitingNormal == 0) {
+        return { allowed: false, outcome: "none_of_that_kind" }
+      }
+      if (kind == "priority" && state.waitingPriority == 0) {
+        return { allowed: false, outcome: "none_of_that_kind" }
+      }
+      if (kind == "normal") {
+        state.waitingNormal -= 1
+      } else {
+        state.waitingPriority -= 1
+      }
+      emit("gave_up", { kind: kind })
+      return { allowed: true, outcome: "left_queue" }
+    }
+
+    action closeJoining() {
+      if (!state.open) {
+        return { allowed: false, outcome: "already_closed" }
+      }
+      state.open = false
+      emit("joining_closed", { still_waiting: state.waitingNormal + state.waitingPriority })
+      return { allowed: true, outcome: "closed" }
+    }
+
+    action board(viewerId) {
+      return {
+        viewer: viewerId,
+        waiting_normal: state.waitingNormal,
+        waiting_priority: state.waitingPriority,
+        open: state.open,
+        next_number: state.nextNumber
+      }
+    }
+  }
+}

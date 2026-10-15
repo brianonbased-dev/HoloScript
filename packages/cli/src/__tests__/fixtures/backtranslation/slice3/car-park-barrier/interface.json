@@ -1,0 +1,36 @@
+{
+  "title": "Car Park Barrier",
+  "publicState": ["carInside", "minutes", "paid", "ticketsIssued"],
+  "actions": [
+    { "name": "arrive", "params": [], "outcomes": [
+      { "name": "ticket_issued", "kind": "accepted" },
+      { "name": "car_already_inside", "kind": "refused" }
+    ] },
+    { "name": "wait", "params": ["minutes"], "outcomes": [
+      { "name": "time_passed", "kind": "accepted" },
+      { "name": "no_car", "kind": "refused" },
+      { "name": "bad_minutes", "kind": "refused" }
+    ] },
+    { "name": "pay", "params": ["coins"], "outcomes": [
+      { "name": "paid_in_full", "kind": "accepted" },
+      { "name": "part_paid", "kind": "accepted" },
+      { "name": "no_car", "kind": "refused" },
+      { "name": "nothing_due", "kind": "refused" },
+      { "name": "no_coins", "kind": "refused" }
+    ] },
+    { "name": "leave", "params": [], "outcomes": [
+      { "name": "barrier_opened", "kind": "accepted" },
+      { "name": "no_car", "kind": "refused" },
+      { "name": "payment_due", "kind": "refused" }
+    ] }
+  ],
+  "observations": [
+    { "name": "display", "params": ["viewerId"], "answerFields": ["viewer", "car_inside", "minutes", "owed"] }
+  ],
+  "events": [
+    { "name": "ticket_issued", "fields": ["ticket"] },
+    { "name": "paid_in_full", "fields": ["change"] },
+    { "name": "part_paid", "fields": ["still_owed"] },
+    { "name": "barrier_opened", "fields": ["minutes_parked", "paid"] }
+  ]
+}

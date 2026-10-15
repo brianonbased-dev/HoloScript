@@ -1,0 +1,55 @@
+{
+  "behaviourId": "deli-counter-queue",
+  "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/deli-counter-queue/original.hsplus",
+  "author": "Claude (Anthropic), seat claude7, session 670fb727",
+  "lines": [
+    {
+      "n": 1,
+      "text": "The queue starts open for joining, with nobody waiting. Tickets are numbered from 1."
+    },
+    {
+      "n": 2,
+      "text": "Joining after joining has been closed is refused."
+    },
+    {
+      "n": 3,
+      "text": "Joining as anything other than \"normal\" or \"priority\" is refused."
+    },
+    {
+      "n": 4,
+      "text": "The queue holds 5 people. When 5 are already waiting, a normal customer joining is refused, and so is a priority customer if everyone waiting is priority."
+    },
+    {
+      "n": 5,
+      "text": "When 5 are waiting and at least one of them is normal, a priority customer still gets in: one normal customer is bumped out of the queue, which is announced, and then the priority customer joins as in the next rule."
+    },
+    {
+      "n": 6,
+      "text": "Joining adds the customer to the waiting count for their kind and announces the ticket number and kind. The next ticket number then goes up by one."
+    },
+    {
+      "n": 7,
+      "text": "Serving when nobody is waiting is refused."
+    },
+    {
+      "n": 8,
+      "text": "Priority customers are served before normal ones. But count how many priority customers have been served in a row since the last normal customer was served (or since the start). Once that count is 2 or more and a normal customer is waiting, the next one served is normal instead. Serving announces the kind of customer now being served."
+    },
+    {
+      "n": 9,
+      "text": "Giving up as anything other than \"normal\" or \"priority\" is refused. Giving up when nobody of that kind is waiting is refused. Otherwise one customer of that kind leaves the queue, and it is announced with the kind."
+    },
+    {
+      "n": 10,
+      "text": "Closing joining when it is already closed is refused. Otherwise joining closes, which is announced with how many are still waiting. People already waiting can still be served."
+    },
+    {
+      "n": 11,
+      "text": "Looking at the board tells who asked, how many normal and how many priority customers are waiting, whether joining is open, and the next ticket number. Looking changes nothing."
+    },
+    {
+      "n": 12,
+      "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+    }
+  ]
+}

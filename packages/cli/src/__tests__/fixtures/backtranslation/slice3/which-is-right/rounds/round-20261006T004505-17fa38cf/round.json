@@ -1,0 +1,364 @@
+{
+  "schema": "which-is-right.round-record.v1",
+  "roundId": "round-20261006T004505-17fa38cf",
+  "keyFile": "answer-key.json",
+  "keySha256": "c246952d3fc181c1c1d052bcdce6bacedf01748fc233c03ca87285761038f87d",
+  "keySealedAt": "2026-10-06T00:45:05.313Z",
+  "questionsSha256": "93d372fdf92f763c006dc2fff4cae627462c3a6ba24a7fc841cdf603c6018a54",
+  "publicRound": {
+    "schema": "which-is-right.round.v1",
+    "roundId": "round-20261006T004505-17fa38cf",
+    "keySha256": "c246952d3fc181c1c1d052bcdce6bacedf01748fc233c03ca87285761038f87d",
+    "questionsSha256": "93d372fdf92f763c006dc2fff4cae627462c3a6ba24a7fc841cdf603c6018a54",
+    "questions": [
+      {
+        "n": 1,
+        "title": "Car park barrier",
+        "rules": [
+          "The car park starts empty: no car inside, no time counted, nothing paid, and no tickets issued yet.",
+          "Arriving while a car is already inside is refused.",
+          "Otherwise a ticket is issued: the car is inside, its time starts from 0, nothing is paid yet, and the ticket is announced with its number (1 for the first ticket ever, then 2, and so on).",
+          "Waiting when no car is inside is refused. Waiting less than 1 minute is refused. Otherwise the minutes are added to the time parked, and nothing is announced.",
+          "The price depends on the total time parked: up to half an hour (30 minutes) is free, up to 2 hours (120 minutes) costs 3, up to 4 hours (240 minutes) costs 6, and longer costs 10. What is owed is the price minus what has already been paid.",
+          "Paying when no car is inside is refused.",
+          "Paying when nothing is owed is refused.",
+          "Paying fewer than 1 coin is refused.",
+          "Paying at least what is owed pays it off: it announces the change given back, and from then on the amount paid is the full price.",
+          "Paying less than what is owed is not enough to leave: the coins count toward the price, and it announces how much is still owed.",
+          "Leaving when no car is inside is refused. Leaving while anything is owed is refused. If time passes after paying and the stay reaches a dearer price, the difference is owed before leaving.",
+          "Otherwise the barrier opens: it announces the minutes parked and the amount paid, and the car park is empty again, with the time and the amount paid back to 0.",
+          "Looking at the display tells who asked, whether a car is inside, the minutes parked, and what is owed right now. Looking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "A driver arrives at the barrier.",
+          "A driver arrives at the barrier.",
+          "The driver puts in 11 coins.",
+          "The car stays 80 minutes.",
+          "The driver puts in 1 coin."
+        ],
+        "a": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. A car is already inside.",
+          "Refused. Nothing is owed.",
+          "It counts the time.",
+          "Part paid. It says 2 still owed."
+        ],
+        "b": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. A car is already inside.",
+          "Refused. Nothing is owed.",
+          "It counts the time.",
+          "Part paid. It says 1 still owed."
+        ]
+      },
+      {
+        "n": 2,
+        "title": "Bike share account",
+        "rules": [
+          "The account starts with no bikes out and no fine owed.",
+          "Renting is refused while any fine is owed.",
+          "Renting fewer than one bike is refused.",
+          "A member can have at most 2 bikes out at once. Renting that would go over 2 is refused; reaching exactly 2 is fine.",
+          "Otherwise the bikes go out, and the rental is announced with how many were rented and how many are now out.",
+          "Giving a bike back when none are out is refused.",
+          "Giving a bike back with fewer than 0 hours late is refused.",
+          "Giving a bike back on time (0 hours late) brings one bike back, and the return is announced with how many are still out.",
+          "Giving a bike back late brings one bike back and adds a fine of 2 for each hour late. The fine owed never goes above 10 in total; anything past 10 is dropped. The late return is announced with the hours late and the fine now owed.",
+          "Paying a fine when nothing is owed is refused.",
+          "Paying less than the whole fine is refused; part payments are not taken.",
+          "Otherwise the whole fine is paid off, and the payment is announced with the amount of the fine and the change given back.",
+          "Checking the account tells who asked, how many bikes are out, the fine owed, and whether renting is possible right now (no fine owed and fewer than 2 bikes out). Checking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "A member asks to rent 2 bikes.",
+          "The member brings a bike back 4 hours late.",
+          "The member brings a bike back 1 hour late.",
+          "A member asks to rent 0 bikes."
+        ],
+        "a": [
+          "The bikes go out. It says 2 rented and 2 out now.",
+          "The bike is taken back late. It says 4 hours late and a fine of 8 now owed.",
+          "The bike is taken back late. It says 1 hour late and a fine of 10 now owed.",
+          "Refused. That is fewer than one bike."
+        ],
+        "b": [
+          "The bikes go out. It says 2 rented and 2 out now.",
+          "The bike is taken back late. It says 4 hours late and a fine of 8 now owed.",
+          "The bike is taken back late. It says 1 hour late and a fine of 10 now owed.",
+          "Refused. A fine is still owed."
+        ]
+      },
+      {
+        "n": 3,
+        "title": "Deli counter queue",
+        "rules": [
+          "The queue starts open for joining, with nobody waiting. Tickets are numbered from 1.",
+          "Joining after joining has been closed is refused.",
+          "Joining as anything other than \"normal\" or \"priority\" is refused.",
+          "The queue holds 5 people. When 5 are already waiting, a normal customer joining is refused, and so is a priority customer if everyone waiting is priority.",
+          "When 5 are waiting and at least one of them is normal, a priority customer still gets in: one normal customer is bumped out of the queue, which is announced, and then the priority customer joins as in the next rule.",
+          "Joining adds the customer to the waiting count for their kind and announces the ticket number and kind. The next ticket number then goes up by one.",
+          "Serving when nobody is waiting is refused.",
+          "Priority customers are served before normal ones. But count how many priority customers have been served in a row since the last normal customer was served (or since the start). Once that count is 2 or more and a normal customer is waiting, the next one served is normal instead. Serving announces the kind of customer now being served.",
+          "Giving up as anything other than \"normal\" or \"priority\" is refused. Giving up when nobody of that kind is waiting is refused. Otherwise one customer of that kind leaves the queue, and it is announced with the kind.",
+          "Closing joining when it is already closed is refused. Otherwise joining closes, which is announced with how many are still waiting. People already waiting can still be served.",
+          "Looking at the board tells who asked, how many normal and how many priority customers are waiting, whether joining is open, and the next ticket number. Looking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "The clerk stops new people joining."
+        ],
+        "a": [
+          "Joining is now closed. It says 0 still waiting."
+        ],
+        "b": [
+          "Refused. Joining was already closed."
+        ]
+      },
+      {
+        "n": 4,
+        "title": "Car park barrier",
+        "rules": [
+          "The car park starts empty: no car inside, no time counted, nothing paid, and no tickets issued yet.",
+          "Arriving while a car is already inside is refused.",
+          "Otherwise a ticket is issued: the car is inside, its time starts from 0, nothing is paid yet, and the ticket is announced with its number (1 for the first ticket ever, then 2, and so on).",
+          "Waiting when no car is inside is refused. Waiting less than 1 minute is refused. Otherwise the minutes are added to the time parked, and nothing is announced.",
+          "The price depends on the total time parked: up to half an hour (30 minutes) is free, up to 2 hours (120 minutes) costs 3, up to 4 hours (240 minutes) costs 6, and longer costs 10. What is owed is the price minus what has already been paid.",
+          "Paying when no car is inside is refused.",
+          "Paying when nothing is owed is refused.",
+          "Paying fewer than 1 coin is refused.",
+          "Paying at least what is owed pays it off: it announces the change given back, and from then on the amount paid is the full price.",
+          "Paying less than what is owed is not enough to leave: the coins count toward the price, and it announces how much is still owed.",
+          "Leaving when no car is inside is refused. Leaving while anything is owed is refused. If time passes after paying and the stay reaches a dearer price, the difference is owed before leaving.",
+          "Otherwise the barrier opens: it announces the minutes parked and the amount paid, and the car park is empty again, with the time and the amount paid back to 0.",
+          "Looking at the display tells who asked, whether a car is inside, the minutes parked, and what is owed right now. Looking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "A driver arrives at the barrier.",
+          "A driver arrives at the barrier."
+        ],
+        "a": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. A car is already inside."
+        ],
+        "b": [
+          "The car goes in. It gives ticket number 1.",
+          "The car goes in. It gives ticket number 2."
+        ]
+      },
+      {
+        "n": 5,
+        "title": "Bike share account",
+        "rules": [
+          "The account starts with no bikes out and no fine owed.",
+          "Renting is refused while any fine is owed.",
+          "Renting fewer than one bike is refused.",
+          "A member can have at most 2 bikes out at once. Renting that would go over 2 is refused; reaching exactly 2 is fine.",
+          "Otherwise the bikes go out, and the rental is announced with how many were rented and how many are now out.",
+          "Giving a bike back when none are out is refused.",
+          "Giving a bike back with fewer than 0 hours late is refused.",
+          "Giving a bike back on time (0 hours late) brings one bike back, and the return is announced with how many are still out.",
+          "Giving a bike back late brings one bike back and adds a fine of 2 for each hour late. The fine owed never goes above 10 in total; anything past 10 is dropped. The late return is announced with the hours late and the fine now owed.",
+          "Paying a fine when nothing is owed is refused.",
+          "Paying less than the whole fine is refused; part payments are not taken.",
+          "Otherwise the whole fine is paid off, and the payment is announced with the amount of the fine and the change given back.",
+          "Checking the account tells who asked, how many bikes are out, the fine owed, and whether renting is possible right now (no fine owed and fewer than 2 bikes out). Checking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "A member asks to rent 3 bikes."
+        ],
+        "a": [
+          "Refused. That would be more than 2 bikes out."
+        ],
+        "b": [
+          "Refused. A fine is still owed."
+        ]
+      },
+      {
+        "n": 6,
+        "title": "Car park barrier",
+        "rules": [
+          "The car park starts empty: no car inside, no time counted, nothing paid, and no tickets issued yet.",
+          "Arriving while a car is already inside is refused.",
+          "Otherwise a ticket is issued: the car is inside, its time starts from 0, nothing is paid yet, and the ticket is announced with its number (1 for the first ticket ever, then 2, and so on).",
+          "Waiting when no car is inside is refused. Waiting less than 1 minute is refused. Otherwise the minutes are added to the time parked, and nothing is announced.",
+          "The price depends on the total time parked: up to half an hour (30 minutes) is free, up to 2 hours (120 minutes) costs 3, up to 4 hours (240 minutes) costs 6, and longer costs 10. What is owed is the price minus what has already been paid.",
+          "Paying when no car is inside is refused.",
+          "Paying when nothing is owed is refused.",
+          "Paying fewer than 1 coin is refused.",
+          "Paying at least what is owed pays it off: it announces the change given back, and from then on the amount paid is the full price.",
+          "Paying less than what is owed is not enough to leave: the coins count toward the price, and it announces how much is still owed.",
+          "Leaving when no car is inside is refused. Leaving while anything is owed is refused. If time passes after paying and the stay reaches a dearer price, the difference is owed before leaving.",
+          "Otherwise the barrier opens: it announces the minutes parked and the amount paid, and the car park is empty again, with the time and the amount paid back to 0.",
+          "Looking at the display tells who asked, whether a car is inside, the minutes parked, and what is owed right now. Looking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "The driver tries to leave."
+        ],
+        "a": [
+          "The barrier opens. It says 0 minutes parked and 0 paid."
+        ],
+        "b": [
+          "Refused. There is no car inside."
+        ]
+      },
+      {
+        "n": 7,
+        "title": "Car park barrier",
+        "rules": [
+          "The car park starts empty: no car inside, no time counted, nothing paid, and no tickets issued yet.",
+          "Arriving while a car is already inside is refused.",
+          "Otherwise a ticket is issued: the car is inside, its time starts from 0, nothing is paid yet, and the ticket is announced with its number (1 for the first ticket ever, then 2, and so on).",
+          "Waiting when no car is inside is refused. Waiting less than 1 minute is refused. Otherwise the minutes are added to the time parked, and nothing is announced.",
+          "The price depends on the total time parked: up to half an hour (30 minutes) is free, up to 2 hours (120 minutes) costs 3, up to 4 hours (240 minutes) costs 6, and longer costs 10. What is owed is the price minus what has already been paid.",
+          "Paying when no car is inside is refused.",
+          "Paying when nothing is owed is refused.",
+          "Paying fewer than 1 coin is refused.",
+          "Paying at least what is owed pays it off: it announces the change given back, and from then on the amount paid is the full price.",
+          "Paying less than what is owed is not enough to leave: the coins count toward the price, and it announces how much is still owed.",
+          "Leaving when no car is inside is refused. Leaving while anything is owed is refused. If time passes after paying and the stay reaches a dearer price, the difference is owed before leaving.",
+          "Otherwise the barrier opens: it announces the minutes parked and the amount paid, and the car park is empty again, with the time and the amount paid back to 0.",
+          "Looking at the display tells who asked, whether a car is inside, the minutes parked, and what is owed right now. Looking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "A driver arrives at the barrier.",
+          "The driver puts in 1 coin.",
+          "The attendant looks at the screen.",
+          "The car stays 93 minutes.",
+          "A driver arrives at the barrier.",
+          "The driver puts in 1 coin."
+        ],
+        "a": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. Nothing is owed.",
+          "The screen shows a car inside, 0 minutes and 0 owed.",
+          "It counts the time.",
+          "Refused. A car is already inside.",
+          "Part paid. It says 2 still owed."
+        ],
+        "b": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. Nothing is owed.",
+          "The screen shows a car inside, 0 minutes and 0 owed.",
+          "It counts the time.",
+          "Refused. A car is already inside.",
+          "Part paid. It says 1 still owed."
+        ]
+      },
+      {
+        "n": 8,
+        "title": "Car park barrier",
+        "rules": [
+          "The car park starts empty: no car inside, no time counted, nothing paid, and no tickets issued yet.",
+          "Arriving while a car is already inside is refused.",
+          "Otherwise a ticket is issued: the car is inside, its time starts from 0, nothing is paid yet, and the ticket is announced with its number (1 for the first ticket ever, then 2, and so on).",
+          "Waiting when no car is inside is refused. Waiting less than 1 minute is refused. Otherwise the minutes are added to the time parked, and nothing is announced.",
+          "The price depends on the total time parked: up to half an hour (30 minutes) is free, up to 2 hours (120 minutes) costs 3, up to 4 hours (240 minutes) costs 6, and longer costs 10. What is owed is the price minus what has already been paid.",
+          "Paying when no car is inside is refused.",
+          "Paying when nothing is owed is refused.",
+          "Paying fewer than 1 coin is refused.",
+          "Paying at least what is owed pays it off: it announces the change given back, and from then on the amount paid is the full price.",
+          "Paying less than what is owed is not enough to leave: the coins count toward the price, and it announces how much is still owed.",
+          "Leaving when no car is inside is refused. Leaving while anything is owed is refused. If time passes after paying and the stay reaches a dearer price, the difference is owed before leaving.",
+          "Otherwise the barrier opens: it announces the minutes parked and the amount paid, and the car park is empty again, with the time and the amount paid back to 0.",
+          "Looking at the display tells who asked, whether a car is inside, the minutes parked, and what is owed right now. Looking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "A driver arrives at the barrier.",
+          "The car stays 121 minutes."
+        ],
+        "a": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. That is less than 1 minute."
+        ],
+        "b": [
+          "The car goes in. It gives ticket number 1.",
+          "It counts the time."
+        ]
+      },
+      {
+        "n": 9,
+        "title": "Deli counter queue",
+        "rules": [
+          "The queue starts open for joining, with nobody waiting. Tickets are numbered from 1.",
+          "Joining after joining has been closed is refused.",
+          "Joining as anything other than \"normal\" or \"priority\" is refused.",
+          "The queue holds 5 people. When 5 are already waiting, a normal customer joining is refused, and so is a priority customer if everyone waiting is priority.",
+          "When 5 are waiting and at least one of them is normal, a priority customer still gets in: one normal customer is bumped out of the queue, which is announced, and then the priority customer joins as in the next rule.",
+          "Joining adds the customer to the waiting count for their kind and announces the ticket number and kind. The next ticket number then goes up by one.",
+          "Serving when nobody is waiting is refused.",
+          "Priority customers are served before normal ones. But count how many priority customers have been served in a row since the last normal customer was served (or since the start). Once that count is 2 or more and a normal customer is waiting, the next one served is normal instead. Serving announces the kind of customer now being served.",
+          "Giving up as anything other than \"normal\" or \"priority\" is refused. Giving up when nobody of that kind is waiting is refused. Otherwise one customer of that kind leaves the queue, and it is announced with the kind.",
+          "Closing joining when it is already closed is refused. Otherwise joining closes, which is announced with how many are still waiting. People already waiting can still be served.",
+          "Looking at the board tells who asked, how many normal and how many priority customers are waiting, whether joining is open, and the next ticket number. Looking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "A normal customer takes a ticket.",
+          "A priority customer takes a ticket.",
+          "A normal customer takes a ticket.",
+          "A priority customer takes a ticket.",
+          "A priority customer takes a ticket.",
+          "A normal customer takes a ticket."
+        ],
+        "a": [
+          "They join the queue. Ticket number 1 goes to a normal customer.",
+          "They join the queue. Ticket number 2 goes to a priority customer.",
+          "They join the queue. Ticket number 3 goes to a normal customer.",
+          "They join the queue. Ticket number 4 goes to a priority customer.",
+          "They join the queue. Ticket number 5 goes to a priority customer.",
+          "They join the queue. Ticket number 6 goes to a normal customer."
+        ],
+        "b": [
+          "They join the queue. Ticket number 1 goes to a normal customer.",
+          "They join the queue. Ticket number 2 goes to a priority customer.",
+          "They join the queue. Ticket number 3 goes to a normal customer.",
+          "They join the queue. Ticket number 4 goes to a priority customer.",
+          "They join the queue. Ticket number 5 goes to a priority customer.",
+          "Refused. The queue is full."
+        ]
+      },
+      {
+        "n": 10,
+        "title": "Bike share account",
+        "rules": [
+          "The account starts with no bikes out and no fine owed.",
+          "Renting is refused while any fine is owed.",
+          "Renting fewer than one bike is refused.",
+          "A member can have at most 2 bikes out at once. Renting that would go over 2 is refused; reaching exactly 2 is fine.",
+          "Otherwise the bikes go out, and the rental is announced with how many were rented and how many are now out.",
+          "Giving a bike back when none are out is refused.",
+          "Giving a bike back with fewer than 0 hours late is refused.",
+          "Giving a bike back on time (0 hours late) brings one bike back, and the return is announced with how many are still out.",
+          "Giving a bike back late brings one bike back and adds a fine of 2 for each hour late. The fine owed never goes above 10 in total; anything past 10 is dropped. The late return is announced with the hours late and the fine now owed.",
+          "Paying a fine when nothing is owed is refused.",
+          "Paying less than the whole fine is refused; part payments are not taken.",
+          "Otherwise the whole fine is paid off, and the payment is announced with the amount of the fine and the change given back.",
+          "Checking the account tells who asked, how many bikes are out, the fine owed, and whether renting is possible right now (no fine owed and fewer than 2 bikes out). Checking changes nothing.",
+          "When more than one reason to refuse applies, the first one in this list is the answer."
+        ],
+        "steps": [
+          "A member asks to rent 2 bikes."
+        ],
+        "a": [
+          "The bikes go out. It says 2 rented and 2 out now."
+        ],
+        "b": [
+          "The bikes go out. It says 2 rented and 0 out now."
+        ]
+      }
+    ]
+  },
+  "published": {
+    "to": "http://127.0.0.1:3401",
+    "at": "2026-10-06T00:45:05.379Z",
+    "dashboardKeySha256": "c246952d3fc181c1c1d052bcdce6bacedf01748fc233c03ca87285761038f87d"
+  }
+}

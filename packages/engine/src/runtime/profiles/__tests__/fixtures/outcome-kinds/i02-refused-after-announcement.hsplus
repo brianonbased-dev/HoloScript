@@ -1,0 +1,16 @@
+composition "Early Announcement" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action ping(x) accepted(sent) refused(blocked) {
+      emit("pinged", { x: x })
+      if (x < 0) {
+        return { allowed: false, outcome: "blocked" }
+      }
+      return { allowed: true, outcome: "sent" }
+    }
+  }
+}

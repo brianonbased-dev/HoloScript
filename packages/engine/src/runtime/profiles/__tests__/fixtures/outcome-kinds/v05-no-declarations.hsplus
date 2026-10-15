@@ -1,0 +1,16 @@
+composition "Legacy Shelf" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action borrow(days) {
+      if (days < 1) {
+        return { allowed: false, outcome: "bad_length" }
+      }
+      state.bikesOut += 1
+      return { allowed: true, outcome: "borrowed" }
+    }
+  }
+}

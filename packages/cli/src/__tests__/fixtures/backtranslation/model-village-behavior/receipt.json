@@ -1,0 +1,221 @@
+{
+  "behaviourId": "model-village/behavior",
+  "checklist": {
+    "author": "Claude (Anthropic), seat claude7, session 670fb727",
+    "behaviourId": "model-village/behavior",
+    "lines": [
+      {
+        "n": 1,
+        "text": "The behaviour is called \"Model Village Deterministic Behavior\"."
+      },
+      {
+        "n": 2,
+        "text": "The village keeps a count of shared water, labelled \"water\". It starts at 2."
+      },
+      {
+        "n": 3,
+        "text": "The village also keeps one private note, labelled \"privateAdapter\", holding the text \"fixture-private-adapter\". Nothing a resident sees may ever contain this text."
+      },
+      {
+        "n": 4,
+        "text": "There are exactly three things the village can be asked to do, named \"observe\", \"contribute\" and \"reject\"."
+      },
+      {
+        "n": 5,
+        "text": "\"observe\" takes one input, labelled \"residentId\": the resident who is looking."
+      },
+      {
+        "n": 6,
+        "text": "\"observe\" answers with exactly four labelled parts and nothing else: \"resident_id\" is the residentId given, unchanged; \"location\" is the text \"commons\"; \"visible_event_ids\" is an empty list; \"bounded_memory_hash\" is the text \"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\"."
+      },
+      {
+        "n": 7,
+        "text": "\"observe\" changes nothing and announces nothing. The answer is the same no matter how much water there is."
+      },
+      {
+        "n": 8,
+        "text": "\"contribute\" takes one input, labelled \"amount\": a number."
+      },
+      {
+        "n": 9,
+        "text": "\"contribute\" adds the amount to the water. It always does this; there is no limit and no check."
+      },
+      {
+        "n": 10,
+        "text": "\"contribute\" then announces one event named \"water_added\", carrying one labelled part, \"amount\", equal to the amount given."
+      },
+      {
+        "n": 11,
+        "text": "\"contribute\" answers with two labelled parts: \"allowed\" is yes (true) and \"outcome\" is the text \"water_added\"."
+      },
+      {
+        "n": 12,
+        "text": "\"reject\" takes no input. It changes nothing and announces nothing."
+      },
+      {
+        "n": 13,
+        "text": "\"reject\" answers with two labelled parts: \"allowed\" is no (false) and \"outcome\" is the text \"blocked_without_world_mutation\"."
+      }
+    ],
+    "sourcePath": "packages/cli/src/__tests__/fixtures/model-village/behavior.hsplus"
+  },
+  "faults": {
+    "caught": 5,
+    "mutants": [
+      {
+        "caught": true,
+        "change": "line 19: \"+\" -> \"-\"",
+        "description": "arithmetic \"+\" changed to \"-\"",
+        "divergentSituations": 19,
+        "firstDivergence": {
+          "detail": "$.actions[2].postPublicStateHash: \"39d2122cdf6e8704619d98f29109b049a528a396f6095ec15eeef2f26047f9eb\" vs \"7958cd1d03432d94737d261f1f37e8fdb38c8d236f006d2ef95ddbc833ba8ed3\"; $.actions[3].postPublicStateHash: \"39d2122cdf6e8704619d98f29109b049a528a396f6095ec15eeef2f26047f9eb\" vs \"7958cd1d03432d94737d261f1f37e8fdb38c8d236f006d2ef95ddbc833ba8ed3\"",
+          "iteration": 0,
+          "reason": "syndrome-mismatch"
+        },
+        "id": "arith-flip#0",
+        "operator": "arith-flip",
+        "situations": 20
+      },
+      {
+        "caught": true,
+        "change": "line 3: \"2\" -> \"3\"",
+        "description": "number 2 changed to 3",
+        "divergentSituations": 20,
+        "firstDivergence": {
+          "detail": "$.actions[0].postPublicStateHash: \"0dc04c86c10152cc6d13d13531443b019dcfb3f2dc805fe947898f5af12e67b5\" vs \"924cb3f441c66015d5747d2fa4b023e97e7c6cfcca77ca4e8a2b74f2011a57c4\"; $.actions[0].prePublicStateHash: \"0dc04c86c10152cc6d13d13531443b019dcfb3f2dc805fe947898f5af12e67b5\" vs \"924cb3f441c66015d5747d2fa4b023e97e7c6cfcca77ca4e8a2b74f2011a57c4\"",
+          "iteration": 0,
+          "reason": "syndrome-mismatch"
+        },
+        "id": "constant-change#0",
+        "operator": "constant-change",
+        "situations": 20
+      },
+      {
+        "caught": true,
+        "change": "line 21: \"true\" -> \"false\"",
+        "description": "true changed to false",
+        "divergentSituations": 20,
+        "firstDivergence": {
+          "detail": "{\"error\":\"Deterministic HoloScript+ action runtime: denied action \\\"contribute\\\" attempted a state change or event\"}",
+          "iteration": 0,
+          "reason": "b-threw"
+        },
+        "id": "boolean-flip#0",
+        "operator": "boolean-flip",
+        "situations": 20
+      },
+      {
+        "caught": true,
+        "change": "line 19: \"      state.water = state.water + amount\" -> \"\"",
+        "description": "statement removed: state.water = state.water + amount",
+        "divergentSituations": 19,
+        "firstDivergence": {
+          "detail": "$.actions[2].postPublicStateHash: \"39d2122cdf6e8704619d98f29109b049a528a396f6095ec15eeef2f26047f9eb\" vs \"0dc04c86c10152cc6d13d13531443b019dcfb3f2dc805fe947898f5af12e67b5\"; $.actions[2].stateChanged: true vs false",
+          "iteration": 0,
+          "reason": "syndrome-mismatch"
+        },
+        "id": "drop-statement#0",
+        "operator": "drop-statement",
+        "situations": 20
+      },
+      {
+        "caught": true,
+        "change": "line 20: \"\\\"water_added\\\"\" -> \"\\\"water_added_renamed\\\"\"",
+        "description": "event name \"water_added\" changed to \"water_added_renamed\"",
+        "divergentSituations": 20,
+        "firstDivergence": {
+          "detail": "$.actions[1].emittedEvents[0].event: \"water_added\" vs \"water_added_renamed\"; $.actions[2].emittedEvents[0].event: \"water_added\" vs \"water_added_renamed\"",
+          "iteration": 0,
+          "reason": "syndrome-mismatch"
+        },
+        "id": "event-rename#0",
+        "operator": "event-rename",
+        "situations": 20
+      }
+    ],
+    "planted": 5
+  },
+  "generatedAt": "2026-10-05T21:50:50.824Z",
+  "originalVsRebuild": {
+    "divergences": [],
+    "divergentSituations": 0,
+    "falseAlarms": 0,
+    "passed": true
+  },
+  "originalVsSelf": {
+    "divergentSituations": 0,
+    "passed": true
+  },
+  "plainLanguageCheck": {
+    "exitCode": 0,
+    "findings": "Files with findings: 0; BLOCK-tier 0; WARN-tier 0",
+    "tool": "C:/holo-dev/ai-ecosystem/scripts/check-plain-language.mjs --profile canon --check --strict"
+  },
+  "rebuild": {
+    "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/model-village-behavior/exchanges",
+    "inputs": [
+      "checklist.json (rendered as numbered lines)",
+      "language-reference.md",
+      "checker errors (repair rounds only)"
+    ],
+    "model": "grok-4.3",
+    "provider": "xai",
+    "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/model-village-behavior/rebuilt.hsplus",
+    "recordedNotLive": true,
+    "rounds": 1,
+    "seesOriginalSource": false,
+    "validated": true
+  },
+  "runSurface": {
+    "branch": "feat/back-translation-proof (worktree from origin/main)",
+    "commit": "d3cb55765fcd84a1b95417af21a00487994fcb0a",
+    "note": "origin/main: .holo without a composition wrapper is still lenient here (PR #509 not merged); all sources in this slice use the composition wrapper."
+  },
+  "schema": "holoscript.back-translation-proof.v1",
+  "twin": {
+    "excludedFields": [
+      {
+        "field": "sourceBundleHash",
+        "why": "hash of the source text itself; differs for any two files"
+      },
+      {
+        "field": "canonicalFields.actionReceiptRoot",
+        "why": "chained ledger root seeded with sourceBundleHash (ledgerGenesis/appendLedger), so it differs whenever the source text differs"
+      },
+      {
+        "field": "canonicalFields.executedScheduleHash",
+        "why": "schedule payloads carry outcomeHashes, which are chained roots seeded with sourceBundleHash"
+      },
+      {
+        "field": "actionLedger[].payload.rollbackReference.priorActionRoot",
+        "why": "chained action root, seeded with sourceBundleHash"
+      },
+      {
+        "field": "terminal.* roots, terminalCommitment, entryHash/previousHash",
+        "why": "all chained over sourceBundleHash and the manifest (which carries the probed final state)"
+      },
+      {
+        "field": "sourceRunReceipt (engine provenance, plan bytecode hash)",
+        "why": "identity of the plan program text, not behaviour"
+      }
+    ],
+    "harness": "packages/core/src/testing/TwinTestHarness.ts runTwinTest",
+    "oracleFields": [
+      "canonicalFields.canonicalSceneHash",
+      "canonicalFields.canonicalPoseHash",
+      "canonicalFields.logicalClockHash",
+      "canonicalFields.publicStateHash",
+      "canonicalFields.residentObservationHash",
+      "publicStateSnapshots[].payload",
+      "observationLedger[].payload",
+      "actionLedger[].payload (minus rollbackReference.priorActionRoot)",
+      "scheduleLedger[].payload (minus outcomeHashes)",
+      "terminal.actualCounts"
+    ],
+    "runner": "packages/cli/src/headless-experiment.ts runHeadlessExperimentSources (world=village.holo, plan=generated .hs per situation, behaviour=under test)",
+    "seed": 11847585,
+    "situations": 20
+  },
+  "verdict": "Slice 1 works end to end and supports going on to 10 behaviours, with one honest limit. The test is not blind: the original matched itself and a comment-only copy in all 20 situations, and all 5 planted mistakes were caught (two of them were missed in 1 of 20 situations, where no water was actually added, so situation variety matters). Grok rebuilt the behaviour on the first try from the checklist alone and acted the same as the original in all 20 situations. That means zero false alarms, but also that this behaviour was too small to test false alarms: the checklist had to name every label, number and fixed text exactly, so the rebuild was close to copying a dictated list. The next behaviours must include real decisions (an if, a limit, a refusal that depends on state) before the false-alarm rate means anything.",
+  "weakestLink": "The checklist, not the machinery. For the rebuild to plug into the same runner, the checklist must carry exact action names, input labels, answer labels and fixed texts (like the memory fingerprint). For a tiny behaviour that turns plain language into dictation, so agreement proves little. Second: the situation maker is written for this one village plan; each new behaviour needs its own, or a generic one derived from the behaviour's actions."
+}

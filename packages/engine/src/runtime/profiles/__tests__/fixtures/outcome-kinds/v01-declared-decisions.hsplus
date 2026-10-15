@@ -1,0 +1,39 @@
+composition "Bike Share Account" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action rent(count) accepted(rented) refused(fine_unpaid, bad_count, over_limit) {
+      if (state.fineOwed > 0) {
+        return { allowed: false, outcome: "fine_unpaid" }
+      }
+      if (count < 1) {
+        return { allowed: false, outcome: "bad_count" }
+      }
+      if (state.bikesOut + count > 2) {
+        return { allowed: false, outcome: "over_limit" }
+      }
+      state.bikesOut += count
+      emit("bikes_rented", { count: count, now_out: state.bikesOut })
+      return { allowed: true, outcome: "rented" }
+    }
+
+    action payFine(amount) accepted(fine_paid) refused(nothing_owed, not_enough) {
+      if (state.fineOwed == 0) {
+        return { allowed: false, outcome: "nothing_owed" }
+      }
+      if (amount < state.fineOwed) {
+        return { allowed: false, outcome: "not_enough" }
+      }
+      emit("fine_paid", { paid: state.fineOwed, change: amount - state.fineOwed })
+      state.fineOwed = 0
+      return { allowed: true, outcome: "fine_paid" }
+    }
+
+    action account(viewerId) {
+      return { viewer: viewerId, bikes_out: state.bikesOut, fine_owed: state.fineOwed }
+    }
+  }
+}

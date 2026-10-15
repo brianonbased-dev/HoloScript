@@ -1,0 +1,475 @@
+{
+  "behaviourId": "bike-share-account",
+  "checklist": {
+    "author": "Claude (Anthropic), seat claude7, session 670fb727",
+    "behaviourId": "bike-share-account",
+    "lines": [
+      {
+        "n": 1,
+        "text": "The account starts with no bikes out and no fine owed."
+      },
+      {
+        "n": 2,
+        "text": "Renting is refused while any fine is owed."
+      },
+      {
+        "n": 3,
+        "text": "Renting fewer than one bike is refused."
+      },
+      {
+        "n": 4,
+        "text": "A member can have at most 2 bikes out at once. Renting that would go over 2 is refused; reaching exactly 2 is fine."
+      },
+      {
+        "n": 5,
+        "text": "Otherwise the bikes go out, and the rental is announced with how many were rented and how many are now out."
+      },
+      {
+        "n": 6,
+        "text": "Giving a bike back when none are out is refused."
+      },
+      {
+        "n": 7,
+        "text": "Giving a bike back with fewer than 0 hours late is refused."
+      },
+      {
+        "n": 8,
+        "text": "Giving a bike back on time (0 hours late) brings one bike back, and the return is announced with how many are still out."
+      },
+      {
+        "n": 9,
+        "text": "Giving a bike back late brings one bike back and adds a fine of 2 for each hour late. The fine owed never goes above 10 in total; anything past 10 is dropped. The late return is announced with the hours late and the fine now owed."
+      },
+      {
+        "n": 10,
+        "text": "Paying a fine when nothing is owed is refused."
+      },
+      {
+        "n": 11,
+        "text": "Paying less than the whole fine is refused; part payments are not taken."
+      },
+      {
+        "n": 12,
+        "text": "Otherwise the whole fine is paid off, and the payment is announced with the amount of the fine and the change given back."
+      },
+      {
+        "n": 13,
+        "text": "Checking the account tells who asked, how many bikes are out, the fine owed, and whether renting is possible right now (no fine owed and fewer than 2 bikes out). Checking changes nothing."
+      },
+      {
+        "n": 14,
+        "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+      }
+    ],
+    "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/bike-share-account/original.hsplus"
+  },
+  "generatedAt": "2026-10-05T17:30:00.000Z",
+  "interfaceCard": "Behaviour name: \"Bike Share Account\"\n\nState fields others can see: bikesOut, fineOwed\n\nActions (each answers with allowed and outcome; outcome is one of the names listed):\nEach outcome is marked with its kind:\n- accepted: the answer has allowed = true. The action may change state and announce events.\n- refused: the answer has allowed = false. The action changes nothing and announces nothing.\n\n- rent(count) — outcomes: rented (accepted), fine_unpaid (refused), bad_count (refused), over_limit (refused)\n- giveBack(hoursLate) — outcomes: returned (accepted), returned_late (accepted), nothing_out (refused), bad_hours (refused)\n- payFine(amount) — outcomes: fine_paid (accepted), nothing_owed (refused), not_enough (refused)\n\nObservations (answer only):\n- account(viewerId) — answer fields: viewer, bikes_out, fine_owed, can_rent\n\nEvents (event name: payload fields):\n- bikes_rented: count, now_out\n- returned: now_out\n- returned_late: hours_late, fine_owed\n- fine_paid: paid, change\n",
+  "plainLanguageCheck": {
+    "exitCode": 0,
+    "findings": "Files with findings: 0; BLOCK-tier 0; WARN-tier 0",
+    "tool": "C:/holo-dev/ai-ecosystem/scripts/check-plain-language.mjs --profile canon --check --strict"
+  },
+  "precheck": {
+    "originalRanAllSituations": true,
+    "situationsRun": 20
+  },
+  "rebuild": {
+    "checker": "validateCanonicalSource + deterministic headless runtime admission",
+    "inputs": [
+      "language-reference-v2.md",
+      "interface-card.md (names only, each outcome marked accepted or refused)",
+      "checklist.json (rules, rendered as numbered lines)",
+      "checker errors (repair rounds only)"
+    ],
+    "maxRepairRounds": 3,
+    "provider": "xai",
+    "recordedNotLive": true,
+    "seesOriginalSource": false
+  },
+  "recordings": [
+    {
+      "catch": {
+        "catchRate": 1,
+        "caught": 6,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 19,
+            "caught": true,
+            "change": "line 9: \">\" -> \"<=\"",
+            "description": "comparison \">\" changed to \"<=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 19,
+            "rawDivergentSituations": 19,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 7,
+            "caught": true,
+            "change": "line 9: \"      if (state.fineOwed > 0) {\\n        return { allowed: false, outcome: \\\"fine_unpaid\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.fineOwed > 0) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 7,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 7,
+            "caught": true,
+            "change": "line 10: \"false\" -> \"true\"",
+            "description": "false changed to true",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 7,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 15,
+            "caught": true,
+            "change": "line 15: \"+\" -> \"-\"",
+            "description": "arithmetic \"+\" changed to \"-\"",
+            "id": "arith-flip#0",
+            "inDecision": true,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 15,
+            "rawDivergentSituations": 15,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 16,
+            "caught": true,
+            "change": "line 18: \"      state.bikesOut += count\" -> \"\"",
+            "description": "statement removed: state.bikesOut += count",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 16,
+            "rawDivergentSituations": 16,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 16,
+            "caught": true,
+            "change": "line 19: \"\\\"bikes_rented\\\"\" -> \"\\\"bikes_rented_renamed\\\"\"",
+            "description": "event name \"bikes_rented\" changed to \"bikes_rented_renamed\"",
+            "id": "event-rename#0",
+            "inDecision": false,
+            "operator": "event-rename",
+            "oracleDivergentSituations": 16,
+            "rawDivergentSituations": 16,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/bike-share-account/recordings/r1/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 0,
+          "checklist-ambiguity": 0,
+          "real-fault": 0
+        },
+        "divergences": [],
+        "divergentSituations": 0,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/bike-share-account/recordings/r1/rebuilt.hsplus",
+      "recording": "r1",
+      "rounds": 2,
+      "usage": {
+        "completionTokens": 1132,
+        "promptTokens": 3958,
+        "totalTokens": 6022
+      },
+      "validated": true
+    },
+    {
+      "catch": {
+        "catchRate": 1,
+        "caught": 6,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 19,
+            "caught": true,
+            "change": "line 9: \">\" -> \"<=\"",
+            "description": "comparison \">\" changed to \"<=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 19,
+            "rawDivergentSituations": 19,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 7,
+            "caught": true,
+            "change": "line 9: \"      if (state.fineOwed > 0) {\\n        return { allowed: false, outcome: \\\"fine_unpaid\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.fineOwed > 0) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 7,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 7,
+            "caught": true,
+            "change": "line 10: \"false\" -> \"true\"",
+            "description": "false changed to true",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 7,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 15,
+            "caught": true,
+            "change": "line 15: \"+\" -> \"-\"",
+            "description": "arithmetic \"+\" changed to \"-\"",
+            "id": "arith-flip#0",
+            "inDecision": true,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 15,
+            "rawDivergentSituations": 15,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 16,
+            "caught": true,
+            "change": "line 18: \"      state.bikesOut += count\" -> \"\"",
+            "description": "statement removed: state.bikesOut += count",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 16,
+            "rawDivergentSituations": 16,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 16,
+            "caught": true,
+            "change": "line 19: \"\\\"bikes_rented\\\"\" -> \"\\\"bikes_rented_renamed\\\"\"",
+            "description": "event name \"bikes_rented\" changed to \"bikes_rented_renamed\"",
+            "id": "event-rename#0",
+            "inDecision": false,
+            "operator": "event-rename",
+            "oracleDivergentSituations": 16,
+            "rawDivergentSituations": 16,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/bike-share-account/recordings/r2/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 0,
+          "checklist-ambiguity": 0,
+          "real-fault": 0
+        },
+        "divergences": [],
+        "divergentSituations": 0,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/bike-share-account/recordings/r2/rebuilt.hsplus",
+      "recording": "r2",
+      "rounds": 2,
+      "usage": {
+        "completionTokens": 1118,
+        "promptTokens": 3950,
+        "totalTokens": 6013
+      },
+      "validated": true
+    },
+    {
+      "catch": {
+        "catchRate": 1,
+        "caught": 6,
+        "mutants": [
+          {
+            "attributableDivergentSituations": 19,
+            "caught": true,
+            "change": "line 9: \">\" -> \"<=\"",
+            "description": "comparison \">\" changed to \"<=\"",
+            "id": "comparison-flip#0",
+            "inDecision": true,
+            "operator": "comparison-flip",
+            "oracleDivergentSituations": 19,
+            "rawDivergentSituations": 19,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 7,
+            "caught": true,
+            "change": "line 9: \"      if (state.fineOwed > 0) {\\n        return { allowed: false, outcome: \\\"fine_unpaid\\\" }\\n      }\" -> \"\"",
+            "description": "refusal removed: if (state.fineOwed > 0) { ... }",
+            "id": "drop-refusal#0",
+            "inDecision": true,
+            "operator": "drop-refusal",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 7,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 7,
+            "caught": true,
+            "change": "line 10: \"false\" -> \"true\"",
+            "description": "false changed to true",
+            "id": "boolean-flip#0",
+            "inDecision": false,
+            "operator": "boolean-flip",
+            "oracleDivergentSituations": 7,
+            "rawDivergentSituations": 7,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 15,
+            "caught": true,
+            "change": "line 15: \"+\" -> \"-\"",
+            "description": "arithmetic \"+\" changed to \"-\"",
+            "id": "arith-flip#0",
+            "inDecision": true,
+            "operator": "arith-flip",
+            "oracleDivergentSituations": 15,
+            "rawDivergentSituations": 15,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 16,
+            "caught": true,
+            "change": "line 18: \"      state.bikesOut += count\" -> \"\"",
+            "description": "statement removed: state.bikesOut += count",
+            "id": "drop-statement#0",
+            "inDecision": false,
+            "operator": "drop-statement",
+            "oracleDivergentSituations": 16,
+            "rawDivergentSituations": 16,
+            "situations": 20
+          },
+          {
+            "attributableDivergentSituations": 16,
+            "caught": true,
+            "change": "line 19: \"\\\"bikes_rented\\\"\" -> \"\\\"bikes_rented_renamed\\\"\"",
+            "description": "event name \"bikes_rented\" changed to \"bikes_rented_renamed\"",
+            "id": "event-rename#0",
+            "inDecision": false,
+            "operator": "event-rename",
+            "oracleDivergentSituations": 16,
+            "rawDivergentSituations": 16,
+            "situations": 20
+          }
+        ],
+        "oracleVisible": 6,
+        "planted": 6
+      },
+      "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/bike-share-account/recordings/r3/exchanges",
+      "falseAlarms": {
+        "byClass": {
+          "b-error": 0,
+          "checklist-ambiguity": 0,
+          "real-fault": 0
+        },
+        "divergences": [],
+        "divergentSituations": 0,
+        "situations": 20
+      },
+      "model": "grok-4.3",
+      "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/slice3/bike-share-account/recordings/r3/rebuilt.hsplus",
+      "recording": "r3",
+      "rounds": 2,
+      "usage": {
+        "completionTokens": 1112,
+        "promptTokens": 3948,
+        "totalTokens": 6167
+      },
+      "validated": true
+    }
+  ],
+  "role": "measured",
+  "runSurface": {
+    "branch": "feat/back-translation-proof (worktree)",
+    "commit": "adb8f560793475a48b4242f4073277c325d64bfc",
+    "note": "slice 3 on top of slice 2; recordings replayed, not live"
+  },
+  "schema": "holoscript.back-translation-proof.v3",
+  "skippedMutants": [
+    {
+      "description": "number 0 changed to 1",
+      "id": "constant-change#2",
+      "why": "acts exactly like the correct program in all 20 situations"
+    }
+  ],
+  "spread": {
+    "catchRate": {
+      "max": 1,
+      "mean": 1,
+      "min": 1
+    },
+    "falseAlarmSituations": {
+      "max": 0,
+      "mean": 0,
+      "min": 0
+    }
+  },
+  "title": "Bike Share Account",
+  "twin": {
+    "edgeSituations": 5,
+    "excludedFields": [
+      {
+        "field": "sourceBundleHash",
+        "why": "hash of the source text itself; differs for any two files"
+      },
+      {
+        "field": "canonicalFields.actionReceiptRoot",
+        "why": "chained ledger root seeded with sourceBundleHash (ledgerGenesis/appendLedger), so it differs whenever the source text differs"
+      },
+      {
+        "field": "canonicalFields.executedScheduleHash",
+        "why": "schedule payloads carry outcomeHashes, which are chained roots seeded with sourceBundleHash"
+      },
+      {
+        "field": "actionLedger[].payload.rollbackReference.priorActionRoot",
+        "why": "chained action root, seeded with sourceBundleHash"
+      },
+      {
+        "field": "terminal.* roots, terminalCommitment, entryHash/previousHash",
+        "why": "all chained over sourceBundleHash and the manifest (which carries the probed final state)"
+      },
+      {
+        "field": "sourceRunReceipt (engine provenance, plan bytecode hash)",
+        "why": "identity of the plan program text, not behaviour"
+      }
+    ],
+    "generator": "generic: seeded random action sequences from behaviour.json (action list, parameter ranges, named edge values); every 4th situation is an edge situation",
+    "harness": "@holoscript/core/testing runTwinTest",
+    "oracleFields": [
+      "canonicalFields.canonicalSceneHash",
+      "canonicalFields.canonicalPoseHash",
+      "canonicalFields.logicalClockHash",
+      "canonicalFields.publicStateHash",
+      "canonicalFields.residentObservationHash",
+      "publicStateSnapshots[].payload",
+      "observationLedger[].payload",
+      "actionLedger[].payload (minus rollbackReference.priorActionRoot)",
+      "scheduleLedger[].payload (minus outcomeHashes)",
+      "terminal.actualCounts"
+    ],
+    "runner": "runHeadlessExperimentSources (world=model-village village.holo, plan=generated .hs per situation, behaviour=under test)",
+    "seed": 388818,
+    "situations": 20
+  },
+  "verdict": "Passes both bars. All three rebuilds showed all 6 planted mistakes and raised no false alarms in 20 situations. A late return was rebuilt as accepted every time, which is the kind of point the slice-2 door got wrong; the card now says so. One more planted mistake (a fine above 1 instead of above 0) was left out because fines only come in steps of 2, so it acts exactly like the correct program and no check could ever show it. The three rebuilds were nearly identical, so the spread here says little about how much rebuilds vary."
+}

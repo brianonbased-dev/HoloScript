@@ -1,0 +1,17 @@
+composition "Branch Change" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action decide(x) accepted(done) refused(no) {
+      if (x > 0) {
+        state.bikesOut = x
+        emit("decided", { x: x })
+        return { allowed: true, outcome: "done" }
+      }
+      return { allowed: false, outcome: "no" }
+    }
+  }
+}

@@ -1,0 +1,3 @@
+{
+  "verdict": "Catch bar met, false-alarm bar met by one rebuild of three. All three rebuilds showed all 6 planted mistakes. The first rebuild matched the correct program in all 20 situations. The second and third made the same slip: when a payment is not enough, they take the coins off twice in the announcement of what is still owed, which caused 5 false alarms in 20 situations each. The rule was clear; the rebuild misapplied it. A part payment was rebuilt as accepted every time, as the card says. Two planted mistakes were shown in only 1 or 2 of 20 situations, so the margin on those is thin."
+}

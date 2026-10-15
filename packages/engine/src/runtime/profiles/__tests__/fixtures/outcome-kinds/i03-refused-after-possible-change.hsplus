@@ -1,0 +1,18 @@
+composition "Maybe Change" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action decide(x) accepted(done) refused(no) {
+      if (x > 0) {
+        state.bikesOut = x
+      }
+      if (x > 5) {
+        return { allowed: false, outcome: "no" }
+      }
+      return { allowed: true, outcome: "done" }
+    }
+  }
+}

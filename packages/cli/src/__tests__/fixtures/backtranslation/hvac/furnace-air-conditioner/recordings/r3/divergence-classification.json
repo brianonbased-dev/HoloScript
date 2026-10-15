@@ -1,0 +1,35 @@
+[
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      12,
+      34,
+      39
+    ],
+    "rationale": "Heat comes on only when the room is BELOW the setting minus the swing. His rule with its example says set to 68, swing 1: heat comes on at 67 or colder. The rebuild waits for 66."
+  },
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      24
+    ],
+    "rationale": "Cooling comes on only when the room is ABOVE the setting plus the swing. Cool is \"the same the other way\" as the heat example: set to 70, swing 1, cooling at 71 or warmer. The rebuild waits for 72."
+  },
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      32,
+      36
+    ],
+    "rationale": "In auto mode the rebuild keeps cooling after the room has dropped below the setting (and even when heat is needed). His rule: cooling goes off when it reaches the setting; never both at once."
+  }
+]

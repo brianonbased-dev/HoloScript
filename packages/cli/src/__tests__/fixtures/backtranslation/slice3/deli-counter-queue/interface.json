@@ -1,0 +1,37 @@
+{
+  "title": "Deli Counter Queue",
+  "publicState": ["waitingNormal", "waitingPriority", "open", "nextNumber"],
+  "actions": [
+    { "name": "join", "params": ["kind"], "outcomes": [
+      { "name": "joined", "kind": "accepted" },
+      { "name": "joined_bumping_normal", "kind": "accepted" },
+      { "name": "counter_closed", "kind": "refused" },
+      { "name": "unknown_kind", "kind": "refused" },
+      { "name": "queue_full", "kind": "refused" }
+    ] },
+    { "name": "serve", "params": [], "outcomes": [
+      { "name": "served_priority", "kind": "accepted" },
+      { "name": "served_normal", "kind": "accepted" },
+      { "name": "nobody_waiting", "kind": "refused" }
+    ] },
+    { "name": "giveUp", "params": ["kind"], "outcomes": [
+      { "name": "left_queue", "kind": "accepted" },
+      { "name": "unknown_kind", "kind": "refused" },
+      { "name": "none_of_that_kind", "kind": "refused" }
+    ] },
+    { "name": "closeJoining", "params": [], "outcomes": [
+      { "name": "closed", "kind": "accepted" },
+      { "name": "already_closed", "kind": "refused" }
+    ] }
+  ],
+  "observations": [
+    { "name": "board", "params": ["viewerId"], "answerFields": ["viewer", "waiting_normal", "waiting_priority", "open", "next_number"] }
+  ],
+  "events": [
+    { "name": "bumped", "fields": ["kind"] },
+    { "name": "ticket_taken", "fields": ["number", "kind"] },
+    { "name": "now_serving", "fields": ["kind"] },
+    { "name": "gave_up", "fields": ["kind"] },
+    { "name": "joining_closed", "fields": ["still_waiting"] }
+  ]
+}

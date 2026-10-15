@@ -1,0 +1,20 @@
+{
+  "behaviourId": "model-village/behavior",
+  "sourcePath": "packages/cli/src/__tests__/fixtures/model-village/behavior.hsplus",
+  "author": "Claude (Anthropic), seat claude7, session 670fb727",
+  "lines": [
+    { "n": 1, "text": "The behaviour is called \"Model Village Deterministic Behavior\"." },
+    { "n": 2, "text": "The village keeps a count of shared water, labelled \"water\". It starts at 2." },
+    { "n": 3, "text": "The village also keeps one private note, labelled \"privateAdapter\", holding the text \"fixture-private-adapter\". Nothing a resident sees may ever contain this text." },
+    { "n": 4, "text": "There are exactly three things the village can be asked to do, named \"observe\", \"contribute\" and \"reject\"." },
+    { "n": 5, "text": "\"observe\" takes one input, labelled \"residentId\": the resident who is looking." },
+    { "n": 6, "text": "\"observe\" answers with exactly four labelled parts and nothing else: \"resident_id\" is the residentId given, unchanged; \"location\" is the text \"commons\"; \"visible_event_ids\" is an empty list; \"bounded_memory_hash\" is the text \"4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945\"." },
+    { "n": 7, "text": "\"observe\" changes nothing and announces nothing. The answer is the same no matter how much water there is." },
+    { "n": 8, "text": "\"contribute\" takes one input, labelled \"amount\": a number." },
+    { "n": 9, "text": "\"contribute\" adds the amount to the water. It always does this; there is no limit and no check." },
+    { "n": 10, "text": "\"contribute\" then announces one event named \"water_added\", carrying one labelled part, \"amount\", equal to the amount given." },
+    { "n": 11, "text": "\"contribute\" answers with two labelled parts: \"allowed\" is yes (true) and \"outcome\" is the text \"water_added\"." },
+    { "n": 12, "text": "\"reject\" takes no input. It changes nothing and announces nothing." },
+    { "n": 13, "text": "\"reject\" answers with two labelled parts: \"allowed\" is no (false) and \"outcome\" is the text \"blocked_without_world_mutation\"." }
+  ]
+}

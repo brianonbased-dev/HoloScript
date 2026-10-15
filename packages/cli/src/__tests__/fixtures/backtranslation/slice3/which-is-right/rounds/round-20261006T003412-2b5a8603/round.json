@@ -1,0 +1,205 @@
+{
+  "schema": "which-is-right.round-record.v1",
+  "roundId": "round-20261006T003412-2b5a8603",
+  "keyFile": "answer-key.json",
+  "keySha256": "5e705fd3f06e35cb9d01104bc144231d72691dfa0fa982f93e966022c9da8c08",
+  "keySealedAt": "2026-10-06T00:34:12.552Z",
+  "questionsSha256": "6ebbc1e3a4a16a0511b53a0459c3aeba746d77022ad14a87abaf732e9963cdc9",
+  "publicRound": {
+    "schema": "which-is-right.round.v1",
+    "roundId": "round-20261006T003412-2b5a8603",
+    "keySha256": "5e705fd3f06e35cb9d01104bc144231d72691dfa0fa982f93e966022c9da8c08",
+    "questionsSha256": "6ebbc1e3a4a16a0511b53a0459c3aeba746d77022ad14a87abaf732e9963cdc9",
+    "questions": [
+      {
+        "n": 1,
+        "title": "Deli counter queue",
+        "steps": [
+          "The clerk stops new people joining."
+        ],
+        "a": [
+          "Joining is now closed. It says 0 still waiting."
+        ],
+        "b": [
+          "Refused. Joining was already closed."
+        ]
+      },
+      {
+        "n": 2,
+        "title": "Car park barrier",
+        "steps": [
+          "A driver arrives at the barrier.",
+          "A driver arrives at the barrier.",
+          "The driver puts in 11 coins.",
+          "The car stays 80 minutes.",
+          "The driver puts in 1 coin."
+        ],
+        "a": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. A car is already inside.",
+          "Refused. Nothing is owed.",
+          "It counts the time.",
+          "Part paid. It says 2 still owed."
+        ],
+        "b": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. A car is already inside.",
+          "Refused. Nothing is owed.",
+          "It counts the time.",
+          "Part paid. It says 1 still owed."
+        ]
+      },
+      {
+        "n": 3,
+        "title": "Bike share account",
+        "steps": [
+          "A member asks to rent 2 bikes."
+        ],
+        "a": [
+          "The bikes go out. It says 2 rented and 2 out now."
+        ],
+        "b": [
+          "The bikes go out. It says 2 rented and 0 out now."
+        ]
+      },
+      {
+        "n": 4,
+        "title": "Car park barrier",
+        "steps": [
+          "A driver arrives at the barrier.",
+          "The driver puts in 1 coin.",
+          "The attendant looks at the screen.",
+          "The car stays 93 minutes.",
+          "A driver arrives at the barrier.",
+          "The driver puts in 1 coin."
+        ],
+        "a": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. Nothing is owed.",
+          "The screen shows a car inside, 0 minutes and 0 owed.",
+          "It counts the time.",
+          "Refused. A car is already inside.",
+          "Part paid. It says 2 still owed."
+        ],
+        "b": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. Nothing is owed.",
+          "The screen shows a car inside, 0 minutes and 0 owed.",
+          "It counts the time.",
+          "Refused. A car is already inside.",
+          "Part paid. It says 1 still owed."
+        ]
+      },
+      {
+        "n": 5,
+        "title": "Bike share account",
+        "steps": [
+          "A member asks to rent 3 bikes."
+        ],
+        "a": [
+          "Refused. That would be more than 2 bikes out."
+        ],
+        "b": [
+          "Refused. A fine is still owed."
+        ]
+      },
+      {
+        "n": 6,
+        "title": "Deli counter queue",
+        "steps": [
+          "A normal customer takes a ticket.",
+          "A priority customer takes a ticket.",
+          "A normal customer takes a ticket.",
+          "A priority customer takes a ticket.",
+          "A priority customer takes a ticket.",
+          "A normal customer takes a ticket."
+        ],
+        "a": [
+          "They join the queue. Ticket number 1 goes to a normal customer.",
+          "They join the queue. Ticket number 2 goes to a priority customer.",
+          "They join the queue. Ticket number 3 goes to a normal customer.",
+          "They join the queue. Ticket number 4 goes to a priority customer.",
+          "They join the queue. Ticket number 5 goes to a priority customer.",
+          "They join the queue. Ticket number 6 goes to a normal customer."
+        ],
+        "b": [
+          "They join the queue. Ticket number 1 goes to a normal customer.",
+          "They join the queue. Ticket number 2 goes to a priority customer.",
+          "They join the queue. Ticket number 3 goes to a normal customer.",
+          "They join the queue. Ticket number 4 goes to a priority customer.",
+          "They join the queue. Ticket number 5 goes to a priority customer.",
+          "Refused. The queue is full."
+        ]
+      },
+      {
+        "n": 7,
+        "title": "Car park barrier",
+        "steps": [
+          "The driver puts in 3 coins.",
+          "The driver puts in 6 coins.",
+          "A driver arrives at the barrier.",
+          "The car stays 1 minute."
+        ],
+        "a": [
+          "Refused. There is no car inside.",
+          "Refused. There is no car inside.",
+          "The car goes in. It gives ticket number 1.",
+          "Refused. That is less than 1 minute."
+        ],
+        "b": [
+          "Refused. There is no car inside.",
+          "Refused. There is no car inside.",
+          "The car goes in. It gives ticket number 1.",
+          "It counts the time."
+        ]
+      },
+      {
+        "n": 8,
+        "title": "Car park barrier",
+        "steps": [
+          "A driver arrives at the barrier.",
+          "A driver arrives at the barrier."
+        ],
+        "a": [
+          "The car goes in. It gives ticket number 1.",
+          "Refused. A car is already inside."
+        ],
+        "b": [
+          "The car goes in. It gives ticket number 1.",
+          "The car goes in. It gives ticket number 2."
+        ]
+      },
+      {
+        "n": 9,
+        "title": "Bike share account",
+        "steps": [
+          "A member asks to rent 2 bikes."
+        ],
+        "a": [
+          "The bikes go out. It announces something else."
+        ],
+        "b": [
+          "The bikes go out. It says 2 rented and 2 out now."
+        ]
+      },
+      {
+        "n": 10,
+        "title": "Car park barrier",
+        "steps": [
+          "A driver arrives at the barrier."
+        ],
+        "a": [
+          "The car goes in. It gives ticket number 1. Inside, it now has no car in, 0 minutes and 0 paid."
+        ],
+        "b": [
+          "The car goes in. It gives ticket number 1. Inside, it now has a car in, 0 minutes and 0 paid."
+        ]
+      }
+    ]
+  },
+  "published": {
+    "to": "http://127.0.0.1:3401",
+    "at": "2026-10-06T00:34:12.613Z",
+    "dashboardKeySha256": "5e705fd3f06e35cb9d01104bc144231d72691dfa0fa982f93e966022c9da8c08"
+  }
+}

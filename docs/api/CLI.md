@@ -84,6 +84,10 @@ holoscript validate scene.holo
 holoscript validate src/**/*.holo --strict
 ```
 
+For `.holo` and `.hsplus` compositions, validate also warns when two rules in
+one action can apply at the same moment and set the same state to different
+values (`RULE-CONFLICT`). See [Rule conflicts](../guides/rule-conflicts.md).
+
 ### holo fmt
 
 Format HoloScript `.hs`, `.hsplus`, and `.holo` files.

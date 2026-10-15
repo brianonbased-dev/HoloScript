@@ -1,0 +1,47 @@
+[
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      2,
+      5,
+      14,
+      35,
+      39
+    ],
+    "rationale": "Timer bookkeeping: the rebuild sets the time since the compressor stopped back to 0 when the compressor STARTS. Setting line says that time starts again from 0 when the compressor turns off, and does not change while it runs. Never visible as heating or cooling in these situations, but a misread of a clear line."
+  },
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      7,
+      18
+    ],
+    "rationale": "Backup strips never come on while the compressor is heating, even 3 or more degrees below the setting. His backup rule has no such limit."
+  },
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      12
+    ],
+    "rationale": "With no strips fitted, the rebuild gives no heat at all even with the outdoor temperature well above the cut-off. \"No heat runs\" belongs only to the cut-off rule (outdoor below the cut-off); above it the compressor heats."
+  },
+  {
+    "classification": "b-error",
+    "pathPatterns": [
+      ".*"
+    ],
+    "iterations": [
+      32
+    ],
+    "rationale": "Cooling comes on only above the setting plus the swing; \"the same the other way\" as the heat example means set to 70, swing 1, cooling at 71 or warmer."
+  }
+]

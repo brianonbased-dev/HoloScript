@@ -1,0 +1,10 @@
+[
+  {
+    "classification": "b-error",
+    "rationale": "The rebuild answers a wrong code with allowed = false (a refusal) but still counts the wrong try and announces it. The reference card says a refused action must change nothing, so the runner stops it. Root cause is in the words: the checklist never says whether a wrong try is accepted or refused, and in everyday speech a door that rejects your code has refused you. The author's program treats a wrong try as accepted (it changes the count).",
+    "pathPatterns": [
+      "^\\$threw\\.b-threw$"
+    ],
+    "errorPattern": "denied action .{1,3}enterCode.{1,3} attempted a state change or event"
+  }
+]

@@ -1,0 +1,7 @@
+[
+  {
+    "classification": "b-error",
+    "rationale": "The rebuild never opens the door on the right code: it announces the unlock and clears the wrong tries but leaves locked = true. Rule 5 says the right code opens the door. This rebuild differs from the correct program by that one missing line only, so every difference in this recording (later answers, refusals and status) follows from it.",
+    "pathPatterns": ["^\\$\\.(actions|publicStates|observations|schedule|canonical|counts)(\\.|\\[|$)"]
+  }
+]

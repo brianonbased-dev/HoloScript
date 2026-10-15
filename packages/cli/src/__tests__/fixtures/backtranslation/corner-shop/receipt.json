@@ -1,0 +1,227 @@
+{
+  "behaviourId": "corner-shop",
+  "catch": {
+    "catchRate": 1,
+    "caught": 6,
+    "mutants": [
+      {
+        "attributableDivergentSituations": 20,
+        "caught": true,
+        "change": "line 9: \"<\" -> \">=\"",
+        "description": "comparison \"<\" changed to \">=\"",
+        "id": "comparison-flip#0",
+        "inDecision": true,
+        "operator": "comparison-flip",
+        "oracleDivergentSituations": 20,
+        "rawDivergentSituations": 20,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 13,
+        "caught": true,
+        "change": "line 9: \"1\" -> \"2\"",
+        "description": "number 1 changed to 2",
+        "id": "constant-change#2",
+        "inDecision": true,
+        "operator": "constant-change",
+        "oracleDivergentSituations": 13,
+        "rawDivergentSituations": 13,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 12,
+        "caught": true,
+        "change": "line 9: \"      if (quantity < 1) {\\n        return { allowed: false, outcome: \\\"nothing_to_buy\\\" }\\n      }\" -> \"\"",
+        "description": "refusal removed: if (quantity < 1) { ... }",
+        "id": "drop-refusal#0",
+        "inDecision": true,
+        "operator": "drop-refusal",
+        "oracleDivergentSituations": 12,
+        "rawDivergentSituations": 12,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 12,
+        "caught": true,
+        "change": "line 10: \"false\" -> \"true\"",
+        "description": "false changed to true",
+        "id": "boolean-flip#0",
+        "inDecision": false,
+        "operator": "boolean-flip",
+        "oracleDivergentSituations": 12,
+        "rawDivergentSituations": 12,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 11,
+        "caught": true,
+        "change": "line 15: \"*\" -> \"/\"",
+        "description": "arithmetic \"*\" changed to \"/\"",
+        "id": "arith-flip#0",
+        "inDecision": true,
+        "operator": "arith-flip",
+        "oracleDivergentSituations": 11,
+        "rawDivergentSituations": 11,
+        "situations": 20
+      },
+      {
+        "attributableDivergentSituations": 18,
+        "caught": true,
+        "change": "line 18: \"      state.stock -= quantity\" -> \"\"",
+        "description": "statement removed: state.stock -= quantity",
+        "id": "drop-statement#0",
+        "inDecision": false,
+        "operator": "drop-statement",
+        "oracleDivergentSituations": 18,
+        "rawDivergentSituations": 18,
+        "situations": 20
+      }
+    ],
+    "oracleVisible": 6,
+    "planted": 6
+  },
+  "checklist": {
+    "author": "Claude (Anthropic), seat claude7, session 670fb727",
+    "behaviourId": "corner-shop",
+    "lines": [
+      {
+        "n": 1,
+        "text": "The shop starts with 5 items on the shelf and no money in the till."
+      },
+      {
+        "n": 2,
+        "text": "Items cost 4 each. Buying 3 or more at once makes them 3 each instead."
+      },
+      {
+        "n": 3,
+        "text": "Buying less than one item is refused."
+      },
+      {
+        "n": 4,
+        "text": "Buying more items than are on the shelf is refused."
+      },
+      {
+        "n": 5,
+        "text": "Buying is refused when the money handed over is less than the price."
+      },
+      {
+        "n": 6,
+        "text": "Otherwise the items leave the shelf, the price goes into the till, the sale is announced with how many items and the price, and the answer tells the customer their change."
+      },
+      {
+        "n": 7,
+        "text": "Restocking less than one item is refused."
+      },
+      {
+        "n": 8,
+        "text": "The shelf holds at most 12 items. Restocking that would go over 12 is refused; filling it to exactly 12 is fine."
+      },
+      {
+        "n": 9,
+        "text": "Otherwise the items go on the shelf and the restock is announced with how many were added."
+      },
+      {
+        "n": 10,
+        "text": "Checking the inventory tells who asked, how many items are on the shelf, and how much money is in the till. Checking changes nothing."
+      },
+      {
+        "n": 11,
+        "text": "When more than one reason to refuse applies, the first one in this list is the answer."
+      }
+    ],
+    "sourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/corner-shop/original.hsplus"
+  },
+  "falseAlarms": {
+    "byClass": {
+      "b-error": 0,
+      "checklist-ambiguity": 0,
+      "real-fault": 0
+    },
+    "divergences": [],
+    "divergentSituations": 0,
+    "situations": 20
+  },
+  "generatedAt": "2026-10-05T22:59:43.663Z",
+  "interfaceCard": "Behaviour name: \"Corner Shop\"\n\nState fields others can see: stock, till\n\nActions (each answers with allowed and outcome; outcome is one of the names listed):\n- buy(quantity, payment) — outcomes: sold, nothing_to_buy, not_enough_stock, not_enough_money; a sold answer also has the field: change\n- restock(amount) — outcomes: restocked, nothing_to_add, shelf_full\n\nObservations (answer only):\n- inventory(viewerId) — answer fields: viewer, stock, till\n\nEvents (event name: payload fields):\n- sold: quantity, price\n- restocked: amount\n",
+  "plainLanguageCheck": {
+    "exitCode": 0,
+    "findings": "Files with findings: 0; BLOCK-tier 0; WARN-tier 0",
+    "tool": "C:/holo-dev/ai-ecosystem/scripts/check-plain-language.mjs --profile canon --check --strict"
+  },
+  "precheck": {
+    "originalRanAllSituations": true,
+    "situationsRun": 20
+  },
+  "rebuild": {
+    "checker": "validateCanonicalSource + deterministic headless runtime admission",
+    "exchangesDir": "packages/cli/src/__tests__/fixtures/backtranslation/corner-shop/exchanges",
+    "inputs": [
+      "language-reference-v2.md",
+      "interface-card.md (names only)",
+      "checklist.json (rules, rendered as numbered lines)",
+      "checker errors (repair rounds only)"
+    ],
+    "model": "grok-4.3",
+    "note": "A first recording checked with the language checker alone is kept in first-attempt-validate-only/. That checker let through code the headless runner refuses, which is why the checker now also asks the runner.",
+    "provider": "xai",
+    "rebuiltSourcePath": "packages/cli/src/__tests__/fixtures/backtranslation/corner-shop/rebuilt.hsplus",
+    "recordedNotLive": true,
+    "rounds": 2,
+    "seesOriginalSource": false,
+    "validated": true
+  },
+  "runSurface": {
+    "branch": "feat/back-translation-proof (worktree, on top of b6bd26573)",
+    "commit": "b6bd2657380036ba4248701ef523a955179769b1",
+    "note": "origin/main base: .holo without a composition wrapper is still lenient (PR #509 not merged); all sources here use the composition wrapper."
+  },
+  "schema": "holoscript.back-translation-proof.v2",
+  "title": "Corner Shop",
+  "twin": {
+    "edgeSituations": 5,
+    "excludedFields": [
+      {
+        "field": "sourceBundleHash",
+        "why": "hash of the source text itself; differs for any two files"
+      },
+      {
+        "field": "canonicalFields.actionReceiptRoot",
+        "why": "chained ledger root seeded with sourceBundleHash (ledgerGenesis/appendLedger), so it differs whenever the source text differs"
+      },
+      {
+        "field": "canonicalFields.executedScheduleHash",
+        "why": "schedule payloads carry outcomeHashes, which are chained roots seeded with sourceBundleHash"
+      },
+      {
+        "field": "actionLedger[].payload.rollbackReference.priorActionRoot",
+        "why": "chained action root, seeded with sourceBundleHash"
+      },
+      {
+        "field": "terminal.* roots, terminalCommitment, entryHash/previousHash",
+        "why": "all chained over sourceBundleHash and the manifest (which carries the probed final state)"
+      },
+      {
+        "field": "sourceRunReceipt (engine provenance, plan bytecode hash)",
+        "why": "identity of the plan program text, not behaviour"
+      }
+    ],
+    "generator": "generic: seeded random action sequences from behaviour.json (action list, parameter ranges, named edge values); every 4th situation is an edge situation",
+    "harness": "@holoscript/core/testing runTwinTest",
+    "oracleFields": [
+      "canonicalFields.canonicalSceneHash",
+      "canonicalFields.canonicalPoseHash",
+      "canonicalFields.logicalClockHash",
+      "canonicalFields.publicStateHash",
+      "canonicalFields.residentObservationHash",
+      "publicStateSnapshots[].payload",
+      "observationLedger[].payload",
+      "actionLedger[].payload (minus rollbackReference.priorActionRoot)",
+      "scheduleLedger[].payload (minus outcomeHashes)",
+      "terminal.actualCounts"
+    ],
+    "runner": "runHeadlessExperimentSources (world=model-village village.holo, plan=generated .hs per situation, behaviour=under test)",
+    "seed": 388818,
+    "situations": 20
+  },
+  "verdict": "Passes. The rebuild acted the same as the author program in all 20 situations and showed all 6 planted mistakes, each in the same situations where the mistake really changes something. It needed one repair round because its first try used a private working value the runner does not allow."
+}

@@ -409,6 +409,7 @@ export const coreTools: Tool[] = [
             'object',
             'environment',
             'logic',
+            'outcomes',
             'animation',
             'physics',
             'events',

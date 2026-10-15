@@ -1,0 +1,25 @@
+composition "Partial Declaration" {
+  state {
+    bikesOut: 0
+    fineOwed: 0
+  }
+
+  logic {
+    action rent(count) accepted(rented) refused(bad_count) {
+      if (count < 1) {
+        return { allowed: false, outcome: "bad_count" }
+      }
+      state.bikesOut += count
+      return { allowed: true, outcome: "rented" }
+    }
+
+    action payFine(amount) {
+      state.fineOwed = 0
+      return { allowed: true, outcome: "fine_paid" }
+    }
+
+    action account(viewerId) {
+      return { viewer: viewerId, bikes_out: state.bikesOut, fine_owed: state.fineOwed }
+    }
+  }
+}
