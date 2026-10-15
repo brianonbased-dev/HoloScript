@@ -2,7 +2,7 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
-import { callMcpTool, ABSORB_BASE } from '@/lib/services/absorb-client';
+import { callMcpTool, ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 import { recordAbsorbJob } from '@/lib/absorb/projectState';
 
 import { corsHeaders } from '../../_lib/cors';
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...forwardAuthHeaders(req),
+        ...absorbFallbackAuth(req),
       },
       body: JSON.stringify(body),
     });
@@ -107,6 +107,18 @@ export async function POST(req: NextRequest) {
     },
     { status: 502 }
   );
+}
+
+/**
+ * Browser callers sign in with a session cookie, so they carry no
+ * Authorization header and the absorb REST API answered 401. Forward the
+ * caller's own bearer when there is one; otherwise use the same service key
+ * the MCP path already uses.
+ */
+function absorbFallbackAuth(req: NextRequest): Record<string, string> {
+  const forwarded = forwardAuthHeaders(req);
+  if (forwarded.Authorization) return forwarded;
+  return ABSORB_API_KEY ? { Authorization: `Bearer ${ABSORB_API_KEY}` } : {};
 }
 
 export function OPTIONS(request: Request) {

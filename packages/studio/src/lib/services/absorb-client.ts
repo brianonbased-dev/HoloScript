@@ -29,6 +29,9 @@ export async function callMcpTool(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        // The absorb MCP endpoint is a Streamable HTTP transport: it answers
+        // 406 unless the client accepts both JSON and SSE (prod 2026-10-14).
+        Accept: 'application/json, text/event-stream',
         Authorization: `Bearer ${ABSORB_API_KEY}`,
       },
       body: JSON.stringify({
