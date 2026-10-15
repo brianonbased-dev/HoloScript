@@ -35,6 +35,22 @@ if [ -f scripts/validate-dockerfile-build.mjs ]; then
   fi
 fi
 
+# --- Gate: core Docker-entry drift (always-run, ~2s) -------------------------
+# WHY: mcp-server's image builds @holoscript/core from scripts/docker/tsup.core.docker.cjs,
+# a separate entry list. A core subpath a runtime-image workspace imports but that list
+# omits builds fine and then CRASH-LOOPS mcp-server at boot. 2026-10-15: #565 added
+# '@holoscript/core/constants' to framework, the Docker list had no 'constants', and
+# mcp-server was down ~3h (fixed by #582 + #583). The checker existed but nothing ran it
+# before merge. Now every push runs it.
+if [ -f scripts/holo-ci/check-docker-core-entries.mjs ]; then
+  if ! node scripts/holo-ci/check-docker-core-entries.mjs; then
+    echo -e "${RED}[pre-push] BLOCKED: core Docker-entry drift -- mcp-server would crash-loop at boot.${NC}"
+    echo -e "${YELLOW}  Fix: add the missing entry to scripts/docker/tsup.core.docker.cjs (same source as packages/core/tsup.config.ts), then re-push.${NC}"
+    echo -e "${YELLOW}  Emergency bypass (NOT for main): git push --no-verify${NC}"
+    exit 1
+  fi
+fi
+
 # --- Gate: doctrine-slot falsifier (local breadcrumb must prove hooks fired) ---
 if [ -f scripts/check-doctrine-slots.mjs ]; then
   if ! node scripts/check-doctrine-slots.mjs; then
