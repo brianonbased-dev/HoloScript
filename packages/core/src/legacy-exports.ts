@@ -928,6 +928,10 @@ export {
   type LocalCaptureSession,
   type TrackingSource,
 } from './traits/LocalCapture';
+export {
+  avatarRenderAllowed,
+} from './traits/AvatarEmbodimentTrait';
+export { avatarEmbodimentNeedsGrant, carriesRealLikeness } from './traits/AvatarLikeness';
 
 // HoloScript+ Expanded Trait Handlers (Phases 1-13)
 export {

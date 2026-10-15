@@ -6,6 +6,7 @@
  */
 
 import type { TraitHandler } from '@holoscript/core';
+import { avatarRenderAllowed } from '@holoscript/core';
 import { BoneSystem, IKSolver, AvatarController } from '@holoscript/engine/animation';
 import type { BoneTransform } from '@holoscript/engine/animation';
 
@@ -128,6 +129,11 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
           const bone = state.bones.getBone(id);
           if (bone) transforms[id] = bone.local;
         });
+
+        // Trust hard requirement: never replicate an embodied avatar to other people unless
+        // avatarRenderAllowed(node, true) says so (declared live without a verified local capture
+        // handle is self-preview only).
+        if (node.__avatarEmbodimentState && !avatarRenderAllowed(node, true)) return;
 
         // Emit event to network layer
         context.emit('avatar_pose_update', {

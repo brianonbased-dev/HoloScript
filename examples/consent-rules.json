@@ -10,5 +10,14 @@
   ],
   "grant_three_voices_wonder": [
     "voice"
+  ],
+  "grant_emotion_npc_1": [
+    "body"
+  ],
+  "grant_emotion_npc_2": [
+    "body"
+  ],
+  "grant_emotion_npc_3": [
+    "body"
   ]
 }

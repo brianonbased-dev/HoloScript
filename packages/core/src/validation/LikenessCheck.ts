@@ -10,6 +10,8 @@
  * no grant. With no rules, every likeness source is refused (fail closed).
  */
 
+import { avatarEmbodimentNeedsGrant, carriesRealLikeness } from '../traits/AvatarLikeness';
+
 export type LikenessSource = 'face' | 'voice' | 'body';
 
 /** Traits that render a real person's likeness, by the source they render. Deliberately short. */
@@ -133,6 +135,18 @@ export function checkLikeness(ast: unknown, consentRules?: ConsentRules | null):
         value === undefined
           ? ` (no live ${gated.param}; only ${gated.param}: "${gated.live[0]}" is the live user's own capture)`
           : ` (${gated.param} ${JSON.stringify(value)} is not the live user's own capture)`;
+    }
+    if (!source && traitName === 'avatar_embodiment') {
+      // Trust: gate on whose likeness the avatar carries (traits/AvatarLikeness.ts, shared with
+      // the runtime). Synthetic avatars are exempt for any source.
+      const value = trait.config ? trait.config.tracking_source : undefined;
+      const siblings = (Array.isArray(owner?.traits) ? (owner!.traits as TraitLike[]) : []).map((t) => t?.name);
+      if (!avatarEmbodimentNeedsGrant(value, carriesRealLikeness(siblings))) continue;
+      source = 'body';
+      tracking =
+        value === undefined
+          ? ' (no tracking_source on an avatar that carries a real person\'s likeness)'
+          : ` (tracking_source ${JSON.stringify(value)} carries a real person's likeness)`;
     }
     if (!source) continue;
     const bare = String(trait.name ?? '')

@@ -59,6 +59,16 @@ describe('holoscript validate: HS1011 likeness', () => {
     expect(codes(validateForCli(o('@body_tracking(source: "live_self")'), 'ava.holo'))).not.toContain('HS1011');
   });
 
+  it('Trust: avatar_embodiment playback/remote need a grant; synthetic ai and headset pass', () => {
+    const o = (t: string) => `object "Ava" {\n  ${t}\n}\n`;
+    expect(codes(validateForCli(o('@avatar_embodiment(tracking_source: "playback")'), 'ava.holo'))).toContain('HS1011');
+    expect(codes(validateForCli(o('@avatar_embodiment(tracking_source: "remote")'), 'ava.holo'))).toContain('HS1011');
+    const g = `object "Ava" {\n  @consent_gate(grant: "${GRANT}")\n  @avatar_embodiment(tracking_source: "playback")\n}\n`;
+    expect(validateForCli(g, 'ava.holo', { [GRANT]: ['body'] }).valid).toBe(true);
+    expect(codes(validateForCli(o('@avatar_embodiment(tracking_source: "headset")'), 'ava.holo'))).not.toContain('HS1011');
+    expect(codes(validateForCli(o('@avatar_embodiment(tracking_source: "ai")'), 'ava.holo'))).not.toContain('HS1011');
+  });
+
   it('rejects a malformed rules file', () => {
     expect(() => parseConsentRules('{"g": ["smell"]}')).toThrow(/face, voice, body/);
     expect(() => parseConsentRules('[]')).toThrow(/expected an object/);

@@ -28,6 +28,8 @@ import type { TraitHandler } from './TraitTypes';
 import type { LipSyncConfig } from './LipSyncTrait';
 import type { EmotionDirectiveConfig } from './EmotionDirectiveTrait';
 import type { VoiceOutputConfig } from './VoiceOutputTrait';
+import { isLocalCapture } from './LocalCapture';
+import { avatarEmbodimentNeedsGrant, carriesRealLikeness, LIVE_TRACKING_SOURCES } from './AvatarLikeness';
 
 // =============================================================================
 // TYPES
@@ -36,7 +38,7 @@ import type { VoiceOutputConfig } from './VoiceOutputTrait';
 /**
  * Avatar tracking source
  */
-export type AvatarTrackingSource = 'headset' | 'camera' | 'ai' | 'remote' | 'playback';
+export type AvatarTrackingSource = 'headset' | 'camera' | 'ai' | 'remote' | 'playback' | 'unknown';
 
 /**
  * IK mode for avatar body
@@ -138,6 +140,29 @@ export interface AvatarEmbodimentState {
 
   /** Conversation turn count */
   turnCount: number;
+
+  /**
+   * Who may see this avatar (Trust and Consent). 'self_preview': a declared live source
+   * (headset / camera) embodied without a verified local capture handle; only the local
+   * self-preview may render it, never a surface shown to other people. 'shared': verified live,
+   * or a non-live source (ai / remote / playback) that passed the static render_likeness gate.
+   */
+  visibility?: 'shared' | 'self_preview';
+}
+
+/**
+ * May a surface render this avatar? `shownToOthers`: a networked, spectator, mirror-for-others,
+ * recording or any shared view. Local self-preview passes `false`.
+ *
+ * HARD REQUIREMENT: every network / spectator / broadcast path that replicates avatar or
+ * embodiment state to other people must call avatarRenderAllowed(node, true) first and send
+ * nothing when it returns false. A declared live avatar without a verified local capture handle
+ * is self-preview only. Guarded by traits/__tests__/AvatarReplicationGuard.test.ts.
+ */
+export function avatarRenderAllowed(node: Record<string, unknown>, shownToOthers: boolean): boolean {
+  const state = node.__avatarEmbodimentState as AvatarEmbodimentState | undefined;
+  if (!state || !state.isEmbodied) return false;
+  return !shownToOthers || state.visibility === 'shared';
 }
 
 /**
@@ -173,7 +198,9 @@ export const avatarEmbodimentHandler: TraitHandler<any> = {
   name: 'avatar_embodiment',
 
   defaultConfig: {
-    tracking_source: 'ai',
+    // Trust: no driver is assumed. 'unknown' is gated like the checker: it fails closed on an
+    // avatar that carries a real person's likeness and renders on a synthetic one.
+    tracking_source: 'unknown',
     ik_mode: 'upper_body',
     mirror_expressions: true,
     lip_sync: true,
@@ -219,7 +246,37 @@ export const avatarEmbodimentHandler: TraitHandler<any> = {
 
     // Handle pipeline events
     if (eventType === 'embody') {
+      const source = config?.tracking_source ?? 'unknown';
+      const traits = (node as { traits?: unknown }).traits;
+      const names =
+        traits instanceof Map ? [...traits.keys()] : traits && typeof traits === 'object' ? Object.keys(traits) : [];
+      // Runtime half of the shared rule: where a grant is needed, the node's @consent_gate must
+      // be granted at runtime (ConsentGateTrait state); otherwise fail closed.
+      if (avatarEmbodimentNeedsGrant(source, carriesRealLikeness(names))) {
+        const consent = (node as { __consentGateState?: { status?: string } }).__consentGateState;
+        if (!consent || consent.status !== 'granted') {
+          state.isEmbodied = false;
+          state.visibility = undefined;
+          context.emit('avatar_generic_fallback', {
+            node,
+            trait: 'avatar_embodiment',
+            reason: `tracking_source ${JSON.stringify(source)} carries a real person's likeness and no consent is granted`,
+          });
+          return;
+        }
+      }
+      const live = LIVE_TRACKING_SOURCES.includes(String(source));
+      const capture = typeof event === 'object' ? (event as { capture?: unknown }).capture : undefined;
+      const verified = isLocalCapture(capture, 'body') || isLocalCapture(capture, 'face');
+      state.visibility = live && !verified ? 'self_preview' : 'shared';
       state.isEmbodied = true;
+      if (state.visibility === 'self_preview') {
+        context.emit('avatar_visibility_restricted', {
+          node,
+          visibility: 'self_preview',
+          reason: 'declared live tracking without a verified local capture handle',
+        });
+      }
       context.emit('on_avatar_embodied', { node });
     } else if (eventType === 'disembody') {
       state.isEmbodied = false;

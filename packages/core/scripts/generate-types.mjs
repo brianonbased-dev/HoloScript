@@ -1811,6 +1811,10 @@ export declare function isLocalCapture(handle: unknown, kind: LocalCaptureKind):
 export declare function startLocalCaptureSession(kind: LocalCaptureKind, deviceLabel?: string): LocalCaptureSession;
 export declare function trackingEventAllowed(source: unknown, capture: unknown, kind: LocalCaptureKind): boolean;
 export declare const LOCAL_CAPTURE_EVENT: Readonly<Record<LocalCaptureKind, string>>;
+/** Must be called by every network / spectator path before replicating avatar state (shownToOthers=true). */
+export declare function avatarRenderAllowed(node: Record<string, unknown>, shownToOthers: boolean): boolean;
+export declare function avatarEmbodimentNeedsGrant(trackingSource: unknown, carriesLikeness: boolean): boolean;
+export declare function carriesRealLikeness(traitNames: Iterable<unknown>): boolean;
 
 // ============================================================================
 // TRAIT CONTEXT FACTORY (migrated from Hololand)
