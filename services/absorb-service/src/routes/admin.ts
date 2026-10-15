@@ -383,4 +383,172 @@ router.get('/operations-surface', async (req: Request, res: Response) => {
   }
 });
 
+// --- POST /credits/grant: admin credit grant (idempotent, capped, audited) ---
+
+/** Largest single grant: $500. Larger amounts need more than one reviewed call. */
+export const ADMIN_GRANT_MAX_CENTS = 50_000;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUniqueViolation(err: unknown): boolean {
+  const e = err as { code?: string; cause?: { code?: string } } | null;
+  return e?.code === '23505' || e?.cause?.code === '23505';
+}
+
+function grantResponse(row: any, replayed: boolean) {
+  return {
+    granted: !replayed,
+    replayed,
+    userId: row.userId,
+    amountCents: row.amountCents,
+    balanceAfterCents: row.balanceAfterCents,
+    note: row.note,
+    idempotencyKey: row.idempotencyKey,
+    grantedBy: row.adminGithubUsername,
+    grantedAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt,
+  };
+}
+
+router.post('/credits/grant', async (req: Request, res: Response) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const userRef = typeof body.user === 'string' ? body.user.trim() : '';
+  const note = typeof body.note === 'string' ? body.note.trim() : '';
+  const idempotencyKey =
+    typeof body.idempotencyKey === 'string' ? body.idempotencyKey.trim() : '';
+  const amountCents = body.amountCents;
+
+  if (!userRef) {
+    res.status(400).json({ error: 'user (email or id) is required' });
+    return;
+  }
+  if (typeof amountCents !== 'number' || !Number.isInteger(amountCents) || amountCents <= 0) {
+    res.status(400).json({ error: 'amountCents must be a positive integer' });
+    return;
+  }
+  if (amountCents > ADMIN_GRANT_MAX_CENTS) {
+    res.status(400).json({
+      error: `amountCents exceeds the single-grant cap of ${ADMIN_GRANT_MAX_CENTS} ($500)`,
+      maxCents: ADMIN_GRANT_MAX_CENTS,
+    });
+    return;
+  }
+  if (!note) {
+    res.status(400).json({ error: 'note is required' });
+    return;
+  }
+  if (!idempotencyKey || idempotencyKey.length > 200) {
+    res.status(400).json({ error: 'idempotencyKey is required (1-200 chars)' });
+    return;
+  }
+
+  try {
+    const db = getDb();
+    if (!db) {
+      res.status(503).json({ error: 'Database not configured' });
+      return;
+    }
+
+    const { users, adminCreditGrants } = await import('../db/schema.js');
+    const { eq } = await import('drizzle-orm');
+
+    const findPrior = async () => {
+      const [prior] = await db
+        .select()
+        .from(adminCreditGrants)
+        .where(eq(adminCreditGrants.idempotencyKey, idempotencyKey))
+        .limit(1);
+      return prior ?? null;
+    };
+
+    // A key that already applied returns its original result and moves nothing.
+    // Same key with a different user or amount is a client bug: refuse it.
+    const replay = (prior: any): void => {
+      res.status(200).json(grantResponse(prior, true));
+    };
+
+    const prior = await findPrior();
+
+    const [user] = await db
+      .select({ id: users.id, email: users.email })
+      .from(users)
+      .where(UUID_RE.test(userRef) ? eq(users.id, userRef) : eq(users.email, userRef))
+      .limit(1);
+
+    if (prior) {
+      if (prior.amountCents !== amountCents || (user && prior.userId !== user.id)) {
+        res.status(409).json({
+          error: 'idempotencyKey was already used for a different grant',
+          original: grantResponse(prior, true),
+        });
+        return;
+      }
+      replay(prior);
+      return;
+    }
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const admin = (req as AuthenticatedRequest).githubUsername || 'unknown-admin';
+
+    const creditsModule = await import('@holoscript/absorb-service/credits');
+    const { addCredits } = ((creditsModule as any).default || creditsModule) as {
+      addCredits: (
+        userId: string,
+        amountCents: number,
+        description: string,
+        opts?: Record<string, unknown>
+      ) => Promise<{ balanceCents: number } | null>;
+    };
+
+    let auditRow: any = null;
+    let result: { balanceCents: number } | null;
+    try {
+      result = await addCredits(user.id, amountCents, `Admin grant by ${admin}: ${note}`, {
+        type: 'admin_grant',
+        metadata: { grantedBy: admin, idempotencyKey, note },
+        withinTransaction: async (tx: any, applied: { balanceCents: number }) => {
+          const [row] = await tx
+            .insert(adminCreditGrants)
+            .values({
+              idempotencyKey,
+              adminGithubUsername: admin,
+              userId: user.id,
+              amountCents,
+              note,
+              balanceAfterCents: applied.balanceCents,
+            })
+            .returning();
+          auditRow = row;
+        },
+      });
+    } catch (err) {
+      // Lost a race with the same key: our transaction rolled back, the winner's stands.
+      if (isUniqueViolation(err)) {
+        const winner = await findPrior();
+        if (winner) {
+          replay(winner);
+          return;
+        }
+      }
+      throw err;
+    }
+
+    if (!result || !auditRow) {
+      res.status(503).json({ error: 'Credit grant not applied (credit store unavailable)' });
+      return;
+    }
+
+    console.log(
+      `[admin] Credit grant ${amountCents}c to ${user.id} by ${admin} (key ${idempotencyKey})`
+    );
+    res.status(201).json(grantResponse(auditRow, false));
+  } catch (error: any) {
+    console.error('[admin] Credit grant error:', error.message);
+    res.status(500).json({ error: 'Failed to grant credits' });
+  }
+});
+
 export { router as adminRouter };

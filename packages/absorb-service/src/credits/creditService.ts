@@ -205,7 +205,19 @@ export async function addCredits(
   userId: string,
   amountCents: number,
   description: string,
-  opts: { type?: string; stripeSessionId?: string; metadata?: Record<string, unknown> } = {}
+  opts: {
+    type?: string;
+    stripeSessionId?: string;
+    metadata?: Record<string, unknown>;
+    /**
+     * Runs inside the same transaction, after the balance update and ledger
+     * row. If it throws, the whole grant rolls back, balance included. Callers
+     * use it to write a record that must exist exactly when the credits do (the
+     * admin grant audit row, whose unique idempotency key makes a racing
+     * duplicate roll back here instead of crediting twice).
+     */
+    withinTransaction?: (tx: DbClient, result: { balanceCents: number }) => Promise<void>;
+  } = {}
 ): Promise<{ balanceCents: number } | null> {
   const db = getDb();
   if (!db) {
@@ -268,6 +280,10 @@ export async function addCredits(
       stripeSessionId: opts.stripeSessionId ?? null,
       metadata: opts.metadata ?? {},
     });
+
+    if (opts.withinTransaction) {
+      await opts.withinTransaction(tx, { balanceCents: updated.balanceCents });
+    }
 
     return { balanceCents: updated.balanceCents };
   };
