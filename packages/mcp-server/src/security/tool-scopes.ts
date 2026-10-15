@@ -62,7 +62,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   execute_workflow: ['tools:write'],
   workflow_memory_write: ['tools:write'],
   workflow_memory_read: ['tools:admin'],
-  workflow_memory_subscribe: ['tools:read'],
+  workflow_memory_subscribe: ['tools:admin'],
 
   // === Batch meta-tools (each inner call is re-authorized independently) ===
   batch_tool_call: ['tools:read'],

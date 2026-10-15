@@ -408,6 +408,29 @@ describe('R3/c user:private gates the private tools; handlers use the token user
     }
   );
 
+  it('C2 scope map: shared-store memory tools map to exactly tools:admin, private tools to exactly user:private', () => {
+    expect(
+      Object.fromEntries(
+        [...SHARED_STORE, 'workflow_memory_subscribe'].map((t) => [t, resolveRequiredScopes(t)])
+      )
+    ).toEqual({
+      holo_memory_list: ['tools:admin'],
+      holo_memory_recall: ['tools:admin'],
+      holo_memory_farm: ['tools:admin'],
+      holo_memory_stats: ['tools:admin'],
+      workflow_memory_read: ['tools:admin'],
+      workflow_memory_subscribe: ['tools:admin'],
+    });
+    expect([...USER_PRIVATE_TOOLS].sort()).toEqual(['absorb_check_credits', 'get_creator_earnings']);
+    for (const t of USER_PRIVATE_TOOLS) expect(resolveRequiredScopes(t)).toEqual(['user:private']);
+  });
+
+  it('workflow_memory_subscribe (same shared store) is tools:admin; tools:read and user:private refused', () => {
+    expect(authorizeToolCall('workflow_memory_subscribe', ['tools:read']).authorized).toBe(false);
+    expect(authorizeToolCall('workflow_memory_subscribe', ['user:private']).authorized).toBe(false);
+    expect(authorizeToolCall('workflow_memory_subscribe', ['tools:admin']).authorized).toBe(true);
+  });
+
   it('C1 absorb_check_credits refuses a caller-supplied apiKey', () => {
     const ctx = { userId: 'alice', scopes: ['user:private'], signer: 'c' };
     expect(bindUserPrivateArgs('absorb_check_credits', { apiKey: 'someone-elses' }, ctx).ok).toBe(false);

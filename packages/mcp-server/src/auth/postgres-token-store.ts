@@ -108,11 +108,6 @@ ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 
 -- only until a human consents. Existing rows default FALSE to keep today's
 -- behaviour; that is a deliberate, flagged choice (see the PR body).
 ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS self_registered BOOLEAN NOT NULL DEFAULT FALSE;
--- Trust & Consent A1: dynamic clients registered after this get no
--- client_credentials unless they asked for it. Existing rows default FALSE
--- (cc still allowed, capped to public/social scopes): flagged in the PR body.
-SET lock_timeout = '5s';
-ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS no_client_credentials BOOLEAN NOT NULL DEFAULT FALSE;
 -- The human (Studio user) and consent grant a token acts for. NULL = no human.
 ALTER TABLE oauth_access_tokens ADD COLUMN IF NOT EXISTS user_id TEXT;
 ALTER TABLE oauth_access_tokens ADD COLUMN IF NOT EXISTS grant_id TEXT;
@@ -124,6 +119,35 @@ CREATE TABLE IF NOT EXISTS oauth_revoked_chains (
   revoked_at BIGINT NOT NULL
 );
 `;
+
+/**
+ * Trust & Consent A1: dynamic clients registered after this get no
+ * client_credentials unless they asked for it. Existing rows default FALSE (cc
+ * still allowed, capped to public/social scopes): flagged in the PR body.
+ *
+ * Run in its own transaction on one client so the 5 s lock timeout is
+ * SET LOCAL and ends with the transaction; it is never left on a pooled
+ * session (Release, #578).
+ */
+export const NO_CLIENT_CREDENTIALS_DDL =
+  'ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS no_client_credentials BOOLEAN NOT NULL DEFAULT FALSE';
+
+export async function runLockBoundedDdl(pool: Pool, ddl: string): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    try {
+      await client.query("SET LOCAL lock_timeout = '5s'");
+      await client.query(ddl);
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw err;
+    }
+  } finally {
+    client.release();
+  }
+}
 
 // ── PostgresTokenStore ───────────────────────────────────────────────────────
 
@@ -137,7 +161,10 @@ export class PostgresTokenStore implements TokenStoreBackend {
 
   private ensureSchema(): Promise<void> {
     if (!this.schemaReady) {
-      this.schemaReady = this.pool.query(SCHEMA_SQL).then(
+      this.schemaReady = this.pool
+        .query(SCHEMA_SQL)
+        .then(() => runLockBoundedDdl(this.pool, NO_CLIENT_CREDENTIALS_DDL))
+        .then(
         () => {
           // schema ensured
         },
