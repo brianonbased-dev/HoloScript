@@ -18,6 +18,7 @@
 // !! MUST be first import — populates process.env from .env before any module-level
 // `const X = process.env.X || ''` constants are evaluated. No-op on Railway.
 import './utils/load-env';
+import { getBuildCommit } from './build-identity';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
@@ -1360,6 +1361,7 @@ const httpServer = http.createServer(async (req, res) => {
         status: 'healthy',
         service: SERVICE_NAME,
         version: SERVICE_VERSION,
+        commit: getBuildCommit(),
         uptime: process.uptime(),
         sessions: transports.size,
         tools: tools.length + PluginManager.getTools().length,
