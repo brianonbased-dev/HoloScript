@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "sideEffects": [
     "./src/traits/visual/index.ts",
-    "./dist/traits/index.js"
+    "./dist/traits/index.js",
+    "./dist/index.js"
   ],
   "files": [
     "bin",
