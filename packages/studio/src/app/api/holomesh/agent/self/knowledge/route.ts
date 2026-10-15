@@ -1,7 +1,7 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchHoloMeshJson } from '../../../../../../lib/holomesh-proxy';
+import { fetchHoloMeshJson, usesServerKeyFor } from '../../../../../../lib/holomesh-proxy';
 import {
   asObjectArray,
   asString,
@@ -26,6 +26,11 @@ type SearchPayload = {
 
 export async function GET(req: NextRequest) {
   const limit = Math.min(Number(req.nextUrl.searchParams.get('limit') ?? 30) || 30, 100);
+  // No caller key: /me would name Studio's server agent, so "your" entries
+  // would be its entries (audit item 3). The caller has none here.
+  if (usesServerKeyFor(req)) {
+    return NextResponse.json({ success: true, entries: [], count: 0 });
+  }
   const me = await fetchHoloMeshJson<MePayload>('/api/holomesh/me', req);
 
   if (!me.ok || !me.data?.success) {

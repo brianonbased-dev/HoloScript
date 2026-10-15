@@ -5229,6 +5229,11 @@ export class HoloScriptPlusParser {
               this.advance();
               eventName += '.' + this.expect('IDENTIFIER', 'Expected event name').value;
             }
+          } else if (this.check('STRING')) {
+            // on "save" { ... } / on "stripe-setup" { ... }: a quoted name may
+            // carry characters an identifier cannot (Studio compositions emit
+            // kebab-case events). Creator Advocate audit 2026-10-14, item 3.
+            eventName = this.advance().value;
           } else {
             eventName = this.expect('IDENTIFIER', 'Expected event name').value;
           }

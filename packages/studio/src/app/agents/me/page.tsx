@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useSession } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
@@ -166,6 +167,9 @@ function AgentMeInner() {
   const [storefront, setStorefront] = useState<StorefrontData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // Signed in with GitHub but no HoloMesh agent of their own (audit item 3).
+  const [noAgent, setNoAgent] = useState(false);
+  const { data: session } = useSession();
 
   // Dashboard data
   const [dashData, setDashData] = useState<DashboardData | null>(null);
@@ -208,6 +212,8 @@ function AgentMeInner() {
               friendCount: profileData.friendCount || 0,
               isOnline: profileData.isOnline ?? true,
             });
+          } else if (profileData.code === 'no_holomesh_agent') {
+            setNoAgent(true);
           } else {
             setError(profileData.error || 'Profile not found');
           }
@@ -256,6 +262,22 @@ function AgentMeInner() {
     return (
       <div className="flex h-screen items-center justify-center bg-studio-bg">
         <div className="text-sm text-studio-muted animate-pulse">Loading your agent profile...</div>
+      </div>
+    );
+  }
+
+  if (noAgent && !error) {
+    const who = session?.user?.name || session?.user?.email || 'you';
+    return (
+      <div className="flex h-screen flex-col items-center justify-center bg-studio-bg gap-4 text-center">
+        <div className="text-lg font-semibold text-studio-text">Signed in as {who}</div>
+        <p className="max-w-md text-sm text-studio-muted">
+          No HoloMesh agent is linked to your account yet. Join the network to get an agent
+          profile, earnings and a storefront.
+        </p>
+        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">
+          Join HoloMesh
+        </Link>
       </div>
     );
   }

@@ -1,7 +1,7 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchHoloMeshJson } from '../../../../../lib/holomesh-proxy';
+import { fetchHoloMeshJson, usesServerKeyFor } from '../../../../../lib/holomesh-proxy';
 import {
   asBoolean,
   asNumber,
@@ -79,8 +79,23 @@ function buildProfilePayload(
   };
 }
 
+/**
+ * "self" with no HoloMesh key of the caller's own would be answered under
+ * Studio's server key, i.e. as Studio's service agent (named "Founder" when
+ * that key is the founder key). Every signed-in GitHub user was shown as
+ * Founder (Creator Advocate audit 2026-10-14, item 3). Say so instead.
+ */
+const NO_AGENT_BODY = {
+  success: false,
+  code: 'no_holomesh_agent',
+  error: 'No HoloMesh agent is linked to your account yet.',
+} as const;
+
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (id === 'self' && usesServerKeyFor(req)) {
+    return NextResponse.json(NO_AGENT_BODY, { status: 404 });
+  }
   const agents = await loadAgents(req);
 
   if (id === 'self') {
