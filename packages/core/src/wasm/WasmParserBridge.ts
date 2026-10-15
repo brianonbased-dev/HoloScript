@@ -399,8 +399,11 @@ export class WasmParserBridge {
   }
 }
 
-// Singleton instance for convenience
-export const wasmParser = new WasmParserBridge();
+// Singleton instance for convenience. preload: false - constructing it at import
+// time must not fetch anything: in a browser that fetched /holoscript_wasm_bg.wasm
+// on every page that imported core (404 in Studio; Creator Advocate audit item 7).
+// Call wasmParser.load() (or parse) to load on first use.
+export const wasmParser = new WasmParserBridge({ preload: false });
 
 // Re-export for convenience
 export { wasmModuleCache };
