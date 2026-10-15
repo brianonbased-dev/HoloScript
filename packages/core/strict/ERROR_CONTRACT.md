@@ -27,6 +27,9 @@ Both take an optional second argument:
 
 - `knownTraits` — extra trait names for that call, for vocabularies core does
   not ship (a plugin's, a host's).
+- `consentRules` — the caller's `.hs` `render_likeness` result: for each grant,
+  the likeness sources the rule said yes to (`{ "grant_ava": ["face", "voice"] }`).
+  See `HS1011`.
 - `unknownTraits: "error"` — make `HS1006` an error, for a caller that wants
   invented traits refused (for example generated code checked against a closed
   vocabulary). The default is `"warning"`.
@@ -57,6 +60,7 @@ minor release; renaming or removing one is a major release.
 | `HS1008` | warning | The parser's own warning, carried through | — |
 | `HS1009` | error | Source was not a string | `parse(42)` |
 | `HS1010` | error | The tokenizer or parser threw | — |
+| `HS1011` | error | A likeness source (face, voice, body) without the `.hs` `render_likeness` rule's yes | `object "Ava" { @voice_print(grant: "g") }` |
 
 `HS1003` works from a deliberately short denylist of tokens that cannot begin a
 top-level item in any reading of the grammar. A token missing from that list is
@@ -116,6 +120,29 @@ When the parser has read a trait name differently from how it is written,
 defect, not a fault in the source. (The first known case, `@2d_canvas` read as
 a trait named `2`, is fixed: the parser now reads digit-leading names whole.)
 
+### `HS1011`: claim, then rule, then render
+
+The likeness chain from `vision/avatar-format-breakdown.md` (known gaps 1 and 2):
+the composition claims a grant, the `.hs` `render_likeness` rule decides, and
+no trait renders on its own say-so. Three traits render a real person's
+likeness: `@face_mesh` (face), `@voice_print` (voice) and `@body_scan` (body).
+Each one is refused, at its `@`, unless all of these hold:
+
+1. The trait itself holds no grant. `@voice_print(grant: "g")` is refused
+   even when the rule said yes to `g`: that is fault #1, the voice going around
+   the rule.
+2. Its object claims a grant through the existing consent trait,
+   `@consent_gate(grant: "g")` (`ConsentGateTrait.ts`).
+3. The caller's `consentRules` says the rule returned yes for `g` and that
+   source. The strict layer does not run `.hs`; the caller evaluates
+   `render_likeness` and passes the yes-set, the same seam as `knownTraits`.
+   With no `consentRules`, every likeness source is refused.
+
+It is an error, so strict mode refuses the file. Tolerant mode reports the
+same diagnostic and keeps the AST, as for every code. It is a new code rather
+than a reuse of `HS1006` (a vocabulary warning, settled 2026-10-07) or of
+`HS011` (a core legacy-parser code, outside this contract's `HS10xx` range).
+
 ## How it is enforced
 
 `test/corpus.test.mjs` (`node --test`, the package's `test` script) holds the
@@ -149,6 +176,11 @@ be compiled this way later.
 
 ## Known gaps
 
+- **`HS1011` is enforced by this layer only.** Core's canonical validator
+  (`holoscript validate`, MCP `validate_holoscript`, the LSP) does not run it
+  yet and accepts the `invalid/likeness-*` files;
+  `src/validation/__tests__/rejection-corpus.test.ts` lists them as
+  strict-layer-only and fails once the canonical path refuses them.
 - **Custom block keywords are accepted.** `blorp Thing { position: [0, 1, 0] }`
   passes: core's grammar accepts any word as the keyword of a domain block
   (`HoloDomainType` includes `'custom'`, "any user-defined block keyword"), so
