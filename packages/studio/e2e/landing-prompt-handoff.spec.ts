@@ -103,4 +103,37 @@ test.describe('landing prompt -> Brittney chat handoff', () => {
     await expect(brittneyInput(page)).toBeVisible({ timeout: 90_000 });
     await expect(brittneyInput(page)).toHaveValue(PROMPT);
   });
+
+  test('signed out (auth still loading on mount): the prompt survives until sign-in', async ({ page }) => {
+    let signedIn = false;
+    await suppressOnboarding(page);
+    // Slow session endpoint: the panel mounts while auth is still "loading".
+    await page.route('**/api/auth/session', async (route) => {
+      await new Promise((r) => setTimeout(r, 2_500));
+      await route.fulfill({ json: signedIn ? SESSION : {} });
+    });
+    await page.route('**/api/auth/_log', (route) => route.fulfill({ json: {} }));
+    await page.addInitScript((p) => {
+      if (location.pathname === '/create' && !sessionStorage.getItem('e2e.seeded')) {
+        sessionStorage.setItem('e2e.seeded', '1');
+        sessionStorage.setItem('studio.landing.prompt', p);
+      }
+    }, PROMPT);
+
+    await page.goto('/create?mode=world', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    // Signed out: no chat textarea, and the prompt must not have been consumed.
+    await expect
+      .poll(() => page.evaluate(() => sessionStorage.getItem('studio.landing.prompt')), {
+        timeout: 90_000,
+      })
+      .toBe(PROMPT);
+    await page.waitForTimeout(4_000);
+    expect(await page.evaluate(() => sessionStorage.getItem('studio.landing.prompt'))).toBe(PROMPT);
+
+    // Sign-in round-trip (a full reload): the prompt is handed to the chat.
+    signedIn = true;
+    await page.reload({ waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await expect(brittneyInput(page)).toBeVisible({ timeout: 90_000 });
+    await expect(brittneyInput(page)).toHaveValue(PROMPT);
+  });
 });

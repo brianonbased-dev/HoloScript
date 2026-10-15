@@ -1167,7 +1167,7 @@ export default function CreatePage() {
 
     // ── 3. sessionStorage landing prompt ──────────────────────────────────
     // Written by the home page / onboarding flow before redirecting to /create.
-    // Cleared immediately so it doesn't re-seed on the next mount.
+    // Cleared by BrittneyChatPanel once handed over (see below).
     // P1-1: the seeded prompt is handed to BrittneyChatPanel (it prefills its
     // input from landingPrompt) and the Brittney dock is opened so it is visible.
     // Sources: sessionStorage (signed-in path) or ?prompt= (the sign-in
@@ -1176,8 +1176,9 @@ export default function CreatePage() {
     try {
       const stored = sessionStorage.getItem('studio.landing.prompt');
       if (stored) {
+        // Not removed here: BrittneyChatPanel removes it once it has actually
+        // handed the prompt over (signed in), so it survives a sign-in round-trip.
         seededPrompt = stored;
-        sessionStorage.removeItem('studio.landing.prompt');
       }
     } catch {
       // sessionStorage may be unavailable (SSR, private browsing limits) - silent
@@ -1193,7 +1194,13 @@ export default function CreatePage() {
     //    just handed over, in which case open the dock so the user sees it.
     //    (React StrictMode re-runs this effect in dev after the seed was already
     //    consumed, so also honour a prompt already handed to the store.)
-    setChatOpen(Boolean(seededPrompt || useCreateModeStore.getState().landingPrompt));
+    setChatOpen(
+      Boolean(
+        seededPrompt ||
+          useCreateModeStore.getState().landingPrompt ||
+          searchParams.get('chat') === '1'
+      )
+    );
 
     // ── 5. Part mode — auto-open parametric sliders + printability report. ──
     const resolvedMode =
