@@ -128,6 +128,7 @@ async function loadCore() {
       isKnownTrait: coreKnown ? parser.isKnownTrait : undefined,
       declaredTraitNames: coreKnown ? parser.declaredTraitNames : undefined,
       checkLikeness: typeof parser.checkLikeness === "function" ? parser.checkLikeness : undefined,
+      likenessTraitName: typeof parser.likenessTraitName === "function" ? parser.likenessTraitName : undefined,
       likenessSources: parser.LIKENESS_SOURCES && { ...parser.LIKENESS_SOURCES, ...(parser.SOURCE_GATED_TRACKING || {}) },
     },
     info: {

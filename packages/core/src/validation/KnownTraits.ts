@@ -23,18 +23,12 @@ import { buildKnownTraitSet } from '../traits/knownTraitSet';
 import TRAIT_REGISTRY from '../traits/trait-registry.json';
 import { DERIVED_TRAIT_NAMES } from '../compiler/identity/derived-trait-names.generated';
 
+import { normalizeTraitName } from './TraitName';
+
+export { normalizeTraitName };
 export const UNKNOWN_TRAIT_CODE = 'HS1006' as const;
 
-/** `@camelCase`, `kebab-case` and `snake_case` all compare as snake_case. */
-export function normalizeTraitName(name: unknown): string {
-  return String(name ?? '')
-    .trim()
-    .replace(/^@/, '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .replace(/-/g, '_')
-    .toLowerCase();
-}
-
+/** Same folding as TraitName.traitNameKey, applied to an already-normalized name. */
 const squash = (normalized: string) => normalized.replace(/_/g, '');
 
 interface Index {

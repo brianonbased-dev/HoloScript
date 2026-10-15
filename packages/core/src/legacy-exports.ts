@@ -138,6 +138,7 @@ export {
 } from './validation/CanonicalSourceValidator';
 export {
   checkLikeness,
+  likenessTraitName,
   LIKENESS_SOURCES,
   SOURCE_GATED_TRACKING,
   LIKENESS_CODE,
@@ -156,6 +157,7 @@ export {
   type KnownTraitOptions,
   type TraitUse,
 } from './validation/KnownTraits';
+export { traitNameKey, resolveTraitName } from './validation/TraitName';
 export { factory as holoFactory } from './parser/HoloCompositionFactory';
 export { generateHoloSource } from './parser/HoloCompositionGenerator';
 export type {

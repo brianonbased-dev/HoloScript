@@ -64,6 +64,7 @@ export type { GrammarModuleDescriptor, GrammarModuleInfo } from './GrammarModule
 
 export {
   checkLikeness,
+  likenessTraitName,
   LIKENESS_SOURCES,
   SOURCE_GATED_TRACKING,
   LIKENESS_CODE,
@@ -82,3 +83,4 @@ export {
   type KnownTraitOptions,
   type TraitUse,
 } from '../validation/KnownTraits';
+export { traitNameKey, resolveTraitName } from '../validation/TraitName';

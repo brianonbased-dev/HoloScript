@@ -257,7 +257,7 @@ export function analyze(source, deps, options = {}) {
     // Each trait's `@name` is looked up once: the locator hands out the k-th `@X` to the k-th call.
     let located;
     const locate = () => (located === undefined ? (located = locator.named(bare) ?? null) : located);
-    if (likenessSources && Object.prototype.hasOwnProperty.call(likenessSources, normalizeTrait(bare))) {
+    if (likenessSources && likenessKeyOf(bare, likenessSources, deps.likenessTraitName) !== undefined) {
       likenessAt.set(trait, () => locate()?.at ?? anchors.fromNode(owner) ?? at(meaningful[0]));
     }
     if (!checkTraits || known(bare)) continue;
@@ -286,7 +286,7 @@ export function analyze(source, deps, options = {}) {
   const findings = shared
     ? checkLikeness(ast, options.consentRules)
     : traits
-        .filter(({ trait }) => Object.prototype.hasOwnProperty.call(FALLBACK_LIKENESS, normalizeTrait(String(trait.name ?? "").trim().replace(/^@/, ""))))
+        .filter(({ trait }) => likenessKeyOf(String(trait.name ?? "").trim().replace(/^@/, ""), FALLBACK_LIKENESS) !== undefined)
         .map(({ trait, owner }) => ({
           trait,
           owner,
@@ -305,7 +305,30 @@ export function analyze(source, deps, options = {}) {
 
 
 /** Fail-closed fallback when core's checkLikeness is missing: refuse these outright (HS1011). */
-const FALLBACK_LIKENESS = Object.freeze({ face_mesh: 1, voice_print: 1, body_scan: 1, lip_sync: 1, lipsync: 1, face_tracking: 1, body_tracking: 1, avatar_embodiment: 1 });
+const FALLBACK_LIKENESS = Object.freeze({
+  face_mesh: 1, voice_print: 1, body_scan: 1, lip_sync: 1, lipsync: 1, face_tracking: 1, body_tracking: 1,
+  avatar_embodiment: 1,
+});
+
+/**
+ * The likeness entry `bare` is a spelling of. Core's likenessTraitName (validation/TraitName.ts,
+ * the folding KnownTraits uses too) decides when present; the local copy is the same algorithm
+ * (normalizeTrait, then drop underscores) for an older core. `@facemesh`, `@FACE_MESH` and
+ * `@face__mesh` are all face_mesh.
+ */
+function likenessKeyOf(bare, table, coreResolve) {
+  if (typeof coreResolve === "function") {
+    const name = coreResolve(bare);
+    return Object.prototype.hasOwnProperty.call(table, name) ? name : undefined;
+  }
+  const normalized = normalizeTrait(String(bare).trim());
+  const key = normalized.replace(/_/g, "");
+  const entries = Object.keys(table);
+  return (
+    entries.find((entry) => normalizeTrait(entry) === normalized) ??
+    entries.find((entry) => normalizeTrait(entry).replace(/_/g, "") === key)
+  );
+}
 
 /**
  * Trait names this source itself makes known, plus any the caller passes:
