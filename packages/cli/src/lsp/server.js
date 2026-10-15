@@ -285,7 +285,13 @@ export class HoloScriptLanguageServer {
     const diagnostics = [];
     if (isHolo) {
       const parseResult = this.holoParser.parse(doc.content);
-      for (const error of parseResult.errors) {
+      // A blank or whitespace-only buffer (a new file) is not an error in the editor: drop the
+      // parser's HS1001 empty-source refusal there. Non-blank garbage still reports errors.
+      const errors =
+        doc.content.trim() === ''
+          ? parseResult.errors.filter((error) => error.code !== 'HS1001')
+          : parseResult.errors;
+      for (const error of errors) {
         const errLine = error.loc?.line ?? 0;
         const errCol = error.loc?.column ?? 0;
         diagnostics.push({

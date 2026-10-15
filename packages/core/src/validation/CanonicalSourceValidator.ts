@@ -172,9 +172,15 @@ export function resolveCanonicalSourceSurface(
   );
 }
 
-function validateHolo(source: string): CanonicalSourceValidationResult {
+function validateHolo(source: string, allowEmpty = false): CanonicalSourceValidationResult {
   try {
     const result = new HoloCompositionParser().parse(source);
+    // The parser refuses blank source with HS1001. An editor that passed allowEmpty keeps the
+    // empty composition as valid, as before.
+    if (allowEmpty) {
+      result.errors = result.errors.filter((error) => error.code !== 'HS1001');
+      if (result.ast && result.errors.length === 0) result.success = true;
+    }
     const errors = normalizeDiagnosticList(result.errors, 'error');
     const warnings = normalizeDiagnosticList(result.warnings, 'warning');
     return {
@@ -342,7 +348,8 @@ function refuseEmptySource(surface: CanonicalSourceSurface): CanonicalSourceVali
  *
  * Empty or whitespace-only source is refused with `HS1001` on every surface
  * before routing, unless the caller passes `allowEmpty: true` (editors do).
- * Comment-only source is not caught here; it still routes to the parser.
+ * Comment-only source is not caught here; it routes to the parser, which refuses it on the
+ * `.holo` surface with the same HS1001 (also waived by `allowEmpty: true`).
  */
 export function validateCanonicalSource(
   request: CanonicalSourceValidationRequest,
@@ -356,7 +363,7 @@ export function validateCanonicalSource(
   ) {
     return refuseEmptySource(surface);
   }
-  if (surface === 'holo') return validateHolo(request.source);
+  if (surface === 'holo') return validateHolo(request.source, request.allowEmpty === true);
   if (surface === 'hsplus') return validateHsplus(request.source);
   return validateHs(request.source, dependencies.validateHsDetailed);
 }
