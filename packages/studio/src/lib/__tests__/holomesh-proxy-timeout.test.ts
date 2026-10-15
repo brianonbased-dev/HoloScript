@@ -124,7 +124,10 @@ describe('GET /api/holomesh/agent/self', () => {
 
   it('answers 504 fast when HoloMesh hangs (the stuck /agents/me)', async () => {
     globalThis.fetch = hangingFetch([]) as unknown as typeof fetch;
-    const req = new NextRequest('https://studio.test/api/holomesh/agent/self');
+    // With the caller's own key (#577: no key is 404 before anything goes upstream).
+    const req = new NextRequest('https://studio.test/api/holomesh/agent/self', {
+      headers: { authorization: 'Bearer user-key' },
+    });
     const t0 = Date.now();
     const res = await agentGET(req, { params: Promise.resolve({ id: 'self' }) });
     expect(Date.now() - t0).toBeLessThan(2_000);
