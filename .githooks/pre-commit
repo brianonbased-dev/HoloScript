@@ -60,6 +60,21 @@ if [ -n "$SECRET_DIFF" ]; then
 fi
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ── Hook files are stored executable (task_1790597705994_uakx) ───────────────
+# Git on Linux and macOS skips a hook whose file is not executable (at most a
+# hint), and a fresh clone takes each file's mode from the index. Git for
+# Windows ignores the bit, so a hook added from Windows lands as 100644 and
+# never runs on the cloud lane or the fleet. That is how pre-commit and
+# commit-msg lost the secret scan above on every Linux clone.
+NONEXEC_HOOKS=$(git -c core.quotepath=off ls-files -s -- .githooks 2>/dev/null \
+    | awk -F'\t' '{ split($1, m, " "); if (m[1] != "100755" && $2 !~ /^\.githooks\/[^\/]+\//) print $2 }')
+if [ -n "$NONEXEC_HOOKS" ]; then
+    echo -e "${RED}❌ COMMIT BLOCKED — git on Linux would skip these hooks, because they are not stored executable:${NC}"
+    echo "$NONEXEC_HOOKS" | sed 's/^/     /'
+    echo "     Fix: git update-index --chmod=+x <file>"
+    exit 1
+fi
+
 # Timeout wrapper — kills long-running gates after N seconds.
 # GNU timeout exits 124. The Git Bash fallback (no `timeout` binary) maps its
 # own kill to 124 as well, so every gate shares one message instead of an
