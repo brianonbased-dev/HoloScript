@@ -37,6 +37,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { isNoHoloMeshAgentResponse } from '@/lib/holomesh/noAgent';
+import { JoinHoloMeshState } from '@/components/holomesh/JoinHoloMeshState';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -523,6 +525,8 @@ function EarnPageInner() {
   const [earnings, setEarnings] = useState<EarningsData | null>(null);
   const [earningsLoading, setEarningsLoading] = useState(true);
   const [earningsError, setEarningsError] = useState<string | null>(null);
+  // Signed in, but no HoloMesh agent yet (404 no_holomesh_agent from #570).
+  const [noAgent, setNoAgent] = useState(false);
 
   const [txs, setTxs] = useState<Transaction[]>([]);
   const [txLoading, setTxLoading] = useState(true);
@@ -533,6 +537,10 @@ function EarnPageInner() {
     setEarningsError(null);
     try {
       const r = await fetch('/api/holomesh/dashboard/earnings');
+      if (await isNoHoloMeshAgentResponse(r)) {
+        setNoAgent(true);
+        return;
+      }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data: unknown = await r.json();
       if (data && typeof data === 'object') {
@@ -597,6 +605,15 @@ function EarnPageInner() {
           Sign in
         </Link>
       </div>
+    );
+  }
+
+  if (noAgent) {
+    return (
+      <JoinHoloMeshState
+        who={session.user.name || session.user.email}
+        what="earnings, payouts and a storefront"
+      />
     );
   }
 

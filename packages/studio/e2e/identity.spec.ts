@@ -64,4 +64,36 @@ test.describe('identity (audit item 3)', () => {
     await expect(page.getByText('Signed in as Octo Cat')).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText('Founder')).toHaveCount(0);
   });
+
+  // #570: user-scoped HoloMesh routes answer 404 no_holomesh_agent for a user
+  // with no agent. Pages show "Join HoloMesh", never an error box or $NaN.
+  const NO_AGENT = { success: false, code: 'no_holomesh_agent', error: 'No HoloMesh agent is linked to your account yet.' };
+  async function noAgentEverywhere(page: Page) {
+    await page.route('**/api/holomesh/**', (r) => {
+      const url = r.request().url();
+      if (url.includes('/agent/self/knowledge')) return r.fulfill({ json: { success: true, entries: [] } });
+      if (url.includes('/transactions')) return r.fulfill({ json: { transactions: [] } });
+      if (url.includes('/surface/')) return r.fulfill({ json: { kind: 'profile/self', format: 'hsplus', code: '', noHoloMeshAgent: true } });
+      return r.fulfill({ status: 404, json: NO_AGENT }); // self, dashboard, earnings, contributions
+    });
+  }
+
+  test('/agents/me with no agent anywhere: Join HoloMesh, no error, no $NaN', async ({ page }) => {
+    await signedIn(page);
+    await noAgentEverywhere(page);
+    await page.goto('/agents/me?tab=dashboard', { waitUntil: 'load', timeout: 120_000 });
+    await expect(page.getByTestId('join-holomesh')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole('link', { name: 'Join HoloMesh' })).toHaveAttribute('href', '/holomesh');
+    const text = await page.locator('body').innerText();
+    expect(text).not.toMatch(/\$NaN|undefined|Profile not found/);
+  });
+
+  test('/earn with no agent: Join HoloMesh instead of "Could not load earnings data: HTTP 404"', async ({ page }) => {
+    await signedIn(page);
+    await noAgentEverywhere(page);
+    await page.goto('/earn', { waitUntil: 'load', timeout: 120_000 });
+    await expect(page.getByTestId('join-holomesh')).toBeVisible({ timeout: 60_000 });
+    const text = await page.locator('body').innerText();
+    expect(text).not.toMatch(/Could not load earnings|\$NaN/);
+  });
 });

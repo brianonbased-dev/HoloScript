@@ -18,6 +18,8 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { normalizeEarnings } from '@/lib/holomesh/normalizeEarnings';
+import { isNoHoloMeshAgentBody, isNoHoloMeshAgentResponse } from '@/lib/holomesh/noAgent';
+import { JoinHoloMeshState } from '@/components/holomesh/JoinHoloMeshState';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
@@ -202,7 +204,12 @@ function AgentMeInner() {
         const earningsData = normalizeEarnings(
           earningsRes.ok ? await earningsRes.json().catch(() => null) : null
         );
-        const dashboardData = await dashRes.json().catch(() => null);
+        // A non-2xx dashboard body (e.g. 404 no_holomesh_agent) is not dashboard data.
+        const dashboardData = dashRes.ok ? await dashRes.json().catch(() => null) : null;
+        const noAgentAnywhere =
+          isNoHoloMeshAgentBody(profileData) ||
+          (await isNoHoloMeshAgentResponse(dashRes)) ||
+          (await isNoHoloMeshAgentResponse(earningsRes));
 
         if (!cancelled) {
           if (profileData.success) {
@@ -217,7 +224,7 @@ function AgentMeInner() {
               friendCount: profileData.friendCount || 0,
               isOnline: profileData.isOnline ?? true,
             });
-          } else if (profileData.code === 'no_holomesh_agent') {
+          } else if (noAgentAnywhere) {
             setNoAgent(true);
           } else {
             setError(profileData.error || 'Profile not found');
@@ -274,15 +281,8 @@ function AgentMeInner() {
   if (noAgent && !error) {
     const who = session?.user?.name || session?.user?.email || 'you';
     return (
-      <div className="flex h-screen flex-col items-center justify-center bg-studio-bg gap-4 text-center">
-        <div className="text-lg font-semibold text-studio-text">Signed in as {who}</div>
-        <p className="max-w-md text-sm text-studio-muted">
-          No HoloMesh agent is linked to your account yet. Join the network to get an agent
-          profile, earnings and a storefront.
-        </p>
-        <Link href="/holomesh" className="text-xs text-studio-accent hover:underline">
-          Join HoloMesh
-        </Link>
+      <div className="flex h-screen items-center justify-center bg-studio-bg">
+        <JoinHoloMeshState who={who} />
       </div>
     );
   }
