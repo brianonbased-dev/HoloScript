@@ -41,7 +41,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 
 import { tools } from './tools';
-import { handleTool } from './handlers';
+import { applyUserPrivateBinding, handleTool } from './handlers';
 import { PluginManager } from './PluginManager';
 import { networkingTools, handleNetworkingTool } from './networking-tools';
 import { snapshotTools, handleSnapshotTool } from './snapshot-tools';
@@ -603,6 +603,16 @@ export async function _handleSingleToolLogic(
     // the HTTP entry, but only for the outer call. A tool re-entered from inside the server (a batch
     // child, a mesh-invoked tool, a workflow step) arrives here with the caller's context (#396).
     if (signingCtx) assertNoHostPathArgs(name, args, signingCtx.scopes, signingCtx.localCustody);
+
+    // 0c. Trust & Consent: user-private tools bind to the token's user on this
+    // path too (absorb tools are dispatched here without handleTool).
+    {
+      const gate = await applyUserPrivateBinding(name, args || {}, signingCtx);
+      if ('result' in gate) {
+        return { content: [{ type: 'text', text: JSON.stringify(gate.result, null, 2) }] };
+      }
+      args = gate.args;
+    }
 
     // 1. Plugin namespace isolation (Enforce strict O(1) boundary for proprietary tool shadowing prevention)
     if (name.startsWith('uaa2_') || name.startsWith('hs_plugin_')) {

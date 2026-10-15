@@ -56,7 +56,7 @@ export interface RealHttpServer {
   request(
     method: 'GET' | 'POST' | 'DELETE',
     path: string,
-    options?: { body?: unknown; token?: string }
+    options?: { body?: unknown; token?: string; headers?: Record<string, string> }
   ): Promise<Reply>;
   /** A client-credentials token for a client registered over loopback with exactly `scope`. */
   tokenWithScope(scope: string): Promise<string>;
@@ -133,6 +133,7 @@ export async function bootRealHttpServer(options: {
             connection: 'close',
             ...(payload !== undefined ? { 'content-length': Buffer.byteLength(payload) } : {}),
             ...(opts.token ? { authorization: `Bearer ${opts.token}` } : {}),
+            ...(opts.headers ?? {}),
           },
         },
         (res) => {

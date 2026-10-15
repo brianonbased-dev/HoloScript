@@ -111,6 +111,7 @@ ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS self_registered BOOLEAN NOT N
 -- Trust & Consent A1: dynamic clients registered after this get no
 -- client_credentials unless they asked for it. Existing rows default FALSE
 -- (cc still allowed, capped to public/social scopes): flagged in the PR body.
+SET lock_timeout = '5s';
 ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS no_client_credentials BOOLEAN NOT NULL DEFAULT FALSE;
 -- The human (Studio user) and consent grant a token acts for. NULL = no human.
 ALTER TABLE oauth_access_tokens ADD COLUMN IF NOT EXISTS user_id TEXT;

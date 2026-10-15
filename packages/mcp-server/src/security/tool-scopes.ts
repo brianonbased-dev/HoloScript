@@ -61,7 +61,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   compose_workflow: ['tools:write'],
   execute_workflow: ['tools:write'],
   workflow_memory_write: ['tools:write'],
-  workflow_memory_read: ['user:private'],
+  workflow_memory_read: ['tools:admin'],
   workflow_memory_subscribe: ['tools:read'],
 
   // === Batch meta-tools (each inner call is re-authorized independently) ===
@@ -513,10 +513,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_estimate_task_duration: ['tools:read'],
   holo_hologram_get_asset: ['tools:read'],
   holo_map_paper_ingest_probe: ['tools:read'],
-  holo_memory_farm: ['user:private'],
-  holo_memory_list: ['user:private'],
-  holo_memory_recall: ['user:private'],
-  holo_memory_stats: ['user:private'],
+  holo_memory_farm: ['tools:admin'],
+  holo_memory_list: ['tools:admin'],
+  holo_memory_recall: ['tools:admin'],
+  holo_memory_stats: ['tools:admin'],
   holo_oracle_consult: ['tools:read'],
   holo_oracle_curate: ['tools:read'],
   holo_oracle_discover: ['tools:read'],
@@ -869,12 +869,11 @@ export function hasExplicitScope(toolName: string): boolean {
 export const USER_PRIVATE_TOOLS: ReadonlySet<string> = new Set([
   'get_creator_earnings',
   'absorb_check_credits',
-  'holo_memory_list',
-  'holo_memory_recall',
-  'holo_memory_farm',
-  'holo_memory_stats',
-  'workflow_memory_read',
 ]);
+// holo_memory_list/recall/farm/stats and workflow_memory_read read ONE shared
+// store with no per-user partition (memory-tools.ts, agent-orchestration-tools.ts),
+// so a user filter is not possible today: they are tools:admin until the store
+// is split per user (Trust & Consent C2).
 
 /** Argument names that would let a caller point a user-private tool at someone else. */
 export const USER_IDENTITY_ARG_KEYS = [
@@ -886,6 +885,9 @@ export const USER_IDENTITY_ARG_KEYS = [
   'owner_id',
   'accountId',
   'account_id',
+  // A caller-supplied key selects whose account is read (absorb_check_credits).
+  'apiKey',
+  'api_key',
 ] as const;
 
 /**

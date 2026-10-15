@@ -601,9 +601,8 @@ export class OAuth21Service {
   }
 
   /**
-   * Is this grant live? A grant this instance never saw (a token rehydrated
-   * after a deploy) is adopted from the token, aged from the token's issue
-   * time; a revoked, idle or over-age one is not live.
+   * Is this grant live? Unknown (never recorded here), revoked, idle or
+   * over-age: not live.
    */
   grantIsLive(
     ref: { grantId?: string; userId?: string; clientId: string; scopes?: OAuthScope[]; issuedAt?: number },
@@ -611,22 +610,12 @@ export class OAuth21Service {
     touch = false
   ): boolean {
     if (!ref.grantId) return true;
-    let grant = grants.get(ref.grantId);
-    if (!grant) {
-      if (!ref.userId) return false;
-      grant = {
-        grantId: ref.grantId,
-        userId: ref.userId,
-        clientId: ref.clientId,
-        scopes: [...(ref.scopes ?? [])],
-        issuedAt: ref.issuedAt ?? now,
-        lastUsedAt: now,
-      };
-      grants.set(grant.grantId, grant);
-      if (!grantByUserClient.has(grantKey(grant.userId, grant.clientId))) {
-        grantByUserClient.set(grantKey(grant.userId, grant.clientId), grant.grantId);
-      }
-    }
+    // Trust & Consent C3: fail closed. A grant this instance never recorded
+    // (e.g. after a deploy wiped the ledger, tombstones included) is NOT live;
+    // the user re-consents. Rebuilding it from the token's own claims would
+    // revive a revoked grant.
+    const grant = grants.get(ref.grantId);
+    if (!grant) return false;
     if (grant.revokedAt) return false;
     if (grant.clientId !== ref.clientId) return false;
     if (ref.userId && grant.userId !== ref.userId) return false;

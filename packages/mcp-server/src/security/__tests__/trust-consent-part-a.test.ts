@@ -248,6 +248,60 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
     expect(() => exchange(clientId, clientSecret, pending)).toThrow();
   });
 
+  it('C3 a grant this instance never recorded is NOT live (fail closed)', () => {
+    const { clientId } = selfRegistered();
+    expect(
+      svc().grantIsLive({ grantId: 'grant_unknown', userId: 'alice', clientId, issuedAt: Date.now() })
+    ).toBe(false);
+  });
+
+  it('C3 cross-restart: a revoked grant does not revive when a fresh instance loads the token rows', async () => {
+    const provider = new OAuth2Provider({ backend: new InMemoryTokenStore() });
+    const { clientId, clientSecret } = selfRegistered();
+    const t = exchange(clientId, clientSecret, codeFor(clientId));
+    const live = svc().introspect(t.access_token);
+    const social = svc().exchangeClientCredentials({ clientId, clientSecret, scopes: ['social'] });
+    for (const [tok, rec] of [
+      [t.access_token, live],
+      [social.access_token, svc().introspect(social.access_token)],
+    ] as const) {
+      await provider.importAccessToken({
+        token: tok,
+        clientId,
+        scopes: rec.scopes as string[],
+        issuedAt: rec.issuedAt!,
+        expiresAt: rec.expiresAt!,
+        ...(rec.userId ? { userId: rec.userId, grantId: rec.grantId } : {}),
+      } as never);
+    }
+    svc().revokeGrant(live.grantId!);
+
+    // Deploy: the in-memory ledger (tombstones included) is gone; durable rows survive.
+    resetOAuth21Service();
+    const fresh = svc();
+    fresh.setDurableIntrospector(async (token) => {
+      const r = await provider.introspect(token);
+      if (!r.active) return undefined;
+      return {
+        active: true,
+        clientId: r.clientId,
+        scopes: r.scopes as string[],
+        agentId: r.agentId,
+        expiresAt: r.expiresAt,
+        issuedAt: r.issuedAt,
+        ...(r.userId ? { userId: r.userId, grantId: r.grantId } : {}),
+      };
+    });
+    fresh.setClientStatusResolver(async () => 'approved');
+
+    const revived = await fresh.authenticateRequestAsync({ authorization: `Bearer ${t.access_token}` });
+    expect(revived.active).toBe(false);
+    expect(fresh.introspect(t.access_token).active).toBe(false);
+    // Negative control: a token with no human (no grant) still rehydrates.
+    const ctl = await fresh.authenticateRequestAsync({ authorization: `Bearer ${social.access_token}` });
+    expect(ctl.active).toBe(true);
+  });
+
   it('a revoked grant cannot be resurrected by a durable token row carrying its id', () => {
     const { clientId, clientSecret } = selfRegistered();
     const t = exchange(clientId, clientSecret, codeFor(clientId));
@@ -305,7 +359,7 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
   });
 
   describe('CSRF token', () => {
-    const b = { clientId: 'hsc_1', redirectUri: REDIRECT, codeChallenge: CHALLENGE };
+    const b = { clientId: 'hsc_1', redirectUri: REDIRECT, codeChallenge: CHALLENGE, userId: 'alice' };
     const S = 's'.repeat(40);
     it('verifies for the same request', () => {
       expect(verifyOAuthCsrfToken(issueOAuthCsrfToken(b, Date.now(), S), b, Date.now(), S)).toBe(true);
@@ -315,6 +369,11 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
       expect(verifyOAuthCsrfToken(t, { ...b, clientId: 'hsc_2' }, Date.now(), S)).toBe(false);
       expect(verifyOAuthCsrfToken(t, { ...b, redirectUri: 'https://evil.test/cb' }, Date.now(), S)).toBe(false);
       expect(verifyOAuthCsrfToken(t, { ...b, codeChallenge: 'x' }, Date.now(), S)).toBe(false);
+    });
+    it('F2 refuses a token minted for another user', () => {
+      const t = issueOAuthCsrfToken(b, Date.now(), S);
+      expect(verifyOAuthCsrfToken(t, { ...b, userId: 'bob' }, Date.now(), S)).toBe(false);
+      expect(verifyOAuthCsrfToken(t, { ...b, userId: '' }, Date.now(), S)).toBe(false);
     });
     it('refuses expired, missing, malformed, and other-secret tokens', () => {
       const now = Date.now();
@@ -329,15 +388,33 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
 
 // ── R3 / (c) ────────────────────────────────────────────────────────────────
 describe('R3/c user:private gates the private tools; handlers use the token user', () => {
-  const PRIVATE = [
-    'get_creator_earnings',
-    'absorb_check_credits',
+  const PRIVATE = ['get_creator_earnings', 'absorb_check_credits'];
+  const SHARED_STORE = [
     'holo_memory_list',
     'holo_memory_recall',
     'holo_memory_farm',
     'holo_memory_stats',
     'workflow_memory_read',
   ];
+
+  it.each(SHARED_STORE)(
+    'C2 %s reads one shared store: tools:admin until it is split; user:private is refused',
+    (tool) => {
+      expect(USER_PRIVATE_TOOLS.has(tool)).toBe(false);
+      expect(resolveRequiredScopes(tool)).toEqual(['tools:admin']);
+      expect(authorizeToolCall(tool, ['user:private']).authorized).toBe(false);
+      expect(authorizeToolCall(tool, ['tools:read']).authorized).toBe(false);
+      expect(authorizeToolCall(tool, ['tools:admin']).authorized).toBe(true);
+    }
+  );
+
+  it('C1 absorb_check_credits refuses a caller-supplied apiKey', () => {
+    const ctx = { userId: 'alice', scopes: ['user:private'], signer: 'c' };
+    expect(bindUserPrivateArgs('absorb_check_credits', { apiKey: 'someone-elses' }, ctx).ok).toBe(false);
+    expect(bindUserPrivateArgs('absorb_check_credits', { api_key: 'k' }, ctx).ok).toBe(false);
+    const ok = bindUserPrivateArgs('absorb_check_credits', {}, ctx);
+    expect(ok.ok && (ok as { args: Record<string, unknown> }).args.userId).toBe('alice');
+  });
 
   it.each(PRIVATE)('%s needs user:private; tools:read alone is refused', (tool) => {
     expect(USER_PRIVATE_TOOLS.has(tool)).toBe(true);

@@ -91,7 +91,9 @@ export function verifyStudioConsent(
   assertion: unknown,
   clientId: string,
   secret: string | undefined = process.env.STUDIO_CONSENT_SECRET,
-  nowMs: number = Date.now()
+  nowMs: number = Date.now(),
+  /** Verify WITHOUT consuming (GET /oauth/authorize binds its CSRF token to sub). */
+  options: { peek?: boolean } = {}
 ): VerifiedConsent | null {
   if (!secret || secret.length < 32) return null;
   if (typeof assertion !== 'string' || assertion.length > 4096) return null;
@@ -122,7 +124,9 @@ export function verifyStudioConsent(
   if (typeof iat !== 'number' || typeof exp !== 'number') return null;
   if (exp <= now || iat > now + 30 || exp - iat > CONSENT_MAX_TTL_S) return null;
   const hash = createHash('sha256').update(assertion).digest('hex');
-  if (!consumeOnce(hash, exp, now)) return null;
+  if (options.peek) {
+    if (usedAssertions.has(hash)) return null;
+  } else if (!consumeOnce(hash, exp, now)) return null;
   return {
     userId: sub,
     clientId,

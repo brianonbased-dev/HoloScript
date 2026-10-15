@@ -8,7 +8,8 @@
  *      introspection inactive, token endpoint invalid_client, audit entry, 204.
  */
 import { createHash } from 'crypto';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { OAuth2Provider } from '../auth/oauth2-provider';
 import {
   bootRealHttpServer,
   REAL_SERVER_ADMIN_KEY,
@@ -28,7 +29,7 @@ let server: RealHttpServer;
 beforeAll(async () => {
   server = await bootRealHttpServer({
     sandboxPrefix: 'mcp-trust-consent-',
-    env: { STUDIO_CONSENT_SECRET: CONSENT_SECRET },
+    env: { STUDIO_CONSENT_SECRET: CONSENT_SECRET, OAUTH_REGISTER_PER_IP_PER_HOUR: '1000' },
   });
 }, 240_000);
 
@@ -48,7 +49,11 @@ async function register(body: Record<string, unknown> = {}) {
   return { clientId: r.body.client_id as string, clientSecret: r.body.client_secret as string, body: r.body };
 }
 
-async function csrfFor(clientId: string, scope = 'user:private'): Promise<string> {
+async function csrfFor(
+  clientId: string,
+  scope = 'user:private',
+  consent: string = consentFor(clientId)
+): Promise<string> {
   const q = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
@@ -57,7 +62,9 @@ async function csrfFor(clientId: string, scope = 'user:private'): Promise<string
     code_challenge: CHALLENGE,
     code_challenge_method: 'S256',
   });
-  const r = await server.request('GET', `/oauth/authorize?${q}`);
+  const r = await server.request('GET', `/oauth/authorize?${q}`, {
+    headers: { 'x-studio-consent': consent },
+  });
   expect(r.status, JSON.stringify(r.body)).toBe(200);
   const token = (r.body.authorization_request as Record<string, unknown>).csrf_token as string;
   expect(token).toMatch(/^c1\./);
@@ -81,9 +88,10 @@ function consentFor(clientId: string, sub = 'alice', scp = ['user:private', 'too
 }
 
 async function userToken(clientId: string, clientSecret: string, sub = 'alice') {
-  const csrf = await csrfFor(clientId);
+  const assertion = consentFor(clientId, sub);
+  const csrf = await csrfFor(clientId, 'user:private', assertion);
   const a = await server.request('POST', '/oauth/authorize', {
-    body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: consentFor(clientId, sub) }),
+    body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: assertion }),
   });
   expect(a.status, JSON.stringify(a.body)).toBe(200);
   const t = await server.request('POST', '/oauth/token', {
@@ -214,6 +222,77 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
     expect(i2.body.user_id).toBe('alice');
   });
 
+  it('F2 a CSRF token minted for alice is refused with bob\'s session', async () => {
+    const { clientId } = await register();
+    const csrfAlice = await csrfFor(clientId, 'user:private', consentFor(clientId, 'alice'));
+    const r = await server.request('POST', '/oauth/authorize', {
+      body: authorizeBody(clientId, { csrf_token: csrfAlice, studio_consent: consentFor(clientId, 'bob') }),
+    });
+    expect(r.status).toBe(403);
+    expect(r.body.code).toBeUndefined();
+  });
+
+  it('F2 GET without a session issues no CSRF token', async () => {
+    const { clientId } = await register();
+    const q = new URLSearchParams({
+      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
+      code_challenge: CHALLENGE, code_challenge_method: 'S256',
+    });
+    const r = await server.request('GET', `/oauth/authorize?${q}`);
+    expect((r.body.authorization_request as Record<string, unknown>).csrf_token).toBeUndefined();
+  });
+
+  it('F3 studio_consent in the GET query string is ignored (no CSRF token)', async () => {
+    const { clientId } = await register();
+    const q = new URLSearchParams({
+      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
+      code_challenge: CHALLENGE, code_challenge_method: 'S256', studio_consent: consentFor(clientId),
+    });
+    const r = await server.request('GET', `/oauth/authorize?${q}`);
+    expect(r.status).toBe(200);
+    expect((r.body.authorization_request as Record<string, unknown>).csrf_token).toBeUndefined();
+  });
+
+  it('F3/a a browser GET is sent to Studio /oauth/consent with the same params, minus studio_consent', async () => {
+    const { clientId } = await register();
+    const q = new URLSearchParams({
+      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
+      code_challenge: CHALLENGE, code_challenge_method: 'S256', state: 's1', studio_consent: 'v1.leak.x',
+    });
+    const r = await server.request('GET', `/oauth/authorize?${q}`, { headers: { accept: 'text/html' } });
+    expect(r.status).toBe(302);
+    const loc = new URL(String(r.headers?.location));
+    expect(loc.pathname).toBe('/oauth/consent');
+    expect(loc.searchParams.get('client_id')).toBe(clientId);
+    expect(loc.searchParams.get('code_challenge')).toBe(CHALLENGE);
+    expect(loc.searchParams.get('state')).toBe('s1');
+    expect(loc.searchParams.has('studio_consent')).toBe(false);
+  });
+
+  it('F3 studio_consent in the POST query string is not accepted', async () => {
+    const { clientId } = await register();
+    const assertion = consentFor(clientId);
+    const csrf = await csrfFor(clientId, 'user:private', assertion);
+    const r = await server.request(
+      'POST',
+      `/oauth/authorize?studio_consent=${encodeURIComponent(assertion)}`,
+      { body: authorizeBody(clientId, { csrf_token: csrf }) }
+    );
+    expect(r.status).toBe(401);
+  });
+
+  it('F3 negative control: studio_consent in the x-studio-consent header works', async () => {
+    const { clientId } = await register();
+    const assertion = consentFor(clientId);
+    const csrf = await csrfFor(clientId, 'user:private', assertion);
+    const r = await server.request('POST', '/oauth/authorize', {
+      body: authorizeBody(clientId, { csrf_token: csrf }),
+      headers: { 'x-studio-consent': assertion },
+    });
+    expect(r.status, JSON.stringify(r.body)).toBe(200);
+    expect(r.body.code).toBeTruthy();
+  });
+
   it('negative control: deny needs no session', async () => {
     const { clientId } = await register();
     const r = await server.request('POST', '/oauth/authorize', {
@@ -251,7 +330,45 @@ describe("R3 a user:private token can't read another creator's earnings", () => 
   });
 });
 
+describe('C1 absorb_check_credits reads only the token user', () => {
+  async function credits(token: string, args: Record<string, unknown>) {
+    const r = await server.request('POST', '/mcp', {
+      token,
+      body: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'absorb_check_credits', arguments: args } },
+    });
+    return JSON.stringify(r.body);
+  }
+  it('a caller-supplied apiKey is refused', async () => {
+    const { clientId, clientSecret } = await register();
+    const { access_token } = await userToken(clientId, clientSecret);
+    expect(await credits(access_token, { apiKey: 'someone-elses-key' })).toMatch(/names someone else/);
+  });
+  it('no ledger: refused, never the absorb server key', async () => {
+    const { clientId, clientSecret } = await register();
+    const { access_token } = await userToken(clientId, clientSecret);
+    const out = await credits(access_token, {});
+    expect(out).toMatch(/credit ledger is not available/);
+    expect(out).not.toMatch(/ABSORB_API_KEY|No API key provided/);
+  });
+});
+
 describe('R4 DELETE /oauth/clients/:id', () => {
+  it('C4 durable revoke failure answers 503 (not 204); a retry then succeeds', async () => {
+    const { clientId } = await register();
+    const spy = vi
+      .spyOn(OAuth2Provider.prototype, 'revokeClient')
+      .mockRejectedValueOnce(new Error('db down'));
+    const d = await server.request('DELETE', `/oauth/clients/${clientId}`, { token: REAL_SERVER_ADMIN_KEY });
+    expect(d.status).toBe(503);
+    const failed = getAuditLogger()
+      .query({ limit: 100_000 })
+      .entries.filter((e) => e.agent?.clientId === clientId && /durable=false/.test(String(e.metadata?.reason)));
+    expect(failed.length).toBe(1);
+    spy.mockRestore();
+    const again = await server.request('DELETE', `/oauth/clients/${clientId}`, { token: REAL_SERVER_ADMIN_KEY });
+    expect(again.status).toBe(204);
+  });
+
   it('admin delete kills existing tokens: introspection inactive, token endpoint invalid_client, audit, 204', async () => {
     const { clientId, clientSecret } = await register();
     const t = await userToken(clientId, clientSecret);

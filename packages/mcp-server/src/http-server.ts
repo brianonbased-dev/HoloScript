@@ -103,6 +103,7 @@ import {
   registerClientDurably,
 } from './auth/oauth2-provider';
 import { creditCheckSubject } from './security/credit-check-subject';
+import { setUserCreditsResolver } from './security/user-credits';
 import { verifyStudioConsent } from './security/studio-consent';
 import { issueOAuthCsrfToken, verifyOAuthCsrfToken } from './security/oauth-csrf';
 import {
@@ -127,7 +128,6 @@ import {
   acceptsHtml,
   buildOAuthCallbackUri,
   OAUTH_CONSENT_SECURITY_HEADERS,
-  renderOAuthConsentPage,
   resolveOAuthIssuer,
 } from './auth/oauth-browser';
 import type { TokenStoreBackend } from './auth/token-store';
@@ -276,6 +276,18 @@ if (process.env.DATABASE_URL) {
       })
     );
     tokenBackend = new PostgresTokenStore(pgPool);
+    // Trust & Consent C1: absorb_check_credits for remote callers reads the
+    // token user's own ledger row (read-only), never the absorb server key.
+    {
+      const pool = pgPool;
+      setUserCreditsResolver(async (userId) => {
+        const r = await pool.query(
+          'SELECT balance_cents FROM credit_accounts WHERE user_id::text = $1',
+          [userId]
+        );
+        return { balanceCents: Number(r.rows[0]?.balance_cents ?? 0), found: r.rows.length > 0 };
+      });
+    }
     // Auto-create credit tables if they don't exist
     pgPool
       .query(
@@ -376,6 +388,12 @@ oauth.setClientStatusResolver(async (clientId) => {
  * middle of its sign-in), drop a copy the durable store no longer holds, and
  * rehydrate it after a deploy wiped the in-memory map. See prepareClientForUse.
  */
+/** Studio's consent page (#579). STUDIO_PUBLIC_URL overrides the default. */
+function studioConsentUrl(): string {
+  const base = (process.env.STUDIO_PUBLIC_URL || 'https://studio.holoscript.net').replace(/\/+$/, '');
+  return `${base}/oauth/consent`;
+}
+
 /** Token-endpoint failures that mean the client itself is unknown or unauthenticated. */
 function isInvalidClientMessage(message: string): boolean {
   return (
@@ -2597,30 +2615,33 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
+      // Release F2/F3: the CSRF token is bound to the signed-in user, read from
+      // the x-studio-consent HEADER only (never the query string, which leaks
+      // into logs, history and Referer), verified without consuming it. No
+      // session: no CSRF token, so no code can follow.
+      const getConsent = verifyStudioConsent(
+        req.headers['x-studio-consent'],
+        clientId,
+        undefined,
+        undefined,
+        { peek: true }
+      );
+      const csrfToken = getConsent
+        ? issueOAuthCsrfToken({ clientId, redirectUri, codeChallenge, userId: getConsent.userId })
+        : undefined;
+
       if (acceptsHtml(req.headers.accept)) {
-        const requestedScopeDetails = requestedScopes.map((name) => ({
-          name,
-          description: OAUTH2_SCOPES[name as keyof typeof OAUTH2_SCOPES] || 'HoloScript capability',
-        }));
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
+        // Browsers consent in Studio, where the user is signed in (#579). Send
+        // them to Studio's /oauth/consent with the same request parameters.
+        // studio_consent is never carried in a URL (Release F3), so it is
+        // dropped here even if a caller put it in the query.
+        const forward = new URLSearchParams(params);
+        forward.delete('studio_consent');
+        res.writeHead(302, {
+          Location: `${studioConsentUrl()}?${forward.toString()}`,
           ...OAUTH_CONSENT_SECURITY_HEADERS,
         });
-        res.end(
-          renderOAuthConsentPage({
-            clientId,
-            clientName: client.clientName,
-            redirectUri,
-            scopes: requestedScopeDetails,
-            state: state || undefined,
-            codeChallenge,
-            codeChallengeMethod: 'S256',
-            csrfToken: issueOAuthCsrfToken({ clientId, redirectUri, codeChallenge }),
-            ...(params.get('studio_consent')
-              ? { studioConsent: params.get('studio_consent') as string }
-              : {}),
-          })
-        );
+        res.end();
         return;
       }
 
@@ -2641,7 +2662,13 @@ const httpServer = http.createServer(async (req, res) => {
               code_challenge_method: 'S256',
               // Trust & Consent A2: post this back with the signed-in user's
               // studio_consent; a code is minted for no one else.
-              csrf_token: issueOAuthCsrfToken({ clientId, redirectUri, codeChallenge }),
+              ...(csrfToken
+                ? { csrf_token: csrfToken }
+                : {
+                    login_required: true,
+                    csrf_note:
+                      'Send the x-studio-consent header (signed-in Studio user) to receive a csrf_token bound to that user.',
+                  }),
               available_scopes: Object.entries(OAUTH2_PUBLIC_SCOPES).map(([name, description]) => ({
                 name,
                 description,
@@ -2735,37 +2762,18 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      // Trust & Consent A2: a code is minted only for a signed-in human, and
-      // only for the request the consent page was shown for. CSRF first (it
-      // does not consume the one-time session assertion), then the session.
-      if (!verifyOAuthCsrfToken(body.csrf_token, { clientId, redirectUri, codeChallenge })) {
-        auditLog.logAuthEvent({
-          event: 'auth_failure',
-          clientId,
-          ip: clientIP,
-          reason: 'authorize refused: missing or invalid csrf_token',
-        });
-        res.writeHead(403, {
-          'Content-Type': 'application/json; charset=utf-8',
-          'Cache-Control': 'no-store',
-        });
-        res.end(
-          JSON.stringify({
-            error: 'invalid_request',
-            error_description:
-              'csrf_token missing or invalid. Load GET /oauth/authorize for this request and post its csrf_token back.',
-          })
-        );
-        return;
-      }
-      // The human's identity comes from a signed-in Studio session, vouched
-      // for by a short-lived signed assertion bound to this client. Never from
-      // the body's own claims.
-      const consent = verifyStudioConsent(
-        body.studio_consent ?? req.headers['x-studio-consent'],
-        clientId
-      );
-      if (!consent) {
+      // Trust & Consent A2 + Release F2/F3: a code is minted only for a
+      // signed-in human (studio_consent from the POST body or the
+      // x-studio-consent header, never the query string), and only with the
+      // CSRF token minted for THAT user and this exact request.
+      const consentAssertion =
+        typeof body.studio_consent === 'string'
+          ? body.studio_consent
+          : req.headers['x-studio-consent'];
+      const peeked = verifyStudioConsent(consentAssertion, clientId, undefined, undefined, {
+        peek: true,
+      });
+      if (!peeked) {
         auditLog.logAuthEvent({
           event: 'auth_failure',
           clientId,
@@ -2784,6 +2792,43 @@ const httpServer = http.createServer(async (req, res) => {
               'Authorization needs a signed-in user. Sign in to Studio and approve this client there.',
           })
         );
+        return;
+      }
+      if (
+        !verifyOAuthCsrfToken(body.csrf_token, {
+          clientId,
+          redirectUri,
+          codeChallenge,
+          userId: peeked.userId,
+        })
+      ) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId,
+          ip: clientIP,
+          reason: 'authorize refused: missing or invalid csrf_token for this user',
+        });
+        res.writeHead(403, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'invalid_request',
+            error_description:
+              'csrf_token missing or invalid for this user and request. GET /oauth/authorize with the x-studio-consent header and post its csrf_token back.',
+          })
+        );
+        return;
+      }
+      // Consume the one-time assertion only now.
+      const consent = verifyStudioConsent(consentAssertion, clientId);
+      if (!consent) {
+        res.writeHead(401, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify({ error: 'login_required', error_description: 'Session assertion already used or expired.' }));
         return;
       }
       const code = oauth.createAuthorizationCode({
@@ -2944,10 +2989,30 @@ const httpServer = http.createServer(async (req, res) => {
       try {
         durableRevoked = await oauth2.revokeClient(targetClientId);
       } catch (err) {
-        console.warn(
-          '[oauth] durable client revoke failed:',
-          err instanceof Error ? err.message : err
+        // Trust & Consent C4: the durable row would rehydrate the client on the
+        // next request or deploy, so this is a failure, not a 204.
+        const why = err instanceof Error ? err.message : String(err);
+        console.warn('[oauth] durable client revoke failed:', why);
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId: targetClientId,
+          agentId: actorAuth.agentId,
+          ip: clientIP,
+          reason: `client delete FAILED by ${decision.actor} (${decision.role}): durable=false (${why.slice(0, 200)})`,
+        });
+        res.writeHead(503, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Retry-After': '5',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'temporarily_unavailable',
+            error_description:
+              'The client was revoked in memory but the durable store could not be updated. Retry the DELETE.',
+          })
         );
+        return;
       }
       oauth.revokeClient(targetClientId);
       auditLog.logAuthEvent({

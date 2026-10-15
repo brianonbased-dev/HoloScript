@@ -24,12 +24,14 @@ export interface CsrfBinding {
   clientId: string;
   redirectUri: string;
   codeChallenge: string;
+  /** Signed-in Studio user (studio_consent sub) the token was minted for (Release F2). */
+  userId: string;
 }
 
 function mac(binding: CsrfBinding, exp: number, secret: string): string {
   return createHmac('sha256', secret)
     .update(
-      ['oauth-csrf-v1', binding.clientId, binding.redirectUri, binding.codeChallenge, exp].join(
+      ['oauth-csrf-v2', binding.clientId, binding.redirectUri, binding.codeChallenge, binding.userId, exp].join(
         '\n'
       )
     )
