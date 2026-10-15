@@ -85,4 +85,37 @@ describe('user-scoped HoloMesh routes refuse the server-key fallback', () => {
     expect(body.noHoloMeshAgent).toBeUndefined();
     expect(body.code ?? '').toContain('agent_founder'); // the caller's own /me (mocked)
   });
+
+  it('/api/holomesh/transactions without a caller key: 404, nothing upstream', async () => {
+    const fetchMock = mockUpstream();
+    const { GET } = await import('../../transactions/route');
+    const res = await GET(new NextRequest('http://localhost/api/holomesh/transactions?limit=50'));
+    expect(res.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('/api/holomesh/agent/self/storefront without a caller key: 404', async () => {
+    const fetchMock = mockUpstream();
+    const { GET } = await import('../[id]/storefront/route');
+    const res = await GET(new NextRequest('http://localhost/api/holomesh/agent/self/storefront'), {
+      params: Promise.resolve({ id: 'self' }),
+    });
+    expect(res.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['team/[id]/join', 'POST', { id: 't1' }],
+    ['team/[id]/message', 'POST', { id: 't1' }],
+    ['team/[id]/messages', 'GET', { id: 't1' }],
+    ['team/[id]/messages/[messageId]/mark-read', 'POST', { id: 't1', messageId: 'm1' }],
+  ])('/api/holomesh/%s without a caller key: 404, nothing upstream (acts as the caller, not Founder)', async (route, method, params) => {
+    const fetchMock = mockUpstream();
+    const mod = (await import(`../../${route}/route`)) as Record<string, (r: NextRequest, c: unknown) => Promise<Response>>;
+    const res = await mod[method](new NextRequest('http://localhost/api/holomesh/x', { method }), {
+      params: Promise.resolve(params),
+    });
+    expect(res.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });

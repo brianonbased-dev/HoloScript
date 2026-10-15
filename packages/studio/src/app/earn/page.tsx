@@ -561,6 +561,10 @@ function EarnPageInner() {
     setTxError(null);
     try {
       const r = await fetch('/api/holomesh/transactions?limit=50');
+      if (await isNoHoloMeshAgentResponse(r)) {
+        setTxs([]);
+        return;
+      }
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data: unknown = await r.json();
       if (data && typeof data === 'object') {

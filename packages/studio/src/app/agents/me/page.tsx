@@ -252,7 +252,11 @@ function AgentMeInner() {
     if (tab !== 'transactions' || txs.length > 0) return;
     setTxLoading(true);
     fetch('/api/holomesh/transactions?limit=50')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(async (r) => {
+        // No HoloMesh agent: no transactions, not an error.
+        if (await isNoHoloMeshAgentResponse(r)) return { transactions: [] };
+        return r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`));
+      })
       .then((data) => {
         setTxs(data.transactions ?? []);
       })
