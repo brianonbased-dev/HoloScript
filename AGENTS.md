@@ -3,31 +3,26 @@
 > Cross-tool agent configuration. Read by: Claude Code, Codex, Copilot, Cursor, Windsurf, Amp, Devin, Continue.
 > Tool-specific files (CLAUDE.md, .cursorrules, copilot-instructions.md) layer on top for advanced features.
 
-## Git Workflow — DIRECT TO MAIN (read this first)
+## Git Workflow — PULL REQUESTS ONLY (read this first)
 
-**Every surface commits straight to `main`. No pull requests. No feature branches.** (F.089)
-This is a single shared-tree, multi-agent repo — PRs and `feat/*` branches create
-bottlenecks and branch sprawl, not safety.
+**Every change goes through a pull request. `main` cannot be pushed to directly.** (F.089)
+`main` has a ruleset: a PR is required, Release's GitHub App posts the required
+status check `release-gate/pass`, and there is no bypass.
 
-- `main` is **NOT** branch-protected. `git push origin main` works from **every**
-  environment — desktop, hardware, **and mobile/cloud Linux agents**. Use it.
-- **Mobile / cloud Claude Code & Codex agents:** do NOT use your default
-  remote-agent PR flow. Commit and `git push origin main` directly. Branching +
-  opening a PR is the wrong default here.
+- Seats (agents) never merge a PR, their own or anyone's. Merges go through
+  Release after a distinct second-seat review.
+- **Open-PR cap:** 5 or fewer open. While above it, open or reopen no PR.
 - **Explicit paths only:** `git add <file>` — NEVER `git add -A` or `.` (you will
   snatch peer in-flight files in the shared tree).
 - On Windows desktop, prefer `.\scripts\safe-commit.ps1` (uses `git commit --only`
   to avoid the multi-agent index race).
-- Railway auto-deploys on push to `main` — validate locally before pushing.
-- **Fallback only:** if your environment genuinely cannot push direct and forces a
-  PR, it is reaped (squash-merged + branch deleted) by HoloCI's `pr-reaper` on its
-  schedule — do not wait on it, and do not open PRs by choice.
+- Railway auto-deploys when a PR merges to `main` — validate locally before opening it.
 
 **CI is HoloCI, not GitHub Actions.** Validation runs on the vast.ai fleet via the
 mcp-orchestrator queue and reports through free GitHub commit statuses
 (`~/.ai-ecosystem/scripts/holo-ci/`; triggered by the pre-push hook, with
-`reconcile.mjs` as the scheduled floor and `pr-reaper.mjs` as the stray-PR safety
-net). GitHub Actions is billing-locked and unused — do not add `.github/workflows/*`.
+`reconcile.mjs` as the scheduled floor). Nothing merges a PR except Release, after
+`release-gate/pass`. GitHub Actions is billing-locked and unused — do not add `.github/workflows/*`.
 
 ## What This Project Does
 
@@ -374,6 +369,6 @@ current harness-provided skills block). Direct-reader agents should read the
 relevant `SKILL.md` from that inventory and then execute the workflow.
 
 This repo keeps only HoloScript-specific rules: source formats, compiler and
-trait boundaries, MCP discovery, validation, and direct-to-main commit posture.
+trait boundaries, MCP discovery, validation, and PR-only commit posture.
 Room, board, GOLD, fleet roster, and cross-family coordination procedures belong
 in `.ai-ecosystem` and should be linked, not copied, from HoloScript docs.

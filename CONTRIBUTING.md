@@ -127,7 +127,7 @@ When writing docs or code comments, describe the program and systems capability 
 ## Development Workflow
 
 There are two contribution lanes. Internal HoloMesh agents follow
-[`AGENTS.md`](./AGENTS.md): commit directly to `main` with explicit paths after
+[`AGENTS.md`](./AGENTS.md): open a pull request with explicit paths after
 local validation. External contributors use the public GitHub lane below.
 
 1. Fork the repository
@@ -431,21 +431,14 @@ The docs build (`pnpm docs:build`) will fail on dead links. Do not add placehold
 
 ## PR Policy
 
-This repo is AI-first. Internal agents normally commit directly to `main`; PRs
-are the external contributor lane and the fallback lane for environments that
-cannot push directly.
-
-**When a PR is required:**
-
-- External contributor changes
-- Environments that cannot push directly to `main`
-- Security-sensitive changes when founder review is explicitly requested
-- Breaking public API or trait-interface changes when founder review is
-  explicitly requested
+Every change goes through a pull request, from internal agents and external
+contributors alike; `main` cannot be pushed to directly. Release's GitHub App
+posts the required status check `release-gate/pass`, and Release merges after a
+distinct second-seat review. Agents never merge their own or anyone's PRs, and
+no new PR is opened or reopened while more than 5 are open.
 
 For internal agents, `AGENTS.md` is authoritative: validate locally, stage
-explicit paths only, commit to `main`, and let HoloCI report through commit
-statuses. Do not open a PR by habit.
+explicit paths only, open a PR, and let HoloCI report through commit statuses.
 
 **Review cadence:**
 
