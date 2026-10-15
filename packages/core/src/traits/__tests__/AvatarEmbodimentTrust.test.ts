@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { avatarEmbodimentHandler, avatarRenderAllowed } from '../AvatarEmbodimentTrait';
 import { startLocalCaptureSession } from '../LocalCapture';
+import { grantLikenessShare } from '../LikenessShareGrant';
 import { validateCanonicalSource } from '../../validation/CanonicalSourceValidator';
 
 // Trust rulings on avatar_embodiment: gate on whose likeness the avatar carries; runtime default
@@ -45,12 +46,27 @@ describe('AvatarEmbodiment runtime (Trust)', () => {
     }
   });
 
-  it('declared live with a verified local capture handle: shared', () => {
+  it('B1: verified live capture is self-preview only; shown to others needs the self share grant', () => {
     const session = startLocalCaptureSession('body', 'quest');
-    const { node } = embody('headset', { capture: session.handle, likeness: true });
-    expect(node.__avatarEmbodimentState.visibility).toBe('shared');
-    expect(avatarRenderAllowed(node, true)).toBe(true);
+    const { node, names } = embody('headset', { capture: session.handle, likeness: true });
+    expect(node.__avatarEmbodimentState.visibility).toBe('self_preview');
+    expect(node.__avatarEmbodimentState.liveVerified).toBe(true);
+    expect(names).not.toContain('avatar_visibility_restricted');
+    expect(avatarRenderAllowed(node, false)).toBe(true);
+    expect(avatarRenderAllowed(node, true)).toBe(false);
+    const scope = { sessionId: 's1', audience: ['bob'] };
+    expect(avatarRenderAllowed(node, true, scope)).toBe(false);
+    // face_mesh present: share grant + render_likeness yes + @consent_gate granted are all needed.
+    expect(grantLikenessShare(node, { grantorId: 'ava', trackedPersonId: 'ava', sessionId: 's1', audience: ['bob'], renderLikenessYes: true })).toBe(true);
+    expect(avatarRenderAllowed(node, true, scope)).toBe(false);
+    node.__consentGateState = { status: 'granted' };
+    expect(avatarRenderAllowed(node, true, scope)).toBe(true);
     session.end();
+  });
+
+  it('synthetic AI avatar (no live, no likeness) still replicates without a grant', () => {
+    const { node } = embody('ai');
+    expect(avatarRenderAllowed(node, true)).toBe(true);
   });
 });
 

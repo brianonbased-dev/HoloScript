@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { networkedAvatarHandler } from '../traits/NetworkedAvatarTrait';
+import { grantLikenessShare } from '../traits/LikenessShareGrant';
 import { BoneSystem } from '@holoscript/engine/animation/BoneSystem';
 import { IKSolver } from '@holoscript/engine/animation/IKSolver';
 
@@ -35,6 +36,8 @@ describe('Avatar System', () => {
 
   it('should update local avatar and broadcast pose', async () => {
     await networkedAvatarHandler.onAttach(mockNode, { isLocal: true, updateRate: 60 }, mockContext);
+    // POLICY §3: the tracked person's own share grant is needed before a live pose leaves the device.
+    grantLikenessShare(mockNode, { grantorId: 'me', trackedPersonId: 'me', sessionId: 's1', audience: ['peer'], renderLikenessYes: true });
 
     // Simulate update loop
     // Force enough time delta to trigger broadcast
@@ -47,7 +50,7 @@ describe('Avatar System', () => {
 
     await networkedAvatarHandler.onUpdate(
       mockNode,
-      { isLocal: true, updateRate: 60 },
+      { isLocal: true, updateRate: 60, sessionId: 's1', audience: ['peer'] },
       mockContext,
       0.016
     );

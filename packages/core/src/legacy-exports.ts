@@ -932,6 +932,15 @@ export {
   avatarRenderAllowed,
 } from './traits/AvatarEmbodimentTrait';
 export { avatarEmbodimentNeedsGrant, carriesRealLikeness } from './traits/AvatarLikeness';
+export {
+  grantLikenessShare,
+  revokeLikenessShare,
+  likenessShareAllowed,
+  carriesLikenessOrTracking,
+  LIKENESS_OR_TRACKING_TRAITS,
+  type LikenessShareRequest,
+  type LikenessShareScope,
+} from './traits/LikenessShareGrant';
 
 // HoloScript+ Expanded Trait Handlers (Phases 1-13)
 export {

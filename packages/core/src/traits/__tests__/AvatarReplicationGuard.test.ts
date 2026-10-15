@@ -16,7 +16,9 @@ import { describe, expect, it } from 'vitest';
  */
 const ROOT = path.resolve(__dirname, '../../../../..');
 const NETWORK = /WebRTCTransport|\.broadcast\(|transport\.send\(|sendToPeer|network layer/i;
-const AVATAR_STATE = /__avatarState|__avatarEmbodimentState|avatar_pose_update|AvatarEmbodiment/;
+// N1: any likeness or tracking source, not only avatar_embodiment.
+const AVATAR_STATE =
+  /__avatarState|__avatarEmbodimentState|avatar_pose_update|AvatarEmbodiment|__faceTrackingState|__bodyTrackingState|__lip_sync_instance|face_tracking_update|body_tracking_update|blendshape|face_mesh|voice_print|body_scan/;
 /** Files that match lexically but carry no avatar state; reason required. */
 const ALLOW: Record<string, string> = {
   'packages/core/scripts/generate-types.mjs': 'type declarations only (it declares avatarRenderAllowed)',
@@ -41,6 +43,14 @@ describe('avatar replication guard', () => {
 
   it('the guard bites: a replicating file without the call is flagged', () => {
     const src = "transport.send(peer, { pose: node.__avatarState.pose });";
+    expect(NETWORK.test(src) && AVATAR_STATE.test(src) && !src.includes('avatarRenderAllowed(')).toBe(true);
+  });
+
+  it.each([
+    'transport.send(peer, node.__bodyTrackingState.joints);',
+    'sendToPeer(id, { face: node.__faceTrackingState.blendshapes });',
+    'room.broadcast({ visemes: node.__lip_sync_instance.current });',
+  ])('N1: tracking state without avatar_embodiment is caught: %s', (src) => {
     expect(NETWORK.test(src) && AVATAR_STATE.test(src) && !src.includes('avatarRenderAllowed(')).toBe(true);
   });
 });

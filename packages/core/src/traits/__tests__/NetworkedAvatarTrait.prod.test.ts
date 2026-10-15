@@ -73,6 +73,7 @@ vi.mock('@holoscript/engine/animation/AvatarController', () => {
 });
 
 import { networkedAvatarHandler } from '../NetworkedAvatarTrait';
+import { grantLikenessShare, revokeLikenessShare } from '../LikenessShareGrant';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 let _nodeId = 0;
@@ -173,13 +174,39 @@ describe('networkedAvatarHandler.onUpdate (isLocal=true)', () => {
     expect(_controllerInstance.update).toHaveBeenCalled();
   });
 
-  it('emits avatar_pose_update when interval elapsed (lastUpdate=0)', async () => {
+  it('no self share grant: broadcasts the generic avatar with no live pose (POLICY §3)', async () => {
     const { node, ctx, config } = await attach({ isLocal: true, updateRate: 30 });
     await networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith(
-      'avatar_pose_update',
-      expect.objectContaining({ pose: expect.any(Object) })
-    );
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { node, generic: true });
+    expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
+  });
+
+  it('synthetic avatar + live body tracking + no self-grant: broadcast carries no live pose', async () => {
+    const { node, ctx, config } = await attach({ isLocal: true, updateRate: 30, sessionId: 's1', audience: ['bob'] });
+    (node as any).traits = new Map([['body_tracking', { source: 'live_self' }], ['avatar_embodiment', { tracking_source: 'headset' }]]);
+    await networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { node, generic: true });
+  });
+
+  it('emits the live pose with the self grant; audience mismatch and revoke fall back next frame', async () => {
+    const cfg = { isLocal: true, updateRate: 30, sessionId: 's1', audience: ['bob'] };
+    const { node, ctx, config } = await attach(cfg);
+    expect(grantLikenessShare(node, { grantorId: 'ava', trackedPersonId: 'ava', sessionId: 's1', audience: ['bob'], renderLikenessYes: true })).toBe(true);
+    await networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', expect.objectContaining({ pose: expect.any(Object) }));
+    // audience mismatch
+    ctx.emit.mockClear();
+    getState(node).lastUpdate = 0;
+    await networkedAvatarHandler.onUpdate!(node as any, { ...config, audience: ['bob', 'eve'] } as any, ctx as any, 0.016);
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { node, generic: true });
+    // revoke: the very next frame is generic
+    ctx.emit.mockClear();
+    getState(node).lastUpdate = 0;
+    revokeLikenessShare(node);
+    await networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { node, generic: true });
+    expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
   });
 
   it('does NOT emit on second call within interval', async () => {

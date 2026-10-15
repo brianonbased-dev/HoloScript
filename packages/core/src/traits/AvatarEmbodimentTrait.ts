@@ -30,6 +30,7 @@ import type { EmotionDirectiveConfig } from './EmotionDirectiveTrait';
 import type { VoiceOutputConfig } from './VoiceOutputTrait';
 import { isLocalCapture } from './LocalCapture';
 import { avatarEmbodimentNeedsGrant, carriesRealLikeness, LIVE_TRACKING_SOURCES } from './AvatarLikeness';
+import { carriesLikenessOrTracking, likenessShareAllowed, type LikenessShareScope } from './LikenessShareGrant';
 
 // =============================================================================
 // TYPES
@@ -142,12 +143,14 @@ export interface AvatarEmbodimentState {
   turnCount: number;
 
   /**
-   * Who may see this avatar (Trust and Consent). 'self_preview': a declared live source
-   * (headset / camera) embodied without a verified local capture handle; only the local
-   * self-preview may render it, never a surface shown to other people. 'shared': verified live,
-   * or a non-live source (ai / remote / playback) that passed the static render_likeness gate.
+   * Who may see this avatar (Trust and Consent). 'self_preview': any live source (headset /
+   * camera), verified or not; the no-grant live exemption covers local self-preview only, and
+   * showing it to others needs the tracked person's share grant (LikenessShareGrant.ts).
+   * 'shared': a non-live source (ai / remote / playback) that passed the render_likeness gate.
    */
   visibility?: 'shared' | 'self_preview';
+  /** Live source backed by a verified local capture handle (applies to self-preview). */
+  liveVerified?: boolean;
 }
 
 /**
@@ -156,13 +159,22 @@ export interface AvatarEmbodimentState {
  *
  * HARD REQUIREMENT: every network / spectator / broadcast path that replicates avatar or
  * embodiment state to other people must call avatarRenderAllowed(node, true) first and send
- * nothing when it returns false. A declared live avatar without a verified local capture handle
- * is self-preview only. Guarded by traits/__tests__/AvatarReplicationGuard.test.ts.
+ * the generic avatar (no live pose) when it returns false. Live tracking is self-preview only
+ * unless the tracked person granted sharing for this session and audience (LikenessShareGrant). Guarded by traits/__tests__/AvatarReplicationGuard.test.ts.
  */
-export function avatarRenderAllowed(node: Record<string, unknown>, shownToOthers: boolean): boolean {
+export function avatarRenderAllowed(
+  node: Record<string, unknown>,
+  shownToOthers: boolean,
+  scope?: LikenessShareScope
+): boolean {
   const state = node.__avatarEmbodimentState as AvatarEmbodimentState | undefined;
-  if (!state || !state.isEmbodied) return false;
-  return !shownToOthers || state.visibility === 'shared';
+  if (!shownToOthers) return !!state?.isEmbodied;
+  if (state && !state.isEmbodied) return false;
+  // Live tracking (any live source, verified or not) and any likeness / tracking trait need the
+  // tracked person's own share grant for this session and audience plus the render_likeness yes.
+  const live = scope?.livePose === true || state?.visibility === 'self_preview';
+  if (live || carriesLikenessOrTracking(node, { embodimentDecided: !!state })) return likenessShareAllowed(node, scope);
+  return !state || state.visibility === 'shared';
 }
 
 /**
@@ -268,9 +280,10 @@ export const avatarEmbodimentHandler: TraitHandler<any> = {
       const live = LIVE_TRACKING_SOURCES.includes(String(source));
       const capture = typeof event === 'object' ? (event as { capture?: unknown }).capture : undefined;
       const verified = isLocalCapture(capture, 'body') || isLocalCapture(capture, 'face');
-      state.visibility = live && !verified ? 'self_preview' : 'shared';
+      state.visibility = live ? 'self_preview' : 'shared';
+      state.liveVerified = live && verified;
       state.isEmbodied = true;
-      if (state.visibility === 'self_preview') {
+      if (live && !verified) {
         context.emit('avatar_visibility_restricted', {
           node,
           visibility: 'self_preview',

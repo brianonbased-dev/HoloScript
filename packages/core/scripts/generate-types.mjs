@@ -1812,7 +1812,24 @@ export declare function startLocalCaptureSession(kind: LocalCaptureKind, deviceL
 export declare function trackingEventAllowed(source: unknown, capture: unknown, kind: LocalCaptureKind): boolean;
 export declare const LOCAL_CAPTURE_EVENT: Readonly<Record<LocalCaptureKind, string>>;
 /** Must be called by every network / spectator path before replicating avatar state (shownToOthers=true). */
-export declare function avatarRenderAllowed(node: Record<string, unknown>, shownToOthers: boolean): boolean;
+export interface LikenessShareRequest {
+  grantorId: string;
+  trackedPersonId: string;
+  sessionId: string;
+  audience: readonly string[];
+  renderLikenessYes: boolean;
+}
+export interface LikenessShareScope {
+  sessionId?: string;
+  audience?: readonly string[];
+  livePose?: boolean;
+}
+export declare const LIKENESS_OR_TRACKING_TRAITS: readonly string[];
+export declare function grantLikenessShare(node: object, req: LikenessShareRequest): boolean;
+export declare function revokeLikenessShare(node: object): void;
+export declare function likenessShareAllowed(node: object, scope: LikenessShareScope | undefined): boolean;
+export declare function carriesLikenessOrTracking(node: object, opts?: { embodimentDecided?: boolean }): boolean;
+export declare function avatarRenderAllowed(node: Record<string, unknown>, shownToOthers: boolean, scope?: LikenessShareScope): boolean;
 export declare function avatarEmbodimentNeedsGrant(trackingSource: unknown, carriesLikeness: boolean): boolean;
 export declare function carriesRealLikeness(traitNames: Iterable<unknown>): boolean;
 
