@@ -160,7 +160,8 @@
     },
     "./constants": {
       "types": "./dist/constants.d.ts",
-      "import": "./dist/constants.js"
+      "import": "./dist/constants.js",
+      "require": "./dist/constants.cjs"
     },
     "./scripting": {
       "types": "./dist/entries/scripting.d.ts",

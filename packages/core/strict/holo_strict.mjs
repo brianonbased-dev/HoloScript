@@ -81,9 +81,12 @@ const START = { line: 1, column: 1 };
  *   `traitIds` is the trait vocabulary, in any of the spellings normalizeTrait
  *   accepts. When it is missing or empty, the unknown-trait check (HS1006) is
  *   skipped.
- * @param {{ knownTraits?: Iterable<string>, unknownTraits?: "warning" | "error" }} [options]
+ * @param {{ knownTraits?: Iterable<string>, unknownTraits?: "warning" | "error",
+ *   consentRules?: Record<string, Iterable<"face" | "voice" | "body">> }} [options]
  *   `knownTraits` adds trait names for this call (plugin vocabularies).
  *   `unknownTraits: "error"` makes HS1006 an error (default: a warning).
+ *   `consentRules` is the caller's .hs render_likeness result: grant -> sources it said yes to.
+ *   Without it every likeness source is refused with HS1011.
  */
 export function analyze(source, deps, options = {}) {
   const { tokenizeHoloSource, parseHolo, traitIds } = deps;
@@ -223,6 +226,7 @@ export function analyze(source, deps, options = {}) {
   const checkTraits = !!(traitIds && traitIds.size);
   const declared = checkTraits ? declaredTraits(ast, traits, options.knownTraits) : new Set();
   const locator = traitLocator(source, real, anchors);
+  const likenessUses = [];
   for (const { trait, owner } of traits) {
     const bare = String(trait.name ?? "").trim().replace(/^@/, "");
     if (!WORD_START.test(bare)) {
@@ -234,8 +238,13 @@ export function analyze(source, deps, options = {}) {
       if (!already) push(diag("HS1005", "error", "A trait was parsed with an empty name.", where));
       continue;
     }
+    // Each trait's `@name` is looked up once: the locator hands out the k-th `@X` to the k-th call.
+    let located;
+    const locate = () => (located === undefined ? (located = locator.named(bare) ?? null) : located);
+    const source = LIKENESS_SOURCES[normalizeTrait(bare)];
+    if (source) likenessUses.push({ trait, owner, bare, source, where: () => locate()?.at ?? anchors.fromNode(owner) ?? at(meaningful[0]) });
     if (!checkTraits || isKnownTrait(bare, traitIds) || declared.has(normalizeTrait(bare))) continue;
-    const found = locator.named(bare);
+    const found = locate();
     const written = found && found.word;
     const misread = written && written.toLowerCase() !== bare.toLowerCase();
     push(
@@ -253,7 +262,60 @@ export function analyze(source, deps, options = {}) {
     );
   }
 
+  // HS1011 — likeness: claim -> rule -> render. A likeness source (face, voice, body) renders
+  // only when its object claims a grant through @consent_gate(grant: "...") and the caller's
+  // .hs render_likeness rule said yes to that grant for that source (options.consentRules).
+  // A trait holds no grant: a grant written on the likeness trait itself is refused.
+  const rules = consentRulesOf(options.consentRules);
+  for (const { trait, owner, bare, source, where } of likenessUses) {
+    const fail = (message, hint) => push(diag("HS1011", "error", message, where(), hint));
+    if (trait.config && Object.prototype.hasOwnProperty.call(trait.config, "grant")) {
+      fail(
+        `"@${bare}" holds a grant itself. Traits hold no grant: the ${source} likeness needs the render_likeness rule's yes.`,
+        'Move the grant to a claim on the object, @consent_gate(grant: "..."), and pass the rule\'s result in consentRules.'
+      );
+      continue;
+    }
+    const gate = ((owner && owner.traits) || []).find(
+      (t) => t && normalizeTrait(t.name ?? "") === "consent_gate" && t.config && typeof t.config.grant === "string"
+    );
+    if (!gate) {
+      fail(
+        `"@${bare}" renders a ${source} likeness with no claim. Add @consent_gate(grant: "...") to the object.`,
+        "Every likeness source (face, voice, body) needs a claimed grant and the render_likeness rule's yes."
+      );
+      continue;
+    }
+    const grant = gate.config.grant;
+    if (!(rules.get(grant) || EMPTY).has(source)) {
+      fail(
+        `The render_likeness rule did not say yes to grant "${grant}" for the ${source} likeness ("@${bare}").`,
+        "Pass the .hs render_likeness result in consentRules, for example { [grant]: [\"face\", \"voice\"] }."
+      );
+    }
+  }
+
   return { ast, diagnostics };
+}
+
+/**
+ * Traits that render a real person's likeness, by the source they render (HS1011). The list is
+ * deliberately short; see ERROR_CONTRACT.md.
+ */
+export const LIKENESS_SOURCES = Object.freeze({ face_mesh: "face", voice_print: "voice", body_scan: "body" });
+const EMPTY = new Set();
+
+/** consentRules: { [grant]: sources[] } or a Map of the same; the .hs render_likeness yes-set. */
+function consentRulesOf(input) {
+  const rules = new Map();
+  if (!input || typeof input !== "object") return rules;
+  const entries = input instanceof Map ? input.entries() : Object.entries(input);
+  for (const [grant, sources] of entries) {
+    if (sources && typeof sources !== "string" && typeof sources[Symbol.iterator] === "function") {
+      rules.set(String(grant), new Set([...sources].map((x) => String(x).toLowerCase())));
+    }
+  }
+  return rules;
 }
 
 /**
