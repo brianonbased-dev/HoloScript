@@ -4,6 +4,7 @@ import { resolve } from 'path';
 export default defineConfig({
   resolve: {
     alias: [
+      { find: /^@holoscript\/core\/constants$/, replacement: resolve(__dirname, '../core/src/constants.ts') },
       { find: /^@holoscript\/core\/parser$/, replacement: resolve(__dirname, '../core/src/parser/index.ts') },
       { find: /^@holoscript\/core$/, replacement: resolve(__dirname, '../core/src/index.ts') },
     ],

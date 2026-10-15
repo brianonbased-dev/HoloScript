@@ -11,7 +11,9 @@
  */
 
 import type { AIAdapter } from './AIAdapter';
-import { HoloScriptPlusParser } from '@holoscript/core/parser';
+import { HoloCompositionParser, parseHoloStrict } from '@holoscript/core/parser';
+import type { HoloParseResult } from '@holoscript/core/parser';
+import { VR_TRAITS } from '@holoscript/core/constants';
 
 import type { HSPlusCompileResult } from '@holoscript/core';
 import { GenerationCache } from './GenerationCache';
@@ -73,45 +75,147 @@ export interface GenerationSession {
 // STRICT VALIDATION
 // =============================================================================
 
+/** A diagnostic from validation. `severity: 'warning'` never fails a generation. */
+export interface ValidationDiagnostic {
+  code: string;
+  severity: 'error' | 'warning';
+  message: string;
+  line: number;
+  column: number;
+}
+
+/** Anything with HoloCompositionParser's `parse` shape (injectable for tests). */
+export interface CompositionParserLike {
+  parse(source: string): HoloParseResult;
+}
+
+/** The parts of a core parse diagnostic this validator reads. */
+type CoreDiagnostic = { message: string; loc?: unknown; code?: string; severity?: string };
+
+let knownTraitIndex: Set<string> | null = null;
+
+/** snake_case, no '@', lowercase: the same normalisation as the strict layer (core/strict). */
+function normalizeTrait(name: string): string {
+  return String(name)
+    .replace(/^@/, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/-/g, '_')
+    .toLowerCase();
+}
+
+function isKnownTrait(name: string): boolean {
+  if (!knownTraitIndex) {
+    knownTraitIndex = new Set<string>();
+    for (const id of VR_TRAITS as readonly string[]) {
+      const n = normalizeTrait(id);
+      knownTraitIndex.add(n);
+      knownTraitIndex.add(n.replace(/_/g, ''));
+    }
+  }
+  const n = normalizeTrait(name);
+  return knownTraitIndex.has(n) || knownTraitIndex.has(n.replace(/_/g, ''));
+}
+
+/** Every trait node in the composition AST, with the nearest location. */
+function collectTraits(
+  node: unknown,
+  found: Array<{ name: string; line: number; column: number }> = [],
+  loc: { line: number; column: number } = { line: 1, column: 1 }
+) {
+  if (!node || typeof node !== 'object') return found;
+  if (Array.isArray(node)) {
+    for (const item of node) collectTraits(item, found, loc);
+    return found;
+  }
+  const n = node as Record<string, any>;
+  const here = n.loc ? locOf(n.loc) : loc;
+  if ((n.type === 'ObjectTrait' || n.type === 'Trait') && typeof n.name === 'string') {
+    found.push({ name: n.name, ...here });
+  }
+  for (const value of Object.values(n)) {
+    if (value && typeof value === 'object') collectTraits(value, found, here);
+  }
+  return found;
+}
+
+/** Core locations are { line, column } or { start: { line, column } }. */
+function locOf(loc: any): { line: number; column: number } {
+  const p = loc?.start ?? loc;
+  return { line: typeof p?.line === 'number' ? p.line : 1, column: typeof p?.column === 'number' ? p.column : 1 };
+}
+
+function failure(code: string, message: string, line = 1, column = 1): HSPlusCompileResult {
+  const d: ValidationDiagnostic = { code, severity: 'error', message, line, column };
+  return { success: false, errors: [d], warnings: [], ast: null } as unknown as HSPlusCompileResult;
+}
+
 /**
- * Validate HoloScript with the real core parser in strict mode.
+ * Validate generated HoloScript as a `.holo` composition, which is what the adapters are
+ * told to emit (base-adapter.ts system prompt), using core's HoloCompositionParser in
+ * non-tolerant mode plus parseHoloStrict's empty-composition refusal.
  *
- * Replaces a stand-in that always returned success:true. Rules:
- * - empty / whitespace-only output is never valid (the parser accepts an empty
- *   program, but an empty generation is a failed generation);
- * - a parser throw is a failure with the thrown message, never a success;
- * - success requires parser success AND zero errors.
+ * Follows packages/core/strict/ERROR_CONTRACT.md:
+ * - empty / whitespace-only / comment-only output fails (HS1001) and is never cached;
+ * - any parser error fails (HS1007): garbage, unbalanced or unclosed blocks, non-HoloScript;
+ * - a parser throw fails (HS1010), never succeeds;
+ * - an unknown trait is HS1006, a WARNING: the generator has no closed vocabulary, and
+ *   plugins add traits, so a well-formed composition is never failed over its traits.
  */
 export function validateHoloScript(
   code: string,
-  parser: HoloScriptPlusParser = new HoloScriptPlusParser({ strict: true })
+  parser: CompositionParserLike = new HoloCompositionParser({ tolerant: false })
 ): HSPlusCompileResult {
-  if (typeof code !== 'string' || code.trim() === '') {
-    return {
-      success: false,
-      errors: [{ message: 'Generated HoloScript is empty', line: 0, column: 0 }],
-      ast: null,
-    } as unknown as HSPlusCompileResult;
-  }
+  if (typeof code !== 'string') return failure('HS1009', 'Generated HoloScript is not a string');
+  if (code.trim() === '') return failure('HS1001', 'Generated HoloScript is empty');
+  let r: HoloParseResult;
   try {
-    const r = parser.parse(code) as unknown as HSPlusCompileResult & { errors?: unknown[] };
-    const errors = Array.isArray(r?.errors) ? r.errors : [];
-    return { ...r, errors, success: Boolean(r?.success) && errors.length === 0 } as HSPlusCompileResult;
+    r = parser.parse(code);
   } catch (e) {
-    return {
-      success: false,
-      errors: [{ message: `Parser threw: ${e instanceof Error ? e.message : String(e)}`, line: 0, column: 0 }],
-      ast: null,
-    } as unknown as HSPlusCompileResult;
+    return failure('HS1010', `Parser threw: ${e instanceof Error ? e.message : String(e)}`);
   }
+  const errors: ValidationDiagnostic[] = (Array.isArray(r?.errors) ? r.errors : [])
+    .filter((e: CoreDiagnostic) => e.severity !== 'warning')
+    .map((e: CoreDiagnostic) => ({
+      code: e.code && /^HS\d+$/.test(e.code) ? e.code : 'HS1007',
+      severity: 'error' as const,
+      message: e.message,
+      ...locOf(e.loc),
+    }));
+  if (!r?.success || !r.ast || errors.length > 0) {
+    if (errors.length === 0) errors.push({ code: 'HS1004', severity: 'error', message: 'Nothing parsed into the composition', line: 1, column: 1 });
+    return { success: false, errors, warnings: [], ast: null } as unknown as HSPlusCompileResult;
+  }
+  // Same rule as parseHoloStrict: a source of only whitespace/comments is refused (HS1001).
+  try {
+    parseHoloStrict(code);
+  } catch (e) {
+    return failure('HS1001', e instanceof Error ? e.message : String(e));
+  }
+  const warnings: ValidationDiagnostic[] = (Array.isArray(r.warnings) ? r.warnings : []).map((w: CoreDiagnostic) => ({
+    code: 'HS1008',
+    severity: 'warning' as const,
+    message: w.message,
+    ...locOf(w.loc),
+  }));
+  for (const t of collectTraits(r.ast)) {
+    if (t.name && !isKnownTrait(t.name)) {
+      warnings.push({
+        code: 'HS1006',
+        severity: 'warning',
+        message: `Unknown trait @${t.name.replace(/^@/, '')} (not in core's trait vocabulary)`,
+        line: t.line,
+        column: t.column,
+      });
+    }
+  }
+  return { success: true, errors: [], warnings, ast: r.ast } as unknown as HSPlusCompileResult;
 }
-
 // =============================================================================
 // AI-GUIDED GENERATOR
 // =============================================================================
 
 export class HoloScriptGenerator {
-  private parser: HoloScriptPlusParser;
+  private parser: CompositionParserLike;
   private currentSession?: GenerationSession;
   private sessionCounter = 0;
   private cache: GenerationCache;
@@ -119,7 +223,7 @@ export class HoloScriptGenerator {
   private cacheEnabled: boolean = true;
 
   constructor(enableCache: boolean = true) {
-    this.parser = new HoloScriptPlusParser({ strict: true });
+    this.parser = new HoloCompositionParser({ tolerant: false });
     this.cache = new GenerationCache();
     this.analytics = new GenerationAnalytics();
     this.cacheEnabled = enableCache;
@@ -604,7 +708,7 @@ export async function generateBatch(
 export function validateBatch(
   codes: string[]
 ): Array<{ code: string; valid: boolean; errors: number }> {
-  const parser = new HoloScriptPlusParser({ strict: true });
+  const parser = new HoloCompositionParser({ tolerant: false });
 
   return codes.map((code) => {
     const result = validateHoloScript(code, parser);

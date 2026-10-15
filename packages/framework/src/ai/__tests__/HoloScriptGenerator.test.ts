@@ -1,10 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFileSync, readdirSync } from 'fs';
+import { resolve } from 'path';
 import { HoloScriptGenerator, validateBatch, validateHoloScript } from '../HoloScriptGenerator';
 import type { AIAdapter } from '../AIAdapter';
 
-const VALID = 'object "Cube" {\n  geometry: "box"\n  color: "red"\n}';
+const VALID = 'composition "Red Cube" {\n  object "Cube" @grabbable {\n    geometry: "box"\n    color: "red"\n  }\n}';
+const UNKNOWN_TRAIT = 'composition "Odd" {\n  object "Cube" @nope_xyz_trait {\n    geometry: "box"\n  }\n}';
+const GRABBABLE_BLOCK = 'composition "Grab" {\n  object "Ball" {\n    @grabbable { snap_to_hand: true }\n    @hand_tracked\n    geometry: "sphere"\n  }\n}';
+const REPO = resolve(__dirname, '../../../../..');
 const GARBAGE = '{{{@@@';
-const UNCLOSED = 'scene { // comment swallows the brace }';
+const UNCLOSED = 'composition "Open" { // comment swallows the brace }';
 
 function mockAdapter(code: string = VALID, confidence = 0.9): AIAdapter {
   return {
@@ -185,4 +190,63 @@ describe('validateBatch (P2-7: was shape-only)', () => {
   it('empty array returns empty', () => {
     expect(validateBatch([])).toEqual([]);
   });
+});
+
+describe('HS1006 unknown trait is a warning (ERROR_CONTRACT.md), garbage still fails (twin)', () => {
+  it('a composition with an unknown trait passes, with an HS1006 warning', () => {
+    const r = validateHoloScript(UNKNOWN_TRAIT) as any;
+    expect(r.success).toBe(true);
+    expect(r.errors).toHaveLength(0);
+    const w = r.warnings.find((x: any) => x.code === 'HS1006');
+    expect(w).toBeDefined();
+    expect(w.severity).toBe('warning');
+    expect(w.message).toContain('nope_xyz_trait');
+  });
+
+  it('twin: garbage, empty, comment-only and unclosed input still fail with errors', () => {
+    for (const bad of [GARBAGE, '', '  \n', '// only a comment', UNCLOSED, 'composition "A" {', 'SELECT * FROM users;']) {
+      const r = validateHoloScript(bad) as any;
+      expect(r.success, JSON.stringify(bad)).toBe(false);
+      expect(r.errors.length, JSON.stringify(bad)).toBeGreaterThan(0);
+      expect(r.errors.every((e: any) => e.severity === 'error'), JSON.stringify(bad)).toBe(true);
+    }
+  });
+
+  it('generate() accepts and caches an unknown-trait composition (no retry burned)', async () => {
+    const gen = new HoloScriptGenerator();
+    const adapter = mockAdapter(UNKNOWN_TRAIT);
+    const session = gen.createSession(adapter, { maxAttempts: 3 });
+    const first = await gen.generate('odd cube', session);
+    expect(first.parseResult.success).toBe(true);
+    expect(first.attempts).toBe(1);
+    await gen.generate('odd cube', session);
+    expect(adapter.generateHoloScript).toHaveBeenCalledTimes(1);
+  });
+
+  it('the @grabbable { } block form and @hand_tracked pass', () => {
+    const r = validateHoloScript(GRABBABLE_BLOCK);
+    expect(r.success, JSON.stringify(r.errors)).toBe(true);
+  });
+});
+
+describe('repo sample check: real compositions pass', () => {
+  const benchDir = resolve(REPO, 'benchmarks/cross-compilation/compositions');
+  const bench = readdirSync(benchDir).filter((f) => f.endsWith('.holo'));
+  it('finds the benchmark compositions', () => {
+    expect(bench.length).toBeGreaterThan(0);
+  });
+  for (const f of bench) {
+    it(`benchmark ${f} passes`, () => {
+      const r = validateHoloScript(readFileSync(resolve(benchDir, f), 'utf8'));
+      expect(r.success, JSON.stringify(r.errors.slice(0, 3))).toBe(true);
+    });
+  }
+  for (const f of ['examples/perception-tests/02-physics-blocks.holo', 'examples/perception-tests/06-integrated-perception-stack.holo', 'examples/quickstart/1-floating-cyan-orb.refreshed.holo', 'examples/traits/interaction-grabbable-clickable-hoverable.holo']) {
+    it(`@grabbable { } sample ${f} passes`, () => {
+      const src = readFileSync(resolve(REPO, f), 'utf8');
+      expect(src).toContain('@grabbable {');
+      const r = validateHoloScript(src);
+      expect(r.success, JSON.stringify(r.errors.slice(0, 3))).toBe(true);
+    });
+  }
 });
