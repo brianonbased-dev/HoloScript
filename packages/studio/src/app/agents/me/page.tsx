@@ -23,6 +23,8 @@ import { KnowledgeEntryCard } from '@/components/holomesh/KnowledgeEntryCard';
 import { AgentMiniCard } from '@/components/holomesh/AgentMiniCard';
 import { ReputationBadge } from '@/components/holomesh/ReputationBadge';
 import { MyAgentsTab } from '@/components/agents/MyAgentsTab';
+import { JoinHoloMeshState } from '@/components/holomesh/JoinHoloMeshState';
+import { isNoHoloMeshAgentBody } from '@/lib/holomesh/noAgent';
 import { LaunchAgentTab } from '@/components/agents/LaunchAgentTab';
 import { AgentAnalyticsTab } from '@/components/agents/AgentAnalyticsTab';
 import { ArrowDownLeft, ArrowUpRight, Gift, Minus, ExternalLink, RefreshCw } from 'lucide-react';
@@ -166,6 +168,8 @@ function AgentMeInner() {
   const [storefront, setStorefront] = useState<StorefrontData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // 404 no_holomesh_agent: signed in, but no HoloMesh agent of their own yet.
+  const [needsAgent, setNeedsAgent] = useState(false);
 
   // Dashboard data
   const [dashData, setDashData] = useState<DashboardData | null>(null);
@@ -208,6 +212,8 @@ function AgentMeInner() {
               friendCount: profileData.friendCount || 0,
               isOnline: profileData.isOnline ?? true,
             });
+          } else if (isNoHoloMeshAgentBody(profileData)) {
+            setNeedsAgent(true);
           } else {
             setError(profileData.error || 'Profile not found');
           }
@@ -258,6 +264,10 @@ function AgentMeInner() {
         <div className="text-sm text-studio-muted animate-pulse">Loading your agent profile...</div>
       </div>
     );
+  }
+
+  if (needsAgent) {
+    return <JoinHoloMeshState />;
   }
 
   if (error || !profile) {

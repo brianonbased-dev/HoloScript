@@ -31,6 +31,23 @@ export function usesServerKeyFor(req?: Request): boolean {
   return !req?.headers.get('authorization');
 }
 
+/**
+ * A user-scoped HoloMesh route ("self", dashboard, earnings, contributions)
+ * asked by a caller with no HoloMesh key of its own. Under Studio's server key
+ * the upstream would answer as Studio's service agent (named "Founder" when
+ * that key is the founder key), leaking that agent's data to every signed-in
+ * user. Refuse instead of falling back.
+ */
+export const NO_HOLOMESH_AGENT_BODY = {
+  success: false,
+  code: 'no_holomesh_agent',
+  error: 'No HoloMesh agent is linked to your account yet.',
+} as const;
+
+export function noHoloMeshAgentResponse(): Response {
+  return Response.json(NO_HOLOMESH_AGENT_BODY, { status: 404 });
+}
+
 export async function fetchHoloMeshJson<T>(
   path: string,
   req?: Request
@@ -237,4 +254,67 @@ export async function proxyHoloMesh(path: string, req: NextRequest): Promise<Res
     status: upstream.status,
     headers: { 'Content-Type': contentType },
   });
+}
+
+// ── Self-only helpers ────────────────────────────────────────────────────────
+//
+// For user-scoped and spending calls. Unlike holomeshHeaders / proxyHoloMesh /
+// fetchHoloMeshJson these NEVER fall back to Studio's HOLOMESH_API_KEY: a
+// caller without its own `Authorization` gets 404 no_holomesh_agent and
+// nothing goes upstream. Server-only work that really needs Studio's key must
+// be gated (requireFounder) and read the key itself, never through these.
+// src/__tests__/holomesh-self-routes-no-server-key.test.ts keeps self routes
+// off the fallback helpers.
+
+/**
+ * Headers for an upstream call made AS the caller: Content-Type, the caller's
+ * own Authorization, and its X-Payment if any. null when the caller sent no
+ * Authorization, in which case the route must refuse (noHoloMeshAgentResponse).
+ */
+export function callerHoloMeshHeaders(req: Request): Record<string, string> | null {
+  const auth = req.headers.get('authorization')?.trim();
+  if (!auth) return null;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: auth,
+  };
+  const xPayment = req.headers.get('x-payment');
+  if (xPayment) headers['X-Payment'] = xPayment;
+  return headers;
+}
+
+/** proxyHoloMesh for self routes: caller's own key or 404 no_holomesh_agent. */
+export async function proxyHoloMeshSelf(path: string, req: NextRequest): Promise<Response> {
+  const headers = callerHoloMeshHeaders(req);
+  if (!headers) return noHoloMeshAgentResponse();
+  const upstream = await fetch(`${BASE}${path}${req.nextUrl.search}`, {
+    method: req.method,
+    headers,
+    ...(req.method !== 'GET' && req.method !== 'HEAD' ? { body: await req.text() } : {}),
+  });
+  return new Response(upstream.body, {
+    status: upstream.status,
+    headers: { 'Content-Type': upstream.headers.get('Content-Type') || 'application/json' },
+  });
+}
+
+/**
+ * fetchHoloMeshJson for self routes. Returns null when the caller has no key
+ * of its own (the route answers noHoloMeshAgentResponse()); never asks as
+ * Studio.
+ */
+export async function fetchHoloMeshJsonSelf<T>(
+  path: string,
+  req: Request
+): Promise<{ ok: boolean; status: number; data: T | null } | null> {
+  const headers = callerHoloMeshHeaders(req);
+  if (!headers) return null;
+  const upstream = await fetch(`${BASE}${path}`, { method: 'GET', headers, cache: 'no-store' });
+  let data: T | null = null;
+  try {
+    data = (await upstream.json()) as T;
+  } catch {
+    data = null;
+  }
+  return { ok: upstream.ok, status: upstream.status, data };
 }

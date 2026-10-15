@@ -1,7 +1,7 @@
 export const maxDuration = 300;
 
 import { NextRequest } from 'next/server';
-import { proxyHoloMesh } from '../../../../../../lib/holomesh-proxy';
+import { proxyHoloMeshSelf } from '../../../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../../../_lib/cors';
 /**
@@ -10,7 +10,7 @@ import { corsHeaders } from '../../../../_lib/cors';
  * Query params: ?days=365
  */
 export async function GET(req: NextRequest) {
-  return proxyHoloMesh('/api/holomesh/agent/self/contributions', req);
+  return proxyHoloMeshSelf('/api/holomesh/agent/self/contributions', req);
 }
 
 export function OPTIONS(request: Request) {
