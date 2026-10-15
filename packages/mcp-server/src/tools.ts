@@ -219,6 +219,15 @@ export const coreTools: Tool[] = [
           type: 'boolean',
           description: 'Include fix suggestions for each error',
         },
+        consentRules: {
+          type: 'object',
+          description:
+            'The .hs render_likeness result (.holo only): for each grant, the likeness sources the rule said yes to, e.g. {"grant_ava": ["face", "voice"]}. Without it @face_mesh, @voice_print and @body_scan fail with HS1011.',
+          additionalProperties: {
+            type: 'array',
+            items: { type: 'string', enum: ['face', 'voice', 'body'] },
+          },
+        },
       },
       required: ['code'],
     },

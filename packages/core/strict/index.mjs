@@ -115,13 +115,20 @@ async function loadCore() {
   return {
     coreRoot,
     manifest,
-    deps: { tokenizeHoloSource: parser.tokenizeHoloSource, parseHolo: parser.parseHolo, traitIds },
+    deps: {
+      tokenizeHoloSource: parser.tokenizeHoloSource,
+      parseHolo: parser.parseHolo,
+      traitIds,
+      checkLikeness: typeof parser.checkLikeness === "function" ? parser.checkLikeness : undefined,
+      likenessSources: parser.LIKENESS_SOURCES && { ...parser.LIKENESS_SOURCES, ...(parser.SOURCE_GATED_TRACKING || {}) },
+    },
     info: {
       coreRoot,
       coreVersion: manifest.version,
       parser: parserFile,
       traitSources,
       traitCheck: traitIds.size > 0,
+      likenessCheck: typeof parser.checkLikeness === "function" && !!parser.LIKENESS_SOURCES,
     },
     full: null,
   };

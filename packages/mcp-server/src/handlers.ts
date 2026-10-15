@@ -1168,8 +1168,15 @@ async function handleValidate(args: Record<string, unknown>) {
               );
             })();
 
+    // HS1011: without consentRules every likeness source fails (fail closed).
+    const consentRules =
+      args.consentRules &&
+      typeof args.consentRules === 'object' &&
+      !Array.isArray(args.consentRules)
+        ? (args.consentRules as Record<string, string[]>)
+        : undefined;
     const validation = validateCanonicalSource(
-      { source: code, surface: detectedFormat },
+      { source: code, surface: detectedFormat, consentRules },
       { validateHsDetailed: validateCanonicalHsDetailed }
     );
     const validator = validation.validator;

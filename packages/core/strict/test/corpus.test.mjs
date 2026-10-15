@@ -2,8 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { coreInfo, parseStrict, parseTolerant } from "../index.mjs";
+import { analyze } from "../holo_strict.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(readFileSync(join(HERE, "..", "corpus", "manifest.json"), "utf8"));
@@ -168,4 +169,21 @@ test("likeness: tolerant mode reports HS1011 and still returns the AST", async (
   assert.equal(result.ok, true);
   assert.ok(result.ast);
   assert.deepEqual(likenessCodes(result), [[2, 3]]);
+});
+
+test("the likeness check (HS1011) is on: core's checkLikeness is wired in", async () => {
+  const info = await coreInfo();
+  assert.equal(info.likenessCheck, true);
+});
+
+test("likeness fails closed when core's checkLikeness dep is absent", async () => {
+  const parser = await import(pathToFileURL((await coreInfo()).parser).href);
+  const deps = { tokenizeHoloSource: parser.tokenizeHoloSource, parseHolo: parser.parseHolo }; // no checkLikeness
+  const src = 'object "Ava" {\n  @consent_gate(grant: "g1")\n  @voice_print\n  @face_mesh\n  @body_scan\n  @lip_sync(source: "microphone")\n}\n';
+  const { diagnostics } = analyze(src, deps, { consentRules: { g1: ["face", "voice", "body"] } });
+  const hs = diagnostics.filter((d) => d.code === "HS1011");
+  assert.equal(hs.length, 4, JSON.stringify(diagnostics));
+  assert.ok(hs.every((d) => d.severity === "error" && /fail closed/.test(d.message)));
+  const plain = analyze('object "Box" {\n  @grabbable\n}\n', deps, {}).diagnostics;
+  assert.equal(plain.filter((d) => d.code === "HS1011").length, 0);
 });

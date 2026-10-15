@@ -4,6 +4,7 @@ import {
   preprocessAgentBrainSource,
   type AgentBrainSourceHeader,
 } from '../parser/HoloScriptPlusParser';
+import { checkLikeness, LIKENESS_CODE, type ConsentRules } from './LikenessCheck';
 
 export type CanonicalSourceSurface = 'holo' | 'hsplus' | 'hs';
 
@@ -47,6 +48,13 @@ export interface CanonicalSourceValidationRequest {
    * on every surface, before any parser or Rust/WASM authority runs.
    */
   allowEmpty?: boolean;
+  /**
+   * The caller's `.hs` `render_likeness` result: for each grant, the likeness sources (face,
+   * voice, body) the rule said yes to. `.holo` only. Unset or empty, every likeness source
+   * (`@face_mesh`, `@voice_print`, `@body_scan`) is refused with `HS1011`: fail closed.
+   * See `LikenessCheck.ts` and strict/ERROR_CONTRACT.md.
+   */
+  consentRules?: ConsentRules | null;
 }
 
 export type CanonicalHsDetailedValidator = (source: string) => string | unknown;
@@ -172,7 +180,59 @@ export function resolveCanonicalSourceSurface(
   );
 }
 
-function validateHolo(source: string, allowEmpty = false): CanonicalSourceValidationResult {
+/** HS1011 diagnostics, each at the k-th written `@name` of its trait, else at its object. */
+function likenessDiagnostics(
+  source: string,
+  ast: unknown,
+  consentRules: ConsentRules | null | undefined
+): CanonicalDiagnostic[] {
+  const findings = checkLikeness(ast, consentRules);
+  const used = new Map<string, number>();
+  return findings.map((finding) => {
+    const key = finding.traitName.toLowerCase();
+    const k = used.get(key) ?? 0;
+    used.set(key, k + 1);
+    const re = new RegExp(`@${key.replace(/[^a-z0-9_]/g, '')}(?![A-Za-z0-9_])`, 'gi');
+    // Skip `@name` written inside a line or block comment: only written trait uses count.
+    const inComment = (index: number) => {
+      const lineStart = source.lastIndexOf('\n', index - 1) + 1;
+      if (source.slice(lineStart, index).includes('//')) return true;
+      return source.lastIndexOf('/*', index) > source.lastIndexOf('*/', index);
+    };
+    let match: RegExpExecArray | null = null;
+    for (let i = 0; i <= k; ) {
+      match = re.exec(source);
+      if (!match) break;
+      if (!inComment(match.index)) i++;
+    }
+    let line: number | undefined;
+    let column: number | undefined;
+    if (match) {
+      const before = source.slice(0, match.index).split(/\r\n|\n|\r/);
+      line = before.length;
+      column = before[before.length - 1].length + 1;
+    } else {
+      const start = (finding.owner as { loc?: { start?: { line?: number; column?: number } } })?.loc
+        ?.start;
+      line = start?.line;
+      column = start?.column;
+    }
+    return {
+      severity: 'error' as const,
+      code: LIKENESS_CODE,
+      message: finding.message,
+      line,
+      column,
+      suggestion: finding.hint,
+    };
+  });
+}
+
+function validateHolo(
+  source: string,
+  allowEmpty = false,
+  consentRules?: ConsentRules | null
+): CanonicalSourceValidationResult {
   try {
     const result = new HoloCompositionParser().parse(source);
     // The parser refuses blank source with HS1001. An editor that passed allowEmpty keeps the
@@ -181,7 +241,10 @@ function validateHolo(source: string, allowEmpty = false): CanonicalSourceValida
       result.errors = result.errors.filter((error) => error.code !== 'HS1001');
       if (result.ast && result.errors.length === 0) result.success = true;
     }
-    const errors = normalizeDiagnosticList(result.errors, 'error');
+    const errors = [
+      ...normalizeDiagnosticList(result.errors, 'error'),
+      ...likenessDiagnostics(source, result.ast, consentRules),
+    ];
     const warnings = normalizeDiagnosticList(result.warnings, 'warning');
     return {
       valid: result.success === true && errors.length === 0,
@@ -363,7 +426,8 @@ export function validateCanonicalSource(
   ) {
     return refuseEmptySource(surface);
   }
-  if (surface === 'holo') return validateHolo(request.source, request.allowEmpty === true);
+  if (surface === 'holo')
+    return validateHolo(request.source, request.allowEmpty === true, request.consentRules);
   if (surface === 'hsplus') return validateHsplus(request.source);
   return validateHs(request.source, dependencies.validateHsDetailed);
 }
