@@ -31,6 +31,23 @@ export function usesServerKeyFor(req?: Request): boolean {
   return !req?.headers.get('authorization');
 }
 
+/**
+ * A user-scoped HoloMesh route ("self", dashboard, earnings, contributions)
+ * asked by a caller with no HoloMesh key of its own. Under Studio's server key
+ * the upstream would answer as Studio's service agent (named "Founder" when
+ * that key is the founder key), leaking that agent's data to every signed-in
+ * user. Refuse instead of falling back.
+ */
+export const NO_HOLOMESH_AGENT_BODY = {
+  success: false,
+  code: 'no_holomesh_agent',
+  error: 'No HoloMesh agent is linked to your account yet.',
+} as const;
+
+export function noHoloMeshAgentResponse(): Response {
+  return Response.json(NO_HOLOMESH_AGENT_BODY, { status: 404 });
+}
+
 export async function fetchHoloMeshJson<T>(
   path: string,
   req?: Request

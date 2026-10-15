@@ -17,7 +17,11 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { proxyHoloMesh } from '../../../../../lib/holomesh-proxy';
+import {
+  noHoloMeshAgentResponse,
+  proxyHoloMesh,
+  usesServerKeyFor,
+} from '../../../../../lib/holomesh-proxy';
 import { requireAuth } from '@/lib/api-auth';
 import {
   AUTHENTICATED_USER_HEADER,
@@ -28,6 +32,9 @@ import { corsHeaders } from '../../../_lib/cors';
 export async function GET(req: NextRequest) {
   const auth = await requireAuth(req);
   if (auth instanceof NextResponse) return auth;
+  // A session alone is not a HoloMesh identity: without the caller's own key
+  // the upstream sees Studio's server agent, not this user. Refuse.
+  if (usesServerKeyFor(req)) return noHoloMeshAgentResponse();
 
   // Strip any client-supplied identity selector so the caller can only ever see
   // their own earnings, then forward the authenticated user id out-of-band.

@@ -1,10 +1,16 @@
 export const maxDuration = 300;
 
 import { NextRequest } from 'next/server';
-import { proxyHoloMesh } from '../../../../lib/holomesh-proxy';
+import {
+  noHoloMeshAgentResponse,
+  proxyHoloMesh,
+  usesServerKeyFor,
+} from '../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../_lib/cors';
 export async function GET(req: NextRequest) {
+  // The dashboard is the caller's own; under the server key it is the Founder's.
+  if (usesServerKeyFor(req)) return noHoloMeshAgentResponse();
   return proxyHoloMesh('/api/holomesh/dashboard', req);
 }
 
