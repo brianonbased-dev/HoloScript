@@ -61,3 +61,43 @@ export function trackingEventAllowed(
   if (source === 'live_self') return isLocalCapture(capture, kind);
   return source === 'recording' || source === 'remote_user';
 }
+
+/** The tracking event each kind feeds (FaceTrackingTrait / BodyTrackingTrait). */
+export const LOCAL_CAPTURE_EVENT: Readonly<Record<LocalCaptureKind, string>> = Object.freeze({
+  face: 'face_data_update',
+  body: 'body_pose_update',
+});
+
+export interface LocalCaptureSession {
+  readonly handle: LocalCaptureHandle;
+  /** Event for the trait, stamped with this session's handle. Throws once the session ended. */
+  event(data: Record<string, unknown>): Record<string, unknown>;
+  end(): void;
+}
+
+/**
+ * Host capture adapter. Call it from the code that itself opens a local face or body tracking
+ * device or session (a WebXR/OpenXR face or body tracking session, an ARKit/ARCore face anchor
+ * session, a webcam face-mesh pipeline). Call it when the device starts, build every event with
+ * `event()`, and call `end()` when the device or session ends. Network, replay and remote paths
+ * must not use it: their events carry no handle, so `live_self` traits refuse them.
+ */
+export function startLocalCaptureSession(
+  kind: LocalCaptureKind,
+  deviceLabel = ''
+): LocalCaptureSession {
+  const handle = openLocalCapture(kind, deviceLabel);
+  let ended = false;
+  return Object.freeze({
+    handle,
+    event(data: Record<string, unknown>) {
+      if (ended) throw new Error(`local ${kind} capture session "${deviceLabel}" has ended`);
+      return { ...data, type: LOCAL_CAPTURE_EVENT[kind], capture: handle };
+    },
+    end() {
+      if (ended) return;
+      ended = true;
+      closeLocalCapture(handle);
+    },
+  });
+}
