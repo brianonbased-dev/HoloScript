@@ -1830,6 +1830,12 @@ export declare function revokeLikenessShare(node: object): void;
 export declare function likenessShareAllowed(node: object, scope: LikenessShareScope | undefined): boolean;
 export declare function carriesLikenessOrTracking(node: object, opts?: { embodimentDecided?: boolean }): boolean;
 export declare function avatarRenderAllowed(node: Record<string, unknown>, shownToOthers: boolean, scope?: LikenessShareScope): boolean;
+export declare const VOICE_USES: readonly ['record', 'store', 'transcribe', 'replay', 'ai', 'voice_print'];
+export type VoiceUse = (typeof VOICE_USES)[number] | 'live_captions';
+export interface VoiceUseRequest { grantorId: string; speakerId: string; sessionId: string; use: VoiceUse; }
+export declare function grantVoiceUse(node: object, req: VoiceUseRequest): boolean;
+export declare function revokeVoiceUse(node: object, sessionId?: string, use?: VoiceUse): void;
+export declare function voiceUseAllowed(node: object, sessionId: unknown, use: VoiceUse): boolean;
 export declare function avatarEmbodimentNeedsGrant(trackingSource: unknown, carriesLikeness: boolean): boolean;
 export declare function carriesRealLikeness(traitNames: Iterable<unknown>): boolean;
 

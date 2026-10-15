@@ -5,7 +5,7 @@ import { avatarRenderAllowed } from '../AvatarEmbodimentTrait';
 // Trust POLICY.md §3 + Release: explicit, self-granted, session- and audience-scoped, revocable.
 const req = (o: Record<string, unknown> = {}) =>
   ({ grantorId: 'ava', trackedPersonId: 'ava', sessionId: 's1', audience: ['bob', 'cy'], renderLikenessYes: true, ...o }) as any;
-const tracked = () => ({ traits: new Map([['body_tracking', { source: 'live_self' }]]) }) as Record<string, any>;
+const tracked = () => ({ __trackedPersonId: 'ava', traits: new Map([['body_tracking', { source: 'live_self' }]]) }) as Record<string, any>;
 
 describe('likeness share grant', () => {
   it('no grant by default (joining is not consent)', () => {
@@ -46,7 +46,7 @@ describe('likeness share grant', () => {
   });
   it('N1: tracking state without avatar_embodiment is gated', () => {
     for (const k of ['__faceTrackingState', '__bodyTrackingState']) {
-      const n: Record<string, any> = { [k]: {} };
+      const n: Record<string, any> = { [k]: {}, __trackedPersonId: 'ava' };
       expect(avatarRenderAllowed(n, true)).toBe(false);
       grantLikenessShare(n, req());
       expect(avatarRenderAllowed(n, true, { sessionId: 's1', audience: ['bob'] })).toBe(true);
@@ -54,5 +54,19 @@ describe('likeness share grant', () => {
     for (const t of ['face_tracking', 'body_tracking', 'lip_sync', 'voice_print', 'body_scan', 'face_mesh', 'avatar_embodiment']) {
       expect(avatarRenderAllowed({ traits: [t] }, true)).toBe(false);
     }
+  });
+  it('fails closed when __trackedPersonId is unset (Release, like HS1011)', () => {
+    const n = tracked();
+    delete n.__trackedPersonId;
+    expect(grantLikenessShare(n, req())).toBe(false);
+    expect(likenessShareAllowed(n, { sessionId: 's1', audience: ['bob'] })).toBe(false);
+    expect(avatarRenderAllowed(n, true, { sessionId: 's1', audience: ['bob'], livePose: true })).toBe(false);
+    // binding after the fact does not resurrect an unbound grant attempt
+    n.__trackedPersonId = 'ava';
+    expect(likenessShareAllowed(n, { sessionId: 's1', audience: ['bob'] })).toBe(false);
+    // a grant recorded while bound stops matching once the binding is removed
+    expect(grantLikenessShare(n, req())).toBe(true);
+    delete n.__trackedPersonId;
+    expect(likenessShareAllowed(n, { sessionId: 's1', audience: ['bob'] })).toBe(false);
   });
 });

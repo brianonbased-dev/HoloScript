@@ -192,6 +192,7 @@ describe('networkedAvatarHandler.onUpdate (isLocal=true)', () => {
   it('emits the live pose with the self grant; audience mismatch and revoke fall back next frame', async () => {
     const cfg = { isLocal: true, updateRate: 30, sessionId: 's1', audience: ['bob'] };
     const { node, ctx, config } = await attach(cfg);
+    (node as any).__trackedPersonId = 'ava';
     expect(grantLikenessShare(node, { grantorId: 'ava', trackedPersonId: 'ava', sessionId: 's1', audience: ['bob'], renderLikenessYes: true })).toBe(true);
     await networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', expect.objectContaining({ pose: expect.any(Object) }));

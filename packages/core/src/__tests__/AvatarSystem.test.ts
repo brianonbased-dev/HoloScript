@@ -37,6 +37,7 @@ describe('Avatar System', () => {
   it('should update local avatar and broadcast pose', async () => {
     await networkedAvatarHandler.onAttach(mockNode, { isLocal: true, updateRate: 60 }, mockContext);
     // POLICY §3: the tracked person's own share grant is needed before a live pose leaves the device.
+    (mockNode as any).__trackedPersonId = 'me';
     grantLikenessShare(mockNode, { grantorId: 'me', trackedPersonId: 'me', sessionId: 's1', audience: ['peer'], renderLikenessYes: true });
 
     // Simulate update loop

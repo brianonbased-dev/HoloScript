@@ -940,6 +940,12 @@ export {
   LIKENESS_OR_TRACKING_TRAITS,
   type LikenessShareRequest,
   type LikenessShareScope,
+  grantVoiceUse,
+  revokeVoiceUse,
+  voiceUseAllowed,
+  VOICE_USES,
+  type VoiceUse,
+  type VoiceUseRequest,
 } from './traits/LikenessShareGrant';
 
 // HoloScript+ Expanded Trait Handlers (Phases 1-13)

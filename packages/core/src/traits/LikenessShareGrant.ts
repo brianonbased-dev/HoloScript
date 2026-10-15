@@ -68,8 +68,9 @@ export function grantLikenessShare(node: object, req: LikenessShareRequest): boo
   if (!node || !req) return false;
   if (!nonEmpty(req.grantorId) || !nonEmpty(req.trackedPersonId) || !nonEmpty(req.sessionId)) return false;
   if (req.grantorId !== req.trackedPersonId) return false;
+  // Fail closed (Release, like HS1011): a node with no bound tracked person matches no grant.
   const bound = (node as { __trackedPersonId?: unknown }).__trackedPersonId;
-  if (bound !== undefined && bound !== req.trackedPersonId) return false;
+  if (!nonEmpty(bound) || bound !== req.trackedPersonId) return false;
   if (req.renderLikenessYes !== true) return false;
   const audience = (req.audience ?? []).filter(nonEmpty);
   if (audience.length === 0) return false;
@@ -118,8 +119,62 @@ export function likenessShareAllowed(node: object, scope: LikenessShareScope | u
   const viewers = scope.audience ?? [];
   if (viewers.length === 0 || !viewers.every((v) => g.audience.has(v))) return false;
   const bound = (node as { __trackedPersonId?: unknown }).__trackedPersonId;
-  if (bound !== undefined && bound !== g.trackedPersonId) return false;
+  if (!nonEmpty(bound) || bound !== g.trackedPersonId) return false;
   if (carriesRealLikeness(nodeTraitNames(node))) {
+    const consent = (node as { __consentGateState?: { status?: string } }).__consentGateState;
+    if (!consent || consent.status !== 'granted') return false;
+  }
+  return true;
+}
+
+// ─── Voice uses beyond live relay (Trust ruling, @collaborative voice) ───────────────────────────
+/**
+ * Live voice is relay-only. Each of these needs its own explicit grant from that speaker for the
+ * session; live captions do not. voice_print additionally needs the render_likeness yes
+ * (@consent_gate granted on the node), like any real-person likeness.
+ */
+export const VOICE_USES = Object.freeze(['record', 'store', 'transcribe', 'replay', 'ai', 'voice_print'] as const);
+export type VoiceUse = (typeof VOICE_USES)[number] | 'live_captions';
+
+export interface VoiceUseRequest {
+  grantorId: string;
+  speakerId: string;
+  sessionId: string;
+  use: VoiceUse;
+}
+
+const VOICE_USE_GRANTS = new WeakMap<object, Map<string, Set<VoiceUse>>>();
+
+/** Record a speaker's explicit grant for one non-relay use. Grantor must be the speaker. */
+export function grantVoiceUse(node: object, req: VoiceUseRequest): boolean {
+  if (!node || !req || !nonEmpty(req.grantorId) || !nonEmpty(req.sessionId)) return false;
+  if (req.grantorId !== req.speakerId) return false;
+  const bound = (node as { __trackedPersonId?: unknown }).__trackedPersonId;
+  if (!nonEmpty(bound) || bound !== req.speakerId) return false;
+  if (!(VOICE_USES as readonly string[]).includes(req.use)) return false;
+  const bySession = VOICE_USE_GRANTS.get(node) ?? new Map<string, Set<VoiceUse>>();
+  const uses = bySession.get(req.sessionId) ?? new Set<VoiceUse>();
+  uses.add(req.use);
+  bySession.set(req.sessionId, uses);
+  VOICE_USE_GRANTS.set(node, bySession);
+  return true;
+}
+
+export function revokeVoiceUse(node: object, sessionId?: string, use?: VoiceUse): void {
+  const bySession = VOICE_USE_GRANTS.get(node);
+  if (!bySession) return;
+  if (!sessionId) return void VOICE_USE_GRANTS.delete(node);
+  if (!use) return void bySession.delete(sessionId);
+  bySession.get(sessionId)?.delete(use);
+}
+
+/** May this speaker's voice be used this way in this session? Live captions need no extra grant. */
+export function voiceUseAllowed(node: object, sessionId: unknown, use: VoiceUse): boolean {
+  if (use === 'live_captions') return true;
+  if (!nonEmpty(sessionId)) return false;
+  if (!nonEmpty((node as { __trackedPersonId?: unknown }).__trackedPersonId)) return false;
+  if (!VOICE_USE_GRANTS.get(node)?.get(sessionId)?.has(use)) return false;
+  if (use === 'voice_print') {
     const consent = (node as { __consentGateState?: { status?: string } }).__consentGateState;
     if (!consent || consent.status !== 'granted') return false;
   }

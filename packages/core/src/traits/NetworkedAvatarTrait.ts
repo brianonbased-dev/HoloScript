@@ -158,7 +158,7 @@ export const networkedAvatarHandler: TraitHandler<NetworkedAvatarConfig> = {
         // (and @consent_gate for real-person likeness). Otherwise others get the generic avatar
         // with generic motion: no live pose. Re-checked every frame, so a revoke bites next frame.
         const scope = { sessionId: config.sessionId, audience: config.audience ?? [], livePose: true };
-        if (!avatarRenderAllowed(node, true, scope)) {
+        if (!avatarRenderAllowed(node as unknown as Record<string, unknown>, true, scope)) {
           // No node, no pose: only the generic flag and an opaque scene id (no likeness).
           context.emit('avatar_pose_update', genericAvatarPayload(node));
           return;

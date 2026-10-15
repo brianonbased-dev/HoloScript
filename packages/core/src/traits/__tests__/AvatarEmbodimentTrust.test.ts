@@ -57,6 +57,7 @@ describe('AvatarEmbodiment runtime (Trust)', () => {
     const scope = { sessionId: 's1', audience: ['bob'] };
     expect(avatarRenderAllowed(node, true, scope)).toBe(false);
     // face_mesh present: share grant + render_likeness yes + @consent_gate granted are all needed.
+    (node as any).__trackedPersonId = 'ava';
     expect(grantLikenessShare(node, { grantorId: 'ava', trackedPersonId: 'ava', sessionId: 's1', audience: ['bob'], renderLikenessYes: true })).toBe(true);
     expect(avatarRenderAllowed(node, true, scope)).toBe(false);
     node.__consentGateState = { status: 'granted' };
