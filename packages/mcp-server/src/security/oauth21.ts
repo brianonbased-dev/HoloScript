@@ -26,6 +26,9 @@ import {
   openDevModeAllowed,
   OAUTH2_PUBLIC_SCOPE_NAMES,
   consentFreeScopes,
+  USER_BOUND_SCOPES,
+  CLIENT_CREDENTIALS_MAX_SCOPES,
+  USER_BOUND_SCOPE_CC_ERROR,
 } from '../auth/oauth2-provider';
 import {
   ClientNotApprovedError,
@@ -126,12 +129,17 @@ export interface RegisteredClient {
   status?: OAuthClientStatus;
   /** Open self-registration: public social scopes only without a human's consent. */
   selfRegistered?: boolean;
+  /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+  noClientCredentials?: boolean;
 }
 
 /**
  * Refuse a client that is not approved (Muse Gap 9). Called by every grant and
  * by authorize, after the client is found and before anything is issued.
  */
+export const CLIENT_CREDENTIALS_NOT_REGISTERED_ERROR =
+  'unauthorized_client: this client did not register the client_credentials grant. Use authorization_code with a signed-in user.';
+
 export const CONSENT_REQUIRED_ERROR =
   'consent_required: this self-registered client can act without a human only on public social scopes (social). ' +
   'Other scopes need the human to approve it while signed in to Studio.';
@@ -234,6 +242,34 @@ const authCodes = new Map<string, AuthorizationCode>();
 const accessTokens = new Map<string, AccessToken>();
 const refreshTokens = new Map<string, RefreshToken>();
 const revokedChains = new Set<string>();
+
+// ── Consent grants (Trust & Consent b) ───────────────────────────────────────
+//
+// One grant per (human, client). A user-bound code, access token and refresh
+// token all carry its grantId; each is honoured only while the grant is live:
+// at most GRANT_MAX_AGE_MS since the human last approved, and no longer idle
+// than GRANT_IDLE_MS. A revoked grant is kept as a tombstone so a durable
+// token row cannot bring it back.
+export const GRANT_MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000;
+export const GRANT_IDLE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export interface ConsentGrant {
+  grantId: string;
+  userId: string;
+  clientId: string;
+  scopes: OAuthScope[];
+  /** When the human last approved (re-consent restarts the 90-day clock). */
+  issuedAt: number;
+  lastUsedAt: number;
+  revokedAt?: number;
+}
+
+const grants = new Map<string, ConsentGrant>(); // grantId -> grant
+const grantByUserClient = new Map<string, string>(); // `${userId}\u0000${clientId}` -> grantId
+
+function grantKey(userId: string, clientId: string): string {
+  return `${userId}\u0000${clientId}`;
+}
 
 /**
  * Muse Gap 9 S1: short-TTL cache of each client's review status as last read
@@ -391,6 +427,8 @@ export class OAuth21Service {
     registeredUnproven?: boolean;
     status?: OAuthClientStatus;
     selfRegistered?: boolean;
+    /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+    noClientCredentials?: boolean;
   }): { clientId: string; clientSecret: string } {
     if (clients.size >= this.config.maxClients) {
       throw new ClientStoreFullError({
@@ -416,6 +454,7 @@ export class OAuth21Service {
       ...(params.registeredUnproven ? { registeredUnproven: true } : {}),
       ...(params.status ? { status: params.status } : {}),
       ...(params.selfRegistered ? { selfRegistered: true } : {}),
+      ...(params.noClientCredentials ? { noClientCredentials: true } : {}),
     };
 
     clients.set(clientId, client);
@@ -447,6 +486,13 @@ export class OAuth21Service {
   /** Rehydrate a refresh token from a durable registry. */
   importRefreshToken(token: RefreshToken): void {
     refreshTokens.set(token.token, token);
+  }
+
+  /** Does this secret authenticate this (loaded, confidential) client? */
+  verifyClientSecret(clientId: string, secret: string): boolean {
+    const client = clients.get(clientId);
+    if (!client || client.clientType !== 'confidential' || !secret) return false;
+    return safeCompare(hashSecret(secret), client.clientSecret);
   }
 
   /** Read the full refresh-token record (for durable write-through after issuance). */
@@ -485,8 +531,12 @@ export class OAuth21Service {
     }
   }
 
+  /**
+   * Revoke a client and everything it holds in this registry: access tokens,
+   * refresh chains, unredeemed authorization codes and consent grants.
+   * Returns whether the client was loaded here.
+   */
   revokeClient(clientId: string): boolean {
-    // Revoke all tokens for this client
     for (const [key, token] of accessTokens) {
       if (token.clientId === clientId) accessTokens.delete(key);
     }
@@ -496,7 +546,122 @@ export class OAuth21Service {
         refreshTokens.delete(key);
       }
     }
+    for (const [key, code] of authCodes) {
+      if (code.clientId === clientId) authCodes.delete(key);
+    }
+    this.revokeGrantsForClient(clientId);
+    this.noteClientStatus(clientId, 'unknown');
     return clients.delete(clientId);
+  }
+
+  // ── Consent grants ───────────────────────────────────────────────────────
+
+  /**
+   * Record (or renew) the grant for this human and client. Re-consent keeps
+   * the grantId, restarts the 90-day clock and replaces the scopes.
+   */
+  upsertGrant(params: {
+    userId: string;
+    clientId: string;
+    scopes: OAuthScope[];
+    grantId?: string;
+    now?: number;
+  }): ConsentGrant {
+    const now = params.now ?? Date.now();
+    const key = grantKey(params.userId, params.clientId);
+    const existingId = grantByUserClient.get(key);
+    const existing = existingId ? grants.get(existingId) : undefined;
+    if (existing && !existing.revokedAt) {
+      existing.scopes = [...params.scopes];
+      existing.issuedAt = now;
+      existing.lastUsedAt = now;
+      return existing;
+    }
+    let grantId = params.grantId || `grant_${randomUUID().replace(/-/g, '')}`;
+    // Never reuse a revoked grant's id, nor one belonging to another pair.
+    const clash = grants.get(grantId);
+    if (clash && (clash.revokedAt || grantKey(clash.userId, clash.clientId) !== key)) {
+      grantId = `grant_${randomUUID().replace(/-/g, '')}`;
+    }
+    const grant: ConsentGrant = {
+      grantId,
+      userId: params.userId,
+      clientId: params.clientId,
+      scopes: [...params.scopes],
+      issuedAt: now,
+      lastUsedAt: now,
+    };
+    grants.set(grantId, grant);
+    grantByUserClient.set(key, grantId);
+    return grant;
+  }
+
+  getGrant(grantId: string): ConsentGrant | undefined {
+    return grants.get(grantId);
+  }
+
+  /**
+   * Is this grant live? A grant this instance never saw (a token rehydrated
+   * after a deploy) is adopted from the token, aged from the token's issue
+   * time; a revoked, idle or over-age one is not live.
+   */
+  grantIsLive(
+    ref: { grantId?: string; userId?: string; clientId: string; scopes?: OAuthScope[]; issuedAt?: number },
+    now: number = Date.now(),
+    touch = false
+  ): boolean {
+    if (!ref.grantId) return true;
+    let grant = grants.get(ref.grantId);
+    if (!grant) {
+      if (!ref.userId) return false;
+      grant = {
+        grantId: ref.grantId,
+        userId: ref.userId,
+        clientId: ref.clientId,
+        scopes: [...(ref.scopes ?? [])],
+        issuedAt: ref.issuedAt ?? now,
+        lastUsedAt: now,
+      };
+      grants.set(grant.grantId, grant);
+      if (!grantByUserClient.has(grantKey(grant.userId, grant.clientId))) {
+        grantByUserClient.set(grantKey(grant.userId, grant.clientId), grant.grantId);
+      }
+    }
+    if (grant.revokedAt) return false;
+    if (grant.clientId !== ref.clientId) return false;
+    if (ref.userId && grant.userId !== ref.userId) return false;
+    if (now - grant.issuedAt > GRANT_MAX_AGE_MS) return false;
+    if (now - grant.lastUsedAt > GRANT_IDLE_MS) return false;
+    if (touch) grant.lastUsedAt = now;
+    return true;
+  }
+
+  /** Revoke one grant and every code and token issued under it. */
+  revokeGrant(grantId: string, now: number = Date.now()): boolean {
+    const grant = grants.get(grantId);
+    if (!grant) return false;
+    grant.revokedAt = grant.revokedAt ?? now;
+    for (const [key, code] of authCodes) if (code.grantId === grantId) authCodes.delete(key);
+    for (const [key, token] of accessTokens) if (token.grantId === grantId) accessTokens.delete(key);
+    for (const [key, token] of refreshTokens) {
+      if (token.grantId === grantId) {
+        revokedChains.add(token.chainId);
+        refreshTokens.delete(key);
+      }
+    }
+    return true;
+  }
+
+  /** Revoke every grant held for a client. Returns how many were live. */
+  revokeGrantsForClient(clientId: string, now: number = Date.now()): number {
+    let n = 0;
+    for (const grant of grants.values()) {
+      if (grant.clientId === clientId && !grant.revokedAt) {
+        this.revokeGrant(grant.grantId, now);
+        n++;
+      }
+    }
+    return n;
   }
 
   // ── Authorization Code Flow (with PKCE) ──────────────────────────────────
@@ -547,13 +712,23 @@ export class OAuth21Service {
       throw new Error(CONSENT_REQUIRED_ERROR);
     }
 
+    // Trust & Consent (b): one grant per human and client; the code carries it.
+    const grant = params.consent
+      ? this.upsertGrant({
+          userId: params.consent.userId,
+          clientId: params.clientId,
+          scopes: grantedScopes,
+          grantId: params.consent.grantId,
+        })
+      : undefined;
+
     const code = generateToken();
     const authCode: AuthorizationCode = {
       code,
       clientId: params.clientId,
       redirectUri: params.redirectUri,
       scopes: grantedScopes,
-      ...(params.consent ? { userId: params.consent.userId, grantId: params.consent.grantId } : {}),
+      ...(grant ? { userId: grant.userId, grantId: grant.grantId } : {}),
       codeChallenge: params.codeChallenge,
       codeChallengeMethod: 'S256',
       expiresAt: Date.now() + this.config.authCodeTTL * 1000,
@@ -619,6 +794,17 @@ export class OAuth21Service {
       throw new Error(AGENT_ID_NOT_BOUND_ERROR);
     }
 
+    if (
+      authCode.grantId &&
+      !this.grantIsLive({
+        grantId: authCode.grantId,
+        userId: authCode.userId,
+        clientId: authCode.clientId,
+      })
+    ) {
+      throw new Error('Consent grant revoked or expired. Ask the user to approve again.');
+    }
+
     // Mark code as used (one-time use)
     authCode.used = true;
 
@@ -655,11 +841,23 @@ export class OAuth21Service {
     if (client.clientType !== 'confidential') {
       throw new Error('Client credentials grant requires confidential client');
     }
+    if (client.noClientCredentials) {
+      throw new Error(CLIENT_CREDENTIALS_NOT_REGISTERED_ERROR);
+    }
     if (!safeCompare(hashSecret(params.clientSecret), client.clientSecret)) {
       throw new Error('Invalid client credentials');
     }
 
-    const requestedScopes = params.scopes || client.scopes;
+    // Trust & Consent (a): user-bound scopes never issue on client_credentials,
+    // and a self-registered client's cc grant is capped to the public and
+    // social scopes (issueTokenPair narrows further to social without consent).
+    if (params.scopes?.some((s) => USER_BOUND_SCOPES.includes(s))) {
+      throw new Error(USER_BOUND_SCOPE_CC_ERROR);
+    }
+    let requestedScopes = (params.scopes || client.scopes).filter((s) => !USER_BOUND_SCOPES.includes(s));
+    if (client.selfRegistered) {
+      requestedScopes = requestedScopes.filter((s) => CLIENT_CREDENTIALS_MAX_SCOPES.includes(s));
+    }
     const invalidScopes = requestedScopes.filter(
       (s) =>
         !client.scopes.includes(s) &&
@@ -730,6 +928,28 @@ export class OAuth21Service {
       throw new Error('Invalid client credentials');
     }
 
+    if (
+      stored.grantId &&
+      !this.grantIsLive(
+        {
+          grantId: stored.grantId,
+          userId: stored.userId,
+          clientId: stored.clientId,
+          scopes: stored.scopes,
+          issuedAt: stored.issuedAt,
+        },
+        Date.now(),
+        true
+      )
+    ) {
+      revokedChains.add(stored.chainId);
+      throw new Error('Consent grant revoked or expired. Ask the user to approve again.');
+    }
+    // A user-bound refresh token must still name its human.
+    if (stored.scopes.some((s) => USER_BOUND_SCOPES.includes(s)) && !stored.userId) {
+      throw new Error('Refresh token carries a user-bound scope without a user.');
+    }
+
     // Mark old refresh token as used (rotation)
     stored.used = true;
 
@@ -771,6 +991,28 @@ export class OAuth21Service {
       } else if (fresh !== undefined && fresh !== 'approved') {
         return { active: false };
       }
+    }
+
+    if (
+      stored.grantId &&
+      !this.grantIsLive(
+        {
+          grantId: stored.grantId,
+          userId: stored.userId,
+          clientId: stored.clientId,
+          scopes: stored.scopes,
+          issuedAt: stored.issuedAt,
+        },
+        Date.now(),
+        true
+      )
+    ) {
+      accessTokens.delete(token);
+      return { active: false };
+    }
+    // A user-bound scope without its human is never honoured.
+    if (stored.scopes.some((s) => USER_BOUND_SCOPES.includes(s)) && !stored.userId) {
+      return { active: false };
     }
 
     return {
@@ -940,6 +1182,24 @@ export class OAuth21Service {
           // Muse Gap 9 S1: never cache (or accept) a durable token without a
           // status read of its client. Unknown or not approved: inactive.
           if (!durable.clientId) return { active: false };
+          if (
+            durable.grantId &&
+            !this.grantIsLive({
+              grantId: durable.grantId,
+              userId: durable.userId,
+              clientId: durable.clientId,
+              scopes: (durable.scopes || []) as OAuthScope[],
+              issuedAt: durable.issuedAt,
+            })
+          ) {
+            return { active: false };
+          }
+          if (
+            (durable.scopes || []).some((s) => USER_BOUND_SCOPES.includes(s)) &&
+            !durable.userId
+          ) {
+            return { active: false };
+          }
           const status = await this.refreshClientStatus(durable.clientId);
           if (status !== 'approved') return { active: false };
           this.noteClientStatus(durable.clientId, 'approved');
@@ -1130,4 +1390,6 @@ export function resetOAuth21Service(): void {
   refreshTokens.clear();
   revokedChains.clear();
   clientStatusCache.clear();
+  grants.clear();
+  grantByUserClient.clear();
 }

@@ -61,7 +61,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   compose_workflow: ['tools:write'],
   execute_workflow: ['tools:write'],
   workflow_memory_write: ['tools:write'],
-  workflow_memory_read: ['tools:read'],
+  workflow_memory_read: ['user:private'],
   workflow_memory_subscribe: ['tools:read'],
 
   // === Batch meta-tools (each inner call is re-authorized independently) ===
@@ -311,7 +311,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   settle_creator_payout: ['tools:admin'],
   execute_economic_contract: ['tools:admin'],
   sim_run_paid: ['tools:admin'],
-  get_creator_earnings: ['tools:read'],
+  get_creator_earnings: ['user:private'],
   // Agent identity / token minting:
   issue_agent_token: ['tools:admin'],
   verify_agent_token: ['tools:read'],
@@ -489,7 +489,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   twin_earth_ai_invoke: ['tools:write'],
   twin_earth_capture_receipt: ['tools:write'],
   // read-only / no side effects:
-  absorb_check_credits: ['tools:read'],
+  absorb_check_credits: ['user:private'],
   absorb_list_projects: ['tools:read'],
   absorb_suggest_holoscript_transform: ['tools:read'],
   alphafold_fetch_structure: ['tools:read'],
@@ -513,10 +513,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_estimate_task_duration: ['tools:read'],
   holo_hologram_get_asset: ['tools:read'],
   holo_map_paper_ingest_probe: ['tools:read'],
-  holo_memory_farm: ['tools:read'],
-  holo_memory_list: ['tools:read'],
-  holo_memory_recall: ['tools:read'],
-  holo_memory_stats: ['tools:read'],
+  holo_memory_farm: ['user:private'],
+  holo_memory_list: ['user:private'],
+  holo_memory_recall: ['user:private'],
+  holo_memory_stats: ['user:private'],
   holo_oracle_consult: ['tools:read'],
   holo_oracle_curate: ['tools:read'],
   holo_oracle_discover: ['tools:read'],
@@ -557,7 +557,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holomesh_suggest_list: ['tools:read'],
   holomesh_team_compound: ['tools:read'],
   holomesh_team_form: ['tools:read'],
-  holomesh_wallet_status: ['tools:read'],
+  holomesh_wallet_status: ['tools:admin'],
   holoscript_audit_numbers: ['tools:read'],
   holoscript_code_health: ['tools:read'],
   holoscript_select_modality: ['tools:read'],
@@ -856,6 +856,70 @@ export function resolveRequiredScopes(toolName: string): OAuthScope[] {
  */
 export function hasExplicitScope(toolName: string): boolean {
   return Object.prototype.hasOwnProperty.call(TOOL_SCOPE_MAP, toolName);
+}
+
+// ── User-private tools (Trust & Consent c) ───────────────────────────────────
+
+/**
+ * Tools that read one human's own data. They need `user:private`, which issues
+ * only through authorization_code with a signed-in user, and handleTool binds
+ * them to that token's user: an identity named in the arguments that is not the
+ * caller's is refused, and the caller's id is what the handler sees.
+ */
+export const USER_PRIVATE_TOOLS: ReadonlySet<string> = new Set([
+  'get_creator_earnings',
+  'absorb_check_credits',
+  'holo_memory_list',
+  'holo_memory_recall',
+  'holo_memory_farm',
+  'holo_memory_stats',
+  'workflow_memory_read',
+]);
+
+/** Argument names that would let a caller point a user-private tool at someone else. */
+export const USER_IDENTITY_ARG_KEYS = [
+  'creatorId',
+  'creator_id',
+  'userId',
+  'user_id',
+  'ownerId',
+  'owner_id',
+  'accountId',
+  'account_id',
+] as const;
+
+/**
+ * Bind a user-private tool call to the token's user. Returns the arguments the
+ * handler should see, or a refusal. Admin (admin:*) and the local stdio user
+ * keep today's behaviour: they may name any creator.
+ */
+export function bindUserPrivateArgs(
+  toolName: string,
+  args: Record<string, unknown>,
+  ctx: { userId?: string; scopes?: readonly string[] } | undefined | null
+): { ok: true; args: Record<string, unknown> } | { ok: false; reason: string } {
+  if (!USER_PRIVATE_TOOLS.has(toolName)) return { ok: true, args };
+  if (isTrustedLocalCaller(ctx)) return { ok: true, args };
+  if (ctx?.scopes?.includes('admin:*')) return { ok: true, args };
+  const userId = typeof ctx?.userId === 'string' ? ctx.userId.trim() : '';
+  if (!userId) {
+    return {
+      ok: false,
+      reason: `"${toolName}" reads a signed-in user's private data: it needs a user:private token issued to that user through /oauth/authorize`,
+    };
+  }
+  for (const key of USER_IDENTITY_ARG_KEYS) {
+    const v = args[key];
+    if (v !== undefined && v !== null && v !== '' && String(v) !== userId) {
+      return {
+        ok: false,
+        reason: `"${toolName}" acts only on the token's own user; "${key}" names someone else`,
+      };
+    }
+  }
+  const bound: Record<string, unknown> = { ...args, userId };
+  if (toolName === 'get_creator_earnings') bound.creatorId = userId;
+  return { ok: true, args: bound };
 }
 
 // ── Gate 2: Tool Authorization ───────────────────────────────────────────────

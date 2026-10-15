@@ -81,7 +81,11 @@ import {
 } from './trait-categories-from-core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { runForkSandboxGate, gateHoloScriptCode } from './security/fork-sandbox-gate';
-import { assertReentrantToolAuthorized, callerPrincipal } from './security/tool-scopes';
+import {
+  assertReentrantToolAuthorized,
+  bindUserPrivateArgs,
+  callerPrincipal,
+} from './security/tool-scopes';
 import type { CapabilityManifest } from './security/sandbox-policy';
 
 /** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
@@ -380,6 +384,16 @@ export async function handleTool(
           scopes: ['admin:*'],
         }
       : undefined);
+
+  // Trust & Consent (c): a user-private tool acts on the token's own user only.
+  // Bound before any gate or handler sees the arguments.
+  {
+    const bound = bindUserPrivateArgs(name, args, effectiveSigningCtx);
+    if (!bound.ok) {
+      return { success: false, error: `Authorization denied: ${bound.reason}` };
+    }
+    args = bound.args;
+  }
 
   const capabilityManifest = asCapabilityManifest(args.capabilityManifest ?? args.manifest);
   // A manifest arrives in the caller's own arguments and nothing signs it yet, so its
