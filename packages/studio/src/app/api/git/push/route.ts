@@ -20,7 +20,13 @@ import { corsHeaders } from '../../_lib/cors';
 import { isSafeGitRef, isSafeGitRemote, resolveWorkspaceGitPath } from '../_shared';
 import { getGitHubToken } from '@/app/api/github/_shared';
 import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
-import { evaluatePush, resolveDefaultBranchForPush, workspaceDirectShipEnabled } from '@/lib/workspace/shipPolicy';
+import {
+  evaluatePush,
+  resolveDefaultBranchForPush,
+  resolveTargetRef,
+  unsafeBranchInput,
+  workspaceDirectShipEnabled,
+} from '@/lib/workspace/shipPolicy';
 
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
@@ -63,6 +69,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'branch is not a valid git ref name' }, { status: 400 });
   }
 
+  const unsafeBranch = unsafeBranchInput(branch);
+  if (unsafeBranch) {
+    return NextResponse.json({ error: unsafeBranch, reason: 'unsafe_branch' }, { status: 400 });
+  }
+
   // Direct ship is a per-workspace setting, OFF by default. With it off this
   // route (which the daemon/agent patch flow also uses) never pushes the
   // default branch. Checked before the token touches the remote.
@@ -86,6 +97,8 @@ export async function POST(req: NextRequest) {
   const decision = evaluatePush({
     directShip: workspaceDirectShipEnabled(project),
     branch: pushBranch,
+    targetRef: pushBranch ? resolveTargetRef(resolved, pushBranch) : null,
+    force,
     // GitHub's current default_branch first (renames), then recorded metadata.
     defaultBranch: await resolveDefaultBranchForPush({
       token,

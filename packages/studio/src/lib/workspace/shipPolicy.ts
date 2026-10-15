@@ -48,8 +48,56 @@ export function importShipMetadata(defaultBranch: string | null): Record<string,
 
 function normalizeBranch(name: string | null | undefined): string | null {
   if (!name) return null;
-  const trimmed = name.trim().replace(/^refs\/heads\//, '').replace(/^origin\//, '');
+  const trimmed = name
+    .trim()
+    .replace(/^refs\/heads\//, '')
+    .replace(/^heads\//, '')
+    .replace(/^origin\//, '');
   return trimmed || null;
+}
+
+/**
+ * A branch name a caller supplies must be a plain branch name. Git expands
+ * `heads/main` and `refs/heads/main` to the default branch, `HEAD`/`@` to
+ * whatever is checked out, `+main` to a forced push, and `x:main` to a
+ * refspec that lands on main. All are refused before any policy check.
+ * Returns an error message, or null when the name is acceptable.
+ */
+export function unsafeBranchInput(raw: string | null | undefined): string | null {
+  if (raw === null || raw === undefined) return null;
+  const value = raw.trim();
+  if (!value) return null;
+  if (
+    value === 'HEAD' ||
+    value === '@' ||
+    value.startsWith('+') ||
+    value.includes(':') ||
+    value.includes('@{') ||
+    /^(refs|heads)\//i.test(value)
+  ) {
+    return `"${value}" is not a plain branch name. Give a branch name like "studio/my-change" (no refs/, heads/, HEAD, @, leading +, or ':').`;
+  }
+  return null;
+}
+
+/**
+ * Full ref a branch name resolves to in this clone (`git rev-parse
+ * --symbolic-full-name`). A branch that does not exist locally yet resolves
+ * to refs/heads/<name>, which is where the push would create it.
+ */
+export function resolveTargetRef(cwd: string, branch: string): string {
+  try {
+    const full = String(
+      runGitSync(['rev-parse', '--symbolic-full-name', '--end-of-options', branch], {
+        cwd,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+    ).trim();
+    if (full.startsWith('refs/')) return full;
+  } catch {
+    // not a local ref yet
+  }
+  return `refs/heads/${branch}`;
 }
 
 /**
@@ -88,13 +136,33 @@ export function evaluatePush(input: {
   directShip: boolean;
   branch: string | null | undefined;
   defaultBranch: string | null | undefined;
+  /** Full ref the push lands on (from resolveTargetRef). Compared as refs/heads/<default>. */
+  targetRef?: string | null;
+  force?: boolean;
 }): PushDecision {
-  if (input.directShip) return { ok: true };
-  const branch = normalizeBranch(input.branch);
-  const protectedBranches = new Set(FALLBACK_PROTECTED_BRANCHES);
+  const protectedRefs = new Set(FALLBACK_PROTECTED_BRANCHES.map((b) => `refs/heads/${b}`));
   const defaultBranch = normalizeBranch(input.defaultBranch);
-  if (defaultBranch) protectedBranches.add(defaultBranch);
-  if (!branch || branch === 'HEAD' || protectedBranches.has(branch)) {
+  if (defaultBranch) protectedRefs.add(`refs/heads/${defaultBranch}`);
+  const unsafe = unsafeBranchInput(input.branch);
+  const branch = normalizeBranch(input.branch);
+  const targetRef = input.targetRef?.trim() || (branch ? `refs/heads/${branch}` : null);
+  const hitsDefault =
+    !!unsafe ||
+    !branch ||
+    branch === 'HEAD' ||
+    !targetRef ||
+    !targetRef.startsWith('refs/heads/') ||
+    protectedRefs.has(targetRef);
+  // A force push to the default branch is refused even with direct ship on.
+  if (input.force && hitsDefault) {
+    return {
+      ok: false,
+      reason: 'direct_ship_off',
+      error: 'Studio never force-pushes the default branch.',
+    };
+  }
+  if (input.directShip && !unsafe) return { ok: true };
+  if (hitsDefault) {
     return {
       ok: false,
       reason: 'direct_ship_off',

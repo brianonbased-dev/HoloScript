@@ -162,4 +162,63 @@ describe('git push honors the per-workspace direct-ship setting', () => {
     expect(res.status).toBe(403);
     expect(pushedRefs()).toHaveLength(0);
   });
+
+  describe('B1: ref-shaped and forced targets never land on the default branch', () => {
+    const remoteOnly = (args: readonly string[]) =>
+      args[0] === 'remote' ? 'https://github.com/o/r.git' : '';
+
+    for (const branch of ['heads/main', 'refs/heads/main', 'HEAD', '+main', 'x:main']) {
+      it(`push refuses branch "${branch}" (direct ship off)`, async () => {
+        gitOk(remoteOnly);
+        const res = await pushPOST(req('http://x/api/git/push', { workspacePath: '/ws/ws-1', branch }));
+        expect([400, 403]).toContain(res.status);
+        expect(pushedRefs()).toHaveLength(0);
+      });
+
+      it(`push refuses branch "${branch}" even with direct ship on`, async () => {
+        h.project = { metadata: { defaultBranch: 'main', directShip: true } };
+        gitOk(remoteOnly);
+        const res = await pushPOST(req('http://x/api/git/push', { workspacePath: '/ws/ws-1', branch }));
+        expect([400, 403]).toContain(res.status);
+        expect(pushedRefs()).toHaveLength(0);
+      });
+
+      it(`ship refuses branch "${branch}"`, async () => {
+        gitOk(remoteOnly);
+        const res = await shipPOST(
+          req('http://x/api/git/ship', { workspacePath: '/ws/ws-1', message: 'm', branch })
+        );
+        expect([400, 403]).toContain(res.status);
+        expect(pushedRefs()).toHaveLength(0);
+      });
+    }
+
+    it('push refuses a --force push to the default branch even with direct ship on', async () => {
+      h.project = { metadata: { defaultBranch: 'main', directShip: true } };
+      gitOk(remoteOnly);
+      const res = await pushPOST(
+        req('http://x/api/git/push', { workspacePath: '/ws/ws-1', branch: 'main', force: true })
+      );
+      expect(res.status).toBe(403);
+      expect(pushedRefs()).toHaveLength(0);
+    });
+
+    it('ship refuses a --force push to the default branch even with direct ship on', async () => {
+      h.project = { metadata: { defaultBranch: 'main', directShip: true } };
+      gitOk(remoteOnly);
+      const res = await shipPOST(
+        req('http://x/api/git/ship', { workspacePath: '/ws/ws-1', message: 'm', branch: 'main', force: true })
+      );
+      expect(res.status).toBe(403);
+      expect(pushedRefs()).toHaveLength(0);
+    });
+
+    it('a --force push to a feature branch still works', async () => {
+      gitOk(remoteOnly);
+      const res = await pushPOST(
+        req('http://x/api/git/push', { workspacePath: '/ws/ws-1', branch: 'studio/fix', force: true })
+      );
+      expect(res.status).toBe(200);
+    });
+  });
 });

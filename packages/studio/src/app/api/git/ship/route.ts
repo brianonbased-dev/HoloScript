@@ -31,7 +31,13 @@ import {
 } from '../_shared';
 import { getGitHubToken } from '@/app/api/github/_shared';
 import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
-import { evaluatePush, resolveDefaultBranchForPush, workspaceDirectShipEnabled } from '@/lib/workspace/shipPolicy';
+import {
+  evaluatePush,
+  resolveDefaultBranchForPush,
+  resolveTargetRef,
+  unsafeBranchInput,
+  workspaceDirectShipEnabled,
+} from '@/lib/workspace/shipPolicy';
 const GITHUB_API_BASE_URL = (
   process.env.GITHUB_API_URL ||
   process.env.GITHUB_API_BASE_URL ||
@@ -164,6 +170,11 @@ export async function POST(req: NextRequest) {
 
   let originalRemoteUrl: string | null = null;
 
+  const unsafeBranch = unsafeBranchInput(body.branch);
+  if (unsafeBranch) {
+    return NextResponse.json({ error: unsafeBranch, reason: 'unsafe_branch' }, { status: 400 });
+  }
+
   // Per-workspace direct-ship check BEFORE anything is staged or committed.
   const owned = assertWorkspaceOwner(session, cwd);
   const project = owned.ok ? owned.project : null;
@@ -185,6 +196,8 @@ export async function POST(req: NextRequest) {
   const decision = evaluatePush({
     directShip: workspaceDirectShipEnabled(project),
     branch: shipBranch,
+    targetRef: shipBranch ? resolveTargetRef(cwd, shipBranch) : null,
+    force,
     // GitHub's current default_branch first (renames), then recorded metadata.
     defaultBranch: await resolveDefaultBranchForPush({
       token,
