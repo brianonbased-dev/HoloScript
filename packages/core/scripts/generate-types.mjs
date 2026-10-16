@@ -544,11 +544,21 @@ export interface CanonicalDiagnostic {
   code?: string;
   suggestion?: string;
 }
+// Likeness consent (HS1011, src/validation/LikenessCheck.ts, #590). Type-only on the root entry.
+export type LikenessSource = 'face' | 'voice' | 'body';
+/** The caller's \`.hs\` render_likeness result: grant -> the sources the rule said yes to. */
+export type ConsentRules =
+  | Record<string, Iterable<LikenessSource | string>>
+  | Map<string, Iterable<LikenessSource | string>>;
 export interface CanonicalSourceValidationRequest {
   source: string;
   fileName?: string;
   surface?: CanonicalSourceSurface | '.holo' | '.hsplus' | '.hs';
   allowEmpty?: boolean;
+  /** \`.holo\` only. Unset or empty: every likeness source is refused with HS1011 (fail closed). */
+  consentRules?: ConsentRules | null;
+  /** Extra trait names known to this caller, for the HS1006 unknown-trait check. */
+  knownTraits?: Iterable<string>;
 }
 export type CanonicalHsDetailedValidator = (source: string) => string | unknown;
 export interface CanonicalSourceValidationDependencies {
