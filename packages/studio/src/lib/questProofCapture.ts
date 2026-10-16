@@ -20,6 +20,9 @@ import path from 'node:path';
 
 /** Largest request body (POST) or query string (GET ?record=1) accepted, in bytes. */
 export const QUEST_PROOF_MAX_BODY_BYTES = 16 * 1024;
+/** Capture tokens expire. Default lifetime and the most a founder may ask for, in seconds. */
+export const QUEST_PROOF_TOKEN_DEFAULT_TTL_S = 4 * 60 * 60;
+export const QUEST_PROOF_TOKEN_MAX_TTL_S = 24 * 60 * 60;
 /** A run's receipts file stops accepting lines past this size. */
 export const QUEST_PROOF_MAX_RUN_FILE_BYTES = 2 * 1024 * 1024;
 
@@ -38,20 +41,48 @@ function captureSecret(): string {
   return process.env.QUEST_PROOF_CAPTURE_SECRET || process.env.NEXTAUTH_SECRET || '';
 }
 
-export function mintQuestProofToken(runId: string): string | null {
-  const secret = captureSecret();
-  if (!secret) return null;
+function mac(secret: string, runId: string, exp: number): string {
   return createHmac('sha256', secret)
-    .update(`quest-proof-capture:v1:${safeRunId(runId)}`)
+    .update(`quest-proof-capture:v2:${safeRunId(runId)}:${exp}`)
     .digest('base64url');
 }
 
-export function verifyQuestProofToken(runId: string, token: unknown): boolean {
+/**
+ * Token format: `<exp>.<mac>`, exp in unix seconds. The MAC covers the runId and
+ * exp, so neither can be changed. Tokens without an exp (the old v1 format) are
+ * no longer accepted: reissue the link.
+ */
+export function mintQuestProofToken(
+  runId: string,
+  opts: { ttlSeconds?: number; nowMs?: number } = {}
+): string | null {
+  const secret = captureSecret();
+  if (!secret) return null;
+  const ttl = Math.min(
+    Math.max(Math.floor(opts.ttlSeconds ?? QUEST_PROOF_TOKEN_DEFAULT_TTL_S), 60),
+    QUEST_PROOF_TOKEN_MAX_TTL_S
+  );
+  const exp = Math.floor((opts.nowMs ?? Date.now()) / 1000) + ttl;
+  return `${exp}.${mac(secret, runId, exp)}`;
+}
+
+export function questProofTokenExp(token: string): number | null {
+  const m = /^(\d{9,11})\./.exec(token);
+  return m ? Number(m[1]) : null;
+}
+
+export function verifyQuestProofToken(runId: string, token: unknown, nowMs = Date.now()): boolean {
   if (typeof token !== 'string' || token.length === 0 || token.length > 128) return false;
-  const expected = mintQuestProofToken(runId);
-  if (!expected) return false;
-  const a = Buffer.from(token);
-  const b = Buffer.from(expected);
+  const secret = captureSecret();
+  if (!secret) return false;
+  const m = /^(\d{9,11})\.([A-Za-z0-9_-]{43})$/.exec(token);
+  if (!m) return false;
+  const exp = Number(m[1]);
+  const now = Math.floor(nowMs / 1000);
+  if (now > exp) return false;
+  if (exp - now > QUEST_PROOF_TOKEN_MAX_TTL_S) return false;
+  const a = Buffer.from(m[2]);
+  const b = Buffer.from(mac(secret, runId, exp));
   return a.length === b.length && timingSafeEqual(a, b);
 }
 

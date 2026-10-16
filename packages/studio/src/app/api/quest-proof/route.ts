@@ -113,11 +113,36 @@ function tokenFrom(req: NextRequest): string | null {
   );
 }
 
+/**
+ * Read at most `max` bytes of the body. Stops pulling (and cancels the stream)
+ * as soon as the limit is passed, so a chunked body with no Content-Length is
+ * never buffered whole. Returns null when over the limit.
+ */
+async function readBodyCapped(req: NextRequest, max: number): Promise<string | null> {
+  if (!req.body) return '';
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 export async function POST(req: NextRequest) {
+  // No token at all: refuse before reading a single byte of the body.
+  if (!tokenFrom(req)) return unauthorized();
   const declared = Number(req.headers.get('content-length') ?? '0');
   if (declared > QUEST_PROOF_MAX_BODY_BYTES) return tooLarge();
-  const text = await req.text().catch(() => '');
-  if (Buffer.byteLength(text, 'utf8') > QUEST_PROOF_MAX_BODY_BYTES) return tooLarge();
+  const text = await readBodyCapped(req, QUEST_PROOF_MAX_BODY_BYTES).catch(() => '');
+  if (text === null) return tooLarge();
 
   let parsed: unknown = {};
   try {

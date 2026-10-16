@@ -6,6 +6,16 @@ import path from 'node:path';
 import os from 'node:os';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireFounder } from '@/lib/api-auth';
+import { safeRunId } from '@/lib/questProofCapture';
+
+/** Most of each stream kept while the script runs, and the total after which it is killed. */
+export const TASK_OUTPUT_KEEP_BYTES = 8 * 1024;
+export const TASK_OUTPUT_KILL_BYTES = 1024 * 1024;
+
+function keepTail(current: string, chunk: string): string {
+  const next = current + chunk;
+  return next.length > TASK_OUTPUT_KEEP_BYTES ? next.slice(-TASK_OUTPUT_KEEP_BYTES) : next;
+}
 
 export const runtime = 'nodejs';
 
@@ -13,7 +23,6 @@ interface TaskResult {
   ok: boolean;
   taskId: string | null;
   title: string;
-  seedPath: string;
   stdout: string;
   stderr: string;
   exitCode: number | null;
@@ -28,16 +37,6 @@ function repoRoot(): string {
     current = parent;
   }
   return path.resolve(process.cwd(), '../..');
-}
-
-function safeRunId(input: unknown): string {
-  const value =
-    typeof input === 'string' && input.trim()
-      ? input.trim()
-      : new Date().toISOString().slice(0, 10);
-  return (
-    value.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 96) || new Date().toISOString().slice(0, 10)
-  );
 }
 
 function cleanText(input: unknown, max: number): string {
@@ -72,11 +71,18 @@ async function runAddTasks(seedPath: string): Promise<{
     const timeout = setTimeout(() => {
       child.kill('SIGTERM');
     }, 60000);
+    let seen = 0;
+    const onChunk = (chunk: Buffer) => {
+      seen += chunk.byteLength;
+      if (seen > TASK_OUTPUT_KILL_BYTES) child.kill('SIGTERM');
+    };
     child.stdout.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString('utf8');
+      onChunk(chunk);
+      stdout = keepTail(stdout, chunk.toString('utf8'));
     });
     child.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString('utf8');
+      onChunk(chunk);
+      stderr = keepTail(stderr, chunk.toString('utf8'));
     });
     child.on('close', (exitCode) => {
       clearTimeout(timeout);
@@ -149,7 +155,6 @@ async function fileTask(raw: Record<string, unknown>): Promise<TaskResult> {
     ok: result.exitCode === 0 || Boolean(taskId),
     taskId,
     title,
-    seedPath,
     stdout: result.stdout.slice(-4000),
     stderr: result.stderr.slice(-4000),
     exitCode: result.exitCode,
