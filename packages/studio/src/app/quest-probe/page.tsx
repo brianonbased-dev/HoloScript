@@ -236,17 +236,21 @@ const fallbackScript = String.raw`
   function push(label, status, detail) {
     results.push({ label, status, detail });
     render();
-    const query = new URLSearchParams({
-      record: '1',
-      runId: runId(),
-      pageId: 'quest-probe',
-      label,
-      status,
-      detail,
-      url: window.location.href,
-      userAgent: navigator.userAgent,
-    });
-    fetch(prefix('/api/quest-proof') + '?' + query.toString(), { cache: 'no-store' }).catch(() => {});
+    const params = new URLSearchParams(window.location.search);
+    fetch(prefix('/api/quest-proof') + '?' + new URLSearchParams({ runId: runId() }).toString(), {
+      method: 'POST',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': params.get('proofToken') || '' },
+      body: JSON.stringify({
+        runId: runId(),
+        pageId: 'quest-probe',
+        label,
+        status,
+        detail,
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+      }),
+    }).catch(() => {});
   }
 
   function timeout(promise, label, ms = 15000) {
