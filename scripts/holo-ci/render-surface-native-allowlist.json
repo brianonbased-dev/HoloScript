@@ -134,6 +134,7 @@
     "packages/studio/src/app/lotus-slice/LotusCanvas.tsx",
     "packages/studio/src/app/lotus-slice/page.tsx",
     "packages/studio/src/app/not-found.tsx",
+    "packages/studio/src/app/oauth/consent/page.tsx",
     "packages/studio/src/app/operations/page.tsx",
     "packages/studio/src/app/p043-quest-capture/page.tsx",
     "packages/studio/src/app/page.tsx",
