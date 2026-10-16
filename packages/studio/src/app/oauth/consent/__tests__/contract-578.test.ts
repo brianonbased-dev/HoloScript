@@ -4,7 +4,8 @@
  * (verifyStudioConsent peek on the x-studio-consent header -> issueOAuthCsrfToken
  * bound to sub; no header -> login_required, no csrf_token), and the POST is
  * checked with verifyStudioConsent (consuming) + verifyOAuthCsrfToken(userId).
- * Skipped until oauth-csrf.ts (added by #578) is on the branch.
+ * #578 is on the branch now, so a missing oauth-csrf.ts FAILS this suite
+ * instead of silently skipping it (Trust section E follow-up).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
@@ -15,6 +16,7 @@ const { sessionMock, redirectMock } = vi.hoisted(() => ({
     throw Object.assign(new Error('NEXT_REDIRECT'), { url });
   }),
 }));
+vi.mock('server-only', () => ({}));
 vi.mock('next-auth', () => ({ getServerSession: sessionMock }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
 vi.mock('next/navigation', () => ({ redirect: redirectMock }));
@@ -25,7 +27,13 @@ import * as consent from '../../../../../../mcp-server/src/security/studio-conse
 
 const csrfMods = import.meta.glob('../../../../../../mcp-server/src/security/oauth-csrf.ts');
 const csrfLoader = Object.values(csrfMods)[0];
-type CsrfBinding = { clientId: string; redirectUri: string; codeChallenge: string; userId: string };
+type CsrfBinding = {
+  clientId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  userId: string;
+  scope: string;
+};
 const csrf = csrfLoader
   ? ((await csrfLoader()) as {
       issueOAuthCsrfToken: (b: CsrfBinding) => string;
@@ -69,6 +77,7 @@ function mcpGet(url: string, headers: Record<string, string>) {
         redirectUri: q.get('redirect_uri')!,
         codeChallenge: q.get('code_challenge')!,
         userId: getConsent.userId,
+        scope: q.get('scope') || 'tools:read',
       })
     : undefined;
   return new Response(
@@ -92,6 +101,7 @@ function mcpPost(raw: string) {
     redirectUri: body.redirect_uri,
     codeChallenge: body.code_challenge,
     userId: peeked.userId,
+    scope: body.scope || 'tools:read',
   });
   if (!ok) return new Response(JSON.stringify({ error: 'invalid_request' }), { status: 403 });
   if (!consent.verifyStudioConsent(body.studio_consent, body.client_id))
@@ -99,13 +109,18 @@ function mcpPost(raw: string) {
   return new Response(JSON.stringify({ code: `CODE_FOR_${peeked.userId}` }), { status: 200 });
 }
 
-describe.skipIf(!csrf)('#579 x #578 F2 real contract', () => {
+it('#578 oauth-csrf.ts is present (this suite must not skip)', () => {
+  expect(csrf, 'packages/mcp-server/src/security/oauth-csrf.ts missing').not.toBeNull();
+});
+
+describe('#579 x #578 F2 real contract', () => {
   const fetchMock = vi.fn(async (url: string, init: any) =>
     init.method === 'GET' ? mcpGet(url, init.headers) : mcpPost(init.body)
   );
   beforeEach(() => {
     process.env.STUDIO_CONSENT_SECRET = SECRET;
     process.env.MCP_SERVER_URL = 'https://mcp.test';
+    process.env.NEXTAUTH_URL = 'http://studio.local';
     consent.resetConsentReplayGuard();
     fetchMock.mockClear();
     vi.stubGlobal('fetch', fetchMock);
@@ -127,7 +142,11 @@ describe.skipIf(!csrf)('#579 x #578 F2 real contract', () => {
     return POST(
       new NextRequest('http://studio.local/api/oauth/consent', {
         method: 'POST',
-        headers: { 'content-type': 'application/x-www-form-urlencoded', host: 'studio.local' },
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          host: 'studio.local',
+          origin: 'http://studio.local',
+        },
         body: new URLSearchParams({ ...sp, csrf_token: csrfToken, decision: 'approve' }).toString(),
       })
     );

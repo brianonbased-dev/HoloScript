@@ -134,3 +134,21 @@ export function verifyStudioConsent(
     grantId: typeof gid === 'string' && gid ? gid : `grant_${hash.slice(0, 32)}`,
   };
 }
+
+/**
+ * Connected apps (Studio Settings): the same signed assertion, but bound to
+ * this reserved audience instead of an OAuth client_id. Real client ids are
+ * `hsc_...` and the colon is not allowed in them, so an approval assertion
+ * can never be replayed here and vice versa. Single-use like every assertion.
+ */
+export const STUDIO_GRANTS_AUDIENCE = 'studio:connected-apps';
+
+/** Verify (and consume) a Connected-apps session assertion. Returns the user id or null. */
+export function verifyStudioGrantsSession(
+  assertion: unknown,
+  secret: string | undefined = process.env.STUDIO_CONSENT_SECRET,
+  nowMs: number = Date.now()
+): string | null {
+  const v = verifyStudioConsent(assertion, STUDIO_GRANTS_AUDIENCE, secret, nowMs);
+  return v ? v.userId : null;
+}

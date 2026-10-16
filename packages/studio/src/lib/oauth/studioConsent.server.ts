@@ -20,6 +20,7 @@
  * lapsed while the user read the page (default TTL 120 s, CSRF TTL 600 s) does
  * not break approval, and the assertion never has to round-trip the browser.
  */
+import 'server-only';
 import { createHmac, randomUUID } from 'crypto';
 
 export const CONSENT_MAX_TTL_S = 300;
@@ -85,6 +86,23 @@ export function newConsentGrantId(): string {
   return `grant_${randomUUID().replace(/-/g, '')}`;
 }
 
+/**
+ * Connected apps (Settings): the audience mcp-server's GET/DELETE /oauth/grants
+ * accept instead of a client_id (packages/mcp-server/src/security/studio-consent.ts
+ * STUDIO_GRANTS_AUDIENCE). Never a valid client id, so it cannot approve an app.
+ */
+export const STUDIO_GRANTS_AUDIENCE = 'studio:connected-apps';
+
+/** A single-use, 60 s session assertion for one Connected-apps call, or null without the secret. */
+export function mintStudioGrantsSession(userId: string, nowMs: number = Date.now()): string | null {
+  const secret = getStudioConsentSecret();
+  if (!secret || !userId) return null;
+  return signStudioConsent(
+    { sub: userId, cid: STUDIO_GRANTS_AUDIENCE, scp: [], gid: newConsentGrantId(), ttlS: 60 },
+    secret,
+    nowMs
+  );
+}
 export function mcpOAuthBaseUrl(): string {
   const raw =
     process.env.MCP_OAUTH_ISSUER_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';

@@ -114,7 +114,7 @@ import {
 } from './auth/oauth2-provider';
 import { creditCheckSubject } from './security/credit-check-subject';
 import { setUserCreditsResolver } from './security/user-credits';
-import { verifyStudioConsent } from './security/studio-consent';
+import { verifyStudioConsent, verifyStudioGrantsSession } from './security/studio-consent';
 import { issueOAuthCsrfToken, verifyOAuthCsrfToken } from './security/oauth-csrf';
 import {
   clientDeletionActor,
@@ -398,9 +398,12 @@ oauth.setClientStatusResolver(async (clientId) => {
  * middle of its sign-in), drop a copy the durable store no longer holds, and
  * rehydrate it after a deploy wiped the in-memory map. See prepareClientForUse.
  */
-/** Studio's consent page (#579). STUDIO_PUBLIC_URL overrides the default. */
+/**
+ * Studio's consent page (#579). STUDIO_PUBLIC_URL overrides the default, which is
+ * live Studio (holoscript.studio; studio.holoscript.net only redirects there).
+ */
 function studioConsentUrl(): string {
-  const base = (process.env.STUDIO_PUBLIC_URL || 'https://studio.holoscript.net').replace(/\/+$/, '');
+  const base = (process.env.STUDIO_PUBLIC_URL || 'https://holoscript.studio').replace(/\/+$/, '');
   return `${base}/oauth/consent`;
 }
 
@@ -2654,7 +2657,13 @@ const httpServer = http.createServer(async (req, res) => {
         { peek: true }
       );
       const csrfToken = getConsent
-        ? issueOAuthCsrfToken({ clientId, redirectUri, codeChallenge, userId: getConsent.userId })
+        ? issueOAuthCsrfToken({
+            clientId,
+            redirectUri,
+            codeChallenge,
+            userId: getConsent.userId,
+            scope: requestedScopes,
+          })
         : undefined;
 
       if (acceptsHtml(req.headers.accept)) {
@@ -2827,6 +2836,7 @@ const httpServer = http.createServer(async (req, res) => {
           redirectUri,
           codeChallenge,
           userId: peeked.userId,
+          scope: requestedScopes,
         })
       ) {
         auditLog.logAuthEvent({
@@ -2964,6 +2974,73 @@ const httpServer = http.createServer(async (req, res) => {
     }
   }
 
+  // GET /oauth/grants, DELETE /oauth/grants/:id -- Connected apps (CVO done
+  // criterion: a signed-in human sees each agent's grant and revokes it).
+  // Auth: a single-use Studio session assertion in x-studio-consent, bound to
+  // STUDIO_GRANTS_AUDIENCE (never an OAuth bearer, so an agent cannot list or
+  // revoke a human's grants). Only the assertion's own user's grants are
+  // visible; another user's grant id is a 404, the same as a missing one.
+  {
+    const grantsDelete =
+      req.method === 'DELETE' ? /^\/oauth\/grants\/([A-Za-z0-9_-]{1,128})$/.exec(url ?? '') : null;
+    if ((url === '/oauth/grants' && req.method === 'GET') || grantsDelete) {
+      const json = (status: number, body: unknown) => {
+        res.writeHead(status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify(body));
+      };
+      const grantsUser = verifyStudioGrantsSession(req.headers['x-studio-consent']);
+      if (!grantsUser) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          ip: clientIP,
+          reason: 'grants: missing or invalid Studio session assertion',
+        });
+        json(401, {
+          error: 'login_required',
+          error_description: 'A signed-in Studio session is required to manage connected apps.',
+        });
+        return;
+      }
+      if (!grantsDelete) {
+        const list = oauth.listGrantsForUser(grantsUser);
+        await Promise.all(list.map((g) => ensureClientHydrated(g.clientId).catch(() => undefined)));
+        json(200, {
+          grants: list.map((g) => {
+            const client = oauth.getClient(g.clientId);
+            return {
+              id: g.grantId,
+              client_id: g.clientId,
+              client_name: client?.clientName ?? null,
+              // No verified-publisher signal exists: every name is the app's own claim.
+              client_name_verified: false,
+              scopes: [...g.scopes],
+              created_at: new Date(g.issuedAt).toISOString(),
+              last_used_at: new Date(g.lastUsedAt).toISOString(),
+            };
+          }),
+        });
+        return;
+      }
+      const target = oauth.getGrant(grantsDelete[1]);
+      if (!target || target.userId !== grantsUser || target.revokedAt) {
+        json(404, { error: 'not_found', error_description: 'No such connected app for this account.' });
+        return;
+      }
+      oauth.revokeGrant(target.grantId);
+      auditLog.logAuthEvent({
+        event: 'token_revoked',
+        clientId: target.clientId,
+        ip: clientIP,
+        reason: `grant ${target.grantId} revoked by its user in Studio`,
+      });
+      res.writeHead(204, { 'Cache-Control': 'no-store' });
+      res.end();
+      return;
+    }
+  }
   // DELETE /oauth/clients/:id — revoke a client (Trust & Consent A4 / d)
   {
     const deleteMatch =

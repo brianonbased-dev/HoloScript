@@ -6,6 +6,7 @@ const { sessionMock, redirectMock } = vi.hoisted(() => ({
     throw Object.assign(new Error('NEXT_REDIRECT'), { url });
   }),
 }));
+vi.mock('server-only', () => ({}));
 vi.mock('next-auth', () => ({ getServerSession: sessionMock }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
 vi.mock('next/navigation', () => ({ redirect: redirectMock }));
@@ -89,6 +90,23 @@ describe('/oauth/consent page', () => {
     expect(tree).not.toContain(assertion);
     expect(tree).toContain('not verified');
     expect(tree).toContain('127.0.0.1:7777');
+  });
+
+  it('lookalike app name: the consent page warns (NFKC + confusables folded); a plain name does not', async () => {
+    sessionMock.mockResolvedValue({ user: { id: 'u1' } });
+    const page = async (client_name: string) => {
+      fetchMock.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ authorization_request: { client_id: 'hsc_test', client_name, csrf_token: 'C' } }),
+          { status: 200 }
+        )
+      );
+      return JSON.stringify(await OAuthConsentPage({ searchParams: sp }));
+    };
+    const fake = await page('\uFF28olo\u0405cript Official');
+    expect(fake).toContain('lookalike-warning');
+    expect(fake).toContain('HoloScript');
+    expect(await page('Weather Agent')).not.toContain('lookalike-warning');
   });
 
   it('mcp answers login_required (no csrf_token): shows an error, no form', async () => {

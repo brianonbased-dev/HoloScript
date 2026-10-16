@@ -21,6 +21,7 @@ import {
   type RealHttpServer,
 } from './real-http-server-harness';
 import { getAuditLogger } from '../security/audit-log';
+import { consentedGrant } from './consented-test-token';
 
 const FLAG = 'OAUTH_ALLOW_REMOTE_REGISTRATION';
 const SCOPE = 'tools:read tools:execute';
@@ -39,7 +40,12 @@ afterEach(() => {
   delete process.env[FLAG];
 });
 
-/** Sign up over loopback with no agent key, then take a client-credentials token for SCOPE. */
+/**
+ * Sign up over loopback with no agent key, then take a token for SCOPE through
+ * #578's human-consent flow (a self-registered client gets no client_credentials
+ * reach beyond public social scopes since Muse Gap 9). The zkdg narrowing is
+ * applied where every grant issues, so it holds on this path too.
+ */
 async function signUpWithoutProof(): Promise<{ token: string; granted: string[] }> {
   const registered = await server.request('POST', '/oauth/register', {
     body: {
@@ -47,23 +53,13 @@ async function signUpWithoutProof(): Promise<{ token: string; granted: string[] 
       redirect_uris: ['https://client.test/callback'],
       scope: SCOPE,
       token_endpoint_auth_method: 'client_secret_post',
-      grant_types: ['client_credentials'],
+      grant_types: ['authorization_code'],
     },
   });
   expect(registered.status, JSON.stringify(registered.body)).toBe(201);
-  const issued = await server.request('POST', '/oauth/token', {
-    body: {
-      grant_type: 'client_credentials',
-      client_id: registered.body.client_id,
-      client_secret: registered.body.client_secret,
-      scope: SCOPE,
-    },
-  });
+  const issued = await consentedGrant(server.request, SCOPE, { client: registered.body });
   expect(issued.status, JSON.stringify(issued.body)).toBe(200);
-  return {
-    token: issued.body.access_token as string,
-    granted: String(issued.body.scope ?? '').split(' ').filter(Boolean),
-  };
+  return { token: issued.body.access_token as string, granted: issued.granted };
 }
 
 /** Call a tool over POST /mcp and return Gate 2's verdict for that call, from the audit log. */
@@ -123,23 +119,16 @@ describe('the mark is made at registration, not read from the door later (zkdg, 
         redirect_uris: ['https://client.test/callback'],
         scope: SCOPE,
         token_endpoint_auth_method: 'client_secret_post',
-        grant_types: ['client_credentials'],
+        grant_types: ['authorization_code'],
       },
     });
     expect(registered.status, JSON.stringify(registered.body)).toBe(201);
 
     delete process.env[FLAG]; // the operator closes the door again
 
-    const issued = await server.request('POST', '/oauth/token', {
-      body: {
-        grant_type: 'client_credentials',
-        client_id: registered.body.client_id,
-        client_secret: registered.body.client_secret,
-        scope: SCOPE,
-      },
-    });
+    const issued = await consentedGrant(server.request, SCOPE, { client: registered.body });
     expect(issued.status, JSON.stringify(issued.body)).toBe(200);
-    const granted = String(issued.body.scope ?? '').split(' ');
+    const granted = issued.granted;
     expect(granted).not.toContain('tools:execute');
     expect(await scopeGateVerdict(CODEBASE_TOOL, issued.body.access_token as string)).toBe(false);
   });

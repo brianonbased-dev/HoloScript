@@ -273,6 +273,28 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
     expect(loc.searchParams.has('studio_consent')).toBe(false);
   });
 
+  it('browser consent goes to live Studio by default (https://holoscript.studio); STUDIO_PUBLIC_URL overrides', async () => {
+    const { clientId } = await register();
+    const q = new URLSearchParams({
+      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
+      code_challenge: CHALLENGE, code_challenge_method: 'S256',
+    });
+    const saved = process.env.STUDIO_PUBLIC_URL;
+    try {
+      delete process.env.STUDIO_PUBLIC_URL;
+      const r = await server.request('GET', `/oauth/authorize?${q}`, { headers: { accept: 'text/html' } });
+      expect(r.status).toBe(302);
+      const loc = new URL(String(r.headers?.location));
+      expect(loc.origin + loc.pathname).toBe('https://holoscript.studio/oauth/consent');
+      process.env.STUDIO_PUBLIC_URL = 'https://studio.example.test/';
+      const o = await server.request('GET', `/oauth/authorize?${q}`, { headers: { accept: 'text/html' } });
+      expect(String(o.headers?.location)).toMatch(/^https:\/\/studio\.example\.test\/oauth\/consent\?/);
+    } finally {
+      if (saved === undefined) delete process.env.STUDIO_PUBLIC_URL;
+      else process.env.STUDIO_PUBLIC_URL = saved;
+    }
+  });
+
   it('F3 studio_consent in the POST query string is not accepted', async () => {
     const { clientId } = await register();
     const assertion = consentFor(clientId);
@@ -429,5 +451,21 @@ describe('R4 DELETE /oauth/clients/:id', () => {
   it('unknown client id with admin: still 204', async () => {
     const d = await server.request('DELETE', '/oauth/clients/hsc_doesnotexist', { token: REAL_SERVER_ADMIN_KEY });
     expect(d.status).toBe(204);
+  });
+});
+
+describe('N2 the csrf_token is bound to the requested scope', () => {
+  it('a POST that widens the scope shown on the GET is refused (403); the same scope succeeds', async () => {
+    const { clientId } = await register();
+    const assertion = consentFor(clientId);
+    const csrf = await csrfFor(clientId, 'social', assertion);
+    const widened = await server.request('POST', '/oauth/authorize', {
+      body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: assertion }, 'social user:private'),
+    });
+    expect(widened.status).toBe(403);
+    const same = await server.request('POST', '/oauth/authorize', {
+      body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: consentFor(clientId) }, 'social'),
+    });
+    expect(same.status, JSON.stringify(same.body)).toBe(200);
   });
 });

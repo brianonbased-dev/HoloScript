@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { isOwnOriginRequest } from '@/lib/studioOrigin';
 import {
   buildCallbackUrl,
   parseAuthorizeParams,
@@ -23,15 +24,6 @@ export const dynamic = 'force-dynamic';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
-function sameOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get('origin');
-  if (!origin) return true; // same-origin form posts may omit it; SameSite cookies still apply
-  try {
-    return new URL(origin).host === (req.headers.get('host') || req.nextUrl.host);
-  } catch {
-    return false;
-  }
-}
 
 async function readForm(req: NextRequest): Promise<Record<string, string>> {
   const ct = (req.headers.get('content-type') || '').toLowerCase();
@@ -48,7 +40,9 @@ async function readForm(req: NextRequest): Promise<Record<string, string>> {
 }
 
 export async function POST(req: NextRequest) {
-  if (!sameOrigin(req)) {
+  // Release N3 / Mapping: Origin must be present and equal the configured
+  // Studio URL (#609 helper). Host / X-Forwarded-Host are never trusted.
+  if (!isOwnOriginRequest(req)) {
     return NextResponse.json({ error: 'cross_origin_refused' }, { status: 403, headers: NO_STORE });
   }
   const form = await readForm(req);

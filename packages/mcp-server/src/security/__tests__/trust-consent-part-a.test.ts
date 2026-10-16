@@ -359,7 +359,13 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
   });
 
   describe('CSRF token', () => {
-    const b = { clientId: 'hsc_1', redirectUri: REDIRECT, codeChallenge: CHALLENGE, userId: 'alice' };
+    const b = {
+      clientId: 'hsc_1',
+      redirectUri: REDIRECT,
+      codeChallenge: CHALLENGE,
+      userId: 'alice',
+      scope: 'tools:read social',
+    };
     const S = 's'.repeat(40);
     it('verifies for the same request', () => {
       expect(verifyOAuthCsrfToken(issueOAuthCsrfToken(b, Date.now(), S), b, Date.now(), S)).toBe(true);
@@ -369,6 +375,13 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
       expect(verifyOAuthCsrfToken(t, { ...b, clientId: 'hsc_2' }, Date.now(), S)).toBe(false);
       expect(verifyOAuthCsrfToken(t, { ...b, redirectUri: 'https://evil.test/cb' }, Date.now(), S)).toBe(false);
       expect(verifyOAuthCsrfToken(t, { ...b, codeChallenge: 'x' }, Date.now(), S)).toBe(false);
+    });
+    it('N2: is bound to the requested scope (order-insensitive); a widened scope is refused', () => {
+      const t = issueOAuthCsrfToken(b, Date.now(), S);
+      expect(verifyOAuthCsrfToken(t, { ...b, scope: 'social  tools:read' }, Date.now(), S)).toBe(true);
+      expect(verifyOAuthCsrfToken(t, { ...b, scope: ['social', 'tools:read'] }, Date.now(), S)).toBe(true);
+      expect(verifyOAuthCsrfToken(t, { ...b, scope: 'tools:read social user:private' }, Date.now(), S)).toBe(false);
+      expect(verifyOAuthCsrfToken(t, { ...b, scope: 'tools:read' }, Date.now(), S)).toBe(false);
     });
     it('F2 refuses a token minted for another user', () => {
       const t = issueOAuthCsrfToken(b, Date.now(), S);
