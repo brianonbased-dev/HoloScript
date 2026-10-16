@@ -23,8 +23,6 @@ interface TaskResult {
   ok: boolean;
   taskId: string | null;
   title: string;
-  stdout: string;
-  stderr: string;
   exitCode: number | null;
 }
 
@@ -94,7 +92,7 @@ async function runAddTasks(seedPath: string): Promise<{
 async function fileTask(raw: Record<string, unknown>): Promise<TaskResult> {
   const runId = safeRunId(raw.runId);
   const message = cleanText(raw.message, 1200);
-  if (!message) throw new Error('Message is required.');
+  if (!message) throw new Error(INVALID);
 
   const pageId = cleanText(raw.pageId, 160) || 'quest-proof-dashboard';
   const sourceUrl = cleanText(raw.url, 1200);
@@ -148,6 +146,10 @@ async function fileTask(raw: Record<string, unknown>): Promise<TaskResult> {
   );
 
   const result = await runAddTasks(seedPath);
+  if (result.exitCode !== 0) {
+    // Details stay server-side; the response carries only a generic outcome.
+    console.error('[quest-proof/task] add-tasks script exit', result.exitCode, result.stderr.slice(-2000));
+  }
   const combined = `${result.stdout}\n${result.stderr}`;
   const taskId = extractTaskId(combined);
 
@@ -155,20 +157,19 @@ async function fileTask(raw: Record<string, unknown>): Promise<TaskResult> {
     ok: result.exitCode === 0 || Boolean(taskId),
     taskId,
     title,
-    stdout: result.stdout.slice(-4000),
-    stderr: result.stderr.slice(-4000),
     exitCode: result.exitCode,
   };
 }
 
-function objectFromQuery(req: NextRequest): Record<string, unknown> {
-  return {
-    runId: req.nextUrl.searchParams.get('runId'),
-    message: req.nextUrl.searchParams.get('message'),
-    pageId: req.nextUrl.searchParams.get('pageId'),
-    url: req.nextUrl.searchParams.get('url'),
-    userAgent: req.nextUrl.searchParams.get('userAgent'),
-  };
+const INVALID = 'Message is required.';
+
+function failure(error: unknown) {
+  const known = error instanceof Error && error.message === INVALID;
+  if (!known) console.error('[quest-proof/task] failed:', error);
+  return NextResponse.json(
+    { ok: false, error: known ? INVALID : 'Failed to file task.' },
+    { status: known ? 400 : 500 }
+  );
 }
 
 export async function POST(req: NextRequest) {
@@ -180,25 +181,18 @@ export async function POST(req: NextRequest) {
     const raw = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     return NextResponse.json(await fileTask(raw));
   } catch (error) {
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Failed to file task.' },
-      { status: 400 }
-    );
+    return failure(error);
   }
 }
 
 export async function GET(req: NextRequest) {
   const auth = await requireFounder(req);
   if (auth instanceof NextResponse) return auth;
-  try {
-    if (req.nextUrl.searchParams.get('record') !== '1') {
-      return NextResponse.json({ ok: true, ready: true });
-    }
-    return NextResponse.json(await fileTask(objectFromQuery(req)));
-  } catch (error) {
+  if (req.nextUrl.searchParams.get('record') === '1') {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Failed to file task.' },
-      { status: 400 }
+      { ok: false, error: 'Filing is POST-only' },
+      { status: 405, headers: { Allow: 'POST' } }
     );
   }
+  return NextResponse.json({ ok: true, ready: true });
 }

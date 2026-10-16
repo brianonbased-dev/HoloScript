@@ -599,30 +599,19 @@ async function postQuestProof(
   };
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 3500);
-  const posted = await fetch(questProofApiPath('/api/quest-proof'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': questProofToken() },
-    body: JSON.stringify(payload),
-    signal: controller.signal,
-  })
-    .then((res) => res.ok)
-    .catch(() => false)
+  // POST-only (the GET record mode is refused). runId in the query so the server checks
+  // the token before reading the body.
+  await fetch(
+    `${questProofApiPath('/api/quest-proof')}?${new URLSearchParams({ runId: payload.runId }).toString()}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': questProofToken() },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    }
+  )
+    .catch(() => undefined)
     .finally(() => window.clearTimeout(timeout));
-  if (posted) return;
-  const query = new URLSearchParams({
-    record: '1',
-    runId: payload.runId,
-    pageId: payload.pageId,
-    label,
-    status,
-    detail,
-    url: payload.url,
-    userAgent: payload.userAgent,
-    proofToken: questProofToken(),
-  });
-  await fetch(`${questProofApiPath('/api/quest-proof')}?${query.toString()}`).catch(
-    () => undefined
-  );
 }
 
 export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveViewerProps) {

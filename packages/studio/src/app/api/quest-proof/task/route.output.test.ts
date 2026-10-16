@@ -56,8 +56,7 @@ describe('quest-proof/task output caps', () => {
     h.spawn.mockImplementation(() => fakeChild(8 * 1024 * 1024));
     const body = await (await POST(post())).json();
     expect(h.kill).toHaveBeenCalled();
-    expect(body.stdout.length).toBeLessThanOrEqual(8 * 1024);
-    expect(body.stderr.length).toBeLessThanOrEqual(8 * 1024);
+    expect(JSON.stringify(body).length).toBeLessThan(1024);
   });
 
   it('returns no seedPath or absolute path', async () => {
@@ -65,5 +64,26 @@ describe('quest-proof/task output caps', () => {
     const body = await (await POST(post())).json();
     expect(body.seedPath).toBeUndefined();
     expect(JSON.stringify(body)).not.toMatch(/[A-Za-z]:\\\\|\/(home|root|tmp|Users)\//);
+  });
+
+  it('F2: no script stdout or stderr in the response', async () => {
+    h.spawn.mockImplementation(() => fakeChild(1024));
+    const body = await (await POST(post())).json();
+    expect(body.stdout).toBeUndefined();
+    expect(body.stderr).toBeUndefined();
+    expect(JSON.stringify(body)).not.toContain('aaaa');
+  });
+
+  it('F2: a failure returns a generic message, not the raw error text', async () => {
+    const err = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    h.spawn.mockImplementation(() => {
+      throw new Error('ENOENT C:\\Users\\someone\\.ai-ecosystem\\scripts\\add-tasks.mjs');
+    });
+    const res = await POST(post());
+    const body = await res.json();
+    expect(res.status).toBe(500);
+    expect(body.error).toBe('Failed to file task.');
+    expect(JSON.stringify(body)).not.toMatch(/ENOENT|ai-ecosystem|add-tasks/);
+    err.mockRestore();
   });
 });

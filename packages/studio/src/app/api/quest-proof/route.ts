@@ -1,7 +1,9 @@
 import { appendFile, mkdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
+import { resolveCorsOrigin } from '../_lib/cors';
 import {
+  isAllowedCaptureOrigin,
   QUEST_PROOF_MAX_BODY_BYTES,
   QUEST_PROOF_MAX_RUN_FILE_BYTES,
   questProofRunDir,
@@ -33,10 +35,9 @@ interface QuestProofReceipt {
  * /api/quest-proof: headset proof capture (POST, or GET ?record=1 when POST
  * fails on the tunnel) and the run's receipt read-back (GET).
  *
- * Every call needs the run's capture token (see lib/questProofCapture.ts):
- * header `x-quest-proof-token` or query `proofToken`. No token or a wrong one is
- * 401 and nothing is written or read. Bodies over 16 KB are 413. Writes go only
- * under the quest-proof data folder, and responses no longer name server paths.
+ * Every call needs the run's capture token (see lib/questProofCapture.ts). POST
+ * also needs an allowed Origin. Bodies are capped at 16 KB while streaming, writes
+ * go only under the quest-proof data folder, and responses name no server paths.
  */
 
 function shortString(input: unknown, fallback: string, max = 4000): string {
@@ -113,10 +114,15 @@ function tokenFrom(req: NextRequest): string | null {
   );
 }
 
+function ownOrigin(req: NextRequest): string {
+  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
+  const proto = req.headers.get('x-forwarded-proto') ?? req.nextUrl.protocol.replace(':', '');
+  return host ? `${proto}://${host}` : req.nextUrl.origin;
+}
+
 /**
- * Read at most `max` bytes of the body. Stops pulling (and cancels the stream)
- * as soon as the limit is passed, so a chunked body with no Content-Length is
- * never buffered whole. Returns null when over the limit.
+ * Read at most `max` bytes, counting as the stream arrives. Content-Length is
+ * ignored. Cancels the stream and returns null as soon as the limit is passed.
  */
 async function readBodyCapped(req: NextRequest, max: number): Promise<string | null> {
   if (!req.body) return '';
@@ -136,12 +142,20 @@ async function readBodyCapped(req: NextRequest, max: number): Promise<string | n
   return Buffer.concat(chunks).toString('utf8');
 }
 
+/**
+ * POST /api/quest-proof?runId=<run>: record one headset receipt.
+ * Order: Origin check, then the run's token (header or query) against the runId
+ * in the query, and only then the body, streamed with a 16 KB cap.
+ */
 export async function POST(req: NextRequest) {
-  // No token at all: refuse before reading a single byte of the body.
-  if (!tokenFrom(req)) return unauthorized();
-  const declared = Number(req.headers.get('content-length') ?? '0');
-  if (declared > QUEST_PROOF_MAX_BODY_BYTES) return tooLarge();
-  const text = await readBodyCapped(req, QUEST_PROOF_MAX_BODY_BYTES).catch(() => '');
+  if (!isAllowedCaptureOrigin(req, ownOrigin(req), resolveCorsOrigin)) {
+    return NextResponse.json({ ok: false, error: 'Origin not allowed' }, { status: 403 });
+  }
+  const runId = safeRunId(req.nextUrl.searchParams.get('runId'));
+  if (!req.nextUrl.searchParams.get('runId') || !verifyQuestProofToken(runId, tokenFrom(req))) {
+    return unauthorized();
+  }
+  const text = await readBodyCapped(req, QUEST_PROOF_MAX_BODY_BYTES).catch(() => null);
   if (text === null) return tooLarge();
 
   let parsed: unknown = {};
@@ -151,8 +165,7 @@ export async function POST(req: NextRequest) {
     parsed = {};
   }
   const raw = asObject(parsed);
-  const runId = safeRunId(raw.runId);
-  if (!verifyQuestProofToken(runId, tokenFrom(req))) return unauthorized();
+  if (raw.runId !== undefined && safeRunId(raw.runId) !== runId) return unauthorized();
 
   const receipt: QuestProofReceipt = {
     schema: 'holoscript.quest-proof.v1',
@@ -174,31 +187,20 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, runId, receipt });
 }
 
+/**
+ * GET /api/quest-proof?runId=<run>&proofToken=<token>: read the run's receipts.
+ * GET never writes: ?record=1 is refused (receipts are POST-only).
+ */
 export async function GET(req: NextRequest) {
-  if (Buffer.byteLength(req.nextUrl.search, 'utf8') > QUEST_PROOF_MAX_BODY_BYTES) return tooLarge();
   const params = req.nextUrl.searchParams;
+  if (params.get('record') === '1') {
+    return NextResponse.json(
+      { ok: false, error: 'Recording is POST-only' },
+      { status: 405, headers: { Allow: 'POST' } }
+    );
+  }
   const runId = safeRunId(params.get('runId'));
   if (!verifyQuestProofToken(runId, tokenFrom(req))) return unauthorized();
-
-  if (params.get('record') === '1') {
-    const status = params.get('status');
-    const receipt: QuestProofReceipt = {
-      schema: 'holoscript.quest-proof.v1',
-      receivedAt: new Date().toISOString(),
-      runId,
-      pageId: shortString(params.get('pageId'), 'unknown-page', 160),
-      url: params.get('url')?.slice(0, 2000) ?? null,
-      status: status === 'OK' || status === 'WARN' || status === 'FAIL' ? status : 'INFO',
-      label: shortString(params.get('label'), 'headset observation', 300),
-      detail: shortString(params.get('detail'), '', 4000),
-      userAgent: params.get('userAgent')?.slice(0, 1000) ?? null,
-      viewport: null,
-      xr: null,
-      checks: { transport: 'get-fallback' },
-    };
-    if ((await appendReceipt(receipt)) === 'full') return runFull();
-    return NextResponse.json({ ok: true, runId, receipt });
-  }
   const receipts = await readReceipts(runId);
   return NextResponse.json({ ok: true, runId, count: receipts.length, receipts });
 }

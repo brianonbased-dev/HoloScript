@@ -19,7 +19,7 @@ afterEach(() => {
 
 describe('quest-proof/token', () => {
   it('anonymous 401 and non-founder 403 get no token', async () => {
-    vi.stubEnv('QUEST_PROOF_CAPTURE_SECRET', 'test-capture-secret');
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-nextauth-secret');
     h.requireFounder.mockResolvedValueOnce(NextResponse.json({}, { status: 401 }));
     expect((await GET(get())).status).toBe(401);
     h.requireFounder.mockResolvedValueOnce(NextResponse.json({}, { status: 403 }));
@@ -29,7 +29,7 @@ describe('quest-proof/token', () => {
   });
 
   it('founder gets a token valid for that run only', async () => {
-    vi.stubEnv('QUEST_PROOF_CAPTURE_SECRET', 'test-capture-secret');
+    vi.stubEnv('NEXTAUTH_SECRET', 'test-nextauth-secret');
     h.requireFounder.mockResolvedValue({ user: { id: 'founder' } });
     const body = await (await GET(get())).json();
     expect(verifyQuestProofToken('run-1', body.proofToken)).toBe(true);
@@ -37,8 +37,8 @@ describe('quest-proof/token', () => {
   });
 
   it('503 when no capture secret is configured', async () => {
-    vi.stubEnv('QUEST_PROOF_CAPTURE_SECRET', '');
     vi.stubEnv('NEXTAUTH_SECRET', '');
+    vi.stubEnv('QUEST_PROOF_CAPTURE_SECRET', 'old-capture-secret');
     h.requireFounder.mockResolvedValue({ user: { id: 'founder' } });
     expect((await GET(get())).status).toBe(503);
   });

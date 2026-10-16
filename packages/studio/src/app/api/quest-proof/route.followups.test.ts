@@ -1,6 +1,6 @@
 ﻿/**
- * #607 follow-ups on /api/quest-proof: expired tokens, no-token refusal before
- * any body read, and a streaming cap for bodies with no Content-Length.
+ * F1: the token is checked before the body; the body is streamed with a 16 KB
+ * cap that ignores Content-Length. Expired tokens are refused.
  */
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fs from 'fs';
@@ -11,6 +11,7 @@ import { POST } from './route';
 import { mintQuestProofToken } from '@/lib/questProofCapture';
 
 const ROOT = fs.mkdtempSync(path.join(os.tmpdir(), 'qpf-root-'));
+const STUDIO = 'https://holoscript.studio';
 
 function countingStream(chunks: number, size: number) {
   let pulled = 0;
@@ -24,10 +25,13 @@ function countingStream(chunks: number, size: number) {
   return { stream, pulled: () => pulled };
 }
 
-function streamingPost(stream: ReadableStream<Uint8Array>, token?: string) {
-  return new NextRequest('https://studio.test/api/quest-proof?runId=run-s', {
+function streamingPost(stream: ReadableStream<Uint8Array>, token?: string, contentLength?: string) {
+  const headers: Record<string, string> = { origin: STUDIO, host: 'holoscript.studio', 'x-forwarded-proto': 'https' };
+  if (token) headers['x-quest-proof-token'] = token;
+  if (contentLength) headers['content-length'] = contentLength;
+  return new NextRequest(`${STUDIO}/api/quest-proof?runId=run-s`, {
     method: 'POST',
-    headers: token ? { 'x-quest-proof-token': token } : {},
+    headers,
     body: stream,
     // @ts-expect-error undici needs duplex for streamed bodies
     duplex: 'half',
@@ -36,7 +40,7 @@ function streamingPost(stream: ReadableStream<Uint8Array>, token?: string) {
 
 beforeEach(() => {
   vi.stubEnv('QUEST_PROOF_DATA_DIR', ROOT);
-  vi.stubEnv('QUEST_PROOF_CAPTURE_SECRET', 'test-capture-secret');
+  vi.stubEnv('NEXTAUTH_SECRET', 'test-nextauth-secret');
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -44,17 +48,29 @@ afterEach(() => {
 });
 afterAll(() => fs.rmSync(ROOT, { recursive: true, force: true }));
 
-describe('quest-proof capture follow-ups', () => {
+describe('F1: token first, then streamed body', () => {
   it('no token: 401 before any body bytes are pulled', async () => {
     const s = countingStream(100, 1024);
-    const res = await POST(streamingPost(s.stream));
-    expect(res.status).toBe(401);
+    expect((await POST(streamingPost(s.stream))).status).toBe(401);
     expect(s.pulled()).toBeLessThanOrEqual(1);
   });
 
-  it('chunked body with no Content-Length over 16 KB: 413 and the stream is not read to the end', async () => {
-    const s = countingStream(1000, 1024); // ~1 MB if fully read
-    const res = await POST(streamingPost(s.stream, 'x'.repeat(20)));
+  it('a WRONG token: 401 before any body bytes are pulled', async () => {
+    const s = countingStream(100, 1024);
+    expect((await POST(streamingPost(s.stream, 'x'.repeat(20)))).status).toBe(401);
+    expect(s.pulled()).toBeLessThanOrEqual(1);
+  });
+
+  it('valid token, chunked body over 16 KB with no Content-Length: 413 and the stream is not read to the end', async () => {
+    const s = countingStream(1000, 1024);
+    const res = await POST(streamingPost(s.stream, mintQuestProofToken('run-s')!));
+    expect(res.status).toBe(413);
+    expect(s.pulled()).toBeLessThan(40);
+  });
+
+  it('valid token, a small Content-Length that lies about a big body: still 413', async () => {
+    const s = countingStream(1000, 1024);
+    const res = await POST(streamingPost(s.stream, mintQuestProofToken('run-s')!, '10'));
     expect(res.status).toBe(413);
     expect(s.pulled()).toBeLessThan(40);
   });
@@ -65,10 +81,10 @@ describe('quest-proof capture follow-ups', () => {
     const token = mintQuestProofToken('run-e')!;
     vi.setSystemTime(new Date('2026-10-16T17:00:00Z'));
     const res = await POST(
-      new NextRequest('https://studio.test/api/quest-proof', {
+      new NextRequest(`${STUDIO}/api/quest-proof?runId=run-e`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': token },
-        body: JSON.stringify({ runId: 'run-e', label: 'x' }),
+        headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': token, origin: STUDIO, host: 'holoscript.studio', 'x-forwarded-proto': 'https' },
+        body: JSON.stringify({ label: 'x' }),
       })
     );
     expect(res.status).toBe(401);

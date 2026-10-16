@@ -266,7 +266,7 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/quest-proof',
     methods: ['GET', 'POST'],
-    why: "Headset proof capture from pages with no sign-in: app/shared/[id]/ImmersiveViewer.client.tsx (POST + GET ?record=1 fallback), components/quest/QuestProbe.tsx, app/quest-probe/page.tsx. Reachable without a session, but the route itself requires a per-run capture token (HMAC over runId, minted by the founder at /api/quest-proof/token and carried in the headset link as ?proofToken=), refuses bodies over 16 KB, caps each run's receipts file, and writes only under the quest-proof data folder (QUEST_PROOF_DATA_DIR or <repo>/.bench-logs/format-stress), never home. No token: 401, nothing written or read.",
+    why: "Headset proof capture from pages with no sign-in: app/shared/[id]/ImmersiveViewer.client.tsx, components/quest/QuestProbe.tsx, app/quest-probe/page.tsx, all by POST (GET ?record=1 is refused with 405). Reachable without a session, but POST needs a same-origin or CORS-allowlisted Origin and the per-run expiring capture token (HMAC keyed by HKDF-SHA256 of NEXTAUTH_SECRET, info quest-proof-capture-v1; minted by the founder at /api/quest-proof/token, carried in the headset link as ?proofToken= and sent in x-quest-proof-token), checked before the body is read; the body is streamed and cut off at 16 KB regardless of Content-Length, caps each run's receipts file, and writes only under the quest-proof data folder (QUEST_PROOF_DATA_DIR or <repo>/.bench-logs/format-stress), never home. No token: 401, nothing written or read.",
   },
   {
     pattern: '/api/portable-mind/*',

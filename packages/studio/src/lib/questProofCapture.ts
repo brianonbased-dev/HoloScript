@@ -1,24 +1,23 @@
 /**
- * Quest-proof headset capture: scoped capture token + confined data folder.
+ * Quest-proof headset capture: scoped, expiring capture token + confined data folder.
  *
  * Headsets (Quest Browser, usually through a HoloTunnel /t/<id>/ prefix) have no
- * Studio account, so capture cannot use a session. Instead the founder mints a
- * capture token for ONE runId (GET /api/quest-proof/token, founder-only) and
- * opens the headset link with `?runId=<id>&proofToken=<token>`. The pages
- * forward that token (header `x-quest-proof-token`, or `proofToken` in the GET
- * fallback query). The token is HMAC-SHA256 over the sanitised runId, so it
- * only admits writes for that run; there is nothing to store or expire.
+ * Studio account, so capture cannot use a session. The founder mints a token for
+ * ONE runId (GET /api/quest-proof/token, founder-only) and opens the headset link
+ * with `?runId=<id>&proofToken=<token>`. The pages POST receipts with the token in
+ * the `x-quest-proof-token` header and the runId in `?runId=`.
  *
- * Secret: QUEST_PROOF_CAPTURE_SECRET, else NEXTAUTH_SECRET (already set wherever
- * sign-in works). With neither, every capture is refused (fail closed).
+ * Token: `<exp>.<HMAC-SHA256(key, "quest-proof-capture:v2:<runId>:<exp>")>`.
+ * Key: HKDF-SHA256 from NEXTAUTH_SECRET with info 'quest-proof-capture-v1'; the
+ * raw secret is never used as a key. No NEXTAUTH_SECRET: every capture is refused.
  *
  * Writes go under one data folder (questProofDataRoot), never the home folder.
  */
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, hkdfSync, timingSafeEqual } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 
-/** Largest request body (POST) or query string (GET ?record=1) accepted, in bytes. */
+/** Largest request body accepted, in bytes (counted while streaming). */
 export const QUEST_PROOF_MAX_BODY_BYTES = 16 * 1024;
 /** Capture tokens expire. Default lifetime and the most a founder may ask for, in seconds. */
 export const QUEST_PROOF_TOKEN_DEFAULT_TTL_S = 4 * 60 * 60;
@@ -37,12 +36,16 @@ export function safeRunId(input: unknown): string {
   return cleaned;
 }
 
-function captureSecret(): string {
-  return process.env.QUEST_PROOF_CAPTURE_SECRET || process.env.NEXTAUTH_SECRET || '';
+function captureKey(): Buffer | null {
+  const secret = process.env.NEXTAUTH_SECRET || '';
+  if (!secret) return null;
+  return Buffer.from(
+    hkdfSync('sha256', Buffer.from(secret, 'utf8'), Buffer.alloc(0), 'quest-proof-capture-v1', 32)
+  );
 }
 
-function mac(secret: string, runId: string, exp: number): string {
-  return createHmac('sha256', secret)
+function mac(key: Buffer, runId: string, exp: number): string {
+  return createHmac('sha256', key)
     .update(`quest-proof-capture:v2:${safeRunId(runId)}:${exp}`)
     .digest('base64url');
 }
@@ -56,14 +59,14 @@ export function mintQuestProofToken(
   runId: string,
   opts: { ttlSeconds?: number; nowMs?: number } = {}
 ): string | null {
-  const secret = captureSecret();
-  if (!secret) return null;
+  const key = captureKey();
+  if (!key) return null;
   const ttl = Math.min(
     Math.max(Math.floor(opts.ttlSeconds ?? QUEST_PROOF_TOKEN_DEFAULT_TTL_S), 60),
     QUEST_PROOF_TOKEN_MAX_TTL_S
   );
   const exp = Math.floor((opts.nowMs ?? Date.now()) / 1000) + ttl;
-  return `${exp}.${mac(secret, runId, exp)}`;
+  return `${exp}.${mac(key, runId, exp)}`;
 }
 
 export function questProofTokenExp(token: string): number | null {
@@ -73,8 +76,8 @@ export function questProofTokenExp(token: string): number | null {
 
 export function verifyQuestProofToken(runId: string, token: unknown, nowMs = Date.now()): boolean {
   if (typeof token !== 'string' || token.length === 0 || token.length > 128) return false;
-  const secret = captureSecret();
-  if (!secret) return false;
+  const key = captureKey();
+  if (!key) return false;
   const m = /^(\d{9,11})\.([A-Za-z0-9_-]{43})$/.exec(token);
   if (!m) return false;
   const exp = Number(m[1]);
@@ -82,7 +85,7 @@ export function verifyQuestProofToken(runId: string, token: unknown, nowMs = Dat
   if (now > exp) return false;
   if (exp - now > QUEST_PROOF_TOKEN_MAX_TTL_S) return false;
   const a = Buffer.from(m[2]);
-  const b = Buffer.from(mac(secret, runId, exp));
+  const b = Buffer.from(mac(key, runId, exp));
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
@@ -116,4 +119,21 @@ export function questProofRunDir(runId: string, ...rest: string[]): string {
     throw new Error('quest-proof path escapes the data folder');
   }
   return dir;
+}
+
+/**
+ * Capture POSTs must come from a browser page we serve: the request's own origin
+ * (which covers the HoloTunnel /t/<id>/ and /live/ path prefixes), or an origin on
+ * the Studio CORS allowlist (holoscript.studio, holoscript.net and its subdomains).
+ * No Origin header is refused.
+ */
+export function isAllowedCaptureOrigin(
+  req: Request,
+  ownOrigin: string,
+  allowlisted: (req: Request) => string | null
+): boolean {
+  const origin = req.headers.get('origin');
+  if (!origin || origin === 'null') return false;
+  if (origin === ownOrigin) return true;
+  return allowlisted(req) === origin;
 }

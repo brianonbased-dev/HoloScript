@@ -129,26 +129,16 @@ async function postProofReceipt(label: string, status: Status, detail: string) {
     detail,
     ...context,
   };
-  const posted = await fetchWithTimeout(proofApiPath('/api/quest-proof'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': proofToken() },
-    body: JSON.stringify(payload),
-  }).then((res) => res?.ok === true);
-  if (posted) return;
-  const query = new URLSearchParams({
-    record: '1',
-    runId: payload.runId,
-    pageId: payload.pageId,
-    label,
-    status,
-    detail,
-    url: context.url ?? '',
-    userAgent: context.userAgent ?? '',
-    proofToken: proofToken(),
-  });
-  await fetchWithTimeout(`${proofApiPath('/api/quest-proof')}?${query.toString()}`, {
-    cache: 'no-store',
-  });
+  // POST-only (the GET record mode is refused). runId in the query so the server checks
+  // the token before reading the body.
+  await fetchWithTimeout(
+    `${proofApiPath('/api/quest-proof')}?${new URLSearchParams({ runId: payload.runId }).toString()}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': proofToken() },
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
 // Minimal WebXR type polyfill — @types/webxr isn't always present.
