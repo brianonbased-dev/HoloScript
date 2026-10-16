@@ -1,7 +1,13 @@
-import { appendFile, mkdir, readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { appendFile, mkdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
+import {
+  QUEST_PROOF_MAX_BODY_BYTES,
+  QUEST_PROOF_MAX_RUN_FILE_BYTES,
+  questProofRunDir,
+  safeRunId,
+  verifyQuestProofToken,
+} from '@/lib/questProofCapture';
 
 export const runtime = 'nodejs';
 
@@ -23,26 +29,15 @@ interface QuestProofReceipt {
   checks: JsonValue | null;
 }
 
-function repoRoot(): string {
-  let current = process.cwd();
-  for (let i = 0; i < 6; i += 1) {
-    if (existsSync(path.join(current, 'pnpm-workspace.yaml'))) return current;
-    const parent = path.dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-  return path.resolve(process.cwd(), '../..');
-}
-
-function safeRunId(input: unknown): string {
-  const value =
-    typeof input === 'string' && input.trim()
-      ? input.trim()
-      : new Date().toISOString().slice(0, 10);
-  return (
-    value.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 96) || new Date().toISOString().slice(0, 10)
-  );
-}
+/**
+ * /api/quest-proof: headset proof capture (POST, or GET ?record=1 when POST
+ * fails on the tunnel) and the run's receipt read-back (GET).
+ *
+ * Every call needs the run's capture token (see lib/questProofCapture.ts):
+ * header `x-quest-proof-token` or query `proofToken`. No token or a wrong one is
+ * 401 and nothing is written or read. Bodies over 16 KB are 413. Writes go only
+ * under the quest-proof data folder, and responses no longer name server paths.
+ */
 
 function shortString(input: unknown, fallback: string, max = 4000): string {
   if (typeof input !== 'string') return fallback;
@@ -71,22 +66,22 @@ function asJsonValue(input: unknown): JsonValue | null {
   return null;
 }
 
-function receiptDir(runId: string): string {
-  return path.join(repoRoot(), '.bench-logs', 'format-stress', runId, 'quest-proof');
+function receiptsFile(runId: string): string {
+  return path.join(questProofRunDir(runId), 'receipts.jsonl');
 }
 
-async function appendReceipt(receipt: QuestProofReceipt): Promise<string> {
-  const dir = receiptDir(receipt.runId);
-  await mkdir(dir, { recursive: true });
-  const file = path.join(dir, 'receipts.jsonl');
+async function appendReceipt(receipt: QuestProofReceipt): Promise<'ok' | 'full'> {
+  const file = receiptsFile(receipt.runId);
+  await mkdir(path.dirname(file), { recursive: true });
+  const size = await stat(file).then((s) => s.size, () => 0);
+  if (size >= QUEST_PROOF_MAX_RUN_FILE_BYTES) return 'full';
   await appendFile(file, `${JSON.stringify(receipt)}\n`, 'utf8');
-  return file;
+  return 'ok';
 }
 
 async function readReceipts(runId: string): Promise<QuestProofReceipt[]> {
-  const file = path.join(receiptDir(runId), 'receipts.jsonl');
   try {
-    const text = await readFile(file, 'utf8');
+    const text = await readFile(receiptsFile(runId), 'utf8');
     return text
       .split('\n')
       .filter(Boolean)
@@ -97,9 +92,43 @@ async function readReceipts(runId: string): Promise<QuestProofReceipt[]> {
   }
 }
 
+function unauthorized() {
+  return NextResponse.json(
+    { ok: false, error: 'A valid quest-proof capture token for this runId is required' },
+    { status: 401 }
+  );
+}
+
+function tooLarge() {
+  return NextResponse.json({ ok: false, error: 'Capture payload too large' }, { status: 413 });
+}
+
+function runFull() {
+  return NextResponse.json({ ok: false, error: 'This run has reached its receipt limit' }, { status: 507 });
+}
+
+function tokenFrom(req: NextRequest): string | null {
+  return (
+    req.headers.get('x-quest-proof-token') ?? req.nextUrl.searchParams.get('proofToken') ?? null
+  );
+}
+
 export async function POST(req: NextRequest) {
-  const raw = asObject(await req.json().catch(() => ({})));
+  const declared = Number(req.headers.get('content-length') ?? '0');
+  if (declared > QUEST_PROOF_MAX_BODY_BYTES) return tooLarge();
+  const text = await req.text().catch(() => '');
+  if (Buffer.byteLength(text, 'utf8') > QUEST_PROOF_MAX_BODY_BYTES) return tooLarge();
+
+  let parsed: unknown = {};
+  try {
+    parsed = text ? JSON.parse(text) : {};
+  } catch {
+    parsed = {};
+  }
+  const raw = asObject(parsed);
   const runId = safeRunId(raw.runId);
+  if (!verifyQuestProofToken(runId, tokenFrom(req))) return unauthorized();
+
   const receipt: QuestProofReceipt = {
     schema: 'holoscript.quest-proof.v1',
     receivedAt: new Date().toISOString(),
@@ -116,47 +145,35 @@ export async function POST(req: NextRequest) {
     checks: asJsonValue(raw.checks),
   };
 
-  const file = await appendReceipt(receipt);
-
-  return NextResponse.json({
-    ok: true,
-    runId,
-    path: file,
-    receipt,
-  });
+  if ((await appendReceipt(receipt)) === 'full') return runFull();
+  return NextResponse.json({ ok: true, runId, receipt });
 }
 
 export async function GET(req: NextRequest) {
-  const runId = safeRunId(req.nextUrl.searchParams.get('runId'));
-  if (req.nextUrl.searchParams.get('record') === '1') {
+  if (Buffer.byteLength(req.nextUrl.search, 'utf8') > QUEST_PROOF_MAX_BODY_BYTES) return tooLarge();
+  const params = req.nextUrl.searchParams;
+  const runId = safeRunId(params.get('runId'));
+  if (!verifyQuestProofToken(runId, tokenFrom(req))) return unauthorized();
+
+  if (params.get('record') === '1') {
+    const status = params.get('status');
     const receipt: QuestProofReceipt = {
       schema: 'holoscript.quest-proof.v1',
       receivedAt: new Date().toISOString(),
       runId,
-      pageId: shortString(req.nextUrl.searchParams.get('pageId'), 'unknown-page', 160),
-      url: req.nextUrl.searchParams.get('url')?.slice(0, 2000) ?? null,
-      status:
-        req.nextUrl.searchParams.get('status') === 'OK' ||
-        req.nextUrl.searchParams.get('status') === 'WARN' ||
-        req.nextUrl.searchParams.get('status') === 'FAIL'
-          ? (req.nextUrl.searchParams.get('status') as 'OK' | 'WARN' | 'FAIL')
-          : 'INFO',
-      label: shortString(req.nextUrl.searchParams.get('label'), 'headset observation', 300),
-      detail: shortString(req.nextUrl.searchParams.get('detail'), '', 4000),
-      userAgent: req.nextUrl.searchParams.get('userAgent')?.slice(0, 1000) ?? null,
+      pageId: shortString(params.get('pageId'), 'unknown-page', 160),
+      url: params.get('url')?.slice(0, 2000) ?? null,
+      status: status === 'OK' || status === 'WARN' || status === 'FAIL' ? status : 'INFO',
+      label: shortString(params.get('label'), 'headset observation', 300),
+      detail: shortString(params.get('detail'), '', 4000),
+      userAgent: params.get('userAgent')?.slice(0, 1000) ?? null,
       viewport: null,
       xr: null,
       checks: { transport: 'get-fallback' },
     };
-    const file = await appendReceipt(receipt);
-    return NextResponse.json({ ok: true, runId, path: file, receipt });
+    if ((await appendReceipt(receipt)) === 'full') return runFull();
+    return NextResponse.json({ ok: true, runId, receipt });
   }
   const receipts = await readReceipts(runId);
-  return NextResponse.json({
-    ok: true,
-    runId,
-    count: receipts.length,
-    path: path.join(receiptDir(runId), 'receipts.jsonl'),
-    receipts,
-  });
+  return NextResponse.json({ ok: true, runId, count: receipts.length, receipts });
 }

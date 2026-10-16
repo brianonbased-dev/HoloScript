@@ -5,6 +5,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import os from 'node:os';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireFounder } from '@/lib/api-auth';
 
 export const runtime = 'nodejs';
 
@@ -166,6 +167,10 @@ function objectFromQuery(req: NextRequest): Record<string, unknown> {
 }
 
 export async function POST(req: NextRequest) {
+  // Writes a seed file and runs a script from the server's ai-ecosystem checkout
+  // that files a task on the founder's board: founder-only (401/403, nothing run).
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
   try {
     const raw = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     return NextResponse.json(await fileTask(raw));
@@ -178,6 +183,8 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
   try {
     if (req.nextUrl.searchParams.get('record') !== '1') {
       return NextResponse.json({ ok: true, ready: true });

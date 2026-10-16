@@ -266,7 +266,7 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/quest-proof',
     methods: ['GET', 'POST'],
-    why: "Headset proof capture from pages with no sign-in: app/shared/[id]/ImmersiveViewer.client.tsx:597 (POST) and :617 (GET fallback), components/quest/QuestProbe.tsx:127,143, app/quest-probe/page.tsx:249. This one WRITES anonymously, so plainly: a stranger can append one capped JSON line (label 300, detail 4000, url 2000, userAgent 1000 chars) to .bench-logs/format-stress/<runId>/quest-proof/receipts.jsonl. runId is sanitised to [A-Za-z0-9._-] and cut to 96 chars, so it cannot escape that directory; no server key is spent and no database row is created. Acceptable because the writer is a headset visitor who by definition has no account. NOT acceptable forever: nothing bounds the NUMBER of lines, so this is a disk-growth door until it is rate-limited. GET is here only because it carries the same write via ?record=1 when POST fails on the tunnel.",
+    why: "Headset proof capture from pages with no sign-in: app/shared/[id]/ImmersiveViewer.client.tsx (POST + GET ?record=1 fallback), components/quest/QuestProbe.tsx, app/quest-probe/page.tsx. Reachable without a session, but the route itself requires a per-run capture token (HMAC over runId, minted by the founder at /api/quest-proof/token and carried in the headset link as ?proofToken=), refuses bodies over 16 KB, caps each run's receipts file, and writes only under the quest-proof data folder (QUEST_PROOF_DATA_DIR or <repo>/.bench-logs/format-stress), never home. No token: 401, nothing written or read.",
   },
   {
     pattern: '/api/portable-mind/*',

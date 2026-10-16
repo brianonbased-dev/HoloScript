@@ -547,6 +547,11 @@ function questProofRunId(): string {
   );
 }
 
+function questProofToken(): string {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get('proofToken') ?? '';
+}
+
 function questProofPageId(): string {
   if (typeof window === 'undefined') return 'immersive-viewer';
   const path = window.location.pathname.replace(/^\/live/, '');
@@ -596,7 +601,7 @@ async function postQuestProof(
   const timeout = window.setTimeout(() => controller.abort(), 3500);
   const posted = await fetch(questProofApiPath('/api/quest-proof'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': questProofToken() },
     body: JSON.stringify(payload),
     signal: controller.signal,
   })
@@ -613,6 +618,7 @@ async function postQuestProof(
     detail,
     url: payload.url,
     userAgent: payload.userAgent,
+    proofToken: questProofToken(),
   });
   await fetch(`${questProofApiPath('/api/quest-proof')}?${query.toString()}`).catch(
     () => undefined

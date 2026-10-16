@@ -74,6 +74,11 @@ async function fetchWithTimeout(
   }
 }
 
+function proofToken(): string {
+  if (typeof window === 'undefined') return '';
+  return new URLSearchParams(window.location.search).get('proofToken') ?? '';
+}
+
 function proofContext() {
   if (typeof window === 'undefined') return {};
   return {
@@ -126,7 +131,7 @@ async function postProofReceipt(label: string, status: Status, detail: string) {
   };
   const posted = await fetchWithTimeout(proofApiPath('/api/quest-proof'), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': proofToken() },
     body: JSON.stringify(payload),
   }).then((res) => res?.ok === true);
   if (posted) return;
@@ -139,6 +144,7 @@ async function postProofReceipt(label: string, status: Status, detail: string) {
     detail,
     url: context.url ?? '',
     userAgent: context.userAgent ?? '',
+    proofToken: proofToken(),
   });
   await fetchWithTimeout(`${proofApiPath('/api/quest-proof')}?${query.toString()}`, {
     cache: 'no-store',

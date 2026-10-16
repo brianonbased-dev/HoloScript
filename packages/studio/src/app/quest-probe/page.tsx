@@ -245,6 +245,7 @@ const fallbackScript = String.raw`
       detail,
       url: window.location.href,
       userAgent: navigator.userAgent,
+      proofToken: new URLSearchParams(window.location.search).get('proofToken') || '',
     });
     fetch(prefix('/api/quest-proof') + '?' + query.toString(), { cache: 'no-store' }).catch(() => {});
   }
