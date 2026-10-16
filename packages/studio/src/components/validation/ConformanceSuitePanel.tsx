@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useSceneGraphStore } from '../../lib/stores';
+import { useSceneGraphStore, useSceneStore } from '../../lib/stores';
+import { evaluateCompilerRules, type RuleStatus } from './compilerConformance';
 import type { SceneNode } from '../../lib/stores';
 
 /** Extended scene node properties for conformance validation */
@@ -15,11 +16,17 @@ export interface ConformanceRule {
   name: string;
   description: string;
   severity: 'error' | 'warning' | 'info';
-  status: 'pending' | 'running' | 'passed' | 'failed' | 'warning';
+  status: RuleStatus;
   message?: string;
+  /** Raw checker output behind the plain message (details toggle / audit ledger). */
+  details?: string[];
 }
 
-const DEFAULT_RULES: ConformanceRule[] = [
+/** Plain reason for a rule Studio has no real check for yet. Never reported as passed. */
+const NOT_IMPLEMENTED = (what: string) =>
+  `Not checked: Studio does not have a ${what} check yet, so this rule did not run.`;
+
+export const DEFAULT_RULES: ConformanceRule[] = [
   // ── Original scene-level rules ──
   {
     id: '1',
@@ -127,42 +134,18 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
   const [isRunning, setIsRunning] = useState(false);
   const [reportGenerated, setReportGenerated] = useState(false);
   const nodes = useSceneGraphStore((s) => s.nodes);
+  const code = useSceneStore((s) => s.code);
 
   const evaluateRules = () => {
     let dlCount = 0;
     let badTextFound = false;
     let physicsFail = false;
-    let unknownTraitFound = false;
-    const unknownGeometryFound = false;
-    const invalidPropertyFound = false;
     let traitConflictFound = false;
     let traitDependencyFail = false;
     let invalidMaterialValue = false;
-    const missingTexture = false;
     let duplicateNames = false;
 
     const seenNames = new Set<string>();
-
-    // Known traits from HoloScript v5 (subset for conformance)
-    const KNOWN_TRAITS = new Set([
-      'physics',
-      'collision',
-      'interactive',
-      'grabbable',
-      'navigation',
-      'animation',
-      'audio',
-      'light',
-      'particle',
-      'trigger',
-      'network',
-      'lod',
-      'shadow',
-      'outline',
-      'glow',
-      'transparent',
-      'billboard',
-    ]);
 
     // Conflicting trait pairs
     const CONFLICTS: [string, string][] = [
@@ -200,13 +183,6 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
           traitDependencyFail = true;
         }
 
-        // Unknown traits
-        for (const t of traitNames) {
-          if (t && !KNOWN_TRAITS.has(t) && !t.startsWith('@')) {
-            unknownTraitFound = true;
-          }
-        }
-
         // Trait conflicts
         for (const [a, b] of CONFLICTS) {
           if (traitNames.includes(a) && traitNames.includes(b)) {
@@ -228,6 +204,9 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
 
     traverse(nodes);
 
+    // Rules 5-7 come from the real HoloScript parser + trait registry over the scene source.
+    const compiler = evaluateCompilerRules(code);
+
     return [
       {
         ...DEFAULT_RULES[0],
@@ -244,25 +223,17 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
         status: badTextFound ? 'failed' : 'passed',
         message: badTextFound ? 'White text found, may violate WGAC 4.5:1 ratio.' : '',
       },
-      { ...DEFAULT_RULES[3], status: 'passed', message: 'No NavMesh gaps detected.' },
-      // Hardening matrix rules
-      { ...DEFAULT_RULES[4], status: 'passed', message: 'No unclosed blocks.' },
-      { ...DEFAULT_RULES[5], status: 'passed', message: 'No unexpected tokens.' },
       {
-        ...DEFAULT_RULES[6],
-        status: unknownTraitFound ? 'warning' : 'passed',
-        message: unknownTraitFound ? 'Unknown trait names found.' : '',
+        ...DEFAULT_RULES[3],
+        status: 'not_checked',
+        message: NOT_IMPLEMENTED('NavMesh gap'),
       },
-      {
-        ...DEFAULT_RULES[7],
-        status: unknownGeometryFound ? 'warning' : 'passed',
-        message: unknownGeometryFound ? 'Unknown geometry type.' : '',
-      },
-      {
-        ...DEFAULT_RULES[8],
-        status: invalidPropertyFound ? 'warning' : 'passed',
-        message: invalidPropertyFound ? 'Invalid properties found.' : '',
-      },
+      // Compiler-backed rules (parser + trait registry from @holoscript/core)
+      { ...DEFAULT_RULES[4], ...compiler.missingBraces },
+      { ...DEFAULT_RULES[5], ...compiler.unexpectedToken },
+      { ...DEFAULT_RULES[6], ...compiler.unknownTrait },
+      { ...DEFAULT_RULES[7], status: 'not_checked', message: NOT_IMPLEMENTED('geometry type') },
+      { ...DEFAULT_RULES[8], status: 'not_checked', message: NOT_IMPLEMENTED('property name') },
       {
         ...DEFAULT_RULES[9],
         status: traitConflictFound ? 'failed' : 'passed',
@@ -278,11 +249,7 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
         status: invalidMaterialValue ? 'warning' : 'passed',
         message: invalidMaterialValue ? 'PBR values out of 0-1 range.' : '',
       },
-      {
-        ...DEFAULT_RULES[12],
-        status: missingTexture ? 'warning' : 'passed',
-        message: missingTexture ? 'Texture asset not found.' : '',
-      },
+      { ...DEFAULT_RULES[12], status: 'not_checked', message: NOT_IMPLEMENTED('texture') },
       {
         ...DEFAULT_RULES[13],
         status: duplicateNames ? 'warning' : 'passed',
@@ -295,13 +262,13 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
     setIsRunning(true);
     setReportGenerated(false);
 
-    setRules((prev) => prev.map((r) => ({ ...r, status: 'running' })));
-
-    setTimeout(() => {
+    // Runs the real checks immediately. (A fixed 1.5s timer used to stand in for work.)
+    try {
       setRules(evaluateRules());
-      setIsRunning(false);
       setReportGenerated(true);
-    }, 1500);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const generatePDF = () => {
@@ -315,7 +282,7 @@ Execution Results:
 ${rules
   .map(
     (r) => `[${r.status.toUpperCase()}] ${r.name} - ${r.description}
-Details: ${r.message || 'Pass'}
+Details: ${r.message || (r.status === 'passed' ? 'Pass' : '')}${r.details?.length ? `\n  ${r.details.join('\n  ')}` : ''}
 `
   )
   .join('\n')}
@@ -424,11 +391,17 @@ End of Ledger.`;
                 {rule.status === 'running' && (
                   <span className="animate-spin inline-block text-[10px]">↻</span>
                 )}
-                {rule.status}
+                {rule.status === 'not_checked' ? 'not checked' : rule.status}
               </span>
             </div>
             <div className="text-sm font-medium text-slate-200 mb-1">{rule.name}</div>
             <div className="text-xs text-slate-400 leading-relaxed">{rule.description}</div>
+
+            {rule.status === 'not_checked' && rule.message && (
+              <div className="mt-2 text-xs p-2 rounded border bg-studio-surface border-studio-border text-studio-muted">
+                {rule.message}
+              </div>
+            )}
 
             {(rule.status === 'failed' || rule.status === 'warning') && rule.message && (
               <div
@@ -439,6 +412,14 @@ End of Ledger.`;
                 }`}
               >
                 {rule.message}
+                {rule.details && rule.details.length > 0 && (
+                  <details className="mt-1 font-mono text-[10px] opacity-80">
+                    <summary className="cursor-pointer">details</summary>
+                    {rule.details.map((d, i) => (
+                      <div key={i}>{d}</div>
+                    ))}
+                  </details>
+                )}
               </div>
             )}
           </div>
