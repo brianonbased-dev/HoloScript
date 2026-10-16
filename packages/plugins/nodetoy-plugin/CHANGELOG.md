@@ -1,5 +1,12 @@
 # @holoscript/nodetoy-plugin
 
+## 1.0.5
+
+### Patch Changes
+
+- Updated dependencies [0ed29dc]
+  - @holoscript/core@8.10.1
+
 ## 1.0.4
 
 ### Patch Changes

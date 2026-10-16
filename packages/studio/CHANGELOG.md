@@ -1,5 +1,14 @@
 # @holoscript/studio
 
+## 6.1.4
+
+### Patch Changes
+
+- Updated dependencies [0ed29dc]
+  - @holoscript/core@8.10.1
+  - @holoscript/r3f-renderer@6.1.7
+  - @holoscript/uaal@8.10.1
+
 ## 6.1.3
 
 ### Patch Changes

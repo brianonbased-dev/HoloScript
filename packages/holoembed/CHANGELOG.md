@@ -1,5 +1,11 @@
 # @holoscript/holoembed
 
+## 6.1.7
+
+### Patch Changes
+
+- @holoscript/snn-webgpu@8.10.1
+
 ## 6.1.6
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @holoscript/net-service
 
+## 1.0.14
+
+### Patch Changes
+
+- Updated dependencies [0ed29dc]
+  - @holoscript/core@8.10.1
+  - @holoscript/r3f-renderer@6.1.7
+
 ## 1.0.13
 
 ### Patch Changes
