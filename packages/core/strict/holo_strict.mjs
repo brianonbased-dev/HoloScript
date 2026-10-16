@@ -74,6 +74,8 @@ const diag = (code, severity, message, at, hint) => ({
 
 /** File-level diagnostics (empty source, not a string, a crash) point at the start. */
 const START = { line: 1, column: 1 };
+/** Same cap as core's MAX_UNKNOWN_TRAIT_WARNINGS (parseHolo, HoloScriptValidator). */
+export const MAX_UNKNOWN_TRAIT_DIAGNOSTICS = 100;
 
 /**
  * @param {string} source
@@ -206,7 +208,15 @@ export function analyze(source, deps, options = {}) {
     const code = typeof err?.code === "string" && /^HS1\d{3}$/.test(err.code) ? err.code : "HS1007";
     push(diag(code, "error", messageOf(err), where));
   }
+  // parseHolo reports an unknown trait as HS1006 itself. When this layer checks traits (below) it
+  // reports HS1006 once with its own location and severity, so the parser's copy is dropped;
+  // otherwise the parser's copy is kept under its own code, never relabelled HS1008.
+  const checksTraits = !!coreKnown || !!(traitIds && traitIds.size);
   for (const warn of parsed.warnings || []) {
+    if (warn && warn.code === "HS1006") {
+      if (!checksTraits) push(diag("HS1006", "warning", messageOf(warn), anchors.fromParser(warn)));
+      continue;
+    }
     push(diag("HS1008", "warning", messageOf(warn), anchors.fromParser(warn)));
   }
 
@@ -243,6 +253,10 @@ export function analyze(source, deps, options = {}) {
   // Fail closed: without core's shared check, every likeness trait (and every source-gated
   // tracking trait, whatever its source) is refused below.
   const likenessSources = shared ? deps.likenessSources : FALLBACK_LIKENESS;
+  // HS1006 is capped like parseHolo's (MAX_UNKNOWN_TRAIT_WARNINGS): the first 100 are listed,
+  // the rest are counted into one summary diagnostic so a hostile input cannot bloat the output.
+  let unknownShown = 0;
+  let unknownMore = 0;
   for (const { trait, owner } of traits) {
     const bare = String(trait.name ?? "").trim().replace(/^@/, "");
     if (!WORD_START.test(bare)) {
@@ -261,6 +275,11 @@ export function analyze(source, deps, options = {}) {
       likenessAt.set(trait, () => locate()?.at ?? anchors.fromNode(owner) ?? at(meaningful[0]));
     }
     if (!checkTraits || known(bare)) continue;
+    if (unknownShown >= MAX_UNKNOWN_TRAIT_DIAGNOSTICS) {
+      unknownMore++;
+      continue;
+    }
+    unknownShown++;
     const found = locate();
     const written = found && found.word;
     const misread = written && written.toLowerCase() !== bare.toLowerCase();
@@ -275,6 +294,18 @@ export function analyze(source, deps, options = {}) {
         misread
           ? "This is a parser defect, not a fault in the source; it needs fixing in core."
           : "Check the trait registry, or register it before use."
+      )
+    );
+  }
+
+  if (unknownMore > 0) {
+    push(
+      diag(
+        "HS1006",
+        unknownTraitSeverity,
+        `${unknownMore} more unknown traits not listed (HS1006; ${unknownShown + unknownMore} in total).`,
+        START,
+        "Only the first " + MAX_UNKNOWN_TRAIT_DIAGNOSTICS + " unknown traits are listed."
       )
     );
   }
