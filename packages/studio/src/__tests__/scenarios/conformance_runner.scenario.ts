@@ -7,11 +7,20 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, cleanup } from '@testing-library/react';
 import React from 'react';
 import { ConformanceSuitePanel } from '../../components/validation/ConformanceSuitePanel';
 import { useSceneGraphStore, useSceneStore } from '@/lib/stores';
 import { DEFAULT_RULES } from '../../components/validation/ConformanceSuitePanel';
+import * as CompilerConformance from '../../components/validation/compilerConformance';
+
+vi.mock('../../components/validation/compilerConformance', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../components/validation/compilerConformance')>();
+  return {
+    ...actual,
+    evaluateCompilerRules: vi.fn(actual.evaluateCompilerRules),
+  };
+});
 
 vi.mock('@/lib/stores', async (importOriginal) => {
   const actual = await importOriginal<any>();
@@ -31,7 +40,7 @@ describe('Scenario: Conformance Runner', () => {
     vi.clearAllMocks();
   });
 
-  it('evaluates physics rules as failed when missing collision bounds', async () => {
+  it('rules 1 and 11 are not checked while @collision is not in the trait registry', async () => {
     const mockNodes = [
       {
         id: '1',
@@ -53,8 +62,17 @@ describe('Scenario: Conformance Runner', () => {
       vi.advanceTimersByTime(2000);
     });
 
-    const failedMsg = screen.getByText('Found @physics object missing @collision bounds.');
-    expect(failedMsg).toBeDefined();
+    // @collision is not in buildKnownTraitSet on this base, so these rules must not pass or fail.
+    const statusOf = (name: string) => {
+      const card = screen.getByText(name).parentElement as HTMLElement;
+      return card.querySelector('span.capitalize')?.textContent?.replace('↻', '').trim();
+    };
+    expect(statusOf('Gravitational Constant')).toBe('not checked');
+    expect(statusOf('Trait Dependency')).toBe('not checked');
+    expect(
+      screen.getAllByText(/assumes the @collision trait, which is not in the HoloScript trait registry/i)
+        .length
+    ).toBeGreaterThanOrEqual(1);
   }, 10000);
 
   it('evaluates text contrast rules as failed on white text', async () => {
@@ -187,11 +205,52 @@ describe('Scenario: Conformance Runner runs the real compiler (H5)', () => {
     }
   });
 
+  it('rules 1 and 11 never show passed while @collision is unknown', async () => {
+    await run('composition "A" {\n  object "Cube" { geometry: "cube" }\n}\n', [
+      { id: '1', name: 'X', type: 'mesh', props: {}, traits: [{ name: 'physics', properties: {} }] },
+    ]);
+    expect(statusOf('Gravitational Constant')).toBe('not checked');
+    expect(statusOf('Trait Dependency')).toBe('not checked');
+    expect(statusOf('Gravitational Constant')).not.toBe('passed');
+    expect(statusOf('Trait Dependency')).not.toBe('passed');
+  });
+
+  it('throwing evaluator: second run never leaves stale passed on rules 5-7', async () => {
+    (useSceneGraphStore as any).mockImplementation((selector: any) => selector({ nodes: [] }));
+    useSceneStore.getState().setCode(
+      'composition "A" {\n  object "Cube" {\n    @grabbable\n    geometry: "cube"\n  }\n}\n'
+    );
+    render(React.createElement(ConformanceSuitePanel, { onClose: () => {} }));
+    await act(async () => {
+      fireEvent.click(screen.getByText('Run Conformance Suite'));
+    });
+    expect(statusOf('Missing Braces')).toBe('passed');
+
+    const spy = vi
+      .mocked(CompilerConformance.evaluateCompilerRules)
+      .mockImplementation(() => {
+        throw new Error('simulated checker failure');
+      });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Run Conformance Suite'));
+    });
+
+    for (const name of ['Missing Braces', 'Unexpected Token', 'Unknown Trait']) {
+      expect(statusOf(name)).not.toBe('passed');
+      expect(statusOf(name)).toBe('not checked');
+    }
+    expect(screen.getAllByText(/checker stopped/i).length).toBeGreaterThan(0);
+    spy.mockRestore();
+  });
+
+
+
   it('every rule is accounted for: nothing shows passed unless its check ran', async () => {
     await run('');
     // The only rules allowed to pass on an empty scene are the scene-graph checks that
     // genuinely ran over the (empty) node list.
-    const sceneGraphRules = new Set(['1', '2', '3', '10', '11', '12', '14']);
+    const sceneGraphRules = new Set(['2', '3', '10', '12', '14']);
     for (const rule of DEFAULT_RULES) {
       const st = statusOf(rule.name);
       expect(['passed', 'failed', 'warning', 'not checked']).toContain(st);

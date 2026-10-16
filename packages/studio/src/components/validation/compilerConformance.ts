@@ -36,6 +36,34 @@ interface ParseIssue {
 
 const MAX_LISTED = 5;
 
+
+/**
+ * Same folding as packages/core/src/validation/TraitName.ts (HS1006 / HS1011).
+ * TraitName.ts is not on this base yet (lands with the unknown-trait series), so
+ * rule 7 mirrors it here. `@FaceMesh`, `face-mesh`, `face_Mesh`, `FACE_MESH`,
+ * `facemesh` and `face__mesh` all fold to the same key.
+ */
+export function normalizeTraitName(name: unknown): string {
+  return String(name ?? '')
+    .trim()
+    .replace(/^@/, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/-/g, '_')
+    .toLowerCase();
+}
+
+/** Comparison key: normalized, then every underscore dropped. */
+export function traitNameKey(name: unknown): string {
+  return normalizeTraitName(name).replace(/_/g, '');
+}
+
+function isKnownFolded(name: string, known: Set<string>, knownKeys: Set<string>): boolean {
+  const n = normalizeTraitName(name);
+  if (!n) return false;
+  if (known.has(name) || known.has(n) || known.has(name.toLowerCase())) return true;
+  return knownKeys.has(n.replace(/_/g, ''));
+}
+
 function lineOf(e: { loc?: unknown; line?: number }): number | undefined {
   const loc = e.loc as { line?: number; start?: { line?: number } } | undefined;
   return loc?.line ?? loc?.start?.line ?? e.line;
@@ -99,13 +127,19 @@ export function evaluateCompilerRules(source: string): CompilerConformance {
     if (isComposition) {
       const result = parseHolo(source);
       ast = result.ast;
-      issues = (result.errors ?? []).map((e) => ({ message: String(e.message), line: lineOf(e) }));
+      issues = (result.errors ?? []).map(
+        (e: { message?: string; loc?: unknown; line?: number }) => ({
+          message: String(e.message ?? e),
+          line: lineOf(e),
+        })
+      );
     } else {
       const result = new HoloScriptPlusParser().parse(source) as {
         errors?: Array<string | { message?: string; line?: number }>;
       };
-      issues = (result.errors ?? []).map((e) =>
-        typeof e === 'string' ? { message: e } : { message: String(e.message ?? e), line: e.line }
+      issues = (result.errors ?? []).map(
+        (e: string | { message?: string; line?: number }) =>
+          typeof e === 'string' ? { message: e } : { message: String(e.message ?? e), line: e.line }
       );
     }
   } catch (err) {
@@ -165,9 +199,14 @@ export function evaluateCompilerRules(source: string): CompilerConformance {
     );
   } else {
     const known = buildKnownTraitSet();
+    const knownKeys = new Set<string>();
+    for (const k of known) {
+      const n = normalizeTraitName(k);
+      if (n) knownKeys.add(n.replace(/_/g, ''));
+    }
     const found: Array<{ name: string; line?: number }> = [];
     collectTraits(ast, found);
-    const unknown = found.filter((t) => !known.has(t.name) && !known.has(t.name.toLowerCase()));
+    const unknown = found.filter((t) => !isKnownFolded(t.name, known, knownKeys));
     const names = [...new Set(unknown.map((t) => t.name))];
     unknownTrait =
       names.length > 0

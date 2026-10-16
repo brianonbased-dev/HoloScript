@@ -64,4 +64,24 @@ describe('evaluateCompilerRules (real parser)', () => {
       expect(r.missingBraces.status).toBe('failed');
     }
   });
+
+  it('rule 7 folds trait spellings the same way HS1006 / TraitName.ts does', () => {
+    // Parser tokenizes @name; kebab @grab-bable becomes @grab (hyphen splits). Folding
+    // covers camelCase / SCREAMING / extra underscores that stay one token.
+    const r = evaluateCompilerRules(
+      'composition "A" {\n  object "Cube" {\n    @GrabBable\n    @GRABBABLE\n    geometry: "cube"\n  }\n}\n'
+    );
+    expect(r.unknownTrait.status).toBe('passed');
+    expect(r.unknownTrait.message).not.toMatch(/GrabBable|GRABBABLE/i);
+  });
+
+
+
+  it('rule 7 still warns on a truly unknown trait after folding', () => {
+    const r = evaluateCompilerRules(
+      'composition "A" {\n  object "Cube" {\n    @NoPe_XyZ\n    geometry: "cube"\n  }\n}\n'
+    );
+    expect(r.unknownTrait.status).toBe('warning');
+    expect(r.unknownTrait.message).toMatch(/nope_xyz|NoPe_XyZ/i);
+  });
 });

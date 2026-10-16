@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { buildKnownTraitSet } from '@holoscript/core';
 import { useSceneGraphStore, useSceneStore } from '../../lib/stores';
-import { evaluateCompilerRules, type RuleStatus } from './compilerConformance';
+import * as CompilerConformance from './compilerConformance';
+import type { RuleStatus } from './compilerConformance';
 import type { SceneNode } from '../../lib/stores';
 
 /** Extended scene node properties for conformance validation */
@@ -25,6 +27,39 @@ export interface ConformanceRule {
 /** Plain reason for a rule Studio has no real check for yet. Never reported as passed. */
 const NOT_IMPLEMENTED = (what: string) =>
   `Not checked: Studio does not have a ${what} check yet, so this rule did not run.`;
+
+/**
+ * Rules 1 and 11 assume @collision. That trait is not in the core registry
+ * (`buildKnownTraitSet().has('collision') === false`), so those checks cannot
+ * run honestly until it is. When it is registered they resume.
+ */
+export function collisionTraitKnown(known: Set<string> = buildKnownTraitSet()): boolean {
+  return known.has('collision') || known.has('Collision');
+}
+
+const COLLISION_NOT_IN_REGISTRY =
+  'Not checked: this rule assumes the @collision trait, which is not in the HoloScript trait registry, so the check did not run.';
+
+/** Build the Verify audit export text (FDA-Compliant label retained; label retained per CoS). */
+export function formatConformanceAuditExport(
+  rules: ConformanceRule[],
+  timestamp: string = new Date().toISOString()
+): string {
+  return `HoloScript FDA-Compliant Conformance Audit Ledger
+Date: ${timestamp}
+System: HoloScript Engine v5
+Signature: SHA256-...
+
+Execution Results:
+${rules
+  .map(
+    (r) => `[${r.status.toUpperCase()}] ${r.name} - ${r.description}
+Details: ${r.message || (r.status === 'passed' ? 'Pass' : '')}${r.details?.length ? `\n  ${r.details.join('\n  ')}` : ''}
+`
+  )
+  .join('\n')}
+End of Ledger.`;
+}
 
 export const DEFAULT_RULES: ConformanceRule[] = [
   // ── Original scene-level rules ──
@@ -129,6 +164,159 @@ export const DEFAULT_RULES: ConformanceRule[] = [
   },
 ];
 
+
+const CHECKER_STOPPED =
+  'Not checked: the checker stopped while reading this scene. Try again; if it keeps happening, report it with the details below.';
+
+/**
+ * Full Verify evaluation (scene-graph walk + compiler rules 5-7).
+ * Throws are intentionally not caught here — `runSuite` resets then catches so a
+ * failure cannot leave a prior run's "passed" results on screen.
+ */
+export function evaluateConformanceRules(
+  nodes: SceneNode[],
+  code: string,
+  evaluateCompiler: typeof CompilerConformance.evaluateCompilerRules = CompilerConformance.evaluateCompilerRules
+): ConformanceRule[] {
+  let dlCount = 0;
+  let badTextFound = false;
+  let physicsFail = false;
+  let traitConflictFound = false;
+  let traitDependencyFail = false;
+  let invalidMaterialValue = false;
+  let duplicateNames = false;
+  const collisionKnown = collisionTraitKnown();
+
+  const seenNames = new Set<string>();
+
+  const CONFLICTS: [string, string][] = [
+    ['static', 'dynamic'],
+    ['transparent', 'opaque'],
+    ['billboard', 'orientable'],
+  ];
+
+  const traverse = (nodeList: SceneNode[]) => {
+    for (const node of nodeList) {
+      const nodeProps = node as SceneNode & ConformanceNodeProps;
+      if (node.name && seenNames.has(node.name)) {
+        duplicateNames = true;
+      }
+      if (node.name) seenNames.add(node.name);
+
+      if (node.type === 'light' && nodeProps.castShadow !== false) {
+        dlCount++;
+      }
+      if (node.type === 'mesh' && nodeProps.textColor) {
+        const color = nodeProps.textColor;
+        if (color === '#ffffff' || color === 'white') {
+          badTextFound = true;
+        }
+      }
+
+      const traitNames = node.traits.map((tr) => tr.name);
+      if (collisionKnown) {
+        const hasPhysics = traitNames.includes('physics');
+        const hasCollision = traitNames.includes('collision');
+        if (hasPhysics && !hasCollision) {
+          physicsFail = true;
+          traitDependencyFail = true;
+        }
+      }
+
+      for (const [a, b] of CONFLICTS) {
+        if (traitNames.includes(a) && traitNames.includes(b)) {
+          traitConflictFound = true;
+        }
+      }
+
+      const roughness = nodeProps.roughness;
+      const metallic = nodeProps.metallic;
+      if (
+        (roughness !== undefined && (roughness < 0 || roughness > 1)) ||
+        (metallic !== undefined && (metallic < 0 || metallic > 1))
+      ) {
+        invalidMaterialValue = true;
+      }
+    }
+  };
+
+  // Scene-tree walk is inside the function that runSuite wraps in try/catch.
+  traverse(nodes);
+
+  const compiler = evaluateCompiler(code);
+
+  return [
+    collisionKnown
+      ? {
+          ...DEFAULT_RULES[0],
+          status: physicsFail ? 'failed' : 'passed',
+          message: physicsFail ? 'Found @physics object missing @collision bounds.' : '',
+        }
+      : {
+          ...DEFAULT_RULES[0],
+          status: 'not_checked',
+          message: COLLISION_NOT_IN_REGISTRY,
+        },
+    {
+      ...DEFAULT_RULES[1],
+      status: dlCount > 3 ? 'warning' : 'passed',
+      message: dlCount > 3 ? `Found ${dlCount} shadow-casting directional lights.` : '',
+    },
+    {
+      ...DEFAULT_RULES[2],
+      status: badTextFound ? 'failed' : 'passed',
+      message: badTextFound ? 'White text found, may violate WGAC 4.5:1 ratio.' : '',
+    },
+    {
+      ...DEFAULT_RULES[3],
+      status: 'not_checked',
+      message: NOT_IMPLEMENTED('NavMesh gap'),
+    },
+    { ...DEFAULT_RULES[4], ...compiler.missingBraces },
+    { ...DEFAULT_RULES[5], ...compiler.unexpectedToken },
+    { ...DEFAULT_RULES[6], ...compiler.unknownTrait },
+    { ...DEFAULT_RULES[7], status: 'not_checked', message: NOT_IMPLEMENTED('geometry type') },
+    { ...DEFAULT_RULES[8], status: 'not_checked', message: NOT_IMPLEMENTED('property name') },
+    {
+      ...DEFAULT_RULES[9],
+      status: traitConflictFound ? 'failed' : 'passed',
+      message: traitConflictFound ? 'Conflicting traits on same object.' : '',
+    },
+    collisionKnown
+      ? {
+          ...DEFAULT_RULES[10],
+          status: traitDependencyFail ? 'failed' : 'passed',
+          message: traitDependencyFail ? '@physics requires @collision.' : '',
+        }
+      : {
+          ...DEFAULT_RULES[10],
+          status: 'not_checked',
+          message: COLLISION_NOT_IN_REGISTRY,
+        },
+    {
+      ...DEFAULT_RULES[11],
+      status: invalidMaterialValue ? 'warning' : 'passed',
+      message: invalidMaterialValue ? 'PBR values out of 0-1 range.' : '',
+    },
+    { ...DEFAULT_RULES[12], status: 'not_checked', message: NOT_IMPLEMENTED('texture') },
+    {
+      ...DEFAULT_RULES[13],
+      status: duplicateNames ? 'warning' : 'passed',
+      message: duplicateNames ? 'Duplicate object names found.' : '',
+    },
+  ] as ConformanceRule[];
+}
+
+export function rulesAfterCheckerFailure(err: unknown): ConformanceRule[] {
+  const details = [err instanceof Error ? err.message : String(err)];
+  return DEFAULT_RULES.map((r) => ({
+    ...r,
+    status: 'not_checked' as const,
+    message: CHECKER_STOPPED,
+    details,
+  }));
+}
+
 export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [rules, setRules] = useState(DEFAULT_RULES);
   const [isRunning, setIsRunning] = useState(false);
@@ -136,135 +324,25 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
   const nodes = useSceneGraphStore((s) => s.nodes);
   const code = useSceneStore((s) => s.code);
 
-  const evaluateRules = () => {
-    let dlCount = 0;
-    let badTextFound = false;
-    let physicsFail = false;
-    let traitConflictFound = false;
-    let traitDependencyFail = false;
-    let invalidMaterialValue = false;
-    let duplicateNames = false;
-
-    const seenNames = new Set<string>();
-
-    // Conflicting trait pairs
-    const CONFLICTS: [string, string][] = [
-      ['static', 'dynamic'],
-      ['transparent', 'opaque'],
-      ['billboard', 'orientable'],
-    ];
-
-    // A simple AST traversal for validation
-    const traverse = (nodeList: SceneNode[]) => {
-      for (const node of nodeList) {
-        const nodeProps = node as SceneNode & ConformanceNodeProps;
-        // Check duplicates
-        if (node.name && seenNames.has(node.name)) {
-          duplicateNames = true;
-        }
-        if (node.name) seenNames.add(node.name);
-
-        if (node.type === 'light' && nodeProps.castShadow !== false) {
-          dlCount++;
-        }
-        if (node.type === 'mesh' && nodeProps.textColor) {
-          const color = nodeProps.textColor;
-          if (color === '#ffffff' || color === 'white') {
-            badTextFound = true;
-          }
-        }
-
-        // checking traits for physics
-        const traitNames = node.traits.map((t) => t.name);
-        const hasPhysics = traitNames.includes('physics');
-        const hasCollision = traitNames.includes('collision');
-        if (hasPhysics && !hasCollision) {
-          physicsFail = true;
-          traitDependencyFail = true;
-        }
-
-        // Trait conflicts
-        for (const [a, b] of CONFLICTS) {
-          if (traitNames.includes(a) && traitNames.includes(b)) {
-            traitConflictFound = true;
-          }
-        }
-
-        // Material value validation
-        const roughness = nodeProps.roughness;
-        const metallic = nodeProps.metallic;
-        if (
-          (roughness !== undefined && (roughness < 0 || roughness > 1)) ||
-          (metallic !== undefined && (metallic < 0 || metallic > 1))
-        ) {
-          invalidMaterialValue = true;
-        }
-      }
-    };
-
-    traverse(nodes);
-
-    // Rules 5-7 come from the real HoloScript parser + trait registry over the scene source.
-    const compiler = evaluateCompilerRules(code);
-
-    return [
-      {
-        ...DEFAULT_RULES[0],
-        status: physicsFail ? 'failed' : 'passed',
-        message: physicsFail ? 'Found @physics object missing @collision bounds.' : '',
-      },
-      {
-        ...DEFAULT_RULES[1],
-        status: dlCount > 3 ? 'warning' : 'passed',
-        message: dlCount > 3 ? `Found ${dlCount} shadow-casting directional lights.` : '',
-      },
-      {
-        ...DEFAULT_RULES[2],
-        status: badTextFound ? 'failed' : 'passed',
-        message: badTextFound ? 'White text found, may violate WGAC 4.5:1 ratio.' : '',
-      },
-      {
-        ...DEFAULT_RULES[3],
-        status: 'not_checked',
-        message: NOT_IMPLEMENTED('NavMesh gap'),
-      },
-      // Compiler-backed rules (parser + trait registry from @holoscript/core)
-      { ...DEFAULT_RULES[4], ...compiler.missingBraces },
-      { ...DEFAULT_RULES[5], ...compiler.unexpectedToken },
-      { ...DEFAULT_RULES[6], ...compiler.unknownTrait },
-      { ...DEFAULT_RULES[7], status: 'not_checked', message: NOT_IMPLEMENTED('geometry type') },
-      { ...DEFAULT_RULES[8], status: 'not_checked', message: NOT_IMPLEMENTED('property name') },
-      {
-        ...DEFAULT_RULES[9],
-        status: traitConflictFound ? 'failed' : 'passed',
-        message: traitConflictFound ? 'Conflicting traits on same object.' : '',
-      },
-      {
-        ...DEFAULT_RULES[10],
-        status: traitDependencyFail ? 'failed' : 'passed',
-        message: traitDependencyFail ? '@physics requires @collision.' : '',
-      },
-      {
-        ...DEFAULT_RULES[11],
-        status: invalidMaterialValue ? 'warning' : 'passed',
-        message: invalidMaterialValue ? 'PBR values out of 0-1 range.' : '',
-      },
-      { ...DEFAULT_RULES[12], status: 'not_checked', message: NOT_IMPLEMENTED('texture') },
-      {
-        ...DEFAULT_RULES[13],
-        status: duplicateNames ? 'warning' : 'passed',
-        message: duplicateNames ? 'Duplicate object names found.' : '',
-      },
-    ] as ConformanceRule[];
-  };
-
   const runSuite = () => {
     setIsRunning(true);
     setReportGenerated(false);
+    // Reset first so a throw cannot leave a prior run's "passed" on screen.
+    setRules(
+      DEFAULT_RULES.map((r) => ({
+        ...r,
+        status: 'pending' as const,
+        message: undefined,
+        details: undefined,
+      }))
+    );
 
-    // Runs the real checks immediately. (A fixed 1.5s timer used to stand in for work.)
     try {
-      setRules(evaluateRules());
+      // Entire evaluation (scene-tree walk + compiler rules) is inside this catch.
+      setRules(evaluateConformanceRules(nodes, code));
+      setReportGenerated(true);
+    } catch (err) {
+      setRules(rulesAfterCheckerFailure(err));
       setReportGenerated(true);
     } finally {
       setIsRunning(false);
@@ -273,20 +351,7 @@ export const ConformanceSuitePanel: React.FC<{ onClose: () => void }> = ({ onClo
 
   const generatePDF = () => {
     const timestamp = new Date().toISOString();
-    const logContent = `HoloScript FDA-Compliant Conformance Audit Ledger
-Date: ${timestamp}
-System: HoloScript Engine v5
-Signature: SHA256-...
-
-Execution Results:
-${rules
-  .map(
-    (r) => `[${r.status.toUpperCase()}] ${r.name} - ${r.description}
-Details: ${r.message || (r.status === 'passed' ? 'Pass' : '')}${r.details?.length ? `\n  ${r.details.join('\n  ')}` : ''}
-`
-  )
-  .join('\n')}
-End of Ledger.`;
+    const logContent = formatConformanceAuditExport(rules, timestamp);
 
     const blob = new Blob([logContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
