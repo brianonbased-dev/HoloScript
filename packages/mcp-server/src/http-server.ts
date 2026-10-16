@@ -398,9 +398,12 @@ oauth.setClientStatusResolver(async (clientId) => {
  * middle of its sign-in), drop a copy the durable store no longer holds, and
  * rehydrate it after a deploy wiped the in-memory map. See prepareClientForUse.
  */
-/** Studio's consent page (#579). STUDIO_PUBLIC_URL overrides the default. */
+/**
+ * Studio's consent page (#579). STUDIO_PUBLIC_URL overrides the default, which is
+ * live Studio (holoscript.studio; studio.holoscript.net only redirects there).
+ */
 function studioConsentUrl(): string {
-  const base = (process.env.STUDIO_PUBLIC_URL || 'https://studio.holoscript.net').replace(/\/+$/, '');
+  const base = (process.env.STUDIO_PUBLIC_URL || 'https://holoscript.studio').replace(/\/+$/, '');
   return `${base}/oauth/consent`;
 }
 

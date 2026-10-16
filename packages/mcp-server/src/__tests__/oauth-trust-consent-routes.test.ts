@@ -273,6 +273,28 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
     expect(loc.searchParams.has('studio_consent')).toBe(false);
   });
 
+  it('browser consent goes to live Studio by default (https://holoscript.studio); STUDIO_PUBLIC_URL overrides', async () => {
+    const { clientId } = await register();
+    const q = new URLSearchParams({
+      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
+      code_challenge: CHALLENGE, code_challenge_method: 'S256',
+    });
+    const saved = process.env.STUDIO_PUBLIC_URL;
+    try {
+      delete process.env.STUDIO_PUBLIC_URL;
+      const r = await server.request('GET', `/oauth/authorize?${q}`, { headers: { accept: 'text/html' } });
+      expect(r.status).toBe(302);
+      const loc = new URL(String(r.headers?.location));
+      expect(loc.origin + loc.pathname).toBe('https://holoscript.studio/oauth/consent');
+      process.env.STUDIO_PUBLIC_URL = 'https://studio.example.test/';
+      const o = await server.request('GET', `/oauth/authorize?${q}`, { headers: { accept: 'text/html' } });
+      expect(String(o.headers?.location)).toMatch(/^https:\/\/studio\.example\.test\/oauth\/consent\?/);
+    } finally {
+      if (saved === undefined) delete process.env.STUDIO_PUBLIC_URL;
+      else process.env.STUDIO_PUBLIC_URL = saved;
+    }
+  });
+
   it('F3 studio_consent in the POST query string is not accepted', async () => {
     const { clientId } = await register();
     const assertion = consentFor(clientId);
