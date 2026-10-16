@@ -215,6 +215,8 @@ export interface StoredClient {
    * existing clients keep today's behaviour (Postgres column defaults FALSE).
    */
   selfRegistered?: boolean;
+  /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+  noClientCredentials?: boolean;
 }
 
 export type OAuthClientStatus = 'approved' | 'suspended';
@@ -324,6 +326,8 @@ export interface TokenStoreBackend {
   setAuthorizationCode(code: StoredAuthorizationCode): Promise<void>;
   deleteAuthorizationCode(code: string): Promise<boolean>;
   markAuthorizationCodeUsed(code: string): Promise<void>;
+  /** Delete every unredeemed code a client holds. Optional; client revoke uses it when present. */
+  deleteAuthorizationCodesByClient?(clientId: string): Promise<number>;
 
   // ── Clients ───────────────────────────────────────────────────────────
   getClient(clientId: string): Promise<StoredClient | undefined>;
@@ -476,6 +480,17 @@ export class InMemoryTokenStore implements TokenStoreBackend {
 
   async deleteAuthorizationCode(code: string): Promise<boolean> {
     return this.authCodes.delete(code);
+  }
+
+  async deleteAuthorizationCodesByClient(clientId: string): Promise<number> {
+    let n = 0;
+    for (const [key, code] of this.authCodes) {
+      if (code.clientId === clientId) {
+        this.authCodes.delete(key);
+        n++;
+      }
+    }
+    return n;
   }
 
   async markAuthorizationCodeUsed(code: string): Promise<void> {
@@ -878,6 +893,8 @@ export class TokenStore {
     /** Review state; omitted means legacy-approved (see StoredClient.status). */
     status?: OAuthClientStatus;
     selfRegistered?: boolean;
+    /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+    noClientCredentials?: boolean;
   }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     const maxClients = params.maxClients || DEFAULT_MAX_CLIENTS;
     const now = Date.now();
@@ -934,6 +951,7 @@ export class TokenStore {
         ...(params.registeredUnproven ? { registeredUnproven: true } : {}),
         ...(params.status ? { status: params.status } : {}),
         ...(params.selfRegistered ? { selfRegistered: true } : {}),
+        ...(params.noClientCredentials ? { noClientCredentials: true } : {}),
       });
     } catch (err) {
       // Any clients retired above are already gone. Say which, so the caller
@@ -1028,6 +1046,7 @@ export class TokenStore {
   async revokeClient(clientId: string): Promise<boolean> {
     await this.backend.deleteAccessTokensByClient(clientId);
     await this.backend.deleteRefreshTokensByClient(clientId);
+    await this.backend.deleteAuthorizationCodesByClient?.(clientId);
     return this.backend.deleteClient(clientId);
   }
 

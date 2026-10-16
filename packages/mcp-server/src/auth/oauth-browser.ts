@@ -18,6 +18,10 @@ export interface OAuthConsentRequest {
   state?: string;
   codeChallenge: string;
   codeChallengeMethod: 'S256';
+  /** Request-bound CSRF token (security/oauth-csrf.ts); posted back with the form. */
+  csrfToken?: string;
+  /** Signed Studio-session assertion, when Studio opened this page for a signed-in user. */
+  studioConsent?: string;
 }
 
 export const OAUTH_CONSENT_SECURITY_HEADERS = {
@@ -118,6 +122,8 @@ export function renderOAuthConsentPage(request: OAuthConsentRequest): string {
         ${hidden('state', request.state)}
         ${hidden('code_challenge', request.codeChallenge)}
         ${hidden('code_challenge_method', request.codeChallengeMethod)}
+        ${hidden('csrf_token', request.csrfToken)}
+        ${hidden('studio_consent', request.studioConsent)}
         <div class="actions">
           <button class="deny" type="submit" name="decision" value="deny">Cancel</button>
           <button class="allow" type="submit" name="decision" value="allow">Allow</button>

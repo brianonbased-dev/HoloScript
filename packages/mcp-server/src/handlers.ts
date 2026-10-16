@@ -80,7 +80,12 @@ import {
 } from './trait-categories-from-core';
 import type { SigningContext } from './holomesh/identity/signing-middleware';
 import { runForkSandboxGate, gateHoloScriptCode } from './security/fork-sandbox-gate';
-import { assertReentrantToolAuthorized, callerPrincipal } from './security/tool-scopes';
+import {
+  assertReentrantToolAuthorized,
+  bindUserPrivateArgs,
+  callerPrincipal,
+  isTrustedLocalCaller,
+} from './security/tool-scopes';
 import type { CapabilityManifest } from './security/sandbox-policy';
 
 /** Used only when core source tree is not present next to mcp-server (e.g. odd installs). */
@@ -338,6 +343,40 @@ function isTrustedCaller(
   );
 }
 
+/**
+ * Trust & Consent (c)/C1, shared by handleTool and the dispatch registry path
+ * (index.ts _handleSingleToolLogic), which reaches absorb tools without
+ * handleTool. `rawCtx` is the caller's own context (undefined = stdio local).
+ */
+export async function applyUserPrivateBinding(
+  name: string,
+  args: Record<string, unknown>,
+  ctx: SigningContext | undefined,
+  rawCtx: SigningContext | undefined = ctx
+): Promise<{ args: Record<string, unknown> } | { result: unknown }> {
+  const bound = bindUserPrivateArgs(name, args, ctx);
+  if (!bound.ok) {
+    return { result: { success: false, error: `Authorization denied: ${bound.reason}` } };
+  }
+  // A remote caller's credits come from its own ledger row, never from the
+  // absorb handler (args.apiKey / ABSORB_API_KEY fallback).
+  if (name === 'absorb_check_credits' && !isTrustedLocalCaller(rawCtx)) {
+    const userId = typeof bound.args.userId === 'string' ? bound.args.userId : '';
+    if (!userId) {
+      return {
+        result: {
+          success: false,
+          error:
+            'Authorization denied: absorb_check_credits needs a user:private token issued to a signed-in user',
+        },
+      };
+    }
+    const { checkCreditsForUser } = await import('./security/user-credits');
+    return { result: await checkCreditsForUser(userId) };
+  }
+  return { args: bound.args };
+}
+
 export async function handleTool(
   name: string,
   args: Record<string, unknown>,
@@ -379,6 +418,14 @@ export async function handleTool(
           scopes: ['admin:*'],
         }
       : undefined);
+
+  // Trust & Consent (c)/C1: a user-private tool acts on the token's own user
+  // only. Bound before any gate or handler sees the arguments.
+  {
+    const gate = await applyUserPrivateBinding(name, args, effectiveSigningCtx, signingCtx);
+    if ('result' in gate) return gate.result;
+    args = gate.args;
+  }
 
   const capabilityManifest = asCapabilityManifest(args.capabilityManifest ?? args.manifest);
   // A manifest arrives in the caller's own arguments and nothing signs it yet, so its
