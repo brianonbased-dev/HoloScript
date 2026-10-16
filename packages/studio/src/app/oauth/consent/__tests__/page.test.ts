@@ -6,6 +6,7 @@ const { sessionMock, redirectMock } = vi.hoisted(() => ({
     throw Object.assign(new Error('NEXT_REDIRECT'), { url });
   }),
 }));
+vi.mock('server-only', () => ({}));
 vi.mock('next-auth', () => ({ getServerSession: sessionMock }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
 vi.mock('next/navigation', () => ({ redirect: redirectMock }));

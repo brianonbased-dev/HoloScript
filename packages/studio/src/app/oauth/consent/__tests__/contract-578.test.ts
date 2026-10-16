@@ -4,7 +4,8 @@
  * (verifyStudioConsent peek on the x-studio-consent header -> issueOAuthCsrfToken
  * bound to sub; no header -> login_required, no csrf_token), and the POST is
  * checked with verifyStudioConsent (consuming) + verifyOAuthCsrfToken(userId).
- * Skipped until oauth-csrf.ts (added by #578) is on the branch.
+ * #578 is on the branch now, so a missing oauth-csrf.ts FAILS this suite
+ * instead of silently skipping it (Trust section E follow-up).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
@@ -15,6 +16,7 @@ const { sessionMock, redirectMock } = vi.hoisted(() => ({
     throw Object.assign(new Error('NEXT_REDIRECT'), { url });
   }),
 }));
+vi.mock('server-only', () => ({}));
 vi.mock('next-auth', () => ({ getServerSession: sessionMock }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
 vi.mock('next/navigation', () => ({ redirect: redirectMock }));
@@ -99,7 +101,11 @@ function mcpPost(raw: string) {
   return new Response(JSON.stringify({ code: `CODE_FOR_${peeked.userId}` }), { status: 200 });
 }
 
-describe.skipIf(!csrf)('#579 x #578 F2 real contract', () => {
+it('#578 oauth-csrf.ts is present (this suite must not skip)', () => {
+  expect(csrf, 'packages/mcp-server/src/security/oauth-csrf.ts missing').not.toBeNull();
+});
+
+describe('#579 x #578 F2 real contract', () => {
   const fetchMock = vi.fn(async (url: string, init: any) =>
     init.method === 'GET' ? mcpGet(url, init.headers) : mcpPost(init.body)
   );

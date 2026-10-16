@@ -9,6 +9,7 @@ import {
 } from '../../../../../../../mcp-server/src/security/studio-consent';
 
 const { sessionMock } = vi.hoisted(() => ({ sessionMock: vi.fn() }));
+vi.mock('server-only', () => ({}));
 vi.mock('next-auth', () => ({ getServerSession: sessionMock }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
 

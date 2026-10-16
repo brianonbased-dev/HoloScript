@@ -601,6 +601,22 @@ export class OAuth21Service {
   }
 
   /**
+   * A human's own live grants (Connected apps in Studio). Revoked, idle and
+   * over-age grants are left out; newest approval first. Copies, so a caller
+   * cannot mutate the ledger.
+   */
+  listGrantsForUser(userId: string, now: number = Date.now()): ConsentGrant[] {
+    if (!userId) return [];
+    const out: ConsentGrant[] = [];
+    for (const grant of grants.values()) {
+      if (grant.userId !== userId || grant.revokedAt) continue;
+      if (now - grant.issuedAt > GRANT_MAX_AGE_MS) continue;
+      if (now - grant.lastUsedAt > GRANT_IDLE_MS) continue;
+      out.push({ ...grant, scopes: [...grant.scopes] });
+    }
+    return out.sort((a, b) => b.issuedAt - a.issuedAt);
+  }
+  /**
    * Is this grant live? Unknown (never recorded here), revoked, idle or
    * over-age: not live.
    */
