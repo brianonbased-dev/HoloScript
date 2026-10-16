@@ -88,7 +88,7 @@ type Reply = { status: number; body: Record<string, unknown> };
 function request(
   method: 'GET' | 'POST' | 'DELETE',
   path: string,
-  options: { body?: unknown; token?: string } = {}
+  options: { body?: unknown; token?: string; headers?: Record<string, string> } = {}
 ): Promise<Reply> {
   return new Promise((resolve, reject) => {
     const payload = options.body === undefined ? undefined : JSON.stringify(options.body);
@@ -104,6 +104,7 @@ function request(
           connection: 'close',
           ...(payload !== undefined ? { 'content-length': Buffer.byteLength(payload) } : {}),
           ...(options.token ? { authorization: `Bearer ${options.token}` } : {}),
+          ...(options.headers ?? {}),
         },
       },
       (res) => {

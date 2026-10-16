@@ -17,9 +17,13 @@ import {
   type RealHttpServer,
 } from './real-http-server-harness';
 import { signStudioConsent } from '../security/studio-consent';
+import { TEST_STUDIO_CONSENT_SECRET } from './consented-test-token';
 import { getAuditLogger } from '../security/audit-log';
 
-const CONSENT_SECRET = 'trust-consent-routes-secret-0123456789abcdef';
+// Must match the secret the shared harness signs with: server.tokenWithScope()
+// now goes through the consent flow (consented-test-token.ts), so a different
+// STUDIO_CONSENT_SECRET here would make its assertions fail to verify.
+const CONSENT_SECRET = TEST_STUDIO_CONSENT_SECRET;
 const REDIRECT = 'https://client.test/callback';
 const VERIFIER = 'w'.repeat(64);
 const CHALLENGE = createHash('sha256').update(VERIFIER).digest('base64url');
