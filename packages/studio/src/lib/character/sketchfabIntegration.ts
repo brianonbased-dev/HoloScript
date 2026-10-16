@@ -266,7 +266,7 @@ export async function getDownloadUrl(uid: string): Promise<string> {
 
   if (!getSketchfabAPI().apiKey) {
     throw new Error(
-      'Sketchfab API key required for downloads. Please configure NEXT_PUBLIC_SKETCHFAB_API_KEY'
+      'Sketchfab API key required for downloads. Configure it server-side on the Sketchfab proxy.'
     );
   }
 

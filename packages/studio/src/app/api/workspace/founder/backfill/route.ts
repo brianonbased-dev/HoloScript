@@ -91,7 +91,8 @@ function getOrchestratorBaseUrl(): string {
 }
 
 function getOrchestratorApiKey(): string {
-  return process.env.HOLOSCRIPT_API_KEY ?? process.env.NEXT_PUBLIC_MCP_API_KEY ?? '';
+  // Server-only key, no browser-visible (NEXT_PUBLIC) fallback.
+  return process.env.HOLOSCRIPT_API_KEY || '';
 }
 
 async function readResponsePayload(response: Response): Promise<unknown> {
@@ -126,7 +127,7 @@ async function syncKnowledgePayload(
       success: false,
       status: 'failed',
       count: 0,
-      errors: ['Missing HOLOSCRIPT_API_KEY or NEXT_PUBLIC_MCP_API_KEY'],
+      errors: ['Missing HOLOSCRIPT_API_KEY'],
     };
   }
 
