@@ -18,7 +18,8 @@ function fixture(pkg, files) {
   }
   return dir;
 }
-const run = (dir) => spawnSync(process.execPath, [script, dir], { encoding: 'utf8' });
+const run = (dir, cwd) => spawnSync(process.execPath, [script, dir], { encoding: 'utf8', cwd });
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 test('fails when main is declared but not packed (linter 6.1.1 shape)', () => {
   const dir = fixture({ name: 'fx-bad', main: 'dist/index.js', types: 'dist/index.d.ts', files: ['dist'] },
@@ -49,5 +50,19 @@ test('passes when every declared entry is packed', () => {
   try {
     const r = run(dir);
     assert.equal(r.status, 0, r.stderr);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('resolves a repo-relative package path from any cwd (pnpm --filter shape)', () => {
+  const linterDir = join(repoRoot, 'packages', 'linter');
+  const dir = fixture({ name: 'fx-cwd', main: 'index.js' }, ['index.js']);
+  try {
+    for (const cwd of [repoRoot, linterDir, tmpdir()]) {
+      const r = run('packages/linter', cwd);
+      assert.doesNotMatch(r.stderr, /ENOENT/, `cwd=${cwd}: ${r.stderr}`);
+      assert.match(r.stdout + r.stderr, /@holoscript\/linter@/, `cwd=${cwd}`);
+      const a = run(dir, linterDir);
+      assert.equal(a.status, 0, `absolute from cwd=${cwd}: ${a.stderr}`);
+    }
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });

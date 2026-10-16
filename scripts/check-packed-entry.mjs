@@ -4,8 +4,22 @@
 // Usage: node scripts/check-packed-entry.mjs <packageDir> [...more]
 // Run after the package is built.
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { join, resolve, posix } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, isAbsolute, join, resolve, posix } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Repo root from this script's own location, so the check works from the repo
+// root, the package dir, or pnpm --filter.
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+
+// Absolute paths as given; relative paths against the repo root (falling back
+// to cwd if that does not exist).
+export function resolvePackageDir(d) {
+  if (isAbsolute(d)) return d;
+  const fromRoot = resolve(repoRoot, d);
+  if (existsSync(join(fromRoot, 'package.json'))) return fromRoot;
+  return resolve(process.cwd(), d);
+}
 
 function declaredEntries(pkg) {
   const out = new Set();
@@ -24,6 +38,8 @@ function declaredEntries(pkg) {
 function packedFiles(dir) {
   const json = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
     cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    // npm is npm.cmd on Windows; it needs a shell there. Args are fixed literals.
+    shell: process.platform === 'win32',
   });
   return new Set(JSON.parse(json)[0].files.map((f) => posix.normalize(f.path)));
 }
@@ -39,7 +55,7 @@ const dirs = process.argv.slice(2);
 if (dirs.length === 0) { console.error('usage: check-packed-entry.mjs <packageDir>...'); process.exit(2); }
 let failed = false;
 for (const d of dirs) {
-  const dir = resolve(process.cwd(), d);
+  const dir = resolvePackageDir(d);
   const r = checkPackedEntry(dir);
   if (r.missing.length) {
     failed = true;
