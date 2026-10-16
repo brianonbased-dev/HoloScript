@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+import { requireFounder } from '@/lib/api-auth';
 import { corsHeaders } from '../../../_lib/cors';
 // ─── POST /api/studio/oracle-boost/setup ─────────────────────────────────────
 // One-call bootstrap: provisions policy files, validates env vars.
@@ -54,6 +55,11 @@ function writeIfMissing(filePath: string, content: string): 'created' | 'exists'
 }
 
 export async function POST(request: NextRequest) {
+  // Writes into the server's home directory (~/.claude, ~/.holoscript), so it is
+  // founder-only: anonymous 401, other signed-in users 403, and nothing is written.
+  const auth = await requireFounder(request);
+  if (auth instanceof NextResponse) return auth;
+
   const body = (await request.json().catch(() => ({}))) as { tier?: string };
   const tier: string = body.tier || request.headers.get('x-absorb-tier') || 'free';
 
