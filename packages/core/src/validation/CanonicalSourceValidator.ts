@@ -4,6 +4,8 @@ import {
   preprocessAgentBrainSource,
   type AgentBrainSourceHeader,
 } from '../parser/HoloScriptPlusParser';
+import { checkLikeness, LIKENESS_CODE, type ConsentRules } from './LikenessCheck';
+import { findUnknownTraits, isKnownTrait, UNKNOWN_TRAIT_CODE } from './KnownTraits';
 
 export type CanonicalSourceSurface = 'holo' | 'hsplus' | 'hs';
 
@@ -47,6 +49,18 @@ export interface CanonicalSourceValidationRequest {
    * on every surface, before any parser or Rust/WASM authority runs.
    */
   allowEmpty?: boolean;
+  /**
+   * The caller's `.hs` `render_likeness` result: for each grant, the likeness sources (face,
+   * voice, body) the rule said yes to. `.holo` only. Unset or empty, every likeness source
+   * (`@face_mesh`, `@voice_print`, `@body_scan`) is refused with `HS1011`: fail closed.
+   * See `LikenessCheck.ts` and strict/ERROR_CONTRACT.md.
+   */
+  consentRules?: ConsentRules | null;
+  /**
+   * Extra trait names known to this caller (a plugin's or host's vocabulary), for the HS1006
+   * unknown-trait check. See `KnownTraits.ts`.
+   */
+  knownTraits?: Iterable<string>;
 }
 
 export type CanonicalHsDetailedValidator = (source: string) => string | unknown;
@@ -172,7 +186,140 @@ export function resolveCanonicalSourceSurface(
   );
 }
 
-function validateHolo(source: string, allowEmpty = false): CanonicalSourceValidationResult {
+/**
+ * Where the k-th written `@name` (outside comments) is in `source`, else the owner's `loc`.
+ * Trait nodes carry no position of their own; every layer places the k-th use of X at the k-th `@X`.
+ */
+function traitPosition(
+  source: string,
+  name: string,
+  k: number,
+  owner: unknown
+): { line?: number; column?: number } {
+  const re = new RegExp(`@${name.toLowerCase().replace(/[^a-z0-9_]/g, '')}(?![A-Za-z0-9_])`, 'gi');
+  const inComment = (index: number) => {
+    const lineStart = source.lastIndexOf('\n', index - 1) + 1;
+    if (source.slice(lineStart, index).includes('//')) return true;
+    return source.lastIndexOf('/*', index) > source.lastIndexOf('*/', index);
+  };
+  let match: RegExpExecArray | null = null;
+  for (let i = 0; i <= k; ) {
+    match = re.exec(source);
+    if (!match) break;
+    if (!inComment(match.index)) i++;
+  }
+  if (match) {
+    const before = source.slice(0, match.index).split(/\r\n|\n|\r/);
+    return { line: before.length, column: before[before.length - 1].length + 1 };
+  }
+  const start = (owner as { loc?: { start?: { line?: number; column?: number } } })?.loc?.start;
+  return { line: start?.line, column: start?.column };
+}
+
+/**
+ * HS1006 (warning, never an error here): each trait use that is not a known trait
+ * (KnownTraits.ts, the one check every surface uses), at the k-th written `@name`.
+ */
+function unknownTraitDiagnostics(
+  source: string,
+  ast: unknown,
+  knownTraits: Iterable<string> | undefined
+): CanonicalDiagnostic[] {
+  const used = new Map<string, number>();
+  return findUnknownTraits(ast, { knownTraits }).map((use) => {
+    const key = use.name.toLowerCase();
+    const k = used.get(key) ?? 0;
+    used.set(key, k + 1);
+    const where = traitPosition(source, use.name, k, use.owner);
+    return {
+      severity: 'warning' as const,
+      code: UNKNOWN_TRAIT_CODE,
+      message: `Unknown trait "@${use.name}".`,
+      line: where.line,
+      column: where.column,
+      suggestion: 'Check the trait registry, or register it before use.',
+    };
+  });
+}
+
+/**
+ * `.hsplus`: HS1006 is authoritative over the parser's HSP001 "Unknown directive @x", and each
+ * `@` is reported once. An HSP001 whose name is known (core's set, a name the source declares
+ * with `trait X { ... }` / `trait @X { ... }`, or the caller's) is dropped. One that HS1006
+ * already reports on the same line is dropped. One the AST does not carry (the parser warned,
+ * then recovered without keeping the trait) becomes the HS1006 for that `@`, at the written `@x`.
+ */
+function reconcileHsp001(
+  source: string,
+  warnings: CanonicalDiagnostic[],
+  unknown: CanonicalDiagnostic[],
+  known: string[]
+): { warnings: CanonicalDiagnostic[]; unknown: CanonicalDiagnostic[] } {
+  const nameIn = (d: CanonicalDiagnostic) => d.message.match(/"@([^"]+)"/)?.[1]?.toLowerCase();
+  const reported = new Set(unknown.map((d) => `${d.line}|${nameIn(d)}`));
+  const lines = source.split(/\r\n|\n|\r/);
+  const kept: CanonicalDiagnostic[] = [];
+  const added: CanonicalDiagnostic[] = [];
+  for (const d of warnings) {
+    const m = /Unknown directive @([A-Za-z0-9_]+)/.exec(d.message);
+    if (!m) {
+      kept.push(d);
+      continue;
+    }
+    const name = m[1];
+    if (name.toLowerCase() === 'trait' || isKnownTrait(name, { knownTraits: known })) continue;
+    const key = `${d.line}|${name.toLowerCase()}`;
+    if (reported.has(key)) continue;
+    reported.add(key);
+    const text = d.line !== undefined ? lines[d.line - 1] : undefined;
+    const at = text ? new RegExp(`@${name}(?![A-Za-z0-9_])`).exec(text) : null;
+    added.push({
+      severity: 'warning',
+      code: UNKNOWN_TRAIT_CODE,
+      message: `Unknown trait "@${name}".`,
+      line: d.line,
+      column: at ? at.index + 1 : d.column,
+      suggestion: 'Check the trait registry, or register it before use.',
+    });
+  }
+  return { warnings: kept, unknown: [...unknown, ...added] };
+}
+
+/** Names a `.hsplus` source declares itself: `trait X { ... }` or `trait @X { ... }`. */
+function hsplusDeclaredTraits(source: string): string[] {
+  return [...source.matchAll(/(?:^|[^\w@])trait\s+@?([A-Za-z_]\w*)\s*\{/g)].map((m) => m[1]);
+}
+
+/** HS1011 diagnostics, each at the k-th written `@name` of its trait, else at its object. */
+function likenessDiagnostics(
+  source: string,
+  ast: unknown,
+  consentRules: ConsentRules | null | undefined
+): CanonicalDiagnostic[] {
+  const findings = checkLikeness(ast, consentRules);
+  const used = new Map<string, number>();
+  return findings.map((finding) => {
+    const key = finding.traitName.toLowerCase();
+    const k = used.get(key) ?? 0;
+    used.set(key, k + 1);
+    const { line, column } = traitPosition(source, key, k, finding.owner);
+    return {
+      severity: 'error' as const,
+      code: LIKENESS_CODE,
+      message: finding.message,
+      line,
+      column,
+      suggestion: finding.hint,
+    };
+  });
+}
+
+function validateHolo(
+  source: string,
+  allowEmpty = false,
+  consentRules?: ConsentRules | null,
+  knownTraits?: Iterable<string>
+): CanonicalSourceValidationResult {
   try {
     const result = new HoloCompositionParser().parse(source);
     // The parser refuses blank source with HS1001. An editor that passed allowEmpty keeps the
@@ -181,8 +328,14 @@ function validateHolo(source: string, allowEmpty = false): CanonicalSourceValida
       result.errors = result.errors.filter((error) => error.code !== 'HS1001');
       if (result.ast && result.errors.length === 0) result.success = true;
     }
-    const errors = normalizeDiagnosticList(result.errors, 'error');
-    const warnings = normalizeDiagnosticList(result.warnings, 'warning');
+    const errors = [
+      ...normalizeDiagnosticList(result.errors, 'error'),
+      ...likenessDiagnostics(source, result.ast, consentRules),
+    ];
+    const warnings = [
+      ...normalizeDiagnosticList(result.warnings, 'warning'),
+      ...unknownTraitDiagnostics(source, result.ast, knownTraits),
+    ];
     return {
       valid: result.success === true && errors.length === 0,
       surface: 'holo',
@@ -208,7 +361,10 @@ function validateHolo(source: string, allowEmpty = false): CanonicalSourceValida
   }
 }
 
-function validateHsplus(source: string): CanonicalSourceValidationResult {
+function validateHsplus(
+  source: string,
+  knownTraits?: Iterable<string>
+): CanonicalSourceValidationResult {
   let parserSource = source;
   let agentBrainHeader: AgentBrainSourceHeader | undefined;
   let agentBrainLocationMap: Array<{ authoredLine: number; columnOffset: number }> | undefined;
@@ -224,7 +380,14 @@ function validateHsplus(source: string): CanonicalSourceValidationResult {
 
     const result = new HoloScriptPlusParser({ strict: preprocessedAgentBrain }).parse(parserSource);
     let errors = normalizeDiagnosticList(result.errors, 'error');
-    let warnings = normalizeDiagnosticList(result.warnings, 'warning');
+    const known = [...(knownTraits ?? []), ...hsplusDeclaredTraits(parserSource)];
+    const reconciled = reconcileHsp001(
+      parserSource,
+      normalizeDiagnosticList(result.warnings, 'warning'),
+      unknownTraitDiagnostics(parserSource, result.ast, known),
+      known
+    );
+    let warnings = [...reconciled.warnings, ...reconciled.unknown];
     if (agentBrainLocationMap) {
       const locationMap = agentBrainLocationMap;
       errors = errors.map((diagnostic) => remapAgentBrainDiagnostic(diagnostic, locationMap));
@@ -363,7 +526,13 @@ export function validateCanonicalSource(
   ) {
     return refuseEmptySource(surface);
   }
-  if (surface === 'holo') return validateHolo(request.source, request.allowEmpty === true);
-  if (surface === 'hsplus') return validateHsplus(request.source);
+  if (surface === 'holo')
+    return validateHolo(
+      request.source,
+      request.allowEmpty === true,
+      request.consentRules,
+      request.knownTraits
+    );
+  if (surface === 'hsplus') return validateHsplus(request.source, request.knownTraits);
   return validateHs(request.source, dependencies.validateHsDetailed);
 }

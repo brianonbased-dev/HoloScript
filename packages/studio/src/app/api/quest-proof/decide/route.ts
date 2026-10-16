@@ -1,28 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireFounder } from '@/lib/api-auth';
+import { holomeshUpstream } from '../_lib/holomeshUpstream';
 
 export const runtime = 'nodejs';
 
-const BASE =
-  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
-const TEAM_ID = process.env.HOLOMESH_TEAM_ID ?? '';
 
 const ALLOWED_ACTIONS = new Set(['done']);
 const TASK_ID_RE = /^[a-zA-Z0-9_-]+$/;
 
+/** Founder-only: requireFounder answers 401/403 before the team key is read. */
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
-  }
-  if (!TEAM_ID) {
-    return NextResponse.json(
-      { ok: false, error: 'HOLOMESH_TEAM_ID not configured' },
-      { status: 503 }
-    );
-  }
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
+  const up = holomeshUpstream();
+  if (up instanceof NextResponse) return up;
   let payload: { taskIds?: unknown; action?: unknown; summary?: unknown } | null = null;
   try {
     payload = await req.json();
@@ -51,18 +42,13 @@ export async function POST(req: NextRequest) {
       : 'founder-console decide-all';
   const verificationEvidence = 'founder-console decide-all';
 
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (KEY) {
-    headers['Authorization'] = `Bearer ${KEY}`;
-    headers['x-mcp-api-key'] = KEY;
-  }
 
   const results = await Promise.all(
     taskIds.map(async (taskId) => {
       try {
-        const res = await fetch(`${BASE}/api/holomesh/team/${TEAM_ID}/board/${taskId}`, {
+        const res = await fetch(`${up.base}/api/holomesh/team/${up.teamId}/board/${taskId}`, {
           method: 'PATCH',
-          headers,
+          headers: up.headers,
           cache: 'no-store',
           body: JSON.stringify({ action, summary, verification_evidence: verificationEvidence }),
         });

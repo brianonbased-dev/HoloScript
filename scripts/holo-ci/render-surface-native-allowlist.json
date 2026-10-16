@@ -296,6 +296,7 @@
     "packages/studio/src/components/holomesh/AgentMiniCard.tsx",
     "packages/studio/src/components/holomesh/CommentThread.tsx",
     "packages/studio/src/components/holomesh/Guestbook.tsx",
+    "packages/studio/src/components/holomesh/JoinHoloMeshState.tsx",
     "packages/studio/src/components/holomesh/KnowledgeEntryCard.tsx",
     "packages/studio/src/components/holomesh/MoodBoardViewport.tsx",
     "packages/studio/src/components/holomesh/MusicPlayer.tsx",

@@ -76,6 +76,7 @@ export default function LeaderboardPage() {
     setError(null);
     try {
       const res = await fetch(`/api/holomesh/teams/leaderboard?metric=${m}&limit=20`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: LeaderboardResponse = await res.json();
       // Assign rank if not provided by server
       const raw = Array.isArray(data.entries) ? data.entries : [];

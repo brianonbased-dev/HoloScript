@@ -44,6 +44,14 @@ import {
   type FrameDeclaration,
   type FrameViolationType,
 } from '@holoscript/core';
+import { getMcpServerSizing } from './server-sizing';
+import {
+  capMcpToolResult,
+  isMcpToolEnvelope,
+  resultScope,
+  type ResponseCapInfo,
+  type ToolResultStore,
+} from './tool-result-store';
 
 // ── Envelope / context types ─────────────────────────────────────────────────
 
@@ -145,6 +153,12 @@ export interface ToolCallReceipt {
   readonly observedDeniedBy?: string;
   /** Structured frame boundary event when frame enforcement denied the call. */
   readonly frameViolation?: FrameViolationReceipt;
+  /** Serialized size of the MCP result envelope the tool produced (envelope results only). */
+  readonly resultBytes?: number;
+  /** True when the result was over the response cap and replaced by a summary + resource_link. */
+  readonly truncated?: boolean;
+  /** sha256 of the full stored payload, when truncated. */
+  readonly resultSha256?: string;
 }
 
 /** Stable receipt payload for a frame boundary denial. */
@@ -308,6 +322,14 @@ export interface ToolCallGateOptions<T> {
    * callers it would refuse, then enforce.
    */
   readonly enforcement?: 'enforce' | 'observe';
+  /**
+   * Response size cap (PLAN: mcp-large-response §3). On by default for MCP
+   * envelope results (`{ content: [...] }`): over `maxBytes` (default
+   * server-sizing `responseMaxBytes`, env MCP_RESPONSE_MAX_BYTES) the result is
+   * stored and replaced by a summary + `resource_link`. `false` turns it off.
+   * Non-envelope results are never touched.
+   */
+  readonly responseCap?: false | { readonly maxBytes?: number; readonly store?: ToolResultStore };
 }
 
 const OBSERVE_WORDS = new Set(['', 'observe', 'off', 'false', '0', 'no', 'disable', 'disabled']);
@@ -333,7 +355,9 @@ function errorClassOf(error: unknown): string {
  * Gate one tool call: run the check, dispatch, and emit exactly one receipt.
  *
  * Contract (WRAP-WITH-RECEIPTS):
- * - Happy path is behavior-neutral: the dispatch result is returned unchanged.
+ * - Happy path is behavior-neutral: the dispatch result is returned unchanged,
+ *   except that an MCP envelope over the response cap is replaced by a summary +
+ *   resource_link (see `responseCap`); under the cap it is the same object.
  * - A dispatch throw propagates unchanged (the receipt records it first).
  * - A check denial throws `ToolCallGateDeniedError` without dispatching.
  * - Exactly one receipt line is written per call, on every path.
@@ -362,7 +386,12 @@ export async function gateToolCall<T>(
 
   const finishReceipt = (
     status: 'ok' | 'error',
-    extra?: { errorClass?: string; deniedBy?: string; frameViolation?: FrameViolationReceipt }
+    extra?: {
+      errorClass?: string;
+      deniedBy?: string;
+      frameViolation?: FrameViolationReceipt;
+      cap?: ResponseCapInfo;
+    }
   ): void => {
     const endedAtMs = Date.now();
     const frameViolation = extra?.frameViolation ?? observed?.frameViolation;
@@ -375,6 +404,8 @@ export async function gateToolCall<T>(
       ...(extra?.deniedBy !== undefined ? { deniedBy: extra.deniedBy } : {}),
       ...(observed !== undefined ? { observedDeniedBy: observed.observedDeniedBy } : {}),
       ...(frameViolation !== undefined ? { frameViolation } : {}),
+      ...(extra?.cap !== undefined ? { resultBytes: extra.cap.resultBytes } : {}),
+      ...(extra?.cap?.truncated ? { truncated: true, resultSha256: extra.cap.resultSha256 } : {}),
     });
   };
 
@@ -400,14 +431,28 @@ export async function gateToolCall<T>(
   }
 
   try {
-    const result = await dispatch(envelope, ctx);
+    let result = await dispatch(envelope, ctx);
     const classification: ToolCallResultClassification = options?.classifyResult
       ? options.classifyResult(result)
       : { ok: true };
+    let cap: ResponseCapInfo | undefined;
+    if (options?.responseCap !== false && isMcpToolEnvelope(result)) {
+      const capped = capMcpToolResult(result, {
+        tool: envelope.name,
+        scope: resultScope(ctx.transport, ctx.callerId),
+        maxBytes: options?.responseCap?.maxBytes ?? getMcpServerSizing().responseMaxBytes,
+        ...(options?.responseCap?.store ? { store: options.responseCap.store } : {}),
+      });
+      result = capped.result as unknown as Awaited<T>;
+      cap = capped.info;
+    }
     if (classification.ok) {
-      finishReceipt('ok');
+      finishReceipt('ok', cap ? { cap } : undefined);
     } else {
-      finishReceipt('error', { errorClass: classification.errorClass ?? 'ToolResultError' });
+      finishReceipt('error', {
+        errorClass: classification.errorClass ?? 'ToolResultError',
+        ...(cap ? { cap } : {}),
+      });
     }
     return result;
   } catch (error) {

@@ -1,5 +1,15 @@
 # @holoscript/r3f-renderer
 
+## 6.1.6
+
+### Patch Changes
+
+- Updated dependencies [4ecc50e]
+- Updated dependencies [857c54a]
+- Updated dependencies
+  - @holoscript/core@8.10.0
+  - @holoscript/snn-webgpu@8.10.0
+
 ## 6.1.5
 
 ### Patch Changes

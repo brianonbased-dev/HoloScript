@@ -74,6 +74,34 @@ async function fetchWithTimeout(
   }
 }
 
+function proofToken(): string {
+  if (typeof window === 'undefined') return '';
+  // The headset link carries ?proofToken= to bootstrap. Read it once, keep it in
+  // sessionStorage, and strip it from the address bar so it is not in history,
+  // receipts or referrers. The API only accepts it in the x-quest-proof-token header.
+  const url = new URL(window.location.href);
+  const fromLink = url.searchParams.get('proofToken');
+  if (fromLink) {
+    try {
+      window.sessionStorage.setItem('quest-proof-token', fromLink);
+    } catch {
+      /* storage blocked: the token still works for this page view */
+    }
+    url.searchParams.delete('proofToken');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    proofTokenCache = fromLink;
+    return fromLink;
+  }
+  if (proofTokenCache) return proofTokenCache;
+  try {
+    return window.sessionStorage.getItem('quest-proof-token') ?? '';
+  } catch {
+    return '';
+  }
+}
+let proofTokenCache = '';
+if (typeof window !== 'undefined') proofToken();
+
 function proofContext() {
   if (typeof window === 'undefined') return {};
   return {
@@ -124,25 +152,16 @@ async function postProofReceipt(label: string, status: Status, detail: string) {
     detail,
     ...context,
   };
-  const posted = await fetchWithTimeout(proofApiPath('/api/quest-proof'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).then((res) => res?.ok === true);
-  if (posted) return;
-  const query = new URLSearchParams({
-    record: '1',
-    runId: payload.runId,
-    pageId: payload.pageId,
-    label,
-    status,
-    detail,
-    url: context.url ?? '',
-    userAgent: context.userAgent ?? '',
-  });
-  await fetchWithTimeout(`${proofApiPath('/api/quest-proof')}?${query.toString()}`, {
-    cache: 'no-store',
-  });
+  // POST-only (the GET record mode is refused). runId in the query so the server checks
+  // the token before reading the body.
+  await fetchWithTimeout(
+    `${proofApiPath('/api/quest-proof')}?${new URLSearchParams({ runId: payload.runId }).toString()}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': proofToken() },
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
 // Minimal WebXR type polyfill — @types/webxr isn't always present.

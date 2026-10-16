@@ -259,3 +259,75 @@ describe('the stateless tool routes run the tool-call gate (real server)', () =>
     });
   });
 });
+
+describe('stateless POST /mcp caps an oversized result and pages it back (real server)', () => {
+  afterEach(() => {
+    delete process.env.MCP_RESPONSE_MAX_BYTES;
+  });
+
+  const readVia = (uri: string, token = REAL_SERVER_ADMIN_KEY) =>
+    server.request('POST', '/mcp', {
+      token,
+      body: { jsonrpc: '2.0', id: 2, method: 'resources/read', params: { uri } },
+    });
+
+  it('over MCP_RESPONSE_MAX_BYTES: summary + resource_link, and resources/read reassembles it byte-for-byte for the same caller only', async () => {
+    const cap = 16 * 1024;
+    process.env.MCP_RESPONSE_MAX_BYTES = String(cap);
+    const code = Array.from(
+      { length: 400 },
+      (_, i) => `object Cube${i} { position: [${i}, 0, 0] color: "#ff0000" }`
+    ).join('\n');
+
+    const call = await viaMcp('parse_hs', { code });
+    expect(call.status).toBe(200);
+    expect(mcpError(call), JSON.stringify(call.body).slice(0, 500)).toBeUndefined();
+    expect(Buffer.byteLength(JSON.stringify(call.body), 'utf8')).toBeLessThanOrEqual(cap);
+
+    const result = call.body.result as {
+      content: Array<{ type: string; text?: string; uri?: string }>;
+      _meta: Record<string, { truncated: boolean; totalBytes: number; sha256: string; handle: string }>;
+    };
+    const meta = result._meta['holoscript/result'];
+    expect(meta.truncated).toBe(true);
+    expect(meta.totalBytes).toBeGreaterThan(cap);
+    const link = result.content.find((c) => c.type === 'resource_link');
+    expect(link?.uri).toMatch(/^holo-result:\/\/[0-9a-f]{64}\/[0-9a-f]{32}$/);
+
+    // Page it back through the same stateless route.
+    const chunks: string[] = [];
+    let uri: string | undefined = link!.uri!;
+    let pages = 0;
+    while (uri) {
+      const page = await readVia(uri);
+      expect(page.status).toBe(200);
+      expect(mcpError(page), JSON.stringify(page.body).slice(0, 500)).toBeUndefined();
+      expect(Buffer.byteLength(JSON.stringify(page.body), 'utf8')).toBeLessThanOrEqual(cap);
+      const r = page.body.result as {
+        contents: Array<{ text: string }>;
+        _meta: Record<string, { nextUri?: string }>;
+      };
+      chunks.push(r.contents[0].text);
+      uri = r._meta['holoscript/result'].nextUri;
+      expect(++pages).toBeLessThan(200);
+    }
+    expect(pages).toBeGreaterThan(1);
+    const full = Buffer.from(chunks.join(''), 'utf8');
+    expect(full.length).toBe(meta.totalBytes);
+    const { createHash } = await import('crypto');
+    expect(createHash('sha256').update(full).digest('hex')).toBe(meta.sha256);
+    expect(() => JSON.parse(full.toString('utf8'))).not.toThrow();
+
+    // Another caller (a consented tools:read login) cannot read the admin's result.
+    const foreign = await readVia(link!.uri!, readToken);
+    expect(mcpError(foreign)).toMatchObject({ code: -32002 });
+  });
+
+  it('under the cap the reply is unchanged (no resource_link, no truncation meta)', async () => {
+    process.env.MCP_RESPONSE_MAX_BYTES = String(16 * 1024);
+    const call = await viaMcp('parse_hs', PARSE_ARGS);
+    const result = call.body.result as { content: Array<{ type: string }>; _meta?: unknown };
+    expect(result.content.every((c) => c.type === 'text')).toBe(true);
+    expect(result._meta).toBeUndefined();
+  });
+});

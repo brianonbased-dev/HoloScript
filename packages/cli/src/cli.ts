@@ -880,14 +880,20 @@ async function main(): Promise<void> {
         let parseResult: any;
 
         if (options.command === 'validate') {
-          const { validateCanonicalSource } = await import('@holoscript/core');
+          const { validateForCli, loadConsentRules } = await import('./consent-rules');
           const validateHsDetailed =
             !isHolo && !isHsplus
               ? (await import('@holoscript/wasm/node')).validate_detailed
               : undefined;
-          const canonicalResult = validateCanonicalSource(
-            { source: content, fileName: options.input },
-            { validateHsDetailed }
+          // HS1011: without --consent-rules every likeness source fails (fail closed).
+          const consentRules = options.consentRules
+            ? loadConsentRules(path.resolve(options.consentRules))
+            : undefined;
+          const canonicalResult = validateForCli(
+            content,
+            options.input,
+            consentRules,
+            validateHsDetailed
           );
           parseResult = { ast: canonicalResult.ast };
           success = canonicalResult.valid;

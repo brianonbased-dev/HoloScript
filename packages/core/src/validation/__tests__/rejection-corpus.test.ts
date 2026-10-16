@@ -140,6 +140,14 @@ describe('strict corpus: files the canonical validator must refuse', () => {
     }
   });
 
+  it('the likeness files are refused with HS1011 at the strict layer\'s positions', () => {
+    for (const { file, errors } of manifest.invalid.filter((e) => e.file.includes('/likeness-'))) {
+      const result = validateCanonicalSource({ source: readCorpus(file), surface: 'holo' });
+      const likeness = result.errors.filter((error) => error.code === 'HS1011');
+      expect(likeness.map((e) => [e.code, e.line, e.column]), file).toEqual(errors);
+    }
+  });
+
   it('the zero-column gap is still real for every file listed as known', () => {
     for (const file of KNOWN_ZERO_COLUMN_FILES) {
       const result = validateCanonicalSource({ source: readCorpus(file), surface: 'holo' });

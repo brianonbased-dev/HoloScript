@@ -141,7 +141,9 @@ export function SettingsView() {
       .catch(() => {})
       .finally(() => setCreditsLoading(false));
 
-    // Oracle Boost status + telemetry
+    // Oracle Boost status + telemetry: founder-only routes, so non-founders never
+    // call them (and the panel is hidden for them via isFounder below).
+    if (session?.user?.isFounder !== true) return;
     const tier = (session as { user: { tier?: string } }).user?.tier ?? 'free';
     setOracleLoading(true);
     Promise.all([
@@ -206,6 +208,7 @@ export function SettingsView() {
         sessionLoading: status === 'loading',
         email: session?.user?.email ?? '',
         userId: session?.user?.id ?? '',
+        isFounder: session?.user?.isFounder === true,
       });
     }
   }, [
@@ -288,6 +291,7 @@ export function SettingsView() {
   }
 
   async function runOracleSetup() {
+    if (session?.user?.isFounder !== true) return;
     setOracleSetupRunning(true);
     try {
       const tier = (session as { user: { tier?: string } }).user?.tier ?? 'free';

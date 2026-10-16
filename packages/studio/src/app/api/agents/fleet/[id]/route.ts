@@ -2,6 +2,7 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { callerHoloMeshHeaders, noHoloMeshAgentResponse } from '../../../../../lib/holomesh-proxy';
 import { corsHeaders } from '../../../_lib/cors';
 /**
  * /api/agents/fleet/[id] — Single fleet agent management
@@ -28,14 +29,10 @@ interface PatchPayload {
 
 const HOLOMESH_BASE =
   process.env.HOLOMESH_API_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';
-const HOLOMESH_KEY = process.env.HOLOMESH_API_KEY || process.env.HOLOMESH_KEY || '';
-
-function authHeaders(key: string, clientAuth: string | null): Record<string, string> {
-  const h: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (key) h['Authorization'] = `Bearer ${key}`;
-  if (clientAuth) h['Authorization'] = clientAuth;
-  return h;
-}
+// Audit 2026-10-15: GET/PATCH/DELETE used Studio's server key for keyless
+// callers, so anyone could read, pause, re-cap (maxDailySpendCents) or
+// deregister a fleet agent as Studio. Fleet agents belong to the caller:
+// caller's own key only; keyless → 404 no_holomesh_agent.
 
 // ── Route params type ────────────────────────────────────────────────────────
 
@@ -47,10 +44,10 @@ interface RouteContext {
 
 export async function GET(req: NextRequest, ctx: RouteContext) {
   const { id } = await ctx.params;
-  const clientAuth = req.headers.get('authorization');
+  const headers = callerHoloMeshHeaders(req);
+  if (!headers) return noHoloMeshAgentResponse();
 
   try {
-    const headers = authHeaders(HOLOMESH_KEY, clientAuth);
     const res = await fetch(
       `${HOLOMESH_BASE}/api/holomesh/agents/fleet/${encodeURIComponent(id)}`,
       { headers }
@@ -77,7 +74,8 @@ export async function GET(req: NextRequest, ctx: RouteContext) {
 
 export async function PATCH(req: NextRequest, ctx: RouteContext) {
   const { id } = await ctx.params;
-  const clientAuth = req.headers.get('authorization');
+  const headers = callerHoloMeshHeaders(req);
+  if (!headers) return noHoloMeshAgentResponse();
 
   let body: unknown;
   try {
@@ -114,7 +112,6 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
   }
 
   try {
-    const headers = authHeaders(HOLOMESH_KEY, clientAuth);
     const res = await fetch(
       `${HOLOMESH_BASE}/api/holomesh/agents/fleet/${encodeURIComponent(id)}`,
       {
@@ -179,10 +176,10 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
 
 export async function DELETE(req: NextRequest, ctx: RouteContext) {
   const { id } = await ctx.params;
-  const clientAuth = req.headers.get('authorization');
+  const headers = callerHoloMeshHeaders(req);
+  if (!headers) return noHoloMeshAgentResponse();
 
   try {
-    const headers = authHeaders(HOLOMESH_KEY, clientAuth);
     const res = await fetch(
       `${HOLOMESH_BASE}/api/holomesh/agents/fleet/${encodeURIComponent(id)}`,
       {

@@ -57,6 +57,7 @@ import { createRequire } from 'module';
 import {
   buildKnownTraitSet,
   DERIVED_TRAIT_SCHEMAS,
+  isKnownTrait as coreIsKnownTrait,
   validateCanonicalSource,
 } from '@holoscript/core';
 import type { GRPORewardFunction } from './GRPORewardFunctions';
@@ -161,10 +162,9 @@ export function holoScriptTraitVocabulary(): Set<string> {
   return vocabulary.ids;
 }
 
+/** Core's one known-trait check (KnownTraits.ts), the same function as HS1006 on every surface. */
 function isKnownTrait(name: string): boolean {
-  holoScriptTraitVocabulary();
-  const n = normalizeTraitName(name);
-  return vocabulary!.normalized.has(n) || vocabulary!.squashed.has(squash(n));
+  return coreIsKnownTrait(name);
 }
 
 // =============================================================================

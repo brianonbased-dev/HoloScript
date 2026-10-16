@@ -24,8 +24,8 @@ function attachNode(config: any = {}) {
 // ─── defaultConfig ────────────────────────────────────────────────────────────
 
 describe('avatarEmbodimentHandler.defaultConfig', () => {
-  it('tracking_source = ai', () => {
-    expect(avatarEmbodimentHandler.defaultConfig!.tracking_source).toBe('ai');
+  it('tracking_source = unknown (Trust: no driver assumed)', () => {
+    expect(avatarEmbodimentHandler.defaultConfig!.tracking_source).toBe('unknown');
   });
   it('ik_mode = upper_body', () => {
     expect(avatarEmbodimentHandler.defaultConfig!.ik_mode).toBe('upper_body');
