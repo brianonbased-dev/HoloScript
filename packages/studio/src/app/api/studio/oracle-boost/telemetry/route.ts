@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+import { requireFounder } from '@/lib/api-auth';
 import { corsHeaders } from '../../../_lib/cors';
 // ─── GET /api/studio/oracle-boost/telemetry ──────────────────────────────────
 // Reads oracle-telemetry.jsonl and returns aggregated usage + outcome data.
@@ -66,6 +67,11 @@ function aggregate(entries: TelemetryEntry[]) {
 }
 
 export async function GET(request: NextRequest) {
+  // Returns the server's local telemetry file path and raw entries, so it is
+  // founder-only: anonymous 401, other signed-in users 403, nothing read.
+  const auth = await requireFounder(request);
+  if (auth instanceof NextResponse) return auth;
+
   const { searchParams } = new URL(request.url);
   const tier = searchParams.get('tier') || request.headers.get('x-absorb-tier') || 'free';
   const limitParam = searchParams.get('limit');
