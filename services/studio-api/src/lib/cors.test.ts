@@ -68,6 +68,52 @@ describe('studio-api CORS allowlist', () => {
   });
 });
 
+describe('production https-only configured origins (Mapping N1)', () => {
+  it('drops http:// and localhost from STUDIO_API_ALLOWED_ORIGINS in production', () => {
+    const env = {
+      ...PROD,
+      STUDIO_API_ALLOWED_ORIGINS: 'https://ok.example, http://plain.example, http://localhost:3100, http://127.0.0.1:3105',
+    };
+    expect([...getAllowedOrigins(env)]).toEqual(['https://ok.example']);
+    expect(resolveAllowedOrigin('http://plain.example', env)).toBeNull();
+    expect(resolveAllowedOrigin('http://localhost:3100', env)).toBeNull();
+  });
+
+  it('drops an http NEXT_PUBLIC_STUDIO_URL in production', () => {
+    const env = { ...PROD, NEXT_PUBLIC_STUDIO_URL: 'http://localhost:3100' };
+    expect(resolveAllowedOrigin('http://localhost:3100', env)).toBeNull();
+    expect(getAllowedOrigins(env).has('http://localhost:3100')).toBe(false);
+  });
+
+  it('keeps http configured origins outside production', () => {
+    const env = { NODE_ENV: 'development', STUDIO_API_ALLOWED_ORIGINS: 'http://plain.example' };
+    expect(resolveAllowedOrigin('http://plain.example', env)).toBe('http://plain.example');
+  });
+});
+
+describe('ACAO guard (Mapping N2)', () => {
+  it('only lib/cors.ts sets Access-Control-Allow-Origin in studio-api src or next.config.js', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const pkgRoot = path.resolve(__dirname, '..', '..');
+    const files: string[] = [path.join(pkgRoot, 'next.config.js')];
+    const walk = (d: string) => {
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        const f = path.join(d, e.name);
+        if (e.isDirectory()) walk(f);
+        else if (/\.(m?[jt]sx?|cjs)$/.test(e.name) && !/\.test\.[jt]sx?$/.test(e.name)) files.push(f);
+      }
+    };
+    walk(path.join(pkgRoot, 'src'));
+    const allowed = path.join(pkgRoot, 'src', 'lib', 'cors.ts');
+    const offenders = files.filter(
+      (f) => f !== allowed && /access-control-allow-origin/i.test(fs.readFileSync(f, 'utf8'))
+    );
+    expect(files.length).toBeGreaterThan(5);
+    expect(offenders.map((f) => path.relative(pkgRoot, f))).toEqual([]);
+  });
+});
+
 describe('proxy CORS (integration)', () => {
   afterEach(() => vi.unstubAllEnvs());
 

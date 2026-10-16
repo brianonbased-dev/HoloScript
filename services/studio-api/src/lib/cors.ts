@@ -12,6 +12,7 @@
  *  - otherwise the production Studio origins below, plus NEXT_PUBLIC_STUDIO_URL
  *    (the configured Studio frontend the CSRF check in proxy.ts already trusts) when set;
  *  - plus localhost / 127.0.0.1 Studio dev origins only when NODE_ENV !== 'production'.
+ * In production, configured origins (override and NEXT_PUBLIC_STUDIO_URL) must be https.
  * A literal `*` in the override is ignored: the wildcard cannot come back via config.
  */
 
@@ -30,12 +31,14 @@ export const CORS_ALLOW_HEADERS =
 
 type Env = Record<string, string | undefined>;
 
-function normalizeOrigin(raw: string): string | null {
+function normalizeOrigin(raw: string, httpsOnly: boolean): string | null {
   const trimmed = raw.trim();
   if (!trimmed || trimmed === '*') return null;
   try {
     const u = new URL(trimmed);
     if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    // Production: configured origins must be https (drops http:// and therefore plain-http localhost).
+    if (httpsOnly && u.protocol !== 'https:') return null;
     return u.origin;
   } catch {
     return null;
@@ -48,8 +51,9 @@ export function getAllowedOrigins(env: Env = process.env): Set<string> {
   const base = override
     ? override.split(',')
     : [...DEFAULT_PROD_ORIGINS, ...(env.NEXT_PUBLIC_STUDIO_URL ? [env.NEXT_PUBLIC_STUDIO_URL] : [])];
+  const httpsOnly = env.NODE_ENV === 'production';
   for (const o of base) {
-    const n = normalizeOrigin(o);
+    const n = normalizeOrigin(o, httpsOnly);
     if (n) out.add(n);
   }
   if (env.NODE_ENV !== 'production') {
