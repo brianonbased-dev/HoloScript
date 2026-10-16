@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../../../_lib/cors';
 // ─── POST /api/studio/oracle-boost/status ────────────────────────────────────
 // Validates all oracle prerequisites for the current session.
@@ -20,7 +21,11 @@ const KNOWLEDGE_ENDPOINT = normalizeEndpoint(
   process.env.MCP_ORCHESTRATOR_PUBLIC_URL || process.env.MCP_ORCHESTRATOR_URL
 );
 
-const MCP_API_KEY = process.env.HOLOSCRIPT_API_KEY || process.env.NEXT_PUBLIC_MCP_API_KEY || '';
+// Server-only key, read per request. No browser-visible (NEXT_PUBLIC) fallback:
+// Next inlines those into the bundle, so they can never hold a server credential.
+function getMcpApiKey(): string {
+  return process.env.HOLOSCRIPT_API_KEY || '';
+}
 
 const ORACLE_TELEMETRY_PATH =
   process.env.ORACLE_TELEMETRY_PATH ||
@@ -61,9 +66,11 @@ async function probeKnowledgeEndpoint(): Promise<{
   status: 'pass' | 'fail';
   entry_count?: number;
 }> {
+  // Fail closed: without the server key there is no upstream call at all.
+  const apiKey = getMcpApiKey();
+  if (!apiKey) return { status: 'fail' };
   try {
-    const headers: Record<string, string> = {};
-    if (MCP_API_KEY) headers['x-mcp-api-key'] = MCP_API_KEY;
+    const headers: Record<string, string> = { 'x-mcp-api-key': apiKey };
     const res = await fetch(`${KNOWLEDGE_ENDPOINT}/health`, {
       headers,
       signal: AbortSignal.timeout(4000),
@@ -88,6 +95,10 @@ function checkTelemetryWritable(): 'pass' | 'fail' {
 }
 
 export async function POST(request: NextRequest) {
+  // Signed-in Studio users only; anonymous callers get 401 and no upstream probe.
+  const auth = await requireAuth(request);
+  if (auth instanceof NextResponse) return auth;
+
   const body = (await request.json().catch(() => ({}))) as {
     tier?: string;
     hardware_hint?: string;
