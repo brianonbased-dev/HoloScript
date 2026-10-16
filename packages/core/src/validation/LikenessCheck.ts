@@ -15,6 +15,9 @@ import { normalizeTraitName, resolveTraitName, traitNameKey } from './TraitName'
 
 export type LikenessSource = 'face' | 'voice' | 'body';
 
+/** Live sources that exempt lip_sync / lipsync (either spelling). */
+export const LIP_SYNC_LIVE: readonly string[] = Object.freeze(['microphone', 'live_mic']);
+
 /** Traits that render a real person's likeness, by the source they render. Deliberately short. */
 export const LIKENESS_SOURCES: Readonly<Record<string, LikenessSource>> = Object.freeze({
   face_mesh: 'face',
@@ -35,8 +38,11 @@ export const LIKENESS_SOURCES: Readonly<Record<string, LikenessSource>> = Object
 export const SOURCE_GATED_TRACKING: Readonly<
   Record<string, { param: string; live: readonly string[]; source: LikenessSource }>
 > = Object.freeze({
-  lip_sync: { param: 'source', live: ['microphone'], source: 'voice' },
-  lipsync: { param: 'source', live: ['live_mic'], source: 'voice' },
+  // lip_sync and lipsync are one trait under two spellings (they share a fold key, so `@LipSync`
+  // may resolve to either): both exempt the same live sources, microphone and live_mic, so the
+  // exemption never depends on which spelling the author used (Mapping nit).
+  lip_sync: { param: 'source', live: LIP_SYNC_LIVE, source: 'voice' },
+  lipsync: { param: 'source', live: LIP_SYNC_LIVE, source: 'voice' },
   // Same rule as the tracking series (POLICY.md section 3): only the live user's own capture
   // is exempt; a recording, a remote user, or no source at all needs the grant and the yes.
   face_tracking: { param: 'source', live: ['live_self'], source: 'face' },
@@ -72,7 +78,7 @@ type NodeLike = Record<string, unknown> & { loc?: { start?: unknown }; traits?: 
 const normalize = normalizeTraitName;
 
 /** Every name this check gates, as written in its tables. */
-const GATED_NAMES = [...Object.keys(LIKENESS_SOURCES), ...Object.keys(SOURCE_GATED_TRACKING)];
+const GATED_NAMES = [...Object.keys(LIKENESS_SOURCES), ...Object.keys(SOURCE_GATED_TRACKING), 'avatar_embodiment'];
 
 /**
  * The likeness or source-gated trait `name` is a spelling of (TraitName.resolveTraitName, the
@@ -143,7 +149,7 @@ export function checkLikeness(ast: unknown, consentRules?: ConsentRules | null):
       source = gated.source;
       tracking =
         value === undefined
-          ? ` (no live ${gated.param}; only ${gated.param}: "${gated.live[0]}" is the live user's own capture)`
+          ? ` (no live ${gated.param}; only ${gated.live.map((l) => `${gated.param}: "${l}"`).join(' or ')} is the live user's own capture)`
           : ` (${gated.param} ${JSON.stringify(value)} is not the live user's own capture)`;
     }
     if (!source && traitName === 'avatar_embodiment') {

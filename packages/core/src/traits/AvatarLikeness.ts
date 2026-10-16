@@ -15,6 +15,8 @@
  *   before the avatar is shown to others.
  */
 
+import { resolveTraitName } from '../validation/TraitName';
+
 /** Traits that carry a real person's likeness (kept in step with LIKENESS_SOURCES). */
 export const REAL_LIKENESS_TRAITS: readonly string[] = Object.freeze(['face_mesh', 'voice_print', 'body_scan']);
 
@@ -35,7 +37,9 @@ export function normalizeLikenessTrait(name: unknown): string {
 /** Does this list of trait names include a real-person likeness trait? */
 export function carriesRealLikeness(traitNames: Iterable<unknown>): boolean {
   for (const name of traitNames) {
-    if (REAL_LIKENESS_TRAITS.includes(normalizeLikenessTrait(name))) return true;
+    // Same folding as HS1006 / HS1011 (TraitName.resolveTraitName, which likenessTraitName uses):
+    // @FaceMesh, @facemesh, @face__mesh and @FACE_MESH all carry a face likeness.
+    if (resolveTraitName(name, REAL_LIKENESS_TRAITS) !== undefined) return true;
   }
   return false;
 }

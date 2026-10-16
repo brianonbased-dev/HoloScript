@@ -14,7 +14,8 @@
  * Without all of these, others get the generic avatar with generic motion (no live pose) and the
  * user still sees themselves in local self-preview.
  */
-import { carriesRealLikeness, normalizeLikenessTrait } from './AvatarLikeness';
+import { carriesRealLikeness } from './AvatarLikeness';
+import { likenessTraitName } from '../validation/LikenessCheck';
 
 /** Traits whose state is a likeness or live tracking source; replicating them needs the check. */
 export const LIKENESS_OR_TRACKING_TRAITS: readonly string[] = Object.freeze([
@@ -103,7 +104,8 @@ export function carriesLikenessOrTracking(node: object, opts: { embodimentDecide
   const n = node as Record<string, unknown>;
   if (n.__faceTrackingState || n.__bodyTrackingState || n.__lip_sync_instance) return true;
   return nodeTraitNames(node).some((t) => {
-    const name = normalizeLikenessTrait(t);
+    // likenessTraitName: the HS1006/HS1011 folding, so @FaceTracking, @facetracking, @LipSync… match.
+    const name = likenessTraitName(t);
     // avatar_embodiment with runtime state is decided by that state (synthetic AI avatars stay
     // exempt); without state it fails closed like any other source.
     if (name === 'avatar_embodiment' && opts.embodimentDecided) return false;
