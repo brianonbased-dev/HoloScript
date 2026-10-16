@@ -78,8 +78,8 @@ async function probeKnowledgeEndpoint(): Promise<{
 
 function checkTelemetryWritable(): 'pass' | 'fail' {
   try {
+    // A status check never creates directories on the server; it only looks.
     const dir = path.dirname(ORACLE_TELEMETRY_PATH);
-    fs.mkdirSync(dir, { recursive: true });
     fs.accessSync(dir, fs.constants.W_OK);
     return 'pass';
   } catch {
