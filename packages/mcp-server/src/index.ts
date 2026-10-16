@@ -37,8 +37,16 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import {
   ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import {
+  holoResultResourceTemplate,
+  isHoloResultUri,
+  readHoloResult,
+  resultScope,
+} from './tool-result-store';
+import { getMcpServerSizing } from './server-sizing';
 
 import { tools } from './tools';
 import { handleTool } from './handlers';
@@ -219,9 +227,21 @@ server.setRequestHandler(ListResourcesRequestSchema, async () => {
   return { resources };
 });
 
-// Read a specific skill resource
+// Advertise the holo-result:// template (large tool results, see tool-result-store.ts)
+server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+  resourceTemplates: [holoResultResourceTemplate],
+}));
+
+// Read a specific skill resource, or a window of a stored large tool result
 server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   const uri = request.params.uri;
+  if (isHoloResultUri(uri)) {
+    // Same scope the stdio CallTool gate stores under (transport stdio, callerId null).
+    return readHoloResult(uri, {
+      scope: resultScope('stdio', null),
+      maxBytes: getMcpServerSizing().responseMaxBytes,
+    });
+  }
   const result = readSkillResource(uri);
   if (!result) {
     throw new Error(`Resource not found: ${uri}`);
