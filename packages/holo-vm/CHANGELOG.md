@@ -1,5 +1,14 @@
 # @holoscript/holo-vm
 
+## 8.10.0
+
+### Patch Changes
+
+- Updated dependencies [4ecc50e]
+- Updated dependencies [857c54a]
+- Updated dependencies
+  - @holoscript/core@8.10.0
+
 ## 8.9.0
 
 ### Patch Changes

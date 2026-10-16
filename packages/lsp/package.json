@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/lsp",
-  "version": "6.2.0",
+  "version": "6.2.1",
   "description": "Language Server Protocol implementation for HoloScript",
   "main": "dist/server.js",
   "bin": {

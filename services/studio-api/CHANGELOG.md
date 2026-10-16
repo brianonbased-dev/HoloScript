@@ -1,5 +1,19 @@
 # @holoscript/studio-api
 
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [4ecc50e]
+- Updated dependencies [268e183]
+- Updated dependencies [857c54a]
+- Updated dependencies [d587a34]
+- Updated dependencies [2ff7533]
+- Updated dependencies
+  - @holoscript/core@8.10.0
+  - @holoscript/mcp-server@8.1.0
+  - @holoscript/llm-provider@1.7.0
+
 ## 1.0.6
 
 ### Patch Changes
