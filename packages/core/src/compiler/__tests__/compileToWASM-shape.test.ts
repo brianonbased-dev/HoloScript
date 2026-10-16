@@ -14,4 +14,21 @@ describe('compileToWASM input shape', () => {
     expect(compileToWASM(ast).wat).toContain('Cube');
     expect(compileToWASM('object Cube { position: [0, 1, 0] }' as never).wat).toContain('Cube');
   });
+  it.each([
+    [{ type: 'Composition', objects: 5 }],
+    [{ type: 'Composition', objects: [null] }],
+    [{ type: 'Composition', objects: [{}] }],
+    [{ objects: [{ name: 'a', properties: 7 }] }],
+  ])('an inner failure on %j carries HS1009, not a raw TypeError', (x) => {
+    let caught: unknown;
+    try {
+      compileToWASM(x as never);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(TypeError);
+    expect((caught as Error).message).toMatch(/^compileToWASM: .*\(HS1009\)/);
+    expect((caught as { code?: string }).code).toBe('HS1009');
+    expect((caught as { cause?: unknown }).cause).toBeInstanceOf(Error);
+  });
 });

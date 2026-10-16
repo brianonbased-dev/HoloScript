@@ -1632,7 +1632,18 @@ export function compileToWASM(
     );
   }
   const compiler = new WASMCompiler(options);
-  return compiler.compile(composition, createTestCompilerToken()) as WASMCompileResult;
+  try {
+    return compiler.compile(composition, createTestCompilerToken()) as WASMCompileResult;
+  } catch (err) {
+    // A composition-shaped object with malformed parts (objects: 5, an object with no name, ...)
+    // fails deep in the compiler. Carry the contract code instead of a raw TypeError.
+    const detail = err instanceof Error ? err.message : String(err);
+    if (/\(HS\d{4}\)/.test(detail)) throw err;
+    const wrapped = new TypeError(`compileToWASM: the composition could not be compiled (HS1009): ${detail}`);
+    (wrapped as TypeError & { code?: string; cause?: unknown }).code = 'HS1009';
+    (wrapped as TypeError & { cause?: unknown }).cause = err;
+    throw wrapped;
+  }
 }
 
 /**

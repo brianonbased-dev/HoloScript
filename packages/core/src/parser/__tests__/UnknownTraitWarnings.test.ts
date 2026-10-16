@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import * as parser from '../index';
 import { parseHolo, MAX_UNKNOWN_TRAIT_WARNINGS } from '../HoloCompositionParser';
 import { HoloScriptValidator } from '../../HoloScriptValidator';
-import { analyze } from '../../../strict/holo_strict.mjs';
+import { analyze, MAX_UNKNOWN_TRAIT_DIAGNOSTICS } from '../../../strict/holo_strict.mjs';
 
 const hs1006 = (ws: { code?: string }[]) => ws.filter((w) => w.code === 'HS1006');
 
@@ -64,4 +64,14 @@ describe('strict reports an unknown trait exactly once', () => {
     const d = analyze('object Cube { @nope_xyz }', noVocab).diagnostics as { code: string; message: string }[];
     expect(d.filter((x) => /nope_xyz/.test(x.message)).map((x) => x.code)).toEqual(['HS1006']);
   });
+  it('caps its own HS1006 at 100 plus one summary: 20k unknown traits -> 101 diagnostics, small JSON', () => {
+    const body = Array.from({ length: 20000 }, (_, i) => `  @nope_unknown_trait_${i}`).join('\n');
+    const d = analyze(`object Big {\n${body}\n}\n`, deps).diagnostics as { code: string; message: string }[];
+    expect(MAX_UNKNOWN_TRAIT_DIAGNOSTICS).toBe(MAX_UNKNOWN_TRAIT_WARNINGS);
+    expect(d.length).toBe(101);
+    expect(d.every((x) => x.code === 'HS1006')).toBe(true);
+    expect(d[100].message).toMatch(/19900 more unknown traits not listed .*20000 in total/);
+    expect(JSON.stringify(d).length).toBeLessThan(50_000);
+  });
 });
+
