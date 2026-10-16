@@ -34,7 +34,9 @@ composition "AR Face Tracking & Effects" {
   }
 
   // === Face Tracking Manager ===
-  object "FaceTrackingSystem" @face_tracking {
+  // The user's own front camera (ARKit TrueDepth / ARCore): live_self, no grant needed;
+  // the runtime still checks the data comes from the camera it opened.
+  object "FaceTrackingSystem" @face_tracking(source: "live_self") {
     blend_shapes: true
     mesh_topology: "arkit"
     eye_tracking: true

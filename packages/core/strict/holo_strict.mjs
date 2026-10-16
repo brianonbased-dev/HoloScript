@@ -294,7 +294,7 @@ export function analyze(source, deps, options = {}) {
 
 
 /** Fail-closed fallback when core's checkLikeness is missing: refuse these outright (HS1011). */
-const FALLBACK_LIKENESS = Object.freeze({ face_mesh: 1, voice_print: 1, body_scan: 1, lip_sync: 1, lipsync: 1 });
+const FALLBACK_LIKENESS = Object.freeze({ face_mesh: 1, voice_print: 1, body_scan: 1, lip_sync: 1, lipsync: 1, face_tracking: 1, body_tracking: 1, avatar_embodiment: 1 });
 
 /**
  * Trait names this source itself makes known, plus any the caller passes:

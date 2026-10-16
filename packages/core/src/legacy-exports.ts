@@ -916,6 +916,37 @@ export {
 
 // HoloScript+ VR Traits (NEW)
 export { VRTraitRegistry, vrTraitRegistry } from './traits/VRTraitSystem';
+export {
+  openLocalCapture,
+  closeLocalCapture,
+  isLocalCapture,
+  startLocalCaptureSession,
+  trackingEventAllowed,
+  LOCAL_CAPTURE_EVENT,
+  type LocalCaptureHandle,
+  type LocalCaptureKind,
+  type LocalCaptureSession,
+  type TrackingSource,
+} from './traits/LocalCapture';
+export {
+  avatarRenderAllowed,
+} from './traits/AvatarEmbodimentTrait';
+export { avatarEmbodimentNeedsGrant, carriesRealLikeness } from './traits/AvatarLikeness';
+export {
+  grantLikenessShare,
+  revokeLikenessShare,
+  likenessShareAllowed,
+  carriesLikenessOrTracking,
+  LIKENESS_OR_TRACKING_TRAITS,
+  type LikenessShareRequest,
+  type LikenessShareScope,
+  grantVoiceUse,
+  revokeVoiceUse,
+  voiceUseAllowed,
+  VOICE_USES,
+  type VoiceUse,
+  type VoiceUseRequest,
+} from './traits/LikenessShareGrant';
 
 // HoloScript+ Expanded Trait Handlers (Phases 1-13)
 export {

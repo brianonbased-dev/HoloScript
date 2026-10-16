@@ -1793,6 +1793,52 @@ export class VRTraitRegistry {
 
 export declare const vrTraitRegistry: VRTraitRegistry;
 
+// Local capture handles (traits/LocalCapture.ts): live_self tracking verification.
+export type LocalCaptureKind = 'face' | 'body';
+export type TrackingSource = 'live_self' | 'recording' | 'remote_user';
+export interface LocalCaptureHandle {
+  readonly kind: LocalCaptureKind;
+  readonly deviceLabel: string;
+}
+export interface LocalCaptureSession {
+  readonly handle: LocalCaptureHandle;
+  event(data: Record<string, unknown>): Record<string, unknown>;
+  end(): void;
+}
+export declare function openLocalCapture(kind: LocalCaptureKind, deviceLabel?: string): LocalCaptureHandle;
+export declare function closeLocalCapture(handle: LocalCaptureHandle): void;
+export declare function isLocalCapture(handle: unknown, kind: LocalCaptureKind): boolean;
+export declare function startLocalCaptureSession(kind: LocalCaptureKind, deviceLabel?: string): LocalCaptureSession;
+export declare function trackingEventAllowed(source: unknown, capture: unknown, kind: LocalCaptureKind): boolean;
+export declare const LOCAL_CAPTURE_EVENT: Readonly<Record<LocalCaptureKind, string>>;
+/** Must be called by every network / spectator path before replicating avatar state (shownToOthers=true). */
+export interface LikenessShareRequest {
+  grantorId: string;
+  trackedPersonId: string;
+  sessionId: string;
+  audience: readonly string[];
+  renderLikenessYes: boolean;
+}
+export interface LikenessShareScope {
+  sessionId?: string;
+  audience?: readonly string[];
+  livePose?: boolean;
+}
+export declare const LIKENESS_OR_TRACKING_TRAITS: readonly string[];
+export declare function grantLikenessShare(node: object, req: LikenessShareRequest): boolean;
+export declare function revokeLikenessShare(node: object): void;
+export declare function likenessShareAllowed(node: object, scope: LikenessShareScope | undefined): boolean;
+export declare function carriesLikenessOrTracking(node: object, opts?: { embodimentDecided?: boolean }): boolean;
+export declare function avatarRenderAllowed(node: Record<string, unknown>, shownToOthers: boolean, scope?: LikenessShareScope): boolean;
+export declare const VOICE_USES: readonly ['record', 'store', 'transcribe', 'replay', 'ai', 'voice_print'];
+export type VoiceUse = (typeof VOICE_USES)[number] | 'live_captions';
+export interface VoiceUseRequest { grantorId: string; speakerId: string; sessionId: string; use: VoiceUse; }
+export declare function grantVoiceUse(node: object, req: VoiceUseRequest): boolean;
+export declare function revokeVoiceUse(node: object, sessionId?: string, use?: VoiceUse): void;
+export declare function voiceUseAllowed(node: object, sessionId: unknown, use: VoiceUse): boolean;
+export declare function avatarEmbodimentNeedsGrant(trackingSource: unknown, carriesLikeness: boolean): boolean;
+export declare function carriesRealLikeness(traitNames: Iterable<unknown>): boolean;
+
 // ============================================================================
 // TRAIT CONTEXT FACTORY (migrated from Hololand)
 // ============================================================================

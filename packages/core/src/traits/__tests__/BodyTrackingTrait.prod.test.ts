@@ -102,7 +102,7 @@ describe('bodyTrackingHandler.onUpdate — not tracking', () => {
     bodyTrackingHandler.onUpdate!(node, config, ctx, 0.5);
     expect(node.__bodyTrackingState.lostTime).toBeCloseTo(500, 5);
   });
-  it('does NOT emit avatar_pose_update when not tracking', () => {
+  it('does NOT emit local_avatar_pose when not tracking', () => {
     const { node, config, ctx } = attach();
     ctx.emit.mockClear();
     bodyTrackingHandler.onUpdate!(node, config, ctx, 0.016);
@@ -111,20 +111,20 @@ describe('bodyTrackingHandler.onUpdate — not tracking', () => {
 });
 
 describe('bodyTrackingHandler.onUpdate — tracking + avatar_binding', () => {
-  it('emits avatar_pose_update when isTracking + avatar_binding + joints non-empty', () => {
+  it('emits local_avatar_pose when isTracking + avatar_binding + joints non-empty', () => {
     const { node, config, ctx } = attach({ avatar_binding: true });
     node.__bodyTrackingState.isTracking = true;
     node.__bodyTrackingState.joints.set('head', makePose(0, 1.8, 0));
     ctx.emit.mockClear();
     bodyTrackingHandler.onUpdate!(node, config, ctx, 0.016);
     expect(ctx.emit).toHaveBeenCalledWith(
-      'avatar_pose_update',
+      'local_avatar_pose',
       expect.objectContaining({
         joints: expect.objectContaining({ head: expect.any(Object) }),
       })
     );
   });
-  it('does NOT emit avatar_pose_update when avatar_binding=false', () => {
+  it('does NOT emit local_avatar_pose when avatar_binding=false', () => {
     const { node, config, ctx } = attach({ avatar_binding: false });
     node.__bodyTrackingState.isTracking = true;
     node.__bodyTrackingState.joints.set('head', makePose(0, 1.8, 0));
@@ -132,7 +132,7 @@ describe('bodyTrackingHandler.onUpdate — tracking + avatar_binding', () => {
     bodyTrackingHandler.onUpdate!(node, config, ctx, 0.016);
     expect(ctx.emit).not.toHaveBeenCalled();
   });
-  it('does NOT emit avatar_pose_update when joints is empty', () => {
+  it('does NOT emit local_avatar_pose when joints is empty', () => {
     const { node, config, ctx } = attach({ avatar_binding: true });
     node.__bodyTrackingState.isTracking = true;
     ctx.emit.mockClear();

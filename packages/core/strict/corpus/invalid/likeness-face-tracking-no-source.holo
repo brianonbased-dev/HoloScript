@@ -1,0 +1,3 @@
+object "Ava" {
+  @face_tracking
+}

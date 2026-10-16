@@ -302,6 +302,24 @@
         ["HS1011", 4, 3],
         ["HS1011", 5, 3]
       ]
+    },
+    {
+      "file": "invalid/likeness-face-tracking-no-source.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-body-tracking-remote-user.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-face-tracking-recording.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
     }
   ]
 }
