@@ -109,7 +109,9 @@ composition "Customizable VR Avatar" {
       skin_tone: "#c68642",
       skin_material: "AvatarSkin"
     )
+    // The VR player's own headset drives this avatar: live (no grant).
     @avatar_embodiment(
+      tracking_source: "headset",
       first_person: true,
       head_hidden_in_fp: true,
       mirror_visible: true,

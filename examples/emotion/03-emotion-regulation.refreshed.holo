@@ -71,7 +71,10 @@ composition "EmpathyArchitecture" {
 
   // Dr Asha — Suppressor. GSR elevated, face neutral.
   entity DrAsha {
+    // Replays recorded BVH mocap (someone's captured motion): playback, gated.
+    @consent_gate(grant: "grant_emotion_npc_1")
     @avatar_embodiment {
+      tracking_source: "playback"
       rig_type: "humanoid"
       source: "avatars/researcher-f.glb"
       motion_source: "bvh://idle-stand-professional.bvh"
@@ -124,7 +127,10 @@ composition "EmpathyArchitecture" {
 
   // Dr Ben — High EI. Calm. Aura deep blue-green, barely moves.
   entity DrBen {
+    // Replays recorded BVH mocap (someone's captured motion): playback, gated.
+    @consent_gate(grant: "grant_emotion_npc_2")
     @avatar_embodiment {
+      tracking_source: "playback"
       rig_type: "humanoid"
       source: "avatars/researcher-m.glb"
       motion_source: "bvh://idle-stand-open.bvh"
@@ -169,7 +175,10 @@ composition "EmpathyArchitecture" {
   // Dr Cira — Ambivalent. Bittersweet. Aura shifts rose <-> blue.
   // @neural_expression drives real-time blendshapes from her EEG bands.
   entity DrCira {
+    // Replays recorded BVH mocap (someone's captured motion): playback, gated.
+    @consent_gate(grant: "grant_emotion_npc_3")
     @avatar_embodiment {
+      tracking_source: "playback"
       rig_type: "humanoid"
       source: "avatars/researcher-f2.glb"
       motion_source: "bvh://idle-stand-pensive.bvh"

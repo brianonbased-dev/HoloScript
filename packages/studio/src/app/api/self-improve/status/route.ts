@@ -21,6 +21,7 @@ export const maxDuration = 30;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { requireFounder } from '@/lib/api-auth';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -102,6 +103,9 @@ function buildSummary(receipts: SelfImproveReceipt[]) {
 
 // ─── GET /api/self-improve/status ───────────────────────────────────────────
 export async function GET(request: NextRequest) {
+  // Reads/writes the server's home folder and returns its path: founder-only.
+  const auth = await requireFounder(request);
+  if (auth instanceof NextResponse) return auth;
   const url = new URL(request.url);
   const limit = Math.min(Number(url.searchParams.get('limit') ?? 20), MAX_RECEIPTS);
   const receipts = loadReceipts();
@@ -117,6 +121,8 @@ export async function GET(request: NextRequest) {
 // Called by run-self-improve.ts (or any automated job) after a run completes.
 // Body shape matches the summary produced by run-self-improve.ts --json output.
 export async function POST(request: NextRequest) {
+  const auth = await requireFounder(request);
+  if (auth instanceof NextResponse) return auth;
   let body: Partial<SelfImproveReceipt>;
   try {
     body = (await request.json()) as Partial<SelfImproveReceipt>;

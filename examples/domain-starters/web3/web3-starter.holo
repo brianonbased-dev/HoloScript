@@ -200,9 +200,9 @@ composition "Web3 Starter" {
   // -- Token-Gated Premium Zone --------------------------------------------------
 
   object "PremiumGate" {
-    @token_gate {
-      contract: "0x..."
-      minBalance: 1
+    @token_gated {
+      contract_address: "0x..."
+      min_balance: 1
       chain: "base"
     }
     @x402_paywall {

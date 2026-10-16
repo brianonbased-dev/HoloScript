@@ -45,4 +45,6 @@ export const INTELLIGENCE_BEHAVIOR_TRAITS = [
   'goal_oriented',
   // Grounded reward shaping
   'reward_shaping',
+  // Runtime handlers registered by packages/runtime/src/browser/BrowserRuntime.ts, used in examples/
+  'follow', // packages/runtime/src/traits/BehavioralTraits.ts FollowTrait
 ] as const;

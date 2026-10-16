@@ -1,33 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireFounder } from '@/lib/api-auth';
+import { holomeshUpstream } from '../_lib/holomeshUpstream';
 
 export const runtime = 'nodejs';
 
-const BASE =
-  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
-const TEAM_ID = process.env.HOLOMESH_TEAM_ID ?? '';
 
+/** Founder-only: requireFounder answers 401/403 before the team key is read. */
 export async function GET(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ ok: false, board: null, error: 'Unauthorized' }, { status: 401 });
-  }
-  if (!TEAM_ID) {
-    return NextResponse.json(
-      { ok: false, board: null, error: 'HOLOMESH_TEAM_ID not configured' },
-      { status: 503 }
-    );
-  }
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
+  const up = holomeshUpstream({ board: null });
+  if (up instanceof NextResponse) return up;
   try {
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (KEY) {
-      headers['Authorization'] = `Bearer ${KEY}`;
-      headers['x-mcp-api-key'] = KEY;
-    }
-    const res = await fetch(`${BASE}/api/holomesh/team/${TEAM_ID}/board`, {
-      headers,
+    const res = await fetch(`${up.base}/api/holomesh/team/${up.teamId}/board`, {
+      headers: up.headers,
       cache: 'no-store',
     });
     if (!res.ok) {

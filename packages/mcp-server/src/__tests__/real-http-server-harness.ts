@@ -19,6 +19,7 @@ import http from 'http';
 import { createServer, type AddressInfo } from 'net';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { consentedToken, TEST_STUDIO_CONSENT_SECRET } from './consented-test-token';
 
 /** Accepted by the legacy-key path (admin); not in the key registry, so not a founder. */
 export const REAL_SERVER_ADMIN_KEY = 'real-http-server-test-key-not-a-founder';
@@ -105,6 +106,7 @@ export async function bootRealHttpServer(options: {
     HOLOSCRIPT_CACHE_DIR: sandbox,
     HOLOMESH_NO_DOTENV: '1',
     ORCHESTRATOR_URL: 'http://127.0.0.1:9',
+    STUDIO_CONSENT_SECRET: TEST_STUDIO_CONSENT_SECRET,
     ...options.env,
   });
 
@@ -173,32 +175,8 @@ export async function bootRealHttpServer(options: {
     await new Promise((r) => setTimeout(r, 250));
   }
 
-  const tokenWithScope: RealHttpServer['tokenWithScope'] = async (scope) => {
-    const registered = await request('POST', '/oauth/register', {
-      body: {
-        client_name: `probe-${scope.replace(/[^a-z]+/g, '-')}`,
-        redirect_uris: ['https://client.test/callback'],
-        scope,
-        token_endpoint_auth_method: 'client_secret_post',
-        grant_types: ['client_credentials'],
-      },
-    });
-    if (registered.status !== 201) {
-      throw new Error(`register failed: ${registered.status} ${JSON.stringify(registered.body)}`);
-    }
-    const issued = await request('POST', '/oauth/token', {
-      body: {
-        grant_type: 'client_credentials',
-        client_id: registered.body.client_id,
-        client_secret: registered.body.client_secret,
-        scope,
-      },
-    });
-    if (issued.status !== 200) {
-      throw new Error(`token failed: ${issued.status} ${JSON.stringify(issued.body)}`);
-    }
-    return issued.body.access_token as string;
-  };
+  // Muse Gap 9: a tools:* login needs a human's consent (see consented-test-token.ts).
+  const tokenWithScope: RealHttpServer['tokenWithScope'] = (scope) => consentedToken(request, scope);
 
   return { port, request, tokenWithScope };
 }

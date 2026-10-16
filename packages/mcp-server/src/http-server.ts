@@ -18,14 +18,24 @@
 // !! MUST be first import — populates process.env from .env before any module-level
 // `const X = process.env.X || ''` constants are evaluated. No-op on Railway.
 import './utils/load-env';
+import { getBuildCommit } from './build-identity';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import {
   ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import {
+  capMcpToolResult,
+  holoResultResourceTemplate,
+  HoloResultNotFoundError,
+  isHoloResultUri,
+  readHoloResult,
+  resultScope,
+} from './tool-result-store';
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { resolveServiceSecret, migrateEnvKeys } from './holokey-resolver';
@@ -1170,9 +1180,28 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
     return { resources: listSkillResources() };
   });
 
-  // Read a specific skill resource
+  // Use session auth context or default to admin (for legacy compat). One value for both the
+  // CallTool gate and holo-result reads, so a stored result is readable by the same caller only.
+  const sessionAuth: TokenIntrospection = sessionAuthContext || {
+    active: true,
+    scopes: ['admin:*'],
+    agentId: 'mcp-session-legacy',
+  };
+  const sessionCallerId = sessionAuth.agentId ?? sessionAuth.clientId ?? null;
+
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+    resourceTemplates: [holoResultResourceTemplate],
+  }));
+
+  // Read a specific skill resource, or a window of a stored large tool result
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const uri = request.params.uri;
+    if (isHoloResultUri(uri)) {
+      return readHoloResult(uri, {
+        scope: resultScope('http', sessionCallerId),
+        maxBytes: getMcpServerSizing().responseMaxBytes,
+      });
+    }
     const result = readSkillResource(uri);
     if (!result) {
       throw new Error(`Resource not found: ${uri}`);
@@ -1215,45 +1244,42 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
       (request.params as { _meta?: unknown })._meta
     );
 
-    // Use session auth context or default to admin (for legacy compat)
-    const auth: TokenIntrospection = sessionAuthContext || {
-      active: true,
-      scopes: ['admin:*'],
-      agentId: 'mcp-session-legacy',
-    };
+    const auth = sessionAuth;
 
-    const { result, isError } = await gateToolCall(
+    // The dispatch builds the final MCP envelope so the gate's response cap
+    // (tool-result-store.ts) sees exactly what goes on the wire.
+    return await gateToolCall(
       { name, args: args || {} },
       {
         transport: 'http',
-        callerId: auth.agentId ?? auth.clientId ?? null,
+        callerId: sessionCallerId,
         scopes: auth.scopes,
         ...(frameDeclaration !== undefined ? { frameDeclaration } : {}),
       },
-      (env) => securedToolExecution(env.name, env.args, auth),
+      async (env): Promise<Record<string, unknown>> => {
+        const { result, isError } = await securedToolExecution(env.name, env.args, auth);
+        // Hologram MCP envelope detection (task_1778114362909_zp7u): if the tool
+        // returned a HologramMcpResponse, surface the typed channel so REST/MCP
+        // clients can dispatch on content_type without re-parsing JSON.
+        if (!isError && isHologramMcpResponse(result)) {
+          return wrapHologramMcpEnvelope(result) as unknown as Record<string, unknown>;
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+            },
+          ],
+          ...(isError ? { isError: true } : {}),
+        };
+      },
       {
         check: founderGateX402ToolCallCheck,
         classifyResult: (r) =>
-          r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
+          r.isError === true ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
       }
     );
-
-    // Hologram MCP envelope detection (task_1778114362909_zp7u): if the tool
-    // returned a HologramMcpResponse, surface the typed channel so REST/MCP
-    // clients can dispatch on content_type without re-parsing JSON.
-    if (!isError && isHologramMcpResponse(result)) {
-      return wrapHologramMcpEnvelope(result) as unknown as Record<string, unknown>;
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-        },
-      ],
-      ...(isError ? { isError: true } : {}),
-    };
   });
 
   return server;
@@ -1397,6 +1423,7 @@ const httpServer = http.createServer(async (req, res) => {
         status: 'healthy',
         service: SERVICE_NAME,
         version: SERVICE_VERSION,
+        commit: getBuildCommit(),
         uptime: process.uptime(),
         sessions: transports.size,
         tools: tools.length + PluginManager.getTools().length,
@@ -4141,6 +4168,30 @@ const httpServer = http.createServer(async (req, res) => {
 
       if (method === 'resources/read') {
         const uri = typeof params.uri === 'string' ? params.uri : '';
+        if (isHoloResultUri(uri)) {
+          // A window of a stored large tool result; same caller scope as tools/call below.
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          try {
+            const read = readHoloResult(uri, {
+              scope: resultScope(
+                'http',
+                auth.agentId ?? auth.clientId ?? unwrapped.signingCtx?.signer ?? null
+              ),
+              maxBytes: getMcpServerSizing().responseMaxBytes,
+            });
+            res.end(JSON.stringify({ jsonrpc: '2.0', id, result: read }));
+          } catch (readError) {
+            if (!(readError instanceof HoloResultNotFoundError)) throw readError;
+            res.end(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                id,
+                error: { code: -32002, message: readError.message },
+              })
+            );
+          }
+          return;
+        }
         const result = readSkillResource(uri);
         if (!result) {
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -4211,29 +4262,40 @@ const httpServer = http.createServer(async (req, res) => {
         const { result, isError } = gated;
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            id: body.id,
-            ...(isError
-              ? {
-                  error: {
-                    code: -32000,
-                    message: typeof result === 'string' ? result : JSON.stringify(result),
-                  },
-                }
-              : {
-                  result: {
-                    content: [
-                      {
-                        type: 'text',
-                        text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-                      },
-                    ],
-                  },
-                }),
-          })
+        if (isError) {
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: body.id,
+              error: {
+                code: -32000,
+                message: typeof result === 'string' ? result : JSON.stringify(result),
+              },
+            })
+          );
+          return;
+        }
+        // Response cap (tool-result-store.ts): over MCP_RESPONSE_MAX_BYTES the result is stored
+        // for this caller and replaced by a summary + resource_link (read via resources/read).
+        const { result: envelope } = capMcpToolResult(
+          {
+            content: [
+              {
+                type: 'text',
+                text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+              },
+            ],
+          },
+          {
+            tool: name,
+            scope: resultScope(
+              'http',
+              auth.agentId ?? auth.clientId ?? unwrapped.signingCtx?.signer ?? null
+            ),
+            maxBytes: getMcpServerSizing().responseMaxBytes,
+          }
         );
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: body.id, result: envelope }));
         return;
       }
 

@@ -1,5 +1,10 @@
 // @face_tracking_trait — Face tracking: landmarks, blend shapes, expression mapping for avatars.
 //
+// source: "live_self" | "recording" | "remote_user" (no default; see the .holo definition).
+// live_self data is applied only from a local capture the runtime opened (LocalCapture.ts);
+// otherwise the avatar falls back to the generic one. recording / remote_user / missing are a
+// likeness: @consent_gate grant + render_likeness yes (HS1011).
+//
 // Native .hsplus surface for core/traits/FaceTrackingTrait.ts.
 
 @trait face_tracking_trait {
@@ -11,6 +16,10 @@
   }
 
   @on_frame(frame_data) => {
+    if (source == "live_self" && !is_local_capture(frame_data.capture, "face")) {
+      emit("avatar_generic_fallback", {})
+      return
+    }
     expression = process_face_frame(frame_data)
     emit("face_expression_updated", {})
     return expression

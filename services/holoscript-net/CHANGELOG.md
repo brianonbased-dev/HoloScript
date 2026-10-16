@@ -1,5 +1,18 @@
 # @holoscript/net-service
 
+## 1.0.13
+
+### Patch Changes
+
+- Updated dependencies [4ecc50e]
+- Updated dependencies [857c54a]
+- Updated dependencies [d587a34]
+- Updated dependencies [2ff7533]
+- Updated dependencies
+  - @holoscript/core@8.10.0
+  - @holoscript/mcp-server@8.1.0
+  - @holoscript/r3f-renderer@6.1.6
+
 ## 1.0.12
 
 ### Patch Changes

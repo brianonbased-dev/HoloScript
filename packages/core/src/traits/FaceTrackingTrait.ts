@@ -7,6 +7,7 @@ import type { Vector3 } from '../types'; /**
  * @version 2.0.0
  */
 import type { TraitHandler } from './TraitTypes';
+import { trackingEventAllowed, type TrackingSource } from './LocalCapture';
 
 // =============================================================================
 // TYPES
@@ -61,6 +62,8 @@ interface EyeGaze {
 }
 
 interface FaceTrackingState {
+  /** Set while refused live_self data has put the avatar on the generic fallback. */
+  genericFallback?: boolean;
   isTracking: boolean;
   blendShapes: Map<BlendShape, number>;
   leftEye: EyeGaze | null;
@@ -75,6 +78,12 @@ interface FaceTrackingState {
 }
 
 interface FaceTrackingConfig {
+  /**
+   * Input source (Trust and Consent POLICY s3). live_self: the user's own local capture, verified
+   * at runtime (LocalCapture.ts); recording / remote_user: a likeness, gated by render_likeness.
+   * Absent: statically gated as a likeness. No default on purpose.
+   */
+  source?: TrackingSource;
   blend_shapes: boolean;
   mesh_topology: MeshTopology;
   eye_tracking: boolean;
@@ -182,6 +191,20 @@ export const faceTrackingHandler: TraitHandler<FaceTrackingConfig> = {
     if (!state) return;
 
     if (event.type === 'face_data_update') {
+      if (!trackingEventAllowed(config.source, event.capture, 'face')) {
+        // Declared live_self but not from a local capture the runtime opened: do not apply it.
+        if (state.isTracking) state.isTracking = false;
+        if (!state.genericFallback) {
+          state.genericFallback = true;
+          context.emit?.('avatar_generic_fallback', {
+            node,
+            trait: 'face_tracking',
+            reason: 'live_self tracking data did not come from a local capture device opened by the runtime',
+          });
+        }
+        return;
+      }
+      state.genericFallback = false;
       const wasTracking = state.isTracking;
       state.isTracking = true;
       state.lastUpdateTime = Date.now();
