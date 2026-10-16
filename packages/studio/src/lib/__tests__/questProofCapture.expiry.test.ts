@@ -48,13 +48,13 @@ describe('quest-proof capture token expiry', () => {
     expect(verifyQuestProofToken('run-2', t, NOW)).toBe(false);
   });
 
-  it('KEY: is keyed by HKDF(NEXTAUTH_SECRET, info quest-proof-capture-v1), never the raw secret', async () => {
+  it('KEY: is keyed by HKDF(NEXTAUTH_SECRET, fixed salt, info quest-proof-capture-v1), never the raw secret', async () => {
     const { createHmac, hkdfSync } = await import('node:crypto');
     const t = mintQuestProofToken('run-1', { nowMs: NOW })!;
     const [exp, mac] = t.split('.');
     const msg = `quest-proof-capture:v2:run-1:${exp}`;
     const raw = createHmac('sha256', 'test-nextauth-secret').update(msg).digest('base64url');
-    const key = Buffer.from(hkdfSync('sha256', 'test-nextauth-secret', Buffer.alloc(0), 'quest-proof-capture-v1', 32));
+    const key = Buffer.from(hkdfSync('sha256', 'test-nextauth-secret', 'holoscript/quest-proof-capture/salt/v1', 'quest-proof-capture-v1', 32));
     expect(mac).not.toBe(raw);
     expect(mac).toBe(createHmac('sha256', key).update(msg).digest('base64url'));
   });

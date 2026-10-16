@@ -26,7 +26,7 @@ function countingStream(chunks: number, size: number) {
 }
 
 function streamingPost(stream: ReadableStream<Uint8Array>, token?: string, contentLength?: string) {
-  const headers: Record<string, string> = { origin: STUDIO, host: 'holoscript.studio', 'x-forwarded-proto': 'https' };
+  const headers: Record<string, string> = { origin: STUDIO };
   if (token) headers['x-quest-proof-token'] = token;
   if (contentLength) headers['content-length'] = contentLength;
   return new NextRequest(`${STUDIO}/api/quest-proof?runId=run-s`, {
@@ -41,6 +41,7 @@ function streamingPost(stream: ReadableStream<Uint8Array>, token?: string, conte
 beforeEach(() => {
   vi.stubEnv('QUEST_PROOF_DATA_DIR', ROOT);
   vi.stubEnv('NEXTAUTH_SECRET', 'test-nextauth-secret');
+  vi.stubEnv('NEXTAUTH_URL', STUDIO);
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -83,7 +84,7 @@ describe('F1: token first, then streamed body', () => {
     const res = await POST(
       new NextRequest(`${STUDIO}/api/quest-proof?runId=run-e`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': token, origin: STUDIO, host: 'holoscript.studio', 'x-forwarded-proto': 'https' },
+        headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': token, origin: STUDIO },
         body: JSON.stringify({ label: 'x' }),
       })
     );

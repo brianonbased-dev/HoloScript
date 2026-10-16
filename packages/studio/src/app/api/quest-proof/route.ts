@@ -32,8 +32,8 @@ interface QuestProofReceipt {
 }
 
 /**
- * /api/quest-proof: headset proof capture (POST, or GET ?record=1 when POST
- * fails on the tunnel) and the run's receipt read-back (GET).
+ * /api/quest-proof: headset proof capture. Receipts are recorded by POST only
+ * (GET ?record=1 is refused); the token travels in the x-quest-proof-token header.
  *
  * Every call needs the run's capture token (see lib/questProofCapture.ts). POST
  * also needs an allowed Origin. Bodies are capped at 16 KB while streaming, writes
@@ -110,14 +110,27 @@ function runFull() {
 
 function tokenFrom(req: NextRequest): string | null {
   return (
-    req.headers.get('x-quest-proof-token') ?? req.nextUrl.searchParams.get('proofToken') ?? null
+    // Header only. A ?proofToken= query is ignored, so tokens never sit in URLs,
+    // proxy logs or receipts.
+    req.headers.get('x-quest-proof-token') ?? null
   );
 }
 
-function ownOrigin(req: NextRequest): string {
-  const host = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
-  const proto = req.headers.get('x-forwarded-proto') ?? req.nextUrl.protocol.replace(':', '');
-  return host ? `${proto}://${host}` : req.nextUrl.origin;
+/**
+ * Studio's own origin, from configuration only (NEXTAUTH_URL, else
+ * NEXT_PUBLIC_STUDIO_URL). Never from Host or X-Forwarded-Host, which a caller
+ * can set. Unconfigured: null, and only the CORS allowlist applies.
+ */
+function ownOrigin(): string | null {
+  for (const v of [process.env.NEXTAUTH_URL, process.env.NEXT_PUBLIC_STUDIO_URL]) {
+    if (!v) continue;
+    try {
+      return new URL(v).origin;
+    } catch {
+      /* try the next one */
+    }
+  }
+  return null;
 }
 
 /**
@@ -148,7 +161,7 @@ async function readBodyCapped(req: NextRequest, max: number): Promise<string | n
  * in the query, and only then the body, streamed with a 16 KB cap.
  */
 export async function POST(req: NextRequest) {
-  if (!isAllowedCaptureOrigin(req, ownOrigin(req), resolveCorsOrigin)) {
+  if (!isAllowedCaptureOrigin(req, ownOrigin(), resolveCorsOrigin)) {
     return NextResponse.json({ ok: false, error: 'Origin not allowed' }, { status: 403 });
   }
   const runId = safeRunId(req.nextUrl.searchParams.get('runId'));
@@ -188,7 +201,7 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * GET /api/quest-proof?runId=<run>&proofToken=<token>: read the run's receipts.
+ * GET /api/quest-proof?runId=<run> with x-quest-proof-token: read the run's receipts.
  * GET never writes: ?record=1 is refused (receipts are POST-only).
  */
 export async function GET(req: NextRequest) {

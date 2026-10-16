@@ -20,3 +20,16 @@ with another run's token, or with an expired token get 401. Reissue the link whe
   separate capture variable; without `NEXTAUTH_SECRET`, minting and capture are refused.
 - `/task` answers with `{ ok, taskId, title, exitCode }` only; script output and error details are
   logged server-side.
+
+## Token transport and Founder Console readers (#607 follow-up)
+
+- The API reads the capture token ONLY from the `x-quest-proof-token` header, for POST and for
+  read-back GET. A `?proofToken=` query is ignored (401). The headset link still carries
+  `?proofToken=` so the page can bootstrap; the page keeps it in sessionStorage and strips it
+  from the address bar with `history.replaceState`.
+- "Own origin" for the Origin check is the configured Studio URL (`NEXTAUTH_URL`, else
+  `NEXT_PUBLIC_STUDIO_URL`), never the Host or X-Forwarded-Host headers.
+- The HKDF salt is a fixed public constant (`QUEST_PROOF_HKDF_SALT`).
+- `inbox`, `next-actions` (GET and POST), `board` and `decide` are founder-only
+  (401/403 before the team key is read, no upstream call) and are off the public paths list.
+  Their only caller is the same-origin Founder Console.

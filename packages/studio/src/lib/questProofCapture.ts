@@ -4,8 +4,9 @@
  * Headsets (Quest Browser, usually through a HoloTunnel /t/<id>/ prefix) have no
  * Studio account, so capture cannot use a session. The founder mints a token for
  * ONE runId (GET /api/quest-proof/token, founder-only) and opens the headset link
- * with `?runId=<id>&proofToken=<token>`. The pages POST receipts with the token in
- * the `x-quest-proof-token` header and the runId in `?runId=`.
+ * with `?runId=<id>&proofToken=<token>`. The page reads the token once, strips it
+ * from the address bar (history.replaceState), keeps it in sessionStorage, and sends
+ * it only in the `x-quest-proof-token` header. The API never reads it from a query.
  *
  * Token: `<exp>.<HMAC-SHA256(key, "quest-proof-capture:v2:<runId>:<exp>")>`.
  * Key: HKDF-SHA256 from NEXTAUTH_SECRET with info 'quest-proof-capture-v1'; the
@@ -36,11 +37,20 @@ export function safeRunId(input: unknown): string {
   return cleaned;
 }
 
+/** Fixed, public HKDF salt (domain separation; not a secret). */
+export const QUEST_PROOF_HKDF_SALT = 'holoscript/quest-proof-capture/salt/v1';
+
 function captureKey(): Buffer | null {
   const secret = process.env.NEXTAUTH_SECRET || '';
   if (!secret) return null;
   return Buffer.from(
-    hkdfSync('sha256', Buffer.from(secret, 'utf8'), Buffer.alloc(0), 'quest-proof-capture-v1', 32)
+    hkdfSync(
+      'sha256',
+      Buffer.from(secret, 'utf8'),
+      Buffer.from(QUEST_PROOF_HKDF_SALT, 'utf8'),
+      'quest-proof-capture-v1',
+      32
+    )
   );
 }
 
@@ -129,11 +139,11 @@ export function questProofRunDir(runId: string, ...rest: string[]): string {
  */
 export function isAllowedCaptureOrigin(
   req: Request,
-  ownOrigin: string,
+  ownOrigin: string | null,
   allowlisted: (req: Request) => string | null
 ): boolean {
   const origin = req.headers.get('origin');
   if (!origin || origin === 'null') return false;
-  if (origin === ownOrigin) return true;
+  if (ownOrigin && origin === ownOrigin) return true;
   return allowlisted(req) === origin;
 }
