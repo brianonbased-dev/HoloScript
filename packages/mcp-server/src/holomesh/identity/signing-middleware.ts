@@ -78,6 +78,12 @@ export function resetAttestationRegistry(): void {
 export interface SigningContext {
   /** Copied from TokenIntrospection.localCustody by http-server; never read from a request. */
   localCustody?: true;
+  /**
+   * Human the OAuth token acts for (TokenIntrospection.userId), copied by
+   * http-server from the verified token; never read from a request body or
+   * header. user:private tools act on this id only (security/tool-scopes.ts).
+   */
+  userId?: string;
   /** True when the request body was a {body, signature, ...} envelope. */
   signedRequest: boolean;
   /** True when signature verified AND registry check passed (or was skipped). */
