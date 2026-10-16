@@ -219,8 +219,9 @@ function requestPinned(url: URL, init: RequestInit, opts: OutboundGuardOptions):
     return Promise.reject(new Error('fetchPublicHttp: a request body must be a string or bytes'));
   }
   const headers = new Headers(init.headers);
-  // fetch() would decompress a gzip body; this request does not, so ask for none.
-  if (!headers.has('accept-encoding')) headers.set('accept-encoding', 'identity');
+  // fetch() would decompress a gzip body; this request does not, so always ask for none. A caller
+  // asking for gzip would otherwise get compressed bytes back read as text.
+  headers.set('accept-encoding', 'identity');
   const outgoing: Record<string, string> = {};
   headers.forEach((value, name) => {
     outgoing[name] = value;
@@ -251,6 +252,24 @@ function requestPinned(url: URL, init: RequestInit, opts: OutboundGuardOptions):
 }
 
 /**
+ * The only caller headers sent on to a different origin than the one they were meant for. Any
+ * other header may be a credential (Authorization, Cookie, and also x-api-key, x-mcp-api-key or
+ * whatever a manifest names), so a cross-origin hop drops everything not listed. The body headers
+ * stay for a 307/308, which keeps the body; a redirect that turns into a GET drops them below.
+ */
+const CROSS_ORIGIN_KEPT_HEADERS = new Set([
+  'accept',
+  'accept-encoding',
+  'accept-language',
+  'user-agent',
+  'content-type',
+  'content-length',
+  'content-encoding',
+]);
+/** Headers that describe a request body, dropped when a redirect turns the request into a GET. */
+const BODY_HEADERS = ['content-type', 'content-length', 'content-encoding'];
+
+/**
  * fetch() for a caller-supplied URL: checks the destination, connects only to addresses that
  * pass the same check, and follows redirects by hand, checking each hop the same way, so a
  * public URL cannot bounce the server onto a private one.
@@ -262,16 +281,84 @@ export async function fetchPublicHttp(
 ): Promise<Response> {
   const maxRedirects = opts.maxRedirects ?? 5;
   let current = raw;
+  // Headers (any init form: object, Headers, array pairs), method and body are carried hop to hop
+  // and changed the way a browser changes them, but stricter: only CROSS_ORIGIN_KEPT_HEADERS
+  // follow a redirect to another origin, and 301/302/303 turn a POST into a GET with no body.
+  let hopInit: RequestInit = { ...init, headers: new Headers(init.headers) };
+  let previousOrigin: string | undefined;
   for (let hop = 0; hop <= maxRedirects; hop++) {
     const url = await assertPublicHttpUrl(current, opts);
-    const res = await requestPinned(url, init, opts);
+    if (previousOrigin !== undefined && url.origin !== previousOrigin) {
+      const kept = new Headers();
+      new Headers(hopInit.headers).forEach((value, name) => {
+        if (CROSS_ORIGIN_KEPT_HEADERS.has(name)) kept.set(name, value);
+      });
+      hopInit = { ...hopInit, headers: kept };
+    }
+    previousOrigin = url.origin;
+    const res = await requestPinned(url, hopInit, opts);
     const location = res.headers.get('location');
     if (res.status >= 300 && res.status < 400 && location) {
       await res.body?.cancel().catch(() => {});
+      const method = (hopInit.method ?? 'GET').toUpperCase();
+      const toGet =
+        (res.status === 303 && method !== 'GET' && method !== 'HEAD') ||
+        ((res.status === 301 || res.status === 302) && method === 'POST');
+      if (toGet) {
+        const stripped = new Headers(hopInit.headers);
+        for (const name of BODY_HEADERS) stripped.delete(name);
+        hopInit = { ...hopInit, method: 'GET', body: undefined, headers: stripped };
+      }
       current = new URL(location, url).toString();
       continue;
     }
     return res;
   }
   throw new Error(`refused: more than ${maxRedirects} redirects`);
+}
+
+/**
+ * Who may point a server-side request at a non-public address: an operator (admin:* or
+ * tools:admin), or, with no signing context at all, the stdio process the local user launched
+ * (HOLOSCRIPT_MCP_TRANSPORT === 'stdio', which index.ts main() sets and http-server sets to
+ * 'http'). A missing context alone proves nothing: on the hosted server a tool re-entered from
+ * inside the server can arrive with none. `externalLane` marks a context-less call that came in
+ * through a public lane (handleTool's subjectSourceOverride), which is never local.
+ *
+ * The 'stdio-local' signer counts as no context. handleTool fills a missing context with
+ * {signer:'stdio-local', scopes:['admin:*']} whenever HOLOSCRIPT_API_KEY is set, on the hosted
+ * server as well, so an execute_workflow step whose batch child lost its caller arrived here
+ * looking like an operator and reached internal addresses (#457 pre-review). That identity says
+ * only that nobody is known, so it gets the no-context answer: trusted on stdio, not over HTTP.
+ */
+export function callerMayReachPrivateNetwork(
+  signingCtx: { scopes?: readonly string[]; signer?: string | null } | undefined,
+  opts: { externalLane?: boolean } = {}
+): boolean {
+  if (!signingCtx || signingCtx.signer === 'stdio-local') {
+    return !opts.externalLane && process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio';
+  }
+  return (signingCtx.scopes ?? []).some((scope) => scope === 'admin:*' || scope === 'tools:admin');
+}
+
+/**
+ * A response body as text, refused once it passes maxBytes: a caller-chosen server must not be
+ * able to make this one buffer without limit.
+ */
+export async function readBodyCapped(res: Response, maxBytes: number): Promise<string> {
+  if (!res.body) return '';
+  const reader = res.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => {});
+      throw new Error(`refused: the response is larger than ${maxBytes} bytes`);
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
