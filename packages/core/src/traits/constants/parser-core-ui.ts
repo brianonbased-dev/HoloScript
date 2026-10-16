@@ -20,4 +20,6 @@ export const PARSER_CORE_UI_TRAITS = [
   'ui_billboard',
   'ui_curved',
   'ui_docked',
+  // Runtime handlers registered by packages/runtime/src/browser/BrowserRuntime.ts, used in examples/
+  'ui_panel', // packages/runtime/src/traits/AdvancedTraits.ts UIPanelTrait
 ] as const;

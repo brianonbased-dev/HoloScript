@@ -108,12 +108,9 @@ test("positions stay real with Windows line endings", async () => {
 test("the unknown-trait check is on, with every vocabulary core publishes", async () => {
   const info = await coreInfo({ fullVocabulary: true });
   assert.equal(info.traitCheck, true);
-  assert.deepEqual(info.traitSources.sort(), [
-    "@holoscript/core#DERIVED_TRAIT_SCHEMAS",
-    "@holoscript/core#buildKnownTraitSet",
-    "@holoscript/core/constants#VR_TRAITS",
-    "@holoscript/core/traits/trait-registry.json",
-  ]);
+  // Core's one known-trait check (KnownTraits.ts), which unions VR_TRAITS, trait-registry.json,
+  // buildKnownTraitSet and the DERIVED_TRAIT names; the per-list loading is the older-core fallback.
+  assert.deepEqual(info.traitSources, ["@holoscript/core/parser#isKnownTrait"]);
 });
 
 // HS1011 — likeness: claim -> rule -> render (avatar-format-breakdown.md, known gaps 1 and 2).

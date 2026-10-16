@@ -11,8 +11,12 @@
  */
 
 import { avatarEmbodimentNeedsGrant, carriesRealLikeness } from '../traits/AvatarLikeness';
+import { normalizeTraitName, resolveTraitName, traitNameKey } from './TraitName';
 
 export type LikenessSource = 'face' | 'voice' | 'body';
+
+/** Live sources that exempt lip_sync / lipsync (either spelling). */
+export const LIP_SYNC_LIVE: readonly string[] = Object.freeze(['microphone', 'live_mic']);
 
 /** Traits that render a real person's likeness, by the source they render. Deliberately short. */
 export const LIKENESS_SOURCES: Readonly<Record<string, LikenessSource>> = Object.freeze({
@@ -34,8 +38,13 @@ export const LIKENESS_SOURCES: Readonly<Record<string, LikenessSource>> = Object
 export const SOURCE_GATED_TRACKING: Readonly<
   Record<string, { param: string; live: readonly string[]; source: LikenessSource }>
 > = Object.freeze({
-  lip_sync: { param: 'source', live: ['microphone'], source: 'voice' },
-  lipsync: { param: 'source', live: ['live_mic'], source: 'voice' },
+  // lip_sync and lipsync are one trait under two spellings (they share a fold key, so `@LipSync`
+  // may resolve to either): both exempt the same live sources, microphone and live_mic, so the
+  // exemption never depends on which spelling the author used (Mapping nit).
+  lip_sync: { param: 'source', live: LIP_SYNC_LIVE, source: 'voice' },
+  lipsync: { param: 'source', live: LIP_SYNC_LIVE, source: 'voice' },
+  // Same rule as the tracking series (POLICY.md section 3): only the live user's own capture
+  // is exempt; a recording, a remote user, or no source at all needs the grant and the yes.
   face_tracking: { param: 'source', live: ['live_self'], source: 'face' },
   body_tracking: { param: 'source', live: ['live_self'], source: 'body' },
 });
@@ -66,13 +75,20 @@ interface TraitLike {
 }
 type NodeLike = Record<string, unknown> & { loc?: { start?: unknown }; traits?: unknown };
 
-const normalize = (name: unknown): string =>
-  String(name ?? '')
-    .trim()
-    .replace(/^@/, '')
-    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
-    .replace(/-/g, '_')
-    .toLowerCase();
+const normalize = normalizeTraitName;
+
+/** Every name this check gates, as written in its tables. */
+const GATED_NAMES = [...Object.keys(LIKENESS_SOURCES), ...Object.keys(SOURCE_GATED_TRACKING), 'avatar_embodiment'];
+
+/**
+ * The likeness or source-gated trait `name` is a spelling of (TraitName.resolveTraitName, the
+ * folding KnownTraits uses too), else the name normalized. `@FaceMesh`, `@facemesh`,
+ * `@face__mesh` and `@FACE_MESH` are all face_mesh, so no spelling the known-trait check accepts
+ * can skip HS1011.
+ */
+export function likenessTraitName(name: unknown): string {
+  return resolveTraitName(name, GATED_NAMES) ?? normalize(name);
+}
 
 function rulesOf(input: unknown): Map<string, Set<string>> {
   const rules = new Map<string, Set<string>>();
@@ -121,7 +137,7 @@ export function checkLikeness(ast: unknown, consentRules?: ConsentRules | null):
   const rules = rulesOf(consentRules);
   const findings: LikenessFinding[] = [];
   for (const { trait, owner } of collect(ast, [], null)) {
-    const traitName = normalize(trait.name);
+    const traitName = likenessTraitName(trait.name);
     let source: LikenessSource | undefined = LIKENESS_SOURCES[traitName];
     let tracking = '';
     const gated = Object.prototype.hasOwnProperty.call(SOURCE_GATED_TRACKING, traitName)
@@ -133,7 +149,7 @@ export function checkLikeness(ast: unknown, consentRules?: ConsentRules | null):
       source = gated.source;
       tracking =
         value === undefined
-          ? ` (no live ${gated.param}; only ${gated.param}: "${gated.live[0]}" is the live user's own capture)`
+          ? ` (no live ${gated.param}; only ${gated.live.map((l) => `${gated.param}: "${l}"`).join(' or ')} is the live user's own capture)`
           : ` (${gated.param} ${JSON.stringify(value)} is not the live user's own capture)`;
     }
     if (!source && traitName === 'avatar_embodiment') {
@@ -165,7 +181,7 @@ export function checkLikeness(ast: unknown, consentRules?: ConsentRules | null):
     const gate = ownerTraits.find(
       (t) =>
         t &&
-        normalize(t.name) === 'consent_gate' &&
+        traitNameKey(t.name) === 'consentgate' &&
         !!t.config &&
         typeof t.config.grant === 'string'
     );

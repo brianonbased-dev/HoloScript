@@ -53,7 +53,7 @@ import {
   getDefaultAIAdapter,
   useGemini,
   useOllama,
-  buildKnownTraitSet,
+  isKnownTrait,
   resolveCanonicalSourceSurface,
   type ASTProgram,
   type HSPlusASTNode as HSPlusNode,
@@ -231,14 +231,10 @@ const HOLOSCRIPT_KEYWORDS = [
   'execute',
 ];
 
-// Known-trait union (SSOT) — shared with the parser and linter via
-// `buildKnownTraitSet()` from @holoscript/core. Built once at module load and
-// used for the semantic-token decorator highlight check below. Replaces the
-// former hand-maintained ~50-name HOLOSCRIPT_TRAITS array (which drifted from
-// the real ~1,500-trait registry and the Native2D / code-graph vocabularies).
-// Plugin-contributed trait names would be passed via buildKnownTraitSet([...])
-// extras — wired separately so core stays plugin-agnostic.
-const KNOWN_TRAITS: ReadonlySet<string> = buildKnownTraitSet();
+// Known traits come from core's one known-trait check (`isKnownTrait`, validation/KnownTraits.ts),
+// the same function behind HS1006 in the canonical validator, strict layer, CLI and MCP. Used for
+// the semantic-token decorator highlight below; the HS1006 warnings themselves arrive through
+// canonicalSourceDiagnostics.
 
 const GEOMETRY_TYPES = [
   'cube',
@@ -1111,7 +1107,7 @@ connection.onRequest(
       let traitMatch;
       while ((traitMatch = traitRegex.exec(effectiveLine)) !== null) {
         const traitName = traitMatch[1];
-        if (KNOWN_TRAITS.has(traitName)) {
+        if (isKnownTrait(traitName)) {
           builder.push(
             lineNum,
             traitMatch.index,

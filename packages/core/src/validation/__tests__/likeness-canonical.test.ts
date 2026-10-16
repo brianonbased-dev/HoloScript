@@ -60,8 +60,11 @@ describe('canonical validator: HS1011 likeness (fail closed)', () => {
     // a commented-out `@lip_sync` does not shift the reported position
     const commented = v(`// @lip_sync in a comment\nobject "Ava" {\n  @lip_sync\n}\n`);
     expect(commented.errors.map((e) => [e.code, e.line, e.column])).toEqual([['HS1011', 3, 3]]);
-    // face_tracking and body_tracking with no source: a likeness (see the tracking-source tests)
+    // face_tracking and body_tracking: only source "live_self" is exempt; omitted is refused (N-2)
     expect(hs1011(v(obj('  @face_tracking\n  @body_tracking')))).toBe(2);
+    expect(
+      hs1011(v(obj('  @face_tracking { source: "live_self" }\n  @body_tracking { source: "live_self" }')))
+    ).toBe(0);
   });
 
   describe('Trust and Consent: face_tracking / body_tracking source', () => {

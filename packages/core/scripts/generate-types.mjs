@@ -4724,6 +4724,17 @@ export function parseHoloPartial(source: string, options?: any): any;
 export type HoloParseResult = any;
 export type HoloParseError = any;
 export type HoloParserOptions = any;
+// The one known-trait check (HS1006), shared with the root entry: src/validation/KnownTraits.ts.
+export {
+  isKnownTrait,
+  normalizeTraitName,
+  coreKnownTraitNames,
+  collectTraitUses,
+  declaredTraitNames,
+  findUnknownTraits,
+  UNKNOWN_TRAIT_CODE,
+} from './index.js';
+export type { KnownTraitOptions, TraitUse } from './index.js';
 `;
 
 const runtimeDTS = `// @holoscript/core/runtime — engine/mesh/framework-backed runtime surface.
@@ -7599,6 +7610,27 @@ export declare function buildKnownTraitSet(
   extras?: ReadonlyArray<string | readonly string[]>
 ): Set<string>;
 export const NATIVE2D_TRAITS: readonly string[];
+
+// The one known-trait check (HS1006): src/validation/KnownTraits.ts. Every surface uses it.
+export interface KnownTraitOptions {
+  declared?: Iterable<string>;
+  knownTraits?: Iterable<string>;
+}
+export interface TraitUse {
+  trait: { type?: unknown; name?: unknown; config?: Record<string, unknown> | null };
+  owner: Record<string, unknown> | null;
+  name: string;
+}
+export declare const UNKNOWN_TRAIT_CODE: 'HS1006';
+export declare function isKnownTrait(name: unknown, options?: KnownTraitOptions): boolean;
+export declare function normalizeTraitName(name: unknown): string;
+export declare function coreKnownTraitNames(): ReadonlySet<string>;
+export declare function collectTraitUses(ast: unknown): TraitUse[];
+export declare function declaredTraitNames(ast: unknown, uses?: TraitUse[]): Set<string>;
+export declare function findUnknownTraits(
+  ast: unknown,
+  options?: { knownTraits?: Iterable<string> }
+): TraitUse[];
 export const CODE_GRAPH_TRAITS: readonly string[];
 
 // AutoRig (traits/AutoRigTrait.ts) — re-exported via the main barrel.

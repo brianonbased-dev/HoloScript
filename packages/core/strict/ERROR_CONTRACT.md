@@ -89,31 +89,40 @@ restores the refusal for a caller who wants it.
 
 ### What `HS1006` checks against
 
-A trait is known if it is in any vocabulary core publishes, or declared where
-it is used:
+One function decides, for every surface: core's `isKnownTrait`
+(`packages/core/src/validation/KnownTraits.ts`, exported from `@holoscript/core`
+and `@holoscript/core/parser`). This layer, the canonical validator behind
+`holoscript validate`, MCP's `validate_holoscript` and `hs_diagnostics`, the
+language server, the linter and the `.hsplus` parser's `HSP001` all use it. A
+trait is known if it is in any vocabulary core publishes, or declared where it
+is used:
 
 1. `VR_TRAITS` (`@holoscript/core/constants`).
 2. The trait registry (`@holoscript/core/traits/trait-registry.json`).
-3. `buildKnownTraitSet()` — the vocabulary core's parser, language server and
-   linter share (VR_TRAITS plus Native2D panel, code-graph and runtime
-   directive names).
-4. `DERIVED_TRAIT_SCHEMAS` — every trait declared by a `.holo` `@trait { ... }`
-   file under `packages/core/src/traits`.
+3. `buildKnownTraitSet()`: VR_TRAITS plus Native2D panel, code-graph and
+   runtime directive names.
+4. The names of `DERIVED_TRAIT_SCHEMAS`: every trait declared by a `.holo`
+   `@trait { ... }` file under `packages/core/src/traits`.
 5. Declared in the same source: `@trait { name: "@x" }` or `trait X { ... }`.
    `@trait` itself is the declaration form, not a use.
 6. Passed by the caller in `knownTraits`.
 
 Names compare across spellings: `@fooBar`, `@foo-bar` and `@foo_bar` are the
-same trait. 3 and 4 live only on core's main entry, which is slow to load, so
-the layer loads them once, the first time 1 and 2 miss a name: the first
-source with such a trait pays a one-time load (measured at 6–8 s with a cold
-disk cache, about 1 s warm). Without it, files using Native2D panel traits or
-core's own `@trait` definitions would get false `HS1006` warnings.
+same trait. Every surface checks parsed trait uses, not raw text, so an `@name`
+in a comment is not a trait use. On the canonical path `HS1006` is a warning
+and never changes the verdict or an exit code. On `.hsplus`, `HS1006` is the
+authoritative report: the parser's own `HSP001` "Unknown directive" is not
+repeated for the same `@`.
 
-**If no vocabulary can be loaded, `HS1006` is skipped** and every other check
-still runs. `coreInfo()` says which vocabularies were loaded (`traitSources`)
-and whether the check is on (`traitCheck`); the corpus test asserts all four
-load inside this repo, so the check cannot switch itself off unnoticed here.
+An unknown trait (`HS1006`) is not the `.hs` `@unknown` value: a struct field
+that may be unknown, read with `load(record.field) ?? fallback`
+(docs/spec/native-machine-v34.md). They share a word, not a meaning.
+
+**If an older core without `isKnownTrait` is installed**, this layer falls
+back to loading the lists above itself, and if none can be loaded `HS1006` is
+skipped and every other check still runs. `coreInfo()` says which source was
+used (`traitSources`) and whether the check is on (`traitCheck`); the corpus
+test asserts the shared function is used inside this repo.
 
 When the parser has read a trait name differently from how it is written,
 `HS1006` says so, as a warning, and names the written form: that is a parser
