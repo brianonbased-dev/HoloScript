@@ -1,5 +1,5 @@
-import { execSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -37,11 +37,44 @@ const ALLOW: Record<string, string> = {
   'packages/core/scripts/generate-types.mjs': 'type declarations only (it declares avatarRenderAllowed)',
 };
 
+/**
+ * Tracked non-test sources under packages/. execFileSync with no shell, so the pathspecs reach git
+ * verbatim on every OS (single-quoted globs through a Windows shell matched 0 files). Fails loudly
+ * if nothing matches, so the guard can never pass vacuously.
+ */
+function listSourceFiles(): string[] {
+  // --others --exclude-standard: a new, not-yet-added file is guarded too (and the planted
+  // violation below goes through this exact path).
+  const out = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '--', 'packages/*.ts', 'packages/*.js', 'packages/*.mjs'], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    maxBuffer: 256 * 1024 * 1024,
+  });
+  const files = out
+    .split(/\r?\n/)
+    .filter((f) => f && !/(__tests__|\.test\.|\.spec\.|\/dist\/|\/node_modules\/)/.test(f));
+  if (files.length < 100) {
+    throw new Error(`AvatarReplicationGuard: git ls-files matched ${files.length} source files under ${ROOT}; the guard would pass vacuously`);
+  }
+  return [...new Set(files)];
+}
+
+type Source = { f: string; src: string };
+const readSources = (files: string[]): Source[] =>
+  files.map((f) => ({ f, src: readFileSync(path.join(ROOT, f), 'utf8') }));
+/** Replicating files (network + avatar/tracking state) that skip avatarRenderAllowed. */
+const replicationOffenders = (sources: Source[]) =>
+  sources.filter(({ f, src }) => NETWORK.test(src) && AVATAR_STATE.test(src) && !GATED(src) && !(f in ALLOW)).map((e) => e.f);
+/** Emitters of the network pose event that skip the gate. */
+const poseEmitOffenders = (sources: Source[]) =>
+  sources.filter(({ src }) => NETWORK_POSE_EMIT.test(src) && !GATED(src)).map((e) => e.f);
+/** Network files that touch a local live event ungated. */
+const localLeakOffenders = (sources: Source[]) =>
+  sources.filter(({ f, src }) => NETWORK.test(src) && LOCAL_LIVE.test(src) && !GATED(src) && !(f in ALLOW)).map((e) => e.f);
+
 describe('avatar replication guard', () => {
   it('every replicating file calls avatarRenderAllowed', () => {
-    const files = execSync("git ls-files 'packages/*.ts' 'packages/*.js' 'packages/*.mjs'", { cwd: ROOT, encoding: 'utf8' })
-      .split('\n')
-      .filter((f) => f && !/(__tests__|\.test\.|\.spec\.|\/dist\/|\/node_modules\/)/.test(f));
+    const files = listSourceFiles();
     const offenders: string[] = [];
     let replicating = 0;
     for (const f of files) {
@@ -67,11 +100,7 @@ describe('avatar replication guard', () => {
     expect(NETWORK.test(src) && AVATAR_STATE.test(src) && !src.includes('avatarRenderAllowed(')).toBe(true);
   });
 
-  const sources = () =>
-    execSync("git ls-files 'packages/*.ts' 'packages/*.js' 'packages/*.mjs'", { cwd: ROOT, encoding: 'utf8' })
-      .split('\n')
-      .filter((f) => f && !/(__tests__|\.test\.|\.spec\.|\/dist\/|\/node_modules\/)/.test(f))
-      .map((f) => ({ f, src: readFileSync(path.join(ROOT, f), 'utf8') }));
+  const sources = () => readSources(listSourceFiles());
 
   it('B1: every emitter of the network pose event (avatar_pose_update) is share-grant gated', () => {
     const emitters = sources().filter(({ src }) => NETWORK_POSE_EMIT.test(src));
@@ -79,14 +108,11 @@ describe('avatar replication guard', () => {
       'packages/core/src/traits/NetworkedAvatarTrait.ts',
       'packages/engine/src/traits/NetworkedAvatarTrait.ts',
     ]);
-    expect(emitters.filter(({ src }) => !GATED(src)).map((e) => e.f)).toEqual([]);
+    expect(poseEmitOffenders(emitters)).toEqual([]);
   });
 
   it('B1: live self-preview events stay local (no network file touches them ungated)', () => {
-    const leaks = sources()
-      .filter(({ f, src }) => NETWORK.test(src) && LOCAL_LIVE.test(src) && !GATED(src) && !(f in ALLOW))
-      .map((e) => e.f);
-    expect(leaks).toEqual([]);
+    expect(localLeakOffenders(sources())).toEqual([]);
   });
 
   it.each([
@@ -103,5 +129,43 @@ describe('avatar replication guard', () => {
     "on('local_voice_stream_ready', (e) => sendToPeer(id, e.stream));",
   ])('B1 bite: a network relay of a local live event is caught: %s', (src) => {
     expect(NETWORK.test(src) && LOCAL_LIVE.test(src) && !GATED(src)).toBe(true);
+  });
+
+  it('lists sources without a shell and never vacuously', () => {
+    const files = listSourceFiles();
+    expect(files).toContain('packages/core/src/traits/NetworkedAvatarTrait.ts');
+    expect(files).toContain('packages/engine/src/traits/NetworkedAvatarTrait.ts');
+    expect(files.some((f) => f.includes('__tests__'))).toBe(false);
+  });
+
+  it('BodyTrackingTrait emits live joints only as local_avatar_pose', () => {
+    const src = readFileSync(path.join(ROOT, 'packages/core/src/traits/BodyTrackingTrait.ts'), 'utf8');
+    expect(src).toMatch(/emit\??\.?\(\s*'local_avatar_pose'/);
+    expect(NETWORK_POSE_EMIT.test(src)).toBe(false);
+  });
+
+  it('a planted violation on disk is flagged through the same listing path (CoS)', () => {
+    const rel = `packages/core/src/traits/zz-guard-plant-${process.pid}.ts`;
+    const abs = path.join(ROOT, rel);
+    writeFileSync(
+      abs,
+      "export const planted = (context: any, node: any) => {\n" +
+        "  // Emit event to network layer\n" +
+        "  context.emit('avatar_pose_update', { node, pose: node.__avatarState.pose });\n" +
+        "  transport.send(peer, node.__bodyTrackingState.joints);\n" +
+        "  bus.on('local_avatar_pose', (e: any) => sendToPeer(id, e));\n" +
+        "};\n"
+    );
+    try {
+      const files = listSourceFiles();
+      expect(files).toContain(rel);
+      const planted = readSources(files);
+      expect(replicationOffenders(planted)).toEqual([rel]);
+      expect(poseEmitOffenders(planted)).toEqual([rel]);
+      expect(localLeakOffenders(planted)).toEqual([rel]);
+    } finally {
+      rmSync(abs, { force: true });
+    }
+    expect(listSourceFiles()).not.toContain(rel);
   });
 });
