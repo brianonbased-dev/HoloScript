@@ -11,22 +11,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { isOwnOriginRequest } from '@/lib/studioOrigin';
 import { mcpOAuthBaseUrl, mintStudioGrantsSession } from '@/lib/oauth/studioConsent.server';
 
 export const dynamic = 'force-dynamic';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const GRANT_ID = /^[A-Za-z0-9_-]{1,128}$/;
-
-function sameOrigin(req: NextRequest): boolean {
-  const origin = req.headers.get('origin');
-  if (!origin) return true; // same-origin fetches may omit it; SameSite cookies still apply
-  try {
-    return new URL(origin).host === (req.headers.get('host') || req.nextUrl.host);
-  } catch {
-    return false;
-  }
-}
 
 async function sessionUserId(): Promise<string | null> {
   const session = await getServerSession(authOptions);
@@ -65,7 +56,7 @@ export async function GET() {
 }
 
 export async function DELETE(req: NextRequest) {
-  if (!sameOrigin(req)) {
+  if (!isOwnOriginRequest(req)) {
     return NextResponse.json({ error: 'cross_origin_refused' }, { status: 403, headers: NO_STORE });
   }
   const userId = await sessionUserId();

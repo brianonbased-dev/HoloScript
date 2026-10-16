@@ -32,6 +32,7 @@ function formReq(body: Record<string, string>, headers: Record<string, string> =
     headers: {
       'content-type': 'application/x-www-form-urlencoded',
       host: 'studio.local',
+      origin: 'http://studio.local',
       ...headers,
     },
     body: new URLSearchParams(body).toString(),
@@ -43,11 +44,13 @@ describe('POST /api/oauth/consent', () => {
   beforeEach(() => {
     process.env.STUDIO_CONSENT_SECRET = SECRET;
     process.env.MCP_SERVER_URL = 'https://mcp.test';
+    process.env.NEXTAUTH_URL = 'http://studio.local';
     resetConsentReplayGuard();
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => {
+    delete process.env.NEXTAUTH_URL;
     delete process.env.STUDIO_CONSENT_SECRET;
     delete process.env.MCP_SERVER_URL;
     vi.unstubAllGlobals();
@@ -136,6 +139,27 @@ describe('POST /api/oauth/consent', () => {
     expect(body.studio_consent).toBeUndefined();
     expect(body.decision).toBe('deny');
     expect(new URL(res.headers.get('location')!).searchParams.get('error')).toBe('access_denied');
+  });
+
+  it('missing Origin is refused (403) before the session or mcp-server is touched', async () => {
+    sessionMock.mockResolvedValue({ user: { id: 'user-1' } });
+    const r = formReq({ ...fields, decision: 'approve' });
+    r.headers.delete('origin');
+    const res = await POST(r);
+    expect(res.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a forged Host / X-Forwarded-Host matching an attacker Origin is refused', async () => {
+    sessionMock.mockResolvedValue({ user: { id: 'user-1' } });
+    const res = await POST(
+      formReq(
+        { ...fields, decision: 'approve' },
+        { origin: 'https://evil.example', host: 'evil.example', 'x-forwarded-host': 'evil.example' }
+      )
+    );
+    expect(res.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('cross-origin POST is refused', async () => {

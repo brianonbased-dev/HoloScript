@@ -27,7 +27,13 @@ import * as consent from '../../../../../../mcp-server/src/security/studio-conse
 
 const csrfMods = import.meta.glob('../../../../../../mcp-server/src/security/oauth-csrf.ts');
 const csrfLoader = Object.values(csrfMods)[0];
-type CsrfBinding = { clientId: string; redirectUri: string; codeChallenge: string; userId: string };
+type CsrfBinding = {
+  clientId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  userId: string;
+  scope: string;
+};
 const csrf = csrfLoader
   ? ((await csrfLoader()) as {
       issueOAuthCsrfToken: (b: CsrfBinding) => string;
@@ -71,6 +77,7 @@ function mcpGet(url: string, headers: Record<string, string>) {
         redirectUri: q.get('redirect_uri')!,
         codeChallenge: q.get('code_challenge')!,
         userId: getConsent.userId,
+        scope: q.get('scope') || 'tools:read',
       })
     : undefined;
   return new Response(
@@ -94,6 +101,7 @@ function mcpPost(raw: string) {
     redirectUri: body.redirect_uri,
     codeChallenge: body.code_challenge,
     userId: peeked.userId,
+    scope: body.scope || 'tools:read',
   });
   if (!ok) return new Response(JSON.stringify({ error: 'invalid_request' }), { status: 403 });
   if (!consent.verifyStudioConsent(body.studio_consent, body.client_id))
@@ -112,6 +120,7 @@ describe('#579 x #578 F2 real contract', () => {
   beforeEach(() => {
     process.env.STUDIO_CONSENT_SECRET = SECRET;
     process.env.MCP_SERVER_URL = 'https://mcp.test';
+    process.env.NEXTAUTH_URL = 'http://studio.local';
     consent.resetConsentReplayGuard();
     fetchMock.mockClear();
     vi.stubGlobal('fetch', fetchMock);
@@ -133,7 +142,11 @@ describe('#579 x #578 F2 real contract', () => {
     return POST(
       new NextRequest('http://studio.local/api/oauth/consent', {
         method: 'POST',
-        headers: { 'content-type': 'application/x-www-form-urlencoded', host: 'studio.local' },
+        headers: {
+          'content-type': 'application/x-www-form-urlencoded',
+          host: 'studio.local',
+          origin: 'http://studio.local',
+        },
         body: new URLSearchParams({ ...sp, csrf_token: csrfToken, decision: 'approve' }).toString(),
       })
     );

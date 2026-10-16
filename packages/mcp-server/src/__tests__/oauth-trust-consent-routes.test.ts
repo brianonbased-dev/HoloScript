@@ -431,3 +431,19 @@ describe('R4 DELETE /oauth/clients/:id', () => {
     expect(d.status).toBe(204);
   });
 });
+
+describe('N2 the csrf_token is bound to the requested scope', () => {
+  it('a POST that widens the scope shown on the GET is refused (403); the same scope succeeds', async () => {
+    const { clientId } = await register();
+    const assertion = consentFor(clientId);
+    const csrf = await csrfFor(clientId, 'social', assertion);
+    const widened = await server.request('POST', '/oauth/authorize', {
+      body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: assertion }, 'social user:private'),
+    });
+    expect(widened.status).toBe(403);
+    const same = await server.request('POST', '/oauth/authorize', {
+      body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: consentFor(clientId) }, 'social'),
+    });
+    expect(same.status, JSON.stringify(same.body)).toBe(200);
+  });
+});

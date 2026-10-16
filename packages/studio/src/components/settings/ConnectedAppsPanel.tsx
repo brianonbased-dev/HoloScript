@@ -7,6 +7,7 @@
  * the app itself and are not verified, so the app id is shown too.
  */
 import React, { useCallback, useEffect, useState } from 'react';
+import { lookalikeOf } from '@/lib/oauth/lookalikeName';
 
 export interface ConnectedApp {
   id: string;
@@ -107,6 +108,11 @@ export default function ConnectedAppsPanel() {
                     </span>
                   )}
                 </span>
+                {lookalikeOf(app.client_name) && (
+                  <span className="cap-lookalike" role="note">
+                    Looks like {lookalikeOf(app.client_name)}, but not verified as that app.
+                  </span>
+                )}
                 <span className="cap-meta">App id: {app.client_id}</span>
                 <ul className="cap-scopes">
                   {app.scopes.map((s) => (
@@ -208,6 +214,11 @@ export default function ConnectedAppsPanel() {
           border-radius: 4px;
           background: #4a3a1a;
           color: #ffcc66;
+        }
+        .cap-lookalike {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #ff9b6b;
         }
         .cap-meta {
           font-size: 0.75rem;

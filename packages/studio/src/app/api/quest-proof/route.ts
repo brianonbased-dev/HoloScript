@@ -1,4 +1,5 @@
 import { appendFile, mkdir, readFile, stat } from 'node:fs/promises';
+import { studioOwnOrigin } from '@/lib/studioOrigin';
 import path from 'node:path';
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveCorsOrigin } from '../_lib/cors';
@@ -122,15 +123,7 @@ function tokenFrom(req: NextRequest): string | null {
  * can set. Unconfigured: null, and only the CORS allowlist applies.
  */
 function ownOrigin(): string | null {
-  for (const v of [process.env.NEXTAUTH_URL, process.env.NEXT_PUBLIC_STUDIO_URL]) {
-    if (!v) continue;
-    try {
-      return new URL(v).origin;
-    } catch {
-      /* try the next one */
-    }
-  }
-  return null;
+  return studioOwnOrigin();
 }
 
 /**

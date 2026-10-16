@@ -2,7 +2,8 @@
  * CSRF token for the OAuth consent step (Trust & Consent, part A item 2).
  *
  * GET /oauth/authorize mints a token bound to exactly one authorization
- * request (client_id, redirect_uri, code_challenge) and a short expiry; POST
+ * request (client_id, redirect_uri, code_challenge, requested scope, user) and
+ * a short expiry; POST
  * /oauth/authorize mints a code only when the same request comes back with a
  * valid token. A page on another origin cannot read the GET answer, so it
  * cannot forge the POST. Stateless (HMAC), so it works across replicas when
@@ -26,14 +27,31 @@ export interface CsrfBinding {
   codeChallenge: string;
   /** Signed-in Studio user (studio_consent sub) the token was minted for (Release F2). */
   userId: string;
+  /**
+   * Requested scope (Release N2): the POST must ask for exactly the scopes the
+   * GET showed the user. Normalized (deduped, sorted), so order does not matter.
+   */
+  scope: string | string[];
+}
+
+/** Order- and whitespace-insensitive scope string for the binding. */
+export function normalizeCsrfScope(scope: string | string[]): string {
+  const list = Array.isArray(scope) ? scope : String(scope ?? '').split(/\s+/);
+  return [...new Set(list.map((s) => s.trim()).filter(Boolean))].sort().join(' ');
 }
 
 function mac(binding: CsrfBinding, exp: number, secret: string): string {
   return createHmac('sha256', secret)
     .update(
-      ['oauth-csrf-v2', binding.clientId, binding.redirectUri, binding.codeChallenge, binding.userId, exp].join(
-        '\n'
-      )
+      [
+        'oauth-csrf-v3',
+        binding.clientId,
+        binding.redirectUri,
+        binding.codeChallenge,
+        binding.userId,
+        normalizeCsrfScope(binding.scope),
+        exp,
+      ].join('\n')
     )
     .digest('base64url');
 }

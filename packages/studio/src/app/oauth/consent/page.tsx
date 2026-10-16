@@ -9,6 +9,7 @@
  * /api/oauth/consent, which re-mints for the same user. Neither the assertion
  * nor the secret ever reaches the browser.
  */
+import { lookalikeOf } from '@/lib/oauth/lookalikeName';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -99,6 +100,8 @@ export default async function OAuthConsentPage({
     ...(params.state ? { state: params.state } : {}),
   };
 
+  const lookalike = lookalikeOf(info.client_name);
+
   return (
     <main className="mx-auto max-w-lg p-8 space-y-4">
       <h1 className="text-xl font-semibold">
@@ -109,6 +112,12 @@ export default async function OAuthConsentPage({
         is not verified by HoloScript. App id <code>{params.client_id}</code>, sends you back to{' '}
         <strong>{redirectHost}</strong>.
       </p>
+      {lookalike && (
+        <p role="alert" className="text-sm font-semibold text-red-600" data-testid="lookalike-warning">
+          Careful: this name looks like {lookalike}, but HoloScript has not verified that this app
+          comes from {lookalike}. Check the app id and where it sends you before approving.
+        </p>
+      )}
       <p>If you approve, it can:</p>
       <ul className="list-disc pl-6">
         {scopes.map((s) => (

@@ -35,6 +35,23 @@ describe('ConnectedAppsPanel', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/oauth/grants', expect.anything());
   });
 
+  it('warns when an app name mimics HoloScript or a known app (confusables folded)', async () => {
+    fetchMock.mockImplementation(async () =>
+      new Response(
+        JSON.stringify({ grants: [{ ...grant, id: 'grant_2', client_name: 'HoIoScript Officiаl' }] }),
+        { status: 200 }
+      )
+    );
+    render(<ConnectedAppsPanel />);
+    expect(await screen.findByText(/Looks like HoloScript, but not verified/)).toBeTruthy();
+  });
+
+  it('no lookalike warning for an ordinary name', async () => {
+    render(<ConnectedAppsPanel />);
+    await screen.findByText('Helper Bot');
+    expect(screen.queryByText(/Looks like/)).toBeNull();
+  });
+
   it('Revoke sends DELETE for that grant and removes the row', async () => {
     render(<ConnectedAppsPanel />);
     fireEvent.click(await screen.findByRole('button', { name: 'Revoke Helper Bot' }));

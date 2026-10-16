@@ -2654,7 +2654,13 @@ const httpServer = http.createServer(async (req, res) => {
         { peek: true }
       );
       const csrfToken = getConsent
-        ? issueOAuthCsrfToken({ clientId, redirectUri, codeChallenge, userId: getConsent.userId })
+        ? issueOAuthCsrfToken({
+            clientId,
+            redirectUri,
+            codeChallenge,
+            userId: getConsent.userId,
+            scope: requestedScopes,
+          })
         : undefined;
 
       if (acceptsHtml(req.headers.accept)) {
@@ -2827,6 +2833,7 @@ const httpServer = http.createServer(async (req, res) => {
           redirectUri,
           codeChallenge,
           userId: peeked.userId,
+          scope: requestedScopes,
         })
       ) {
         auditLog.logAuthEvent({

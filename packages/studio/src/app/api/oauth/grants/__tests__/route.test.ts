@@ -23,6 +23,7 @@ let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   process.env.STUDIO_CONSENT_SECRET = SECRET;
   process.env.MCP_OAUTH_ISSUER_URL = 'https://mcp.test';
+  process.env.NEXTAUTH_URL = 'https://studio.test';
   resetConsentReplayGuard();
   fetchMock = vi.fn(async (_url: string, init: RequestInit) => {
     const h = init.headers as Record<string, string>;
@@ -37,13 +38,14 @@ afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.STUDIO_CONSENT_SECRET;
   delete process.env.MCP_OAUTH_ISSUER_URL;
+  delete process.env.NEXTAUTH_URL;
   sessionMock.mockReset();
 });
 
 const del = (id: string, headers: Record<string, string> = {}) =>
   new NextRequest(`https://studio.test/api/oauth/grants?id=${id}`, {
     method: 'DELETE',
-    headers: { host: 'studio.test', ...headers },
+    headers: { host: 'studio.test', origin: 'https://studio.test', ...headers },
   });
 
 describe('/api/oauth/grants', () => {
@@ -88,6 +90,21 @@ describe('/api/oauth/grants', () => {
     sessionMock.mockResolvedValue({ user: { id: 'alice' } });
     expect((await DELETE(del('grant_a', { origin: 'https://evil.test' }))).status).toBe(403);
     expect((await DELETE(del('..%2Fclients%2Fx'))).status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('DELETE without an Origin, or with a forged Host/X-Forwarded-Host, is 403', async () => {
+    sessionMock.mockResolvedValue({ user: { id: 'alice' } });
+    const noOrigin = del('grant_a');
+    noOrigin.headers.delete('origin');
+    expect((await DELETE(noOrigin)).status).toBe(403);
+    expect(
+      (
+        await DELETE(
+          del('grant_a', { origin: 'https://evil.test', host: 'evil.test', 'x-forwarded-host': 'evil.test' })
+        )
+      ).status
+    ).toBe(403);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
