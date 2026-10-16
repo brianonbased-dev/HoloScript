@@ -206,7 +206,15 @@ export function analyze(source, deps, options = {}) {
     const code = typeof err?.code === "string" && /^HS1\d{3}$/.test(err.code) ? err.code : "HS1007";
     push(diag(code, "error", messageOf(err), where));
   }
+  // parseHolo reports an unknown trait as HS1006 itself. When this layer checks traits (below) it
+  // reports HS1006 once with its own location and severity, so the parser's copy is dropped;
+  // otherwise the parser's copy is kept under its own code, never relabelled HS1008.
+  const checksTraits = !!coreKnown || !!(traitIds && traitIds.size);
   for (const warn of parsed.warnings || []) {
+    if (warn && warn.code === "HS1006") {
+      if (!checksTraits) push(diag("HS1006", "warning", messageOf(warn), anchors.fromParser(warn)));
+      continue;
+    }
     push(diag("HS1008", "warning", messageOf(warn), anchors.fromParser(warn)));
   }
 

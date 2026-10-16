@@ -150,6 +150,7 @@ import {
   LIGHT_PRIMITIVES,
 } from './composition/tokens';
 import { HoloLexer } from './composition/lexer';
+import { findUnknownTraits, UNKNOWN_TRAIT_CODE } from '../validation/KnownTraits';
 // W1-T2: Expression rules extracted to composition/ subdirectory.
 // Thin delegates in the parser class call through to these pure functions,
 // maintaining the original public API while keeping the rule logic modular.
@@ -8668,7 +8669,86 @@ export class HoloCompositionParser {
  */
 export function parseHolo(source: string, options?: HoloParserOptions): HoloParseResult {
   const parser = new HoloCompositionParser(options);
-  return parser.parse(source);
+  const result = parser.parse(source);
+  // HS1006 (warning, never a refusal; packages/core/strict/ERROR_CONTRACT.md): an unknown trait
+  // is reported here, through the one known-trait check (KnownTraits.ts). It is added in this
+  // function, not in HoloCompositionParser.parse, because validateCanonicalSource calls the class
+  // and adds its own HS1006 with the caller's vocabulary; doing it in both would report twice.
+  if (result.ast && typeof source === 'string') {
+    result.warnings.push(...unknownTraitWarnings(source, result.ast, options?.knownTraits));
+  }
+  return result;
+}
+
+/** At most this many HS1006 warnings per parse; the rest are counted in one summary warning. */
+export const MAX_UNKNOWN_TRAIT_WARNINGS = 100;
+
+function unknownTraitWarnings(
+  source: string,
+  ast: unknown,
+  knownTraits: ReadonlySet<string> | undefined
+): HoloParseWarning[] {
+  const uses = findUnknownTraits(ast, { knownTraits });
+  if (uses.length === 0) return [];
+  // One pass over the source: every written `@word` with its offset, grouped by word. Each
+  // unknown trait then takes the next unused offset for its name (linear, not per-trait rescans).
+  const lineStarts = [0];
+  for (let i = 0; i < source.length; i++) {
+    const c = source.charCodeAt(i);
+    if (c === 13 /* \r */) {
+      if (source.charCodeAt(i + 1) === 10) i++;
+      lineStarts.push(i + 1);
+    } else if (c === 10 /* \n */) {
+      lineStarts.push(i + 1);
+    }
+  }
+  const offsets = new Map<string, number[]>();
+  const word = /@([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g;
+  let m: RegExpExecArray | null;
+  while ((m = word.exec(source))) {
+    const list = offsets.get(m[1]);
+    if (list) list.push(m.index);
+    else offsets.set(m[1], [m.index]);
+  }
+  const used = new Map<string, number>();
+  const locate = (name: string): SourceLocation => {
+    const k = used.get(name) ?? 0;
+    used.set(name, k + 1);
+    const at = /^[A-Za-z0-9_]+$/.test(name) ? offsets.get(name)?.[k] : nthTraitOffset(source, name, k);
+    if (at === undefined) return { line: 1, column: 1 };
+    let lo = 0;
+    let hi = lineStarts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (lineStarts[mid] <= at) lo = mid;
+      else hi = mid - 1;
+    }
+    return { line: lo + 1, column: at - lineStarts[lo] + 1 };
+  };
+  const shown = uses.slice(0, MAX_UNKNOWN_TRAIT_WARNINGS);
+  const out: HoloParseWarning[] = shown.map((use) => ({
+    message: `Unknown trait "@${use.name}" (HS1006).`,
+    code: UNKNOWN_TRAIT_CODE,
+    loc: locate(use.name),
+  }));
+  if (uses.length > shown.length) {
+    out.push({
+      message: `${uses.length - shown.length} more unknown traits not listed (HS1006; ${uses.length} in total).`,
+      code: UNKNOWN_TRAIT_CODE,
+      loc: { line: 1, column: 1 },
+    });
+  }
+  return out;
+}
+
+/** Offset of the k-th written `@name` for a name that is not a plain word (rare; capped above). */
+function nthTraitOffset(source: string, name: string, k: number): number | undefined {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`@${escaped}(?![A-Za-z0-9_])`, 'g');
+  let m: RegExpExecArray | null;
+  let i = 0;
+  while ((m = re.exec(source))) if (i++ === k) return m.index;
+  return undefined;
 }
 
 /**
