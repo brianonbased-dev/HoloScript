@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireFounder } from '@/lib/api-auth';
+import { holomeshUpstream } from '../_lib/holomeshUpstream';
 import { parseFounderInboxEntries, extractFeedArray } from './parse';
 
 export const runtime = 'nodejs';
@@ -18,34 +20,25 @@ export const runtime = 'nodejs';
  * Studio's own key, with nobody recorded; nothing called it. It was removed
  * 2026-09-28 (task_1790602604837_whpw, item 10, after the stored-XSS fix #411).
  *
+ * Founder-only (requireFounder, 401/403 before any upstream call). The only
+ * caller is the same-origin Founder Console, which carries the founder session.
+ *
  * Closes F.085: agents push to the feed; the founder taps Open in his headset.
  */
 
-const BASE =
-  process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
-const TEAM_ID = process.env.HOLOMESH_TEAM_ID ?? '';
-
-function feedHeaders(): Record<string, string> {
-  const h: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (KEY) {
-    h['Authorization'] = `Bearer ${KEY}`;
-    h['x-mcp-api-key'] = KEY;
-  }
-  return h;
-}
 
 // ── GET: read the inbox (read feed, filter founderInbox entries) ────────────
 
 export async function GET(req: NextRequest) {
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
+  const up = holomeshUpstream({ items: [] });
+  if (up instanceof NextResponse) return up;
   const limit = Math.min(Number(req.nextUrl.searchParams.get('limit')) || 25, 100);
-  if (!TEAM_ID) {
-    return NextResponse.json({ ok: false, items: [], error: 'HOLOMESH_TEAM_ID not configured' });
-  }
   try {
     const res = await fetch(
-      `${BASE}/api/holomesh/team/${TEAM_ID}/feed?limit=${Math.min(limit * 4, 200)}`,
-      { headers: feedHeaders(), cache: 'no-store' }
+      `${up.base}/api/holomesh/team/${up.teamId}/feed?limit=${Math.min(limit * 4, 200)}`,
+      { headers: up.headers, cache: 'no-store' }
     );
     if (!res.ok) {
       return NextResponse.json({ ok: false, items: [], error: `feed upstream ${res.status}` });

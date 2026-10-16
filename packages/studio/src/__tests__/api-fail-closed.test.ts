@@ -392,7 +392,7 @@ const SIGNED_OUT_UI_DEPENDENCIES: ReadonlyArray<{
 
   // Headset proof capture, from pages with no sign-in.
   { method: 'POST', path: '/api/quest-proof', callSite: 'ImmersiveViewer.client.tsx:597; components/quest/QuestProbe.tsx:127' },
-  { method: 'GET', path: '/api/quest-proof', callSite: 'ImmersiveViewer.client.tsx:617; app/quest-probe/page.tsx:249 (?record=1 fallback)' },
+  { method: 'GET', path: '/api/quest-proof', callSite: 'receipt read-back with the x-quest-proof-token header (GET never records)' },
 
   // Signed-out editor at /create.
   { method: 'POST', path: '/api/preview', callSite: 'app/create/page.tsx live preview compile' },

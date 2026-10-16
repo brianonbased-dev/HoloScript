@@ -23,6 +23,10 @@ describe('headset pages capture by POST', () => {
       expect(src).toMatch(/\/api\/quest-proof'\)/);
       expect(src).toMatch(/method:\s*'POST'/);
       expect(src).toContain("'x-quest-proof-token'");
+      // (3) token bootstrapped from the link, then stripped from history
+      expect(src).toContain('history.replaceState');
+      expect(src).toContain("searchParams.delete('proofToken')");
+      expect(src).toContain('sessionStorage');
       expect(src).toMatch(/runId:\s*(payload\.runId|runId\(\))\s*\}\)\.toString\(\)/);
     });
   }

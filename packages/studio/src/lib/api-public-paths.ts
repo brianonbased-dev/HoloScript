@@ -266,7 +266,7 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/quest-proof',
     methods: ['GET', 'POST'],
-    why: "Headset proof capture from pages with no sign-in: app/shared/[id]/ImmersiveViewer.client.tsx, components/quest/QuestProbe.tsx, app/quest-probe/page.tsx, all by POST (GET ?record=1 is refused with 405). Reachable without a session, but POST needs a same-origin or CORS-allowlisted Origin and the per-run expiring capture token (HMAC keyed by HKDF-SHA256 of NEXTAUTH_SECRET, info quest-proof-capture-v1; minted by the founder at /api/quest-proof/token, carried in the headset link as ?proofToken= and sent in x-quest-proof-token), checked before the body is read; the body is streamed and cut off at 16 KB regardless of Content-Length, caps each run's receipts file, and writes only under the quest-proof data folder (QUEST_PROOF_DATA_DIR or <repo>/.bench-logs/format-stress), never home. No token: 401, nothing written or read.",
+    why: "Headset proof capture from pages with no sign-in: app/shared/[id]/ImmersiveViewer.client.tsx, components/quest/QuestProbe.tsx, app/quest-probe/page.tsx, all by POST (GET ?record=1 is refused with 405). Reachable without a session, but POST needs a same-origin or CORS-allowlisted Origin and the per-run expiring capture token (HMAC keyed by HKDF-SHA256 of NEXTAUTH_SECRET, info quest-proof-capture-v1; minted by the founder at /api/quest-proof/token, carried in the headset link as ?proofToken= only to bootstrap the page, which strips it from history and sends it ONLY in the x-quest-proof-token header; the API ignores a query token) and an Origin equal to the configured Studio URL (NEXTAUTH_URL / NEXT_PUBLIC_STUDIO_URL, never Host or X-Forwarded-Host) or on the CORS allowlist, checked before the body is read; the body is streamed and cut off at 16 KB regardless of Content-Length, caps each run's receipts file, and writes only under the quest-proof data folder (QUEST_PROOF_DATA_DIR or <repo>/.bench-logs/format-stress), never home. No token: 401, nothing written or read.",
   },
   {
     pattern: '/api/portable-mind/*',
@@ -484,26 +484,6 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   // something into a header" cannot be the authorization for that. It is the
   // identical defect to /api/export, which was already pinned, and two doors
   // into the same service should not answer differently.
-  {
-    pattern: '/api/quest-proof/board',
-    methods: ['GET'],
-    why: "Headset-proof sweep agents poll it on a schedule and refusing them stops the sweep silently, so it stays reachable. Verb audit 2026-09-16: the route file exports GET only, and GET is now pinned so a POST added to it tomorrow inherits `session` instead of this entry. Read the entry below on what this tier does and does not buy here.",
-  },
-  {
-    pattern: '/api/quest-proof/decide',
-    methods: ['POST'],
-    why: "Same scheduled sweep caller as /api/quest-proof/board. Verb audit 2026-09-16: the route file exports POST only, and POST is the verb the sweep needs — it marks a task done. What a one-header caller can actually write through it: NOTHING. The route opens with its own getServerSession check (route.ts:16-19) and answers 401 to a caller who has only a header, so this entry admits them to a door the route then shuts. That mismatch — the entry buys nothing, or the sweep was already broken before this branch — is real and is flagged for the lead rather than guessed at here.",
-  },
-  {
-    pattern: '/api/quest-proof/inbox',
-    methods: ['GET'],
-    why: "NO GUARD, and it spends ours: upstream calls carry HOLOMESH_API_KEY (route.ts:26) against a fixed HOLOMESH_TEAM_ID. The caller's key is never used. GET stays reachable for the scheduled sweep that reads the founder's inbox. The route exports no POST since 2026-09-28 (task whpw): the old one pushed any caller's url and label into the founder's team feed UNDER OUR KEY with no identity recorded, and nothing called it, because agents push to the feed directly, signed with their own seat key. Keep this entry pinned to GET so a POST added back later is not reachable on 'any non-empty header'.",
-  },
-  {
-    pattern: '/api/quest-proof/next-actions',
-    methods: ['GET'],
-    why: "NO GUARD, and it spends our HOLOMESH_API_KEY (route.ts:16). GET stays reachable for the scheduled sweep agents that poll it. POST is NOT in this tier: it writes a founder-approval decision under our key, so it is pinned to `session` until the route authenticates its own caller.",
-  },
   {
     pattern: '/api/holoshell/machine-state',
     methods: ['GET'],

@@ -549,8 +549,31 @@ function questProofRunId(): string {
 
 function questProofToken(): string {
   if (typeof window === 'undefined') return '';
-  return new URLSearchParams(window.location.search).get('proofToken') ?? '';
+  // The headset link carries ?proofToken= to bootstrap. Read it once, keep it in
+  // sessionStorage, and strip it from the address bar so it is not in history,
+  // receipts or referrers. The API only accepts it in the x-quest-proof-token header.
+  const url = new URL(window.location.href);
+  const fromLink = url.searchParams.get('proofToken');
+  if (fromLink) {
+    try {
+      window.sessionStorage.setItem('quest-proof-token', fromLink);
+    } catch {
+      /* storage blocked: the token still works for this page view */
+    }
+    url.searchParams.delete('proofToken');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    questProofTokenCache = fromLink;
+    return fromLink;
+  }
+  if (questProofTokenCache) return questProofTokenCache;
+  try {
+    return window.sessionStorage.getItem('quest-proof-token') ?? '';
+  } catch {
+    return '';
+  }
 }
+let questProofTokenCache = '';
+if (typeof window !== 'undefined') questProofToken();
 
 function questProofPageId(): string {
   if (typeof window === 'undefined') return 'immersive-viewer';

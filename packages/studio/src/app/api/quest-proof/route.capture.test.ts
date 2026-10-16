@@ -35,7 +35,7 @@ function capture(
   body: unknown,
   opts: { token?: string | null; origin?: string | null; prefix?: string; raw?: BodyInit } = {}
 ) {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', host: 'holoscript.studio', 'x-forwarded-proto': 'https' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (opts.token) headers['x-quest-proof-token'] = opts.token;
   if (opts.origin !== null) headers.origin = opts.origin ?? STUDIO;
   return new NextRequest(`${STUDIO}${opts.prefix ?? ''}/api/quest-proof?runId=${encodeURIComponent(runId)}`, {
@@ -50,6 +50,7 @@ function capture(
 beforeEach(() => {
   vi.stubEnv('QUEST_PROOF_DATA_DIR', ROOT);
   vi.stubEnv('NEXTAUTH_SECRET', 'test-nextauth-secret');
+  vi.stubEnv('NEXTAUTH_URL', STUDIO);
   fs.rmSync(ROOT, { recursive: true, force: true });
   fs.mkdirSync(ROOT, { recursive: true });
 });
@@ -131,7 +132,9 @@ describe('quest-proof capture', () => {
     expect(body.ok).toBe(true);
     expect(body.path).toBeUndefined();
     expect(listAll(ROOT)).toEqual([path.join(ROOT, runId, 'quest-proof', 'receipts.jsonl')]);
-    const read = await (await GET(new NextRequest(`${STUDIO}/api/quest-proof?runId=${runId}&proofToken=${encodeURIComponent(token)}`))).json();
+    const read = await (
+      await GET(new NextRequest(`${STUDIO}/api/quest-proof?runId=${runId}`, { headers: { 'x-quest-proof-token': token } }))
+    ).json();
     expect(read.count).toBe(1);
     expect(read.path).toBeUndefined();
   });
@@ -141,5 +144,48 @@ describe('quest-proof capture', () => {
     const res = await POST(capture('run-a', {}, { token: '9999999999.' + 'a'.repeat(43) }));
     expect(res.status).toBe(401);
     expect(listAll(ROOT)).toEqual([]);
+  });
+
+  it('(3) a token only in the query is refused: POST and read-back GET are 401, nothing written', async () => {
+    const token = encodeURIComponent(mintQuestProofToken('run-q')!);
+    const post = new NextRequest(`${STUDIO}/api/quest-proof?runId=run-q&proofToken=${token}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', origin: STUDIO },
+      body: JSON.stringify({ label: 'x' }),
+    });
+    expect((await POST(post)).status).toBe(401);
+    expect(listAll(ROOT)).toEqual([]);
+    const get = await GET(new NextRequest(`${STUDIO}/api/quest-proof?runId=run-q&proofToken=${token}`));
+    expect(get.status).toBe(401);
+  });
+
+  it('own origin comes from NEXTAUTH_URL, not Host / X-Forwarded-Host: spoofed headers are 403', async () => {
+    const token = mintQuestProofToken('run-h')!;
+    const req = new NextRequest('https://evil.example/api/quest-proof?runId=run-h', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-quest-proof-token': token,
+        origin: 'https://evil.example',
+        host: 'evil.example',
+        'x-forwarded-host': 'evil.example',
+        'x-forwarded-proto': 'https',
+      },
+      body: JSON.stringify({ label: 'x' }),
+    });
+    expect((await POST(req)).status).toBe(403);
+    expect(listAll(ROOT)).toEqual([]);
+  });
+
+  it('NEXT_PUBLIC_STUDIO_URL is used when NEXTAUTH_URL is unset', async () => {
+    vi.stubEnv('NEXTAUTH_URL', '');
+    vi.stubEnv('NEXT_PUBLIC_STUDIO_URL', 'https://studio.example.dev');
+    const token = mintQuestProofToken('run-p')!;
+    const req = new NextRequest('https://studio.example.dev/api/quest-proof?runId=run-p', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': token, origin: 'https://studio.example.dev' },
+      body: JSON.stringify({ label: 'x' }),
+    });
+    expect((await POST(req)).status).toBe(200);
   });
 });

@@ -233,14 +233,32 @@ const fallbackScript = String.raw`
     renderHandOverlay();
   }
 
+  // The headset link carries ?proofToken= to bootstrap. Read it once, keep it in
+  // sessionStorage, strip it from the address bar, and send it only as a header.
+  let proofTokenCache = '';
+  function proofToken() {
+    if (proofTokenCache) return proofTokenCache;
+    const url = new URL(window.location.href);
+    const fromLink = url.searchParams.get('proofToken');
+    if (fromLink) {
+      try { window.sessionStorage.setItem('quest-proof-token', fromLink); } catch (e) {}
+      url.searchParams.delete('proofToken');
+      window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+      proofTokenCache = fromLink;
+      return fromLink;
+    }
+    try { proofTokenCache = window.sessionStorage.getItem('quest-proof-token') || ''; } catch (e) {}
+    return proofTokenCache;
+  }
+  proofToken();
+
   function push(label, status, detail) {
     results.push({ label, status, detail });
     render();
-    const params = new URLSearchParams(window.location.search);
     fetch(prefix('/api/quest-proof') + '?' + new URLSearchParams({ runId: runId() }).toString(), {
       method: 'POST',
       cache: 'no-store',
-      headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': params.get('proofToken') || '' },
+      headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': proofToken() },
       body: JSON.stringify({
         runId: runId(),
         pageId: 'quest-probe',
