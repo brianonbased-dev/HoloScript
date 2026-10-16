@@ -61,3 +61,13 @@ export type { HoloTopic, HoloChannel, HoloConnection } from './HoloCompositionTy
 // compiler/DialectRegistry.ts on the parser side (task_1783037937631_acwr).
 export { GrammarModuleRegistry } from './GrammarModuleRegistry';
 export type { GrammarModuleDescriptor, GrammarModuleInfo } from './GrammarModuleRegistry';
+
+export {
+  checkLikeness,
+  LIKENESS_SOURCES,
+  SOURCE_GATED_TRACKING,
+  LIKENESS_CODE,
+  type ConsentRules,
+  type LikenessFinding,
+  type LikenessSource,
+} from '../validation/LikenessCheck';

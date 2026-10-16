@@ -136,6 +136,15 @@ export {
   type CanonicalSourceValidationResult,
   type CanonicalValidator,
 } from './validation/CanonicalSourceValidator';
+export {
+  checkLikeness,
+  LIKENESS_SOURCES,
+  SOURCE_GATED_TRACKING,
+  LIKENESS_CODE,
+  type ConsentRules,
+  type LikenessFinding,
+  type LikenessSource,
+} from './validation/LikenessCheck';
 export { factory as holoFactory } from './parser/HoloCompositionFactory';
 export { generateHoloSource } from './parser/HoloCompositionGenerator';
 export type {

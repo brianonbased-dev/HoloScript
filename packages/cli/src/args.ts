@@ -107,6 +107,8 @@ export interface CLIOptions {
   unknownCommand?: string;
   input?: string;
   output?: string;
+  /** `validate`: JSON file with the .hs render_likeness result (HS1011 consent rules) */
+  consentRules?: string;
   /** Check formatter conformance without writing changes */
   check?: boolean;
   /** Write formatter output back to source files */
@@ -446,6 +448,9 @@ export function parseArgs(args: string[]): CLIOptions {
         if (options.command === 'fmt') {
           options.quiet = true;
         }
+        break;
+      case '--consent-rules':
+        options.consentRules = args[++i];
         break;
       case '-o':
       case '--output':
@@ -912,6 +917,9 @@ Usage: holoscript <command> [options] [input]
   -v, --verbose       Enable verbose output
   -j, --json          Output results as JSON
   -o, --output        Write output to file
+  --consent-rules     validate: JSON { "<grant>": ["face","voice","body"] }, the .hs
+                      render_likeness result. Without it @face_mesh, @voice_print
+                      and @body_scan fail with HS1011
   -t, --target        Compile target (node, threejs, unity, vrchat, babylon, wasm)
   -p, --profile       Runtime profile (headless, minimal, standard, vr)
   --tick-rate <hz>    Tick rate for headless runtime (default: 10)
