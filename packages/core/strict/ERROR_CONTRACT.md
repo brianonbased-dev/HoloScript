@@ -8,6 +8,11 @@ This contract is implemented in `holo_strict.mjs` as a layer over the existing
 tokenizer and parser, so it ships without a grammar rewrite and can be absorbed
 into the parser later keeping the same codes.
 
+`compileToWASM` takes a composition or source text. Source is parsed with
+`parseHolo` first and a failed parse throws (garbage such as `{{{@@@` used to
+compile to the same artifact as a real composition); a value that is neither a
+string nor a composition object throws a `TypeError` naming `HS1009`.
+
 ## Two modes, both documented
 
 | Mode | Returns | For |
@@ -93,7 +98,7 @@ One function decides, for every surface: core's `isKnownTrait`
 (`packages/core/src/validation/KnownTraits.ts`, exported from `@holoscript/core`
 and `@holoscript/core/parser`). This layer, the canonical validator behind
 `holoscript validate`, MCP's `validate_holoscript` and `hs_diagnostics`, the
-language server, the linter and the `.hsplus` parser's `HSP001` all use it. A
+language server, the linter and the `.hsplus` parser's `HSP001`, core's `parseHolo` (as a `warnings` entry with `code: "HS1006"`; the `HoloCompositionParser` class itself does not add it, so the canonical validator does not report it twice) and the legacy `HoloScriptValidator` (a `severity: "warning"` entry) all use it. A
 trait is known if it is in any vocabulary core publishes, or declared where it
 is used:
 

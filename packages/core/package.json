@@ -277,7 +277,8 @@
     "benchmark:paper10:depth-distribution": "node scripts/run-paper10-depth-distribution.mjs",
     "benchmark:dispatch-policy": "tsx src/compiler/dispatch/DispatchPolicyBenchmark.cli.ts",
     "benchmark:paper6:mecanim-matrix": "node scripts/run-paper6-mecanim-matrix.mjs",
-    "benchmark:critic-loop": "node scripts/run-critic-loop-benchmark.mjs"
+    "benchmark:critic-loop": "node scripts/run-critic-loop-benchmark.mjs",
+    "test:verdict-dist": "node scripts/verdict-890-dist.mjs"
   },
   "keywords": [
     "holoscript",
