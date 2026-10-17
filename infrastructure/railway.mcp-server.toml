@@ -1,13 +1,79 @@
+# Railway config-as-code for the mcp-server service (mcp.holoscript.net).
+#
+# NOT LIVE until the service points at it. As of 2026-10-16 the Railway
+# mcp-server service has no "Config file path" set (deployment meta
+# configFile = null), so Railway reads neither this file nor
+# packages/mcp-server/railway.toml. Builder, dockerfilePath and healthcheck
+# come from dashboard settings, and its watch patterns are empty, so every
+# push to main rebuilds and restarts mcp-server (and wipes in-memory state
+# such as OAuth grants), even for Studio-only commits.
+# To activate: set the mcp-server service's config file path to
+# /infrastructure/railway.mcp-server.toml in Railway (a settings change).
+#
+# Everything except watchPatterns mirrors the live dashboard settings, so
+# wiring this file changes only what triggers a deploy. No startCommand on
+# purpose: the Dockerfile CMD runs docker-entrypoint.sh, which fixes volume
+# ownership on /app/.holoscript and drops to the nodejs user.
+
 [build]
 builder = "DOCKERFILE"
-dockerfilePath = "Dockerfile.mcp-server"
+dockerfilePath = "infrastructure/Dockerfile.mcp-server"
+# Exactly what infrastructure/Dockerfile.mcp-server builds from: every
+# package it COPYs into the builder stage (mcp-server, its workspace deps and
+# what core inlines in the Docker bundle, plus the three domain plugins that
+# domain-plugin-runtime.ts imports by relative path), the root install and
+# TypeScript config, the docker build scripts, and the build definition
+# itself. Dependency changes anywhere in the workspace land in
+# pnpm-lock.yaml, which is watched. Not watched: package.json/tsconfig
+# files of packages the image does not build (the manifests stage copies
+# them for workspace resolution only).
+watchPatterns = [
+  "packages/mcp-server/**",
+  "packages/core-types/**",
+  "packages/crdt/**",
+  "packages/agent-protocol/**",
+  "packages/core/**",
+  "packages/compiler-wasm/**",
+  "packages/holomap/**",
+  "packages/meaning/**",
+  "packages/uaal/**",
+  "packages/crdt-spatial/**",
+  "packages/runtime/**",
+  "packages/hololand-platform/**",
+  "packages/snn-webgpu/**",
+  "packages/engine/**",
+  "packages/framework/**",
+  "packages/cli/**",
+  "packages/llm-provider/**",
+  "packages/config/**",
+  "packages/holoembed/**",
+  "packages/secrets-broker/**",
+  "packages/memory/**",
+  "packages/absorb-service/**",
+  "packages/platform/**",
+  "packages/marketplace-api/**",
+  "packages/mesh/**",
+  "packages/holo-vm/**",
+  "packages/security-sandbox/**",
+  "packages/plugins/energy-grid-plugin/**",
+  "packages/plugins/fitness-wellness-plugin/**",
+  "packages/plugins/travel-hospitality-plugin/**",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "package.json",
+  ".npmrc",
+  "tsconfig.base.json",
+  "tsconfig.json",
+  ".dockerignore",
+  "scripts/docker/build-engine-no-dts.sh",
+  "scripts/docker/build-core-stack-no-dts.sh",
+  "scripts/docker/tsup.core.docker.cjs",
+  "infrastructure/Dockerfile.mcp-server",
+  "infrastructure/railway.mcp-server.toml",
+]
 
 [deploy]
-startCommand = "node packages/mcp-server/dist/http-server.js"
 healthcheckPath = "/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
-
-[[services]]
-name = "holoscript-mcp"
