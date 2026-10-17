@@ -39,6 +39,18 @@ function formReq(body: Record<string, string>, headers: Record<string, string> =
   });
 }
 
+function jsonReq(body: Record<string, string>) {
+  return new NextRequest('http://studio.local/api/oauth/consent', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      host: 'studio.local',
+      origin: 'http://studio.local',
+    },
+    body: JSON.stringify(body),
+  });
+}
+
 describe('POST /api/oauth/consent', () => {
   const fetchMock = vi.fn();
   beforeEach(() => {
@@ -115,7 +127,8 @@ describe('POST /api/oauth/consent', () => {
     const res = await POST(formReq({ ...fields, decision: 'approve' }));
     const sent = JSON.parse(fetchMock.mock.calls[0][1].body).studio_consent as string;
     const text = await res.text();
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(303);
+    expect(new URL(res.headers.get('location')!).searchParams.get('error')).toBe('login_required');
     expect(text).not.toContain(SECRET);
     expect(text).not.toContain(sent);
     expect(res.headers.get('location') ?? '').not.toContain(sent);
@@ -124,7 +137,7 @@ describe('POST /api/oauth/consent', () => {
   it('no secret configured: refuses (503) without calling mcp-server', async () => {
     delete process.env.STUDIO_CONSENT_SECRET;
     sessionMock.mockResolvedValue({ user: { id: 'user-42' } });
-    const res = await POST(formReq({ ...fields, decision: 'approve' }));
+    const res = await POST(jsonReq({ ...fields, decision: 'approve' }));
     expect(res.status).toBe(503);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -196,5 +209,71 @@ describe('secret stays server-side', () => {
     expect(offenders).toEqual([]);
     const page = readFileSync(path.join(root, 'app/oauth/consent/page.tsx'), 'utf8');
     expect(page).not.toMatch(/signStudioConsent|getStudioConsentSecret|STUDIO_CONSENT_SECRET/);
+  });
+});
+
+describe('POST /api/oauth/consent: form-post errors go back to the page', () => {
+  const fetchMock = vi.fn();
+  beforeEach(() => {
+    process.env.STUDIO_CONSENT_SECRET = SECRET;
+    process.env.MCP_SERVER_URL = 'https://mcp.test';
+    process.env.NEXTAUTH_URL = 'http://studio.local';
+    resetConsentReplayGuard();
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+    sessionMock.mockResolvedValue({ user: { id: 'user-42' } });
+  });
+  afterEach(() => {
+    delete process.env.NEXTAUTH_URL;
+    delete process.env.STUDIO_CONSENT_SECRET;
+    delete process.env.MCP_SERVER_URL;
+    vi.unstubAllGlobals();
+  });
+
+  function backTo(res: Response): URL {
+    expect(res.status).toBe(303);
+    const loc = new URL(res.headers.get('location')!);
+    expect(loc.origin + loc.pathname).toBe('http://studio.local/oauth/consent');
+    return loc;
+  }
+
+  it('upstream refusal: 303 to /oauth/consent with the request fields and error, no csrf', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: 'invalid_scope', error_description: 'x' }), {
+        status: 400,
+      })
+    );
+    const loc = backTo(await POST(formReq({ ...fields, decision: 'approve' })));
+    expect(loc.searchParams.get('error')).toBe('invalid_scope');
+    expect(loc.searchParams.get('client_id')).toBe('hsc_test');
+    expect(loc.searchParams.get('redirect_uri')).toBe('http://127.0.0.1:7777/cb');
+    expect(loc.searchParams.get('scope')).toBe('tools:read user:private');
+    expect(loc.searchParams.get('state')).toBe('st-1');
+    expect(loc.searchParams.has('csrf_token')).toBe(false);
+  });
+
+  it('missing csrf_token: 303 back with error=invalid_request, mcp-server untouched', async () => {
+    const { csrf_token: _drop, ...noCsrf } = fields;
+    const loc = backTo(await POST(formReq({ ...noCsrf, decision: 'approve' })));
+    expect(loc.searchParams.get('error')).toBe('invalid_request');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('no secret: 303 back with error=consent_unavailable', async () => {
+    delete process.env.STUDIO_CONSENT_SECRET;
+    const loc = backTo(await POST(formReq({ ...fields, decision: 'approve' })));
+    expect(loc.searchParams.get('error')).toBe('consent_unavailable');
+  });
+
+  it('JSON callers are unchanged: they still get the JSON error and status', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: 'invalid_scope', error_description: 'x' }), {
+        status: 400,
+      })
+    );
+    const res = await POST(jsonReq({ ...fields, decision: 'approve' }));
+    expect(res.status).toBe(400);
+    expect(res.headers.get('location')).toBeNull();
+    expect(await res.json()).toEqual({ error: 'invalid_scope', error_description: 'x' });
   });
 });

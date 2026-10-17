@@ -39,6 +39,43 @@ async function readForm(req: NextRequest): Promise<Record<string, string>> {
   return out;
 }
 
+const BACK_FIELDS = [
+  'client_id',
+  'redirect_uri',
+  'code_challenge',
+  'code_challenge_method',
+  'scope',
+  'state',
+] as const;
+
+function isJsonCaller(req: NextRequest): boolean {
+  return (req.headers.get('content-type') || '').toLowerCase().includes('application/json');
+}
+
+/**
+ * A failure. JSON callers keep the JSON error; a browser form post is sent
+ * back to /oauth/consent with ?error=<code> so the page can say what went
+ * wrong (before, the user was left on a raw JSON page).
+ */
+function fail(
+  req: NextRequest,
+  form: Record<string, string>,
+  status: number,
+  error: string,
+  errorDescription: string
+): NextResponse {
+  if (isJsonCaller(req)) {
+    return NextResponse.json(
+      { error, error_description: errorDescription },
+      { status, headers: NO_STORE }
+    );
+  }
+  const back = new URL('/oauth/consent', req.nextUrl.origin);
+  for (const k of BACK_FIELDS) if (form[k]) back.searchParams.set(k, form[k]);
+  back.searchParams.set('error', error);
+  return NextResponse.redirect(back, { status: 303, headers: NO_STORE });
+}
+
 export async function POST(req: NextRequest) {
   // Release N3 / Mapping: Origin must be present and equal the configured
   // Studio URL (#609 helper). Host / X-Forwarded-Host are never trusted.
@@ -51,14 +88,7 @@ export async function POST(req: NextRequest) {
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!userId) {
     const back = new URLSearchParams();
-    for (const k of [
-      'client_id',
-      'redirect_uri',
-      'code_challenge',
-      'code_challenge_method',
-      'scope',
-      'state',
-    ]) {
+    for (const k of BACK_FIELDS) {
       if (form[k]) back.set(k, form[k]);
     }
     const signin = new URL('/auth/signin', req.nextUrl.origin);
@@ -69,10 +99,7 @@ export async function POST(req: NextRequest) {
   const params = parseAuthorizeParams((n) => form[n]);
   const csrfToken = form.csrf_token || '';
   if (!params || !csrfToken) {
-    return NextResponse.json(
-      { error: 'invalid_request', error_description: 'missing OAuth request fields or csrf_token' },
-      { status: 400, headers: NO_STORE }
-    );
+    return fail(req, form, 400, 'invalid_request', 'missing OAuth request fields or csrf_token');
   }
   const decision = form.decision === 'deny' ? 'deny' : 'approve';
 
@@ -82,13 +109,7 @@ export async function POST(req: NextRequest) {
   if (decision === 'approve') {
     studioConsent = mintStudioConsentFor(userId, params) ?? undefined;
     if (!studioConsent) {
-      return NextResponse.json(
-        {
-          error: 'consent_unavailable',
-          error_description: 'Studio consent signing is not configured.',
-        },
-        { status: 503, headers: NO_STORE }
-      );
+      return fail(req, form, 503, 'consent_unavailable', 'Studio consent signing is not configured.');
     }
   }
 
@@ -107,13 +128,11 @@ export async function POST(req: NextRequest) {
       { status: 303, headers: NO_STORE }
     );
   }
-  return NextResponse.json(
-    {
-      error: String(upstream.body?.error || 'authorize_failed'),
-      error_description: String(
-        upstream.body?.error_description || 'mcp-server refused the approval'
-      ),
-    },
-    { status: upstream.status >= 400 ? upstream.status : 502, headers: NO_STORE }
+  return fail(
+    req,
+    form,
+    upstream.status >= 400 ? upstream.status : 502,
+    String(upstream.body?.error || 'authorize_failed'),
+    String(upstream.body?.error_description || 'mcp-server refused the approval')
   );
 }

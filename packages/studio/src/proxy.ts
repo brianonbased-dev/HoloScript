@@ -250,6 +250,31 @@ function applySecurityHeaders(
   return response;
 }
 
+/**
+ * form-action sources for this page. Chrome applies form-action to every
+ * redirect after a form post, so /oauth/consent's Approve/Deny (POST
+ * /api/oauth/consent -> 303 to the client's redirect_uri) was cancelled
+ * silently under plain 'self' (live 2026-10-16). Only on /oauth/consent, add
+ * the exact origin of the redirect_uri query value when it is http(s). The
+ * route itself only redirects to a redirect_uri mcp-server validated for the
+ * client. Anything malformed or of another scheme leaves it at 'self'.
+ */
+export function formActionSources(pathname: string, searchParams: URLSearchParams): string {
+  if (pathname !== '/oauth/consent') return "'self'";
+  const raw = searchParams.get('redirect_uri');
+  if (!raw) return "'self'";
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return "'self'";
+  }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return "'self'";
+  // URL.origin is scheme://host[:port]; never contains ; , * or whitespace.
+  if (!/^https?:\/\/[A-Za-z0-9.\-\[\]:]+$/.test(u.origin)) return "'self'";
+  return `'self' ${u.origin}`;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -284,7 +309,7 @@ export async function proxy(request: NextRequest) {
     font-src 'self' data:;
     object-src 'none';
     base-uri 'self';
-    form-action 'self';
+    form-action ${formActionSources(pathname, request.nextUrl.searchParams)};
     frame-ancestors 'none';
     connect-src 'self' ws: wss: https: http:;
     worker-src 'self' blob:;

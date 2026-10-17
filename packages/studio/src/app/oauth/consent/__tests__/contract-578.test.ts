@@ -179,6 +179,11 @@ describe('#579 x #578 F2 real contract', () => {
     const token = await pageCsrf('user-A');
     sessionMock.mockResolvedValue({ user: { id: 'user-B' } });
     const res = await approve(token);
-    expect(res.status).toBe(403);
+    // mcp-server refuses (403); a form post is sent back to the page with the error.
+    expect(res.status).toBe(303);
+    const loc = new URL(res.headers.get('location')!);
+    expect(loc.pathname).toBe('/oauth/consent');
+    expect(loc.searchParams.get('error')).toBeTruthy();
+    expect(loc.searchParams.has('code')).toBe(false);
   });
 });

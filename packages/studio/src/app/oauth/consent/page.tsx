@@ -10,6 +10,7 @@
  * nor the secret ever reaches the browser.
  */
 import { lookalikeOf } from '@/lib/oauth/lookalikeName';
+import { consentErrorText } from '@/lib/oauth/consentError';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -45,7 +46,7 @@ export default async function OAuthConsentPage({
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(sp)) {
     const s = first(v);
-    if (s !== undefined && k !== 'studio_consent') qs.set(k, s);
+    if (s !== undefined && k !== 'studio_consent' && k !== 'error') qs.set(k, s);
   }
 
   const session = await getServerSession(authOptions);
@@ -101,6 +102,7 @@ export default async function OAuthConsentPage({
   };
 
   const lookalike = lookalikeOf(info.client_name);
+  const errorText = consentErrorText(first(sp.error));
 
   return (
     <main className="mx-auto max-w-lg p-8 space-y-4">
@@ -112,6 +114,11 @@ export default async function OAuthConsentPage({
         is not verified by HoloScript. App id <code>{params.client_id}</code>, sends you back to{' '}
         <strong>{redirectHost}</strong>.
       </p>
+      {errorText && (
+        <p role="alert" className="rounded border border-red-500 p-3 text-red-700" data-testid="consent-error">
+          {errorText}
+        </p>
+      )}
       {lookalike && (
         <p role="alert" className="text-sm font-semibold text-red-600" data-testid="lookalike-warning">
           Careful: this name looks like {lookalike}, but HoloScript has not verified that this app
