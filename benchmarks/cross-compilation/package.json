@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/cross-compilation-benchmark",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "private": true,
   "description": "HoloScript cross-compilation benchmark suite",
   "scripts": {
