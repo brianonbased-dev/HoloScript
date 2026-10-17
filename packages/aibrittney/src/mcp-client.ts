@@ -36,8 +36,19 @@ export interface McpClientConfig {
    * Set this when the orchestrator endpoint differs from the OAuth server.
    */
   oauthEndpoint?: string;
+  /**
+   * A client provisioned by an admin (POST /oauth/admin/clients). When both are
+   * set, the client skips POST /oauth/register and goes straight to
+   * client_credentials. Read from MCP_CLIENT_ID_BRITTNEY / MCP_CLIENT_SECRET_BRITTNEY.
+   */
+  clientId?: string;
+  clientSecret?: string;
+  /** Scope asked for at /oauth/token. Defaults to MCP_CLIENT_SCOPE_BRITTNEY, else DEFAULT_OAUTH_SCOPE. */
+  oauthScope?: string;
   fetchImpl?: typeof fetch;
 }
+
+export const DEFAULT_OAUTH_SCOPE = 'tools:read tools:write tools:codebase';
 
 export const DEFAULT_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 export const DEFAULT_OAUTH_ENDPOINT = 'https://mcp.holoscript.net';
@@ -52,6 +63,10 @@ export function defaultMcpConfig(overrides: Partial<McpClientConfig> = {}): McpC
     timeoutMs: overrides.timeoutMs ?? 60_000,
     oauthEndpoint:
       overrides.oauthEndpoint ?? process.env.MCP_OAUTH_ENDPOINT ?? DEFAULT_OAUTH_ENDPOINT,
+    clientId: overrides.clientId ?? (process.env.MCP_CLIENT_ID_BRITTNEY || undefined),
+    clientSecret: overrides.clientSecret ?? (process.env.MCP_CLIENT_SECRET_BRITTNEY || undefined),
+    oauthScope:
+      overrides.oauthScope ?? (process.env.MCP_CLIENT_SCOPE_BRITTNEY || DEFAULT_OAUTH_SCOPE),
     fetchImpl: overrides.fetchImpl,
   };
 }
@@ -80,7 +95,12 @@ export class McpClient {
   private _tokenCache: CachedToken | null = null;
   private _tokenInflight: Promise<CachedToken> | null = null;
 
-  constructor(readonly config: McpClientConfig) {}
+  constructor(readonly config: McpClientConfig) {
+    // A stored, admin-provisioned client: never self-register.
+    if (config.clientId && config.clientSecret) {
+      this._oauthClient = { clientId: config.clientId, clientSecret: config.clientSecret };
+    }
+  }
 
   async callTool({ server, tool, args }: CallToolArgs): Promise<CallToolResult> {
     if (!this.config.apiKey) {
@@ -264,7 +284,7 @@ export class McpClient {
         grant_type: 'client_credentials',
         client_id: clientId,
         client_secret: clientSecret,
-        scope: 'tools:read tools:write tools:codebase',
+        scope: this.config.oauthScope ?? DEFAULT_OAUTH_SCOPE,
       }),
     });
 

@@ -252,3 +252,56 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
     expect(h['Authorization']).toBe('Bearer pre-issued-token');
   });
 });
+
+describe('McpClient - stored admin-provisioned client', () => {
+  it('skips /oauth/register when clientId and clientSecret are configured', async () => {
+    const { fetchFn, calls } = makeFetch([
+      { status: 200, body: TOKEN_RESPONSE }, // POST /oauth/token
+      { status: 200, body: { success: true } }, // POST /tools/call
+    ]);
+    const client = new McpClient({
+      endpoint: 'https://orch.example.com',
+      oauthEndpoint: 'https://oauth.example.com',
+      apiKey: 'raw-api-key',
+      timeoutMs: 5000,
+      clientId: 'hsc_stored',
+      clientSecret: 'stored_secret',
+      oauthScope: 'tools:read',
+      fetchImpl: fetchFn,
+    });
+    const result = await client.callTool({ server: 's', tool: 't', args: {} });
+    expect(result.ok).toBe(true);
+    expect(calls.map((c) => c.url)).toEqual([
+      'https://oauth.example.com/oauth/token',
+      'https://orch.example.com/tools/call',
+    ]);
+    const tokenBody = JSON.parse(calls[0].init.body as string);
+    expect(tokenBody).toMatchObject({
+      grant_type: 'client_credentials',
+      client_id: 'hsc_stored',
+      client_secret: 'stored_secret',
+      scope: 'tools:read',
+    });
+  });
+
+  it('defaultMcpConfig reads MCP_CLIENT_ID_BRITTNEY / MCP_CLIENT_SECRET_BRITTNEY / MCP_CLIENT_SCOPE_BRITTNEY', () => {
+    const saved = { ...process.env };
+    try {
+      process.env.MCP_CLIENT_ID_BRITTNEY = 'hsc_env';
+      process.env.MCP_CLIENT_SECRET_BRITTNEY = 'env_secret';
+      process.env.MCP_CLIENT_SCOPE_BRITTNEY = 'tools:read';
+      const cfg = defaultMcpConfig({ apiKey: 'k' });
+      expect(cfg.clientId).toBe('hsc_env');
+      expect(cfg.clientSecret).toBe('env_secret');
+      expect(cfg.oauthScope).toBe('tools:read');
+      delete process.env.MCP_CLIENT_ID_BRITTNEY;
+      delete process.env.MCP_CLIENT_SECRET_BRITTNEY;
+      delete process.env.MCP_CLIENT_SCOPE_BRITTNEY;
+      const bare = defaultMcpConfig({ apiKey: 'k' });
+      expect(bare.clientId).toBeUndefined();
+      expect(bare.oauthScope).toBe('tools:read tools:write tools:codebase');
+    } finally {
+      process.env = saved;
+    }
+  });
+});

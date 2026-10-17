@@ -196,6 +196,7 @@ import {
 } from './ops/railway-autoscale-loop.js';
 import { maybeStartPredictiveCloudflareLbLoop } from './ops/predictive-cloudflare-lb.js';
 import { maybeStartKeepAliveLoop, getKeepAliveStatus } from './ops/keep-alive.js';
+import { parseAdminClientRequest } from './security/admin-client-provisioning';
 import { isLoopbackAddress, isTrustedLoopbackMcpPeer, resolveMcpBindHost } from './http-bind-host';
 
 // Initialize native agent compositions
@@ -3040,6 +3041,89 @@ const httpServer = http.createServer(async (req, res) => {
       res.end();
       return;
     }
+  }
+
+  // POST /oauth/admin/clients: an admin provisions a confidential
+  // client_credentials client that is NOT selfRegistered (card
+  // tools-codebase-scope, Option 1). Same admin check as DELETE /oauth/clients/:id
+  // (tools:admin or admin:*). The secret is returned once and stored hashed.
+  // Clean up with DELETE /oauth/clients/:id.
+  if (url === '/oauth/admin/clients' && req.method === 'POST') {
+    const json = (status: number, body: unknown) => {
+      res.writeHead(status, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(JSON.stringify(body));
+    };
+    const actorAuth = await authenticateRequest(req);
+    if (!actorAuth.active) {
+      auditLog.logAuthEvent({
+        event: 'auth_failure',
+        ip: clientIP,
+        reason: 'admin client provision refused: unauthenticated',
+      });
+      json(401, { error: 'invalid_token', error_description: 'Admin authentication required.' });
+      return;
+    }
+    if (!authHasAnyScope(actorAuth, CLIENT_REVIEW_SCOPES)) {
+      auditLog.logAuthEvent({
+        event: 'auth_failure',
+        agentId: actorAuth.agentId,
+        ip: clientIP,
+        reason: 'admin client provision refused: insufficient scope',
+      });
+      refuseInsufficientScope(res, CLIENT_REVIEW_SCOPES);
+      return;
+    }
+    let parsed: ReturnType<typeof parseAdminClientRequest>;
+    try {
+      parsed = parseAdminClientRequest(await parseJsonBody(req));
+    } catch (err) {
+      json(400, {
+        error: 'invalid_request',
+        error_description: err instanceof Error ? err.message : String(err),
+      });
+      return;
+    }
+    if (!parsed.ok) {
+      json(400, { error: 'invalid_client_metadata', error_description: parsed.error });
+      return;
+    }
+    const registration = await registerClientDurably(
+      { memory: oauth, durable: oauth2 },
+      {
+        clientName: parsed.clientName,
+        redirectUris: parsed.redirectUris,
+        scopes: parsed.scopes,
+        clientType: 'confidential',
+        rateLimit: 120,
+      },
+      { metrics: getPrometheusMetrics('holoscript') }
+    );
+    if (!registration.ok) {
+      json(503, { error: 'temporarily_unavailable', error_description: registration.message });
+      return;
+    }
+    auditLog.logAuthEvent({
+      event: 'client_registered',
+      clientId: registration.clientId,
+      agentId: actorAuth.agentId,
+      ip: clientIP,
+      reason: `admin-provisioned purpose=${parsed.purpose} scopes=${parsed.scopes.join(' ')} by=${actorAuth.agentId ?? actorAuth.clientId ?? 'admin'}`,
+    });
+    json(201, {
+      client_id: registration.clientId,
+      client_secret: registration.clientSecret,
+      client_name: parsed.clientName,
+      purpose: parsed.purpose,
+      scope: parsed.scopes.join(' '),
+      grant_types: ['client_credentials'],
+      token_endpoint_auth_method: 'client_secret_post',
+      self_registered: false,
+      client_secret_note: 'Shown once. Store it in a secret store; the server keeps only a hash.',
+    });
+    return;
   }
   // DELETE /oauth/clients/:id — revoke a client (Trust & Consent A4 / d)
   {

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { DEV_LOOPBACK_REDIRECT_URI, readStoredMcpClient } from '../../../scripts/lib/stored-mcp-client.mjs';
 
 const baseUrl = (process.env.MCP_SMOKE_URL || 'https://mcp.holoscript.net').replace(/\/+$/, '');
 
@@ -31,20 +32,31 @@ assert(
   `Expected unauthenticated /mcp to return 401 Valid token required, got ${unauth.response.status}`
 );
 
-const registration = await postJson('/oauth/register', {
-  client_name: `mcp-auth-smoke-${Date.now()}`,
-  redirect_uris: [],
-  scope: 'tools:read',
-  token_endpoint_auth_method: 'client_secret_post',
+// An admin-provisioned client (POST /oauth/admin/clients) from env or Windows
+// Credential Manager; otherwise dev loopback self-registration.
+let client = readStoredMcpClient({
+  idVar: 'MCP_CLIENT_ID_SMOKE',
+  secretVar: 'MCP_CLIENT_SECRET_SMOKE',
+  credentialTarget: 'holoscript/mcp-client/smoke-mcp-auth',
 });
-assert(registration.response.ok, `OAuth registration failed with ${registration.response.status}`);
-assert(registration.json?.client_id, 'OAuth registration did not return client_id');
-assert(registration.json?.client_secret, 'OAuth registration did not return client_secret');
+if (!client) {
+  const registration = await postJson('/oauth/register', {
+    client_name: `mcp-auth-smoke-${Date.now()}`,
+    redirect_uris: [DEV_LOOPBACK_REDIRECT_URI],
+    grant_types: ['client_credentials'],
+    scope: 'tools:read',
+    token_endpoint_auth_method: 'client_secret_post',
+  });
+  assert(registration.response.ok, `OAuth registration failed with ${registration.response.status}`);
+  assert(registration.json?.client_id, 'OAuth registration did not return client_id');
+  assert(registration.json?.client_secret, 'OAuth registration did not return client_secret');
+  client = { clientId: registration.json.client_id, clientSecret: registration.json.client_secret };
+}
 
 const token = await postJson('/oauth/token', {
   grant_type: 'client_credentials',
-  client_id: registration.json.client_id,
-  client_secret: registration.json.client_secret,
+  client_id: client.clientId,
+  client_secret: client.clientSecret,
   scope: 'tools:read',
 });
 assert(token.response.ok, `OAuth token exchange failed with ${token.response.status}`);
