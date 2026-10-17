@@ -28,7 +28,12 @@ export interface CallToolResult {
 
 export interface McpClientConfig {
   endpoint: string;
-  apiKey: string;
+  /**
+   * Unused for auth: tool calls send only the OAuth Bearer token, and the
+   * shared HOLOSCRIPT_API_KEY / MCP_API_KEY is no longer read or required
+   * (Trust review of #611). Kept optional so existing callers still compile.
+   */
+  apiKey?: string;
   timeoutMs: number;
   /**
    * Base URL of the OAuth 2.1 authorization server.
@@ -36,22 +41,41 @@ export interface McpClientConfig {
    * Set this when the orchestrator endpoint differs from the OAuth server.
    */
   oauthEndpoint?: string;
+  /**
+   * A client provisioned by an admin (POST /oauth/admin/clients). When both are
+   * set, the client skips POST /oauth/register and goes straight to
+   * client_credentials. Read from MCP_CLIENT_ID_BRITTNEY / MCP_CLIENT_SECRET_BRITTNEY.
+   */
+  clientId?: string;
+  clientSecret?: string;
+  /** Scope asked for at /oauth/token. Defaults to MCP_CLIENT_SCOPE_BRITTNEY, else DEFAULT_OAUTH_SCOPE. */
+  oauthScope?: string;
   fetchImpl?: typeof fetch;
 }
+
+/**
+ * tools:read only by default (Trust review of #611): aibrittney calls no
+ * tools:write tool, and tools:codebase waits on a read-only sub-scope.
+ * MCP_CLIENT_SCOPE_BRITTNEY (or config.oauthScope) can override.
+ */
+export const DEFAULT_OAUTH_SCOPE = 'tools:read';
 
 export const DEFAULT_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 export const DEFAULT_OAUTH_ENDPOINT = 'https://mcp.holoscript.net';
 
 export function defaultMcpConfig(overrides: Partial<McpClientConfig> = {}): McpClientConfig {
   const endpoint = overrides.endpoint ?? process.env.MCP_ORCHESTRATOR_URL ?? DEFAULT_ENDPOINT;
-  const apiKey =
-    overrides.apiKey ?? process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY ?? '';
+  const apiKey = overrides.apiKey;
   return {
     endpoint,
     apiKey,
     timeoutMs: overrides.timeoutMs ?? 60_000,
     oauthEndpoint:
       overrides.oauthEndpoint ?? process.env.MCP_OAUTH_ENDPOINT ?? DEFAULT_OAUTH_ENDPOINT,
+    clientId: overrides.clientId ?? (process.env.MCP_CLIENT_ID_BRITTNEY || undefined),
+    clientSecret: overrides.clientSecret ?? (process.env.MCP_CLIENT_SECRET_BRITTNEY || undefined),
+    oauthScope:
+      overrides.oauthScope ?? (process.env.MCP_CLIENT_SCOPE_BRITTNEY || DEFAULT_OAUTH_SCOPE),
     fetchImpl: overrides.fetchImpl,
   };
 }
@@ -80,18 +104,14 @@ export class McpClient {
   private _tokenCache: CachedToken | null = null;
   private _tokenInflight: Promise<CachedToken> | null = null;
 
-  constructor(readonly config: McpClientConfig) {}
+  constructor(readonly config: McpClientConfig) {
+    // A stored, admin-provisioned client: never self-register.
+    if (config.clientId && config.clientSecret) {
+      this._oauthClient = { clientId: config.clientId, clientSecret: config.clientSecret };
+    }
+  }
 
   async callTool({ server, tool, args }: CallToolArgs): Promise<CallToolResult> {
-    if (!this.config.apiKey) {
-      return {
-        ok: false,
-        status: 0,
-        data: null,
-        error: 'mcp-client: missing HOLOSCRIPT_API_KEY (or MCP_API_KEY) — tool calls disabled',
-      };
-    }
-
     const url = `${this.config.endpoint.replace(/\/$/, '')}/tools/call`;
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), this.config.timeoutMs);
@@ -219,7 +239,6 @@ export class McpClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-mcp-api-key': this.config.apiKey,
       },
       body: JSON.stringify({
         client_name: 'aibrittney-service',
@@ -264,7 +283,7 @@ export class McpClient {
         grant_type: 'client_credentials',
         client_id: clientId,
         client_secret: clientSecret,
-        scope: 'tools:read tools:write tools:codebase',
+        scope: this.config.oauthScope ?? DEFAULT_OAUTH_SCOPE,
       }),
     });
 

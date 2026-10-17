@@ -18,7 +18,9 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve, relative, basename, dirname } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { tmpdir } from 'node:os';
+import { DEV_LOOPBACK_REDIRECT_URI, readStoredMcpClient } from './lib/stored-mcp-client.mjs';
 
 const VERSION = '0.1.0';
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
@@ -540,24 +542,37 @@ async function postJson(baseUrl, path, body, headers = {}) {
   return { response, json, text };
 }
 
-async function getMcpAccessToken(args) {
+/** Env names / Credential Manager target for the admin-provisioned holoshell client. */
+export const HOLOSHELL_STORED_CLIENT = {
+  idVar: 'MCP_CLIENT_ID_HOLOSHELL',
+  secretVar: 'MCP_CLIENT_SECRET_HOLOSHELL',
+  credentialTarget: 'holoscript/mcp-client/holoshell-absorb',
+};
+
+export async function getMcpAccessToken(args, { post = postJson, stored = readStoredMcpClient(HOLOSHELL_STORED_CLIENT) } = {}) {
   const baseUrl = args.mcpUrl.replace(/\/+$/, '');
-  const registration = await postJson(baseUrl, '/oauth/register', {
-    client_name: `holoshell-local-absorb-${Date.now()}`,
-    redirect_uris: [],
-    scope: 'tools:codebase',
-    token_endpoint_auth_method: 'client_secret_post',
-  });
-  if (!registration.response.ok || !registration.json?.client_id) {
-    throw new Error(
-      `OAuth registration failed (${registration.response.status}): ${registration.text.slice(0, 300)}`
-    );
+  let client = stored;
+  if (!client) {
+    // Dev fallback: loopback self-registration (prod refuses tools:codebase here).
+    const registration = await post(baseUrl, '/oauth/register', {
+      client_name: `holoshell-local-absorb-${Date.now()}`,
+      redirect_uris: [DEV_LOOPBACK_REDIRECT_URI],
+      grant_types: ['client_credentials'],
+      scope: 'tools:codebase',
+      token_endpoint_auth_method: 'client_secret_post',
+    });
+    if (!registration.response.ok || !registration.json?.client_id) {
+      throw new Error(
+        `OAuth registration failed (${registration.response.status}): ${registration.text.slice(0, 300)}`
+      );
+    }
+    client = { clientId: registration.json.client_id, clientSecret: registration.json.client_secret };
   }
 
-  const token = await postJson(baseUrl, '/oauth/token', {
+  const token = await post(baseUrl, '/oauth/token', {
     grant_type: 'client_credentials',
-    client_id: registration.json.client_id,
-    client_secret: registration.json.client_secret,
+    client_id: client.clientId,
+    client_secret: client.clientSecret,
     scope: 'tools:codebase',
   });
   if (!token.response.ok || !token.json?.access_token) {
@@ -801,7 +816,10 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Run only as a script, so tests can import getMcpAccessToken.
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
