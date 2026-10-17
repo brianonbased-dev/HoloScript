@@ -156,6 +156,10 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     setImportError(null);
     setImportProgress(15);
 
+    // The id of the workspace this run created. React state (workspaceId) is
+    // still null inside this same call, so the catch below used to skip the
+    // update and leave a failed import showing 'absorbing'.
+    let createdWorkspaceId: string | null = null;
     try {
       // Phase 1: Clone
       const cloneRes = await fetch('/api/workspace/import', {
@@ -176,6 +180,7 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
 
       const cloneResult = (await cloneRes.json()) as WorkspaceImportResponse;
       const wsId = cloneResult.id;
+      createdWorkspaceId = wsId;
       const candidates = cloneResult.conversionCandidates ?? [];
       setWorkspaceId(wsId);
       setConversionCandidates(candidates);
@@ -264,8 +269,9 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     } catch (err) {
       setImportStatus('error');
       setImportError((err as Error).message ?? 'Import failed');
-      if (workspaceId) {
-        updateWorkspace(workspaceId, { status: 'error', error: (err as Error).message });
+      const failedId = createdWorkspaceId ?? workspaceId;
+      if (failedId) {
+        updateWorkspace(failedId, { status: 'error', error: (err as Error).message });
       }
     }
   }, [repoUrl, branch, repoName, addWorkspace, updateWorkspace, goToStep, workspaceId]);

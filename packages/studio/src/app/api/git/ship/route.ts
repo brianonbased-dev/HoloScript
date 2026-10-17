@@ -4,6 +4,8 @@ export const maxDuration = 300;
  * POST /api/git/ship — Single-dev fast path (commit + push in one call).
  *
  * Intended for repo owners / maintainers who want direct shipping without PR ceremony.
+ * Direct ship is a per-workspace setting, OFF by default: with it off this
+ * route refuses to push the default branch (403 reason 'direct_ship_off').
  *
  * Body:
  * {
@@ -28,6 +30,15 @@ import {
   validateRelativeGitPaths,
 } from '../_shared';
 import { getGitHubToken } from '@/app/api/github/_shared';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
+import {
+  evaluatePush,
+  resolveDefaultBranchForPush,
+  resolveTargetRef,
+  explicitPushArgs,
+  unsafeBranchInput,
+  workspaceDirectShipEnabled,
+} from '@/lib/workspace/shipPolicy';
 const GITHUB_API_BASE_URL = (
   process.env.GITHUB_API_URL ||
   process.env.GITHUB_API_BASE_URL ||
@@ -160,6 +171,49 @@ export async function POST(req: NextRequest) {
 
   let originalRemoteUrl: string | null = null;
 
+  const unsafeBranch = unsafeBranchInput(body.branch);
+  if (unsafeBranch) {
+    return NextResponse.json({ error: unsafeBranch, reason: 'unsafe_branch' }, { status: 400 });
+  }
+
+  // Per-workspace direct-ship check BEFORE anything is staged or committed.
+  const owned = assertWorkspaceOwner(session, cwd);
+  const project = owned.ok ? owned.project : null;
+  let shipBranch: string | null = body.branch ?? null;
+  if (!shipBranch) {
+    try {
+      const { stdout } = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd, env });
+      shipBranch = stdout.trim() || null;
+    } catch {
+      shipBranch = null;
+    }
+  }
+  let remoteForPolicy: string | null = null;
+  try {
+    remoteForPolicy = (await runGit(['remote', 'get-url', remote], { cwd, env })).stdout.trim();
+  } catch {
+    remoteForPolicy = null;
+  }
+  const decision = evaluatePush({
+    directShip: workspaceDirectShipEnabled(project),
+    branch: shipBranch,
+    targetRef: shipBranch ? resolveTargetRef(cwd, shipBranch) : null,
+    force,
+    // GitHub's current default_branch first (renames), then recorded metadata.
+    defaultBranch: await resolveDefaultBranchForPush({
+      token,
+      remoteUrl: remoteForPolicy,
+      cwd,
+      project,
+    }),
+  });
+  if (!decision.ok) {
+    return NextResponse.json(
+      { error: decision.error, reason: decision.reason, recommendedFlow: 'branch-pr' },
+      { status: 403 }
+    );
+  }
+
   try {
     // Stage files (or all)
     const addArgs = body.files?.length ? ['--', ...body.files] : ['--', '.'];
@@ -179,14 +233,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Resolve branch
-    let branch = body.branch;
-    if (!branch) {
-      const { stdout: bOut } = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], {
-        cwd,
-        env,
-      });
-      branch = bOut.trim();
-    }
+    const branch = shipBranch as string;
 
     // Resolve remote and determine permission role
     const { stdout: remoteOut } = await runGit(['remote', 'get-url', remote], {
@@ -220,8 +267,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Push
-    const pushArgs = ['push', remote, branch];
-    if (force) pushArgs.push('--force');
+    // Explicit refs/heads/<b>:refs/heads/<b>; repo push config can't remap it.
+    const pushArgs = explicitPushArgs(remote, branch, force);
     const { stdout: pushStdout, stderr: pushStderr } = await runGit(pushArgs, {
       cwd,
       env,

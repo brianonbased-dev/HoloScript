@@ -6,11 +6,14 @@ export const maxDuration = 300;
  * Query params:
  *   owner: string
  *   repo:  string
+ *   workspaceId?: string   the Studio workspace whose direct-ship setting applies
  *
  * Returns:
  *   {
  *     role: 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown',
- *     canDirectShip: boolean,
+ *     rolePermitsDirectShip: boolean,  // GitHub owner/maintainer
+ *     directShipEnabled: boolean,      // the workspace's own setting (default off)
+ *     canDirectShip: boolean,          // both of the above
  *     recommendedFlow: 'direct-ship' | 'branch-pr',
  *     user: string | null,
  *     owner: string | null,
@@ -25,6 +28,8 @@ import {
   githubFetchWithRetry,
   GITHUB_API_BASE_URL,
 } from '../_shared';
+import { findDurableAbsorbProject } from '@/lib/absorb/projectState';
+import { workspaceDirectShipEnabled } from '@/lib/workspace/shipPolicy';
 
 type GitHubRole = 'owner' | 'maintainer' | 'contributor' | 'viewer' | 'unknown';
 
@@ -39,6 +44,22 @@ function classifyRole(
   if (perms?.push) return 'contributor';
   if (perms?.pull) return 'viewer';
   return 'unknown';
+}
+
+async function callerWorkspaceDirectShip(workspaceId: string | null): Promise<boolean> {
+  if (!workspaceId) return false;
+  try {
+    const { getServerSession } = await import('next-auth');
+    const { authOptions } = await import('@/lib/auth');
+    const session = (await getServerSession(authOptions)) as { user?: { id?: string | null } } | null;
+    const userId = session?.user?.id;
+    if (!userId) return false;
+    const project = findDurableAbsorbProject({ projectId: workspaceId });
+    if (!project || project.ownerId !== userId) return false;
+    return workspaceDirectShipEnabled(project);
+  } catch {
+    return false;
+  }
 }
 
 export async function GET(req: NextRequest) {
@@ -82,10 +103,18 @@ export async function GET(req: NextRequest) {
   const userLogin = user?.login ?? null;
   const ownerLogin = repoInfo?.owner?.login ?? null;
   const role = classifyRole(userLogin, ownerLogin, repoInfo?.permissions);
-  const canDirectShip = role === 'owner' || role === 'maintainer';
+  // Role only PERMITS direct ship. It is on only when the caller's own
+  // workspace setting is on, and imports default to off (branch + PR).
+  const rolePermitsDirectShip = role === 'owner' || role === 'maintainer';
+  const directShipEnabled = await callerWorkspaceDirectShip(
+    req.nextUrl.searchParams.get('workspaceId')
+  );
+  const canDirectShip = rolePermitsDirectShip && directShipEnabled;
 
   return NextResponse.json({
     role,
+    rolePermitsDirectShip,
+    directShipEnabled,
     canDirectShip,
     recommendedFlow: canDirectShip ? 'direct-ship' : 'branch-pr',
     user: userLogin,

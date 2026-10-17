@@ -35,6 +35,7 @@ import { assertWorkspaceOwner, callerUserId } from '@/lib/workspace/workspaceOwn
 import { getGitHubToken } from '@/app/api/github/_shared';
 import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
 import { isGitHubRepoApproved, normalizeGitHubRepo } from '@/lib/workspace/repoConsent';
+import { importShipMetadata, DEFAULT_IMPORT_SHIP_MODE } from '@/lib/workspace/shipPolicy';
 
 import { corsHeaders } from '../../_lib/cors';
 
@@ -249,6 +250,20 @@ export async function POST(req: NextRequest) {
       // fallback to provided branch
     }
 
+    // The remote's default branch (clone records it as origin/HEAD even with
+    // --branch). Direct ship stays OFF; pushes to this branch are refused
+    // until the workspace owner turns direct ship on.
+    let defaultBranch: string | null = null;
+    try {
+      const { stdout } = await execGit(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], {
+        cwd: localPath,
+        env,
+      });
+      defaultBranch = stdout.trim().replace(/^origin\//, '') || null;
+    } catch {
+      defaultBranch = branch ? null : actualBranch;
+    }
+
     // Count files for quick stats
     let fileCount = 0;
     let trackedFiles: string[] = [];
@@ -315,6 +330,7 @@ export async function POST(req: NextRequest) {
         branch: actualBranch,
         currentCommit,
         fileCount,
+        ...importShipMetadata(defaultBranch),
         conversionManifestPath,
         conversionCandidateCount: conversionCandidates.length,
         publishWorthiness: {
@@ -337,6 +353,9 @@ export async function POST(req: NextRequest) {
       localPath,
       status: 'ready',
       fileCount,
+      defaultBranch,
+      shipMode: DEFAULT_IMPORT_SHIP_MODE,
+      directShip: false,
       conversionCandidates,
       conversionManifestPath,
       absorbProject,

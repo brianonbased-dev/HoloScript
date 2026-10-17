@@ -19,6 +19,15 @@ import { runGit } from '@/lib/git/safeGit';
 import { corsHeaders } from '../../_lib/cors';
 import { isSafeGitRef, isSafeGitRemote, resolveWorkspaceGitPath } from '../_shared';
 import { getGitHubToken } from '@/app/api/github/_shared';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
+import {
+  evaluatePush,
+  resolveDefaultBranchForPush,
+  resolveTargetRef,
+  explicitPushArgs,
+  unsafeBranchInput,
+  workspaceDirectShipEnabled,
+} from '@/lib/workspace/shipPolicy';
 
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
@@ -61,6 +70,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'branch is not a valid git ref name' }, { status: 400 });
   }
 
+  const unsafeBranch = unsafeBranchInput(branch);
+  if (unsafeBranch) {
+    return NextResponse.json({ error: unsafeBranch, reason: 'unsafe_branch' }, { status: 400 });
+  }
+
+  // Direct ship is a per-workspace setting, OFF by default. With it off this
+  // route (which the daemon/agent patch flow also uses) never pushes the
+  // default branch. Checked before the token touches the remote.
+  const owned = assertWorkspaceOwner(session, resolved);
+  const project = owned.ok ? owned.project : null;
+  let pushBranch = branch ?? null;
+  if (!pushBranch) {
+    try {
+      const { stdout } = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: resolved });
+      pushBranch = stdout.trim() || null;
+    } catch {
+      pushBranch = null;
+    }
+  }
+  let remoteForPolicy: string | null = null;
+  try {
+    remoteForPolicy = (await runGit(['remote', 'get-url', remote], { cwd: resolved })).stdout.trim();
+  } catch {
+    remoteForPolicy = null;
+  }
+  const decision = evaluatePush({
+    directShip: workspaceDirectShipEnabled(project),
+    branch: pushBranch,
+    targetRef: pushBranch ? resolveTargetRef(resolved, pushBranch) : null,
+    force,
+    // GitHub's current default_branch first (renames), then recorded metadata.
+    defaultBranch: await resolveDefaultBranchForPush({
+      token,
+      remoteUrl: remoteForPolicy,
+      cwd: resolved,
+      project,
+    }),
+  });
+  if (!decision.ok) {
+    return NextResponse.json({ error: decision.error, reason: decision.reason }, { status: 403 });
+  }
+
   try {
     // Get current remote URL to inject OAuth token
     const { stdout: remoteUrl } = await runGit(['remote', 'get-url', remote], {
@@ -76,9 +127,11 @@ export async function POST(req: NextRequest) {
     }
 
     // Build push args
-    const args = ['push', remote];
-    if (branch) args.push(branch);
-    if (force) args.push('--force');
+    if (!pushBranch) {
+      throw new Error('No branch to push');
+    }
+    // Explicit refs/heads/<b>:refs/heads/<b>; repo push config can't remap it.
+    const args = explicitPushArgs(remote, pushBranch, force);
 
     const { stdout, stderr } = await runGit(args, { cwd: resolved });
 

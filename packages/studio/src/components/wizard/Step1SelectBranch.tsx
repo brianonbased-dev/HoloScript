@@ -2,6 +2,7 @@
 
 import { GitBranch, FolderGit2 } from 'lucide-react';
 import type { GitHubRepoItem } from '@/hooks/useGitHubRepos';
+import { importCreditCost } from '@/lib/workspace/importCost';
 
 interface Step1SelectBranchProps {
   repoName: string;
@@ -43,7 +44,16 @@ export function Step1SelectBranch({
           />
         </div>
         <p className="text-[10px] text-studio-muted mt-1.5">
-          Leave as default branch or type a specific branch name.
+          {selectedRepo?.defaultBranch
+            ? `Defaults to the repo's default branch (${selectedRepo.defaultBranch}). Type another branch to import that instead.`
+            : "Leave empty to import the repo's default branch, or type a branch name."}
+        </p>
+        <p className="text-[10px] text-studio-muted mt-1" data-testid="import-credit-cost">
+          {importCreditCost().label}
+        </p>
+        <p className="text-[10px] text-studio-muted mt-1">
+          Changes from this workspace ship as a branch + pull request. Direct ship to the default
+          branch is off unless you turn it on in the workspace settings.
         </p>
       </div>
 

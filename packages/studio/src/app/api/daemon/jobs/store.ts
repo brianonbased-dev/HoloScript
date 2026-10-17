@@ -7,6 +7,14 @@
  */
 
 import { runGitSync } from '@/lib/git/safeGit';
+import { findDurableAbsorbProject } from '@/lib/absorb/projectState';
+import {
+  evaluatePush,
+  resolveDefaultBranch,
+  resolveTargetRef,
+  unsafeBranchInput,
+  workspaceDirectShipEnabled,
+} from '@/lib/workspace/shipPolicy';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -415,8 +423,29 @@ export function applyPatchesToWorkspaceBranch(
   const currentBranch = runGit(workspacePath, ['rev-parse', '--abbrev-ref', 'HEAD']);
   const baseBranch =
     options.baseBranch?.trim() || (currentBranch === 'HEAD' ? 'main' : currentBranch);
+  // Refuse ref-shaped input (heads/main, refs/heads/main, HEAD, @, +main,
+  // x:main) before sanitizing could turn it into the default branch name.
+  const unsafeBranch = unsafeBranchInput(options.branchName);
+  if (unsafeBranch) {
+    throw new Error(unsafeBranch);
+  }
   const branchName = sanitizeBranchName(options.branchName?.trim() || defaultBranchName(job));
   runGit(workspacePath, ['check-ref-format', '--branch', branchName]);
+  // Agent patches always land on their own branch for a PR. Committing onto
+  // the base/default branch would make the follow-up push a direct ship;
+  // that is only allowed when the workspace turned direct ship on.
+  {
+    const project = findDurableAbsorbProject({ projectPath: workspacePath });
+    const decision = evaluatePush({
+      directShip: workspaceDirectShipEnabled(project),
+      branch: branchName,
+      targetRef: resolveTargetRef(workspacePath, branchName),
+      defaultBranch: resolveDefaultBranch(workspacePath, project) ?? baseBranch,
+    });
+    if (!decision.ok) {
+      throw new Error(decision.error);
+    }
+  }
   runGit(workspacePath, ['checkout', '-B', branchName]);
 
   const files = new Set<string>();

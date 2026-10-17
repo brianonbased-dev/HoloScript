@@ -79,6 +79,14 @@ export function workspaceAbsorbStatus(
   );
   if (activeJob) return activeJob.status;
   if (workspace.status === 'scanning' || workspace.status === 'absorbing') return workspace.status;
+  // A failed absorb (e.g. 502 from the absorb service) records the row as
+  // 'failed' and the job as 'failed'. Report that, not 'stale', so every
+  // surface shows the same status.
+  if (workspace.status === 'failed' || workspace.status === 'error') return 'failed';
+  const latestJob = [...(workspace.absorbJobs ?? [])].sort((a, b) =>
+    String(b.updatedAt).localeCompare(String(a.updatedAt))
+  )[0];
+  if (latestJob && (latestJob.status === 'failed' || latestJob.status === 'error')) return 'failed';
   const age = ageInHours(workspaceLastAbsorbedAt(workspace), nowMs);
   if (age === null) return 'stale';
   return age <= 24 ? 'fresh' : 'stale';

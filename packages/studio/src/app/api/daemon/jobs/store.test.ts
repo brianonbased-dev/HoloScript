@@ -211,6 +211,45 @@ describe('daemon job store patch application', () => {
       /inside the workspaces root/i
     );
   }, 30_000);
+
+  describe('B1: agent patch branch can never be the default branch', () => {
+    const patch = {
+      id: 'patch-1',
+      filePath: 'src/app.ts',
+      action: 'modify',
+      diff: null,
+      proposedContent: 'export const value = 2;\n',
+      description: 'Update value',
+      confidence: 0.9,
+      category: 'typefix',
+    };
+
+    for (const branchName of ['heads/main', 'refs/heads/main', 'HEAD', '+main', 'x:main']) {
+      it(`refuses branchName "${branchName}" and leaves the default branch untouched`, async () => {
+        const workspacePath = createWorkspace();
+        const before = runGit(workspacePath, ['rev-parse', 'HEAD']);
+        const current = runGit(workspacePath, ['rev-parse', '--abbrev-ref', 'HEAD']);
+        writeStoreSnapshot(baseJob(workspacePath, patch));
+        const { applyPatchesToWorkspaceBranch } = await import('./store');
+        expect(() => applyPatchesToWorkspaceBranch('dj-test', ['patch-1'], { branchName })).toThrow();
+        expect(runGit(workspacePath, ['rev-parse', 'HEAD'])).toBe(before);
+        expect(runGit(workspacePath, ['rev-parse', '--abbrev-ref', 'HEAD'])).toBe(current);
+      });
+    }
+
+    it('refuses the default branch by name and never asks for a force push', async () => {
+      const workspacePath = createWorkspace();
+      const current = runGit(workspacePath, ['rev-parse', '--abbrev-ref', 'HEAD']);
+      writeStoreSnapshot(baseJob(workspacePath, patch));
+      const { applyPatchesToWorkspaceBranch } = await import('./store');
+      expect(() =>
+        applyPatchesToWorkspaceBranch('dj-test', ['patch-1'], { branchName: current })
+      ).toThrow();
+      const ok = applyPatchesToWorkspaceBranch('dj-test', ['patch-1']);
+      expect(ok.pushRequest.force).toBe(false);
+      expect(ok.pushRequest.branch).not.toBe(current);
+    });
+  });
 });
 
 describe('daemon job store — tenant scoping and no cwd fallback', () => {
@@ -361,4 +400,5 @@ describe('daemon job store — tenant scoping and no cwd fallback', () => {
     expect(final?.error).toMatch(/^Blocked: projectPath refused — no projectPath/);
     expect(final?.absorb).toBeUndefined();
   }, 20_000);
+
 });
