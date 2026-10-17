@@ -37,6 +37,7 @@ export type AuditEventType =
   | 'token_revoked'
   | 'client_registered'
   | 'client_revoked'
+    | 'client_secret_rotated'
   | 'client_approved'
   | 'client_suspended'
   | 'rate_limited'
@@ -382,6 +383,7 @@ class AuditLogger {
       | 'token_revoked'
       | 'client_registered'
       | 'client_revoked'
+    | 'client_secret_rotated'
       | 'client_approved'
       | 'client_suspended'
       | 'rate_limited';

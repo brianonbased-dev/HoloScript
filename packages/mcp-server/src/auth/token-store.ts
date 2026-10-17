@@ -160,6 +160,24 @@ export interface StoredAuthorizationCode {
   used: boolean;
 }
 
+/**
+ * An admin-provisioned machine client (POST /oauth/admin/clients). Present =
+ * client_credentials only: no redirect URIs, no authorization_code, a secret
+ * that expires (at most 90 days) and an owning human admin.
+ */
+export interface ClientProvisioning {
+  /** Verified id of the signed-in human admin (Studio founder session) who created it. */
+  ownerUserId: string;
+  purpose: string;
+  /** ms epoch; the current secret is refused at and after this time. */
+  secretExpiresAt: number;
+  /** After a rotate: the old secret's hash, accepted until previousSecretValidUntil. */
+  previousSecretHash?: string;
+  previousSecretValidUntil?: number;
+  rotatedAt?: number;
+  rotatedBy?: string;
+}
+
 export interface StoredClient {
   clientId: string;
   /** SHA-256 hash of client secret */
@@ -217,6 +235,8 @@ export interface StoredClient {
   selfRegistered?: boolean;
   /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
   noClientCredentials?: boolean;
+  /** Admin-provisioned machine client; see ClientProvisioning. */
+  provisioning?: ClientProvisioning;
 }
 
 export type OAuthClientStatus = 'approved' | 'suspended';
@@ -895,6 +915,7 @@ export class TokenStore {
     selfRegistered?: boolean;
     /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
     noClientCredentials?: boolean;
+    provisioning?: ClientProvisioning;
   }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     const maxClients = params.maxClients || DEFAULT_MAX_CLIENTS;
     const now = Date.now();
@@ -952,6 +973,7 @@ export class TokenStore {
         ...(params.status ? { status: params.status } : {}),
         ...(params.selfRegistered ? { selfRegistered: true } : {}),
         ...(params.noClientCredentials ? { noClientCredentials: true } : {}),
+        ...(params.provisioning ? { provisioning: params.provisioning } : {}),
       });
     } catch (err) {
       // Any clients retired above are already gone. Say which, so the caller
@@ -1018,6 +1040,18 @@ export class TokenStore {
 
   async getClient(clientId: string): Promise<StoredClient | undefined> {
     return this.backend.getClient(clientId);
+  }
+
+  /** Admin rotate of a provisioned client's secret (hash only). False when the client is gone. */
+  async replaceClientSecret(
+    clientId: string,
+    clientSecretHash: string,
+    provisioning: ClientProvisioning
+  ): Promise<boolean> {
+    const client = await this.backend.getClient(clientId);
+    if (!client) return false;
+    await this.backend.setClient({ ...client, clientSecretHash, provisioning });
+    return true;
   }
 
   /**

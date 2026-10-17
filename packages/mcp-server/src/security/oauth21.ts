@@ -38,6 +38,7 @@ import {
   scopesIssuedTo,
   type OAuthClientStatus,
 } from '../auth/token-store';
+import type { ClientProvisioning } from '../auth/token-store';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -131,7 +132,15 @@ export interface RegisteredClient {
   selfRegistered?: boolean;
   /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
   noClientCredentials?: boolean;
+  /** Admin-provisioned machine client: client_credentials only, expiring secret, owner. */
+  provisioning?: ClientProvisioning;
 }
+
+export const PROVISIONED_SECRET_EXPIRED_ERROR =
+  'invalid_client: this client secret has expired. An admin must rotate it (POST /oauth/admin/clients/:id/rotate).';
+
+export const PROVISIONED_NO_BROWSER_ERROR =
+  'unauthorized_client: an admin-provisioned client is client_credentials only; it cannot use authorization_code or a browser sign-in.';
 
 /**
  * Refuse a client that is not approved (Muse Gap 9). Called by every grant and
@@ -286,6 +295,28 @@ function hashSecret(secret: string): string {
   return createHash('sha256').update(secret).digest('hex');
 }
 
+/**
+ * Does this secret authenticate this client now? A provisioned client's
+ * current secret stops working at secretExpiresAt; after a rotate the previous
+ * secret works only until previousSecretValidUntil. Others: plain hash match.
+ */
+export function clientSecretAccepted(
+  client: RegisteredClient,
+  secret: string | undefined,
+  now: number = Date.now()
+): boolean {
+  if (!secret) return false;
+  const hashed = hashSecret(secret);
+  const p = client.provisioning;
+  if (safeCompare(hashed, client.clientSecret)) return !p || now < p.secretExpiresAt;
+  return (
+    !!p?.previousSecretHash &&
+    typeof p.previousSecretValidUntil === 'number' &&
+    now < p.previousSecretValidUntil &&
+    safeCompare(hashed, p.previousSecretHash)
+  );
+}
+
 function generateToken(): string {
   return `hs_${randomUUID().replace(/-/g, '')}${randomUUID().replace(/-/g, '')}`;
 }
@@ -429,6 +460,7 @@ export class OAuth21Service {
     selfRegistered?: boolean;
     /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
     noClientCredentials?: boolean;
+    provisioning?: ClientProvisioning;
   }): { clientId: string; clientSecret: string } {
     if (clients.size >= this.config.maxClients) {
       throw new ClientStoreFullError({
@@ -455,6 +487,7 @@ export class OAuth21Service {
       ...(params.status ? { status: params.status } : {}),
       ...(params.selfRegistered ? { selfRegistered: true } : {}),
       ...(params.noClientCredentials ? { noClientCredentials: true } : {}),
+      ...(params.provisioning ? { provisioning: params.provisioning } : {}),
     };
 
     clients.set(clientId, client);
@@ -492,7 +525,38 @@ export class OAuth21Service {
   verifyClientSecret(clientId: string, secret: string): boolean {
     const client = clients.get(clientId);
     if (!client || client.clientType !== 'confidential' || !secret) return false;
-    return safeCompare(hashSecret(secret), client.clientSecret);
+    return clientSecretAccepted(client, secret);
+  }
+
+  /**
+   * Admin rotate of a provisioned client: a new secret valid for ttlMs; the old
+   * one keeps working for overlapMs (never past its own expiry). Memory only;
+   * the caller writes the durable copy and restores `previous` if that fails.
+   */
+  rotateProvisionedSecret(
+    clientId: string,
+    opts: { overlapMs: number; ttlMs: number; rotatedBy: string; now?: number }
+  ): {
+    clientSecret: string;
+    clientSecretHash: string;
+    provisioning: ClientProvisioning;
+    previous: RegisteredClient;
+  } | null {
+    const client = clients.get(clientId);
+    if (!client?.provisioning) return null;
+    const now = opts.now ?? Date.now();
+    const clientSecret = generateToken();
+    const clientSecretHash = hashSecret(clientSecret);
+    const provisioning: ClientProvisioning = {
+      ...client.provisioning,
+      secretExpiresAt: now + opts.ttlMs,
+      previousSecretHash: client.clientSecret,
+      previousSecretValidUntil: Math.min(now + opts.overlapMs, client.provisioning.secretExpiresAt),
+      rotatedAt: now,
+      rotatedBy: opts.rotatedBy,
+    };
+    clients.set(clientId, { ...client, clientSecret: clientSecretHash, provisioning });
+    return { clientSecret, clientSecretHash, provisioning, previous: client };
   }
 
   /** Read the full refresh-token record (for durable write-through after issuance). */
@@ -686,6 +750,7 @@ export class OAuth21Service {
         `Invalid client_id: '${String(params.clientId).slice(0, 12)}...' is not registered. Register at POST /oauth/register.`
       );
     assertClientApproved(client);
+    if (client.provisioning) throw new Error(PROVISIONED_NO_BROWSER_ERROR);
 
     if (!client.redirectUris.includes(params.redirectUri)) {
       throw new Error('Invalid redirect_uri');
@@ -777,7 +842,7 @@ export class OAuth21Service {
     assertClientApproved(client);
     if (
       client.clientType === 'confidential' &&
-      (!params.clientSecret || !safeCompare(hashSecret(params.clientSecret), client.clientSecret))
+      !clientSecretAccepted(client, params.clientSecret)
     ) {
       throw new Error('Invalid client credentials');
     }
@@ -849,7 +914,10 @@ export class OAuth21Service {
     if (client.noClientCredentials) {
       throw new Error(CLIENT_CREDENTIALS_NOT_REGISTERED_ERROR);
     }
-    if (!safeCompare(hashSecret(params.clientSecret), client.clientSecret)) {
+    if (!clientSecretAccepted(client, params.clientSecret)) {
+      if (client.provisioning && params.clientSecret && safeCompare(hashSecret(params.clientSecret), client.clientSecret)) {
+        throw new Error(PROVISIONED_SECRET_EXPIRED_ERROR);
+      }
       throw new Error('Invalid client credentials');
     }
 
@@ -928,7 +996,7 @@ export class OAuth21Service {
     assertClientApproved(client);
     if (
       client.clientType === 'confidential' &&
-      (!params.clientSecret || !safeCompare(hashSecret(params.clientSecret), client.clientSecret))
+      !clientSecretAccepted(client, params.clientSecret)
     ) {
       throw new Error('Invalid client credentials');
     }

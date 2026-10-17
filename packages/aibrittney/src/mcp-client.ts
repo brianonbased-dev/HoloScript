@@ -28,7 +28,12 @@ export interface CallToolResult {
 
 export interface McpClientConfig {
   endpoint: string;
-  apiKey: string;
+  /**
+   * Unused for auth: tool calls send only the OAuth Bearer token, and the
+   * shared HOLOSCRIPT_API_KEY / MCP_API_KEY is no longer read or required
+   * (Trust review of #611). Kept optional so existing callers still compile.
+   */
+  apiKey?: string;
   timeoutMs: number;
   /**
    * Base URL of the OAuth 2.1 authorization server.
@@ -48,15 +53,19 @@ export interface McpClientConfig {
   fetchImpl?: typeof fetch;
 }
 
-export const DEFAULT_OAUTH_SCOPE = 'tools:read tools:write tools:codebase';
+/**
+ * tools:read only by default (Trust review of #611): aibrittney calls no
+ * tools:write tool, and tools:codebase waits on a read-only sub-scope.
+ * MCP_CLIENT_SCOPE_BRITTNEY (or config.oauthScope) can override.
+ */
+export const DEFAULT_OAUTH_SCOPE = 'tools:read';
 
 export const DEFAULT_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 export const DEFAULT_OAUTH_ENDPOINT = 'https://mcp.holoscript.net';
 
 export function defaultMcpConfig(overrides: Partial<McpClientConfig> = {}): McpClientConfig {
   const endpoint = overrides.endpoint ?? process.env.MCP_ORCHESTRATOR_URL ?? DEFAULT_ENDPOINT;
-  const apiKey =
-    overrides.apiKey ?? process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY ?? '';
+  const apiKey = overrides.apiKey;
   return {
     endpoint,
     apiKey,
@@ -103,15 +112,6 @@ export class McpClient {
   }
 
   async callTool({ server, tool, args }: CallToolArgs): Promise<CallToolResult> {
-    if (!this.config.apiKey) {
-      return {
-        ok: false,
-        status: 0,
-        data: null,
-        error: 'mcp-client: missing HOLOSCRIPT_API_KEY (or MCP_API_KEY) — tool calls disabled',
-      };
-    }
-
     const url = `${this.config.endpoint.replace(/\/$/, '')}/tools/call`;
     const ac = new AbortController();
     const timer = setTimeout(() => ac.abort(), this.config.timeoutMs);
@@ -239,7 +239,6 @@ export class McpClient {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-mcp-api-key': this.config.apiKey,
       },
       body: JSON.stringify({
         client_name: 'aibrittney-service',

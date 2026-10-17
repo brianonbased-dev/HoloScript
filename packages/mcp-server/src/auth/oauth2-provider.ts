@@ -48,6 +48,7 @@ import {
   type StoredAccessToken,
   type StoredClient,
   type StoredRefreshToken,
+  type ClientProvisioning,
 } from './token-store';
 
 // ── Configuration ────────────────────────────────────────────────────────────
@@ -410,6 +411,7 @@ export async function registerClientDurably(
         selfRegistered?: boolean;
         /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
         noClientCredentials?: boolean;
+        provisioning?: ClientProvisioning;
       }): { clientId: string; clientSecret: string };
       revokeClient(clientId: string): boolean;
     };
@@ -428,6 +430,8 @@ export async function registerClientDurably(
     selfRegistered?: boolean;
     /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
     noClientCredentials?: boolean;
+    /** Admin-provisioned machine client (POST /oauth/admin/clients). */
+    provisioning?: ClientProvisioning;
   },
   observe: { metrics: RegistrationMetrics; logError?: (line: string) => void }
 ): Promise<DurableRegistrationOutcome> {
@@ -618,6 +622,8 @@ export async function prepareClientForUse(
           ...(durable.status ? { status: durable.status } : {}),
           ...(durable.selfRegistered ? { selfRegistered: true } : {}),
           ...(durable.noClientCredentials ? { noClientCredentials: true } : {}),
+          // A provisioned client stays client_credentials-only, with its expiry, across a deploy.
+          ...(durable.provisioning ? { provisioning: durable.provisioning } : {}),
         });
       }
     } catch (err) {
@@ -689,6 +695,7 @@ export class OAuth2Provider {
     selfRegistered?: boolean;
     /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
     noClientCredentials?: boolean;
+    provisioning?: ClientProvisioning;
   }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     return this.store.registerClient({
       ...params,
@@ -699,6 +706,15 @@ export class OAuth2Provider {
 
   async getClient(clientId: string): Promise<StoredClient | undefined> {
     return this.store.getClient(clientId);
+  }
+
+  /** Admin rotate of a provisioned client's secret. See TokenStore.replaceClientSecret. */
+  async replaceClientSecret(
+    clientId: string,
+    clientSecretHash: string,
+    provisioning: ClientProvisioning
+  ): Promise<boolean> {
+    return this.store.replaceClientSecret(clientId, clientSecretHash, provisioning);
   }
 
   /** Record that a client is in use right now. See TokenStore.noteClientUse. */
