@@ -2,8 +2,17 @@
   "name": "@holoscript/linter",
   "version": "6.1.1",
   "description": "Static analysis tool for HoloScript (.holo) and HoloScript+ (.hsplus) files",
-  "main": "dist/index.mjs",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
   "bin": {
     "holoscript-lint": "./bin/holoscript-lint.cjs"
   },
@@ -14,7 +23,8 @@
     "lint": "eslint src/",
     "clean": "rimraf dist",
     "test:coverage": "vitest run --coverage",
-    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs"
+    "prepublishOnly": "node ../../scripts/holo-ci/verify-publish-manager.mjs",
+    "test:pack-entry": "node ../../scripts/check-packed-entry.mjs packages/linter"
   },
   "keywords": [
     "holoscript",

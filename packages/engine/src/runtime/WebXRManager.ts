@@ -18,6 +18,7 @@ import {
   type WebXRHitTestSourceLike,
   type WebXRSpaceLike,
 } from '../vr/WebXRFrameEvidence';
+import { WebXRTrackingCapture, WEBXR_TRACKING_OPTIONAL_FEATURES } from '../vr/WebXRTrackingCapture';
 
 // Polyfill types for WebXR + WebGPU
 // These are often missing from standard @types/webxr
@@ -133,6 +134,9 @@ export class WebXRManager {
   public onSessionEnd: (() => void) | null = null;
   public onInputSourcesChange: ((added: XRInputSource[], removed: XRInputSource[]) => void) | null =
     null;
+  /** Locally captured tracking events (stamped with this session's LocalCapture handle). */
+  public onLocalTrackingEvent: ((event: Record<string, unknown>) => void) | null = null;
+  private trackingCapture = new WebXRTrackingCapture();
 
   constructor(context: IWebGPUContext) {
     this.context = context;
@@ -190,6 +194,7 @@ export class WebXRManager {
         'layers',
         'hit-test',
         'anchors',
+        ...WEBXR_TRACKING_OPTIONAL_FEATURES,
         ...(config.features || []),
       ]),
     };
@@ -232,6 +237,7 @@ export class WebXRManager {
         this.session!.updateRenderState({ layers: [this.projectionLayer] });
       }
 
+      this.trackingCapture.start(this.session as unknown as { enabledFeatures?: string[] });
       this.onSessionStart?.(this.session!);
 
       return this.session!;
@@ -250,6 +256,7 @@ export class WebXRManager {
     if (this.session && callback) {
       const loop = (time: number, frame: XRFrame) => {
         if (this.animationLoopCallback) {
+          this.emitLocalTracking(frame);
           const evidence = this.collectFrameEvidence(time, frame);
           this.animationLoopCallback(time, frame, evidence);
           this.session?.requestAnimationFrame?.(loop);
@@ -315,7 +322,21 @@ export class WebXRManager {
   // HANDLERS
   // ==========================================================================
 
+  /** Feed this frame's locally captured body tracking to onLocalTrackingEvent. */
+  emitLocalTracking(frame: XRFrame): void {
+    if (!this.onLocalTrackingEvent) return;
+    for (const event of this.trackingCapture.frameEvents(frame, this.referenceSpace)) {
+      this.onLocalTrackingEvent(event);
+    }
+  }
+
+  /** Which local tracking captures this session opened. */
+  getLocalTracking(): { body: boolean; face: boolean } {
+    return this.trackingCapture.active;
+  }
+
   private handleSessionEnd = () => {
+    this.trackingCapture.end();
     this.hitTestSource?.cancel?.();
     this.session = null;
     this.referenceSpace = null;

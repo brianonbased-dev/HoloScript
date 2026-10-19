@@ -21,6 +21,7 @@ import {
   Pencil,
   Archive,
 } from 'lucide-react';
+import { useCreateModeStore } from '@/components/create/createModeStore';
 import type { ConversationSummary } from '@/lib/brittney/conversationsClient';
 import {
   streamAssistant,
@@ -485,6 +486,33 @@ export function BrittneyChatPanel() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([GREETING]);
   const [loadedThreadKey, setLoadedThreadKey] = useState<string | null>(null);
   const [input, setInput] = useState('');
+  // P1-1: the landing-page prompt (home -> /create) is handed to this chat.
+  // Prefill only (never auto-send), and only once auth has RESOLVED to signed in.
+  // While the session is still loading nothing is consumed (consuming then lost
+  // the prompt when the user turned out to be signed out). A signed-out user sees
+  // the sign-in CTA, so the prompt is put back in sessionStorage to survive the
+  // sign-in round-trip and is handed over after it.
+  const landingPrompt = useCreateModeStore((s) => s.landingPrompt);
+  const clearLandingPrompt = useCreateModeStore((s) => s.clearLandingPrompt);
+  useEffect(() => {
+    if (!landingPrompt) return;
+    if (sessionStatus === 'unauthenticated') {
+      try {
+        sessionStorage.setItem('studio.landing.prompt', landingPrompt);
+      } catch {
+        // sessionStorage unavailable - the prompt stays in the store only
+      }
+      return;
+    }
+    if (sessionStatus !== 'authenticated') return;
+    setInput(landingPrompt);
+    clearLandingPrompt();
+    try {
+      sessionStorage.removeItem('studio.landing.prompt');
+    } catch {
+      // sessionStorage unavailable - nothing to clear
+    }
+  }, [landingPrompt, sessionStatus, clearLandingPrompt]);
   const [isThinking, setIsThinking] = useState(false);
   const [llmHistory, setLlmHistory] = useState<AssistantMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -541,9 +569,19 @@ export function BrittneyChatPanel() {
   // Load persisted history after storage has resolved for the current thread.
   // Keyed on threadKey (scope + active conversation) so switching threads —
   // not just workspaces — rebuilds the rendered messages and LLM history.
+  // Set when the server adopts a conversation id for the turn in flight. That
+  // changes the thread key, but the messages on screen ARE that thread, so it
+  // must not be reloaded from (still empty) saved history - that is what made
+  // a just-sent message vanish (Creator Advocate audit item 1).
+  const adoptingConversationRef = useRef(false);
   useEffect(() => {
     if (!assistantHistoryLoaded || loadedThreadKey === assistantThreadKey) return;
     setLoadedThreadKey(assistantThreadKey);
+    if (adoptingConversationRef.current && loadedThreadKey !== null) {
+      adoptingConversationRef.current = false;
+      return;
+    }
+    adoptingConversationRef.current = false;
     if (savedHistory.length > 0) {
       setChatMessages([
         GREETING,
@@ -850,6 +888,7 @@ export function BrittneyChatPanel() {
           const convoId = (event.payload as { conversationId?: unknown } | null)?.conversationId;
           if (typeof convoId === 'string' && convoId.length > 0) {
             conversationConfirmed = true;
+            if (convoId !== activeConversationId) adoptingConversationRef.current = true;
             adoptConversation(convoId);
           }
         } else if (event.type === 'persisted') {

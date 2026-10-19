@@ -241,7 +241,7 @@ composition "ImmersiveClassroom" {
 
     // Mint button
     object "MintButton" {
-      @token_gate { contract: "0x...", minBalance: 0, chain: "base" }
+      @token_gated { contract_address: "0x...", min_balance: 0, chain: "base" }
       @interactable { action: "tap", haptic: true }
       geometry: "box"
       scale: [0.3, 0.08, 0.05]

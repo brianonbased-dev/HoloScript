@@ -133,6 +133,8 @@ export const OAUTH2_SCOPES = {
   'tasks:write': 'Create, send, and cancel A2A tasks',
   social:
     'Public HoloMesh social actions as the agent itself: profile/status, discovery, feed and inbox reads, replies, messages, upvotes, insights (no human data)',
+  'user:private':
+    "The signed-in human's own private data: creator earnings, credit balance, memory and workflow memory. Issued only through authorization_code with a signed-in user; never through client_credentials.",
   admin: 'Full administrative access to all tools and endpoints',
 } as const;
 
@@ -150,6 +152,7 @@ export const OAUTH2_PUBLIC_SCOPES = {
   'tasks:read': OAUTH2_SCOPES['tasks:read'],
   'tasks:write': OAUTH2_SCOPES['tasks:write'],
   social: OAUTH2_SCOPES.social,
+  'user:private': OAUTH2_SCOPES['user:private'],
 } as const;
 
 /**
@@ -175,9 +178,36 @@ export function consentFreeScopes(
   scopes: string[],
   consent: { userId?: string } | undefined
 ): string[] {
-  if (!client?.selfRegistered || consent?.userId) return scopes;
-  return scopes.filter((s) => PUBLIC_SOCIAL_SCOPES.includes(s));
+  if (consent?.userId) return scopes;
+  // A user-bound scope never issues without a human, whatever the client.
+  const unbound = scopes.filter((s) => !USER_BOUND_SCOPES.includes(s));
+  if (!client?.selfRegistered) return unbound;
+  return unbound.filter((s) => PUBLIC_SOCIAL_SCOPES.includes(s));
 }
+
+/**
+ * Scopes that name a human's own data (earnings, credits, memory). They issue
+ * ONLY through authorization_code with a signed-in user bound to the code, and
+ * the tools behind them act on that user (token subject), never on an id taken
+ * from the tool's arguments. client_credentials refuses them outright.
+ */
+export const USER_BOUND_SCOPES: readonly string[] = ['user:private'];
+
+/**
+ * The most a client_credentials grant may carry: the public scopes and the
+ * public social scope, never a user-bound or reserved one (Trust & Consent a).
+ */
+export const CLIENT_CREDENTIALS_MAX_SCOPES: readonly string[] = [
+  'tools:read',
+  'tools:execute',
+  'tasks:read',
+  'tasks:write',
+  'social',
+];
+
+/** Refusal shared by both token services for user-bound scopes on client_credentials. */
+export const USER_BOUND_SCOPE_CC_ERROR =
+  'invalid_scope: user:private is issued only through authorization_code to a signed-in user, never through client_credentials';
 
 export const OAUTH2_PUBLIC_SCOPE_NAMES = Object.keys(OAUTH2_PUBLIC_SCOPES);
 
@@ -212,6 +242,7 @@ export const SCOPE_BRIDGE: Record<string, string[]> = {
   'tasks:read': ['a2a:tasks', 'scenes:read'],
   'tasks:write': ['a2a:tasks', 'scenes:write'],
   social: ['social:read', 'social:write'],
+  'user:private': ['user:private'],
   admin: ['admin:*', 'tools:admin'],
 };
 
@@ -377,6 +408,8 @@ export async function registerClientDurably(
         registeredUnproven?: boolean;
         status?: OAuthClientStatus;
         selfRegistered?: boolean;
+        /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+        noClientCredentials?: boolean;
       }): { clientId: string; clientSecret: string };
       revokeClient(clientId: string): boolean;
     };
@@ -393,6 +426,8 @@ export async function registerClientDurably(
     /** Review state (Muse Gap 9); omitted = approved. */
     status?: OAuthClientStatus;
     selfRegistered?: boolean;
+    /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+    noClientCredentials?: boolean;
   },
   observe: { metrics: RegistrationMetrics; logError?: (line: string) => void }
 ): Promise<DurableRegistrationOutcome> {
@@ -518,6 +553,8 @@ export async function prepareClientForUse(
         registeredUnproven?: boolean;
         status?: OAuthClientStatus;
         selfRegistered?: boolean;
+        /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+        noClientCredentials?: boolean;
       }): void;
       revokeClient(clientId: string): boolean;
     };
@@ -580,6 +617,7 @@ export async function prepareClientForUse(
           // self-registered one into a pre-provisioned one.
           ...(durable.status ? { status: durable.status } : {}),
           ...(durable.selfRegistered ? { selfRegistered: true } : {}),
+          ...(durable.noClientCredentials ? { noClientCredentials: true } : {}),
         });
       }
     } catch (err) {
@@ -649,6 +687,8 @@ export class OAuth2Provider {
     registeredUnproven?: boolean;
     status?: OAuthClientStatus;
     selfRegistered?: boolean;
+    /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+    noClientCredentials?: boolean;
   }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     return this.store.registerClient({
       ...params,
@@ -1108,6 +1148,15 @@ export class OAuth2Provider {
         },
       };
     }
+    if (client.noClientCredentials) {
+      return {
+        status: 400,
+        body: {
+          error: 'unauthorized_client',
+          error_description: 'This client did not register the client_credentials grant.',
+        },
+      };
+    }
     if (!this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash)) {
       return {
         status: 400,
@@ -1115,7 +1164,16 @@ export class OAuth2Provider {
       };
     }
 
-    const scopes = requestedScopes.length > 0 ? requestedScopes : client.scopes;
+    if (requestedScopes.some((s) => USER_BOUND_SCOPES.includes(s))) {
+      return {
+        status: 400,
+        body: { error: 'invalid_scope', error_description: USER_BOUND_SCOPE_CC_ERROR },
+      };
+    }
+    // Never default to a user-bound scope the client merely registered.
+    const scopes = (requestedScopes.length > 0 ? requestedScopes : client.scopes).filter(
+      (s) => !USER_BOUND_SCOPES.includes(s)
+    );
     const invalidScopes = scopes.filter(
       (s) => !client.scopes.includes(s) && !client.scopes.includes('admin')
     );

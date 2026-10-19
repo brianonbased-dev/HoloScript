@@ -16,11 +16,11 @@ exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2)
 
 exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P12] malformed input (unclosed brace) locks error shape > P12-errorUnclosed 1`] = `"3399f3a04ec24d80"`;
 
-exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P13] empty input locks output > P13-empty 1`] = `"8f004c36fe94cd07"`;
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P13] empty input locks output > P13-empty 1`] = `"e55e30847b15b0bd"`;
 
-exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P14] whitespace-only input locks output > P14-whitespace 1`] = `"a8eec38db2ea32ec"`;
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P14] whitespace-only input locks output > P14-whitespace 1`] = `"73a786100a3e4383"`;
 
-exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P15] comment-only input locks output > P15-commentOnly 1`] = `"19c889d8ababe219"`;
+exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > error + edge-case locks > [P15] comment-only input locks output > P15-commentOnly 1`] = `"593fe7a1f63c1778"`;
 
 exports[`HoloCompositionParser characterization (W4-T3 pre-split lock for W1-T2) > expression rule-family > [P5] numeric expressions in property values lock output > P5-exprNumeric 1`] = `"31b0184049b39acd"`;
 

@@ -108,7 +108,7 @@ export function useAgentation() {
       try {
         // Route through the same-origin server proxy so the privileged MCP key
         // stays server-side. A `'use client'` module must NEVER read
-        // NEXT_PUBLIC_MCP_API_KEY — Next inlines it into the browser bundle,
+        // a browser-visible (NEXT_PUBLIC) MCP key — Next inlines it into the browser bundle,
         // exposing one shared key to every visitor (cross-user leak). The
         // `/api/knowledge/sync` route injects the key from server env.
         await fetch('/api/knowledge/sync', {

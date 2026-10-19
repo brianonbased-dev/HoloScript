@@ -29,7 +29,9 @@ export async function POST(req: Request) {
   if (auth instanceof NextResponse) return auth;
 
   try {
-    const apiKey = process.env.HOLOSCRIPT_API_KEY || process.env.NEXT_PUBLIC_MCP_API_KEY || '';
+    // Server-only key. Never fall back to a browser-visible (NEXT_PUBLIC) name:
+    // Next inlines those into the bundle, so they can never hold a server credential.
+    const apiKey = process.env.HOLOSCRIPT_API_KEY || '';
 
     if (!apiKey) {
       return NextResponse.json({ error: 'Missing API key configuration' }, { status: 500 });

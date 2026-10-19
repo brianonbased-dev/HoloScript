@@ -13,6 +13,10 @@ module.exports = {
   entry: {
     index: 'src/index.ts',
     'math/vec3': 'src/math/vec3.ts',
+    // Required by framework/dist/index.cjs (HoloScriptGenerator, #565) through
+    // '@holoscript/core/constants'. Missing entry crashlooped mcp-server 2026-10-15
+    // ("Cannot find module .../core/dist/constants.cjs"). Same Docker-entry-drift class.
+    constants: 'src/constants.ts',
     // MUST match packages/core/tsup.config.ts (the parser barrel). This pointed at
     // HoloScriptPlusParser.ts alone, so the image's dist/parser.js lacked parseHolo /
     // parseHoloStrict / HoloCompositionParser; once absorb-service imported

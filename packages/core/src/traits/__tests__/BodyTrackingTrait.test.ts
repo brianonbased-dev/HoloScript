@@ -126,7 +126,7 @@ describe('BodyTrackingTrait', () => {
     expect(getEventCount(ctx, 'body_tracking_lost')).toBe(1);
   });
 
-  it('avatar_pose_update emitted on update when tracking', () => {
+  it('local_avatar_pose emitted on update when tracking', () => {
     const s = (node as any).__bodyTrackingState;
     s.isTracking = true;
     s.joints.set('head', {
@@ -135,7 +135,7 @@ describe('BodyTrackingTrait', () => {
       confidence: 0.9,
     });
     updateTrait(bodyTrackingHandler, node, cfg, ctx, 0.016);
-    expect(getEventCount(ctx, 'avatar_pose_update')).toBe(1);
+    expect(getEventCount(ctx, 'local_avatar_pose')).toBe(1);
   });
 
   it('body_calibrate measures height and arm span', () => {

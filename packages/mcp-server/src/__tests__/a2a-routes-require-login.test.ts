@@ -22,6 +22,7 @@ import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { A2A_LIST_REQUIRES_ADMIN } from '../a2a';
+import { consentedToken, TEST_STUDIO_CONSENT_SECRET } from './consented-test-token';
 
 // Accepted by the legacy-key path (admin); not in the key registry, so not a founder.
 const TEST_KEY = 'a2a-login-test-key-not-a-founder';
@@ -87,7 +88,7 @@ type Reply = { status: number; body: Record<string, unknown> };
 function request(
   method: 'GET' | 'POST' | 'DELETE',
   path: string,
-  options: { body?: unknown; token?: string } = {}
+  options: { body?: unknown; token?: string; headers?: Record<string, string> } = {}
 ): Promise<Reply> {
   return new Promise((resolve, reject) => {
     const payload = options.body === undefined ? undefined : JSON.stringify(options.body);
@@ -103,6 +104,7 @@ function request(
           connection: 'close',
           ...(payload !== undefined ? { 'content-length': Buffer.byteLength(payload) } : {}),
           ...(options.token ? { authorization: `Bearer ${options.token}` } : {}),
+          ...(options.headers ?? {}),
         },
       },
       (res) => {
@@ -160,6 +162,7 @@ beforeAll(async () => {
     HOLOSCRIPT_CACHE_DIR: sandbox,
     HOLOMESH_NO_DOTENV: '1',
     ORCHESTRATOR_URL: 'http://127.0.0.1:9',
+    STUDIO_CONSENT_SECRET: TEST_STUDIO_CONSENT_SECRET,
   });
 
   globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
@@ -176,27 +179,9 @@ beforeAll(async () => {
   await waitForHealth(150_000);
 
   // A real read-only login: a client registered over loopback with only
-  // tools:read, then a client-credentials token for it.
-  const registered = await request('POST', '/oauth/register', {
-    body: {
-      client_name: 'a2a-read-only-probe',
-      redirect_uris: ['https://client.test/callback'],
-      scope: 'tools:read',
-      token_endpoint_auth_method: 'client_secret_post',
-      grant_types: ['client_credentials'],
-    },
-  });
-  expect(registered.status, JSON.stringify(registered.body)).toBe(201);
-  const issued = await request('POST', '/oauth/token', {
-    body: {
-      grant_type: 'client_credentials',
-      client_id: registered.body.client_id,
-      client_secret: registered.body.client_secret,
-      scope: 'tools:read',
-    },
-  });
-  expect(issued.status, JSON.stringify(issued.body)).toBe(200);
-  readToken = issued.body.access_token as string;
+  // tools:read, approved by a (test) Studio user, then an authorization-code
+  // token for it. Self-registered clients need that consent (Muse Gap 9).
+  readToken = await consentedToken(request, 'tools:read', { clientName: 'a2a-read-only-probe' });
 }, 240_000);
 
 afterAll(() => {

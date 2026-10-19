@@ -2,8 +2,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { coreInfo, parseStrict, parseTolerant } from "../index.mjs";
+import { analyze } from "../holo_strict.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const manifest = JSON.parse(readFileSync(join(HERE, "..", "corpus", "manifest.json"), "utf8"));
@@ -107,10 +108,87 @@ test("positions stay real with Windows line endings", async () => {
 test("the unknown-trait check is on, with every vocabulary core publishes", async () => {
   const info = await coreInfo({ fullVocabulary: true });
   assert.equal(info.traitCheck, true);
-  assert.deepEqual(info.traitSources.sort(), [
-    "@holoscript/core#DERIVED_TRAIT_SCHEMAS",
-    "@holoscript/core#buildKnownTraitSet",
-    "@holoscript/core/constants#VR_TRAITS",
-    "@holoscript/core/traits/trait-registry.json",
-  ]);
+  // Core's one known-trait check (KnownTraits.ts), which unions VR_TRAITS, trait-registry.json,
+  // buildKnownTraitSet and the DERIVED_TRAIT names; the per-list loading is the older-core fallback.
+  assert.deepEqual(info.traitSources, ["@holoscript/core/parser#isKnownTrait"]);
+});
+
+// HS1011 — likeness: claim -> rule -> render (avatar-format-breakdown.md, known gaps 1 and 2).
+// Every likeness source needs the .hs render_likeness rule's yes; a trait holds no grant.
+const GRANT = "grant_ava_2026_10_14";
+const likenessCodes = (result) => result.diagnostics.filter((d) => d.code === "HS1011").map((d) => [d.line, d.column]);
+for (const [source, trait] of [["face", "face_mesh"], ["voice", "voice_print"], ["body", "body_scan"]]) {
+  const claimed = `object "Ava" {\n  @consent_gate(grant: "${GRANT}")\n  @${trait}\n}\n`;
+  test(`likeness ${source}: @${trait} with no grant fails the build`, async () => {
+    const result = await parseStrict(read(`invalid/likeness-${source}-no-claim.holo`), { consentRules: { [GRANT]: [source] } });
+    assert.equal(result.ok, false);
+    assert.deepEqual(likenessCodes(result), [[2, 3]]);
+  });
+  test(`likeness ${source}: a claim the rule did not say yes to fails the build`, async () => {
+    const other = ["face", "voice", "body"].filter((s) => s !== source);
+    for (const consentRules of [undefined, {}, { [GRANT]: other }, { other_grant: [source] }]) {
+      const result = await parseStrict(claimed, { consentRules });
+      assert.equal(result.ok, false, JSON.stringify(consentRules));
+      assert.deepEqual(likenessCodes(result), [[3, 3]]);
+    }
+  });
+  test(`likeness ${source}: a claim with the rule's yes passes`, async () => {
+    const result = await parseStrict(claimed, { consentRules: { [GRANT]: [source] } });
+    assert.equal(result.ok, true, JSON.stringify(result.diagnostics));
+    assert.deepEqual(likenessCodes(result), []);
+  });
+  test(`likeness ${source}: a trait-only grant fails even when the rule says yes`, async () => {
+    const source2 = `object "Ava" {\n  @consent_gate(grant: "${GRANT}")\n  @${trait}(grant: "${GRANT}")\n}\n`;
+    for (const text of [`object "Ava" {\n  @${trait}(grant: "${GRANT}")\n}\n`, source2]) {
+      const result = await parseStrict(text, { consentRules: { [GRANT]: ["face", "voice", "body"] } });
+      assert.equal(result.ok, false, text);
+      assert.equal(likenessCodes(result).length, 1);
+    }
+  });
+}
+
+test("likeness: voice_print fault #1 (grant on the trait, around the rule) is refused", async () => {
+  const result = await parseStrict(read("invalid/likeness-voice-trait-grant.holo"), { consentRules: { [GRANT]: ["voice"] } });
+  assert.equal(result.ok, false);
+  assert.deepEqual(errorsOf(result).map((d) => [d.code, d.line, d.column]), [["HS1011", 2, 3]]);
+});
+
+test("likeness: one rule yes covers only the sources it names", async () => {
+  const source = read("invalid/likeness-claim-without-rule.holo");
+  const result = await parseStrict(source, { consentRules: new Map([[GRANT, ["face", "voice"]]]) });
+  assert.deepEqual(likenessCodes(result), [[5, 3]]);
+  const all = await parseStrict(source, { consentRules: { [GRANT]: ["face", "voice", "body"] } });
+  assert.equal(all.ok, true, JSON.stringify(all.diagnostics));
+});
+
+test("likeness: tolerant mode reports HS1011 and still returns the AST", async () => {
+  const result = await parseTolerant(read("invalid/likeness-voice-no-claim.holo"));
+  assert.equal(result.ok, true);
+  assert.ok(result.ast);
+  assert.deepEqual(likenessCodes(result), [[2, 3]]);
+});
+
+test("the likeness check (HS1011) is on: core's checkLikeness is wired in", async () => {
+  const info = await coreInfo();
+  assert.equal(info.likenessCheck, true);
+});
+
+test("likeness fails closed when core's checkLikeness dep is absent", async () => {
+  const parser = await import(pathToFileURL((await coreInfo()).parser).href);
+  const deps = { tokenizeHoloSource: parser.tokenizeHoloSource, parseHolo: parser.parseHolo }; // no checkLikeness
+  const src = 'object "Ava" {\n  @consent_gate(grant: "g1")\n  @voice_print\n  @face_mesh\n  @body_scan\n  @lip_sync(source: "microphone")\n  @face_tracking(source: "live_self")\n  @body_tracking(source: "live_self")\n  @avatar_embodiment(tracking_source: "headset")\n}\n';
+  const { diagnostics } = analyze(src, deps, { consentRules: { g1: ["face", "voice", "body"] } });
+  const hs = diagnostics.filter((d) => d.code === "HS1011");
+  assert.equal(hs.length, 7, JSON.stringify(diagnostics));
+  assert.ok(hs.every((d) => d.severity === "error" && /fail closed/.test(d.message)));
+  const plain = analyze('object "Box" {\n  @grabbable\n}\n', deps, {}).diagnostics;
+  assert.equal(plain.filter((d) => d.code === "HS1011").length, 0);
+});
+
+test("likeness: tracking with no live_self source fails the build; live_self passes statically", async () => {
+  for (const f of ["face-tracking-no-source", "body-tracking-remote-user", "face-tracking-recording"]) {
+    assert.deepEqual(likenessCodes(await parseStrict(read(`invalid/likeness-${f}.holo`))), [[2, 3]], f);
+  }
+  const live = await parseStrict('object "Ava" {\n  @face_tracking(source: "live_self")\n  @body_tracking(source: "live_self")\n}\n');
+  assert.deepEqual(likenessCodes(live), []);
 });

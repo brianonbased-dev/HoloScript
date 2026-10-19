@@ -11,6 +11,7 @@ import {
   type WebXRHitTestSourceLike,
   type WebXRSpaceLike,
 } from './WebXRFrameEvidence';
+import { WebXRTrackingCapture, WEBXR_TRACKING_OPTIONAL_FEATURES } from './WebXRTrackingCapture';
 
 type WebXRSessionWithHitTest = XRSession & {
   requestHitTestSource?(options: {
@@ -38,6 +39,9 @@ export class WebXRManager {
   // Callbacks for session state
   public onSessionStart: ((session: XRSession) => void) | null = null;
   public onSessionEnd: (() => void) | null = null;
+  /** Locally captured tracking events (stamped with this session's LocalCapture handle). */
+  public onLocalTrackingEvent: ((event: Record<string, unknown>) => void) | null = null;
+  private trackingCapture = new WebXRTrackingCapture();
 
   constructor(context?: any) {
     if (context) {
@@ -63,7 +67,7 @@ export class WebXRManager {
   async requestSession(): Promise<XRSession> {
     if (!this.session) {
       const sessionInit = {
-        optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'hit-test', 'anchors'],
+        optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'hit-test', 'anchors', ...WEBXR_TRACKING_OPTIONAL_FEATURES],
       };
       this.session = await (
         navigator as unknown as {
@@ -77,6 +81,7 @@ export class WebXRManager {
       this.referenceSpace = await this.session!.requestReferenceSpace('local-floor');
       this.localReferenceSpace = await this.session!.requestReferenceSpace('local');
       await this.initializeHitTestSource();
+      this.trackingCapture.start(this.session as unknown as { enabledFeatures?: string[] });
 
       if (this.onSessionStart) {
         this.onSessionStart(this.session!);
@@ -96,7 +101,13 @@ export class WebXRManager {
     }
   }
 
+  /** Which local tracking captures this session opened. */
+  getLocalTracking(): { body: boolean; face: boolean } {
+    return this.trackingCapture.active;
+  }
+
   private onSessionEnded = () => {
+    this.trackingCapture.end();
     this.hitTestSource?.cancel?.();
     this.session = null;
     this.referenceSpace = null;
@@ -126,6 +137,12 @@ export class WebXRManager {
     // (Standard pattern, though frame requests usually happen at start)
     const session = frame.session;
     session.requestAnimationFrame(this.onXRFrame);
+
+    if (this.onLocalTrackingEvent) {
+      for (const event of this.trackingCapture.frameEvents(frame, this.referenceSpace)) {
+        this.onLocalTrackingEvent(event);
+      }
+    }
 
     if (this.onFrameCallback) {
       this.onFrameCallback(time, frame, this.collectFrameEvidence(time, frame));

@@ -261,7 +261,7 @@ function PromptHero() {
           </>
         )}
         <Link
-          href="/start"
+          href="/create?mode=world&chat=1"
           className="flex items-center gap-1.5 text-white/40 hover:text-white/70 transition-colors"
         >
           Chat with Brittney

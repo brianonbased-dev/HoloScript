@@ -74,19 +74,28 @@ const diag = (code, severity, message, at, hint) => ({
 
 /** File-level diagnostics (empty source, not a string, a crash) point at the start. */
 const START = { line: 1, column: 1 };
+/** Same cap as core's MAX_UNKNOWN_TRAIT_WARNINGS (parseHolo, HoloScriptValidator). */
+export const MAX_UNKNOWN_TRAIT_DIAGNOSTICS = 100;
 
 /**
  * @param {string} source
- * @param {object} deps - { tokenizeHoloSource, parseHolo, traitIds?: Set<string> }
+ * @param {object} deps - { tokenizeHoloSource, parseHolo, isKnownTrait?, declaredTraitNames?,
+ *   traitIds?: Set<string>, checkLikeness?, likenessSources? } (from @holoscript/core/parser)
+ *   `isKnownTrait` / `declaredTraitNames` are core's one known-trait check (KnownTraits.ts),
+ *   shared with the canonical validator, CLI, MCP and LSP; when present they decide HS1006.
  *   `traitIds` is the trait vocabulary, in any of the spellings normalizeTrait
  *   accepts. When it is missing or empty, the unknown-trait check (HS1006) is
  *   skipped.
- * @param {{ knownTraits?: Iterable<string>, unknownTraits?: "warning" | "error" }} [options]
+ * @param {{ knownTraits?: Iterable<string>, unknownTraits?: "warning" | "error",
+ *   consentRules?: Record<string, Iterable<"face" | "voice" | "body">> }} [options]
  *   `knownTraits` adds trait names for this call (plugin vocabularies).
  *   `unknownTraits: "error"` makes HS1006 an error (default: a warning).
+ *   `consentRules` is the caller's .hs render_likeness result: grant -> sources it said yes to.
+ *   Without it every likeness source is refused with HS1011.
  */
 export function analyze(source, deps, options = {}) {
-  const { tokenizeHoloSource, parseHolo, traitIds } = deps;
+  const { tokenizeHoloSource, parseHolo, traitIds, checkLikeness } = deps;
+  const coreKnown = typeof deps.isKnownTrait === "function" ? deps.isKnownTrait : null;
   const unknownTraitSeverity = options.unknownTraits === "error" ? "error" : "warning";
   const diagnostics = [];
   const seen = new Set();
@@ -199,7 +208,15 @@ export function analyze(source, deps, options = {}) {
     const code = typeof err?.code === "string" && /^HS1\d{3}$/.test(err.code) ? err.code : "HS1007";
     push(diag(code, "error", messageOf(err), where));
   }
+  // parseHolo reports an unknown trait as HS1006 itself. When this layer checks traits (below) it
+  // reports HS1006 once with its own location and severity, so the parser's copy is dropped;
+  // otherwise the parser's copy is kept under its own code, never relabelled HS1008.
+  const checksTraits = !!coreKnown || !!(traitIds && traitIds.size);
   for (const warn of parsed.warnings || []) {
+    if (warn && warn.code === "HS1006") {
+      if (!checksTraits) push(diag("HS1006", "warning", messageOf(warn), anchors.fromParser(warn)));
+      continue;
+    }
     push(diag("HS1008", "warning", messageOf(warn), anchors.fromParser(warn)));
   }
 
@@ -220,9 +237,26 @@ export function analyze(source, deps, options = {}) {
 
   // HS1005 / HS1006 — trait names in the AST, located at their `@name` in the source.
   const traits = collectTraits(ast);
-  const checkTraits = !!(traitIds && traitIds.size);
-  const declared = checkTraits ? declaredTraits(ast, traits, options.knownTraits) : new Set();
+  const checkTraits = !!coreKnown || !!(traitIds && traitIds.size);
+  const declared = !checkTraits
+    ? new Set()
+    : coreKnown && typeof deps.declaredTraitNames === "function"
+      ? deps.declaredTraitNames(ast)
+      : declaredTraits(ast, traits, options.knownTraits);
+  const known = (bare) =>
+    coreKnown
+      ? coreKnown(bare, { declared, knownTraits: options.knownTraits })
+      : isKnownTrait(bare, traitIds) || declared.has(normalizeTrait(bare));
   const locator = traitLocator(source, real, anchors);
+  const likenessAt = new Map();
+  const shared = typeof checkLikeness === "function" && deps.likenessSources && typeof deps.likenessSources === "object";
+  // Fail closed: without core's shared check, every likeness trait (and every source-gated
+  // tracking trait, whatever its source) is refused below.
+  const likenessSources = shared ? deps.likenessSources : FALLBACK_LIKENESS;
+  // HS1006 is capped like parseHolo's (MAX_UNKNOWN_TRAIT_WARNINGS): the first 100 are listed,
+  // the rest are counted into one summary diagnostic so a hostile input cannot bloat the output.
+  let unknownShown = 0;
+  let unknownMore = 0;
   for (const { trait, owner } of traits) {
     const bare = String(trait.name ?? "").trim().replace(/^@/, "");
     if (!WORD_START.test(bare)) {
@@ -234,8 +268,19 @@ export function analyze(source, deps, options = {}) {
       if (!already) push(diag("HS1005", "error", "A trait was parsed with an empty name.", where));
       continue;
     }
-    if (!checkTraits || isKnownTrait(bare, traitIds) || declared.has(normalizeTrait(bare))) continue;
-    const found = locator.named(bare);
+    // Each trait's `@name` is looked up once: the locator hands out the k-th `@X` to the k-th call.
+    let located;
+    const locate = () => (located === undefined ? (located = locator.named(bare) ?? null) : located);
+    if (likenessSources && likenessKeyOf(bare, likenessSources, deps.likenessTraitName) !== undefined) {
+      likenessAt.set(trait, () => locate()?.at ?? anchors.fromNode(owner) ?? at(meaningful[0]));
+    }
+    if (!checkTraits || known(bare)) continue;
+    if (unknownShown >= MAX_UNKNOWN_TRAIT_DIAGNOSTICS) {
+      unknownMore++;
+      continue;
+    }
+    unknownShown++;
+    const found = locate();
     const written = found && found.word;
     const misread = written && written.toLowerCase() !== bare.toLowerCase();
     push(
@@ -253,7 +298,67 @@ export function analyze(source, deps, options = {}) {
     );
   }
 
+  if (unknownMore > 0) {
+    push(
+      diag(
+        "HS1006",
+        unknownTraitSeverity,
+        `${unknownMore} more unknown traits not listed (HS1006; ${unknownShown + unknownMore} in total).`,
+        START,
+        "Only the first " + MAX_UNKNOWN_TRAIT_DIAGNOSTICS + " unknown traits are listed."
+      )
+    );
+  }
+
+  // HS1011 — likeness: claim -> rule -> render. The check itself is core's (checkLikeness in
+  // packages/core/src/validation/LikenessCheck.ts, shared with the canonical validator); this
+  // layer only places each finding at its trait's `@`. Without it in deps the layer cannot verify
+  // any grant, so it refuses every likeness use (fail closed); coreInfo() says likenessCheck: false.
+  const findings = shared
+    ? checkLikeness(ast, options.consentRules)
+    : traits
+        .filter(({ trait }) => likenessKeyOf(String(trait.name ?? "").trim().replace(/^@/, ""), FALLBACK_LIKENESS) !== undefined)
+        .map(({ trait, owner }) => ({
+          trait,
+          owner,
+          message: `"@${String(trait.name ?? "").trim().replace(/^@/, "")}" renders a likeness, and core's likeness check is unavailable, so no grant can be verified. Refused (fail closed).`,
+          hint: "Use a @holoscript/core that exports checkLikeness from @holoscript/core/parser.",
+        }));
+  {
+    for (const finding of findings) {
+      const where = likenessAt.get(finding.trait);
+      push(diag("HS1011", "error", finding.message, where ? where() : anchors.fromNode(finding.owner) ?? at(meaningful[0]), finding.hint));
+    }
+  }
+
   return { ast, diagnostics };
+}
+
+
+/** Fail-closed fallback when core's checkLikeness is missing: refuse these outright (HS1011). */
+const FALLBACK_LIKENESS = Object.freeze({
+  face_mesh: 1, voice_print: 1, body_scan: 1, lip_sync: 1, lipsync: 1, face_tracking: 1, body_tracking: 1,
+  avatar_embodiment: 1,
+});
+
+/**
+ * The likeness entry `bare` is a spelling of. Core's likenessTraitName (validation/TraitName.ts,
+ * the folding KnownTraits uses too) decides when present; the local copy is the same algorithm
+ * (normalizeTrait, then drop underscores) for an older core. `@facemesh`, `@FACE_MESH` and
+ * `@face__mesh` are all face_mesh.
+ */
+function likenessKeyOf(bare, table, coreResolve) {
+  if (typeof coreResolve === "function") {
+    const name = coreResolve(bare);
+    return Object.prototype.hasOwnProperty.call(table, name) ? name : undefined;
+  }
+  const normalized = normalizeTrait(String(bare).trim());
+  const key = normalized.replace(/_/g, "");
+  const entries = Object.keys(table);
+  return (
+    entries.find((entry) => normalizeTrait(entry) === normalized) ??
+    entries.find((entry) => normalizeTrait(entry).replace(/_/g, "") === key)
+  );
 }
 
 /**

@@ -3,6 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '../../../../../../../db/client';
 import { holomeshBoardTasks } from '../../../../../../../db/schema';
+import { requireFounder } from '../../../../../../../lib/api-auth';
 
 import { corsHeaders } from '../../../../../_lib/cors';
 const HOLOMESH_API_URL =
@@ -25,7 +26,15 @@ interface RemoteTask {
   completedAt?: string;
 }
 
+/**
+ * Server-only: mirrors a team board into Studio's DB under Studio's own key.
+ * Audit 2026-10-15: it was open to any caller (who could make Studio read any
+ * team's board with the server key). Founder-gated now.
+ */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const founder = await requireFounder(req);
+  if (founder instanceof NextResponse) return founder;
+
   const { id } = await params;
   const db = getDb();
   if (!db) {

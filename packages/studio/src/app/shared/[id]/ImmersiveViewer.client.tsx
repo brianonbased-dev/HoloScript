@@ -547,6 +547,34 @@ function questProofRunId(): string {
   );
 }
 
+function questProofToken(): string {
+  if (typeof window === 'undefined') return '';
+  // The headset link carries ?proofToken= to bootstrap. Read it once, keep it in
+  // sessionStorage, and strip it from the address bar so it is not in history,
+  // receipts or referrers. The API only accepts it in the x-quest-proof-token header.
+  const url = new URL(window.location.href);
+  const fromLink = url.searchParams.get('proofToken');
+  if (fromLink) {
+    try {
+      window.sessionStorage.setItem('quest-proof-token', fromLink);
+    } catch {
+      /* storage blocked: the token still works for this page view */
+    }
+    url.searchParams.delete('proofToken');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+    questProofTokenCache = fromLink;
+    return fromLink;
+  }
+  if (questProofTokenCache) return questProofTokenCache;
+  try {
+    return window.sessionStorage.getItem('quest-proof-token') ?? '';
+  } catch {
+    return '';
+  }
+}
+let questProofTokenCache = '';
+if (typeof window !== 'undefined') questProofToken();
+
 function questProofPageId(): string {
   if (typeof window === 'undefined') return 'immersive-viewer';
   const path = window.location.pathname.replace(/^\/live/, '');
@@ -594,29 +622,19 @@ async function postQuestProof(
   };
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 3500);
-  const posted = await fetch(questProofApiPath('/api/quest-proof'), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    signal: controller.signal,
-  })
-    .then((res) => res.ok)
-    .catch(() => false)
+  // POST-only (the GET record mode is refused). runId in the query so the server checks
+  // the token before reading the body.
+  await fetch(
+    `${questProofApiPath('/api/quest-proof')}?${new URLSearchParams({ runId: payload.runId }).toString()}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': questProofToken() },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    }
+  )
+    .catch(() => undefined)
     .finally(() => window.clearTimeout(timeout));
-  if (posted) return;
-  const query = new URLSearchParams({
-    record: '1',
-    runId: payload.runId,
-    pageId: payload.pageId,
-    label,
-    status,
-    detail,
-    url: payload.url,
-    userAgent: payload.userAgent,
-  });
-  await fetch(`${questProofApiPath('/api/quest-proof')}?${query.toString()}`).catch(
-    () => undefined
-  );
 }
 
 export function ImmersiveViewer({ code, sceneName, name, agentId }: ImmersiveViewerProps) {

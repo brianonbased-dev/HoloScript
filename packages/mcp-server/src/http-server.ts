@@ -18,14 +18,24 @@
 // !! MUST be first import — populates process.env from .env before any module-level
 // `const X = process.env.X || ''` constants are evaluated. No-op on Railway.
 import './utils/load-env';
+import { getBuildCommit } from './build-identity';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import {
   ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import {
+  capMcpToolResult,
+  holoResultResourceTemplate,
+  HoloResultNotFoundError,
+  isHoloResultUri,
+  readHoloResult,
+  resultScope,
+} from './tool-result-store';
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { resolveServiceSecret, migrateEnvKeys } from './holokey-resolver';
@@ -103,7 +113,14 @@ import {
   registerClientDurably,
 } from './auth/oauth2-provider';
 import { creditCheckSubject } from './security/credit-check-subject';
-import { verifyStudioConsent } from './security/studio-consent';
+import { setUserCreditsResolver } from './security/user-credits';
+import { verifyStudioConsent, verifyStudioGrantsSession } from './security/studio-consent';
+import { issueOAuthCsrfToken, verifyOAuthCsrfToken } from './security/oauth-csrf';
+import {
+  clientDeletionActor,
+  defaultRegistrationGrantTypes,
+  parseBasicClientCredentials,
+} from './security/oauth-client-deletion';
 import {
   clientRequestLimiter,
   clientRateLimitedRequests,
@@ -121,7 +138,6 @@ import {
   acceptsHtml,
   buildOAuthCallbackUri,
   OAUTH_CONSENT_SECURITY_HEADERS,
-  renderOAuthConsentPage,
   resolveOAuthIssuer,
 } from './auth/oauth-browser';
 import type { TokenStoreBackend } from './auth/token-store';
@@ -270,6 +286,18 @@ if (process.env.DATABASE_URL) {
       })
     );
     tokenBackend = new PostgresTokenStore(pgPool);
+    // Trust & Consent C1: absorb_check_credits for remote callers reads the
+    // token user's own ledger row (read-only), never the absorb server key.
+    {
+      const pool = pgPool;
+      setUserCreditsResolver(async (userId) => {
+        const r = await pool.query(
+          'SELECT balance_cents FROM credit_accounts WHERE user_id::text = $1',
+          [userId]
+        );
+        return { balanceCents: Number(r.rows[0]?.balance_cents ?? 0), found: r.rows.length > 0 };
+      });
+    }
     // Auto-create credit tables if they don't exist
     pgPool
       .query(
@@ -370,6 +398,24 @@ oauth.setClientStatusResolver(async (clientId) => {
  * middle of its sign-in), drop a copy the durable store no longer holds, and
  * rehydrate it after a deploy wiped the in-memory map. See prepareClientForUse.
  */
+/**
+ * Studio's consent page (#579). STUDIO_PUBLIC_URL overrides the default, which is
+ * live Studio (holoscript.studio; studio.holoscript.net only redirects there).
+ */
+function studioConsentUrl(): string {
+  const base = (process.env.STUDIO_PUBLIC_URL || 'https://holoscript.studio').replace(/\/+$/, '');
+  return `${base}/oauth/consent`;
+}
+
+/** Token-endpoint failures that mean the client itself is unknown or unauthenticated. */
+function isInvalidClientMessage(message: string): boolean {
+  return (
+    message.startsWith('Invalid client_id') ||
+    message === 'Invalid client' ||
+    message === 'Invalid client credentials'
+  );
+}
+
 async function ensureClientHydrated(clientId: string | null | undefined): Promise<void> {
   await prepareClientForUse({ memory: oauth, durable: oauth2 }, clientId);
 }
@@ -844,9 +890,12 @@ function mergeSigningContextScopes(
     ...(signingCtx.scopes ?? []).map(String),
     ...(auth.scopes ?? []).map(String),
   ]);
+  // The human comes from the verified token only, never from the envelope.
+  const { userId: _ignored, ...rest } = signingCtx;
   return {
-    ...signingCtx,
+    ...rest,
     scopes: [...scopes],
+    ...(auth.userId ? { userId: auth.userId } : {}),
   };
 }
 
@@ -1055,6 +1104,7 @@ async function securedToolExecutionInner(
           signer: auth.agentId ?? auth.clientId ?? null,
           scopes: auth.scopes ?? [],
           ...(auth.localCustody === true && { localCustody: true as const }),
+          ...(auth.userId ? { userId: auth.userId } : {}),
         };
 
     // Execute the tool
@@ -1133,9 +1183,28 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
     return { resources: listSkillResources() };
   });
 
-  // Read a specific skill resource
+  // Use session auth context or default to admin (for legacy compat). One value for both the
+  // CallTool gate and holo-result reads, so a stored result is readable by the same caller only.
+  const sessionAuth: TokenIntrospection = sessionAuthContext || {
+    active: true,
+    scopes: ['admin:*'],
+    agentId: 'mcp-session-legacy',
+  };
+  const sessionCallerId = sessionAuth.agentId ?? sessionAuth.clientId ?? null;
+
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+    resourceTemplates: [holoResultResourceTemplate],
+  }));
+
+  // Read a specific skill resource, or a window of a stored large tool result
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const uri = request.params.uri;
+    if (isHoloResultUri(uri)) {
+      return readHoloResult(uri, {
+        scope: resultScope('http', sessionCallerId),
+        maxBytes: getMcpServerSizing().responseMaxBytes,
+      });
+    }
     const result = readSkillResource(uri);
     if (!result) {
       throw new Error(`Resource not found: ${uri}`);
@@ -1178,45 +1247,42 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
       (request.params as { _meta?: unknown })._meta
     );
 
-    // Use session auth context or default to admin (for legacy compat)
-    const auth: TokenIntrospection = sessionAuthContext || {
-      active: true,
-      scopes: ['admin:*'],
-      agentId: 'mcp-session-legacy',
-    };
+    const auth = sessionAuth;
 
-    const { result, isError } = await gateToolCall(
+    // The dispatch builds the final MCP envelope so the gate's response cap
+    // (tool-result-store.ts) sees exactly what goes on the wire.
+    return await gateToolCall(
       { name, args: args || {} },
       {
         transport: 'http',
-        callerId: auth.agentId ?? auth.clientId ?? null,
+        callerId: sessionCallerId,
         scopes: auth.scopes,
         ...(frameDeclaration !== undefined ? { frameDeclaration } : {}),
       },
-      (env) => securedToolExecution(env.name, env.args, auth),
+      async (env): Promise<Record<string, unknown>> => {
+        const { result, isError } = await securedToolExecution(env.name, env.args, auth);
+        // Hologram MCP envelope detection (task_1778114362909_zp7u): if the tool
+        // returned a HologramMcpResponse, surface the typed channel so REST/MCP
+        // clients can dispatch on content_type without re-parsing JSON.
+        if (!isError && isHologramMcpResponse(result)) {
+          return wrapHologramMcpEnvelope(result) as unknown as Record<string, unknown>;
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+            },
+          ],
+          ...(isError ? { isError: true } : {}),
+        };
+      },
       {
         check: founderGateX402ToolCallCheck,
         classifyResult: (r) =>
-          r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
+          r.isError === true ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
       }
     );
-
-    // Hologram MCP envelope detection (task_1778114362909_zp7u): if the tool
-    // returned a HologramMcpResponse, surface the typed channel so REST/MCP
-    // clients can dispatch on content_type without re-parsing JSON.
-    if (!isError && isHologramMcpResponse(result)) {
-      return wrapHologramMcpEnvelope(result) as unknown as Record<string, unknown>;
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-        },
-      ],
-      ...(isError ? { isError: true } : {}),
-    };
   });
 
   return server;
@@ -1360,6 +1426,7 @@ const httpServer = http.createServer(async (req, res) => {
         status: 'healthy',
         service: SERVICE_NAME,
         version: SERVICE_VERSION,
+        commit: getBuildCommit(),
         uptime: process.uptime(),
         sessions: transports.size,
         tools: tools.length + PluginManager.getTools().length,
@@ -2297,12 +2364,11 @@ const httpServer = http.createServer(async (req, res) => {
         'confidential' | 'public';
       const grantTypes = Array.isArray(body.grant_types)
         ? body.grant_types.filter((grantType): grantType is string => typeof grantType === 'string')
-        : clientType === 'public'
-          ? ['authorization_code', 'refresh_token']
-          : // client_credentials has no human in the flow, so for a
-            // self-registered client it issues public social scopes only
-            // (consentFreeScopes, enforced in oauth21 issueTokenPair).
-            ['authorization_code', 'client_credentials', 'refresh_token'];
+        : defaultRegistrationGrantTypes({
+            clientType,
+            registrarIsLoopback: isLoopbackAddress(registrar),
+            remoteRegistrationAllowed: isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION),
+          });
       const unsupportedGrantTypes = grantTypes.filter(
         (grantType) =>
           !['authorization_code', 'client_credentials', 'refresh_token'].includes(grantType)
@@ -2375,6 +2441,7 @@ const httpServer = http.createServer(async (req, res) => {
           // Muse Gap 9: open registration, approved at once, but public social
           // scopes only until a human consents in a signed-in Studio session.
           selfRegistered: true,
+          ...(grantTypes.includes('client_credentials') ? {} : { noClientCredentials: true }),
         },
         { metrics: getPrometheusMetrics('holoscript') }
       );
@@ -2578,26 +2645,39 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
+      // Release F2/F3: the CSRF token is bound to the signed-in user, read from
+      // the x-studio-consent HEADER only (never the query string, which leaks
+      // into logs, history and Referer), verified without consuming it. No
+      // session: no CSRF token, so no code can follow.
+      const getConsent = verifyStudioConsent(
+        req.headers['x-studio-consent'],
+        clientId,
+        undefined,
+        undefined,
+        { peek: true }
+      );
+      const csrfToken = getConsent
+        ? issueOAuthCsrfToken({
+            clientId,
+            redirectUri,
+            codeChallenge,
+            userId: getConsent.userId,
+            scope: requestedScopes,
+          })
+        : undefined;
+
       if (acceptsHtml(req.headers.accept)) {
-        const requestedScopeDetails = requestedScopes.map((name) => ({
-          name,
-          description: OAUTH2_SCOPES[name as keyof typeof OAUTH2_SCOPES] || 'HoloScript capability',
-        }));
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
+        // Browsers consent in Studio, where the user is signed in (#579). Send
+        // them to Studio's /oauth/consent with the same request parameters.
+        // studio_consent is never carried in a URL (Release F3), so it is
+        // dropped here even if a caller put it in the query.
+        const forward = new URLSearchParams(params);
+        forward.delete('studio_consent');
+        res.writeHead(302, {
+          Location: `${studioConsentUrl()}?${forward.toString()}`,
           ...OAUTH_CONSENT_SECURITY_HEADERS,
         });
-        res.end(
-          renderOAuthConsentPage({
-            clientId,
-            clientName: client.clientName,
-            redirectUri,
-            scopes: requestedScopeDetails,
-            state: state || undefined,
-            codeChallenge,
-            codeChallengeMethod: 'S256',
-          })
-        );
+        res.end();
         return;
       }
 
@@ -2616,6 +2696,15 @@ const httpServer = http.createServer(async (req, res) => {
               state: state || undefined,
               code_challenge: codeChallenge,
               code_challenge_method: 'S256',
+              // Trust & Consent A2: post this back with the signed-in user's
+              // studio_consent; a code is minted for no one else.
+              ...(csrfToken
+                ? { csrf_token: csrfToken }
+                : {
+                    login_required: true,
+                    csrf_note:
+                      'Send the x-studio-consent header (signed-in Studio user) to receive a csrf_token bound to that user.',
+                  }),
               available_scopes: Object.entries(OAUTH2_PUBLIC_SCOPES).map(([name, description]) => ({
                 name,
                 description,
@@ -2623,7 +2712,7 @@ const httpServer = http.createServer(async (req, res) => {
               })),
             },
             instructions:
-              'POST to /oauth/authorize with the same parameters to obtain an authorization code.',
+              'POST to /oauth/authorize with the same parameters, csrf_token, and a studio_consent assertion from a signed-in Studio session to obtain an authorization code.',
             _links: {
               authorize: `${OAUTH_ISSUER}/oauth/authorize`,
               token: `${OAUTH_ISSUER}/oauth/token`,
@@ -2709,33 +2798,90 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      // Muse Gap 9: the human's consent comes from a signed-in Studio session,
-      // vouched for by a short-lived signed assertion bound to this client.
-      // Without one, a self-registered client gets public social scopes only.
-      const consent = verifyStudioConsent(
-        body.studio_consent ?? req.headers['x-studio-consent'],
-        clientId
-      );
+      // Trust & Consent A2 + Release F2/F3: a code is minted only for a
+      // signed-in human (studio_consent from the POST body or the
+      // x-studio-consent header, never the query string), and only with the
+      // CSRF token minted for THAT user and this exact request.
+      const consentAssertion =
+        typeof body.studio_consent === 'string'
+          ? body.studio_consent
+          : req.headers['x-studio-consent'];
+      const peeked = verifyStudioConsent(consentAssertion, clientId, undefined, undefined, {
+        peek: true,
+      });
+      if (!peeked) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId,
+          ip: clientIP,
+          reason: 'authorize refused: no signed-in user session',
+        });
+        res.writeHead(401, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'WWW-Authenticate': 'Session realm="holoscript-studio", error="login_required"',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'login_required',
+            error_description:
+              'Authorization needs a signed-in user. Sign in to Studio and approve this client there.',
+          })
+        );
+        return;
+      }
+      if (
+        !verifyOAuthCsrfToken(body.csrf_token, {
+          clientId,
+          redirectUri,
+          codeChallenge,
+          userId: peeked.userId,
+          scope: requestedScopes,
+        })
+      ) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId,
+          ip: clientIP,
+          reason: 'authorize refused: missing or invalid csrf_token for this user',
+        });
+        res.writeHead(403, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'invalid_request',
+            error_description:
+              'csrf_token missing or invalid for this user and request. GET /oauth/authorize with the x-studio-consent header and post its csrf_token back.',
+          })
+        );
+        return;
+      }
+      // Consume the one-time assertion only now.
+      const consent = verifyStudioConsent(consentAssertion, clientId);
+      if (!consent) {
+        res.writeHead(401, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify({ error: 'login_required', error_description: 'Session assertion already used or expired.' }));
+        return;
+      }
       const code = oauth.createAuthorizationCode({
         clientId,
         redirectUri,
         scopes: requestedScopes,
         codeChallenge,
         codeChallengeMethod: 'S256',
-        ...(consent
-          ? {
-              consent: { userId: consent.userId, grantId: consent.grantId, scopes: consent.scopes },
-            }
-          : {}),
+        consent: { userId: consent.userId, grantId: consent.grantId, scopes: consent.scopes },
       });
-      if (consent) {
-        auditLog.logAuthEvent({
-          event: 'auth_success',
-          clientId,
-          ip: clientIP,
-          reason: `consent granted by Studio user (grant ${consent.grantId})`,
-        });
-      }
+      auditLog.logAuthEvent({
+        event: 'auth_success',
+        clientId,
+        ip: clientIP,
+        reason: `consent granted by Studio user (grant ${consent.grantId})`,
+      });
 
       if (isBrowserForm) {
         res.writeHead(302, {
@@ -2824,6 +2970,164 @@ const httpServer = http.createServer(async (req, res) => {
           refresh_tokens_deleted: durable.refreshTokensDeleted,
         })
       );
+      return;
+    }
+  }
+
+  // GET /oauth/grants, DELETE /oauth/grants/:id -- Connected apps (CVO done
+  // criterion: a signed-in human sees each agent's grant and revokes it).
+  // Auth: a single-use Studio session assertion in x-studio-consent, bound to
+  // STUDIO_GRANTS_AUDIENCE (never an OAuth bearer, so an agent cannot list or
+  // revoke a human's grants). Only the assertion's own user's grants are
+  // visible; another user's grant id is a 404, the same as a missing one.
+  {
+    const grantsDelete =
+      req.method === 'DELETE' ? /^\/oauth\/grants\/([A-Za-z0-9_-]{1,128})$/.exec(url ?? '') : null;
+    if ((url === '/oauth/grants' && req.method === 'GET') || grantsDelete) {
+      const json = (status: number, body: unknown) => {
+        res.writeHead(status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify(body));
+      };
+      const grantsUser = verifyStudioGrantsSession(req.headers['x-studio-consent']);
+      if (!grantsUser) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          ip: clientIP,
+          reason: 'grants: missing or invalid Studio session assertion',
+        });
+        json(401, {
+          error: 'login_required',
+          error_description: 'A signed-in Studio session is required to manage connected apps.',
+        });
+        return;
+      }
+      if (!grantsDelete) {
+        const list = oauth.listGrantsForUser(grantsUser);
+        await Promise.all(list.map((g) => ensureClientHydrated(g.clientId).catch(() => undefined)));
+        json(200, {
+          grants: list.map((g) => {
+            const client = oauth.getClient(g.clientId);
+            return {
+              id: g.grantId,
+              client_id: g.clientId,
+              client_name: client?.clientName ?? null,
+              // No verified-publisher signal exists: every name is the app's own claim.
+              client_name_verified: false,
+              scopes: [...g.scopes],
+              created_at: new Date(g.issuedAt).toISOString(),
+              last_used_at: new Date(g.lastUsedAt).toISOString(),
+            };
+          }),
+        });
+        return;
+      }
+      const target = oauth.getGrant(grantsDelete[1]);
+      if (!target || target.userId !== grantsUser || target.revokedAt) {
+        json(404, { error: 'not_found', error_description: 'No such connected app for this account.' });
+        return;
+      }
+      oauth.revokeGrant(target.grantId);
+      auditLog.logAuthEvent({
+        event: 'token_revoked',
+        clientId: target.clientId,
+        ip: clientIP,
+        reason: `grant ${target.grantId} revoked by its user in Studio`,
+      });
+      res.writeHead(204, { 'Cache-Control': 'no-store' });
+      res.end();
+      return;
+    }
+  }
+  // DELETE /oauth/clients/:id — revoke a client (Trust & Consent A4 / d)
+  {
+    const deleteMatch =
+      req.method === 'DELETE'
+        ? /^\/oauth\/clients\/([A-Za-z0-9_-]{1,128})$/.exec(url ?? '')
+        : null;
+    if (deleteMatch) {
+      const targetClientId = deleteMatch[1];
+      const actorAuth = await authenticateRequest(req);
+      const basic = parseBasicClientCredentials(req.headers.authorization);
+      await ensureClientHydrated(targetClientId);
+      const memClient = oauth.getClient(targetClientId);
+      const durableClient = await oauth2.getClient(targetClientId).catch(() => undefined);
+      const decision = clientDeletionActor({
+        targetClientId,
+        auth: actorAuth,
+        isAdmin: actorAuth.active && authHasAnyScope(actorAuth, CLIENT_REVIEW_SCOPES),
+        boundAgentId: memClient?.agentId ?? durableClient?.agentId,
+        secretMatches:
+          !!basic &&
+          basic.clientId === targetClientId &&
+          !!memClient &&
+          oauth.verifyClientSecret(targetClientId, basic.clientSecret),
+      });
+      if (!decision.ok) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId: targetClientId,
+          ip: clientIP,
+          reason: `client delete refused: ${decision.reason}`,
+        });
+        res.writeHead(decision.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            error: decision.status === 401 ? 'invalid_token' : 'insufficient_scope',
+            error_description:
+              decision.status === 401
+                ? 'Authentication required: the client owner or an admin.'
+                : 'Only the client owner or an admin may delete this client.',
+          })
+        );
+        return;
+      }
+      const existed = !!memClient || !!durableClient;
+      // Memory first (tokens, refresh chains, codes, grants), then the durable
+      // store (client row, its access and refresh rows), then memory again in
+      // case a request rehydrated anything in between.
+      oauth.revokeClient(targetClientId);
+      let durableRevoked = false;
+      try {
+        durableRevoked = await oauth2.revokeClient(targetClientId);
+      } catch (err) {
+        // Trust & Consent C4: the durable row would rehydrate the client on the
+        // next request or deploy, so this is a failure, not a 204.
+        const why = err instanceof Error ? err.message : String(err);
+        console.warn('[oauth] durable client revoke failed:', why);
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId: targetClientId,
+          agentId: actorAuth.agentId,
+          ip: clientIP,
+          reason: `client delete FAILED by ${decision.actor} (${decision.role}): durable=false (${why.slice(0, 200)})`,
+        });
+        res.writeHead(503, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Retry-After': '5',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'temporarily_unavailable',
+            error_description:
+              'The client was revoked in memory but the durable store could not be updated. Retry the DELETE.',
+          })
+        );
+        return;
+      }
+      oauth.revokeClient(targetClientId);
+      auditLog.logAuthEvent({
+        event: 'client_revoked',
+        clientId: targetClientId,
+        agentId: actorAuth.agentId,
+        ip: clientIP,
+        reason: `deleted by ${decision.actor} (${decision.role}); existed=${existed}; durable=${durableRevoked}`,
+      });
+      res.writeHead(204, { 'Cache-Control': 'no-store' });
+      res.end();
       return;
     }
   }
@@ -2963,10 +3267,30 @@ const httpServer = http.createServer(async (req, res) => {
         writeUnauthorizedClient(res, err);
         return;
       }
+      // RFC 6749 §5.2: an unknown, deleted or wrongly-authenticated client is
+      // invalid_client (401), not invalid_grant.
+      if (message.startsWith('unauthorized_client')) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'unauthorized_client', error_description: message }));
+        return;
+      }
+      if (isInvalidClientMessage(message)) {
+        res.writeHead(401, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'WWW-Authenticate': 'Basic realm="holoscript-mcp"',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify({ error: 'invalid_client', error_description: message }));
+        return;
+      }
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(
         JSON.stringify({
-          error: message.startsWith('consent_required') ? 'consent_required' : 'invalid_grant',
+          error: message.startsWith('consent_required')
+            ? 'consent_required'
+            : message.startsWith('invalid_scope')
+              ? 'invalid_scope'
+              : 'invalid_grant',
           error_description: message,
         })
       );
@@ -3921,6 +4245,30 @@ const httpServer = http.createServer(async (req, res) => {
 
       if (method === 'resources/read') {
         const uri = typeof params.uri === 'string' ? params.uri : '';
+        if (isHoloResultUri(uri)) {
+          // A window of a stored large tool result; same caller scope as tools/call below.
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          try {
+            const read = readHoloResult(uri, {
+              scope: resultScope(
+                'http',
+                auth.agentId ?? auth.clientId ?? unwrapped.signingCtx?.signer ?? null
+              ),
+              maxBytes: getMcpServerSizing().responseMaxBytes,
+            });
+            res.end(JSON.stringify({ jsonrpc: '2.0', id, result: read }));
+          } catch (readError) {
+            if (!(readError instanceof HoloResultNotFoundError)) throw readError;
+            res.end(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                id,
+                error: { code: -32002, message: readError.message },
+              })
+            );
+          }
+          return;
+        }
         const result = readSkillResource(uri);
         if (!result) {
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -3991,29 +4339,40 @@ const httpServer = http.createServer(async (req, res) => {
         const { result, isError } = gated;
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            id: body.id,
-            ...(isError
-              ? {
-                  error: {
-                    code: -32000,
-                    message: typeof result === 'string' ? result : JSON.stringify(result),
-                  },
-                }
-              : {
-                  result: {
-                    content: [
-                      {
-                        type: 'text',
-                        text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-                      },
-                    ],
-                  },
-                }),
-          })
+        if (isError) {
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: body.id,
+              error: {
+                code: -32000,
+                message: typeof result === 'string' ? result : JSON.stringify(result),
+              },
+            })
+          );
+          return;
+        }
+        // Response cap (tool-result-store.ts): over MCP_RESPONSE_MAX_BYTES the result is stored
+        // for this caller and replaced by a summary + resource_link (read via resources/read).
+        const { result: envelope } = capMcpToolResult(
+          {
+            content: [
+              {
+                type: 'text',
+                text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+              },
+            ],
+          },
+          {
+            tool: name,
+            scope: resultScope(
+              'http',
+              auth.agentId ?? auth.clientId ?? unwrapped.signingCtx?.signer ?? null
+            ),
+            maxBytes: getMcpServerSizing().responseMaxBytes,
+          }
         );
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: body.id, result: envelope }));
         return;
       }
 

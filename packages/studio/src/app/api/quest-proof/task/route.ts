@@ -5,6 +5,17 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import os from 'node:os';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireFounder } from '@/lib/api-auth';
+import { safeRunId } from '@/lib/questProofCapture';
+
+/** Most of each stream kept while the script runs, and the total after which it is killed. */
+export const TASK_OUTPUT_KEEP_BYTES = 8 * 1024;
+export const TASK_OUTPUT_KILL_BYTES = 1024 * 1024;
+
+function keepTail(current: string, chunk: string): string {
+  const next = current + chunk;
+  return next.length > TASK_OUTPUT_KEEP_BYTES ? next.slice(-TASK_OUTPUT_KEEP_BYTES) : next;
+}
 
 export const runtime = 'nodejs';
 
@@ -12,9 +23,6 @@ interface TaskResult {
   ok: boolean;
   taskId: string | null;
   title: string;
-  seedPath: string;
-  stdout: string;
-  stderr: string;
   exitCode: number | null;
 }
 
@@ -27,16 +35,6 @@ function repoRoot(): string {
     current = parent;
   }
   return path.resolve(process.cwd(), '../..');
-}
-
-function safeRunId(input: unknown): string {
-  const value =
-    typeof input === 'string' && input.trim()
-      ? input.trim()
-      : new Date().toISOString().slice(0, 10);
-  return (
-    value.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 96) || new Date().toISOString().slice(0, 10)
-  );
 }
 
 function cleanText(input: unknown, max: number): string {
@@ -71,11 +69,18 @@ async function runAddTasks(seedPath: string): Promise<{
     const timeout = setTimeout(() => {
       child.kill('SIGTERM');
     }, 60000);
+    let seen = 0;
+    const onChunk = (chunk: Buffer) => {
+      seen += chunk.byteLength;
+      if (seen > TASK_OUTPUT_KILL_BYTES) child.kill('SIGTERM');
+    };
     child.stdout.on('data', (chunk: Buffer) => {
-      stdout += chunk.toString('utf8');
+      onChunk(chunk);
+      stdout = keepTail(stdout, chunk.toString('utf8'));
     });
     child.stderr.on('data', (chunk: Buffer) => {
-      stderr += chunk.toString('utf8');
+      onChunk(chunk);
+      stderr = keepTail(stderr, chunk.toString('utf8'));
     });
     child.on('close', (exitCode) => {
       clearTimeout(timeout);
@@ -87,7 +92,7 @@ async function runAddTasks(seedPath: string): Promise<{
 async function fileTask(raw: Record<string, unknown>): Promise<TaskResult> {
   const runId = safeRunId(raw.runId);
   const message = cleanText(raw.message, 1200);
-  if (!message) throw new Error('Message is required.');
+  if (!message) throw new Error(INVALID);
 
   const pageId = cleanText(raw.pageId, 160) || 'quest-proof-dashboard';
   const sourceUrl = cleanText(raw.url, 1200);
@@ -141,6 +146,10 @@ async function fileTask(raw: Record<string, unknown>): Promise<TaskResult> {
   );
 
   const result = await runAddTasks(seedPath);
+  if (result.exitCode !== 0) {
+    // Details stay server-side; the response carries only a generic outcome.
+    console.error('[quest-proof/task] add-tasks script exit', result.exitCode, result.stderr.slice(-2000));
+  }
   const combined = `${result.stdout}\n${result.stderr}`;
   const taskId = extractTaskId(combined);
 
@@ -148,45 +157,42 @@ async function fileTask(raw: Record<string, unknown>): Promise<TaskResult> {
     ok: result.exitCode === 0 || Boolean(taskId),
     taskId,
     title,
-    seedPath,
-    stdout: result.stdout.slice(-4000),
-    stderr: result.stderr.slice(-4000),
     exitCode: result.exitCode,
   };
 }
 
-function objectFromQuery(req: NextRequest): Record<string, unknown> {
-  return {
-    runId: req.nextUrl.searchParams.get('runId'),
-    message: req.nextUrl.searchParams.get('message'),
-    pageId: req.nextUrl.searchParams.get('pageId'),
-    url: req.nextUrl.searchParams.get('url'),
-    userAgent: req.nextUrl.searchParams.get('userAgent'),
-  };
+const INVALID = 'Message is required.';
+
+function failure(error: unknown) {
+  const known = error instanceof Error && error.message === INVALID;
+  if (!known) console.error('[quest-proof/task] failed:', error);
+  return NextResponse.json(
+    { ok: false, error: known ? INVALID : 'Failed to file task.' },
+    { status: known ? 400 : 500 }
+  );
 }
 
 export async function POST(req: NextRequest) {
+  // Writes a seed file and runs a script from the server's ai-ecosystem checkout
+  // that files a task on the founder's board: founder-only (401/403, nothing run).
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
   try {
     const raw = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     return NextResponse.json(await fileTask(raw));
   } catch (error) {
-    return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Failed to file task.' },
-      { status: 400 }
-    );
+    return failure(error);
   }
 }
 
 export async function GET(req: NextRequest) {
-  try {
-    if (req.nextUrl.searchParams.get('record') !== '1') {
-      return NextResponse.json({ ok: true, ready: true });
-    }
-    return NextResponse.json(await fileTask(objectFromQuery(req)));
-  } catch (error) {
+  const auth = await requireFounder(req);
+  if (auth instanceof NextResponse) return auth;
+  if (req.nextUrl.searchParams.get('record') === '1') {
     return NextResponse.json(
-      { ok: false, error: error instanceof Error ? error.message : 'Failed to file task.' },
-      { status: 400 }
+      { ok: false, error: 'Filing is POST-only' },
+      { status: 405, headers: { Allow: 'POST' } }
     );
   }
+  return NextResponse.json({ ok: true, ready: true });
 }
