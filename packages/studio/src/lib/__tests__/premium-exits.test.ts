@@ -288,22 +288,17 @@ describe('Studio relays of HoloMesh answers (doors audit)', () => {
     expect(stand.state.calls).toHaveLength(0);
   });
 
-  it('POST /api/holomesh/entry/:id/purchase: an answer released to the server key reaches the visitor as a teaser', async () => {
-    // Read this next to src/lib/api-public-paths.ts. This test calls the route's
-    // POST DIRECTLY — it imports neither src/proxy.ts nor the allowlist — so it
-    // never proved the door was open, and the allowlist entry that cited it as
-    // the reason an anonymous x402 purchase had to stay reachable was citing
-    // cover that does not exist. The edge now refuses an anonymous purchase; a
-    // buyer arrives with their own key. What this test still proves is
-    // unchanged and worth keeping: whatever came back because OUR key asked for
-    // it is cut to a teaser before it reaches the caller.
-    const params = { params: Promise.resolve({ id: 'sp-long' }) };
+  it('POST /api/holomesh/entry/:id/purchase: no caller key is refused; the caller own key gets the text', async () => {
+    // Until 2026-10-15 a keyless purchase went up under OUR key (the founder
+    // paid) and the answer was cut to a teaser. Now a keyless purchase never
+    // leaves Studio: 404 no_holomesh_agent. A buyer arrives with its own key.
     const anonymous = await purchasePost(
       visitor('/api/holomesh/entry/sp-long/purchase', { method: 'POST', body: '{}' }),
-      params
+      { params: Promise.resolve({ id: 'sp-long' }) }
     );
+    expect(anonymous.status).toBe(404);
     const anonymousBody = await anonymous.json();
-    expect(JSON.stringify(anonymousBody)).toContain('sp-long');
+    expect(anonymousBody.code).toBe('no_holomesh_agent');
     expectNoPaidText(anonymousBody);
 
     const own = await purchasePost(

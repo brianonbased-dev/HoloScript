@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { isNoHoloMeshAgentResponse } from '@/lib/holomesh/noAgent';
 
 /**
  * ModePanel — Studio sidebar: team mode switcher (small toggle).
@@ -25,6 +27,9 @@ interface ModeData {
 }
 
 export function ModePanel() {
+  // 404 no_holomesh_agent from the mode POST: switching needs the caller's
+  // own HoloMesh agent.
+  const [needsAgent, setNeedsAgent] = useState(false);
   const [data, setData] = useState<ModeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +78,10 @@ export function ModePanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: newMode }),
       });
+      if (await isNoHoloMeshAgentResponse(res)) {
+        setNeedsAgent(true);
+        return;
+      }
       if (!res.ok) throw new Error(`mode switch ${res.status}`);
       await fetchMode();
     } catch (e: any) {
@@ -129,6 +138,14 @@ export function ModePanel() {
         </div>
         {switching && <div className="text-[8px] text-studio-muted mt-1">Switching…</div>}
         {error && <div className="text-[8px] text-red-400 mt-1">{error}</div>}
+        {needsAgent && (
+          <div data-testid="join-holomesh" className="text-[9px] text-studio-muted mt-1">
+            No HoloMesh agent is linked to your account yet.{' '}
+            <Link href="/holomesh" className="text-studio-accent underline">
+              Join HoloMesh
+            </Link>
+          </div>
+        )}
       </div>
 
       <div className="text-[7px] text-studio-muted pt-1 border-t border-studio-border/30">

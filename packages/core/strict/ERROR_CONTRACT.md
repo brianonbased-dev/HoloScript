@@ -8,6 +8,11 @@ This contract is implemented in `holo_strict.mjs` as a layer over the existing
 tokenizer and parser, so it ships without a grammar rewrite and can be absorbed
 into the parser later keeping the same codes.
 
+`compileToWASM` takes a composition or source text. Source is parsed with
+`parseHolo` first and a failed parse throws (garbage such as `{{{@@@` used to
+compile to the same artifact as a real composition); a value that is neither a
+string nor a composition object throws a `TypeError` naming `HS1009`.
+
 ## Two modes, both documented
 
 | Mode | Returns | For |
@@ -19,13 +24,17 @@ Both modes run the same checks and report the same diagnostics at the same
 places; they differ only in what they return. Tolerant never throws and never
 hides a diagnostic. Strict never returns an AST it had to guess at.
 `parseHolo` keeps its current signature so nothing breaks; `parseHoloStrict`
-is the name that changes behaviour, and today it is the one that fabricates
-trait nodes named `"@"` and `""` from noise.
+is the name that changes behaviour. (It used to fabricate trait nodes named
+`"@"` and `""` from noise; it now throws on such input, e.g. `{{{@@@`, but
+throwing is not a diagnostic, so `parseStrict` remains the contract.)
 
 Both take an optional second argument:
 
 - `knownTraits` — extra trait names for that call, for vocabularies core does
   not ship (a plugin's, a host's).
+- `consentRules` — the caller's `.hs` `render_likeness` result: for each grant,
+  the likeness sources the rule said yes to (`{ "grant_ava": ["face", "voice"] }`).
+  See `HS1011`.
 - `unknownTraits: "error"` — make `HS1006` an error, for a caller that wants
   invented traits refused (for example generated code checked against a closed
   vocabulary). The default is `"warning"`.
@@ -56,6 +65,7 @@ minor release; renaming or removing one is a major release.
 | `HS1008` | warning | The parser's own warning, carried through | — |
 | `HS1009` | error | Source was not a string | `parse(42)` |
 | `HS1010` | error | The tokenizer or parser threw | — |
+| `HS1011` | error | A likeness source (face, voice, body) without the `.hs` `render_likeness` rule's yes | `object "Ava" { @voice_print(grant: "g") }` |
 
 `HS1003` works from a deliberately short denylist of tokens that cannot begin a
 top-level item in any reading of the grammar. A token missing from that list is
@@ -84,36 +94,68 @@ restores the refusal for a caller who wants it.
 
 ### What `HS1006` checks against
 
-A trait is known if it is in any vocabulary core publishes, or declared where
-it is used:
+One function decides, for every surface: core's `isKnownTrait`
+(`packages/core/src/validation/KnownTraits.ts`, exported from `@holoscript/core`
+and `@holoscript/core/parser`). This layer, the canonical validator behind
+`holoscript validate`, MCP's `validate_holoscript` and `hs_diagnostics`, the
+language server, the linter and the `.hsplus` parser's `HSP001`, core's `parseHolo` (as a `warnings` entry with `code: "HS1006"`; the `HoloCompositionParser` class itself does not add it, so the canonical validator does not report it twice) and the legacy `HoloScriptValidator` (a `severity: "warning"` entry) all use it. A
+trait is known if it is in any vocabulary core publishes, or declared where it
+is used:
 
 1. `VR_TRAITS` (`@holoscript/core/constants`).
 2. The trait registry (`@holoscript/core/traits/trait-registry.json`).
-3. `buildKnownTraitSet()` — the vocabulary core's parser, language server and
-   linter share (VR_TRAITS plus Native2D panel, code-graph and runtime
-   directive names).
-4. `DERIVED_TRAIT_SCHEMAS` — every trait declared by a `.holo` `@trait { ... }`
-   file under `packages/core/src/traits`.
+3. `buildKnownTraitSet()`: VR_TRAITS plus Native2D panel, code-graph and
+   runtime directive names.
+4. The names of `DERIVED_TRAIT_SCHEMAS`: every trait declared by a `.holo`
+   `@trait { ... }` file under `packages/core/src/traits`.
 5. Declared in the same source: `@trait { name: "@x" }` or `trait X { ... }`.
    `@trait` itself is the declaration form, not a use.
 6. Passed by the caller in `knownTraits`.
 
 Names compare across spellings: `@fooBar`, `@foo-bar` and `@foo_bar` are the
-same trait. 3 and 4 live only on core's main entry, which is slow to load, so
-the layer loads them once, the first time 1 and 2 miss a name: the first
-source with such a trait pays a one-time load (measured at 6–8 s with a cold
-disk cache, about 1 s warm). Without it, files using Native2D panel traits or
-core's own `@trait` definitions would get false `HS1006` warnings.
+same trait. Every surface checks parsed trait uses, not raw text, so an `@name`
+in a comment is not a trait use. On the canonical path `HS1006` is a warning
+and never changes the verdict or an exit code. On `.hsplus`, `HS1006` is the
+authoritative report: the parser's own `HSP001` "Unknown directive" is not
+repeated for the same `@`.
 
-**If no vocabulary can be loaded, `HS1006` is skipped** and every other check
-still runs. `coreInfo()` says which vocabularies were loaded (`traitSources`)
-and whether the check is on (`traitCheck`); the corpus test asserts all four
-load inside this repo, so the check cannot switch itself off unnoticed here.
+An unknown trait (`HS1006`) is not the `.hs` `@unknown` value: a struct field
+that may be unknown, read with `load(record.field) ?? fallback`
+(docs/spec/native-machine-v34.md). They share a word, not a meaning.
+
+**If an older core without `isKnownTrait` is installed**, this layer falls
+back to loading the lists above itself, and if none can be loaded `HS1006` is
+skipped and every other check still runs. `coreInfo()` says which source was
+used (`traitSources`) and whether the check is on (`traitCheck`); the corpus
+test asserts the shared function is used inside this repo.
 
 When the parser has read a trait name differently from how it is written,
 `HS1006` says so, as a warning, and names the written form: that is a parser
 defect, not a fault in the source. (The first known case, `@2d_canvas` read as
 a trait named `2`, is fixed: the parser now reads digit-leading names whole.)
+
+### `HS1011`: claim, then rule, then render
+
+The likeness chain from `vision/avatar-format-breakdown.md` (known gaps 1 and 2):
+the composition claims a grant, the `.hs` `render_likeness` rule decides, and
+no trait renders on its own say-so. Three traits render a real person's
+likeness: `@face_mesh` (face), `@voice_print` (voice) and `@body_scan` (body).
+Each one is refused, at its `@`, unless all of these hold:
+
+1. The trait itself holds no grant. `@voice_print(grant: "g")` is refused
+   even when the rule said yes to `g`: that is fault #1, the voice going around
+   the rule.
+2. Its object claims a grant through the existing consent trait,
+   `@consent_gate(grant: "g")` (`ConsentGateTrait.ts`).
+3. The caller's `consentRules` says the rule returned yes for `g` and that
+   source. The strict layer does not run `.hs`; the caller evaluates
+   `render_likeness` and passes the yes-set, the same seam as `knownTraits`.
+   With no `consentRules`, every likeness source is refused.
+
+It is an error, so strict mode refuses the file. Tolerant mode reports the
+same diagnostic and keeps the AST, as for every code. It is a new code rather
+than a reuse of `HS1006` (a vocabulary warning, settled 2026-10-07) or of
+`HS011` (a core legacy-parser code, outside this contract's `HS10xx` range).
 
 ## How it is enforced
 
@@ -148,6 +190,11 @@ be compiled this way later.
 
 ## Known gaps
 
+- **`HS1011` is enforced by this layer only.** Core's canonical validator
+  (`holoscript validate`, MCP `validate_holoscript`, the LSP) does not run it
+  yet and accepts the `invalid/likeness-*` files;
+  `src/validation/__tests__/rejection-corpus.test.ts` lists them as
+  strict-layer-only and fails once the canonical path refuses them.
 - **Custom block keywords are accepted.** `blorp Thing { position: [0, 1, 0] }`
   passes: core's grammar accepts any word as the keyword of a domain block
   (`HoloDomainType` includes `'custom'`, "any user-defined block keyword"), so

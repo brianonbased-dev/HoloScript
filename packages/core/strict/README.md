@@ -13,6 +13,7 @@ await parseStrict('{{{@@@');                               // { ok: false, diagn
 await parseTolerant(src);                                  // always ok, keeps the AST, same diagnostics
 await parseStrict(src, { knownTraits: ['my_plugin_trait'] });  // add a vocabulary core does not ship
 await parseStrict(src, { unknownTraits: 'error' });             // refuse unknown traits too
+await parseStrict(src, { consentRules: { grant_ava: ['face', 'voice'] } }); // .hs render_likeness yes-set (HS1011)
 ```
 
 Every diagnostic has a code, a message and a real 1-based line and column.

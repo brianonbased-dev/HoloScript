@@ -1167,21 +1167,40 @@ export default function CreatePage() {
 
     // ── 3. sessionStorage landing prompt ──────────────────────────────────
     // Written by the home page / onboarding flow before redirecting to /create.
-    // Cleared immediately so it doesn't re-seed on the next mount.
-    // Phase-2: wire landingPrompt from useCreateModeStore() into BrittneyChatPanel.
+    // Cleared by BrittneyChatPanel once handed over (see below).
+    // P1-1: the seeded prompt is handed to BrittneyChatPanel (it prefills its
+    // input from landingPrompt) and the Brittney dock is opened so it is visible.
+    // Sources: sessionStorage (signed-in path) or ?prompt= (the sign-in
+    // callbackUrl the home page builds for signed-out users).
+    let seededPrompt = '';
     try {
       const stored = sessionStorage.getItem('studio.landing.prompt');
       if (stored) {
-        setLandingPrompt(stored);
-        sessionStorage.removeItem('studio.landing.prompt');
+        // Not removed here: BrittneyChatPanel removes it once it has actually
+        // handed the prompt over (signed in), so it survives a sign-in round-trip.
+        seededPrompt = stored;
       }
     } catch {
-      // sessionStorage may be unavailable (SSR, private browsing limits) — silent
+      // sessionStorage may be unavailable (SSR, private browsing limits) - silent
     }
+    if (!seededPrompt) {
+      const promptParam = searchParams.get('prompt');
+      if (promptParam && promptParam.trim()) seededPrompt = promptParam.trim();
+    }
+    if (seededPrompt) setLandingPrompt(seededPrompt);
 
-    // ── 4. Brittney is on the left rail in this layout; close the right-rail
-    //       instance if the store defaulted it open. ─────────────────────────
-    setChatOpen(false);
+    // 4. Brittney is on the left rail in this layout; close the right-rail
+    //    instance if the store defaulted it open - unless a landing prompt was
+    //    just handed over, in which case open the dock so the user sees it.
+    //    (React StrictMode re-runs this effect in dev after the seed was already
+    //    consumed, so also honour a prompt already handed to the store.)
+    setChatOpen(
+      Boolean(
+        seededPrompt ||
+          useCreateModeStore.getState().landingPrompt ||
+          searchParams.get('chat') === '1'
+      )
+    );
 
     // ── 5. Part mode — auto-open parametric sliders + printability report. ──
     const resolvedMode =

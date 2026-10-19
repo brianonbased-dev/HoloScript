@@ -4,6 +4,8 @@
  */
 
 import { HoloScriptCodeParser, type ParseResult } from './HoloScriptCodeParser';
+import { findUnknownTraits, UNKNOWN_TRAIT_CODE } from './validation/KnownTraits';
+import { MAX_UNKNOWN_TRAIT_WARNINGS } from './parser/HoloCompositionParser';
 
 export interface ValidationError {
   line: number;
@@ -87,6 +89,27 @@ export class HoloScriptValidator {
     // Parser warnings are plain strings with no position.
     for (const warning of result.warnings) {
       errors.push({ line: 1, column: 1, message: warning, severity: 'warning' });
+    }
+
+    // HS1006 (packages/core/strict/ERROR_CONTRACT.md): a trait no vocabulary core ships knows is
+    // a warning, never an error, through the same check every other surface uses (KnownTraits.ts).
+    const unknown = findUnknownTraits(result.ast);
+    for (const use of unknown.slice(0, MAX_UNKNOWN_TRAIT_WARNINGS)) {
+      const owner = use.owner as { line?: number } | undefined;
+      errors.push({
+        line: atLeastOne(owner?.line),
+        column: 1,
+        message: `Unknown trait "@${use.name}" (${UNKNOWN_TRAIT_CODE}).`,
+        severity: 'warning',
+      });
+    }
+    if (unknown.length > MAX_UNKNOWN_TRAIT_WARNINGS) {
+      errors.push({
+        line: 1,
+        column: 1,
+        message: `${unknown.length - MAX_UNKNOWN_TRAIT_WARNINGS} more unknown traits not listed (${UNKNOWN_TRAIT_CODE}; ${unknown.length} in total).`,
+        severity: 'warning',
+      });
     }
 
     // Note: Directive whitelist validation (@trait, @state, etc.) was intentionally

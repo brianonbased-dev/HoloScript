@@ -187,7 +187,11 @@ composition "ThreeVoicesPerformance" {
       emotion_directives: true
     }
 
+    // Lips follow this performer's synthesized TTS voice (@emotional_voice), not a live mic:
+    // a voice likeness, so the object claims a grant (see examples/consent-rules.json).
+    @consent_gate(grant: "grant_three_voices_anger")
     @lip_sync {
+      source: "text_to_speech"
       method: "fft"
       blendShapeSet: "arkit52"
       smoothing: 0.45
@@ -242,7 +246,11 @@ composition "ThreeVoicesPerformance" {
       emotion_directives: true
     }
 
+    // Lips follow this performer's synthesized TTS voice (@emotional_voice), not a live mic:
+    // a voice likeness, so the object claims a grant (see examples/consent-rules.json).
+    @consent_gate(grant: "grant_three_voices_grief")
     @lip_sync {
+      source: "text_to_speech"
       method: "ml_phoneme"
       blendShapeSet: "arkit52"
       smoothing: 0.88
@@ -302,7 +310,11 @@ composition "ThreeVoicesPerformance" {
       emotion_directives: true
     }
 
+    // Lips follow this performer's synthesized TTS voice (@emotional_voice), not a live mic:
+    // a voice likeness, so the object claims a grant (see examples/consent-rules.json).
+    @consent_gate(grant: "grant_three_voices_wonder")
     @lip_sync {
+      source: "text_to_speech"
       method: "fft"
       blendShapeSet: "arkit52"
       smoothing: 0.30

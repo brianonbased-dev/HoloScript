@@ -370,8 +370,11 @@ describe('GRPORewardOrchestrator HoloScript-check registration (flag-gated, defa
   });
 });
 
-describe('a trait registry that cannot be read is said, not silent (claude6 P3 e)', () => {
-  it('warns once and names the problem in every receipt with an unknown trait', async () => {
+describe('a trait registry this package cannot read does not change the grade', () => {
+  // Unknown-ness comes from core's one known-trait check (isKnownTrait, KnownTraits.ts), which
+  // carries trait-registry.json itself, the same set as HS1006 on every surface. A failed local
+  // read of the registry file therefore no longer turns registry-only traits into unknown ones.
+  it('a registry-only trait still grades clean when the local registry read fails', async () => {
     vi.resetModules();
     vi.doMock('module', async (importOriginal) => {
       const real = await importOriginal<typeof import('module')>();
@@ -385,12 +388,10 @@ describe('a trait registry that cannot be read is said, not silent (claude6 P3 e
       const fresh = await import('../HoloScriptCheckRewards');
       // agent_badge is known only through the registry.
       const source = PROGRAM.replace('@grabbable', '@agent_badge');
-      for (let i = 0; i < 2; i++) {
-        const receipt = fresh.gradeHoloScriptCompletion(source);
-        expect(receipt.rung).toBe('unknown-traits');
-        expect(receipt.detail).toContain('the trait registry could not be read');
-      }
-      expect(warn).toHaveBeenCalledTimes(1);
+      expect(fresh.gradeHoloScriptCompletion(source).rung).toBe('clean');
+      expect(fresh.gradeHoloScriptCompletion(PROGRAM.replace('@grabbable', '@nope_xyz')).rung).toBe(
+        'unknown-traits'
+      );
     } finally {
       warn.mockRestore();
       vi.doUnmock('module');

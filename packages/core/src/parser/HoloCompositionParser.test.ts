@@ -6,6 +6,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { parseHolo, parseHoloStrict, tokenizeHoloSource } from './HoloCompositionParser';
 import { generateHoloSource } from './HoloCompositionGenerator';
+import { HoloScriptValidator } from '../HoloScriptValidator';
+import { compileToWASM } from '../compiler/WASMCompiler';
+import { getConfabulationValidator } from '../compiler/identity/ConfabulationValidator';
 
 describe('HoloCompositionParser', () => {
   describe('Basic Composition', () => {
@@ -1757,5 +1760,77 @@ describe('Trait marker with no name (HS1005)', () => {
       expectOnlyWordNames(source);
       expect(() => parseHoloStrict(source)).toThrow(MESSAGE);
     });
+  });
+});
+
+// Outside re-grade of the published @holoscript/core@8.9.0: each test is named for the exact
+// input the grader runs. A fix counts only when that input stops firing.
+describe('regrade 8.9.0: exact grader inputs', () => {
+  const failsWithDiagnostic = (value: unknown) => {
+    let result: ReturnType<typeof parseHolo> | undefined;
+    expect(() => {
+      result = parseHolo(value as string);
+    }).not.toThrow();
+    expect(result!.success).toBe(false);
+    expect(result!.errors.length).toBeGreaterThan(0);
+    expect(result!.errors[0].code).toBe('HS1009');
+    expect(typeof result!.errors[0].message).toBe('string');
+  };
+
+  it("parseHolo('{{{@@@')", () => {
+    const result = parseHolo('{{{@@@');
+    expect(result.success === false || result.errors.length > 0).toBe(true);
+    expect(result.success).toBe(false);
+  });
+
+  it("parseHolo('')", () => {
+    const result = parseHolo('');
+    expect(result.success).toBe(false);
+    expect(result.errors[0].code).toBe('HS1001');
+    // The empty implicit composition is still returned so editors keep a shape.
+    expect(result.ast?.objects).toEqual([]);
+    expect(parseHolo('  \n// only a comment\n/* and a block */\n').success).toBe(false);
+  });
+
+  it('parseHolo(123)', () => {
+    failsWithDiagnostic(123);
+  });
+
+  it('parseHolo(null)', () => {
+    failsWithDiagnostic(null);
+    for (const value of [undefined, {}, ['object Cube {}'], true, 0, Symbol('s'), () => 1, 1n]) {
+      failsWithDiagnostic(value);
+    }
+  });
+
+  it("new HoloScriptValidator().validate('{{{@@@')", () => {
+    const errors = new HoloScriptValidator().validate('{{{@@@');
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors[0].severity).toBe('error');
+  });
+
+  it('unknown traits are rejected', () => {
+    const guard = getConfabulationValidator();
+    expect(guard.isKnownTrait('fakeTraitXyz')).toBe(false);
+    const parsed = parseHolo('object "Cube" @fakeTraitXyz { position: [0, 1, 0] }');
+    const report = guard.validateComposition(parsed.ast!);
+    expect(
+      [...report.errors, ...report.warnings].some((d) => d.code === 'CONFAB_UNKNOWN_TRAIT')
+    ).toBe(true);
+  });
+
+  it('compileToWASM output differs for garbage vs valid input', () => {
+    const garbage = parseHolo('{{{@@@');
+    const valid = parseHolo('object "Cube" { position: [0, 1, 0] }');
+    expect(JSON.stringify(compileToWASM(garbage.ast!))).not.toBe(
+      JSON.stringify(compileToWASM(valid.ast!))
+    );
+  });
+
+  it("parseHolo('object Cube { position: [0, 1, 0] }')", () => {
+    const result = parseHolo('object Cube { position: [0, 1, 0] }');
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.ast?.objects).toHaveLength(1);
   });
 });

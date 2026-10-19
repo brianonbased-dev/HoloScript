@@ -270,6 +270,9 @@ interface Token {
   column: number;
 }
 
+/** Brackets and `@`: input made only of these and other symbols is not a program. */
+const STRAY_PUNCTUATION = new Set(['{', '}', '[', ']', '(', ')', '@']);
+
 export class HoloScriptCodeParser {
   private errors: ParseError[] = [];
   private warnings: string[] = [];
@@ -851,6 +854,29 @@ export class HoloScriptCodeParser {
         // Error occurred - try to recover
         this.synchronize();
       }
+    }
+
+    // parseDeclaration() silently skips tokens it cannot start a declaration with, so input
+    // made only of brackets and symbols (e.g. `{{{@@@`) parsed to nothing with no error and
+    // validated clean. Input holding any word, string or number is left to the grammar.
+    const stray = this.tokens.find(
+      (token) => token.type === 'punctuation' && STRAY_PUNCTUATION.has(token.value)
+    );
+    if (
+      this.errors.length === 0 &&
+      stray &&
+      this.tokens.every(
+        (token) =>
+          token.type === 'newline' || token.type === 'punctuation' || token.type === 'operator'
+      )
+    ) {
+      this.addError({
+        line: stray.line,
+        column: stray.column,
+        message: `Unexpected '${stray.value}': source holds only symbols, no declaration`,
+        code: 'HS011',
+        severity: 'error',
+      });
     }
 
     return nodes;

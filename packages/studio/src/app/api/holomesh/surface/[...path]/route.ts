@@ -3,7 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { fetchHoloMeshJson } from '../../../../../lib/holomesh-proxy';
+import { fetchHoloMeshJson, fetchHoloMeshJsonSelf } from '../../../../../lib/holomesh-proxy';
 import {
   asBoolean,
   asNumber,
@@ -52,11 +52,14 @@ function resolveCompositionsDir(): string {
 }
 
 async function injectSelfProfile(code: string, req: NextRequest): Promise<string> {
-  const [me, profile, agentsPayload] = await Promise.all([
-    fetchHoloMeshJson<MePayload>('/api/holomesh/me', req),
-    fetchHoloMeshJson<ProfilePayload>('/api/holomesh/profile', req),
-    fetchHoloMeshJson<AgentsPayload>('/api/holomesh/agents?limit=500', req),
+  // The caller's own agent only; never Studio's server-key agent ("Founder").
+  // No key of their own: serve the composition without any agent filled in.
+  const [me, profile] = await Promise.all([
+    fetchHoloMeshJsonSelf<MePayload>('/api/holomesh/me', req),
+    fetchHoloMeshJsonSelf<ProfilePayload>('/api/holomesh/profile', req),
   ]);
+  if (!me || !profile) return code;
+  const agentsPayload = await fetchHoloMeshJson<AgentsPayload>('/api/holomesh/agents?limit=500', req);
 
   if (!me.ok || !me.data?.success) return code;
 

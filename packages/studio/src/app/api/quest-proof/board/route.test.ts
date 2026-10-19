@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Founder gate (#607 follow-up a): these routes call requireFounder first.
+const authState = vi.hoisted(() => ({ res: null as unknown }));
+vi.mock('@/lib/api-auth', () => ({
+  requireFounder: async () => authState.res ?? { user: { id: 'user_founder' } },
+}));
+
 /**
  * GET /api/quest-proof/board — Founder Console board aggregation.
  *
@@ -24,6 +30,7 @@ describe('board GET — founder console board proxy', () => {
     vi.doMock('@/lib/auth', () => ({ authOptions: {} }));
   });
   afterEach(() => {
+    authState.res = null;
     process.env.HOLOMESH_TEAM_ID = ORIG_TEAM;
     process.env.HOLOMESH_API_KEY = ORIG_KEY;
     vi.unstubAllGlobals();
@@ -87,17 +94,14 @@ describe('board GET — founder console board proxy', () => {
 
   it('401s when caller is unauthenticated', async () => {
     vi.resetModules();
-    vi.doMock('next-auth', () => ({
-      getServerSession: vi.fn(async () => null),
-    }));
-    vi.doMock('@/lib/auth', () => ({ authOptions: {} }));
+    const { NextResponse } = await import('next/server');
+    authState.res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
     const GET = await loadGET();
     const res = await GET(req());
     expect(res.status).toBe(401);
-    const json = await res.json();
-    expect(json.ok).toBe(false);
-    expect(json.board).toBeNull();
-    expect(json.error).toContain('Unauthorized');
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('returns 503 when HOLOMESH_TEAM_ID is missing', async () => {
@@ -113,6 +117,6 @@ describe('board GET — founder console board proxy', () => {
 
     expect(res.status).toBe(503);
     expect(json.ok).toBe(false);
-    expect(json.error).toContain('HOLOMESH_TEAM_ID');
+    expect(json.error).toContain('not configured');
   });
 });

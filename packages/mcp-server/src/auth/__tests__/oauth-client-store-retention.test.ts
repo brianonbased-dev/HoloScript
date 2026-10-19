@@ -649,7 +649,10 @@ describe('the Postgres retirement SQL keeps every protective clause', () => {
       params.push(values ?? []);
       return { rows: [], rowCount: 0 };
     });
-    return { store: new PostgresTokenStore({ query } as unknown as Pool), sql, params };
+    return { store: new PostgresTokenStore(
+      // pg.Pool also lends a client (the lock-bounded DDL transaction uses one).
+      { query, connect: async () => ({ query, release: () => undefined }) } as unknown as Pool
+    ), sql, params };
   }
 
   it('retires only rows with no token of any kind, idle and registered before the cutoff, re-checked at delete', async () => {
@@ -687,7 +690,10 @@ describe('the Postgres retirement SQL keeps every protective clause', () => {
       rateLimit: 60,
     });
 
-    const [schema, touch, upsert] = sql;
+    // The lock-bounded no_client_credentials DDL runs as its own transaction.
+    const [schema, touch, upsert] = sql.filter(
+      (q) => !/^(BEGIN|COMMIT|ROLLBACK|SET LOCAL lock_timeout)/.test(q) && !/no_client_credentials BOOLEAN/.test(q)
+    );
     expect(schema).toMatch(
       /ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS last_used_at BIGINT NOT NULL DEFAULT/
     );
@@ -704,7 +710,10 @@ describe('the Postgres store does not cache a failed schema step', () => {
       .fn()
       .mockRejectedValueOnce(new Error('connect ECONNREFUSED 127.0.0.1:5432'))
       .mockResolvedValue({ rows: [{ count: 7 }], rowCount: 1 });
-    const store = new PostgresTokenStore({ query } as unknown as Pool);
+    const store = new PostgresTokenStore(
+      // pg.Pool also lends a client (the lock-bounded DDL transaction uses one).
+      { query, connect: async () => ({ query, release: () => undefined }) } as unknown as Pool
+    );
 
     await expect(store.countClients()).rejects.toThrow('ECONNREFUSED');
     await expect(store.countClients()).resolves.toBe(7);
