@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const { callMcpToolMock } = vi.hoisted(() => ({ callMcpToolMock: vi.fn() }));
-vi.mock('@/lib/services/absorb-client', () => ({
+vi.mock('@/lib/services/absorb-client', async (importOriginal) => ({
+  mcpClearlyDidNotRun: (await importOriginal<typeof import('@/lib/services/absorb-client')>())
+    .mcpClearlyDidNotRun,
   callMcpTool: callMcpToolMock,
   ABSORB_BASE: 'https://absorb.test',
   ABSORB_API_KEY: 'service-key',
@@ -24,7 +26,12 @@ describe('/api/daemon/absorb HTTP fallback auth', () => {
   beforeEach(() => {
     seenAuth = null;
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    callMcpToolMock.mockResolvedValue({ ok: false, data: null, error: 'MCP 406' });
+    callMcpToolMock.mockResolvedValue({
+      ok: false,
+      data: null,
+      error: 'MCP 406',
+      failure: 'http_4xx',
+    });
     vi.stubGlobal(
       'fetch',
       vi.fn(async (_u: string, init: RequestInit) => {
