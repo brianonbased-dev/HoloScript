@@ -9,6 +9,7 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import * as fs from 'fs';
 import * as path from 'path';
+import { validateCanonicalSource, UNKNOWN_TRAIT_CODE } from '@holoscript/core';
 
 // =============================================================================
 // TYPES
@@ -498,35 +499,48 @@ export async function handleIDETool(name: string, args: Record<string, unknown>)
       const diagnostics: Diagnostic[] = [];
       const lines = code.split('\n');
 
-      lines.forEach((line, i) => {
-        const traitMatches = line.matchAll(/@(\w+)/g);
-        for (const match of traitMatches) {
-          const trait = match[1];
-          const allTraitNames = Object.values(allTraits).flat();
-          if (!allTraitNames.includes(trait)) {
-            diagnostics.push({
-              file: (args.filePath as string) || '<input>',
-              line: i + 1,
-              column: match.index! + 1,
-              severity: 'warning',
-              message: `Unknown trait: @${trait}`,
-              code: 'unknown-trait',
-              quickFixes: [
-                {
-                  title: `Did you mean a similar trait?`,
-                  edit: {
-                    range: {
-                      start: { line: i + 1, column: match.index! + 1 },
-                      end: { line: i + 1, column: match.index! + 1 + trait.length + 1 },
-                    },
-                    newText: `@${findClosestTrait(trait)}`,
-                  },
-                },
-              ],
-            });
-          }
+      // Unknown-ness comes from core's one known-trait set (isKnownTrait, via the canonical
+      // validator's HS1006 on the PARSED trait uses). The curated `allTraits` list above is used
+      // only for the "did you mean" suggestion.
+      const filePath = (args.filePath as string) || '<input>';
+      const surface = /\.hsplus$/i.test(filePath) ? 'hsplus' : /\.hs$/i.test(filePath) ? 'hs' : 'holo';
+      if (surface !== 'hs') {
+        let unknown: Array<{ line?: number; column?: number; message: string }> = [];
+        try {
+          unknown = validateCanonicalSource({ source: code, surface, allowEmpty: true }).warnings.filter(
+            (w) => w.code === UNKNOWN_TRAIT_CODE
+          );
+        } catch {
+          unknown = [];
         }
+        for (const w of unknown) {
+          const trait = /"@([^"]+)"/.exec(w.message)?.[1] ?? '';
+          const line = w.line ?? 1;
+          const column = w.column ?? 1;
+          diagnostics.push({
+            file: filePath,
+            line,
+            column,
+            severity: 'warning',
+            message: `Unknown trait: @${trait}`,
+            code: 'unknown-trait',
+            quickFixes: [
+              {
+                title: `Did you mean a similar trait?`,
+                edit: {
+                  range: {
+                    start: { line, column },
+                    end: { line, column: column + trait.length + 1 },
+                  },
+                  newText: `@${findClosestTrait(trait)}`,
+                },
+              },
+            ],
+          });
+        }
+      }
 
+      lines.forEach((line, i) => {
         if (line.includes('orb') && !line.match(/orb\s+\w+\s*\{?/)) {
           diagnostics.push({
             file: (args.filePath as string) || '<input>',

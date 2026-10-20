@@ -44,6 +44,8 @@ import { FleetMetrics } from './services/FleetMetrics.js';
 import { BuildService } from './services/BuildService.js';
 import { OllamaService } from './services/OllamaService.js';
 import { logger } from './utils/logger.js';
+import { resolveRuntimePolicy, grantFromRequest } from './services/runtimePolicy.js';
+import { isPaymentRequiredBody, type PaymentRequiredBody } from './services/paymentRequired.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -252,6 +254,8 @@ app.post('/api/chat', rateLimiter.middleware(), async (req: Request, res: Respon
     maxTokens,
     tier,
     lane,
+    // Server-side only: from the principal's delegated grant, never req.body.
+    runtimePolicy: resolveRuntimePolicy(grantFromRequest(req as any)),
     onTelemetry,
   };
   let completionText = '';
@@ -328,16 +332,27 @@ app.post('/api/generate', rateLimiter.middleware(), async (req: Request, res: Re
       messages: [{ role: 'user', content: prompt }],
       sceneContext: context,
       model,
+      // Server-side only: from the principal's delegated grant, never req.body.
+      runtimePolicy: resolveRuntimePolicy(grantFromRequest(req as any)),
       onTelemetry,
     };
 
     let fullResponse = '';
+    let paymentRequired: PaymentRequiredBody | undefined;
     for await (const event of inference.chat(request)) {
       if (event.type === 'text' && typeof event.payload === 'string') {
         fullResponse += event.payload;
       } else if (event.type === 'error') {
         errored = true;
+        if (isPaymentRequiredBody(event.payload)) paymentRequired = event.payload;
       }
+    }
+
+    // Local-only grant with no local runtime up: refuse with the single 402
+    // shape. Do NOT fall back to BuildService.
+    if (paymentRequired) {
+      res.status(402).json(paymentRequired);
+      return;
     }
 
     if (fullResponse) {

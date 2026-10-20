@@ -49,6 +49,8 @@ function mockGitSuccess(): void {
   execFileMock.mockImplementation(
     (_cmd: string, args: string[], _options: unknown, callback?: ExecFileCallback) => {
       if (!callback) throw new Error('Expected execFile callback');
+      // Skip lib/git/safeGit's leading `-c key=value` hardening pairs.
+      while (args[0] === '-c') args = args.slice(2);
       if (args[0] === 'rev-parse' && args.includes('--abbrev-ref')) {
         callback(null, 'feature/safe-branch\n', '');
         return {};
@@ -186,7 +188,14 @@ describe('/api/workspace/import route', () => {
       ExecFileCallback,
     ];
     expect(command).toBe('git');
+    // P0b: every server git call goes through lib/git/safeGit (hardening first).
     expect(args).toEqual([
+      '-c',
+      'core.fsmonitor=false',
+      '-c',
+      'core.hooksPath=/dev/null',
+      '-c',
+      'protocol.ext.allow=never',
       'clone',
       '--depth',
       '1',

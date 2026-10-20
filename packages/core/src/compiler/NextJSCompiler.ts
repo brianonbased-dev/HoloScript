@@ -5,7 +5,7 @@
  * Wraps Native2DCompiler (format: 'react') with Next.js conventions:
  * - 'use client' directive
  * - next/link, next/navigation imports
- * - Metadata exports from @metadata trait
+ * - Metadata exports from @metadata trait (title, description, robots; server pages only)
  * - Layout generation from @layout trait
  * - @page trait for route configuration
  *
@@ -40,6 +40,31 @@ function findTrait(
   if (!traits) return null;
   const found = traits.find((t) => t.name === traitName);
   return (found?.config as Record<string, unknown>) || null;
+}
+
+/**
+ * The `export const metadata = { ... }` block for a page, from its @metadata trait.
+ *
+ * `robots` is passed through as written: a string ("noindex") or an object
+ * (`{ index: false }`), both of which Next.js accepts. It exists because a page
+ * that must stay out of search results -- the invite-only refusal page, the
+ * first Studio page to need it -- could not be generated without it, and a page
+ * the compiler cannot express gets hand-written instead (x4dx, 2026-10-08).
+ * Anything else is left out rather than guessed at.
+ */
+function metadataExport(metaTrait: Record<string, unknown>): string[] {
+  const entries: string[] = [];
+  if (metaTrait.title) entries.push(`  title: ${JSON.stringify(metaTrait.title)},`);
+  if (metaTrait.description)
+    entries.push(`  description: ${JSON.stringify(metaTrait.description)},`);
+  const robots = metaTrait.robots;
+  if (
+    typeof robots === 'string' ||
+    (robots !== null && typeof robots === 'object' && !Array.isArray(robots))
+  ) {
+    entries.push(`  robots: ${JSON.stringify(robots)},`);
+  }
+  return ['', `export const metadata = {`, entries.join('\n'), `};`];
 }
 
 export class NextJSCompiler extends CompilerBase {
@@ -112,15 +137,7 @@ export class NextJSCompiler extends CompilerBase {
       ];
 
       if (metaTrait) {
-        const metaEntries: string[] = [];
-        if (metaTrait.title) metaEntries.push(`  title: ${JSON.stringify(metaTrait.title)},`);
-        if (metaTrait.description)
-          metaEntries.push(`  description: ${JSON.stringify(metaTrait.description)},`);
-
-        lines.push('');
-        lines.push(`export const metadata = {`);
-        lines.push(metaEntries.join('\n'));
-        lines.push(`};`);
+        lines.push(...metadataExport(metaTrait));
       }
 
       const routePath = route.replace(/^\//, '') || 'index';
@@ -161,15 +178,7 @@ export class NextJSCompiler extends CompilerBase {
     lines.push(pageSafeComponentCode);
 
     if (metaTrait && !isClient) {
-      const metaEntries: string[] = [];
-      if (metaTrait.title) metaEntries.push(`  title: ${JSON.stringify(metaTrait.title)},`);
-      if (metaTrait.description)
-        metaEntries.push(`  description: ${JSON.stringify(metaTrait.description)},`);
-
-      lines.push('');
-      lines.push(`export const metadata = {`);
-      lines.push(metaEntries.join('\n'));
-      lines.push(`};`);
+      lines.push(...metadataExport(metaTrait));
     }
 
     const routePath = route.replace(/^\//, '') || 'index';

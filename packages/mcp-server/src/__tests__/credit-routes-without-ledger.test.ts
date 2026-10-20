@@ -167,6 +167,10 @@ async function post(
 
 const ROUTES = ['/api/credits/check', '/api/credits/deduct'] as const;
 
+// A billed operation. studio_generate was the original choice, but a founder ruling
+// (c242bf761c) made it free (baseCostCents 0), so it can no longer show 'required > 0'.
+const BILLED_OPERATION = 'absorb_deep';
+
 describe('credit routes with no credit ledger, in production (real http-server)', () => {
   it('positive control: the caller is authenticated, not a founder, and reaches the route body', async () => {
     expect(process.env.DATABASE_URL).toBeUndefined();
@@ -181,7 +185,7 @@ describe('credit routes with no credit ledger, in production (real http-server)'
 
   it('control: without credentials both routes answer 401', async () => {
     for (const path of ROUTES) {
-      const r = await post(path, { userId: 'route-test-user', operation: 'studio_generate' }, {});
+      const r = await post(path, { userId: 'route-test-user', operation: BILLED_OPERATION }, {});
       expect(r.status, path).toBe(401);
     }
   });
@@ -189,7 +193,7 @@ describe('credit routes with no credit ledger, in production (real http-server)'
   it('POST /api/credits/check refuses with 503 instead of "ok, balance Infinity"', async () => {
     const r = await post('/api/credits/check', {
       userId: 'route-test-user',
-      operation: 'studio_generate',
+      operation: BILLED_OPERATION,
     });
     expect(r.status).toBe(503);
     expect(r.body.ok).toBe(false);
@@ -200,7 +204,7 @@ describe('credit routes with no credit ledger, in production (real http-server)'
   it('POST /api/credits/deduct refuses with 503 instead of "ok, cost N" with nothing recorded', async () => {
     const r = await post('/api/credits/deduct', {
       userId: 'route-test-user',
-      operation: 'studio_generate',
+      operation: BILLED_OPERATION,
     });
     expect(r.status).toBe(503);
     expect(r.body.ok).toBe(false);

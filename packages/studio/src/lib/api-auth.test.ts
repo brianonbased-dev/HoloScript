@@ -24,7 +24,7 @@ vi.mock('drizzle-orm', () => ({ eq: (column: unknown, value: unknown) => ({ colu
 vi.mock('./brittney/userApiKeys', () => ({ validateApiKey: validateApiKeyStub }));
 
 import { NextResponse } from 'next/server';
-import { getSession, requireAuthOrApiKey, requireFounder } from './api-auth';
+import { getSession, requireAuth, requireAuthOrApiKey, requireFounder } from './api-auth';
 import { SESSION_COOKIE_NAMES } from './session-cookie-names';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
 
@@ -45,6 +45,14 @@ describe('getSession JWT fallback', () => {
     vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', FOUNDER_GITHUB_ID);
     vi.stubEnv('STUDIO_FOUNDER_EMAILS', FOUNDER_EMAIL);
     cookiesStub.mockResolvedValue({ getAll: () => [{ name: 'next-auth.session-token', value: 'x' }] });
+  });
+
+  it('returns null for a valid token that is not on the invite allowlist', async () => {
+    // Invite-only (lib/inviteAllowlist.ts): getServerSession is null for this
+    // token, so this raw-token fallback must not hand the session back.
+    tokenIs({ sub: 'other', provider: 'github', providerAccountId: '9009', githubUsername: 'x' });
+
+    expect(await getSession()).toBeNull();
   });
 
   it('carries the provider, its account id and the verified-email claim', async () => {
@@ -84,13 +92,18 @@ describe('getSession JWT fallback', () => {
     expect((await getSession())?.user.isFounder).toBe(true);
   });
 
-  it('recognises the founder on a Google token that never carried emailVerified', async () => {
+  it('refuses a Google token outright now that sign-in is invite-only and GitHub-only', async () => {
+    // Before the invite-only P0 (lib/inviteAllowlist.ts) this asserted founder
+    // recognition through STUDIO_FOUNDER_EMAILS on a Google token. Production
+    // has no Google provider, and a non-GitHub session is now no session.
     tokenIs({ sub: 'user-1', provider: 'google', email: FOUNDER_EMAIL });
 
-    expect((await getSession())?.user.isFounder).toBe(true);
+    expect(await getSession()).toBeNull();
   });
 
   it('says not-founder for an ordinary session', async () => {
+    // Allowlisted as an admin (invite-only sign-in), but not the founder.
+    vi.stubEnv('ADMIN_GITHUB_USERNAMES', 'octocat');
     tokenIs({
       sub: 'user-2',
       provider: 'github',
@@ -223,7 +236,14 @@ describe('requireFounder', () => {
   });
 
   it('refuses an ordinary session with 403', async () => {
-    tokenIs({ sub: 'user-2', provider: 'github', providerAccountId: '999999999' });
+    // Allowlisted as an admin (invite-only sign-in), but not the founder.
+    vi.stubEnv('ADMIN_GITHUB_USERNAMES', 'octocat');
+    tokenIs({
+      sub: 'user-2',
+      provider: 'github',
+      providerAccountId: '999999999',
+      githubUsername: 'octocat',
+    });
 
     const result = await requireFounder();
 
@@ -233,7 +253,15 @@ describe('requireFounder', () => {
 
   it('refuses everyone when no founder is configured', async () => {
     vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', '');
-    tokenIs({ sub: 'user-1', provider: 'github', providerAccountId: FOUNDER_GITHUB_ID });
+    // An admin keeps a session (invite-only sign-in) but is never the founder.
+    // With the admin list empty too, the session itself is refused (401).
+    vi.stubEnv('ADMIN_GITHUB_USERNAMES', 'octocat');
+    tokenIs({
+      sub: 'user-1',
+      provider: 'github',
+      providerAccountId: FOUNDER_GITHUB_ID,
+      githubUsername: 'octocat',
+    });
 
     const result = await requireFounder();
 
@@ -382,5 +410,43 @@ describe('requireAuthOrApiKey', () => {
 
     expect(auth.user.isFounder).toBe(true);
     expect(validateApiKeyStub).not.toHaveBeenCalled();
+  });
+});
+
+describe('requireAuth benchmark bypass (Muse Gap 3)', () => {
+  const benchReq = () =>
+    new Request('https://studio.test/api/x', { headers: { 'x-benchmark-key': 'bench-secret' } });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'bench-secret');
+    vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', '');
+    vi.stubEnv('RAILWAY_ENVIRONMENT', '');
+    getServerSessionStub.mockResolvedValue(null);
+    getTokenStub.mockResolvedValue(null);
+    cookiesStub.mockResolvedValue({ getAll: () => [] });
+  });
+
+  it('allows the benchmark sign-in skip outside production', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    const auth = await requireAuth(benchReq());
+    expect(auth).not.toBeInstanceOf(NextResponse);
+    expect((auth as { user: { id: string } }).user.id).toBe('benchmark');
+  });
+
+  it('refuses the benchmark skip when NODE_ENV=production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const auth = await requireAuth(benchReq());
+    expect(auth).toBeInstanceOf(NextResponse);
+    expect((auth as NextResponse).status).toBe(401);
+  });
+
+  it('refuses the benchmark skip on a Railway production env even if NODE_ENV is mis-set', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'production');
+    const auth = await requireAuth(benchReq());
+    expect(auth).toBeInstanceOf(NextResponse);
+    expect((auth as NextResponse).status).toBe(401);
   });
 });

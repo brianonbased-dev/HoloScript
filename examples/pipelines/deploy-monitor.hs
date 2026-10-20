@@ -1,6 +1,11 @@
 // HoloScript Pipeline — Deployment Health Monitor
 // Watches Railway services, alerts on failures, auto-restarts
 // Compiles to: Node.js cron, Python watchdog, or Kubernetes CronJob
+//
+// Reads environment variables, so name them when you run it:
+//   holoscript run deploy-monitor.hs --allow-env WORKSPACE --allow-env PAGERDUTY_WEBHOOK --allow-env SLACK_WEBHOOK
+// (or HOLOSCRIPT_PIPELINE_ALLOW_ENV=WORKSPACE,PAGERDUTY_WEBHOOK,SLACK_WEBHOOK). A pipeline
+// that is not allowed to read a variable refuses before making any request.
 
 pipeline "DeployMonitor" {
   schedule: "*/2 * * * *"   // every 2 minutes

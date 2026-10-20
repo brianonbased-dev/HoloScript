@@ -56,6 +56,21 @@ const HOST_PATH_ARG_KEYS: ReadonlySet<string> = new Set(
 );
 
 /**
+ * Keys that name a server resource the operator chooses, refused for a caller without admin scope or
+ * local custody WHATEVER the value: a plain relative path or an https URL is as dangerous here as an
+ * absolute one, so these are not path-checked, they are not the caller's to set.
+ * - holoGraphHoloEmbedManifest: holo_semantic_search read the file named (7qz0, #539). A relative path
+ *   resolves against the server's own folder, so listing it as a path key still admitted one.
+ * - holoLlamaEndpoint: holo_ask_codebase called the URL named with the inference-proxy bearer attached
+ *   (SSRF plus the key; claude9's review of #539, 2026-10-09).
+ * absorb-service also refuses both unless the operator allows them (manifestArgumentAllowed,
+ * holoLlamaEndpointArgumentAllowed), which covers the absorb host, where this gate does not run.
+ */
+const OPERATOR_ONLY_ARG_KEYS: ReadonlySet<string> = new Set(
+  ['holoGraphHoloEmbedManifest', 'holoLlamaEndpoint'].map(normalizeKey)
+);
+
+/**
  * Keys whose values are free text for a tool to read, never a location it opens: a `file:` at the start of
  * one is prose. Under every other key a file: URL names the server's own disk, whatever the key is called.
  * holo_reconstruct_from_video's videoUrl read any file: URL a caller sent (claude3-x402's review of #396),
@@ -162,6 +177,12 @@ export function findHostPathViolation(
   if (!args || typeof args !== 'object') return null;
   for (const [key, value] of Object.entries(args)) {
     const normalized = normalizeKey(key);
+    if (OPERATOR_ONLY_ARG_KEYS.has(normalized)) {
+      if (value !== undefined && value !== null && value !== '') {
+        return { key, reason: "is set only by an administrator or on the server's own machine" };
+      }
+      continue;
+    }
     if (isHostPathKey(normalized)) {
       for (const candidate of stringsIn(value)) {
         const reason = hostPathViolation(candidate);

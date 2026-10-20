@@ -174,6 +174,18 @@ export class HoloScriptCLI {
       return 1;
     }
 
+    // The operator decides which environment variables this pipeline may read
+    // (--allow-env NAME, repeatable). The generated module reads the merged list
+    // from HOLOSCRIPT_PIPELINE_ALLOW_ENV and refuses any other ${env.*} at run start.
+    if (this.options.allowEnv && this.options.allowEnv.length > 0) {
+      const existing = (process.env.HOLOSCRIPT_PIPELINE_ALLOW_ENV || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const merged = Array.from(new Set([...existing, ...this.options.allowEnv]));
+      process.env.HOLOSCRIPT_PIPELINE_ALLOW_ENV = merged.join(',');
+    }
+
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-pipeline-'));
     const modulePath = path.join(tempDir, 'pipeline-runner.mjs');
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parsePipeline } from '@holoscript/core';
 import { parseHolo } from '../../../core/src/parser/HoloCompositionParser';
 import { HoloScriptPlusParser } from '../../../core/src/parser/HoloScriptPlusParser';
 import { SYNTAX_DOCS } from '../documentation';
@@ -16,12 +17,25 @@ type SyntaxReference = {
   examples: SyntaxExample[];
 };
 
-function parseSyntaxExample(code: string): {
-  parser: 'holo' | 'hsplus';
+function parseSyntaxExample(fullCode: string): {
+  parser: 'holo' | 'hsplus' | 'pipeline';
   ok: boolean;
   errors: string[];
 } {
+  // A "what does NOT work" example shows the mistake first and the fix after a
+  // `// RIGHT` line. syntax-docs-parse.test.ts proves the mistake fails; here the part
+  // a reader should copy has to parse.
+  const rightMarker = /\/\/ RIGHT[^\n]*\n/;
+  const code = rightMarker.test(fullCode) ? fullCode.split(rightMarker)[1] : fullCode;
   const trimmed = code.trimStart();
+  // Pipelines (.hs) go through the pipeline parser, their production path.
+  if (/^pipeline\s+"/.test(trimmed)) {
+    const result = parsePipeline(code);
+    const errors = (result.errors || []).map((error: any) =>
+      error?.message ? String(error.message) : String(error)
+    );
+    return { parser: 'pipeline', ok: result.success === true && errors.length === 0, errors };
+  }
   if (/^composition\s+"/.test(trimmed)) {
     const result = parseHolo(code);
     const errors = (result.errors || []).map((error: any) =>

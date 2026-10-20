@@ -1,0 +1,11 @@
+@trait {
+  name: "@theme",
+  category: "ui",
+  description: "CSS-in-JS theme resolver. classes is the list of semantic class names. states is the list of active UI states (hover, active, disabled). inline overrides individual style tokens. Port of ThemeTrait.ts (handler name: theme).",
+  props: {},
+  events: {
+    on_resolved: "theme:resolved",
+    on_changed: "theme:changed"
+  },
+  behaviors: ["@accessible", "@material", "@shader"]
+}

@@ -337,3 +337,8 @@ research/paper-18-motion-sesl/trace-*.jsonl
 
 # HoloRepo candidate worktrees live inside the repo; they are separate checkouts, never content of this one
 .holorepo/
+
+# Build residue from the 6.0.8 release work (2026-10-07). dist/ is already ignored
+# above; these are the two things that were not.
+packages/python-bindings/holoscript-6.0.8/
+*.bak-2026*

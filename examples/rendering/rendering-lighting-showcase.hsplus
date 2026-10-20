@@ -8,7 +8,7 @@
  *   @custom_shader, @instanced_rendering, @lod, @billboard_renderer,
  *   @sprite_sheet, @line_renderer, @point_cloud, @decal,
  *   @post_process, @outline, @wireframe, @vertex_colors,
- *   @morph_targets, @skeleton_mesh, @gpu_particles, @compute_shader
+ *   @morph_targets, @skeleton_mesh, @gpu_particle, @compute_shader
  *
  * Lighting (28): @point_light, @spot_light, @directional_light,
  *   @area_light, @hemisphere_light, @ambient_light, @environment_light,
@@ -197,7 +197,7 @@ composition "RenderingLightingShowcase" {
       shader: "particle_simulation.wgsl"
     }
 
-    @gpu_particles {
+    @gpu_particle {
       count: 65536
       emit_rate: 1000
       lifetime: [2.0, 5.0]

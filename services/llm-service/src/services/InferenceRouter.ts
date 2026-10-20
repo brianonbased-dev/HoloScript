@@ -27,6 +27,7 @@
  * unchanged. All `LLMStreamChunk` usage is INTERNAL, behind the shim.
  */
 
+import { buildPaymentRequiredBody } from './paymentRequired.js';
 import {
   OpenAICompatibleAdapter,
   VastServerlessAdapter,
@@ -71,7 +72,47 @@ export interface ChatRequest {
   maxTokens?: number;
   tier?: 'pro' | 'standard';
   lane?: BrittneyLane;
+  /**
+   * Runtime policy (external-agent access path, PR-5). `local-only` restricts
+   * the router to providers running on our own machines (Jetson, laptops) and
+   * HARD-DENIES paid APIs and rented GPUs (Fireworks, Kimi, Together, Fleet/Vast)
+   * with no fallthrough. Unset or `any` keeps today's behaviour.
+   */
+  runtimePolicy?: RuntimePolicy;
   onTelemetry?: (telemetry: InferenceTelemetry) => void;
+}
+
+export type RuntimePolicy = 'any' | 'local-only';
+
+/**
+ * Providers that run on owned local metal (Jetson, laptops). Everything else is
+ * paid or rented. Configurable via BRITTNEY_LOCAL_PROVIDERS (comma list of
+ * provider names); default 'ollama'. Extra owned endpoints (Jetson, laptops)
+ * are served as 'ollama' providers via LOCAL_OLLAMA_URLS.
+ */
+export function localProviderNames(env: NodeJS.ProcessEnv = process.env): ReadonlySet<string> {
+  const raw = (env.BRITTNEY_LOCAL_PROVIDERS || 'ollama')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return new Set(raw.length ? raw : ['ollama']);
+}
+
+/** Owned Ollama-compatible endpoints beyond OLLAMA_URL (comma list). */
+export function localOllamaUrls(env: NodeJS.ProcessEnv = process.env): string[] {
+  return (env.LOCAL_OLLAMA_URLS || '')
+    .split(',')
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+}
+
+export function isProviderAllowed(
+  name: string,
+  policy: RuntimePolicy | undefined,
+  locals: ReadonlySet<string> = localProviderNames()
+): boolean {
+  if (!policy || policy === 'any') return true;
+  return locals.has(name);
 }
 
 export interface ToolDefinition {
@@ -444,8 +485,8 @@ class OllamaLocalProvider implements InferenceProvider {
   private url: string;
   private model: string;
 
-  constructor() {
-    this.url = process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
+  constructor(url?: string) {
+    this.url = url || process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
     this.model = process.env.OLLAMA_MODEL || LOCAL_DEFAULT_MODEL;
   }
 
@@ -653,6 +694,7 @@ export class InferenceRouter {
       new FleetProvider(),
       new TogetherProvider(),
       new OllamaLocalProvider(),
+      ...localOllamaUrls().map((url) => new OllamaLocalProvider(url)),
     ];
   }
 
@@ -665,6 +707,39 @@ export class InferenceRouter {
    */
   async *chat(rawRequest: ChatRequest): AsyncGenerator<StreamEvent> {
     const { request, lane } = applyLaneRouting(rawRequest);
+
+    // Local-only policy: never touch pro, preferred-paid, or any non-local
+    // provider. No fallthrough to paid on local failure.
+    if (request.runtimePolicy === 'local-only') {
+      const locals = localProviderNames();
+      // can_run_local reflects whether an owned local provider is actually up.
+      // If one is up but fails to serve this job (throws before producing any
+      // output), we still refuse paid fallthrough, with can_run_local: true.
+      let canRunLocal = false;
+      for (const provider of this.providers) {
+        if (!isProviderAllowed(provider.name, 'local-only', locals)) continue;
+        if (!(await provider.isAvailable())) continue;
+        canRunLocal = true;
+        logger.info(`[InferenceRouter] lane=${lane} local-only → ${provider.name}`);
+        let produced = false;
+        try {
+          for await (const event of provider.stream(request)) {
+            produced = true;
+            yield event;
+          }
+          return;
+        } catch (error) {
+          if (produced) throw error;
+          logger.warn(`[InferenceRouter] local-only ${provider.name} failed: ${String(error)}`);
+        }
+      }
+      yield {
+        type: 'error',
+        payload: buildPaymentRequiredBody({ error: 'needs_credits_not_enabled', canRunLocal }),
+      };
+      yield { type: 'done', payload: null };
+      return;
+    }
 
     // Pro tier: route to Kimi K2.5
     if (request.tier === 'pro') {

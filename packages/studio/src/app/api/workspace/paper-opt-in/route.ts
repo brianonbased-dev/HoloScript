@@ -29,11 +29,14 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 
+import { resolveInsideWorkspace } from '@/lib/workspace/workspaceFs';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
+import { callerHoloMeshHeaders, noHoloMeshAgentResponse } from '@/lib/holomesh-proxy';
+
 import { corsHeaders } from '../../_lib/cors';
 
 const HOLOMESH_API_URL =
   process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const HOLOMESH_API_KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 
 function getWorkspacesDir(): string {
   return (
@@ -44,12 +47,6 @@ function getWorkspacesDir(): string {
 function isInsidePath(parent: string, child: string): boolean {
   const relative = path.relative(parent, child);
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
-}
-
-function holomeshHeaders(): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (HOLOMESH_API_KEY) headers.Authorization = `Bearer ${HOLOMESH_API_KEY}`;
-  return headers;
 }
 
 function stringArray(value: unknown): string[] {
@@ -80,7 +77,8 @@ function readExistingPaperUnlockState(statePath: string): {
 
 async function createBoardTasks(
   teamId: string,
-  workspaceName: string
+  workspaceName: string,
+  holomeshHeaders: Record<string, string>
 ): Promise<{ taskIds: string[] }> {
   const tasks = [
     {
@@ -110,7 +108,7 @@ async function createBoardTasks(
     try {
       const res = await fetch(`${HOLOMESH_API_URL}/api/holomesh/team/${teamId}/board`, {
         method: 'POST',
-        headers: holomeshHeaders(),
+        headers: holomeshHeaders,
         body: JSON.stringify({ tasks: [task] }),
       });
       if (res.ok) {
@@ -127,7 +125,8 @@ async function createBoardTasks(
 
 async function createKnowledgeEntries(
   teamId: string,
-  workspaceName: string
+  workspaceName: string,
+  holomeshHeaders: Record<string, string>
 ): Promise<{ entryIds: string[] }> {
   const entries = [
     {
@@ -151,7 +150,7 @@ async function createKnowledgeEntries(
     try {
       const res = await fetch(`${HOLOMESH_API_URL}/api/holomesh/team/${teamId}/knowledge`, {
         method: 'POST',
-        headers: holomeshHeaders(),
+        headers: holomeshHeaders,
         body: JSON.stringify({ entries: [entry] }),
       });
       if (res.ok) {
@@ -212,18 +211,51 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Audit 2026-10-15: board tasks and team knowledge went up under Studio's
+  // server key. They land on the caller's team, so they need the caller's own
+  // HoloMesh key; keyless + either consent → 404 no_holomesh_agent before any
+  // write.
+  const callerHeaders = callerHoloMeshHeaders(req);
+  if ((createBoardTasksConsent || publicKnowledgeConsent) && !callerHeaders) {
+    return noHoloMeshAgentResponse();
+  }
+
   const workspacesDir = path.resolve(getWorkspacesDir());
   const resolvedLocalPath = path.resolve(localPath);
   if (!isInsidePath(workspacesDir, resolvedLocalPath)) {
     return NextResponse.json({ error: 'localPath is outside workspace root' }, { status: 403 });
   }
 
-  if (!fs.existsSync(resolvedLocalPath)) {
-    return NextResponse.json({ error: 'Workspace path does not exist' }, { status: 404 });
+  // P0 2026-10-05: containment is not ownership. Only the workspace's owner
+  // may write research artifacts into it. Missing, ownerless and another
+  // account's workspace all get the same 404, so existence is not disclosed.
+  const owned = assertWorkspaceOwner(session, resolvedLocalPath);
+  if (!owned.ok) {
+    return NextResponse.json({ error: owned.error }, { status: owned.status });
+  }
+  const ownedLocalPath = owned.resolved;
+  // A cloned repo can ship its own `research`/`memory` symlinks. Every write
+  // target must still resolve inside this workspace after symlinks, or the
+  // writes below would land in whatever the link points at.
+  for (const relativeTarget of [
+    'research',
+    'memory',
+    'research/paper-cell.json',
+    'research/d011-checklist.json',
+    'research/evidence-refs.json',
+    'research/paper-unlock-state.json',
+    'memory/research-packet.json',
+  ]) {
+    if (!resolveInsideWorkspace(ownedLocalPath, relativeTarget).ok) {
+      return NextResponse.json(
+        { error: 'Workspace research paths must stay inside the workspace' },
+        { status: 400 }
+      );
+    }
   }
 
-  const researchDir = path.join(resolvedLocalPath, 'research');
-  const memoryDir = path.join(resolvedLocalPath, 'memory');
+  const researchDir = path.join(ownedLocalPath, 'research');
+  const memoryDir = path.join(ownedLocalPath, 'memory');
   try {
     fs.mkdirSync(researchDir, { recursive: true });
     fs.mkdirSync(memoryDir, { recursive: true });
@@ -239,7 +271,7 @@ export async function POST(req: NextRequest) {
   }
 
   const now = new Date().toISOString();
-  const workspaceName = path.basename(resolvedLocalPath);
+  const workspaceName = path.basename(ownedLocalPath);
   const statePath = path.join(researchDir, 'paper-unlock-state.json');
   const existingState = readExistingPaperUnlockState(statePath);
 
@@ -348,7 +380,7 @@ export async function POST(req: NextRequest) {
     createBoardTasksConsent &&
     boardTaskIds.length === 0
   ) {
-    const boardResult = await createBoardTasks(teamId, workspaceName);
+    const boardResult = await createBoardTasks(teamId, workspaceName, callerHeaders!);
     boardTaskIds = boardResult.taskIds;
   }
 
@@ -358,7 +390,7 @@ export async function POST(req: NextRequest) {
     publicKnowledgeConsent &&
     knowledgeEntryIds.length === 0
   ) {
-    const knowledgeResult = await createKnowledgeEntries(teamId, workspaceName);
+    const knowledgeResult = await createKnowledgeEntries(teamId, workspaceName, callerHeaders!);
     knowledgeEntryIds = knowledgeResult.entryIds;
   }
 

@@ -41,6 +41,8 @@ composition "Settings" {
     oracleTier: ""
     oracleLoading: false
     oracleConsultations: 0
+    // Oracle Boost is founder-only (its API answers 403 to anyone else)
+    isFounder: false
 
     // Auth state
     isSignedIn: false
@@ -289,6 +291,7 @@ composition "Settings" {
       object "OracleSection" {
         type: "ui"
         uiType: "panel"
+        visible: $isFounder
         direction: "column"
         gap: 12
 

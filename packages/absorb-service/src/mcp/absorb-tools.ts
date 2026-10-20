@@ -31,7 +31,7 @@ import {
 
 function getStudioUrl(): string {
   return (
-    process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://studio.holoscript.net'
+    process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://holoscript.studio'
   );
 }
 
@@ -77,7 +77,7 @@ async function studioFetch(
       status: 401,
       data: {
         error:
-          'No API key provided. Set ABSORB_API_KEY env var or pass apiKey argument. Get a free key at https://studio.holoscript.net/absorb',
+          'No API key provided. Set ABSORB_API_KEY env var or pass apiKey argument. Get a free key at https://holoscript.studio/absorb',
       },
     };
   }

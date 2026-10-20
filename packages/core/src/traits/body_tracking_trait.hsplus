@@ -1,5 +1,10 @@
 // @body_tracking_trait — Full-body tracking: maps physical body pose to avatar skeleton in real-time.
 //
+// source: "live_self" | "recording" | "remote_user" (no default; see the .holo definition).
+// live_self data is applied only from a local capture the runtime opened (LocalCapture.ts);
+// otherwise the avatar falls back to the generic one. recording / remote_user / missing are a
+// likeness: @consent_gate grant + render_likeness yes (HS1011).
+//
 // Native .hsplus surface for core/traits/BodyTrackingTrait.ts.
 
 @trait body_tracking_trait {
@@ -11,6 +16,10 @@
   }
 
   @on_pose(pose_data) => {
+    if (source == "live_self" && !is_local_capture(pose_data.capture, "body")) {
+      emit("avatar_generic_fallback", {})
+      return
+    }
     apply_body_tracking_pose(pose_data)
     emit("body_pose_applied", {})
   }

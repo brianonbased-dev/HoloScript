@@ -1,7 +1,7 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/api-auth';
+import { requireFounder } from '@/lib/api-auth';
 
 import { ENDPOINTS, getMoltbookKey } from '@holoscript/config';
 
@@ -93,7 +93,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth();
+  // This posts under HoloScript's own Moltbook account, so only a founder may use it,
+  // the same rule as the HoloMesh crosspost route (board task x0iv). Any invited
+  // Studio session could post as HoloScript before.
+  const auth = await requireFounder(req);
   if (auth instanceof NextResponse) return auth;
 
   if (!MOLTBOOK_API_KEY) {

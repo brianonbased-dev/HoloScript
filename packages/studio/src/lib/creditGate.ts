@@ -20,6 +20,7 @@ import { getSession } from './api-auth';
 
 import { ENDPOINTS, getAbsorbKey, getMcpApiKey } from '@holoscript/config';
 import { ALLOWED_ABSORB_HOSTS, validateAbsorbBaseUrl } from './absorb-host-validator';
+import { adminGithubUsernames } from './inviteAllowlist';
 
 // Re-export the validator surface for any caller that already imports it
 // from this module (the implementation lives in ./absorb-host-validator so
@@ -40,12 +41,8 @@ const ABSORB_API_KEY = getAbsorbKey() || getMcpApiKey() || '';
 })();
 
 // Admin bypass — comma-separated GitHub usernames that skip credit checks
-const ADMIN_GITHUB_USERNAMES = new Set(
-  (process.env.ADMIN_GITHUB_USERNAMES || '')
-    .split(',')
-    .map((u) => u.trim().toLowerCase())
-    .filter(Boolean)
-);
+// (parsed by the same helper the invite-only sign-in allowlist uses)
+const ADMIN_GITHUB_USERNAMES = adminGithubUsernames();
 
 export type StudioOperation =
   | 'studio_autocomplete'
@@ -82,24 +79,22 @@ export interface CreditGateFailure {
 
 export type CreditGateResult = CreditGateSuccess | CreditGateFailure;
 
+// Shared with api-auth's and proxy's benchmark gates; re-exported for existing callers.
+import { bypassesDisabled, constantTimeEqual } from './prodBypass';
+export { bypassesDisabled };
+
 /**
- * Resolve user identity. Tries NextAuth session first, falls back to
- * x-user-id header (for API/CLI clients), then to the absorb API key
- * as an admin identity.
+ * Resolve user identity from SERVER-VERIFIED sources only:
+ *   1. a caller-verified user id (e.g. a `bk_` API key the route already
+ *      validated against the DB via requireAuthOrApiKey), else
+ *   2. the NextAuth session.
+ * Client-supplied identity (x-user-id header, raw Bearer prefix) is NEVER
+ * trusted: any caller could otherwise bill or act as any user.
  */
 async function resolveUser(
-  request: Request
+  verifiedUserId?: string | null
 ): Promise<{ id: string | null; githubUsername: string }> {
-  // 1. Benchmark bypass — if BRITTNEY_BENCHMARK_KEY is configured and the
-  // request carries a matching x-benchmark-key header, treat as benchmark user.
-  if (process.env.BRITTNEY_BENCHMARK_KEY) {
-    const benchKey = request.headers.get('x-benchmark-key');
-    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
-      return { id: 'benchmark', githubUsername: '' };
-    }
-  }
-
-  // 2. NextAuth session (browser users)
+  if (verifiedUserId) return { id: verifiedUserId, githubUsername: '' };
   try {
     const session = await getSession();
     if (session?.user?.id) {
@@ -109,30 +104,21 @@ async function resolveUser(
   } catch {
     // NextAuth not configured — fall through
   }
-
-  // 3. Explicit header (API/CLI clients)
-  const headerUserId = request.headers.get('x-user-id');
-  if (headerUserId) return { id: headerUserId, githubUsername: '' };
-
-  // 4. Authorization bearer token as user identity
-  const auth = request.headers.get('authorization');
-  if (auth?.startsWith('Bearer ')) {
-    return { id: `apikey:${auth.slice(7, 20)}`, githubUsername: '' };
-  }
-
   return { id: null, githubUsername: '' };
 }
 
 /**
  * Pre-flight credit check. Must be called BEFORE making any LLM call.
- * Admin GitHub usernames (ADMIN_GITHUB_USERNAMES env) bypass credits entirely.
+ * Dev/benchmark/admin bypasses apply only outside production (see bypassesDisabled).
  * Returns a CreditGateResult — check `.error` to see if the user can proceed.
  */
 export async function checkCredits(
   request: Request,
-  operation: StudioOperation
+  operation: StudioOperation,
+  verifiedUserId?: string | null
 ): Promise<CreditGateResult> {
-  const { id: userId, githubUsername } = await resolveUser(request);
+  const { id: userId, githubUsername } = await resolveUser(verifiedUserId);
+  const prod = bypassesDisabled();
 
   // Free sovereign ops — bypass the gate entirely (see FREE_OPERATIONS above). These run
   // on our own compute at ~$0 marginal cost; metering them is both wrong per the pricing
@@ -143,7 +129,7 @@ export async function checkCredits(
   }
 
   // Dev bypass — credit endpoints may not be available locally
-  if (process.env.NODE_ENV === 'development') {
+  if (!prod && process.env.NODE_ENV === 'development') {
     return { userId: userId || 'dev', error: null };
   }
 
@@ -151,15 +137,15 @@ export async function checkCredits(
   // request carries a matching x-benchmark-key header, skip credit checks.
   // This lets the benchmark harness run against production without consuming
   // real credits or depending on the absorb service. Strictly opt-in.
-  if (process.env.BRITTNEY_BENCHMARK_KEY) {
+  if (!prod && process.env.BRITTNEY_BENCHMARK_KEY) {
     const benchKey = request.headers.get('x-benchmark-key');
-    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
+    if (benchKey !== null && constantTimeEqual(benchKey, process.env.BRITTNEY_BENCHMARK_KEY)) {
       return { userId: userId || 'benchmark', error: null };
     }
   }
 
   // Admin bypass — founders/admins skip credit checks
-  if (githubUsername && ADMIN_GITHUB_USERNAMES.has(githubUsername.toLowerCase())) {
+  if (!prod && githubUsername && ADMIN_GITHUB_USERNAMES.has(githubUsername.toLowerCase())) {
     return { userId: userId || `admin:${githubUsername}`, error: null };
   }
 
@@ -169,7 +155,7 @@ export async function checkCredits(
       error: NextResponse.json(
         {
           error: 'Authentication required',
-          hint: 'Sign in or provide x-user-id header',
+          hint: 'Sign in or use a valid API key',
         },
         { status: 401 }
       ),

@@ -151,7 +151,12 @@ composition "ConcertVenue" {
   // in real-time — no separate animation clip needed.
 
   object "Vocalist" {
+    // The vocalist's mouth follows the show's MainAudio track (a performer's recording or
+    // stream, not the viewer's own mic), so it is a voice likeness: claim the grant here and
+    // validate with the render_likeness result, e.g. --consent-rules examples/consent-rules.json.
+    @consent_gate(grant: "grant_concert_vocalist")
     @lip_sync {
+      source: "audio_node"
       audio_source: "MainAudio"
       model: "extended_viseme_15"
       frequency_mapping: [

@@ -1,6 +1,7 @@
 README.md
 pyproject.toml
 holoscript/__init__.py
+holoscript/_deps.py
 holoscript.egg-info/PKG-INFO
 holoscript.egg-info/SOURCES.txt
 holoscript.egg-info/dependency_links.txt
@@ -13,4 +14,7 @@ holoscript/bridges/narupa.py
 holoscript/bridges/radio_astronomy.py
 holoscript/bridges/robotics.py
 holoscript/bridges/scientific.py
+holoscript/cognition/__init__.py
+holoscript/cognition/decision_network.py
+tests/test_honesty.py
 tests/test_smoke.py

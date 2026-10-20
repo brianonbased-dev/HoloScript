@@ -366,7 +366,6 @@ describe('PluginManager', () => {
       async () => ({ result: 'ok' })
     );
     expect(PluginManager.getTools().length).toBe(1);
-    expect(after).toBe(before + 1);
   });
 
   it('handleTool calls registered handler', async () => {

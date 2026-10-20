@@ -29,6 +29,7 @@ import { createServer, type AddressInfo, type Socket } from 'net';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { consentedGrant, TEST_STUDIO_CONSENT_SECRET } from './consented-test-token';
 
 // Accepted by the legacy-key path; not in the key registry, so not a founder.
 const TEST_KEY = 'oauth-register-test-key-not-a-founder';
@@ -202,6 +203,8 @@ beforeAll(async () => {
     HOLOSCRIPT_CACHE_DIR: sandbox,
     HOLOMESH_NO_DOTENV: '1',
     ORCHESTRATOR_URL: 'http://127.0.0.1:9',
+    // #578: tokens beyond public social scopes need a signed-in human's consent.
+    STUDIO_CONSENT_SECRET: TEST_STUDIO_CONSENT_SECRET,
   });
 
   globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
@@ -416,6 +419,9 @@ describe('agent_id binding for a loopback registrant through the real http-serve
     });
   }
 
+  /** The shared consent helper speaks GET/POST only here; this file's request covers both. */
+  const consentRequest = request as unknown as Parameters<typeof consentedGrant>[0];
+
   /** A daimon turn on a daemon that does not exist: only the binder can refuse it first. */
   function daemonTurn(accessToken: string, callerId: string): Promise<Reply> {
     return request('POST', '/mcp', {
@@ -439,7 +445,10 @@ describe('agent_id binding for a loopback registrant through the real http-serve
     expect(typeof reg.body.client_id).toBe('string');
     expect(typeof reg.body.client_secret).toBe('string');
 
-    const token = await grant(reg.body, OWNER);
+    const token = await consentedGrant(consentRequest, HOLOSHELL_SHAPE.scope, {
+      client: reg.body,
+      tokenBody: { agent_id: OWNER },
+    });
     expect(token.status, JSON.stringify(token.body)).toBe(200);
     const accessToken = token.body.access_token;
     expect(typeof accessToken).toBe('string');
@@ -453,8 +462,11 @@ describe('agent_id binding for a loopback registrant through the real http-serve
   it('...and the daimon binder takes that token as founder: a foreign callerId is refused, founder passes', async () => {
     const reg = await register({ agent_id: OWNER });
     expect(reg.status).toBe(201);
-    const token = await grant(reg.body, OWNER);
-    expect(token.status).toBe(200);
+    const token = await consentedGrant(consentRequest, HOLOSHELL_SHAPE.scope, {
+      client: reg.body,
+      tokenBody: { agent_id: OWNER },
+    });
+    expect(token.status, JSON.stringify(token.body)).toBe(200);
     const accessToken = token.body.access_token as string;
 
     const stranger = await daemonTurn(accessToken, 'someone-else');

@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { normalizeEarnings } from '@/lib/holomesh/normalizeEarnings';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
@@ -23,6 +24,8 @@ import { KnowledgeEntryCard } from '@/components/holomesh/KnowledgeEntryCard';
 import { AgentMiniCard } from '@/components/holomesh/AgentMiniCard';
 import { ReputationBadge } from '@/components/holomesh/ReputationBadge';
 import { MyAgentsTab } from '@/components/agents/MyAgentsTab';
+import { JoinHoloMeshState } from '@/components/holomesh/JoinHoloMeshState';
+import { isNoHoloMeshAgentBody } from '@/lib/holomesh/noAgent';
 import { LaunchAgentTab } from '@/components/agents/LaunchAgentTab';
 import { AgentAnalyticsTab } from '@/components/agents/AgentAnalyticsTab';
 import { ArrowDownLeft, ArrowUpRight, Gift, Minus, ExternalLink, RefreshCw } from 'lucide-react';
@@ -166,6 +169,8 @@ function AgentMeInner() {
   const [storefront, setStorefront] = useState<StorefrontData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  // 404 no_holomesh_agent: signed in, but no HoloMesh agent of their own yet.
+  const [needsAgent, setNeedsAgent] = useState(false);
 
   // Dashboard data
   const [dashData, setDashData] = useState<DashboardData | null>(null);
@@ -192,7 +197,11 @@ function AgentMeInner() {
 
         const profileData = await profileRes.json();
         const knowledgeData = await knowledgeRes.json();
-        const earningsData = await earningsRes.json().catch(() => null);
+        // Only a 2xx body can carry earnings; normalize so an error body or a
+        // partial payload never renders as $NaN / undefined (audit item 4).
+        const earningsData = normalizeEarnings(
+          earningsRes.ok ? await earningsRes.json().catch(() => null) : null
+        );
         const dashboardData = await dashRes.json().catch(() => null);
 
         if (!cancelled) {
@@ -208,13 +217,15 @@ function AgentMeInner() {
               friendCount: profileData.friendCount || 0,
               isOnline: profileData.isOnline ?? true,
             });
+          } else if (isNoHoloMeshAgentBody(profileData)) {
+            setNeedsAgent(true);
           } else {
             setError(profileData.error || 'Profile not found');
           }
           setEntries(knowledgeData.entries || []);
           if (earningsData) {
             setStorefront(earningsData);
-            setEarnings(earningsData?.earnings ?? earningsData ?? null);
+            setEarnings(earningsData);
           }
           if (dashboardData) setDashData(dashboardData);
         }
@@ -258,6 +269,10 @@ function AgentMeInner() {
         <div className="text-sm text-studio-muted animate-pulse">Loading your agent profile...</div>
       </div>
     );
+  }
+
+  if (needsAgent) {
+    return <JoinHoloMeshState />;
   }
 
   if (error || !profile) {

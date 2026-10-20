@@ -18,14 +18,24 @@
 // !! MUST be first import — populates process.env from .env before any module-level
 // `const X = process.env.X || ''` constants are evaluated. No-op on Railway.
 import './utils/load-env';
+import { getBuildCommit } from './build-identity';
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import {
   ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
   ReadResourceRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import {
+  capMcpToolResult,
+  holoResultResourceTemplate,
+  HoloResultNotFoundError,
+  isHoloResultUri,
+  readHoloResult,
+  resultScope,
+} from './tool-result-store';
 import { randomUUID, createHash } from 'crypto';
 import http from 'http';
 import { resolveServiceSecret, migrateEnvKeys } from './holokey-resolver';
@@ -98,12 +108,36 @@ import {
   OAUTH2_PUBLIC_SCOPES,
   OAUTH2_PUBLIC_SCOPE_NAMES,
   OAUTH2_SCOPES,
+  PUBLIC_SOCIAL_SCOPES,
+  prepareClientForUse,
+  registerClientDurably,
 } from './auth/oauth2-provider';
+import { creditCheckSubject } from './security/credit-check-subject';
+import { setUserCreditsResolver } from './security/user-credits';
+import { verifyStudioConsent, verifyStudioGrantsSession } from './security/studio-consent';
+import { issueOAuthCsrfToken, verifyOAuthCsrfToken } from './security/oauth-csrf';
+import {
+  clientDeletionActor,
+  defaultRegistrationGrantTypes,
+  parseBasicClientCredentials,
+} from './security/oauth-client-deletion';
+import {
+  clientRequestLimiter,
+  clientRateLimitedRequests,
+  installClientRateLimitStatus,
+  registrationLimiter,
+  registrationsPerIpPerHour,
+} from './security/client-abuse-limits';
+import {
+  ClientNotApprovedError,
+  clientIsApproved,
+  isClientNotApprovedError,
+  type OAuthClientStatus,
+} from './auth/token-store';
 import {
   acceptsHtml,
   buildOAuthCallbackUri,
   OAUTH_CONSENT_SECURITY_HEADERS,
-  renderOAuthConsentPage,
   resolveOAuthIssuer,
 } from './auth/oauth-browser';
 import type { TokenStoreBackend } from './auth/token-store';
@@ -123,8 +157,13 @@ import {
   publicAnonymousContext,
   type SigningContext,
 } from './holomesh/identity/signing-middleware';
-import { frameDeclarationFromMcpMeta, gateToolCall } from './tool-call-gate';
-import { founderGateX402ToolCallCheck } from './tool-call-checks';
+import {
+  frameDeclarationFromMcpMeta,
+  gateToolCall,
+  toolGateEnforcementFrom,
+  ToolCallGateDeniedError,
+} from './tool-call-gate';
+import { founderGateFrameToolCallCheck, founderGateX402ToolCallCheck } from './tool-call-checks';
 import { initDurableAttestationRegistry } from './holomesh/identity/attestation-persistence';
 import { creditRouteWithoutLedger } from './security/consumer-spend-guard';
 import {
@@ -142,6 +181,7 @@ import {
 import {
   agentBindingForRegistration,
   loopbackRegistrantMayBindUnproven,
+  registrationProvedNothing,
   resolveProvenAgentId,
 } from './security/proven-agent-id';
 import { hydrateEmergenceFromCorpus } from './daemon-lifecycle-tools';
@@ -184,7 +224,12 @@ function readMoltbookApiKeyForRoute(): string {
 }
 
 import { resolveStoreRoot } from './hologram-renderer';
-import { isHologramMcpResponse, wrapHologramMcpEnvelope, parseHolo } from '@holoscript/core';
+import {
+  getPrometheusMetrics,
+  isHologramMcpResponse,
+  wrapHologramMcpEnvelope,
+  parseHolo,
+} from '@holoscript/core';
 import { buildContentPolicyConfig, evaluateContentPolicySync } from '@holoscript/core/policy';
 import { promises as fsPromises } from 'fs';
 import { join as pathJoin, extname as pathExtname, basename as pathBasename } from 'path';
@@ -241,6 +286,18 @@ if (process.env.DATABASE_URL) {
       })
     );
     tokenBackend = new PostgresTokenStore(pgPool);
+    // Trust & Consent C1: absorb_check_credits for remote callers reads the
+    // token user's own ledger row (read-only), never the absorb server key.
+    {
+      const pool = pgPool;
+      setUserCreditsResolver(async (userId) => {
+        const r = await pool.query(
+          'SELECT balance_cents FROM credit_accounts WHERE user_id::text = $1',
+          [userId]
+        );
+        return { balanceCents: Number(r.rows[0]?.balance_cents ?? 0), found: r.rows.length > 0 };
+      });
+    }
     // Auto-create credit tables if they don't exist
     pgPool
       .query(
@@ -321,37 +378,46 @@ oauth.setDurableIntrospector(async (token) => {
     agentId: result.agentId,
     expiresAt: result.expiresAt,
     issuedAt: result.issuedAt,
+    ...(result.userId ? { userId: result.userId, grantId: result.grantId } : {}),
   };
 });
 
-/** Rehydrate a client from the durable registry into the legacy in-memory one. */
+// Muse Gap 9 S1: the durable store is the source of truth for a client's
+// review status. oauth21 re-reads it (<= 30s cache) for every cached token, so
+// a suspend on any replica reaches this one, and a rehydrated token is never
+// accepted for an unknown or suspended client.
+oauth.setClientStatusResolver(async (clientId) => {
+  const stored = await oauth2.getClient(clientId);
+  if (!stored) return 'unknown';
+  return stored.status ?? 'approved';
+});
+
+/**
+ * Before an authorize or token request consults the in-memory registry: record
+ * the client's use in the durable store (so a retirement cannot take it in the
+ * middle of its sign-in), drop a copy the durable store no longer holds, and
+ * rehydrate it after a deploy wiped the in-memory map. See prepareClientForUse.
+ */
+/**
+ * Studio's consent page (#579). STUDIO_PUBLIC_URL overrides the default, which is
+ * live Studio (holoscript.studio; studio.holoscript.net only redirects there).
+ */
+function studioConsentUrl(): string {
+  const base = (process.env.STUDIO_PUBLIC_URL || 'https://holoscript.studio').replace(/\/+$/, '');
+  return `${base}/oauth/consent`;
+}
+
+/** Token-endpoint failures that mean the client itself is unknown or unauthenticated. */
+function isInvalidClientMessage(message: string): boolean {
+  return (
+    message.startsWith('Invalid client_id') ||
+    message === 'Invalid client' ||
+    message === 'Invalid client credentials'
+  );
+}
+
 async function ensureClientHydrated(clientId: string | null | undefined): Promise<void> {
-  if (!clientId || oauth.getClient(clientId)) return;
-  try {
-    const durable = await oauth2.getClient(clientId);
-    if (durable) {
-      oauth.importClient({
-        clientId: durable.clientId,
-        clientSecret: durable.clientSecretHash,
-        clientName: durable.clientName,
-        redirectUris: durable.redirectUris,
-        scopes: durable.scopes as OAuthScope[],
-        createdAt: durable.createdAt,
-        clientType: durable.clientType,
-        rateLimit: durable.rateLimit,
-        // Carry the agent binding across the deploy that wiped the in-memory
-        // map. Dropping it here refused the client's own agent_id on the very
-        // next token request, with nothing in the response saying the binding
-        // had been forgotten rather than never granted.
-        ...(durable.agentId ? { agentId: durable.agentId } : {}),
-      });
-    }
-  } catch (err) {
-    console.warn(
-      '[auth] durable client hydration failed:',
-      err instanceof Error ? err.message : err
-    );
-  }
+  await prepareClientForUse({ memory: oauth, durable: oauth2 }, clientId);
 }
 
 /** Rehydrate a refresh token from the durable registry before a refresh grant. */
@@ -399,7 +465,9 @@ async function persistIssuedTokens(
     scope?: string;
   },
   clientId: string,
-  agentId?: string
+  agentId?: string,
+  /** The human the grant stamped (Muse Gap 9), read back from the issued token. */
+  human?: { userId: string; grantId?: string }
 ): Promise<void> {
   try {
     const now = Date.now();
@@ -412,6 +480,7 @@ async function persistIssuedTokens(
         issuedAt: now,
         expiresAt: now + (tokenResponse.expires_in || 3600) * 1000,
         agentId,
+        ...(human ? { userId: human.userId, grantId: human.grantId } : {}),
       });
     }
     if (tokenResponse.refresh_token) {
@@ -427,6 +496,11 @@ async function persistIssuedTokens(
         // Same stamped identity as the access token, so a rotation after a
         // deploy recovers it instead of dropping it.
         agentId: record?.agentId ?? agentId,
+        ...(record?.userId
+          ? { userId: record.userId, grantId: record.grantId }
+          : human
+            ? { userId: human.userId, grantId: human.grantId }
+            : {}),
       });
     }
   } catch (err) {
@@ -618,6 +692,7 @@ async function createAndStoreSessionTransport(
  * Returns token introspection with scopes and agent identity.
  */
 async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntrospection> {
+  clientRateLimitedRequests.delete(req);
   const headers = { ...req.headers };
   const queryString = req.url?.split('?')[1] || '';
   const params = new URLSearchParams(queryString);
@@ -625,17 +700,83 @@ async function authenticateRequest(req: http.IncomingMessage): Promise<TokenIntr
   if (apiKey) {
     headers['x-mcp-api-key'] = apiKey;
   }
-  return oauth.authenticateRequestAsync(headers as Record<string, string | string[] | undefined>);
+  const auth = await oauth.authenticateRequestAsync(
+    headers as Record<string, string | string[] | undefined>
+  );
+  // Muse Gap 9: per-client request rate. Each registered client's rateLimit
+  // (req/min, set at registration, default 60) was stored but never enforced;
+  // with open self-registration it is the brake on one noisy client. Legacy
+  // keys, tenants and unregistered ids are not OAuth clients and are skipped.
+  if (auth.active && auth.clientId) {
+    const client = oauth.getClient(auth.clientId);
+    if (client) {
+      const hit = clientRequestLimiter.hit(client.clientId, client.rateLimit || 60);
+      if (!hit.allowed) {
+        auditLog.logAuthEvent({
+          event: 'rate_limited',
+          clientId: client.clientId,
+          reason: `client over ${client.rateLimit || 60} req/min`,
+        });
+        // Over the limit is 429, not 401: the route's own "not active" reply
+        // is rewritten in the request handler (installClientRateLimitStatus).
+        clientRateLimitedRequests.set(req, hit.resetAt);
+        return { active: false };
+      }
+    }
+  }
+  return auth;
 }
 
 /**
- * Legacy authentication check (kept for simple boolean checks on non-tool routes)
+ * Does an authenticated caller hold at least one of `required`? `admin:*` holds everything, the
+ * same rule Gate 2 applies to tools (security/tool-scopes.ts authorizeToolCall). Scopes arrive
+ * already expanded by oauth21 expandScopes, so `admin` is admin:* + tools:admin and
+ * `tools:execute` is tools:write here; no hierarchy is re-derived. A valid token is not
+ * permission: a `tools:read` key must not write, post publicly, or spend through an HTTP route
+ * that only checked `auth.active`.
  */
-
-async function checkAuth(req: http.IncomingMessage): Promise<boolean> {
-  const auth = await authenticateRequest(req);
-  return auth.active;
+function authHasAnyScope(auth: TokenIntrospection, required: readonly string[]): boolean {
+  const granted = auth.scopes ?? [];
+  if (granted.includes('admin:*')) return true;
+  return required.some((scope) => granted.includes(scope));
 }
+
+/** 403 for a valid token that lacks the scope a route needs (RFC 6750 §3.1). */
+function refuseInsufficientScope(res: http.ServerResponse, required: readonly string[]): void {
+  res.writeHead(403, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'WWW-Authenticate': `Bearer realm="holoscript-mcp", error="insufficient_scope", scope="${required.join(' ')}"`,
+  });
+  res.end(
+    JSON.stringify({
+      error: 'insufficient_scope',
+      required: [...required],
+      message: `This route needs one of: ${required.join(', ')} (or admin:*). A read-only token cannot use it.`,
+    })
+  );
+}
+
+/** Spending another account's credits is an operator action. */
+const CREDIT_DEDUCT_SCOPES = ['tools:admin'] as const;
+/** Approving or suspending an OAuth client (Muse Gap 9). */
+const CLIENT_REVIEW_SCOPES = ['tools:admin'] as const;
+
+/** OAuth `unauthorized_client` for a client that is pending review or suspended. */
+function writeUnauthorizedClient(res: http.ServerResponse, err: ClientNotApprovedError): void {
+  res.writeHead(400, {
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+  });
+  res.end(
+    JSON.stringify({
+      error: 'unauthorized_client',
+      error_description: err.message,
+      client_status: err.status,
+    })
+  );
+}
+/** Publishing, posting publicly, or changing stored records. */
+const ROUTE_WRITE_SCOPES = ['tools:write'] as const;
 
 /**
  * Check if the request carries a founder-level key from the HoloMesh key
@@ -749,9 +890,12 @@ function mergeSigningContextScopes(
     ...(signingCtx.scopes ?? []).map(String),
     ...(auth.scopes ?? []).map(String),
   ]);
+  // The human comes from the verified token only, never from the envelope.
+  const { userId: _ignored, ...rest } = signingCtx;
   return {
-    ...signingCtx,
+    ...rest,
     scopes: [...scopes],
+    ...(auth.userId ? { userId: auth.userId } : {}),
   };
 }
 
@@ -800,6 +944,52 @@ async function securedToolExecution(
 ): Promise<{ result: unknown; isError: boolean }> {
   return withMcpToolExecutionSpan(toolName, auth, () =>
     securedToolExecutionInner(toolName, args, auth, options)
+  );
+}
+
+/**
+ * How the stateless routes run the tool-call gate. They never ran it, so an agent's frame was
+ * not enforced where agents actually call (task 6fef). Enforcing every frame at once could
+ * refuse tools agents use today, so the gate first OBSERVES here: it writes the receipt and logs
+ * "[ToolCallGate] observe: would deny ..." and lets the call through. Once those lines have been
+ * read, HOLOSCRIPT_STATELESS_TOOL_GATE=enforce makes it refuse (toolGateEnforcementFrom reads
+ * the value; the server states the effective mode at startup). Scope is enforced downstream by
+ * securedToolExecution's triple gate in either mode.
+ */
+function statelessToolGateMode(): 'enforce' | 'observe' {
+  return toolGateEnforcementFrom(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE);
+}
+
+/**
+ * POST /mcp (tools/call), POST /tools/call, POST /a2a/tasks and POST /a2a (JSON-RPC a2a.sendMessage) run the founder authority routing on the tool name
+ * and the caller's active frame from `_meta`, with one receipt per call. Scope is not checked
+ * here: securedToolExecution's triple gate checks it, answers a shortfall in its own shape and
+ * writes it to the audit log, exactly as before this gate existed. A refusal (enforce mode)
+ * throws ToolCallGateDeniedError before anything is dispatched; each route answers it itself.
+ */
+async function gatedStatelessToolExecution(
+  toolName: string,
+  args: Record<string, unknown>,
+  auth: TokenIntrospection,
+  meta: unknown,
+  options: SecuredToolExecutionOptions
+): Promise<{ result: unknown; isError: boolean }> {
+  const frameDeclaration = frameDeclarationFromMcpMeta(meta);
+  return gateToolCall(
+    { name: toolName, args },
+    {
+      transport: 'http',
+      callerId: auth.agentId ?? auth.clientId ?? options.signingCtx?.signer ?? null,
+      scopes: auth.scopes,
+      ...(frameDeclaration !== undefined ? { frameDeclaration } : {}),
+    },
+    (env) => securedToolExecution(env.name, env.args, auth, options),
+    {
+      check: founderGateFrameToolCallCheck,
+      enforcement: statelessToolGateMode(),
+      classifyResult: (r) =>
+        r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
+    }
   );
 }
 
@@ -914,6 +1104,7 @@ async function securedToolExecutionInner(
           signer: auth.agentId ?? auth.clientId ?? null,
           scopes: auth.scopes ?? [],
           ...(auth.localCustody === true && { localCustody: true as const }),
+          ...(auth.userId ? { userId: auth.userId } : {}),
         };
 
     // Execute the tool
@@ -992,9 +1183,28 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
     return { resources: listSkillResources() };
   });
 
-  // Read a specific skill resource
+  // Use session auth context or default to admin (for legacy compat). One value for both the
+  // CallTool gate and holo-result reads, so a stored result is readable by the same caller only.
+  const sessionAuth: TokenIntrospection = sessionAuthContext || {
+    active: true,
+    scopes: ['admin:*'],
+    agentId: 'mcp-session-legacy',
+  };
+  const sessionCallerId = sessionAuth.agentId ?? sessionAuth.clientId ?? null;
+
+  server.setRequestHandler(ListResourceTemplatesRequestSchema, async () => ({
+    resourceTemplates: [holoResultResourceTemplate],
+  }));
+
+  // Read a specific skill resource, or a window of a stored large tool result
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const uri = request.params.uri;
+    if (isHoloResultUri(uri)) {
+      return readHoloResult(uri, {
+        scope: resultScope('http', sessionCallerId),
+        maxBytes: getMcpServerSizing().responseMaxBytes,
+      });
+    }
     const result = readSkillResource(uri);
     if (!result) {
       throw new Error(`Resource not found: ${uri}`);
@@ -1037,45 +1247,42 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
       (request.params as { _meta?: unknown })._meta
     );
 
-    // Use session auth context or default to admin (for legacy compat)
-    const auth: TokenIntrospection = sessionAuthContext || {
-      active: true,
-      scopes: ['admin:*'],
-      agentId: 'mcp-session-legacy',
-    };
+    const auth = sessionAuth;
 
-    const { result, isError } = await gateToolCall(
+    // The dispatch builds the final MCP envelope so the gate's response cap
+    // (tool-result-store.ts) sees exactly what goes on the wire.
+    return await gateToolCall(
       { name, args: args || {} },
       {
         transport: 'http',
-        callerId: auth.agentId ?? auth.clientId ?? null,
+        callerId: sessionCallerId,
         scopes: auth.scopes,
         ...(frameDeclaration !== undefined ? { frameDeclaration } : {}),
       },
-      (env) => securedToolExecution(env.name, env.args, auth),
+      async (env): Promise<Record<string, unknown>> => {
+        const { result, isError } = await securedToolExecution(env.name, env.args, auth);
+        // Hologram MCP envelope detection (task_1778114362909_zp7u): if the tool
+        // returned a HologramMcpResponse, surface the typed channel so REST/MCP
+        // clients can dispatch on content_type without re-parsing JSON.
+        if (!isError && isHologramMcpResponse(result)) {
+          return wrapHologramMcpEnvelope(result) as unknown as Record<string, unknown>;
+        }
+        return {
+          content: [
+            {
+              type: 'text',
+              text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+            },
+          ],
+          ...(isError ? { isError: true } : {}),
+        };
+      },
       {
         check: founderGateX402ToolCallCheck,
         classifyResult: (r) =>
-          r.isError ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
+          r.isError === true ? { ok: false, errorClass: 'ToolExecutionError' } : { ok: true },
       }
     );
-
-    // Hologram MCP envelope detection (task_1778114362909_zp7u): if the tool
-    // returned a HologramMcpResponse, surface the typed channel so REST/MCP
-    // clients can dispatch on content_type without re-parsing JSON.
-    if (!isError && isHologramMcpResponse(result)) {
-      return wrapHologramMcpEnvelope(result) as unknown as Record<string, unknown>;
-    }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-        },
-      ],
-      ...(isError ? { isError: true } : {}),
-    };
   });
 
   return server;
@@ -1088,13 +1295,32 @@ function createMcpServer(sessionAuthContext?: TokenIntrospection): Server {
  * admin:* on the belief that the HTTP layer had already authenticated the
  * caller, but the /a2a routes never did, so a caller with no credentials
  * ran any registered tool as admin.
+ *
+ * `route` names the entry point it serves: its path is what the audit log files the call
+ * under, and `meta` is the caller's `_meta` on that route (the body's on POST /a2a/tasks,
+ * the JSON-RPC params' on POST /a2a, as on POST /mcp). Both are required so a route cannot
+ * borrow another's label or silently drop the frame its caller declared.
  */
-function a2aToolHandlerFor(auth: TokenIntrospection) {
+function a2aToolHandlerFor(
+  auth: TokenIntrospection,
+  route: { path: '/a2a' | '/a2a/tasks'; meta: unknown }
+) {
   return async (name: string, args: Record<string, unknown>): Promise<unknown> => {
-    const { result, isError } = await securedToolExecution(name, args, auth, {
-      requestPath: '/a2a/tasks',
-      requestMethod: 'POST',
-    });
+    // The same gate, with the same HOLOSCRIPT_STATELESS_TOOL_GATE switch, as POST /mcp and
+    // POST /tools/call (#463). A refusal (enforce) becomes a failed task before any dispatch.
+    let gated: { result: unknown; isError: boolean };
+    try {
+      gated = await gatedStatelessToolExecution(name, args, auth, route.meta, {
+        requestPath: route.path,
+        requestMethod: 'POST',
+      });
+    } catch (gateError) {
+      if (!(gateError instanceof ToolCallGateDeniedError)) throw gateError;
+      throw new Error(
+        `[A2A task dispatch] Refused by the tool-call gate (${gateError.check}): ${gateError.message}`
+      );
+    }
+    const { result, isError } = gated;
 
     if (isError) {
       const detail = typeof result === 'string' ? result : JSON.stringify(result).slice(0, 300);
@@ -1107,7 +1333,7 @@ function a2aToolHandlerFor(auth: TokenIntrospection) {
 }
 
 const A2A_LIST_NEEDS_ADMIN_MESSAGE =
-  'Listing A2A tasks returns every caller\'s results, so it needs admin. Fetch your own task by its id.';
+  "Listing A2A tasks returns every caller's results, so it needs admin. Fetch your own task by its id.";
 
 /**
  * The /a2a task routes run tools and hand back their results, so they need
@@ -1145,6 +1371,7 @@ async function requireA2ACaller(
 // ── HTTP Server ──────────────────────────────────────────────────────────────
 
 const httpServer = http.createServer(async (req, res) => {
+  installClientRateLimitStatus(req, res, clientRateLimitedRequests);
   // CORS headers (extended for OAuth 2.1)
   // Default to wildcard for MCP/agent clients; restrict via CORS_ALLOWED_ORIGINS env var
   // in deployments that serve browser-based Studio traffic alongside the MCP endpoint.
@@ -1199,6 +1426,7 @@ const httpServer = http.createServer(async (req, res) => {
         status: 'healthy',
         service: SERVICE_NAME,
         version: SERVICE_VERSION,
+        commit: getBuildCommit(),
         uptime: process.uptime(),
         sessions: transports.size,
         tools: tools.length + PluginManager.getTools().length,
@@ -1832,7 +2060,10 @@ const httpServer = http.createServer(async (req, res) => {
       // Handle the JSON-RPC request with the caller's own scopes
       const response = await handleJsonRpcRequest(
         parsed.request,
-        a2aToolHandlerFor(a2aCaller),
+        a2aToolHandlerFor(a2aCaller, {
+          path: '/a2a',
+          meta: (parsed.request.params as { _meta?: unknown } | undefined)?._meta,
+        }),
         agentCardBuilder
       );
 
@@ -2070,6 +2301,28 @@ const httpServer = http.createServer(async (req, res) => {
       );
       return;
     }
+    // Muse Gap 9: registration is open on purpose (HoloMesh is a social
+    // network for agents); the brake is a per-IP rate, keyed on the TCP peer.
+    const regLimit = registrationsPerIpPerHour();
+    const regHit = registrationLimiter.hit(String(registrar ?? 'unknown'), regLimit);
+    if (!regHit.allowed) {
+      auditLog.logAuthEvent({
+        event: 'rate_limited',
+        ip: registrar,
+        reason: `client registration: over ${regLimit}/hour from this address`,
+      });
+      res.writeHead(429, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Retry-After': String(Math.max(1, Math.ceil((regHit.resetAt - Date.now()) / 1000))),
+      });
+      res.end(
+        JSON.stringify({
+          error: 'rate_limit_exceeded',
+          error_description: `Too many client registrations from this address (limit ${regLimit}/hour).`,
+        })
+      );
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const clientName = String(body.client_name || 'unnamed-client')
@@ -2088,7 +2341,8 @@ const httpServer = http.createServer(async (req, res) => {
         );
       }
 
-      const scopes = String(body.scope || 'tools:read')
+      // `social` works at once; anything else is held for a human's consent.
+      const scopes = String(body.scope || 'social tools:read')
         .split(' ')
         .filter(Boolean);
       const invalidScopes = getInvalidPublicOAuthScopes(scopes);
@@ -2110,9 +2364,11 @@ const httpServer = http.createServer(async (req, res) => {
         'confidential' | 'public';
       const grantTypes = Array.isArray(body.grant_types)
         ? body.grant_types.filter((grantType): grantType is string => typeof grantType === 'string')
-        : clientType === 'public'
-          ? ['authorization_code', 'refresh_token']
-          : ['authorization_code', 'client_credentials', 'refresh_token'];
+        : defaultRegistrationGrantTypes({
+            clientType,
+            registrarIsLoopback: isLoopbackAddress(registrar),
+            remoteRegistrationAllowed: isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION),
+          });
       const unsupportedGrantTypes = grantTypes.filter(
         (grantType) =>
           !['authorization_code', 'client_credentials', 'refresh_token'].includes(grantType)
@@ -2138,53 +2394,86 @@ const httpServer = http.createServer(async (req, res) => {
       // same socket address the door above was decided on, never a header.
       // The decision lives in `agentBindingForRegistration` so it can be tested
       // without booting this server: inline, it stayed green when deleted.
+      const registrarAgentId = resolveProvenAgentId(req.headers);
+      const registrarIsLoopback = isLoopbackAddress(registrar);
+      const remoteRegistrationAllowed = isTruthyEnvFlag(
+        process.env.OAUTH_ALLOW_REMOTE_REGISTRATION
+      );
       const agentBinding = agentBindingForRegistration({
         requestedAgentId: body.agent_id,
-        registrarAgentId: resolveProvenAgentId(req.headers),
+        registrarAgentId,
         unprovenBindingAllowed: loopbackRegistrantMayBindUnproven({
-          registrarIsLoopback: isLoopbackAddress(registrar),
-          remoteRegistrationAllowed: isTruthyEnvFlag(process.env.OAUTH_ALLOW_REMOTE_REGISTRATION),
+          registrarIsLoopback,
+          remoteRegistrationAllowed,
         }),
+      });
+      // A registrant that proved nothing gets tools:execute issued as
+      // tools:write only (board task zkdg); recorded on the client in both
+      // registries so a redeploy cannot hand it the full grant.
+      const registeredUnproven = registrationProvedNothing({
+        provenAgentId: registrarAgentId,
+        registrarIsLoopback,
+        remoteRegistrationAllowed,
       });
       if (!agentBinding.ok) throw new Error(agentBinding.reason);
       // The registry's spelling for a proven binding; the request's, trimmed,
       // for a loopback-unproven one.
       const boundAgentId = agentBinding.boundAgentId;
 
-      // Register with legacy provider (backwards compat)
-      const { clientId, clientSecret } = oauth.registerClient({
-        clientName,
-        redirectUris,
-        scopes,
-        clientType,
-        rateLimit,
-        ...(boundAgentId ? { agentId: boundAgentId } : {}),
-      });
-
-      // Also register with the new OAuth2Provider (token-store backed) using
-      // the SAME identity, so the durable copy is reachable by the credentials
-      // the caller holds. The previous divergent dual-write (separate generated
-      // ids) made the Postgres copy useless for rehydration after deploys.
-      try {
-        await oauth2.registerClient({
+      // One identity in both registries, or none. The durable copy is what
+      // survives a deploy, so a client the durable store refused is not handed
+      // out: the in-memory half is undone and the caller is told (503). This
+      // used to log a warning and answer 201 with a memory-only client, which
+      // is how a full store went unnoticed from 2026-06-28 (board
+      // task_1790545471449_w6yi). The agent binding goes into the durable copy
+      // too: a binding that quietly stops existing at deploy refuses a caller
+      // that did everything right.
+      const registration = await registerClientDurably(
+        { memory: oauth, durable: oauth2 },
+        {
           clientName,
           redirectUris,
           scopes,
           clientType,
           rateLimit,
-          clientId,
-          clientSecret,
-          // The binding belongs in the durable copy too: the in-memory one is
-          // gone on the next deploy, and a binding that quietly stops existing
-          // refuses a caller that did everything right.
           ...(boundAgentId ? { agentId: boundAgentId } : {}),
+          ...(registeredUnproven ? { registeredUnproven: true } : {}),
+          // Muse Gap 9: open registration, approved at once, but public social
+          // scopes only until a human consents in a signed-in Studio session.
+          selfRegistered: true,
+          ...(grantTypes.includes('client_credentials') ? {} : { noClientCredentials: true }),
+        },
+        { metrics: getPrometheusMetrics('holoscript') }
+      );
+
+      for (const retiredClientId of registration.retiredClientIds) {
+        auditLog.logAuthEvent({
+          event: 'client_revoked',
+          clientId: retiredClientId,
+          reason: 'retired to make room: idle past the retirement window with no live token',
         });
-      } catch (oauth2Err) {
-        console.warn(
-          '[auth] OAuth2Provider registration failed; legacy registry succeeded:',
-          oauth2Err instanceof Error ? oauth2Err.message : oauth2Err
-        );
       }
+
+      if (!registration.ok) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          ip: clientIP,
+          reason: `client registration refused: ${registration.reason}`,
+        });
+        res.writeHead(503, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'temporarily_unavailable',
+            error_description: registration.message,
+          })
+        );
+        return;
+      }
+
+      const { clientId, clientSecret } = registration;
 
       auditLog.logAuthEvent({
         event: 'client_registered',
@@ -2205,6 +2494,10 @@ const httpServer = http.createServer(async (req, res) => {
           scope: scopes.join(' '),
           scopes_supported: OAUTH2_PUBLIC_SCOPE_NAMES,
           client_id_issued_at: Math.floor(Date.now() / 1000),
+          // Not RFC 7591: what this client can do with no human in the flow.
+          scopes_without_consent: PUBLIC_SOCIAL_SCOPES,
+          consent_note:
+            "Without a signed-in Studio user approving this client, tokens carry public social scopes only. Other scopes need that human's consent at /oauth/authorize.",
           ...(clientType === 'confidential' ? { client_secret_expires_at: 0 } : {}),
         })
       );
@@ -2309,6 +2602,14 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
+      if (!clientIsApproved(client)) {
+        writeUnauthorizedClient(
+          res,
+          new ClientNotApprovedError(clientId, client.status ?? 'suspended')
+        );
+        return;
+      }
+
       if (!client.redirectUris.includes(redirectUri)) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
@@ -2344,26 +2645,39 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
+      // Release F2/F3: the CSRF token is bound to the signed-in user, read from
+      // the x-studio-consent HEADER only (never the query string, which leaks
+      // into logs, history and Referer), verified without consuming it. No
+      // session: no CSRF token, so no code can follow.
+      const getConsent = verifyStudioConsent(
+        req.headers['x-studio-consent'],
+        clientId,
+        undefined,
+        undefined,
+        { peek: true }
+      );
+      const csrfToken = getConsent
+        ? issueOAuthCsrfToken({
+            clientId,
+            redirectUri,
+            codeChallenge,
+            userId: getConsent.userId,
+            scope: requestedScopes,
+          })
+        : undefined;
+
       if (acceptsHtml(req.headers.accept)) {
-        const requestedScopeDetails = requestedScopes.map((name) => ({
-          name,
-          description: OAUTH2_SCOPES[name as keyof typeof OAUTH2_SCOPES] || 'HoloScript capability',
-        }));
-        res.writeHead(200, {
-          'Content-Type': 'text/html; charset=utf-8',
+        // Browsers consent in Studio, where the user is signed in (#579). Send
+        // them to Studio's /oauth/consent with the same request parameters.
+        // studio_consent is never carried in a URL (Release F3), so it is
+        // dropped here even if a caller put it in the query.
+        const forward = new URLSearchParams(params);
+        forward.delete('studio_consent');
+        res.writeHead(302, {
+          Location: `${studioConsentUrl()}?${forward.toString()}`,
           ...OAUTH_CONSENT_SECURITY_HEADERS,
         });
-        res.end(
-          renderOAuthConsentPage({
-            clientId,
-            clientName: client.clientName,
-            redirectUri,
-            scopes: requestedScopeDetails,
-            state: state || undefined,
-            codeChallenge,
-            codeChallengeMethod: 'S256',
-          })
-        );
+        res.end();
         return;
       }
 
@@ -2382,6 +2696,15 @@ const httpServer = http.createServer(async (req, res) => {
               state: state || undefined,
               code_challenge: codeChallenge,
               code_challenge_method: 'S256',
+              // Trust & Consent A2: post this back with the signed-in user's
+              // studio_consent; a code is minted for no one else.
+              ...(csrfToken
+                ? { csrf_token: csrfToken }
+                : {
+                    login_required: true,
+                    csrf_note:
+                      'Send the x-studio-consent header (signed-in Studio user) to receive a csrf_token bound to that user.',
+                  }),
               available_scopes: Object.entries(OAUTH2_PUBLIC_SCOPES).map(([name, description]) => ({
                 name,
                 description,
@@ -2389,7 +2712,7 @@ const httpServer = http.createServer(async (req, res) => {
               })),
             },
             instructions:
-              'POST to /oauth/authorize with the same parameters to obtain an authorization code.',
+              'POST to /oauth/authorize with the same parameters, csrf_token, and a studio_consent assertion from a signed-in Studio session to obtain an authorization code.',
             _links: {
               authorize: `${OAUTH_ISSUER}/oauth/authorize`,
               token: `${OAUTH_ISSUER}/oauth/token`,
@@ -2435,6 +2758,9 @@ const httpServer = http.createServer(async (req, res) => {
       if (!client) {
         throw new Error('Unknown client_id');
       }
+      if (!clientIsApproved(client)) {
+        throw new ClientNotApprovedError(clientId, client.status ?? 'suspended');
+      }
       if (!client.redirectUris.includes(redirectUri)) {
         throw new Error('Invalid redirect_uri');
       }
@@ -2472,12 +2798,89 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
+      // Trust & Consent A2 + Release F2/F3: a code is minted only for a
+      // signed-in human (studio_consent from the POST body or the
+      // x-studio-consent header, never the query string), and only with the
+      // CSRF token minted for THAT user and this exact request.
+      const consentAssertion =
+        typeof body.studio_consent === 'string'
+          ? body.studio_consent
+          : req.headers['x-studio-consent'];
+      const peeked = verifyStudioConsent(consentAssertion, clientId, undefined, undefined, {
+        peek: true,
+      });
+      if (!peeked) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId,
+          ip: clientIP,
+          reason: 'authorize refused: no signed-in user session',
+        });
+        res.writeHead(401, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+          'WWW-Authenticate': 'Session realm="holoscript-studio", error="login_required"',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'login_required',
+            error_description:
+              'Authorization needs a signed-in user. Sign in to Studio and approve this client there.',
+          })
+        );
+        return;
+      }
+      if (
+        !verifyOAuthCsrfToken(body.csrf_token, {
+          clientId,
+          redirectUri,
+          codeChallenge,
+          userId: peeked.userId,
+          scope: requestedScopes,
+        })
+      ) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId,
+          ip: clientIP,
+          reason: 'authorize refused: missing or invalid csrf_token for this user',
+        });
+        res.writeHead(403, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'invalid_request',
+            error_description:
+              'csrf_token missing or invalid for this user and request. GET /oauth/authorize with the x-studio-consent header and post its csrf_token back.',
+          })
+        );
+        return;
+      }
+      // Consume the one-time assertion only now.
+      const consent = verifyStudioConsent(consentAssertion, clientId);
+      if (!consent) {
+        res.writeHead(401, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify({ error: 'login_required', error_description: 'Session assertion already used or expired.' }));
+        return;
+      }
       const code = oauth.createAuthorizationCode({
         clientId,
         redirectUri,
         scopes: requestedScopes,
         codeChallenge,
         codeChallengeMethod: 'S256',
+        consent: { userId: consent.userId, grantId: consent.grantId, scopes: consent.scopes },
+      });
+      auditLog.logAuthEvent({
+        event: 'auth_success',
+        clientId,
+        ip: clientIP,
+        reason: `consent granted by Studio user (grant ${consent.grantId})`,
       });
 
       if (isBrowserForm) {
@@ -2494,14 +2897,239 @@ const httpServer = http.createServer(async (req, res) => {
         res.end(JSON.stringify({ code, state }));
       }
     } catch (err) {
+      if (isClientNotApprovedError(err)) {
+        writeUnauthorizedClient(res, err);
+        return;
+      }
       const message = err instanceof Error ? err.message : String(err);
       res.writeHead(400, {
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-store',
       });
-      res.end(JSON.stringify({ error: 'invalid_request', error_description: message }));
+      res.end(
+        JSON.stringify({
+          error: message.startsWith('consent_required') ? 'consent_required' : 'invalid_request',
+          error_description: message,
+        })
+      );
     }
     return;
+  }
+
+  // POST /oauth/clients/:id/{approve,suspend} — operator suspend/restore (Muse Gap 9)
+  {
+    const reviewMatch =
+      req.method === 'POST'
+        ? /^\/oauth\/clients\/([A-Za-z0-9_-]{1,128})\/(approve|suspend)$/.exec(url ?? '')
+        : null;
+    if (reviewMatch) {
+      const reviewAuth = await authenticateRequest(req);
+      if (!reviewAuth.active) {
+        res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Authentication required' }));
+        return;
+      }
+      if (!authHasAnyScope(reviewAuth, CLIENT_REVIEW_SCOPES)) {
+        refuseInsufficientScope(res, CLIENT_REVIEW_SCOPES);
+        return;
+      }
+      const [, reviewedClientId, action] = reviewMatch;
+      const status: OAuthClientStatus = action === 'approve' ? 'approved' : 'suspended';
+      let reason: string | undefined;
+      try {
+        const body = await parseJsonBody(req);
+        if (typeof body.reason === 'string') reason = body.reason.slice(0, 500);
+      } catch {
+        // A body is optional.
+      }
+      const durable = await oauth2.setClientStatus(reviewedClientId, status);
+      const inMemory = oauth.setClientStatus(reviewedClientId, status);
+      if (!durable.found && !inMemory) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({ error: 'invalid_client', error_description: 'Unknown client_id' })
+        );
+        return;
+      }
+      auditLog.logAuthEvent({
+        event: status === 'approved' ? 'client_approved' : 'client_suspended',
+        clientId: reviewedClientId,
+        agentId: reviewAuth.agentId,
+        ip: clientIP,
+        reason: `by ${reviewAuth.agentId ?? reviewAuth.clientId ?? 'unknown'}${reason ? `: ${reason}` : ''}`,
+      });
+      res.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      });
+      res.end(
+        JSON.stringify({
+          client_id: reviewedClientId,
+          status,
+          access_tokens_deleted: durable.accessTokensDeleted,
+          refresh_tokens_deleted: durable.refreshTokensDeleted,
+        })
+      );
+      return;
+    }
+  }
+
+  // GET /oauth/grants, DELETE /oauth/grants/:id -- Connected apps (CVO done
+  // criterion: a signed-in human sees each agent's grant and revokes it).
+  // Auth: a single-use Studio session assertion in x-studio-consent, bound to
+  // STUDIO_GRANTS_AUDIENCE (never an OAuth bearer, so an agent cannot list or
+  // revoke a human's grants). Only the assertion's own user's grants are
+  // visible; another user's grant id is a 404, the same as a missing one.
+  {
+    const grantsDelete =
+      req.method === 'DELETE' ? /^\/oauth\/grants\/([A-Za-z0-9_-]{1,128})$/.exec(url ?? '') : null;
+    if ((url === '/oauth/grants' && req.method === 'GET') || grantsDelete) {
+      const json = (status: number, body: unknown) => {
+        res.writeHead(status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify(body));
+      };
+      const grantsUser = verifyStudioGrantsSession(req.headers['x-studio-consent']);
+      if (!grantsUser) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          ip: clientIP,
+          reason: 'grants: missing or invalid Studio session assertion',
+        });
+        json(401, {
+          error: 'login_required',
+          error_description: 'A signed-in Studio session is required to manage connected apps.',
+        });
+        return;
+      }
+      if (!grantsDelete) {
+        const list = oauth.listGrantsForUser(grantsUser);
+        await Promise.all(list.map((g) => ensureClientHydrated(g.clientId).catch(() => undefined)));
+        json(200, {
+          grants: list.map((g) => {
+            const client = oauth.getClient(g.clientId);
+            return {
+              id: g.grantId,
+              client_id: g.clientId,
+              client_name: client?.clientName ?? null,
+              // No verified-publisher signal exists: every name is the app's own claim.
+              client_name_verified: false,
+              scopes: [...g.scopes],
+              created_at: new Date(g.issuedAt).toISOString(),
+              last_used_at: new Date(g.lastUsedAt).toISOString(),
+            };
+          }),
+        });
+        return;
+      }
+      const target = oauth.getGrant(grantsDelete[1]);
+      if (!target || target.userId !== grantsUser || target.revokedAt) {
+        json(404, { error: 'not_found', error_description: 'No such connected app for this account.' });
+        return;
+      }
+      oauth.revokeGrant(target.grantId);
+      auditLog.logAuthEvent({
+        event: 'token_revoked',
+        clientId: target.clientId,
+        ip: clientIP,
+        reason: `grant ${target.grantId} revoked by its user in Studio`,
+      });
+      res.writeHead(204, { 'Cache-Control': 'no-store' });
+      res.end();
+      return;
+    }
+  }
+  // DELETE /oauth/clients/:id — revoke a client (Trust & Consent A4 / d)
+  {
+    const deleteMatch =
+      req.method === 'DELETE'
+        ? /^\/oauth\/clients\/([A-Za-z0-9_-]{1,128})$/.exec(url ?? '')
+        : null;
+    if (deleteMatch) {
+      const targetClientId = deleteMatch[1];
+      const actorAuth = await authenticateRequest(req);
+      const basic = parseBasicClientCredentials(req.headers.authorization);
+      await ensureClientHydrated(targetClientId);
+      const memClient = oauth.getClient(targetClientId);
+      const durableClient = await oauth2.getClient(targetClientId).catch(() => undefined);
+      const decision = clientDeletionActor({
+        targetClientId,
+        auth: actorAuth,
+        isAdmin: actorAuth.active && authHasAnyScope(actorAuth, CLIENT_REVIEW_SCOPES),
+        boundAgentId: memClient?.agentId ?? durableClient?.agentId,
+        secretMatches:
+          !!basic &&
+          basic.clientId === targetClientId &&
+          !!memClient &&
+          oauth.verifyClientSecret(targetClientId, basic.clientSecret),
+      });
+      if (!decision.ok) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId: targetClientId,
+          ip: clientIP,
+          reason: `client delete refused: ${decision.reason}`,
+        });
+        res.writeHead(decision.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({
+            error: decision.status === 401 ? 'invalid_token' : 'insufficient_scope',
+            error_description:
+              decision.status === 401
+                ? 'Authentication required: the client owner or an admin.'
+                : 'Only the client owner or an admin may delete this client.',
+          })
+        );
+        return;
+      }
+      const existed = !!memClient || !!durableClient;
+      // Memory first (tokens, refresh chains, codes, grants), then the durable
+      // store (client row, its access and refresh rows), then memory again in
+      // case a request rehydrated anything in between.
+      oauth.revokeClient(targetClientId);
+      let durableRevoked = false;
+      try {
+        durableRevoked = await oauth2.revokeClient(targetClientId);
+      } catch (err) {
+        // Trust & Consent C4: the durable row would rehydrate the client on the
+        // next request or deploy, so this is a failure, not a 204.
+        const why = err instanceof Error ? err.message : String(err);
+        console.warn('[oauth] durable client revoke failed:', why);
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          clientId: targetClientId,
+          agentId: actorAuth.agentId,
+          ip: clientIP,
+          reason: `client delete FAILED by ${decision.actor} (${decision.role}): durable=false (${why.slice(0, 200)})`,
+        });
+        res.writeHead(503, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Retry-After': '5',
+          'Cache-Control': 'no-store',
+        });
+        res.end(
+          JSON.stringify({
+            error: 'temporarily_unavailable',
+            error_description:
+              'The client was revoked in memory but the durable store could not be updated. Retry the DELETE.',
+          })
+        );
+        return;
+      }
+      oauth.revokeClient(targetClientId);
+      auditLog.logAuthEvent({
+        event: 'client_revoked',
+        clientId: targetClientId,
+        agentId: actorAuth.agentId,
+        ip: clientIP,
+        reason: `deleted by ${decision.actor} (${decision.role}); existed=${existed}; durable=${durableRevoked}`,
+      });
+      res.writeHead(204, { 'Cache-Control': 'no-store' });
+      res.end();
+      return;
+    }
   }
 
   // POST /oauth/token — Token exchange
@@ -2600,9 +3228,10 @@ const httpServer = http.createServer(async (req, res) => {
       // absent) until the next deploy wiped that map, after which
       // authenticateRequestAsync read the durable record and returned the
       // caller's chosen id as the principal.
-      const stampedAgentId = tokenResponse.access_token
-        ? oauth.introspect(tokenResponse.access_token).agentId
+      const stamped = tokenResponse.access_token
+        ? oauth.introspect(tokenResponse.access_token)
         : undefined;
+      const stampedAgentId = stamped?.agentId;
 
       // Write the issued tokens through to the durable registry so they
       // survive redeploys of the in-memory maps. Fire-and-forget: durable
@@ -2615,7 +3244,8 @@ const httpServer = http.createServer(async (req, res) => {
           scope?: string;
         },
         body.client_id as string,
-        stampedAgentId
+        stampedAgentId,
+        stamped?.userId ? { userId: stamped.userId, grantId: stamped.grantId } : undefined
       );
 
       res.writeHead(200, {
@@ -2633,8 +3263,37 @@ const httpServer = http.createServer(async (req, res) => {
         reason: message,
       });
 
+      if (isClientNotApprovedError(err)) {
+        writeUnauthorizedClient(res, err);
+        return;
+      }
+      // RFC 6749 §5.2: an unknown, deleted or wrongly-authenticated client is
+      // invalid_client (401), not invalid_grant.
+      if (message.startsWith('unauthorized_client')) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify({ error: 'unauthorized_client', error_description: message }));
+        return;
+      }
+      if (isInvalidClientMessage(message)) {
+        res.writeHead(401, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'WWW-Authenticate': 'Basic realm="holoscript-mcp"',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify({ error: 'invalid_client', error_description: message }));
+        return;
+      }
       res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ error: 'invalid_grant', error_description: message }));
+      res.end(
+        JSON.stringify({
+          error: message.startsWith('consent_required')
+            ? 'consent_required'
+            : message.startsWith('invalid_scope')
+              ? 'invalid_scope'
+              : 'invalid_grant',
+          error_description: message,
+        })
+      );
     }
     return;
   }
@@ -2682,6 +3341,7 @@ const httpServer = http.createServer(async (req, res) => {
             agentId: durable.agentId,
             expiresAt: durable.expiresAt,
             issuedAt: durable.issuedAt,
+            ...(durable.userId ? { userId: durable.userId, grantId: durable.grantId } : {}),
           };
         }
       }
@@ -2693,6 +3353,7 @@ const httpServer = http.createServer(async (req, res) => {
           client_id: result.clientId,
           scope: result.scopes?.join(' '),
           agent_id: result.agentId,
+          ...(result.userId ? { user_id: result.userId, grant_id: result.grantId } : {}),
           exp: result.expiresAt ? Math.floor(result.expiresAt / 1000) : undefined,
           iat: result.issuedAt ? Math.floor(result.issuedAt / 1000) : undefined,
         })
@@ -2918,7 +3579,13 @@ const httpServer = http.createServer(async (req, res) => {
       };
 
       const task = createTask(request);
-      const executed = await executeTask(task, a2aToolHandlerFor(a2aCaller));
+      const executed = await executeTask(
+        task,
+        a2aToolHandlerFor(a2aCaller, {
+          path: '/a2a/tasks',
+          meta: (body as { _meta?: unknown })._meta,
+        })
+      );
 
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify(taskToResponse(executed), null, 2));
@@ -3007,25 +3674,31 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (url === '/api/credits/check' && req.method === 'POST') {
     // Auth required
-    const authed = await checkAuth(req);
-    if (!authed) {
+    const checkAuthResult = await authenticateRequest(req);
+    if (!checkAuthResult.active) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
     }
-    // Founder bypass: key-registry founders always pass the credit gate.
-    if (isFounderRequest(req)) {
-      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-      res.end(JSON.stringify({ ok: true, balance: 999_999_999, required: 0, founderBypass: true }));
-      return;
-    }
+    // No founder bypass (CoS no-bypass-in-prod policy, Muse Gap 9): founders
+    // use funded accounts and go through the same check. Operators that must
+    // name a user hold tools:admin (see creditCheckSubject).
+    // Muse Gap 9: whose balance is read comes from the TOKEN, never the body.
+    // It used to take body.userId from any active token: a cross-user balance
+    // oracle. See creditCheckSubject for the one operator exception.
     try {
       const body = await parseJsonBody(req);
-      const userId = body.userId as string;
+      const subject = creditCheckSubject(checkAuthResult, body.userId);
+      if (!subject.ok) {
+        res.writeHead(subject.status, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: subject.error }));
+        return;
+      }
+      const userId = subject.userId;
       const operation = body.operation as string;
-      if (!userId || !operation) {
+      if (!operation) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: 'Missing required fields: userId, operation' }));
+        res.end(JSON.stringify({ error: 'Missing required field: operation' }));
         return;
       }
       const opCost = OPERATION_COSTS[operation];
@@ -3070,8 +3743,8 @@ const httpServer = http.createServer(async (req, res) => {
 
   if (url === '/api/credits/deduct' && req.method === 'POST') {
     // Auth required
-    const authed = await checkAuth(req);
-    if (!authed) {
+    const deductAuth = await authenticateRequest(req);
+    if (!deductAuth.active) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'Authentication required' }));
       return;
@@ -3080,6 +3753,12 @@ const httpServer = http.createServer(async (req, res) => {
     if (isFounderRequest(req)) {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ ok: true, cost: 0, founderBypass: true }));
+      return;
+    }
+    // The body names whose credits to spend, so only an operator may call this. The one caller
+    // (studio creditGate.ts) sends the server's own key, which resolves to admin:*.
+    if (!authHasAnyScope(deductAuth, CREDIT_DEDUCT_SCOPES)) {
+      refuseInsufficientScope(res, CREDIT_DEDUCT_SCOPES);
       return;
     }
     try {
@@ -3162,10 +3841,16 @@ const httpServer = http.createServer(async (req, res) => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   if (url === '/api/moltbook/crosspost' && req.method === 'POST') {
-    const authed = await checkAuth(req);
-    if (!authed) {
+    const crosspostAuth = await authenticateRequest(req);
+    if (!crosspostAuth.active) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: false, error: 'Authentication required' }));
+      return;
+    }
+    // A public post under the server's Moltbook account. tools:write, not admin: the
+    // ai-ecosystem knowledge crosspost script calls this with an agent key, not an operator key.
+    if (!authHasAnyScope(crosspostAuth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
       return;
     }
     // Phase-3 wrapped read: gated by `env:MOLTBOOK_API_KEY` lease when
@@ -3560,6 +4245,30 @@ const httpServer = http.createServer(async (req, res) => {
 
       if (method === 'resources/read') {
         const uri = typeof params.uri === 'string' ? params.uri : '';
+        if (isHoloResultUri(uri)) {
+          // A window of a stored large tool result; same caller scope as tools/call below.
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          try {
+            const read = readHoloResult(uri, {
+              scope: resultScope(
+                'http',
+                auth.agentId ?? auth.clientId ?? unwrapped.signingCtx?.signer ?? null
+              ),
+              maxBytes: getMcpServerSizing().responseMaxBytes,
+            });
+            res.end(JSON.stringify({ jsonrpc: '2.0', id, result: read }));
+          } catch (readError) {
+            if (!(readError instanceof HoloResultNotFoundError)) throw readError;
+            res.end(
+              JSON.stringify({
+                jsonrpc: '2.0',
+                id,
+                error: { code: -32002, message: readError.message },
+              })
+            );
+          }
+          return;
+        }
         const result = readSkillResource(uri);
         if (!result) {
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -3594,40 +4303,76 @@ const httpServer = http.createServer(async (req, res) => {
       if (method === 'tools/call') {
         const toolArgs = (params.arguments as Record<string, unknown>) || {};
         const tcpPeer = req.socket.remoteAddress?.replace(/^::ffff:/, '') || undefined;
-        const { result, isError } = await securedToolExecution(name, toolArgs || {}, auth, {
-          requestPath: '/mcp',
-          requestMethod: 'POST',
-          ip: clientIP,
-          tcpPeerIp: tcpPeer,
-          rawXForwardedFor: readXForwardedFor(req),
-          bearerToken: readBearerToken(req),
-          signingCtx: unwrapped.signingCtx,
-        });
+        let gated: { result: unknown; isError: boolean };
+        try {
+          gated = await gatedStatelessToolExecution(
+            name,
+            toolArgs || {},
+            auth,
+            (params as { _meta?: unknown })._meta,
+            {
+              requestPath: '/mcp',
+              requestMethod: 'POST',
+              ip: clientIP,
+              tcpPeerIp: tcpPeer,
+              rawXForwardedFor: readXForwardedFor(req),
+              bearerToken: readBearerToken(req),
+              signingCtx: unwrapped.signingCtx,
+            }
+          );
+        } catch (gateError) {
+          if (!(gateError instanceof ToolCallGateDeniedError)) throw gateError;
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: body.id,
+              error: {
+                code: -32003,
+                message: gateError.message,
+                data: { deniedBy: gateError.check },
+              },
+            })
+          );
+          return;
+        }
+        const { result, isError } = gated;
 
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(
-          JSON.stringify({
-            jsonrpc: '2.0',
-            id: body.id,
-            ...(isError
-              ? {
-                  error: {
-                    code: -32000,
-                    message: typeof result === 'string' ? result : JSON.stringify(result),
-                  },
-                }
-              : {
-                  result: {
-                    content: [
-                      {
-                        type: 'text',
-                        text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-                      },
-                    ],
-                  },
-                }),
-          })
+        if (isError) {
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              id: body.id,
+              error: {
+                code: -32000,
+                message: typeof result === 'string' ? result : JSON.stringify(result),
+              },
+            })
+          );
+          return;
+        }
+        // Response cap (tool-result-store.ts): over MCP_RESPONSE_MAX_BYTES the result is stored
+        // for this caller and replaced by a summary + resource_link (read via resources/read).
+        const { result: envelope } = capMcpToolResult(
+          {
+            content: [
+              {
+                type: 'text',
+                text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+              },
+            ],
+          },
+          {
+            tool: name,
+            scope: resultScope(
+              'http',
+              auth.agentId ?? auth.clientId ?? unwrapped.signingCtx?.signer ?? null
+            ),
+            maxBytes: getMcpServerSizing().responseMaxBytes,
+          }
         );
+        res.end(JSON.stringify({ jsonrpc: '2.0', id: body.id, result: envelope }));
         return;
       }
 
@@ -3684,11 +4429,28 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
-      const { result, isError } = await securedToolExecution(tool, args || {}, requestAuth, {
-        requestPath: '/tools/call',
-        requestMethod: 'POST',
-        signingCtx: unwrapped.signingCtx,
-      });
+      let gated: { result: unknown; isError: boolean };
+      try {
+        gated = await gatedStatelessToolExecution(
+          tool,
+          args || {},
+          requestAuth,
+          (body as { _meta?: unknown })._meta,
+          {
+            requestPath: '/tools/call',
+            requestMethod: 'POST',
+            signingCtx: unwrapped.signingCtx,
+          }
+        );
+      } catch (gateError) {
+        if (!(gateError instanceof ToolCallGateDeniedError)) throw gateError;
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(
+          JSON.stringify({ success: false, error: gateError.message, deniedBy: gateError.check })
+        );
+        return;
+      }
+      const { result, isError } = gated;
 
       res.writeHead(isError ? 500 : 200, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ success: !isError, result }));
@@ -4066,6 +4828,10 @@ const httpServer = http.createServer(async (req, res) => {
       );
       return;
     }
+    if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
+      return;
+    }
     try {
       const body = await parseJsonBody(req);
       const contentHash = body.contentHash as string;
@@ -4120,6 +4886,10 @@ const httpServer = http.createServer(async (req, res) => {
           registration_endpoint: '/oauth/register',
         })
       );
+      return;
+    }
+    if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
       return;
     }
     try {
@@ -4606,6 +5376,11 @@ const httpServer = http.createServer(async (req, res) => {
       );
       return;
     }
+    // Collecting mints editions on a stored record: a write, not a read.
+    if (!authHasAnyScope(auth, ROUTE_WRITE_SCOPES)) {
+      refuseInsufficientScope(res, ROUTE_WRITE_SCOPES);
+      return;
+    }
     const hash = url.replace('/api/collect/', '');
     const record = protocolRecords.get(hash);
     if (!record) {
@@ -4901,6 +5676,11 @@ new WebRTCSignalingServer(httpServer, '/webrtc-signaling');
     );
     console.info(`   Bind: ${BIND_HOST}:${PORT}`);
     console.info(`   Auth: OAuth 2.1 (migration: ${migrationMode})`);
+    // Once, so a deploy's log says which way the switch actually landed (#463 pre-review).
+    console.info(
+      `   Tool-call gate on POST /mcp, POST /tools/call, POST /a2a/tasks and POST /a2a: ${statelessToolGateMode()} ` +
+        `(HOLOSCRIPT_STATELESS_TOOL_GATE=${JSON.stringify(process.env.HOLOSCRIPT_STATELESS_TOOL_GATE ?? '')})`
+    );
     console.info(
       `   Sizing: ${SERVER_SIZING.profile} (${SERVER_SIZING.recommendedConsumer}, body=${SERVER_SIZING.requestBodyMaxBytes}B, pgPool=${SERVER_SIZING.postgresPoolMax}, tools=${SERVER_SIZING.maxConcurrentToolCalls}, timeout=${SERVER_SIZING.toolTimeoutMs}ms, oauth=${RATE_LIMIT}/min, anon=${PUBLIC_ANON_RATE_LIMIT}/min, gen=${CONSUMER_GEN_RATE_LIMIT}/min/${CONSUMER_GEN_DAILY_QUOTA}/day)`
     );

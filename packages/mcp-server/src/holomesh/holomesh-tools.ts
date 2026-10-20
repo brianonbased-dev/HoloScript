@@ -40,6 +40,7 @@ import { z } from 'zod';
 import { messagingTools, handleMessagingTool } from './messaging';
 import { resolveSecretWithLease, VaultLeaseError } from './identity/vault-lease-registry';
 import type { SigningContext } from './identity/signing-middleware';
+import { assertReentrantToolAuthorized } from '../security/tool-scopes';
 import { notificationTools, handleNotificationTool } from './notifications';
 import { threadTools, handleThreadTool } from './threads';
 import { searchTools, handleSearchTool } from './search';
@@ -49,6 +50,7 @@ import {
   entryForViewer,
   premiumEntryAccess,
   mcpToolViewer,
+  viewerMayQueryTeamWorkspace,
 } from './entry-lookup';
 import { isPremiumEntry } from './premium-view';
 import { boardTools, handleBoardTool } from './board-tools';
@@ -699,7 +701,7 @@ export async function handleHoloMeshTool(
     if (meshArgsHavePageExtract(args)) {
       const extractClient = hasHoloMeshKey() ? getOrCreateClient() : null;
       if (name === 'holomesh_contribute') return handleContribute(extractClient, args);
-      return handleFeedSource(extractClient, args);
+      return handleFeedSource(extractClient, args, signingCtx);
     }
   }
 
@@ -739,7 +741,7 @@ export async function handleHoloMeshTool(
     case 'holomesh_query_spatial':
       return handleQuerySpatial(client, args);
     case 'holomesh_feed_source':
-      return handleFeedSource(client, args);
+      return handleFeedSource(client, args, signingCtx);
     case 'holomesh_wallet_status':
       return handleWalletStatus();
     case 'holomesh_gossip_sync':
@@ -810,21 +812,34 @@ async function handlePublishTool(
     );
     let synced = 0;
     let remoteError: string | undefined;
+    let orchestrator:
+      { accepted: boolean; status: number | null; reason: string | null } | undefined;
 
     if (client) {
       try {
-        synced = await client.contributeKnowledge([manifestKnowledgeEntry(manifest, client)]);
+        const outcome = await client.contributeKnowledgeDetailed([
+          manifestKnowledgeEntry(manifest, client),
+        ]);
+        synced = outcome.synced;
+        orchestrator = {
+          accepted: outcome.accepted,
+          status: outcome.status,
+          reason: outcome.reason,
+        };
       } catch (err: unknown) {
         remoteError = err instanceof Error ? err.message : String(err);
       }
     }
 
+    // The manifest is published in this server's own registry whatever the orchestrator does, so
+    // this stays a success; `orchestrator` says whether the knowledge copy landed too (task xzgt).
     return {
       success: true,
       meshToolId: manifest.id,
       manifestHash: manifest.attestation.manifestHash,
       synced,
       manifest,
+      ...(orchestrator ? { orchestrator } : {}),
       ...(remoteError ? { remoteError } : {}),
     };
   } catch (err: unknown) {
@@ -1291,13 +1306,22 @@ async function handleContribute(
       createdAt: new Date().toISOString(),
     };
 
-    const synced = await client.contributeKnowledge([entry]);
+    const outcome = await client.contributeKnowledgeDetailed([entry]);
+    if (!outcome.accepted) {
+      // This tool keeps no copy of its own, so a refused write stored nothing: success:true with
+      // synced:0 read as saved (task xzgt). Named by status and reason, never the orchestrator's text.
+      return {
+        success: false,
+        error: outcome.status === null ? 'orchestrator_unreachable' : 'orchestrator_refused',
+        orchestrator: { accepted: false, status: outcome.status, reason: outcome.reason },
+      };
+    }
 
     return {
       success: true,
       entryId,
       provenanceHash,
-      synced,
+      synced: outcome.synced,
       type: entryType,
     };
   } catch (err: unknown) {
@@ -1309,12 +1333,19 @@ async function handleQuery(client: HoloMeshOrchestratorClient, args: Record<stri
   try {
     const search = args.search as string;
     const viewer = mcpToolViewer(args);
+    const workspaceId = args.workspace as string | undefined;
+    // The premium gate below decides whether a PAID row's content may be read; it says
+    // nothing about whether this caller may search this WORKSPACE at all, and the
+    // orchestrator cannot check that either (task_1790079366686_qvr6 -- see entry-lookup.ts).
+    if (workspaceId && !viewerMayQueryTeamWorkspace(viewer, workspaceId)) {
+      return { error: `Not authorized to query workspace "${workspaceId}"` };
+    }
     const results = entriesForViewer(
       entitledSearchRows(
         await client.queryKnowledge(search, {
           type: args.type as string,
           limit: (args.limit as number) || 10,
-          workspaceId: args.workspace as string,
+          workspaceId,
         }),
         viewer
       ),
@@ -1484,11 +1515,30 @@ async function handleQuerySpatial(
 
 async function handleFeedSource(
   client: HoloMeshOrchestratorClient | null,
-  args: Record<string, unknown> = {}
+  args: Record<string, unknown> = {},
+  signingCtx?: SigningContext
 ) {
+  const hasExtract = meshArgsHavePageExtract(args) || hasCrawlShape(args);
+  if (hasExtract) {
+    // holomesh_feed_source is a tools:read tool, but with a page extract it WRITES that extract
+    // into world state, the same act as holomesh_contribute. So the write half asks for what
+    // contribute needs (tools:write), checked against the original caller's scopes the way #407
+    // checks a re-entered tool. Only the local stdio user, with no signing context, passes
+    // without scopes (isTrustedLocalCaller); on the hosted server a read token is refused.
+    try {
+      assertReentrantToolAuthorized('holomesh_contribute', signingCtx, 'Page extract write');
+    } catch (err: unknown) {
+      return {
+        error: 'insufficient_scope',
+        required: ['tools:write'],
+        message: `holomesh_feed_source only reads with a read-only token; writing a page extract needs tools:write. ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      };
+    }
+  }
   try {
     const agentId = client?.getAgentId() || process.env.HOLOMESH_AGENT_ID || 'did:agent:local';
-    const hasExtract = meshArgsHavePageExtract(args) || hasCrawlShape(args);
     const worldStatePath = hasExtract
       ? process.env.HOLOMESH_WORLD_STATE_PATH || undefined
       : process.env.HOLOMESH_WORLD_STATE_PATH || './.holomesh/worldstate.crdt';

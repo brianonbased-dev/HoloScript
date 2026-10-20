@@ -12,12 +12,10 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 
 import { corsHeaders } from '../../_lib/cors';
 import { resolveWorkspaceGitPath, validateRelativeGitPaths } from '../_shared';
-const execFileAsync = promisify(execFile);
 
 // SEC-T07: git accepts option-like positional args (e.g. `--output=/tmp/pwn`)
 // that would otherwise slip past execFile because execFile disables shell
@@ -52,7 +50,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const validated = resolveWorkspaceGitPath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath, session);
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
@@ -90,7 +88,7 @@ export async function GET(req: NextRequest) {
   if (file) args.push('--', file);
 
   try {
-    const { stdout } = await execFileAsync('git', args, {
+    const { stdout } = await runGit(args, {
       cwd: resolved,
       maxBuffer: 5 * 1024 * 1024, // 5MB max diff
     });

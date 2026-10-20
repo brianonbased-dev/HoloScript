@@ -13,7 +13,11 @@ vi.mock('@holoscript/absorb-service/credits', () => ({
   getOrCreateAccount: (...args: any[]) => mockGetOrCreateAccount(...args),
 }));
 
-import { authMiddleware, type AuthenticatedRequest } from './auth.js';
+// No database in unit tests: the limiter uses its in-memory store. Mocking the
+// client also keeps auth.test loadable without a built absorb-service schema.
+vi.mock('../db/client.js', () => ({ getDb: () => null }));
+
+import { authMiddleware, rateLimitInputs, type AuthenticatedRequest } from './auth.js';
 
 function createMockReq(overrides: Record<string, any> = {}): AuthenticatedRequest {
   return {
@@ -411,5 +415,24 @@ describe('authMiddleware', () => {
       expect(n).toHaveBeenCalled();
       expect(req.tier).toBe('admin');
     }
+  });
+});
+
+describe('rateLimitInputs (per-app id comes from the grant, never the request)', () => {
+  it('uses the server-set grant for clientId and app cap', () => {
+    const req = { grant: { clientId: 'muse', hourlyLimit: 3 } } as AuthenticatedRequest;
+    expect(rateLimitInputs(req, 'u1', 10)).toEqual({ userId: 'u1', userLimit: 10, clientId: 'muse', appLimit: 3 });
+  });
+  it('ignores client-supplied headers or body naming an app', () => {
+    const req = {
+      headers: { 'x-client-id': 'evil', 'x-app-id': 'evil' },
+      body: { clientId: 'evil', grant: { clientId: 'evil' } },
+    } as unknown as AuthenticatedRequest;
+    expect(rateLimitInputs(req, 'u1', 10)).toEqual({
+      userId: 'u1',
+      userLimit: 10,
+      clientId: undefined,
+      appLimit: undefined,
+    });
   });
 });

@@ -3,9 +3,10 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { registerWorkspaceRows } from '@/lib/workspace/testing/ownedWorkspaceFixture';
 
 vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(async () => ({ user: { name: 'Test User' } })),
+  getServerSession: vi.fn(async () => ({ user: { id: 'user-a', name: 'Test User' } })),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -40,6 +41,10 @@ describe('/api/workspace/build route', () => {
       })
     );
     process.env.HOLOSCRIPT_WORKSPACES_DIR = workspaceRoot;
+    // Owned by the session user, as POST /api/workspace/import records it.
+    registerWorkspaceRows(workspaceRoot, [
+      { id: 'project-1', localPath: repoPath, ownerId: 'user-a' },
+    ]);
   });
 
   afterEach(() => {
@@ -69,7 +74,9 @@ describe('/api/workspace/build route', () => {
   });
 
   it('rejects workspaces without a package.json', async () => {
-    const bare = path.join(workspaceRoot, 'bare');
+    // Inside the caller's own workspace; an unregistered directory is refused
+    // by the owner check before the package.json check is reached.
+    const bare = path.join(workspaceRoot, 'project-1', 'bare');
     fs.mkdirSync(bare, { recursive: true });
     const res = await POST(buildRequest({ workspacePath: bare }));
     expect(res.status).toBe(400);

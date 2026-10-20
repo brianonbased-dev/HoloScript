@@ -19,6 +19,12 @@ import {
 } from '../db/schema';
 import { GITHUB_OAUTH_SCOPES, resolveGitHubOAuthConfig } from './github-oauth-config';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
+import {
+  INVITE_ONLY_PATH,
+  INVITE_ONLY_SESSION_ERROR,
+  evaluateInviteAllowlist,
+  evaluateInviteAllowlistForToken,
+} from './inviteAllowlist';
 
 /* ------------------------------------------------------------------ */
 /* Type augmentations — extend NextAuth Session & JWT with our fields  */
@@ -68,6 +74,8 @@ declare module 'next-auth/jwt' {
     providerAccountId?: string;
     emailVerified?: boolean;
     githubUsername?: string;
+    /** Set by the jwt callback when this token fails the invite allowlist (lib/inviteAllowlist.ts). */
+    inviteDenied?: boolean;
   }
 }
 
@@ -181,6 +189,25 @@ export function buildAuthOptions(): NextAuthOptions {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     callbacks: {
+      /**
+       * Invite-only sign-in (P0 2026-10-05). The rule lives in
+       * lib/inviteAllowlist.ts: GitHub only, numeric id first, login fallback,
+       * fail closed. A refusal redirects to INVITE_ONLY_PATH. It runs before
+       * the adapter, so a refused account gets no user row.
+       */
+      async signIn({ account, profile }) {
+        const githubProfile = (profile ?? {}) as { id?: unknown; login?: unknown };
+        const decision = evaluateInviteAllowlist({
+          provider: account?.provider,
+          providerAccountId: account?.providerAccountId ?? githubProfile.id,
+          githubLogin: githubProfile.login,
+        });
+        if (decision.allowed) return true;
+        console.warn(
+          `[invite-only] sign-in refused (${decision.reason}) provider=${account?.provider ?? 'none'}`
+        );
+        return INVITE_ONLY_PATH;
+      },
       async jwt({ token, account, profile }) {
         // On initial sign-in, account contains the OAuth tokens
         if (account) {
@@ -198,9 +225,24 @@ export function buildAuthOptions(): NextAuthOptions {
         if (profile) {
           token.emailVerified = providerAssertsVerifiedEmail(profile);
         }
+        // Re-check the invite allowlist on EVERY token, not only at sign-in.
+        // JWTs issued before the allowlist existed would otherwise stay valid
+        // for their whole 30-day rolling life. A flagged token makes the session
+        // callback throw, and NextAuth then clears the cookie.
+        if (evaluateInviteAllowlistForToken(token).allowed) {
+          delete token.inviteDenied;
+        } else {
+          token.inviteDenied = true;
+        }
         return token;
       },
       async session({ session, user, token }) {
+        // A token the jwt callback flagged is signed out, not degraded. NextAuth
+        // catches this throw, clears the session cookie and answers "no
+        // session" to useSession, getServerSession and /api/auth/session.
+        if (token?.inviteDenied) {
+          throw new Error(INVITE_ONLY_SESSION_ERROR);
+        }
         if (session.user) {
           // Database sessions have user object, JWT sessions have token
           session.user.id = user?.id ?? token?.sub ?? '';

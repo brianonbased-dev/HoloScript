@@ -411,6 +411,10 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
         this.webXrManager!.setAnimationLoop(this.xrLoop.bind(this) as any);
       };
 
+      // Locally captured face/body tracking (stamped by the manager, which opened the device)
+      // goes to the nodes that carry the matching tracking trait.
+      this.webXrManager!.onLocalTrackingEvent = (event) => this.routeLocalTracking(event);
+
       this.webXrManager!.onSessionEnd = () => {
         this.isXRSessionActive = false;
 
@@ -454,6 +458,19 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
     if (renderer?.renderXR) {
       renderer.renderXR(frame);
     }
+  }
+
+  /** Dispatch a locally captured tracking event to every node with the matching trait. */
+  private routeLocalTracking(event: Record<string, unknown>): void {
+    const trait = event.type === 'body_pose_update' ? 'body_tracking' : event.type === 'face_data_update' ? 'face_tracking' : null;
+    if (!trait || !this.rootInstance) return;
+    const visit = (instance: NodeInstance) => {
+      const traits = (instance.node as unknown as { traits?: Map<string, unknown> | Record<string, unknown> }).traits;
+      const has = traits instanceof Map ? traits.has(trait) : !!traits && trait in traits;
+      if (has) this.handleVREvent(event as unknown as TraitEvent, instance.node);
+      for (const child of instance.children || []) visit(child);
+    };
+    visit(this.rootInstance);
   }
 
   async exitVR(): Promise<void> {

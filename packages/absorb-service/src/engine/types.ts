@@ -98,6 +98,8 @@ export interface ImportEdge {
   isWildcard?: boolean;
   /** Default import */
   isDefault?: boolean;
+  /** `export … from` re-export (a barrel depends on the re-exported file) */
+  isReexport?: boolean;
   /** Line number of the import statement */
   line: number;
 }

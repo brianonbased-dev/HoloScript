@@ -1,0 +1,352 @@
+// ═════════════════════════════════════════════════════════════════════════════
+// HoloScript Multi-Domain Showcase
+// Demonstrates domain-specific grammar blocks across 8+ industries
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ── IoT / Digital Twin ─────────────────────────────────────────────────────
+// Smart factory floor monitoring with live sensor feeds
+
+sensor "TempProbe_A1" @telemetry @data_binding {
+  type: "thermocouple"
+  protocol: "mqtt"
+  topic: "factory/zone_a/temp"
+  interval: 1000
+  unit: "celsius"
+  range: [-40, 500]
+  alert_threshold: 350
+}
+
+device "SmartLight_Zone_B" @networked @matter_device {
+  protocol: "matter"
+  capability: "dimming"
+  brightness: 100
+  color_temp: 4000
+  schedule: "auto"
+}
+
+digital_twin "WindTurbine_01" @twin_sync {
+  asset: "wind_turbine_v3"
+  sync_rate: 500
+  telemetry: "realtime"
+  physics_fidelity: "high"
+  components: ["nacelle", "rotor", "tower", "foundation"]
+}
+
+binding "TurbineData" {
+  source: "iot/wind_turbine_01"
+  target: "twin/WindTurbine_01"
+  transform: "linear_interpolation"
+  buffer_size: 100
+}
+
+// ── Robotics ───────────────────────────────────────────────────────────────
+// Surgical robotic arm with 6-DOF and safety systems
+
+joint "ShoulderYaw" @joint_revolute @gravity_compensated {
+  type: "revolute"
+  axis: [0, 1, 0]
+  limits: [-170, 170]
+  damping: 0.8
+  max_velocity: 180
+  parent: "base_link"
+}
+
+joint "ShoulderPitch" @joint_revolute {
+  type: "revolute"
+  axis: [0, 0, 1]
+  limits: [-90, 90]
+  damping: 0.6
+  max_velocity: 120
+}
+
+joint "ElbowFlex" @joint_revolute {
+  type: "revolute"
+  axis: [0, 0, 1]
+  limits: [0, 150]
+  damping: 0.5
+}
+
+actuator "MainServo" @servo_motor @encoder {
+  type: "bldc"
+  torque: 12.5
+  speed: 6000
+  encoder_resolution: 4096
+  thermal_limit: 85
+}
+
+end_effector "SurgicalGripper" @force_sensor @tactile_sensor {
+  type: "parallel_gripper"
+  force_range: [0.1, 25]
+  precision: 0.01
+  fingers: 3
+  compliance: "active"
+}
+
+controller "TrajectoryController" @safety_rated @iso_ts_15066 {
+  algorithm: "mpc"
+  horizon: 20
+  frequency: 1000
+  safety_mode: "collaborative"
+  max_force: 150
+  workspace_monitoring: true
+}
+
+// ── Data Visualization / Enterprise ────────────────────────────────────────
+// Factory operations dashboard with live metrics
+
+dashboard "FactoryOps" @interactive {
+  layout: "grid"
+  columns: 3
+  refresh: 5000
+  theme: "dark"
+  timezone: "UTC"
+}
+
+chart "ProductionRate" @animated {
+  type: "line"
+  x_axis: "time"
+  y_axis: "units_per_hour"
+  window: 3600
+  color: "#00ff88"
+  smooth: true
+}
+
+chart "QualityMetrics" {
+  type: "gauge"
+  min: 0
+  max: 100
+  thresholds: [60, 80, 95]
+  colors: ["red", "yellow", "green"]
+  current: 94
+}
+
+data_source "ProductionDB" {
+  type: "postgres"
+  host: "db.factory.internal"
+  table: "production_metrics"
+  poll_interval: 1000
+  cache_ttl: 5000
+}
+
+metric "OEE" {
+  formula: "availability * performance * quality"
+  target: 85
+  unit: "percent"
+}
+
+// ── Education / Learning ───────────────────────────────────────────────────
+// Interactive anatomy training module
+
+lesson "Cardiac Anatomy" @spatial @dissectable @layered {
+  objective: "Identify heart chambers and major vessels"
+  duration: 45
+  difficulty: "intermediate"
+  prerequisites: ["basic_anatomy"]
+  credits: 3
+}
+
+lesson "Suturing Technique" @hand_tracking @haptic {
+  objective: "Master basic interrupted suture"
+  difficulty: "advanced"
+  require_haptic: true
+  scoring: "automated"
+}
+
+quiz "Cardiac Final Exam" @gradeable @timed {
+  passing_score: 80
+  time_limit: 3600
+  randomize: true
+  questions: 50
+  retakes: 2
+}
+
+curriculum "Medical Year 1" {
+  modules: ["anatomy", "physiology", "pharmacology"]
+  certification: "board_eligible"
+  duration_weeks: 52
+}
+
+// ── Healthcare / Medical ───────────────────────────────────────────────────
+// Surgical procedure training with precision tracking
+
+procedure "Laparoscopic Cholecystectomy" @surgical_tool @x_ray_view {
+  steps: ["trocar_insertion", "dissection", "clipping", "extraction"]
+  instruments: ["grasper", "scissors", "clip_applier", "camera"]
+  precision_required: 0.95
+  max_duration: 90
+  critical_structures: ["bile_duct", "hepatic_artery"]
+}
+
+patient_model "AbdomenSim" @anatomical @layered @dissectable {
+  anatomy: "abdomen"
+  fidelity: "high"
+  layers: ["skin", "fascia", "muscle", "peritoneum", "organs"]
+  pathology: "cholelithiasis"
+}
+
+vital_monitor "TraineePatient" @realtime @biofeedback {
+  heart_rate: true
+  blood_pressure: true
+  spo2: true
+  respiratory_rate: true
+  temperature: true
+  etco2: true
+  update_rate: 100
+}
+
+// ── Music / Audio Production ───────────────────────────────────────────────
+// Spatial music studio with multi-track recording
+
+instrument "GrandPiano" @sampled @spatial_audio @ambisonics {
+  type: "sampled"
+  midi_channel: 1
+  velocity_layers: 5
+  resonance: true
+  spatial_position: [0, 1, -2]
+}
+
+instrument "ElectricBass" @synthesizer {
+  type: "physical_model"
+  midi_channel: 2
+  strings: 4
+  pickup: "jazz"
+}
+
+track "MainMelody" @recording {
+  bpm: 120
+  time_signature: "4/4"
+  key: "C_major"
+  length_bars: 32
+}
+
+track "DrumPattern" @sequencer {
+  bpm: 120
+  pattern: "four_on_floor"
+  swing: 0.6
+  quantize: "16th"
+}
+
+sequence "DropBuild" {
+  start_bar: 24
+  end_bar: 32
+  automation: "filter_sweep"
+  intensity: "exponential"
+}
+
+effect_chain "MasterBus" {
+  chain: ["compressor", "eq", "limiter"]
+  gain: -3
+  ceiling: -0.1
+}
+
+// ── Architecture / Construction ────────────────────────────────────────────
+// Smart home design with BIM integration
+
+floor_plan "GroundFloor" @measurable @alignable {
+  scale: "1:100"
+  units: "meters"
+  orientation: "north"
+  total_area: 180
+  ceiling_height: 2.8
+}
+
+room "OpenKitchen" @smart_home @climate_control {
+  area: 35
+  ceiling_height: 3.0
+  flooring: "tile_porcelain"
+  walls: "plaster"
+  windows: 2
+  natural_light: "southeast"
+}
+
+room "MasterBedroom" @comfort_mode {
+  area: 22
+  ceiling_height: 2.8
+  flooring: "hardwood"
+  closet_area: 6
+  ensuite: true
+}
+
+building "SmartResidence" {
+  floors: 2
+  construction: "reinforced_concrete"
+  insulation: "r30"
+  energy_rating: "A+"
+  solar_capacity: 8.5
+}
+
+hvac_system "CentralAir" @climate_control @iot_bridge {
+  type: "split"
+  capacity: 36000
+  efficiency: "seer_25"
+  zones: 4
+  smart_thermostat: true
+}
+
+// ── Web3 / Blockchain ──────────────────────────────────────────────────────
+// NFT marketplace with royalty distribution
+
+contract "SpatialNFT" @evm_compatible @audited {
+  chain: "base"
+  standard: "ERC-721"
+  features: ["mint", "transfer", "burn", "royalty"]
+  compiler: "0.8.20"
+  license: "MIT"
+}
+
+token "HoloCredit" @fungible {
+  supply: 1000000000
+  decimals: 18
+  mintable: false
+  burnable: true
+  chain: "base"
+}
+
+marketplace "SpatialMarket" @web3_wallet {
+  chains: ["base", "polygon"]
+  currencies: ["ETH", "HOLO"]
+  royalty_max: 10
+  listing_fee: 0
+  escrow: true
+}
+
+governance "HoloDAO" {
+  quorum: 40
+  voting_period: 604800
+  timelock: 172800
+  proposal_threshold: 100000
+}
+
+// ── Extensible Custom Blocks (catch-all for ANY domain) ────────────────────
+// These use the generic custom_block rule — NO grammar changes needed!
+
+recipe "Margherita Pizza" {
+  prep_time: 30
+  cook_time: 12
+  servings: 4
+  temperature: 450
+  difficulty: "easy"
+}
+
+workflow "CICD Pipeline" {
+  stages: ["lint", "test", "build", "deploy"]
+  timeout: 600
+  parallel: true
+  notifications: "slack"
+}
+
+experiment "Drug Interaction Study" {
+  hypothesis: "Compound A reduces inflammation markers"
+  participants: 120
+  duration_weeks: 12
+  control_group: true
+  blinding: "double"
+}
+
+simulation "Traffic Flow" {
+  vehicles: 5000
+  intersections: 42
+  duration: 3600
+  weather: "rain"
+  time_of_day: "rush_hour"
+}

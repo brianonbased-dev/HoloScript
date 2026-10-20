@@ -287,6 +287,29 @@ describe('the allowlist keeps the signed-out site working', () => {
     }
   });
 
+  it('never honours the benchmark header in production (Gap 3: no prod bypass)', async () => {
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'configured-benchmark-key');
+    const header = { 'x-benchmark-key': 'configured-benchmark-key' };
+
+    // Non-prod control: the runner's own path still opens.
+    expect((await anonymous('/api/brittney', 'POST', header)).status).not.toBe(401);
+
+    vi.stubEnv('NODE_ENV', 'production');
+    expect((await anonymous('/api/brittney', 'POST', header)).status).toBe(401);
+
+    vi.stubEnv('NODE_ENV', 'test');
+    vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'production');
+    expect((await anonymous('/api/brittney', 'POST', header)).status).toBe(401);
+  });
+
+  it('refuses a wrong-length benchmark key at the edge', async () => {
+    vi.stubEnv('BRITTNEY_BENCHMARK_KEY', 'configured-benchmark-key');
+    for (const key of ['configured-benchmark-ke', 'configured-benchmark-keyy']) {
+      const response = await anonymous('/api/brittney', 'POST', { 'x-benchmark-key': key });
+      expect.soft(response.status, key).toBe(401);
+    }
+  });
+
   it('the benchmark header alone opens nothing when the key is not configured', async () => {
     vi.stubEnv('BRITTNEY_BENCHMARK_KEY', '');
 
@@ -369,7 +392,7 @@ const SIGNED_OUT_UI_DEPENDENCIES: ReadonlyArray<{
 
   // Headset proof capture, from pages with no sign-in.
   { method: 'POST', path: '/api/quest-proof', callSite: 'ImmersiveViewer.client.tsx:597; components/quest/QuestProbe.tsx:127' },
-  { method: 'GET', path: '/api/quest-proof', callSite: 'ImmersiveViewer.client.tsx:617; app/quest-probe/page.tsx:249 (?record=1 fallback)' },
+  { method: 'GET', path: '/api/quest-proof', callSite: 'receipt read-back with the x-quest-proof-token header (GET never records)' },
 
   // Signed-out editor at /create.
   { method: 'POST', path: '/api/preview', callSite: 'app/create/page.tsx live preview compile' },
@@ -734,8 +757,18 @@ describe('a signed-in visitor is admitted — the check nothing else in this fil
   const SECRET = 'test-secret-for-gate-decisions';
   const COOKIE_NAMES = ['__Secure-next-auth.session-token', 'next-auth.session-token'];
 
+  // Sign-in is invite-only (lib/inviteAllowlist.ts), so the admitted session
+  // is an allowlisted GitHub one. The refusal of a signed but NOT allowlisted
+  // session is covered in src/__tests__/invite-only-proxy.test.ts.
+  beforeEach(() => {
+    vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', '1001');
+  });
+
   async function sessionCookie(secret: string): Promise<string> {
-    return encode({ token: { sub: 'user-1', name: 'Signed In' }, secret });
+    return encode({
+      token: { sub: 'user-1', name: 'Signed In', provider: 'github', providerAccountId: '1001' },
+      secret,
+    });
   }
 
   it('lets a real session through on a session-tier path, under either cookie name', async () => {

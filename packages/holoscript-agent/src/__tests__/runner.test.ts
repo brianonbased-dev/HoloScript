@@ -127,6 +127,9 @@ function mockMesh(opts: {
       messages.push({ taskId, body });
     }),
     markDone: vi.fn(async () => undefined),
+    // Hand-off fix (i): release = reason message + reopen (client does both).
+    releaseTask: vi.fn(async () => ({ messaged: true })),
+    updateTask: vi.fn(async () => ({})),
     postAuditRecords: vi.fn(async () => ({ appended: 0, rejected: 0 })),
     whoAmI: vi.fn(async () => ({ agentId: 'agent_test', surface: 'mock' })),
     // Cognitive-verb knowledge surface (Phase 2.2) + the recall write-loop.

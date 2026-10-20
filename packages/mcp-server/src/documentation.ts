@@ -1665,32 +1665,50 @@ composition "Scene" {
 
   logic: {
     topic: 'logic',
-    description: 'Define scene-level logic and event handlers.',
-    syntax: `logic {
-  on_<event>([params]) {
-    // handler code
+    description:
+      'Define scene-level logic and event handlers. A logic block lives inside a composition, next to the state it changes. Handlers are on_<event> blocks; reusable steps are actions.',
+    syntax: `composition "<Name>" {
+  state {
+    <name>: <value>
   }
-  
-  function <name>(<params>) {
-    // function body
+
+  logic {
+    on_<event> {
+      // statements: state.<name> = <value>, <action>(), emit "<event>"
+    }
+
+    action <name>() {
+      // statements; if (<condition>) { ... } works here
+    }
   }
 }`,
     examples: [
       {
         description: 'Game logic',
-        code: `logic {
-  on_scene_start() {
-    score = 0
-    timer.start(60)
+        code: `composition "CollectGame" {
+  state {
+    score: 0
+    won: false
   }
-  
-  on_player_collect(item) {
-    score += item.value
-    audio.play("collect.mp3")
+
+  object "Coin" {
+    @clickable
+    geometry: "cylinder"
+    position: [0, 1, -2]
   }
-  
-  function checkWin() {
-    if (score >= 100) scene.load("victory")
+
+  logic {
+    action check_win() {
+      if (state.score >= 100) {
+        state.won = true
+        emit "victory"
+      }
+    }
+
+    on_click {
+      state.score += 10
+      check_win()
+    }
   }
 }`,
       },

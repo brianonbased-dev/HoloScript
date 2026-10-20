@@ -1,5 +1,23 @@
 # @holoscript/absorb-service-host
 
+## 6.1.7
+
+### Patch Changes
+
+- Updated dependencies [9498a8f]
+- Updated dependencies [4ecc50e]
+- Updated dependencies [857c54a]
+- Updated dependencies
+  - @holoscript/secrets-broker@6.2.0
+  - @holoscript/core@8.10.0
+
+## 6.1.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @holoscript/core@8.9.0
+
 ## 6.1.5
 
 ### Fixed
@@ -7,6 +25,18 @@
 - Report the host package version (6.1.5) from `/health`, matching the
   published engine line. Also report `engineVersion` from the
   `@holoscript/absorb-service` package Node resolves at runtime.
+
+## 6.1.4
+
+### Patch Changes
+
+- Updated dependencies [7c22951]
+- Updated dependencies [664f178]
+- Updated dependencies [d9705dc]
+- Updated dependencies [64f7022]
+- Updated dependencies [d26629c]
+  - @holoscript/core@8.7.0
+  - @holoscript/secrets-broker@6.2.0
 
 ## 6.1.3
 

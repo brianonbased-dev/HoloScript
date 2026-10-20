@@ -1,0 +1,215 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// THE LOTUS POND — I.007 Lotus Genesis render scene (authored in .holo)
+//
+// Edit THIS file to change the pond — not .tsx. Water / pads / duckweed / reeds
+// are generic primitive objects; the flowers are @botanical_lotus objects placed
+// across the pond at varied maturity (growthCap). The R3F renderer + the
+// @botanical_lotus trait are the compile TARGET runtime; this file is the scene.
+// ═══════════════════════════════════════════════════════════════════════════
+
+composition "LotusPond" {
+  metadata {
+    name: 'Lotus Genesis pond — botanical lotus scene compiled from .holo'
+    category: 'render-proof'
+    concept: 'I.007 Lotus Genesis: a pond of @botanical_lotus blooms authored as .holo'
+  }
+
+  // ── Water surface (reflective mirror plane lying flat on XZ) ──
+  object "water" {
+    mesh: "plane"
+    width: 60
+    height: 60
+    rotation: [-1.5707963, 0, 0]
+    color: "#0c2826"
+    roughness: 0.22
+    metalness: 0.5
+    reflective: true
+  }
+
+  // ── Lily pads (notched discs floating on the surface) ──
+  object "pad_a" {
+    mesh: "lilypad"
+    radius: 1.3
+    notchAngle: 0.5
+    position: [2.6, 0.02, 1.2]
+    rotation: [-1.5707963, 0, 0.3]
+    color: "#235f4f"
+    roughness: 0.85
+  }
+  object "pad_b" {
+    mesh: "lilypad"
+    radius: 1.6
+    notchAngle: 0.62
+    position: [-2.9, 0.02, -0.7]
+    rotation: [-1.5707963, 0, 1.2]
+    color: "#102f28"
+    roughness: 0.85
+  }
+  object "pad_c" {
+    mesh: "lilypad"
+    radius: 1.05
+    notchAngle: 0.48
+    position: [0.6, 0.02, -3.2]
+    rotation: [-1.5707963, 0, 2.5]
+    color: "#235f4f"
+    roughness: 0.85
+  }
+  object "pad_d" {
+    mesh: "lilypad"
+    radius: 1.2
+    notchAngle: 0.55
+    position: [-1.6, 0.02, 3.0]
+    rotation: [-1.5707963, 0, 3.6]
+    color: "#102f28"
+    roughness: 0.85
+  }
+  object "pad_e" {
+    mesh: "lilypad"
+    radius: 1.5
+    notchAngle: 0.6
+    position: [5.2, 0.02, -2.6]
+    rotation: [-1.5707963, 0, 1.9]
+    color: "#235f4f"
+    roughness: 0.85
+  }
+  object "pad_f" {
+    mesh: "lilypad"
+    radius: 0.95
+    notchAngle: 0.5
+    position: [-5.4, 0.02, 2.3]
+    rotation: [-1.5707963, 0, 0.8]
+    color: "#1c4c40"
+    roughness: 0.85
+  }
+
+  // ── Duckweed (tiny discs in drifts) ──
+  object "dw_1" {
+    mesh: "circle"
+    radius: 0.11
+    position: [1.4, 0.03, 4.6]
+    rotation: [-1.5707963, 0, 0]
+    color: "#3a7a55"
+    roughness: 0.95
+  }
+  object "dw_2" {
+    mesh: "circle"
+    radius: 0.09
+    position: [1.9, 0.03, 4.9]
+    rotation: [-1.5707963, 0, 0]
+    color: "#2f6f4d"
+    roughness: 0.95
+  }
+  object "dw_3" {
+    mesh: "circle"
+    radius: 0.13
+    position: [1.1, 0.03, 5.2]
+    rotation: [-1.5707963, 0, 0]
+    color: "#3a7a55"
+    roughness: 0.95
+  }
+  object "dw_4" {
+    mesh: "circle"
+    radius: 0.1
+    position: [-4.0, 0.03, 0.8]
+    rotation: [-1.5707963, 0, 0]
+    color: "#2f6f4d"
+    roughness: 0.95
+  }
+  object "dw_5" {
+    mesh: "circle"
+    radius: 0.12
+    position: [-3.6, 0.03, 1.2]
+    rotation: [-1.5707963, 0, 0]
+    color: "#3a7a55"
+    roughness: 0.95
+  }
+
+  // ── Reeds (stalks at the pond margins) + cattail heads ──
+  object "reed_1" {
+    mesh: "cylinder"
+    radiusTop: 0.02
+    radiusBottom: 0.045
+    height: 2.8
+    position: [7.5, 1.4, 3.2]
+    color: "#16382a"
+    roughness: 0.8
+  }
+  object "cat_1" {
+    mesh: "cylinder"
+    radiusTop: 0.05
+    radiusBottom: 0.05
+    height: 0.32
+    position: [7.5, 2.95, 3.2]
+    color: "#5a3a1e"
+    roughness: 0.85
+  }
+  object "reed_2" {
+    mesh: "cylinder"
+    radiusTop: 0.02
+    radiusBottom: 0.045
+    height: 3.2
+    position: [7.9, 1.6, 2.6]
+    color: "#16382a"
+    roughness: 0.8
+  }
+  object "reed_3" {
+    mesh: "cylinder"
+    radiusTop: 0.02
+    radiusBottom: 0.045
+    height: 2.4
+    position: [-7.6, 1.2, -2.8]
+    color: "#16382a"
+    roughness: 0.8
+  }
+  object "cat_3" {
+    mesh: "cylinder"
+    radiusTop: 0.05
+    radiusBottom: 0.05
+    height: 0.3
+    position: [-7.6, 2.55, -2.8]
+    color: "#5a3a1e"
+    roughness: 0.85
+  }
+
+  // ── The lotuses: one open hero + a pond of buds & half-open blooms ──
+  // growthCap caps each flower's maturity off the single shared bloom clock so
+  // the pond rests at mixed life stages; position/scale/rotation place them.
+  object "lotus_hero" @botanical_lotus {
+    mesh: "plane"
+  }
+  object "lotus_east" @botanical_lotus {
+    mesh: "plane"
+    position: [3.6, 0, -1.4]
+    scale: 0.74
+    rotation: [0, 0.9, 0]
+    growthCap: 0.6
+  }
+  object "lotus_back" @botanical_lotus {
+    mesh: "plane"
+    position: [-1.9, 0, -3.7]
+    scale: 0.82
+    rotation: [0, -1.1, 0]
+    growthCap: 0.88
+  }
+  object "lotus_west" @botanical_lotus {
+    mesh: "plane"
+    position: [-3.3, 0, 1.7]
+    scale: 0.58
+    rotation: [0, 2.2, 0]
+    growthCap: 0.34
+  }
+  object "lotus_far" @botanical_lotus {
+    mesh: "plane"
+    position: [2.7, 0, 3.1]
+    scale: 0.5
+    rotation: [0, 3.5, 0]
+    growthCap: 0.26
+  }
+
+  // ── Growth clock: one timeline drives the whole pond's bloom 0 -> 1 ──
+  timeline "Bloom" {
+    autoplay: true
+    0.0: animate "developmentalTime" { value: 0.0 }
+    7.0: animate "developmentalTime" { value: 1.0 }
+  }
+}

@@ -1,5 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// The next-actions route pulls in the shared task classifier; its first import
+// can take several seconds on a loaded machine.
+vi.setConfig({ testTimeout: 30_000 });
+
+// Founder gate (#607 follow-up a): these routes call requireFounder first.
+const authState = vi.hoisted(() => ({ res: null as unknown }));
+vi.mock('@/lib/api-auth', () => ({
+  requireFounder: async () => authState.res ?? { user: { id: 'user_founder' } },
+}));
+
 /**
  * POST /api/quest-proof/next-actions — the N3 exact-four decision proxy.
  *
@@ -17,6 +27,7 @@ describe('next-actions POST — exact-four Joseph decision proxy', () => {
     vi.resetModules();
   });
   afterEach(() => {
+    authState.res = null;
     process.env.HOLOMESH_TEAM_ID = ORIG_TEAM;
     process.env.HOLOMESH_API_KEY = ORIG_KEY;
     vi.unstubAllGlobals();

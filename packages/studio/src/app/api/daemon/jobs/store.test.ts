@@ -212,3 +212,153 @@ describe('daemon job store patch application', () => {
     );
   }, 30_000);
 });
+
+describe('daemon job store — tenant scoping and no cwd fallback', () => {
+  let tempHome: string;
+  const saved: Record<string, string | undefined> = {};
+  const KEYS = [
+    'HOME',
+    'USERPROFILE',
+    'HOLOSCRIPT_WORKSPACES_DIR',
+    'TMPDIR',
+    'HOLOHEAL_RUN_REPO_TOOLS',
+  ];
+
+  beforeEach(() => {
+    vi.resetModules();
+    for (const k of KEYS) saved[k] = process.env[k];
+    tempHome = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-tenant-test-')));
+    process.env.HOME = tempHome;
+    process.env.USERPROFILE = tempHome;
+    process.env.HOLOSCRIPT_WORKSPACES_DIR = path.join(tempHome, 'workspaces');
+    process.env.TMPDIR = path.join(tempHome, 'tmp');
+    fs.mkdirSync(process.env.TMPDIR, { recursive: true });
+    delete process.env.HOLOHEAL_RUN_REPO_TOOLS;
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.resetModules();
+    for (const k of KEYS) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+    fs.rmSync(tempHome, { recursive: true, force: true });
+  });
+
+  function snapshot(jobs: Array<Record<string, unknown>>): void {
+    const storeDir = path.join(tempHome, '.holoscript', 'studio');
+    fs.mkdirSync(storeDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(storeDir, 'daemon-jobs.json'),
+      JSON.stringify({ jobs, telemetryLog: [] }),
+      'utf8'
+    );
+  }
+
+  function job(id: string, userId?: string): Record<string, unknown> {
+    const now = new Date().toISOString();
+    return {
+      id,
+      projectId: `p-${id}`,
+      profile: 'quick',
+      projectDna: {
+        kind: 'unknown',
+        confidence: 0.5,
+        detectedStack: [],
+        recommendedProfile: 'quick',
+        notes: [],
+      },
+      status: 'completed',
+      createdAt: now,
+      updatedAt: now,
+      progress: 100,
+      projectPath: `/data/workspaces/${id}`,
+      logs: [{ timestamp: now, level: 'info', message: `secret log of ${id}` }],
+      ...(userId ? { userId } : {}),
+    };
+  }
+
+  it("user B cannot list, open, or read the logs/patches of user A's jobs; ownerless jobs are hidden", async () => {
+    snapshot([job('dj-a', 'user-A'), job('dj-b', 'user-B'), job('dj-legacy')]);
+    const store = await import('./store');
+
+    expect(store.listDaemonJobs('user-B').map((j) => j.id)).toEqual(['dj-b']);
+    expect(store.listDaemonJobs('user-A').map((j) => j.id)).toEqual(['dj-a']);
+    expect(store.getDaemonJob('dj-a', 'user-B')).toBeNull();
+    expect(store.getDaemonJob('dj-a', 'user-A')?.id).toBe('dj-a');
+    expect(store.getDaemonJob('dj-legacy', 'user-A')).toBeNull();
+    expect(store.getDaemonJob('dj-legacy', 'user-B')).toBeNull();
+  });
+
+  it("telemetry is per user: B's summary has no events, counts, error text or paths from A's jobs", async () => {
+    const storeDir = path.join(tempHome, '.holoscript', 'studio');
+    fs.mkdirSync(storeDir, { recursive: true });
+    const ts = new Date().toISOString();
+    fs.writeFileSync(
+      path.join(storeDir, 'daemon-jobs.json'),
+      JSON.stringify({
+        jobs: [job('dj-a', 'user-A'), job('dj-b', 'user-B'), job('dj-legacy')],
+        telemetryLog: [
+          {
+            eventType: 'job_failed',
+            jobId: 'dj-a',
+            timestamp: ts,
+            error: 'A-SECRET /data/workspaces/ws-A/private',
+          },
+          { eventType: 'patch_applied', jobId: 'dj-a', timestamp: ts, patchCount: 1 },
+          { eventType: 'job_failed', jobId: 'dj-legacy', timestamp: ts, error: 'LEGACY-SECRET' },
+          { eventType: 'job_completed', jobId: 'dj-b', timestamp: ts },
+        ],
+      }),
+      'utf8'
+    );
+    const store = await import('./store');
+
+    const b = store.getTelemetrySummary('user-B');
+    expect(b.totalJobs).toBe(1);
+    expect(b.appliedPatches).toBe(0);
+    expect(b.recentEvents.map((e) => e.jobId)).toEqual(['dj-b']);
+    expect(JSON.stringify(b)).not.toContain('A-SECRET');
+    expect(JSON.stringify(b)).not.toContain('ws-A');
+    expect(JSON.stringify(b)).not.toContain('LEGACY-SECRET');
+    // Positive control: A sees A's own events.
+    const a = store.getTelemetrySummary('user-A');
+    expect(a.recentEvents.map((e) => e.jobId)).toEqual(['dj-a', 'dj-a']);
+    expect(a.appliedPatches).toBe(1);
+  });
+
+  it('a job created without projectPath fails with "no projectPath" — it never scans process.cwd()', async () => {
+    // Make the server cwd a perfectly valid workspace: a cwd fallback would scan it.
+    const cwdWorkspace = path.join(tempHome, 'workspaces', 'ws-cwd');
+    fs.mkdirSync(cwdWorkspace, { recursive: true });
+    fs.writeFileSync(path.join(cwdWorkspace, 'README.md'), '# would be scanned');
+    vi.spyOn(process, 'cwd').mockReturnValue(cwdWorkspace);
+
+    const store = await import('./store');
+    const created = store.createDaemonJob({
+      projectId: 'p-nopath',
+      profile: 'quick',
+      projectDna: {
+        kind: 'unknown',
+        confidence: 0.5,
+        detectedStack: [],
+        recommendedProfile: 'quick',
+        notes: [],
+      },
+      userId: 'user-A',
+    });
+    let final = store.getDaemonJob(created.id, 'user-A');
+    for (
+      let i = 0;
+      i < 100 && final && (final.status === 'queued' || final.status === 'running');
+      i++
+    ) {
+      await new Promise((r) => setTimeout(r, 20));
+      final = store.getDaemonJob(created.id, 'user-A');
+    }
+    expect(final?.status).toBe('failed');
+    expect(final?.error).toMatch(/^Blocked: projectPath refused — no projectPath/);
+    expect(final?.absorb).toBeUndefined();
+  }, 20_000);
+});
