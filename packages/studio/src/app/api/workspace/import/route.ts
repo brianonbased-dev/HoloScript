@@ -29,7 +29,12 @@ import {
   type PublishWorthinessLLMReview,
   type PublishWorthinessProjectDNA,
 } from '@/lib/workspace/publishWorthinessDetector';
-import { listDurableAbsorbProjects, upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
+import {
+  findDurableAbsorbProject,
+  listDurableAbsorbProjects,
+  removeDurableAbsorbProject,
+  upsertDurableAbsorbProject,
+} from '@/lib/absorb/projectState';
 import { resolveInsideWorkspace } from '@/lib/workspace/workspaceFs';
 import { assertWorkspaceOwner, callerUserId } from '@/lib/workspace/workspaceOwner';
 import { getGitHubToken } from '@/app/api/github/_shared';
@@ -354,6 +359,53 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(publicCloneError(err), { status: 500 });
   }
+}
+
+/**
+ * DELETE /api/workspace/import?id=ws-<uuid> — roll back a failed import.
+ *
+ * Used by the import wizard when absorb fails right after the clone, so a
+ * failed import no longer leaves an orphan "stale" workspace behind. It only
+ * removes the caller's own workspace, and only one that was never absorbed:
+ * a workspace with a successful absorb is refused with 409.
+ */
+export async function DELETE(req: NextRequest) {
+  const session = await getServerSession(authOptions);
+  const ownerId = callerUserId(session);
+  if (!session?.user || !ownerId) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+  const id = new URL(req.url).searchParams.get('id') ?? '';
+  if (!/^ws-[0-9a-f-]{36}$/.test(id)) {
+    return NextResponse.json({ error: 'id must be a workspace id' }, { status: 400 });
+  }
+  const project = findDurableAbsorbProject({ projectId: id });
+  if (!project || project.ownerId !== ownerId) {
+    return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+  }
+  const absorbed =
+    project.lastAbsorbedAt !== null ||
+    project.absorbJobs.some((job) => job.status !== 'failed');
+  if (absorbed) {
+    return NextResponse.json(
+      { error: 'Workspace has a completed absorb; it is not a failed import.' },
+      { status: 409 }
+    );
+  }
+  let workspaceDir: string;
+  try {
+    workspaceDir = resolveWorkspacePath(id, 'x').workspaceDir;
+  } catch {
+    return NextResponse.json({ error: 'id must be a workspace id' }, { status: 400 });
+  }
+  try {
+    fs.rmSync(workspaceDir, { recursive: true, force: true });
+  } catch (err) {
+    console.error('[API workspace/import] rollback rm failed:', err);
+    return NextResponse.json({ error: 'Could not remove workspace files' }, { status: 500 });
+  }
+  removeDurableAbsorbProject(id, ownerId);
+  return NextResponse.json({ ok: true, id, removed: true });
 }
 
 function readPaperUnlockState(localPath: string): Record<string, unknown> | null {

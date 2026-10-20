@@ -26,6 +26,7 @@ import type { HoloComposition, HoloParseResult } from '../../parser/HoloComposit
 import type { StudioBridge, ASTMutation } from '../StudioBridge';
 import { HoloFileWatcher } from './HoloFileWatcher';
 import { diffScenes } from './SceneDiffer';
+import { isOnlyBlankSourceError } from '../parser/blankSource';
 import {
   createMutationBatch,
   createFullScene,
@@ -46,6 +47,8 @@ export interface HotReloadPipelineOptions {
   fullSceneFallbackThreshold?: boolean;
   /** Maximum mutations before falling back to full scene push (default: 500) */
   maxMutationsBeforeFallback?: number;
+  /** Parser factory; defaults to @holoscript/core's HoloCompositionParser. Tests inject one. */
+  createParser?: () => { parse(code: string): HoloParseResult };
 }
 
 export interface PipelineParseResult {
@@ -57,6 +60,12 @@ export interface PipelineParseResult {
  * Callback for delivering live-update messages to the preview renderer.
  */
 export type LiveUpdateHandler = (message: LiveUpdateMessage) => void;
+
+function defaultCreateParser(): { parse(code: string): HoloParseResult } {
+  // Lazy-import @holoscript/core to avoid bundling issues in non-Node contexts
+  const { HoloCompositionParser } = require('@holoscript/core');
+  return new HoloCompositionParser();
+}
 
 export class HotReloadPipeline {
   private bridge: StudioBridge;
@@ -75,6 +84,7 @@ export class HotReloadPipeline {
       autoApplyToBridge: options.autoApplyToBridge ?? true,
       fullSceneFallbackThreshold: options.fullSceneFallbackThreshold ?? true,
       maxMutationsBeforeFallback: options.maxMutationsBeforeFallback ?? 500,
+      createParser: options.createParser ?? defaultCreateParser,
       filePath: options.filePath,
       initialCode: options.initialCode,
     };
@@ -239,10 +249,16 @@ export class HotReloadPipeline {
     if (cached) return cached;
 
     try {
-      // Lazy-import @holoscript/core to avoid bundling issues in non-Node contexts
-      const { HoloCompositionParser } = require('@holoscript/core');
-      const parser = new HoloCompositionParser();
+      const parser = this.options.createParser();
       const result: HoloParseResult = parser.parse(code);
+
+      // A cleared or comment-only buffer is an empty scene: the parser refuses
+      // it with HS1001 since #563 but still returns the empty composition.
+      if (isOnlyBlankSourceError(result.errors) && result.ast) {
+        const res: PipelineParseResult = { ast: result.ast as HoloComposition, errors: [] };
+        this.parseCache.set(code, res);
+        return res;
+      }
 
       if (result.errors && result.errors.length > 0) {
         const errors = result.errors.map((e: string | { message: string }) =>
