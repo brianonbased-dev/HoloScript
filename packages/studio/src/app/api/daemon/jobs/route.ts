@@ -2,11 +2,12 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import * as path from 'path';
-import * as os from 'os';
 import { z } from 'zod';
 import { requireAuth } from '@/lib/api-auth';
 import { readJsonBody } from '../../_lib/body-size';
 import { corsHeaders } from '../../_lib/cors';
+import { getWorkspacesRoot, isInsidePath } from '@/lib/workspace/workspaceFs';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
 import {
   createDaemonJob,
   listDaemonJobs,
@@ -17,12 +18,8 @@ import {
 // SEC-T02: Daemon jobs formerly accepted `projectPath` from any unauthenticated
 // caller and piped it into shell-invoked rsync/robocopy. This route now requires
 // an authenticated session, validates the payload with Zod, and constrains
-// projectPath to the workspaces root used by the rest of the git tooling.
-const WORKSPACE_ROOT = path.join(
-  process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(),
-  '.holoscript',
-  'workspaces'
-);
+// projectPath to the workspaces root used by the rest of the git tooling
+// (getWorkspacesRoot honors HOLOSCRIPT_WORKSPACES_DIR, e.g. /data/workspaces).
 
 const CreateJobSchema = z.object({
   projectId: z.string().min(1).max(256),
@@ -41,10 +38,10 @@ export async function GET(request: NextRequest) {
 
   // GET /api/daemon/jobs?view=telemetry — return telemetry summary
   if (view === 'telemetry') {
-    return NextResponse.json({ telemetry: getTelemetrySummary() });
+    return NextResponse.json({ telemetry: getTelemetrySummary(auth.user.id) });
   }
 
-  return NextResponse.json({ jobs: listDaemonJobs() });
+  return NextResponse.json({ jobs: listDaemonJobs(auth.user.id) });
 }
 
 export async function POST(request: NextRequest) {
@@ -72,15 +69,30 @@ export async function POST(request: NextRequest) {
 
   const body = parsed.data;
 
-  // SEC-T02: projectPath must resolve inside WORKSPACE_ROOT. This is the same
-  // containment pattern used by /api/git/commit and /api/git/push.
+  // SEC-T02: projectPath must resolve inside the workspaces root. This is the
+  // same containment pattern used by /api/git/commit and /api/git/push.
   if (body.projectPath !== undefined) {
+    const workspacesRoot = getWorkspacesRoot();
     const resolved = path.resolve(body.projectPath);
-    if (!resolved.startsWith(WORKSPACE_ROOT + path.sep) && resolved !== WORKSPACE_ROOT) {
+    if (!isInsidePath(workspacesRoot, resolved)) {
       return NextResponse.json(
-        { error: 'projectPath must be inside ~/.holoscript/workspaces' },
+        {
+          error: `projectPath must be inside the workspaces root (${workspacesRoot}; set via HOLOSCRIPT_WORKSPACES_DIR)`,
+        },
         { status: 400 }
       );
+    }
+    // P0 2026-10-05: containment is not ownership. A daemon job copies and
+    // later patches projectPath, so it must be a workspace the caller owns.
+    // Layers, each answering a different question (none duplicated):
+    //   - route: lexical containment above (clear 400 for an obvious bad path),
+    //     then this owner check (uniform 404) at creation;
+    //   - store (#515): the job is stamped with userId and only its creator
+    //     can read, apply or export it, so /jobs/[id] needs no second check;
+    //   - runner (#515): realpath confinement again at run time.
+    const owned = assertWorkspaceOwner(auth, body.projectPath);
+    if (!owned.ok) {
+      return NextResponse.json({ error: owned.error }, { status: owned.status });
     }
   }
 
@@ -90,6 +102,7 @@ export async function POST(request: NextRequest) {
     projectDna: body.projectDna as unknown as CreateDaemonJobInput['projectDna'],
     projectPath: body.projectPath,
     customLimits: body.customLimits as CreateDaemonJobInput['customLimits'],
+    userId: auth.user.id,
   });
 
   return NextResponse.json({ job: created }, { status: 201 });

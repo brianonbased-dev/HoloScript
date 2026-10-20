@@ -574,8 +574,12 @@ export type {
 // HoloScript -> GBNF grammar generator — the `grammar: "holoscript"` constrained-decode path.
 export {
   generateHoloScriptGbnf,
+  holoScriptGrammarForPreset,
   isHoloScriptGrammarPreset,
   HOLOSCRIPT_GRAMMAR_PRESETS,
+  RESERVED_PROPERTY_NAMES,
+  RESERVED_GROUP_NAMES,
+  RESERVED_MACHINE_NAMES,
   DEFAULT_OBJECT_KEYWORDS,
   DEFAULT_PRIMITIVE_SHAPES,
   DEFAULT_MATERIAL_KEYWORDS,
@@ -624,6 +628,7 @@ export {
   compilePipelineToPython,
   compilePipelineSourceToNode,
   compilePipelineSourceToPython,
+  summarizePipelineIo,
 } from './PipelineNodeCompiler';
 export type {
   PipelineCompileTarget,
@@ -766,3 +771,17 @@ export {
   targetSovereignty,
 } from './sovereign-targets';
 export type { SovereignEngine } from './sovereign-targets';
+export {
+  TARGET_TIERS,
+  TIER_MEANING,
+  earnedTier,
+  auditTargetTiers,
+  targetTier,
+  describeTargetLimits,
+} from './target-tiers';
+export type {
+  TargetTier,
+  TargetTierEntry,
+  TargetRuntimeProof,
+  TierAuditIO,
+} from './target-tiers';

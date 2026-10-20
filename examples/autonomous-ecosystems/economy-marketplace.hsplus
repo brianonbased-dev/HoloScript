@@ -690,7 +690,7 @@ composition "EconomyMarketplace" {
   // HUD -- Reactive marketplace panels
   // ========================================================================
 
-  panel "MarketplaceHUD" {
+  template "MarketplaceHUD" {
     position: "top-left"
 
     text "MarketState" {
@@ -707,7 +707,7 @@ composition "EconomyMarketplace" {
     }
   }
 
-  panel "AccountsPanel" {
+  module "AccountsPanel" {
     position: "top-right"
 
     text "AliceBalance" {
@@ -724,7 +724,7 @@ composition "EconomyMarketplace" {
     }
   }
 
-  panel "TransactionLog" {
+  template "TransactionLog" {
     position: "bottom-left"
 
     text "TxCount" {

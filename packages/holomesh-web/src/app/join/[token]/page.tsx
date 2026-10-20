@@ -42,7 +42,7 @@ const API_BASE =
     ? 'http://localhost:3001'
     : 'https://mcp.holoscript.net');
 
-const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://studio.holoscript.net';
+const STUDIO_URL = process.env.NEXT_PUBLIC_STUDIO_URL || 'https://holoscript.studio';
 
 // ── Pathway metadata ──────────────────────────────────────────────────────────
 

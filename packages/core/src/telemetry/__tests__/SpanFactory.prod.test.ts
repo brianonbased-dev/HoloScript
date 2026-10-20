@@ -106,11 +106,20 @@ describe('SpanFactory — Production', () => {
   });
 
   it('span.end() is idempotent — second call does not reset endTime', () => {
-    const span = factory.createSpan('op');
-    span.end();
-    const firstEnd = span.endTime;
-    span.end();
-    expect(span.endTime).toBe(firstEnd);
+    // The clock moves between the two calls. Without that, the test passed only when both
+    // calls fell in the same millisecond, so it failed under load and hid the bug.
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    try {
+      const span = factory.createSpan('op');
+      span.end();
+      const firstEnd = span.endTime;
+      now.mockReturnValue(2_000);
+      span.end();
+      expect(firstEnd).toBe(1_000);
+      expect(span.endTime).toBe(firstEnd);
+    } finally {
+      now.mockRestore();
+    }
   });
 
   // ─── span.setAttribute() ─────────────────────────────────────────────────

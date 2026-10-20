@@ -197,6 +197,40 @@ describe('ProtocolAgent', () => {
     expect(data.output).toContain('authentication');
   });
 
+  it('execute phase works from the plan reflect produced', async () => {
+    // REFLECT pays for a plan; before this, EXECUTE read only the context and the plan
+    // was thrown away.
+    fetchSpy.mockResolvedValue(mockFetchResponse('Fixed it'));
+
+    const agent = new ProtocolAgent(testAgent);
+    await agent.execute({
+      plan: 'Write a failing test for the expired-token path first',
+      context: { task: 'Fix auth bug' },
+    });
+
+    const callBody = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    const sent = JSON.stringify(callBody.messages);
+    expect(sent).toContain('Write a failing test for the expired-token path first');
+    expect(sent).toContain('Fix auth bug');
+  });
+
+  it('evolve phase gives the model the patterns grow found', async () => {
+    // EVOLVE's prompt asks for improvements "based on patterns found"; before this it
+    // never received GROW's patterns.
+    fetchSpy.mockResolvedValue(mockFetchResponse('Add a retry budget'));
+
+    const agent = new ProtocolAgent(testAgent);
+    await agent.evolve({
+      patterns: 'Flaky tests share one unmocked clock',
+      validated: [
+        { type: 'pattern', content: 'Mock the clock', domain: 'typescript', confidence: 0.8 },
+      ] as never,
+    });
+
+    const callBody = JSON.parse(fetchSpy.mock.calls[0][1].body);
+    expect(JSON.stringify(callBody.messages)).toContain('Flaky tests share one unmocked clock');
+  });
+
   it('compress phase extracts knowledge items', async () => {
     fetchSpy.mockResolvedValue(
       mockFetchResponse(
@@ -296,6 +330,36 @@ describe('runProtocolCycle', () => {
     // 6 LLM calls: reflect + execute + compress + reintake + grow + evolve
     // (intake is local, no LLM)
     expect(fetchSpy).toHaveBeenCalledTimes(6);
+  });
+
+  it('skips GROW and EVOLVE without a model call when asked, and keeps the result', async () => {
+    let callCount = 0;
+    fetchSpy.mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) return mockFetchResponse('Approach: fix validation logic');
+      if (callCount === 2) return mockFetchResponse('SUMMARY: Fixed JWT validation\nDone.');
+      if (callCount === 3) return mockFetchResponse('[wisdom] Always validate token expiry');
+      if (callCount === 4) return mockFetchResponse('[wisdom] Always validate token expiry');
+      return mockFetchResponse('unexpected extra call');
+    });
+
+    const result = await runProtocolCycle(
+      testAgent,
+      { title: 'Fix JWT auth', description: 'JWT tokens not validated properly' },
+      '',
+      { skipGrowAndEvolve: true }
+    );
+
+    // reflect + execute + compress + reintake; GROW and EVOLVE make no call.
+    expect(fetchSpy).toHaveBeenCalledTimes(4);
+    expect(result.summary).toContain('Fixed JWT validation');
+    expect(result.insights[0].type).toBe('wisdom');
+    expect(result.phaseResults).toHaveLength(7);
+    const status = (phase: ProtocolPhase) =>
+      result.phaseResults.find((p) => p.phase === phase)?.status;
+    expect(status(ProtocolPhase.GROW)).toBe('skipped');
+    expect(status(ProtocolPhase.EVOLVE)).toBe('skipped');
+    expect(status(ProtocolPhase.EXECUTE)).toBe('success');
   });
 
   it('returns summary from execute phase even when compress finds nothing', async () => {

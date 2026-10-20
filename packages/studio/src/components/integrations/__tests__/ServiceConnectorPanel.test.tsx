@@ -6,7 +6,7 @@
  * Connected even when the per-browser connector store has nothing.
  */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 const mockUseSession = vi.fn();
@@ -56,6 +56,40 @@ describe('ServiceConnectorPanel session truth', () => {
     render(<ServiceConnectorPanel onClose={() => {}} />);
 
     expect(screen.queryByText(/Connected via GitHub sign-in/i)).toBeNull();
+  });
+});
+
+describe('ServiceConnectorPanel honesty', () => {
+  it('does not advertise unbuilt features or the dead pipeline tab', () => {
+    mockUseSession.mockReturnValue({ data: null, status: 'unauthenticated' });
+
+    render(<ServiceConnectorPanel onClose={() => {}} />);
+
+    expect(screen.queryByText(/PR previews/i)).toBeNull();
+    expect(screen.queryByText(/One-click deploys/i)).toBeNull();
+    expect(screen.queryByText(/Recursive Pipeline/i)).toBeNull();
+    expect(screen.getAllByRole('tab')).toHaveLength(5);
+    expect(screen.getByText(/Recent Activity \(this browser\)/i)).toBeTruthy();
+  });
+
+  it('renders the form keys the connect route reads', () => {
+    mockUseSession.mockReturnValue({ data: null, status: 'unauthenticated' });
+
+    const { container } = render(<ServiceConnectorPanel onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole('tab', { name: /VSCode/i }));
+    expect(container.querySelector('#vscode-bridgeUrl')).toBeTruthy();
+    expect(container.querySelector('#vscode-mcpServerUrl')).toBeNull();
+
+    fireEvent.click(screen.getByRole('tab', { name: /App Store/i }));
+    for (const key of ['appleKeyId', 'appleIssuerId', 'applePrivateKey', 'googleServiceAccount']) {
+      expect(container.querySelector(`#appstore-${key}`)).toBeTruthy();
+    }
+
+    fireEvent.click(screen.getByRole('tab', { name: /Upstash/i }));
+    expect(container.querySelector('#upstash-redisUrl')).toBeTruthy();
+    expect(container.querySelector('#upstash-redisToken')).toBeTruthy();
+    expect(container.querySelector('#upstash-token')).toBeNull();
   });
 });
 

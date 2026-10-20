@@ -4,7 +4,7 @@
  * Defines the full UI surface for the /projects page. The header, repo list,
  * empty-states (not-connected + no-repos + loading), and "Import a repo" CTA
  * render natively via HoloSurfaceRenderer. ProjectsView.tsx is reduced to:
- *   1. Load repos via useGitHubRepos (IndexedDB / API data bridge)
+ *   1. Load repos via useGitHubRepos (GitHub API via the signed-in session)
  *   2. Bridge data into composition state via setState
  *   3. Handle emits: open → setShowImport(true), signin → signIn('github')
  *
@@ -212,34 +212,8 @@ composition "Projects" {
       direction: "column"
       gap: 16
 
-      // Search bar (display only — search interaction stays in host React)
-      object "SearchBar" {
-        type: "ui"
-        uiType: "panel"
-        direction: "row"
-        align: "center"
-        gap: 8
-        padding: 10
-        borderColor: "#1e293b"
-        backgroundColor: "#050508"
-        cornerRadius: 8
-
-        object "SearchIcon" {
-          type: "ui"
-          uiType: "text"
-          text: "🔍"
-          fontSize: 14
-          color: "#64748b"
-        }
-
-        object "SearchHint" {
-          type: "ui"
-          uiType: "text"
-          text: "Search your repositories…"
-          fontSize: 13
-          color: "#475569"
-        }
-      }
+      // (A display-only "Search your repositories…" bar used to render here.
+      // It was not interactive, so it was removed until search is wired.)
 
       // No-repos empty state (connected but zero results)
       object "NoRepos" {

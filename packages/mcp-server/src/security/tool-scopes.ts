@@ -61,8 +61,8 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   compose_workflow: ['tools:write'],
   execute_workflow: ['tools:write'],
   workflow_memory_write: ['tools:write'],
-  workflow_memory_read: ['tools:read'],
-  workflow_memory_subscribe: ['tools:read'],
+  workflow_memory_read: ['tools:admin'],
+  workflow_memory_subscribe: ['tools:admin'],
 
   // === Batch meta-tools (each inner call is re-authorized independently) ===
   batch_tool_call: ['tools:read'],
@@ -260,14 +260,14 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   absorb_get_project: ['tools:codebase'],
 
   // === HoloMesh (spatial mesh, A2A discovery) ===
-  holomesh_status: ['tools:read'],
-  holomesh_discover: ['tools:read'],
+  holomesh_status: ['tools:read', 'social:read'],
+  holomesh_discover: ['tools:read', 'social:read'],
   holomesh_publish_tool: ['tools:write'],
   holomesh_invoke_tool: ['tools:write'],
   holomesh_gossip: ['tools:write', 'tools:admin'],
   holomesh_contribute: ['tools:write'],
-  holomesh_query: ['tools:read'],
-  holomesh_subscribe: ['tools:read'],
+  holomesh_query: ['tools:read', 'social:read'],
+  holomesh_subscribe: ['tools:read', 'social:read'],
   holomesh_collect: ['tools:write'],
 
   // === HoloMesh Board / Slots / Mode ===
@@ -311,7 +311,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   settle_creator_payout: ['tools:admin'],
   execute_economic_contract: ['tools:admin'],
   sim_run_paid: ['tools:admin'],
-  get_creator_earnings: ['tools:read'],
+  get_creator_earnings: ['user:private'],
   // Agent identity / token minting:
   issue_agent_token: ['tools:admin'],
   verify_agent_token: ['tools:read'],
@@ -454,19 +454,19 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   // task_1783805494038 names it a flow that must not break. Kept at tools:read (least-privilege that
   // preserves the liveness ping) even though it updates a presence timestamp — a human override of the
   // classifier's semantic write call, per the task's runtime-verify requirement.
-  holomesh_heartbeat: ['tools:read'],
-  holomesh_mark_read: ['tools:write'],
+  holomesh_heartbeat: ['tools:read', 'social:read'],
+  holomesh_mark_read: ['tools:write', 'social:write'],
   holomesh_moltbook_crosspost: ['tools:write'],
   holomesh_publish_agent_template: ['tools:write'],
-  holomesh_publish_insight: ['tools:write'],
-  holomesh_reply: ['tools:write'],
+  holomesh_publish_insight: ['tools:write', 'social:write'],
+  holomesh_reply: ['tools:write', 'social:write'],
   holomesh_scout: ['tools:write'],
-  holomesh_send_message: ['tools:write'],
+  holomesh_send_message: ['tools:write', 'social:write'],
   holomesh_suggest: ['tools:write'],
   holomesh_suggest_vote: ['tools:write'],
   holomesh_team_load_agents: ['tools:write'],
   holomesh_team_run_cycle: ['tools:write'],
-  holomesh_upvote_reply: ['tools:write'],
+  holomesh_upvote_reply: ['tools:write', 'social:write'],
   holoscript_compile_education: ['tools:write'],
   holoscript_compile_healthcare: ['tools:write'],
   holoscript_compile_iot: ['tools:write'],
@@ -489,7 +489,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   twin_earth_ai_invoke: ['tools:write'],
   twin_earth_capture_receipt: ['tools:write'],
   // read-only / no side effects:
-  absorb_check_credits: ['tools:read'],
+  absorb_check_credits: ['user:private'],
   absorb_list_projects: ['tools:read'],
   absorb_suggest_holoscript_transform: ['tools:read'],
   alphafold_fetch_structure: ['tools:read'],
@@ -513,10 +513,10 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holo_estimate_task_duration: ['tools:read'],
   holo_hologram_get_asset: ['tools:read'],
   holo_map_paper_ingest_probe: ['tools:read'],
-  holo_memory_farm: ['tools:read'],
-  holo_memory_list: ['tools:read'],
-  holo_memory_recall: ['tools:read'],
-  holo_memory_stats: ['tools:read'],
+  holo_memory_farm: ['tools:admin'],
+  holo_memory_list: ['tools:admin'],
+  holo_memory_recall: ['tools:admin'],
+  holo_memory_stats: ['tools:admin'],
   holo_oracle_consult: ['tools:read'],
   holo_oracle_curate: ['tools:read'],
   holo_oracle_discover: ['tools:read'],
@@ -544,8 +544,8 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   hololand_twin_earth_substrate_status: ['tools:read'],
   holomesh_agent_capabilities: ['tools:read'],
   holomesh_discussion: ['tools:read'],
-  holomesh_feed_source: ['tools:read'],
-  holomesh_inbox: ['tools:read'],
+  holomesh_feed_source: ['tools:read', 'social:read'],
+  holomesh_inbox: ['tools:read', 'social:read'],
   holomesh_knowledge_read: ['tools:read'],
   holomesh_marketplace_search: ['tools:read'],
   holomesh_notifications: ['tools:read'],
@@ -557,7 +557,7 @@ const TOOL_SCOPE_MAP: Record<string, OAuthScope[]> = {
   holomesh_suggest_list: ['tools:read'],
   holomesh_team_compound: ['tools:read'],
   holomesh_team_form: ['tools:read'],
-  holomesh_wallet_status: ['tools:read'],
+  holomesh_wallet_status: ['tools:admin'],
   holoscript_audit_numbers: ['tools:read'],
   holoscript_code_health: ['tools:read'],
   holoscript_select_modality: ['tools:read'],
@@ -858,6 +858,72 @@ export function hasExplicitScope(toolName: string): boolean {
   return Object.prototype.hasOwnProperty.call(TOOL_SCOPE_MAP, toolName);
 }
 
+// ── User-private tools (Trust & Consent c) ───────────────────────────────────
+
+/**
+ * Tools that read one human's own data. They need `user:private`, which issues
+ * only through authorization_code with a signed-in user, and handleTool binds
+ * them to that token's user: an identity named in the arguments that is not the
+ * caller's is refused, and the caller's id is what the handler sees.
+ */
+export const USER_PRIVATE_TOOLS: ReadonlySet<string> = new Set([
+  'get_creator_earnings',
+  'absorb_check_credits',
+]);
+// holo_memory_list/recall/farm/stats and workflow_memory_read read ONE shared
+// store with no per-user partition (memory-tools.ts, agent-orchestration-tools.ts),
+// so a user filter is not possible today: they are tools:admin until the store
+// is split per user (Trust & Consent C2).
+
+/** Argument names that would let a caller point a user-private tool at someone else. */
+export const USER_IDENTITY_ARG_KEYS = [
+  'creatorId',
+  'creator_id',
+  'userId',
+  'user_id',
+  'ownerId',
+  'owner_id',
+  'accountId',
+  'account_id',
+  // A caller-supplied key selects whose account is read (absorb_check_credits).
+  'apiKey',
+  'api_key',
+] as const;
+
+/**
+ * Bind a user-private tool call to the token's user. Returns the arguments the
+ * handler should see, or a refusal. Admin (admin:*) and the local stdio user
+ * keep today's behaviour: they may name any creator.
+ */
+export function bindUserPrivateArgs(
+  toolName: string,
+  args: Record<string, unknown>,
+  ctx: { userId?: string; scopes?: readonly string[] } | undefined | null
+): { ok: true; args: Record<string, unknown> } | { ok: false; reason: string } {
+  if (!USER_PRIVATE_TOOLS.has(toolName)) return { ok: true, args };
+  if (isTrustedLocalCaller(ctx)) return { ok: true, args };
+  if (ctx?.scopes?.includes('admin:*')) return { ok: true, args };
+  const userId = typeof ctx?.userId === 'string' ? ctx.userId.trim() : '';
+  if (!userId) {
+    return {
+      ok: false,
+      reason: `"${toolName}" reads a signed-in user's private data: it needs a user:private token issued to that user through /oauth/authorize`,
+    };
+  }
+  for (const key of USER_IDENTITY_ARG_KEYS) {
+    const v = args[key];
+    if (v !== undefined && v !== null && v !== '' && String(v) !== userId) {
+      return {
+        ok: false,
+        reason: `"${toolName}" acts only on the token's own user; "${key}" names someone else`,
+      };
+    }
+  }
+  const bound: Record<string, unknown> = { ...args, userId };
+  if (toolName === 'get_creator_earnings') bound.creatorId = userId;
+  return { ok: true, args: bound };
+}
+
 // ── Gate 2: Tool Authorization ───────────────────────────────────────────────
 
 export interface AuthorizationResult {
@@ -866,6 +932,42 @@ export interface AuthorizationResult {
   requiredScopes?: OAuthScope[];
   grantedScopes?: OAuthScope[];
   riskLevel?: ToolRiskLevel;
+}
+
+/**
+ * Is a caller with NO signing context the local user? Only when this process IS the stdio server
+ * (index.ts main() sets HOLOSCRIPT_MCP_TRANSPORT = 'stdio'): stdio never carries HTTP auth, so its
+ * one caller is the person who launched it. On the hosted server a missing context means a call
+ * lost its caller inside the server (a workflow step, a batch child, a probe), and that caller is
+ * nobody. Every "no context" branch asks this, rather than assuming (tasks x5ku, mplw).
+ */
+export function isTrustedLocalCaller(signingCtx: unknown): boolean {
+  return (
+    (signingCtx === undefined || signingCtx === null) &&
+    process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio'
+  );
+}
+
+/** The principal of a caller that has none, off the stdio server. It owns nothing. */
+export const NO_CALLER_PRINCIPAL = 'holoscript-mcp:no-caller';
+
+/**
+ * Who to bind a call to, for board agent ids, daemon owners and spend buckets. It is the
+ * caller's signer when it has one. It is `undefined` ("local trust") only for the local user of
+ * the stdio server: no context there, or handleTool's 'stdio-local' bridge, which exists only on
+ * stdio. Everyone else without a signer, a context-less call on the hosted server or a context
+ * whose signer is empty, is NO_CALLER_PRINCIPAL. So a binding refuses to act for a named agent
+ * or owner on its behalf (task mplw).
+ */
+export function callerPrincipal(
+  signingCtx: { signer?: string | null } | undefined | null
+): string | undefined {
+  const signer = signingCtx?.signer;
+  if (signer === 'stdio-local') {
+    return process.env.HOLOSCRIPT_MCP_TRANSPORT === 'stdio' ? undefined : NO_CALLER_PRINCIPAL;
+  }
+  if (typeof signer === 'string' && signer !== '') return signer;
+  return isTrustedLocalCaller(signingCtx) ? undefined : NO_CALLER_PRINCIPAL;
 }
 
 /**
@@ -925,6 +1027,29 @@ export function authorizeToolCall(
 }
 
 /**
+ * Authorize a tool dispatched from INSIDE another tool -- a batch child, a workflow step, a
+ * mesh-invoked tool -- against the ORIGINAL caller's scopes. Gate 2 checked only the outer tool's
+ * name, and the inner one may need more: execute_workflow needs tools:write, and its steps may name
+ * a tools:admin tool. No context is the local user only on the stdio server (isTrustedLocalCaller);
+ * on the hosted server a call with no context lost its caller and is checked against no scopes
+ * (task mplw, #474; claude3's P2-2 on #407). Throws, naming the tool and the scopes it needs
+ * (task_1790204588326_myvj).
+ */
+export function assertReentrantToolAuthorized(
+  toolName: string,
+  signingCtx: { scopes?: readonly string[] } | undefined | null,
+  via = 'Inner tool'
+): void {
+  if (isTrustedLocalCaller(signingCtx)) return;
+  const authorization = authorizeToolCall(toolName, [...(signingCtx?.scopes ?? [])]);
+  if (!authorization.authorized) {
+    throw new Error(
+      `${via} authorization denied for "${toolName}": ${authorization.reason ?? 'insufficient scope'}`
+    );
+  }
+}
+
+/**
  * Get the risk level for a tool.
  */
 export function getToolRiskLevel(toolName: string): ToolRiskLevel {
@@ -946,3 +1071,29 @@ export function getToolsForScope(scope: OAuthScope): string[] {
     .filter(([, scopes]) => scopes.includes(scope))
     .map(([name]) => name);
 }
+
+/**
+ * Public HoloMesh social tools (Muse Gap 9): the only tools the internal
+ * social:read / social:write scopes reach. The OAuth `social` scope expands to
+ * exactly these two (auth/oauth2-provider.ts SCOPE_BRIDGE), and it is all a
+ * self-registered client gets with no human's consent. Acting as the agent
+ * itself on the public network: status/discovery/feed/inbox reads, replies,
+ * direct messages, upvotes, read-marks and public insights. Deliberately NOT
+ * here: crossposting to moltbook, wallet, board/team control, publishing
+ * tools, and every human-data tool (credits, workflows, memory, share links).
+ * Pinned by security/__tests__/public-social-scopes.test.ts.
+ */
+export const PUBLIC_SOCIAL_TOOL_SCOPES: Readonly<Record<string, 'social:read' | 'social:write'>> = {
+  holomesh_status: 'social:read',
+  holomesh_discover: 'social:read',
+  holomesh_query: 'social:read',
+  holomesh_subscribe: 'social:read',
+  holomesh_heartbeat: 'social:read',
+  holomesh_feed_source: 'social:read',
+  holomesh_inbox: 'social:read',
+  holomesh_reply: 'social:write',
+  holomesh_send_message: 'social:write',
+  holomesh_upvote_reply: 'social:write',
+  holomesh_mark_read: 'social:write',
+  holomesh_publish_insight: 'social:write',
+};

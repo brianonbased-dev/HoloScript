@@ -14,6 +14,7 @@
  *      - "save"         → saveProfile() (PUT /api/users/:id)
  *      - "stripe-setup" → startStripeConnect() (POST /api/stripe/connect)
  *      - "oracle-setup" → run oracle setup fetch + re-poll status
+ *      - "signin"       → signIn('github') for empty-session CTA
  *
  * **Form inputs** stay as React controlled inputs in host state because
  * HoloSurfaceRenderer input is readOnly — the bridge writes displayName/bio/website
@@ -23,7 +24,8 @@
  * @module settings/SettingsView
  */
 
-import { useSession } from 'next-auth/react';
+import { useSession, signIn } from 'next-auth/react';
+import { SignInCta } from '@/components/auth/SignInCta';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { PURCHASE_RETURN_PARAM, creditBalanceFrom, purchaseReturnNotice } from '@/lib/purchase-return';
@@ -31,6 +33,7 @@ import { logger } from '@/lib/logger';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import BrittneyAPIKeysPanel from './BrittneyAPIKeysPanel';
+import ConnectedAppsPanel from './ConnectedAppsPanel';
 import { IntegrationsView } from '@/components/integrations/IntegrationsView';
 import { CreditBalanceCard, PricingTab } from '@/app/absorb/components';
 import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
@@ -139,7 +142,9 @@ export function SettingsView() {
       .catch(() => {})
       .finally(() => setCreditsLoading(false));
 
-    // Oracle Boost status + telemetry
+    // Oracle Boost status + telemetry: founder-only routes, so non-founders never
+    // call them (and the panel is hidden for them via isFounder below).
+    if (session?.user?.isFounder !== true) return;
     const tier = (session as { user: { tier?: string } }).user?.tier ?? 'free';
     setOracleLoading(true);
     Promise.all([
@@ -204,6 +209,7 @@ export function SettingsView() {
         sessionLoading: status === 'loading',
         email: session?.user?.email ?? '',
         userId: session?.user?.id ?? '',
+        isFounder: session?.user?.isFounder === true,
       });
     }
   }, [
@@ -286,6 +292,7 @@ export function SettingsView() {
   }
 
   async function runOracleSetup() {
+    if (session?.user?.isFounder !== true) return;
     setOracleSetupRunning(true);
     try {
       const tier = (session as { user: { tier?: string } }).user?.tier ?? 'free';
@@ -317,6 +324,9 @@ export function SettingsView() {
       void startStripeConnect();
     } else if (event === 'oracle-setup') {
       void runOracleSetup();
+    } else if (event === 'signin') {
+      // Composition Sign-in button (settings.hsplus NotSignedIn)
+      void signIn('github', { callbackUrl: '/settings' });
     }
   };
 
@@ -450,8 +460,19 @@ export function SettingsView() {
               )}
 
               {status !== 'loading' && !session?.user && (
-                <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>
-                  Please sign in to access settings.
+                <div
+                  style={{
+                    padding: 40,
+                    textAlign: 'center',
+                    color: '#888',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 16,
+                  }}
+                >
+                  <p style={{ margin: 0 }}>Please sign in to access settings.</p>
+                  <SignInCta callbackUrl="/settings" />
                 </div>
               )}
             </div>
@@ -468,6 +489,7 @@ export function SettingsView() {
       {activeTab === 'api-keys' && session?.user?.id && (
         <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 24px 40px' }}>
           <BrittneyAPIKeysPanel />
+          <ConnectedAppsPanel />
         </div>
       )}
 
@@ -480,9 +502,14 @@ export function SettingsView() {
             textAlign: 'center',
             color: '#888',
             fontFamily: 'system-ui',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 16,
           }}
         >
-          Please sign in to manage API keys.
+          <p style={{ margin: 0 }}>Please sign in to manage API keys.</p>
+          <SignInCta callbackUrl="/settings?tab=api-keys" />
         </div>
       )}
 
@@ -526,9 +553,14 @@ export function SettingsView() {
             textAlign: 'center',
             color: '#888',
             fontFamily: 'system-ui',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 16,
           }}
         >
-          Please sign in to manage credits.
+          <p style={{ margin: 0 }}>Please sign in to manage credits.</p>
+          <SignInCta callbackUrl="/settings?tab=credits" />
         </div>
       )}
     </div>

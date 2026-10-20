@@ -13,12 +13,20 @@ import {
 import type { DaemonJobLimits } from '@/lib/daemon/types';
 
 // SEC-T02: Daemon jobs require auth, Zod validation, and projectPath containment
-// (parity with packages/studio).
-const WORKSPACE_ROOT = path.join(
-  process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(),
-  '.holoscript',
-  'workspaces',
-);
+// (parity with packages/studio). The root honors HOLOSCRIPT_WORKSPACES_DIR
+// (e.g. a mounted volume like /data/workspaces) and is resolved per request,
+// matching packages/studio getWorkspacesRoot().
+function getWorkspacesRoot(): string {
+  return path.resolve(
+    process.env.HOLOSCRIPT_WORKSPACES_DIR ??
+      path.join(process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(), '.holoscript', 'workspaces'),
+  );
+}
+
+function isInsidePath(parent: string, child: string): boolean {
+  const relative = path.relative(parent, child);
+  return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
+}
 
 const ProjectDnaSchema = z.object({
   kind: z.enum(['service', 'frontend', 'data', 'automation', 'spatial', 'unknown']),
@@ -80,10 +88,13 @@ export async function POST(request: NextRequest) {
   const body = parsed.data;
 
   if (body.projectPath !== undefined) {
+    const workspacesRoot = getWorkspacesRoot();
     const resolved = path.resolve(body.projectPath);
-    if (!resolved.startsWith(WORKSPACE_ROOT + path.sep) && resolved !== WORKSPACE_ROOT) {
+    if (!isInsidePath(workspacesRoot, resolved)) {
       return NextResponse.json(
-        { error: 'projectPath must be inside ~/.holoscript/workspaces' },
+        {
+          error: `projectPath must be inside the workspaces root (${workspacesRoot}; set via HOLOSCRIPT_WORKSPACES_DIR)`,
+        },
         { status: 400 },
       );
     }

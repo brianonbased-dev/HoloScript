@@ -254,10 +254,24 @@ If `client: true` (the default), the `metadata` export is suppressed because Nex
 
 ### `@metadata` config keys
 
-| Key           | Type     | Description                                          |
-| ------------- | -------- | ---------------------------------------------------- |
-| `title`       | `string` | Page title. Emitted to `metadata.title`.             |
-| `description` | `string` | Page description. Emitted to `metadata.description`. |
+| Key           | Type               | Description                                                                                                  |
+| ------------- | ------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `title`       | `string`           | Page title. Emitted to `metadata.title`.                                                                     |
+| `description` | `string`           | Page description. Emitted to `metadata.description`.                                                         |
+| `robots`      | `string \| object` | Search-engine directives, passed through to `metadata.robots` as written: `"noindex"` or `{ index: false }`. |
+
+A page that must stay out of search results (Studio's invite-only refusal page is the first) sets `robots` on a server page:
+
+```holo
+composition "InviteOnly" {
+  @page { route: "/invite-only", client: false }
+  @metadata {
+    title: "Invite-only | HoloScript Studio"
+    robots: { index: false }
+  }
+  // ...
+}
+```
 
 ---
 
@@ -569,24 +583,24 @@ This compiles to a self-contained HTML page with zero framework dependencies. Th
 
 ## Current implementation status
 
-| Construct   | Parser                       | Native2DCompiler (HTML) | Native2DCompiler (React) | NextJSCompiler                           |
-| ----------- | ---------------------------- | ----------------------- | ------------------------ | ---------------------------------------- |
-| `@page`     | Captured as generic trait    | Not consumed            | Not consumed             | Fully consumed (route, client, redirect) |
-| `@metadata` | Captured as generic trait    | Not consumed            | Not consumed             | Fully consumed (title, description)      |
-| `@panel`    | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
-| `@slot`     | Captured as object trait     | Not consumed            | Fully consumed           | Fully consumed (imports, JSX, props)     |
-| `@tailwind` | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
-| `@text`     | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
-| `@theme`    | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
-| `@layout`   | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
-| `@button`   | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                     |
-| `@fetch`    | Captured as object trait     | Vanilla-JS runtime      | `useEffect`+`useState`   | Via Native2DCompiler                     |
-| `@bind`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                     |
-| `@hook`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                     |
-| `@when`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                     |
-| `@each`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                     |
-| `@view`     | Captured as root-level trait | Not consumed            | Not consumed             | Not consumed (Studio registry only)      |
-| `@count_of` | Captured as object trait     | Fully consumed          | Not consumed             | Via Native2DCompiler (HTML only)         |
+| Construct   | Parser                       | Native2DCompiler (HTML) | Native2DCompiler (React) | NextJSCompiler                              |
+| ----------- | ---------------------------- | ----------------------- | ------------------------ | ------------------------------------------- |
+| `@page`     | Captured as generic trait    | Not consumed            | Not consumed             | Fully consumed (route, client, redirect)    |
+| `@metadata` | Captured as generic trait    | Not consumed            | Not consumed             | Fully consumed (title, description, robots) |
+| `@panel`    | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                        |
+| `@slot`     | Captured as object trait     | Not consumed            | Fully consumed           | Fully consumed (imports, JSX, props)        |
+| `@tailwind` | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                        |
+| `@text`     | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                        |
+| `@theme`    | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                        |
+| `@layout`   | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                        |
+| `@button`   | Captured as object trait     | Fully consumed          | Fully consumed           | Via Native2DCompiler                        |
+| `@fetch`    | Captured as object trait     | Vanilla-JS runtime      | `useEffect`+`useState`   | Via Native2DCompiler                        |
+| `@bind`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                        |
+| `@hook`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                        |
+| `@when`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                        |
+| `@each`     | Captured as object trait     | Not consumed            | Fully consumed           | Via Native2DCompiler                        |
+| `@view`     | Captured as root-level trait | Not consumed            | Not consumed             | Not consumed (Studio registry only)         |
+| `@count_of` | Captured as object trait     | Fully consumed          | Not consumed             | Via Native2DCompiler (HTML only)            |
 
 **Parser note:** "Captured as generic trait" means the parser stores the decorator in `composition.traits[]` (root-level) or `object.traits[]` (object-level) as an `HoloObjectTrait { name, config }`. There is no dedicated AST node type for `@page`, `@slot`, etc. — they are read by compilers via name lookup at compile time. This is the intentional design: the parser is domain-agnostic; compilers are domain-specific.
 

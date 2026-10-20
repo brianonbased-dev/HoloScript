@@ -115,7 +115,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
 
   // ── State machine ──
 
-  state_machine "SyncWorkflow" {
+  template "SyncWorkflow" {
     initial: "idle"
     states: [
       "idle",
@@ -153,7 +153,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
 
   // ── Provider absorption paths ──
 
-  capability "GmailAbsorption" {
+  template "GmailAbsorption" {
     @agent { type: "holoshell"; source: "browser" }
     trustState: "external"
     permissions: [
@@ -166,7 +166,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
     replacementPath: "@holoscript/connector-google-mail with UCAN capability tokens"
   }
 
-  capability "DriveAbsorption" {
+  template "DriveAbsorption" {
     @agent { type: "holoshell"; source: "browser" }
     trustState: "external"
     permissions: [
@@ -179,7 +179,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
     replacementPath: "@holoscript/connector-google-drive with deterministic file-hash sync"
   }
 
-  capability "LocalFilesystemAbsorption" {
+  template "LocalFilesystemAbsorption" {
     @agent { type: "holoshell"; source: "native-api" }
     trustState: "local"
     permissions: [
@@ -192,7 +192,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
     replacementPath: "sovereign @holoscript/delta-source stage with receipt-anchored hash comparison"
   }
 
-  capability "GitHubAbsorption" {
+  template "GitHubAbsorption" {
     @agent { type: "holoshell"; source: "cli" }
     trustState: "known"
     permissions: [
@@ -204,7 +204,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
     replacementPath: "CliReceipt stage in packages/core that signs gh stdout into a typed HoloShell receipt"
   }
 
-  capability "SheetsAbsorption" {
+  template "SheetsAbsorption" {
     @agent { type: "holoshell"; source: "browser" }
     trustState: "external"
     permissions: [
@@ -219,7 +219,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
 
   // ── Substrate gap registry ──
 
-  gap "GoogleConnectorMcp" {
+  template "GoogleConnectorMcp" {
     kind: "holoscript_substrate_gap"
     affects: ["GmailAbsorption", "DriveAbsorption", "SheetsAbsorption"]
     priority: 2
@@ -229,7 +229,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
     trustUpgrade: "external → verified"
   }
 
-  gap "GhCliReceiptSchema" {
+  template "GhCliReceiptSchema" {
     kind: "holoscript_substrate_gap"
     affects: ["GitHubAbsorption"]
     priority: 3
@@ -239,7 +239,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
     trustUpgrade: "known → verified"
   }
 
-  gap "DeltaSourceStage" {
+  template "DeltaSourceStage" {
     kind: "holoscript_substrate_gap"
     affects: ["LocalFilesystemAbsorption"]
     priority: 3
@@ -249,7 +249,7 @@ composition "HoloShellCrossProviderSyncPolicy" {
     trustUpgrade: "none (runtime improvement)"
   }
 
-  gap "HoloLandSyncRoom" {
+  template "HoloLandSyncRoom" {
     kind: "hololand_product_gap"
     affects: ["SyncOrchestrator"]
     priority: 4
@@ -261,32 +261,32 @@ composition "HoloShellCrossProviderSyncPolicy" {
 
   // ── Agent roles ──
 
-  role "GmailLaneAgent" {
+  template "GmailLaneAgent" {
     laneId: "gmail-lane"
     owns: ["gmail_auth_check", "gmail_ingest", "gmail_receipt_sign", "gmail_label_apply"]
   }
 
-  role "DriveLaneAgent" {
+  template "DriveLaneAgent" {
     laneId: "drive-lane"
     owns: ["drive_auth_check", "drive_ingest", "drive_receipt_sign", "drive_folder_create"]
   }
 
-  role "LocalLaneAgent" {
+  template "LocalLaneAgent" {
     laneId: "local-lane"
     owns: ["git_status_read", "file_hash_delta", "local_receipt_sign", "local_file_write"]
   }
 
-  role "GitHubLaneAgent" {
+  template "GitHubLaneAgent" {
     laneId: "github-lane"
     owns: ["gh_auth_check", "gh_pr_list", "gh_issue_list", "gh_run_list", "gh_receipt_sign"]
   }
 
-  role "SheetsLaneAgent" {
+  template "SheetsLaneAgent" {
     laneId: "sheets-lane"
     owns: ["sheets_auth_check", "sheets_ingest", "sheets_receipt_sign", "sheets_row_append"]
   }
 
-  role "SyncOrchestrator" {
+  template "SyncOrchestrator" {
     laneId: "orchestrator"
     owns: ["normalise_receipts", "run_diff", "plan_writes", "approval_gate", "execute_writes", "assemble_sync_receipt"]
   }

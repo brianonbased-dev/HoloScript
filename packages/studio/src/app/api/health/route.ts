@@ -6,6 +6,8 @@ import { holomeshBoardTasks } from '../../../db/schema';
 import { resolveStudioServiceSecret } from '@/lib/secrets/serviceSecretStore';
 import { resolveRouteLocalModel } from '../_lib/ownedLocalFallback';
 import { sql } from 'drizzle-orm';
+import { ENDPOINTS, getAbsorbKey, getMcpApiKey } from '@holoscript/config';
+import { getAbsorbHealthCached } from '@/lib/absorb/absorbHealth';
 
 /**
  * Cloud-first AI detection. The optional local fallback is our own model server, resolved the
@@ -88,7 +90,13 @@ export async function GET() {
   // Detect AI provider (cloud-first, our own local model server as optional fallback)
   const ai = await detectAIProvider();
 
-  const degraded = taskBoard.degraded;
+  // Absorb (repo import, absorb daemon): one short, memoized GET to its /health.
+  const absorb = await getAbsorbHealthCached({
+    baseUrl: ENDPOINTS.ABSORB_SERVICE,
+    apiKeyConfigured: Boolean(getAbsorbKey() || getMcpApiKey()),
+  });
+
+  const degraded = taskBoard.degraded || absorb.degraded;
 
   // Legacy compat: ollama field mirrors ai.connected for old clients
   return NextResponse.json({
@@ -98,6 +106,7 @@ export async function GET() {
     models: ai.provider !== 'none' ? [ai.provider] : [],
     taskBoard,
     teamActivity,
+    absorb,
   });
 }
 

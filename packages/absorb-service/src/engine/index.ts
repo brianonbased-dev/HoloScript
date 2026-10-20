@@ -260,3 +260,12 @@ export type {
   MigrationAction,
   MigrationPlan,
 } from './DeprecatedInventory';
+
+// Which server folders a codebase scan may open (2026-10-04 custody review).
+export {
+  absorbAllowedRoots,
+  absorbRootRefusal,
+  insideServerState,
+  serverStateDirs,
+  type AbsorbRootEnv,
+} from './absorb-root-policy';

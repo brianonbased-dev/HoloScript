@@ -11,6 +11,7 @@ export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
+import { getSession } from '@/lib/api-auth';
 import {
   type DurableAbsorbProject,
   listDurableAbsorbProjects,
@@ -96,9 +97,16 @@ function textField(record: Record<string, unknown>, camel: string, snake: string
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
+/** Studio's signed-in user id, or null. Same reader requireAuth uses. */
+async function signedInOwnerId(): Promise<string | null> {
+  const session = await getSession();
+  const id = session?.user?.id;
+  return typeof id === 'string' && id.trim() ? id : null;
+}
+
 export async function GET(req: NextRequest) {
   const userAuth = req.headers.get('authorization');
-  const durableProjects = listDurableAbsorbProjects();
+  const durableProjects = listDurableAbsorbProjects(await signedInOwnerId());
 
   // Try absorb service. absorb-service mounts the projects router at /api/absorb
   // (server.ts: app.use('/api/absorb', absorbRouter) → router.get('/projects')),
@@ -124,6 +132,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const userAuth = req.headers.get('authorization');
+  const ownerId = await signedInOwnerId();
   const body = await req.text();
 
   // Try absorb service (see GET note: upstream path is /api/absorb/projects).
@@ -144,6 +153,7 @@ export async function POST(req: NextRequest) {
           metadata: {
             upstreamSynced: true,
           },
+          ownerId,
         });
       }
     }
@@ -166,6 +176,7 @@ export async function POST(req: NextRequest) {
         upstreamFallback: true,
         upstreamStatus: result.status,
       },
+      ownerId,
     });
     return NextResponse.json(
       {

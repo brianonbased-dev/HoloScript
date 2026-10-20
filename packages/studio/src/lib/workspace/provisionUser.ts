@@ -1,4 +1,4 @@
-import { execFile } from 'child_process';
+import { runGit } from '@/lib/git/safeGit';
 import * as os from 'os';
 import * as path from 'path';
 import {
@@ -216,14 +216,10 @@ function defaultFounderRoot(): string {
 
 function execGit(rootPath: string, args: string[]): Promise<string | null> {
   return new Promise((resolve) => {
-    execFile('git', ['-C', rootPath, ...args], { timeout: 10_000 }, (error, stdout) => {
-      if (error) {
-        resolve(null);
-        return;
-      }
-      const value = String(stdout ?? '').trim();
-      resolve(value || null);
-    });
+    runGit(['-C', rootPath, ...args], { timeout: 10_000 }).then(
+      ({ stdout }) => resolve(stdout.trim() || null),
+      () => resolve(null)
+    );
   });
 }
 

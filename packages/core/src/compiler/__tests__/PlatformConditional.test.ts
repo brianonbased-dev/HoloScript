@@ -19,6 +19,8 @@ import {
   PlatformConditionalCompilerMixin,
   matchesPlatformConstraint,
   createPlatformTarget,
+  filterCompositionForPlatform,
+  filterSceneObjectsForPlatform,
 } from '../PlatformConditionalCompilerMixin';
 
 // =============================================================================
@@ -603,5 +605,82 @@ describe('createPlatformTarget', () => {
     const target = createPlatformTarget('androidxr');
     expect(target.platform).toBe('android-xr');
     expect(target.formFactor).toBe('vr');
+  });
+});
+
+// =============================================================================
+// SCENE OBJECTS
+// =============================================================================
+
+describe('filterSceneObjectsForPlatform', () => {
+  // The parser does not attach a @platform() written inside a scene block (it reads one only at
+  // the top level), so the constraint is set on the AST, the shape any other producer would give.
+  const only = (...include: string[]): PlatformConstraint => ({ include, exclude: [] });
+  const without = (...exclude: string[]): PlatformConstraint => ({ include: [], exclude });
+
+  function sceneComposition(): HoloComposition {
+    const ast = parse(`
+      composition "Scenes" {
+        object "AtTop" { geometry: "cube" }
+        scene "First" {
+          object "VROnly" { geometry: "cube" }
+          object "Hero" { geometry: "sphere" }
+          object "Hero" { geometry: "box" }
+        }
+        scene "Second" {
+          object "NotOnPhones" { geometry: "cube" }
+          object "Everywhere" { geometry: "cube" }
+        }
+      }
+    `);
+    const [first, second] = ast.scenes!;
+    first.objects[0].platformConstraint = only('quest3');
+    first.objects[1].platformConstraint = only('visionos');
+    first.objects[2].platformConstraint = only('quest3');
+    second.objects[0].platformConstraint = without('mobile');
+    return ast;
+  }
+
+  it('returns the input itself when it has no scene', () => {
+    const input = parse('composition "C" { object "A" { geometry: "cube" } }');
+    expect(filterSceneObjectsForPlatform(input, 'ios')).toBe(input);
+  });
+
+  it("filters each scene's objects the way top-level objects are filtered", () => {
+    const filtered = filterSceneObjectsForPlatform(sceneComposition(), 'visionos');
+    expect(filtered.scenes!.map((s) => [s.name, s.objects.map((o) => o.name)])).toEqual([
+      ['First', ['Hero']],
+      ['Second', ['NotOnPhones', 'Everywhere']],
+    ]);
+    // The variants of one name that this platform excludes are gone, the one it keeps is kept.
+    expect(filtered.scenes![0].objects[0].properties[0].value).toBe('sphere');
+
+    // A phone keeps none of the first scene's variants, and not what @platform(not: mobile) excludes.
+    const phone = filterSceneObjectsForPlatform(sceneComposition(), 'ios');
+    expect(phone.scenes!.map((s) => s.objects.map((o) => o.name))).toEqual([[], ['Everywhere']]);
+  });
+
+  it('changes nothing but the scenes, and never changes its input', () => {
+    const input = sceneComposition();
+    const before = JSON.stringify(input);
+    const filtered = filterSceneObjectsForPlatform(input, 'quest3');
+    expect(JSON.stringify(input)).toBe(before);
+    expect(filtered.objects).toBe(input.objects);
+    expect(filtered.name).toBe(input.name);
+    expect(filtered.scenes!.map((s) => s.name)).toEqual(['First', 'Second']);
+  });
+
+  it('throws the error a top-level object gets for an invalid @platform()', () => {
+    const input = sceneComposition();
+    input.scenes![0].objects[0].platformConstraint = only('not-a-platform');
+    expect(() => filterSceneObjectsForPlatform(input, 'visionos')).toThrow(
+      /Invalid @platform\(\) constraints[\s\S]*Unknown platform 'not-a-platform'/
+    );
+    // The same constraint on a top-level object is refused by the existing filter.
+    const topLevel = parse('composition "C" { object "A" { geometry: "cube" } }');
+    topLevel.objects[0].platformConstraint = only('not-a-platform');
+    expect(() => filterCompositionForPlatform(topLevel, 'visionos')).toThrow(
+      /Invalid @platform\(\) constraints[\s\S]*Unknown platform 'not-a-platform'/
+    );
   });
 });

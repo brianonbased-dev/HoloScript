@@ -55,7 +55,8 @@ function createSpanObject(
     parentSpanId,
 
     end(status?: 'ok' | 'error') {
-      span.endTime = Date.now();
+      // The first end() fixes when the span ended; a later call must not move it.
+      if (span.endTime === undefined) span.endTime = Date.now();
       if (status) {
         span.status = status;
       } else if (span.status === 'unset') {

@@ -37,6 +37,8 @@ export type AuditEventType =
   | 'token_revoked'
   | 'client_registered'
   | 'client_revoked'
+  | 'client_approved'
+  | 'client_suspended'
   | 'rate_limited'
   | 'session_created'
   | 'session_closed';
@@ -380,6 +382,8 @@ class AuditLogger {
       | 'token_revoked'
       | 'client_registered'
       | 'client_revoked'
+      | 'client_approved'
+      | 'client_suspended'
       | 'rate_limited';
     clientId?: string;
     agentId?: string;

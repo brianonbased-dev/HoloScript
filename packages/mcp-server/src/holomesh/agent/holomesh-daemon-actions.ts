@@ -339,6 +339,15 @@ export function createHoloMeshDaemonActions(
 
     try {
       const synced = await client.contributeKnowledge(batch);
+      if (synced !== batch.length) {
+        // Refused, out of reach, or only partly taken: which rows landed is unknown, so none is
+        // marked contributed and the batch is offered again next cycle. Marking them anyway meant a
+        // refused entry was never retried (task xzgt).
+        log(
+          `Contribution not accepted (${synced} of ${batch.length} synced); will retry next cycle`
+        );
+        return false;
+      }
       state.contributedIds.push(...batch.map((e) => e.id));
       state.totalContributions += batch.length;
       state.lastContributionAt = new Date().toISOString();
@@ -897,6 +906,13 @@ export function createHoloMeshDaemonActions(
       }));
 
       const synced = await client.contributeKnowledge(meshEntries);
+      if (synced !== meshEntries.length) {
+        // Same rule as mesh_contribute_knowledge: nothing is marked contributed unless all of it was.
+        log(
+          `Workspace sync not accepted (${synced} of ${meshEntries.length} synced); will retry next cycle`
+        );
+        return false;
+      }
       state.contributedIds.push(...meshEntries.map((e) => e.id));
       state.totalContributions += meshEntries.length;
       state.lastContributionAt = new Date().toISOString();

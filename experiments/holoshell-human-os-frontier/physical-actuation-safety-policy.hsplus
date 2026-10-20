@@ -58,7 +58,7 @@ composition "HoloShellPhysicalActuationSafetyPolicy" {
     replayRequired: true
   }
 
-  policy "ReadOnlyInventory" {
+  template "ReadOnlyInventory" {
     appliesTo: ["list_devices", "read_status", "show_owner_lane"]
     permissionEnvelope: "read_only"
     approvalRequired: false
@@ -66,7 +66,7 @@ composition "HoloShellPhysicalActuationSafetyPolicy" {
     receiptRequired: true
   }
 
-  policy "SimulationBeforeActuation" {
+  template "SimulationBeforeActuation" {
     appliesTo: ["trigger_haptic", "start_xr_session", "move_robot", "write_device_state"]
     simulationRequired: true
     deterministicPreviewRequired: true
@@ -74,7 +74,7 @@ composition "HoloShellPhysicalActuationSafetyPolicy" {
     receiptRequired: true
   }
 
-  policy "FreshnessBeforeActuation" {
+  template "FreshnessBeforeActuation" {
     appliesTo: ["move_robot", "mirror_avatar", "trigger_haptic", "capture_sensor"]
     sensorFreshRequired: true
     approvalFreshRequired: true
@@ -82,7 +82,7 @@ composition "HoloShellPhysicalActuationSafetyPolicy" {
     receiptRequired: true
   }
 
-  policy "PhysicalRollbackLimit" {
+  template "PhysicalRollbackLimit" {
     appliesTo: ["move_robot", "calibrate_device", "write_device_state", "firmware_update"]
     softwareReplayRequired: true
     physicalRollbackCannotBeAssumed: true
@@ -90,24 +90,24 @@ composition "HoloShellPhysicalActuationSafetyPolicy" {
     receiptRequired: true
   }
 
-  policy "SafeStopRequired" {
+  template "SafeStopRequired" {
     appliesTo: ["guarded_execute"]
     safeStopArmedRequired: true
     ownerHandoffRequiredOnFailure: true
     stopReceiptRequired: true
   }
 
-  role "HumanOwner" {
+  template "HumanOwner" {
     permissions: ["approve_scope", "approve_nonce", "press_safe_stop", "review_replay"]
     cannotDelegate: ["fresh_user_gesture", "break_glass_physical_actuation"]
   }
 
-  role "CodexHardwareAgent" {
+  template "CodexHardwareAgent" {
     permissions: ["run_read_only_probe", "write_receipt_pack", "validate_source", "file_task"]
     cannot: ["execute_physical_mutation_without_approval", "hide_raw_adapter_failure"]
   }
 
-  role "BrittneyOperatorNPC" {
+  template "BrittneyOperatorNPC" {
     permissions: ["explain_plan", "translate_receipts", "show_replay", "warn_rollback_limit"]
     cannot: ["approve_for_human", "conceal_stale_sensor", "invent_success"]
   }

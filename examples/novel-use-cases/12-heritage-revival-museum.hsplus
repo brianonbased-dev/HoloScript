@@ -99,7 +99,7 @@ composition "HeritageRevivalMuseum" {
   object "Keeper_A" using "HeritageKeeper" { position: [-13, 1, 2]; geometry: "humanoid"; color: "#8b4513"; state { keeper_id: "keeper_indigenous"; wing: "Indigenous Heritage" } }
   object "Keeper_B" using "HeritageKeeper" { position: [13, 1, 2]; geometry: "humanoid"; color: "#c9a84c"; state { keeper_id: "keeper_ancient"; wing: "Ancient Civilizations" } }
 
-  panel "HeritageDashboard" {
+  template "HeritageDashboard" {
     position: "top-right"
     text "Verified" { bind: "Verified: " + ProvenanceRegistry.state.total_verified; style: "info" }
     text "Restored" { bind: "Restored: " + RestorationManager.state.completed; color: "#c9a84c" }

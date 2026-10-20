@@ -46,6 +46,10 @@ import { generateWebGPUBrowserTemplate } from './renderer';
 import {
   HoloMCPCompiler,
   targetSovereignty,
+  targetTier,
+  describeTargetLimits,
+  TIER_MEANING,
+  TARGET_TIERS,
   DialectRegistry,
   registerBuiltinDialects,
   absorbFMU,
@@ -1044,11 +1048,30 @@ async function handleDomainBlock(
 
 export async function handleListExportTargets(_args: Record<string, unknown>): Promise<{
   targets: ExportTarget[];
+  toolOnlyTargets: Record<string, string>;
   categories: Record<string, ExportTarget[]>;
   sovereignty: Record<string, 'sovereign' | 'bridge' | 'mode'>;
+  tiers: Record<string, { tier: string; meaning: string; limits: string }>;
 }> {
   const dialectNames = DialectRegistry.names().filter((n) => !_INTERNAL_DIALECT_NAMES.has(n));
   const legacyNames = Array.from(_LEGACY_EXPORT_TARGETS).filter((n) => !dialectNames.includes(n));
+  // `targets` keeps its contract: every name in it is accepted by compile_holoscript
+  // (scripts/holo-ci/check-export-targets-sync.mjs enforces that). Export targets that compile
+  // only through their own compile_to_* tool go in `toolOnlyTargets`, naming the tool. Before
+  // this field, 19 such targets (quest among them) were invisible to anyone listing targets.
+  const toolNames = new Set(compilerTools.map((tool) => tool.name));
+  const toolOnlyTargets: Record<string, string> = {};
+  for (const t of Object.keys(TARGET_TIERS)) {
+    const tool = `compile_to_${t.replace(/-/g, '_')}`;
+    if (
+      !_INTERNAL_DIALECT_NAMES.has(t) &&
+      toolNames.has(tool) &&
+      !dialectNames.includes(t) &&
+      !legacyNames.includes(t as (typeof _LEGACY_EXPORT_TARGETS)[number])
+    ) {
+      toolOnlyTargets[t] = tool;
+    }
+  }
   const targets = [...dialectNames, ...legacyNames] as unknown as ExportTarget[];
 
   const categories: Record<string, ExportTarget[]> = {
@@ -1089,7 +1112,21 @@ export async function handleListExportTargets(_args: Record<string, unknown>): P
     sovereignty[t] = targetSovereignty(t);
   }
 
-  return { targets, categories, sovereignty };
+  // Honest readiness per target, earned from evidence a core unit test audits (target-tiers.ts).
+  // Dialect-only names outside the ExportTarget union say so instead of borrowing a tier.
+  const tiers: Record<string, { tier: string; meaning: string; limits: string }> = {};
+  for (const t of [...targets, ...Object.keys(toolOnlyTargets)]) {
+    const tier = targetTier(t);
+    tiers[t] = tier
+      ? { tier, meaning: TIER_MEANING[tier], limits: describeTargetLimits(t) }
+      : {
+          tier: 'unlabelled',
+          meaning: 'No evidence has been recorded for this target yet.',
+          limits: describeTargetLimits(t),
+        };
+  }
+
+  return { targets, toolOnlyTargets, categories, sovereignty, tiers };
 }
 
 export async function handleGetCircuitBreakerStatus(
@@ -2197,15 +2234,12 @@ export const compilerTools: Tool[] = [
   {
     name: 'verify_cross_perceiver',
     description:
-      'Falsification oracle for one .holo composition across structurally-different perceiver ' +
-      'compilers: webgpu (the human eye), agent-inference (the agent context), urdf (the robot ' +
-      'stack). Compiles the SAME source through each requested perceiver, independently ' +
-      're-derives world facts from each EMITTED ARTIFACT (never the shared input AST), and ' +
-      'diffs them into a PerceiverConsensusReceipt. Any perceiver that re-derives a different ' +
-      'fact flips the verdict to FALSIFIED with the concrete disagreement. ' +
-      'DESIGN CONSTRAINT — verdict FALSIFIED is LOAD-BEARING: consumers MUST treat FALSIFIED ' +
-      'as a hard failure (fail the pipeline / exit non-zero); it must NEVER be demoted to a ' +
-      'warning. Requires at least 2 perceivers (a single-perceiver receipt is circular).',
+      'Falsification oracle: compiles ONE .holo composition through structurally different ' +
+      'perceivers (webgpu = the human eye, agent-inference = the agent context, urdf = the ' +
+      'robot stack), re-derives world facts from each EMITTED artifact (never the shared AST), ' +
+      'and diffs them into a PerceiverConsensusReceipt. Any disagreement flips the verdict to ' +
+      'FALSIFIED. FALSIFIED is LOAD-BEARING: a hard failure (fail the pipeline, exit ' +
+      'non-zero) that must NEVER be demoted to a warning. Needs at least 2 perceivers.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -2238,16 +2272,12 @@ export const compilerTools: Tool[] = [
   {
     name: 'verify_verified_view',
     description:
-      'Provenance oracle for an agent-authored 2D surface (.holo): does every data-bound ' +
-      'element prove what it renders? Re-derives the @verified_view contract that ' +
-      'Native2DCompiler enforces and returns EVERY violation at once (compiling would throw ' +
-      'on the first). Violations: mismatched-node (@projects names a different path than the ' +
-      'binding — "says sessions, wired revenue"), missing-projects (bound element with no ' +
-      'receipt), hallucinated-root (projects a state node that does not exist), ' +
-      'projects-without-binding (a receipt on an unbound element), no-verified-view (binds ' +
-      'data without opting into the gate). DESIGN CONSTRAINT — `complete: false` is ' +
-      'LOAD-BEARING: a surface that cannot prove its data source must be treated as a hard ' +
-      'failure, never demoted to a warning. Unverifiable input is an error, never a false clean.',
+      'Provenance oracle for an agent-authored 2D .holo surface: does every data-bound element ' +
+      'prove what it renders? Re-derives the @verified_view contract Native2DCompiler enforces ' +
+      'and returns EVERY violation at once (mismatched-node, missing-projects, ' +
+      'hallucinated-root, projects-without-binding, no-verified-view). complete: false is ' +
+      'LOAD-BEARING: a hard failure, never demoted to a warning; unverifiable input is an ' +
+      'error, never a false clean.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -3166,7 +3196,12 @@ export const compilerTools: Tool[] = [
   {
     name: 'list_export_targets',
     description:
-      'List all available HoloScript export targets with categories (Game Engines, VR Platforms, Web, Robotics, etc.) and sovereignty classification per target (sovereign = native HoloScript runtime/renderer; bridge = emits to third-party engine; mode = compile orchestrator).',
+      'List every HoloScript export target with its category (game engines, VR, web, robotics, ' +
+      '...), sovereignty (sovereign = native HoloScript runtime; bridge = emits to a ' +
+      'third-party engine; mode = compile orchestrator) and an evidence-earned readiness tier ' +
+      '(reference = proven on a device; production = golden-pinned and accepted by the real ' +
+      'engine; preview = unit-tested only; experimental = untested; format-only = writes a ' +
+      'description, nothing to run), plus what each target still lacks.',
     inputSchema: {
       type: 'object',
       properties: {},

@@ -58,6 +58,7 @@ import {
   type EmergenceRecord,
   type PersistedContextDelta,
 } from './daemon-emergence-store.js';
+import { NO_CALLER_PRINCIPAL } from './security/tool-scopes';
 
 // ─── In-Memory Daemon Store ─────────────────────────────────────────────────
 //
@@ -67,6 +68,11 @@ import {
 
 const daemonStore = new Map<string, ConversationDaemon>();
 const profileStore = new Map<string, DaemonCustomizationProfile>();
+
+/** Whether a daemon id is already taken — the Map itself stays unexported. */
+export function _daemonExistsForTest(daemonId: string): boolean {
+  return daemonStore.has(daemonId);
+}
 
 // ─── BrittneyRehydrationChannel Implementation ────────────────────────────────
 //
@@ -615,6 +621,12 @@ export const daemonLifecycleTools: Tool[] = [
           description:
             'add: append new rituals. replace: overwrite all rituals. remove: remove matching rituals by name.',
         },
+        callerId: {
+          type: 'string',
+          description:
+            'Authenticated caller identity. Must equal the daemon ownerId or the call is refused. ' +
+            'Over an authenticated transport it defaults to, and must be bound to, the principal.',
+        },
         rituals: {
           type: 'array',
           items: {
@@ -786,7 +798,8 @@ export const daemonLifecycleTools: Tool[] = [
         outPath: {
           type: 'string',
           description:
-            'Destination JSONL path. Default: <data-dir>/emergence/emergence-corpus.normalized.jsonl.',
+            'Destination JSONL path. Default: <data-dir>/emergence/emergence-corpus.normalized.jsonl. ' +
+            'Honored only for a local caller (stdio); an authenticated transport principal that names one is refused.',
         },
       },
     },
@@ -813,39 +826,101 @@ export interface DaemonCallerBinding {
   signerMapsToCaller?: (signer: string, callerId: string) => boolean;
 }
 
-/** Tools whose `callerId` gates memory or a write and therefore must be bound. */
+/**
+ * Tools whose `callerId` gates memory or a write and therefore must be bound.
+ * holo_update_daemon_ritual joined the list after a custody review found it
+ * rewrote any daimōn's rituals for any authenticated caller (task_1790214096204_56rj).
+ */
 const CALLER_BOUND_TOOLS = new Set([
   'holo_get_daemon',
   'holo_list_daemons',
   'holo_daemon_emergence_check',
   'holo_daemon_turn',
+  'holo_update_daemon_ritual',
 ]);
 
 /**
- * Bind `args.callerId` to the verified principal. With no principal (stdio,
- * unsigned) the callerId stays self-declared — local trust, exactly how
- * holo_daemon_turn has always treated it. With a principal: a missing callerId
- * becomes the principal; a callerId equal to it, or mapped to it by
- * `signerMapsToCaller`, passes; anything else is refused before dispatch.
+ * Tools that write into the soul named by `ownerId`: that soul must be the
+ * principal. holo_observe_soul took any ownerId from any authenticated caller,
+ * so a stranger could plant "remembered context" that later reached the model
+ * as real history and landed in the training corpus (task_1790214096204_56rj).
+ * holo_create_daemon joined the list for the same reason plus a squat: the
+ * reserved emergent id `daemon-<soul>` is granted to whoever's ownerId matches
+ * that soul first, "daemons are never overwritten", and creation took ownerId
+ * unchecked — an authenticated stranger could pre-create a victim soul's own
+ * emergent daemon and seed its profile before the real owner ever does.
+ * A service that must act for many souls needs its own binding rule; this one
+ * deliberately has no exception for it.
+ */
+const OWNER_BOUND_TOOLS = new Set(['holo_observe_soul', 'holo_create_daemon']);
+
+/**
+ * Tools that create, write into or speak for a daimōn. A hosted call with no caller carries
+ * NO_CALLER_PRINCIPAL, and every such call carries the SAME one, so binding to it made
+ * "nobody" a shared owner: claude3's review of #474 (2026-10-04) watched one caller create a
+ * daimōn owned by holoscript-mcp:no-caller and a different caller rewrite it. Nobody may use
+ * these at all; reads (holo_get_daemon, holo_list_daemons) still bind as before.
+ */
+const NO_CALLER_REFUSED_TOOLS = new Set([
+  'holo_create_daemon',
+  'holo_observe_soul',
+  'holo_update_daemon_ritual',
+  'holo_daemon_turn',
+  'holo_daemon_emergence_check',
+]);
+
+/** The transport's verified principal, or null when there is none (stdio, unsigned, stdio-local). */
+function verifiedPrincipal(binding?: DaemonCallerBinding | null): string | null {
+  const signer = binding?.signer;
+  if (typeof signer !== 'string' || signer === '' || signer === 'stdio-local') return null;
+  return signer;
+}
+
+/** Throws unless `claimed` is the principal or `signerMapsToCaller` maps the principal to it. */
+function requireBoundToPrincipal(
+  name: string,
+  field: 'callerId' | 'ownerId',
+  claimed: string,
+  signer: string,
+  binding?: DaemonCallerBinding | null
+): void {
+  if (claimed === signer) return;
+  if (binding?.signerMapsToCaller?.(signer, claimed)) return;
+  throw new UnauthorizedDaemonAccessError(
+    `${field} "${claimed}" is not bound to the authenticated principal for ${name}`
+  );
+}
+
+/**
+ * Bind `args.callerId` (and, for the soul writers, `args.ownerId`) to the
+ * verified principal. With no principal (stdio, unsigned) both stay
+ * self-declared — local trust, exactly how holo_daemon_turn has always treated
+ * it. With a principal: a missing callerId becomes the principal; a callerId
+ * (or ownerId) equal to it, or mapped to it by `signerMapsToCaller`, passes;
+ * anything else is refused before dispatch. A missing ownerId is left for the
+ * handler to refuse ("ownerId is required").
  */
 function bindCallerToSigner(
   name: string,
   args: Record<string, unknown>,
   binding?: DaemonCallerBinding | null
 ): void {
-  if (!CALLER_BOUND_TOOLS.has(name)) return;
-  const signer = binding?.signer;
-  if (typeof signer !== 'string' || signer === '' || signer === 'stdio-local') return;
-  const claimed = typeof args.callerId === 'string' ? args.callerId : '';
-  if (claimed === '') {
-    args.callerId = signer;
-    return;
+  const signer = verifiedPrincipal(binding);
+  if (signer === null) return;
+  if (signer === NO_CALLER_PRINCIPAL && NO_CALLER_REFUSED_TOOLS.has(name)) {
+    throw new UnauthorizedDaemonAccessError(
+      `${name} needs a caller: sign in, or send your own API key`
+    );
   }
-  if (claimed === signer) return;
-  if (binding?.signerMapsToCaller?.(signer, claimed)) return;
-  throw new UnauthorizedDaemonAccessError(
-    `callerId "${claimed}" is not bound to the authenticated principal for ${name}`
-  );
+  if (CALLER_BOUND_TOOLS.has(name)) {
+    const claimed = typeof args.callerId === 'string' ? args.callerId : '';
+    if (claimed === '') args.callerId = signer;
+    else requireBoundToPrincipal(name, 'callerId', claimed, signer, binding);
+  }
+  if (OWNER_BOUND_TOOLS.has(name)) {
+    const claimed = typeof args.ownerId === 'string' ? args.ownerId : '';
+    if (claimed !== '') requireBoundToPrincipal(name, 'ownerId', claimed, signer, binding);
+  }
 }
 
 export async function handleDaemonLifecycleTool(
@@ -870,7 +945,7 @@ export async function handleDaemonLifecycleTool(
     case 'holo_list_daemons':
       return handleListDaemons(args);
     case 'holo_export_emergence_corpus':
-      return handleExportEmergenceCorpus(args);
+      return handleExportEmergenceCorpus(args, binding);
     default:
       return null;
   }
@@ -1060,6 +1135,17 @@ function handleUpdateDaemonRitual(args: Record<string, unknown>): {
   const profile = profileStore.get(profileId);
   if (!profile) {
     throw new Error(`holo_update_daemon_ritual: profile "${profileId}" not found`);
+  }
+
+  // Rituals are part of who the daimōn is, so only its owner rewrites them. Over a transport
+  // bindCallerToSigner has already stamped callerId with the verified principal; a local caller
+  // (stdio) that names no callerId keeps local trust, one that names the wrong owner is refused.
+  const callerId = typeof args.callerId === 'string' ? args.callerId : '';
+  if (callerId !== '') {
+    assertCallerOwnsDaemon(
+      daemonStore.get(profileId) ?? customizationProfileToDaemon(profile),
+      callerId
+    );
   }
 
   // Parse rituals
@@ -1409,13 +1495,26 @@ function handleListDaemons(args: Record<string, unknown>): {
 
 // ─── EXPORT EMERGENCE CORPUS (D.053 training-corpus dump) ─────────────────────
 
-function handleExportEmergenceCorpus(args: Record<string, unknown>): {
+function handleExportEmergenceCorpus(
+  args: Record<string, unknown>,
+  binding?: DaemonCallerBinding | null
+): {
   path: string;
   rows: number;
   bytes: number;
   stats: ReturnType<typeof emergenceCorpusStats>;
 } {
   const outPath = typeof args.outPath === 'string' ? args.outPath : undefined;
+  // exportCorpusJsonl does fs.writeFileSync(outPath, …) with no confinement, and the argument
+  // gate only refuses a double `../` — an absolute path sails through. A caller the server
+  // authenticated over a transport may therefore not choose where the server writes; only a local
+  // caller (stdio, unsigned, the stdio-local bridge) keeps that, as it always had.
+  if (outPath !== undefined && outPath !== '' && verifiedPrincipal(binding) !== null) {
+    throw new UnauthorizedDaemonAccessError(
+      'holo_export_emergence_corpus: outPath is not accepted from an authenticated principal; ' +
+        'omit it to export to the default path under the emergence data dir'
+    );
+  }
   const result = exportCorpusJsonl(outPath);
   return { ...result, stats: emergenceCorpusStats() };
 }

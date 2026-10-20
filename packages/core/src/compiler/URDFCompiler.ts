@@ -73,7 +73,21 @@ export interface URDFCompilerOptions {
   includeGazeboPlugins?: boolean;
   /** Include ros2_control hardware interface tags */
   includeROS2Control?: boolean;
-  /** Gazebo version target: 'classic' or 'harmonic' */
+  /**
+   * Gazebo version target: 'classic' (default) or 'harmonic'.
+   *
+   * 'harmonic' targets Gazebo Harmonic (gz-sim 8, the ROS 2 Jazzy pairing) and changes
+   * only the Gazebo tags (so it has no effect unless includeGazeboPlugins is on):
+   *  - the ros2_control system plugin is named gz_ros2_control::GazeboSimROS2ControlPlugin;
+   *  - link colours are explicit <visual><material> ambient/diffuse/specular values
+   *    instead of Gazebo/<Color> OGRE material scripts, which gz-sim does not support;
+   *  - sensors carry <topic>/<gz_frame_id> and no gazebo_ros plugin: gz-sim world systems
+   *    run them and ros_gz_bridge carries them to ROS 2 (each sensor gets a comment with
+   *    the bridge command, and the Gazebo section lists the world systems it needs);
+   *  - lidar is gpu_lidar with <lidar>, GPS is navsat, depth camera is depth_camera, IMU
+   *    noise is per axis, and force_torque is attached to its link's parent joint.
+   * See emitGazeboSensorHarmonic for the upstream sources.
+   */
   gazeboVersion?: 'classic' | 'harmonic';
   /** Gazebo physics engine (ode, bullet, dart, simbody) */
   gazeboPhysicsEngine?: 'ode' | 'bullet' | 'dart' | 'simbody';
@@ -1555,7 +1569,11 @@ export class URDFCompiler extends CompilerBase {
 
   /** Emit Gazebo plugin tags */
   private emitGazeboPlugins(composition: HoloComposition): void {
+    const harmonic = this.options.gazeboVersion === 'harmonic';
     this.emit('<!-- Gazebo Plugins -->');
+    if (harmonic) {
+      this.emitGzSimWorldSystemsNote();
+    }
 
     // Global Gazebo settings
     this.emit('<gazebo>');
@@ -1568,7 +1586,14 @@ export class URDFCompiler extends CompilerBase {
 
     // ros2_control Gazebo plugin (if we have actuated joints)
     if (this.options.includeROS2Control && this.ros2Controls.length > 0) {
-      this.emit('<plugin filename="gz_ros2_control-system" name="gz_ros2_control">');
+      // Harmonic: the class gz_ros2_control registers (GZ_ADD_PLUGIN in
+      // gz_ros2_control/src/gz_ros2_control_plugin.cpp, jazzy branch) and the name its
+      // jazzy demos use. The 'classic' line is kept byte-for-byte as it always was.
+      this.emit(
+        harmonic
+          ? '<plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">'
+          : '<plugin filename="gz_ros2_control-system" name="gz_ros2_control">'
+      );
       this.indentLevel++;
       this.emit(
         '<parameters>$(find ' + this.options.packageName + ')/config/controllers.yaml</parameters>'
@@ -1595,7 +1620,11 @@ export class URDFCompiler extends CompilerBase {
         // Gazebo material color
         if (link.visual?.color) {
           const rgba = this.parseColor(link.visual.color);
-          this.emit(`<material>Gazebo/${this.getGazeboColorName(rgba)}</material>`);
+          if (harmonic) {
+            this.emitGzSimVisualMaterial(rgba);
+          } else {
+            this.emit(`<material>Gazebo/${this.getGazeboColorName(rgba)}</material>`);
+          }
         }
 
         // Friction coefficients for collision links
@@ -1629,8 +1658,142 @@ export class URDFCompiler extends CompilerBase {
     return 'DarkGrey';
   }
 
+  /**
+   * Gazebo Harmonic per-link colour: explicit SDF material values, the form the
+   * gz_ros2_control jazzy demos use (test_cart_position.xacro.urdf). gz-sim does not
+   * support OGRE material scripts; for a Gazebo/<Color> name it warns and substitutes an
+   * internal table (gz-sim8 src/SdfEntityCreator.cc), which would also override the exact
+   * colour with the nearest classic name.
+   */
+  private emitGzSimVisualMaterial(rgba: { r: number; g: number; b: number; a: number }): void {
+    const value = `${rgba.r} ${rgba.g} ${rgba.b} ${rgba.a}`;
+    this.emit('<visual>');
+    this.indentLevel++;
+    this.emit('<material>');
+    this.indentLevel++;
+    this.emit(`<ambient>${value}</ambient>`);
+    this.emit(`<diffuse>${value}</diffuse>`);
+    this.emit(`<specular>${value}</specular>`);
+    this.indentLevel--;
+    this.emit('</material>');
+    this.indentLevel--;
+    this.emit('</visual>');
+  }
+
+  /**
+   * Gazebo Harmonic runs sensors from gz-sim systems that belong in the world SDF (the
+   * classic-to-Harmonic migration guide adds them to the world; SDFCompiler's harmonic
+   * world loads several). Emitting them here as well would load them twice, so list the
+   * ones this robot's sensors need instead (filename and class name as in the gz-sim8
+   * example worlds).
+   */
+  private emitGzSimWorldSystemsNote(): void {
+    if (this.sensors.length === 0) return;
+    const needed: string[] = [];
+    const add = (line: string) => {
+      if (!needed.includes(line)) needed.push(line);
+    };
+    for (const sensor of this.sensors) {
+      switch (sensor.type) {
+        case 'camera':
+        case 'depth_camera':
+        case 'lidar':
+        case 'ray':
+          add('gz-sim-sensors-system (gz::sim::systems::Sensors, render_engine ogre2)');
+          break;
+        case 'imu':
+          add('gz-sim-imu-system (gz::sim::systems::Imu)');
+          break;
+        case 'contact':
+          add('gz-sim-contact-system (gz::sim::systems::Contact)');
+          break;
+        case 'force_torque':
+          // Only when the sensor is emitted (it needs a parent joint, see below).
+          if (this.joints.some((j) => j.child === sensor.parentLink)) {
+            add('gz-sim-forcetorque-system (gz::sim::systems::ForceTorque)');
+          }
+          break;
+        case 'gps':
+          add(
+            'gz-sim-navsat-system (gz::sim::systems::NavSat), plus <spherical_coordinates> in the world'
+          );
+          break;
+      }
+    }
+    // e.g. a force-torque sensor on the root link is skipped below, so nothing is needed.
+    if (needed.length === 0) return;
+    this.emit(
+      '<!-- Gazebo Harmonic: the world SDF must load these gz-sim systems for the sensors below: -->'
+    );
+    for (const line of needed) {
+      this.emit(`<!--   ${line} -->`);
+    }
+  }
+
+  /** Make text safe inside an XML comment ("--" is not allowed there). */
+  private xmlCommentText(text: string): string {
+    return text.replace(/-{2,}/g, (run) => run.split('').join(' '));
+  }
+
+  /** <camera> body shared by Classic and Harmonic (same SDF elements in both). */
+  private emitCameraBody(camera: NonNullable<URDFSensor['camera']>): void {
+    this.emit('<camera>');
+    this.indentLevel++;
+    this.emit(`<horizontal_fov>${camera.horizontalFov}</horizontal_fov>`);
+    this.emit('<image>');
+    this.indentLevel++;
+    this.emit(`<width>${camera.imageWidth}</width>`);
+    this.emit(`<height>${camera.imageHeight}</height>`);
+    this.emit(`<format>${camera.format || 'R8G8B8'}</format>`);
+    this.indentLevel--;
+    this.emit('</image>');
+    this.emit('<clip>');
+    this.indentLevel++;
+    this.emit(`<near>${camera.clipNear}</near>`);
+    this.emit(`<far>${camera.clipFar}</far>`);
+    this.indentLevel--;
+    this.emit('</clip>');
+    this.indentLevel--;
+    this.emit('</camera>');
+  }
+
+  /**
+   * Lidar scan/range body. Classic wraps it in <ray>; Harmonic in <lidar> (same
+   * children, per the Gazebo classic-to-Harmonic ROS 2 migration guide).
+   */
+  private emitLidarBody(lidar: NonNullable<URDFSensor['lidar']>, wrapper: 'ray' | 'lidar'): void {
+    this.emit(`<${wrapper}>`);
+    this.indentLevel++;
+    this.emit('<scan>');
+    this.indentLevel++;
+    this.emit('<horizontal>');
+    this.indentLevel++;
+    this.emit(`<samples>${lidar.samples}</samples>`);
+    this.emit(`<resolution>${lidar.resolution}</resolution>`);
+    this.emit(`<min_angle>${lidar.minAngle}</min_angle>`);
+    this.emit(`<max_angle>${lidar.maxAngle}</max_angle>`);
+    this.indentLevel--;
+    this.emit('</horizontal>');
+    this.indentLevel--;
+    this.emit('</scan>');
+    this.emit('<range>');
+    this.indentLevel++;
+    this.emit(`<min>${lidar.minRange}</min>`);
+    this.emit(`<max>${lidar.maxRange}</max>`);
+    this.emit('<resolution>0.01</resolution>');
+    this.indentLevel--;
+    this.emit('</range>');
+    this.indentLevel--;
+    this.emit(`</${wrapper}>`);
+  }
+
   /** Emit Gazebo sensor tag for a specific sensor */
   private emitGazeboSensor(sensor: URDFSensor): void {
+    if (this.options.gazeboVersion === 'harmonic') {
+      this.emitGazeboSensorHarmonic(sensor);
+      return;
+    }
+
     this.emit(`<gazebo reference="${sensor.parentLink}">`);
     this.indentLevel++;
 
@@ -1645,24 +1808,7 @@ export class URDFCompiler extends CompilerBase {
 
     // Camera sensor
     if ((sensor.type === 'camera' || sensor.type === 'depth_camera') && sensor.camera) {
-      this.emit('<camera>');
-      this.indentLevel++;
-      this.emit(`<horizontal_fov>${sensor.camera.horizontalFov}</horizontal_fov>`);
-      this.emit('<image>');
-      this.indentLevel++;
-      this.emit(`<width>${sensor.camera.imageWidth}</width>`);
-      this.emit(`<height>${sensor.camera.imageHeight}</height>`);
-      this.emit(`<format>${sensor.camera.format || 'R8G8B8'}</format>`);
-      this.indentLevel--;
-      this.emit('</image>');
-      this.emit('<clip>');
-      this.indentLevel++;
-      this.emit(`<near>${sensor.camera.clipNear}</near>`);
-      this.emit(`<far>${sensor.camera.clipFar}</far>`);
-      this.indentLevel--;
-      this.emit('</clip>');
-      this.indentLevel--;
-      this.emit('</camera>');
+      this.emitCameraBody(sensor.camera);
 
       // ROS 2 plugin
       this.emit('<plugin name="camera_controller" filename="libgazebo_ros_camera.so">');
@@ -1674,29 +1820,7 @@ export class URDFCompiler extends CompilerBase {
 
     // Lidar/Ray sensor
     if ((sensor.type === 'lidar' || sensor.type === 'ray') && sensor.lidar) {
-      this.emit('<ray>');
-      this.indentLevel++;
-      this.emit('<scan>');
-      this.indentLevel++;
-      this.emit('<horizontal>');
-      this.indentLevel++;
-      this.emit(`<samples>${sensor.lidar.samples}</samples>`);
-      this.emit(`<resolution>${sensor.lidar.resolution}</resolution>`);
-      this.emit(`<min_angle>${sensor.lidar.minAngle}</min_angle>`);
-      this.emit(`<max_angle>${sensor.lidar.maxAngle}</max_angle>`);
-      this.indentLevel--;
-      this.emit('</horizontal>');
-      this.indentLevel--;
-      this.emit('</scan>');
-      this.emit('<range>');
-      this.indentLevel++;
-      this.emit(`<min>${sensor.lidar.minRange}</min>`);
-      this.emit(`<max>${sensor.lidar.maxRange}</max>`);
-      this.emit('<resolution>0.01</resolution>');
-      this.indentLevel--;
-      this.emit('</range>');
-      this.indentLevel--;
-      this.emit('</ray>');
+      this.emitLidarBody(sensor.lidar, 'ray');
 
       // ROS 2 plugin
       this.emit('<plugin name="laser_controller" filename="libgazebo_ros_ray_sensor.so">');
@@ -1772,6 +1896,187 @@ export class URDFCompiler extends CompilerBase {
     this.indentLevel--;
     this.emit('</gazebo>');
     this.emitBlank();
+  }
+
+  /**
+   * Emit one sensor for Gazebo Harmonic (gz-sim 8, ROS 2 Jazzy).
+   *
+   * Harmonic has no URDF-level ROS sensor plugins (the classic libgazebo_ros_*.so set):
+   * gz-sim world systems run the sensor, it publishes on gz-transport at <topic>, and
+   * ros_gz_bridge carries it to ROS 2. Each sensor therefore gets <topic> and
+   * <gz_frame_id> instead of a plugin, plus a comment with the bridge command.
+   * Upstream sources (checked 2026-10-07):
+   *  - https://gazebosim.org/docs/harmonic/migrating_gazebo_classic_ros2_packages/
+   *    (ray -> gpu_lidar with <lidar>; <topic>, <gz_frame_id>; Sensors/Imu world systems)
+   *  - https://github.com/gazebosim/sdformat/blob/sdf14/sdf/1.11/sensor.sdf
+   *    ("gps" is the legacy spelling of "navsat"; "depth_camera" is a sensor type)
+   *  - https://github.com/gazebosim/sdformat/blob/sdf14/sdf/1.11/imu.sdf (noise is per axis)
+   *  - https://github.com/gazebosim/gz-sensors/blob/gz-sensors8/src/Sensor.cc (reads gz_frame_id)
+   *  - https://github.com/gazebosim/gz-sensors/blob/gz-sensors8/src/CameraSensor.cc
+   *    (camera_info defaults to the image topic's parent + /camera_info)
+   *  - https://github.com/gazebosim/gz-sim/blob/gz-sim8/src/systems/contact/Contact.cc
+   *    (contact topic is read from inside <contact>)
+   *  - https://github.com/gazebosim/gz-sim/blob/gz-sim8/src/systems/force_torque/ForceTorque.cc
+   *    (the sensor's parent entity is used as the joint)
+   *  - https://github.com/gazebosim/ros_gz/blob/jazzy/ros_gz_bridge/README.md (type pairs)
+   *  - https://gazebosim.org/docs/harmonic/ros2_integration/ ("[" bridges Gazebo to ROS)
+   */
+  private emitGazeboSensorHarmonic(sensor: URDFSensor): void {
+    const sensorName = this.escapeStringValue(sensor.name as string, 'TypeScript');
+    const topic = sensor.topicName ?? `/${sensor.name}`;
+    const frame = sensor.frameName ?? sensor.name;
+
+    // A force-torque sensor measures a joint, so it goes on the joint whose child is
+    // this link. A fixed joint would be merged away by sdformat's fixed-joint lumping,
+    // so it is preserved explicitly.
+    let reference = sensor.parentLink;
+    let preserveFixedJoint = false;
+    if (sensor.type === 'force_torque') {
+      const joint = this.joints.find((j) => j.child === sensor.parentLink);
+      if (!joint) {
+        this.emit(
+          `<!-- ${this.xmlCommentText(`Gazebo Harmonic: force_torque sensor "${sensor.name}" needs a parent joint, and link "${sensor.parentLink}" has none, so it is not emitted`)} -->`
+        );
+        this.emitBlank();
+        return;
+      }
+      reference = this.escapeStringValue(joint.name as string, 'TypeScript');
+      preserveFixedJoint = joint.type === 'fixed';
+    }
+
+    const bridge = this.gzBridgeArguments(sensor.type, topic);
+    if (bridge) {
+      this.emit(
+        `<!-- ${this.xmlCommentText(`Gazebo Harmonic publishes this sensor on gz-transport; bridge it to ROS 2 with: ros2 run ros_gz_bridge parameter_bridge ${bridge}`)} -->`
+      );
+    }
+    this.emit(`<gazebo reference="${reference}">`);
+    this.indentLevel++;
+    if (preserveFixedJoint) {
+      this.emit('<preserveFixedJoint>true</preserveFixedJoint>');
+    }
+
+    this.emit(`<sensor name="${sensorName}" type="${this.getGzSimSensorType(sensor.type)}">`);
+    this.indentLevel++;
+
+    this.emit('<always_on>true</always_on>');
+    this.emit(`<update_rate>${sensor.updateRate ?? 30}</update_rate>`);
+    this.emit('<visualize>true</visualize>');
+    // The Contact system reads its topic from inside <contact> and has no frame.
+    if (sensor.type !== 'contact') {
+      this.emit(`<topic>${this.escapeXml(topic)}</topic>`);
+      this.emit(`<gz_frame_id>${this.escapeXml(frame)}</gz_frame_id>`);
+    }
+
+    switch (sensor.type) {
+      case 'camera':
+      case 'depth_camera':
+        if (sensor.camera) this.emitCameraBody(sensor.camera);
+        break;
+      case 'lidar':
+      case 'ray':
+        if (sensor.lidar) this.emitLidarBody(sensor.lidar, 'lidar');
+        break;
+      case 'imu': {
+        this.emit('<imu>');
+        this.indentLevel++;
+        const stddev = sensor.imu?.gaussianNoise;
+        if (stddev) {
+          for (const group of ['angular_velocity', 'linear_acceleration']) {
+            this.emit(`<${group}>`);
+            this.indentLevel++;
+            for (const axis of ['x', 'y', 'z']) {
+              this.emit(
+                `<${axis}><noise type="gaussian"><mean>0</mean><stddev>${stddev}</stddev></noise></${axis}>`
+              );
+            }
+            this.indentLevel--;
+            this.emit(`</${group}>`);
+          }
+        }
+        this.indentLevel--;
+        this.emit('</imu>');
+        break;
+      }
+      case 'force_torque':
+        this.emit('<force_torque>');
+        this.indentLevel++;
+        this.emit('<measure_direction>child_to_parent</measure_direction>');
+        this.indentLevel--;
+        this.emit('</force_torque>');
+        break;
+      case 'contact':
+        this.emit('<contact>');
+        this.indentLevel++;
+        this.emit(`<collision>${sensor.parentLink}_collision</collision>`);
+        this.emit(`<topic>${this.escapeXml(topic)}</topic>`);
+        this.indentLevel--;
+        this.emit('</contact>');
+        break;
+      case 'gps':
+        // navsat needs no child element; position comes from the world's
+        // <spherical_coordinates> (see the world-systems note above).
+        break;
+    }
+
+    this.indentLevel--;
+    this.emit('</sensor>');
+
+    this.indentLevel--;
+    this.emit('</gazebo>');
+    this.emitBlank();
+  }
+
+  /** Sensor type names for gz-sim (sdformat 14). */
+  private getGzSimSensorType(type: URDFSensor['type']): string {
+    switch (type) {
+      case 'depth_camera':
+        return 'depth_camera';
+      case 'lidar':
+      case 'ray':
+        return 'gpu_lidar';
+      case 'gps':
+        return 'navsat';
+      default:
+        return this.getGazeboSensorType(type);
+    }
+  }
+
+  /**
+   * ros_gz_bridge parameter_bridge arguments that carry a Harmonic sensor to ROS 2.
+   * "[" means Gazebo to ROS only. Type pairs are from the ros_gz_bridge README (jazzy).
+   */
+  private gzBridgeArguments(type: URDFSensor['type'], topic: string): string | undefined {
+    switch (type) {
+      case 'camera':
+      case 'depth_camera': {
+        // Same default as gz-sensors CameraSensor::AdvertiseInfo.
+        const parts = topic.split('/');
+        parts.pop();
+        const info =
+          parts
+            .filter((p) => p.length > 0)
+            .map((p) => `/${p}`)
+            .join('') + '/camera_info';
+        return (
+          `${topic}@sensor_msgs/msg/Image[gz.msgs.Image ` +
+          `${info}@sensor_msgs/msg/CameraInfo[gz.msgs.CameraInfo`
+        );
+      }
+      case 'lidar':
+      case 'ray':
+        return `${topic}@sensor_msgs/msg/LaserScan[gz.msgs.LaserScan`;
+      case 'imu':
+        return `${topic}@sensor_msgs/msg/Imu[gz.msgs.IMU`;
+      case 'contact':
+        return `${topic}@ros_gz_interfaces/msg/Contacts[gz.msgs.Contacts`;
+      case 'gps':
+        return `${topic}@sensor_msgs/msg/NavSatFix[gz.msgs.NavSat`;
+      case 'force_torque':
+        return `${topic}@geometry_msgs/msg/WrenchStamped[gz.msgs.Wrench`;
+      default:
+        return undefined;
+    }
   }
 
   /** Map sensor type to Gazebo sensor type string */

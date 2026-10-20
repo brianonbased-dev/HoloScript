@@ -97,7 +97,7 @@ composition "HoloShellSlowComputerClinicPolicy" {
     ]
   }
 
-  state_machine "ClinicWorkflow" {
+  template "ClinicWorkflow" {
     initial: "idle"
     states: [
       "idle",
@@ -122,22 +122,22 @@ composition "HoloShellSlowComputerClinicPolicy" {
     transition "block" { from: "*", to: "blocked" }
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["process_scan", "hardware_audit", "receipt_hashing", "source_validation"]
   }
 
-  role "OwnerLaneAgent" {
+  template "OwnerLaneAgent" {
     laneId: "owner-lane"
     owns: ["extend_run", "close_run", "justify_stale_process", "acknowledge_handoff"]
   }
 
-  role "BrowserWitnessAgent" {
+  template "BrowserWitnessAgent" {
     laneId: "browser-witness"
     owns: ["visible_browser_health", "webgpu_webxr_probe", "screenshot_receipt"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["clinic_room", "brittney_explanation", "quest_or_lesson_surface"]
   }

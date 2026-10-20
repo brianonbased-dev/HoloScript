@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { runProtocolCycle } from '../protocol-agent';
 import { defineAgent } from '../define-agent';
 import { defineTeam } from '../define-team';
 import { KnowledgeStore } from '../knowledge/knowledge-store';
@@ -446,6 +447,18 @@ describe('Goal Synthesis (empty board)', () => {
     // The synthesized task should be completed and removed from the board
     expect(team.openTasks).toHaveLength(0);
     expect(team.completedCount).toBe(1);
+  });
+
+  it('asks the protocol cycle to skip GROW and EVOLVE, whose answers the team drops', async () => {
+    const cycle = vi.mocked(runProtocolCycle);
+    cycle.mockClear();
+    const team = makeTeam();
+    await team.addTasks([
+      { title: 'Fix auth bug', description: 'JWT', priority: 1, role: 'coder' },
+    ]);
+    await team.runCycle();
+    expect(cycle).toHaveBeenCalledTimes(1);
+    expect(cycle.mock.calls[0][3]).toEqual({ skipGrowAndEvolve: true });
   });
 
   it('claims existing tasks normally when board has tasks', async () => {

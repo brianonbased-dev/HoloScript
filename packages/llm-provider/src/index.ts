@@ -97,8 +97,12 @@ export {
   messageContentAsString,
 } from './types';
 
-// Base adapter
-export { BaseLLMAdapter } from './base-adapter';
+// Base adapter, and the prompt it sends when asked to write HoloScript
+export {
+  BaseLLMAdapter,
+  HOLOSCRIPT_SYSTEM_PROMPT,
+  HOLOSCRIPT_EXAMPLE_PROGRAM,
+} from './base-adapter';
 
 // Provider adapters
 export {
@@ -179,7 +183,12 @@ export {
 } from './adapters/bitnet';
 export type { BitNetModel } from './adapters/bitnet';
 
-export { LocalLLMAdapter, LOCAL_LLM_MODELS, LOCAL_LLM_CAPABILITIES } from './adapters/local-llm';
+export {
+  LocalLLMAdapter,
+  LOCAL_LLM_MODELS,
+  LOCAL_LLM_CAPABILITIES,
+  resolveLocalNumCtx,
+} from './adapters/local-llm';
 export type { LocalLLMModel } from './adapters/local-llm';
 
 export {

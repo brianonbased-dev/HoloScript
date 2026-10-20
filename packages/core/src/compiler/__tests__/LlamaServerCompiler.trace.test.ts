@@ -239,6 +239,22 @@ interface ProxyHarness {
   stop: () => Promise<void>;
 }
 
+async function canListenOnIPv6Loopback(): Promise<boolean> {
+  const server = createServer();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject);
+      server.listen(0, '::1', () => resolve());
+    });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    server.close();
+  }
+}
+const hasIPv6Loopback = await canListenOnIPv6Loopback();
+
 function lanIPv4(): string {
   for (const entries of Object.values(networkInterfaces())) {
     for (const entry of entries ?? []) {
@@ -496,29 +512,40 @@ describe('generated holo-inference-proxy bearer auth', () => {
     try {
       const v4 = await startProxy({ bindHost: '0.0.0.0', mode: 'enforce', keyName: PROXY_KEY_NAME });
       running.push(v4);
-      const v6 = await startProxy({ bindHost: '::', mode: 'enforce', keyName: PROXY_KEY_NAME });
-      running.push(v6);
       const loop = await proxyCall('127.0.0.1', v4.port, '/v1/models');
-      const mapped = await proxyCall('127.0.0.1', v6.port, '/v1/models');
-      const v6Loop = await proxyCall('::1', v6.port, '/v1/models');
       const denied = await proxyCall(lan, v4.port, '/v1/models');
-      const deniedV6 = await proxyCall(lan, v6.port, '/v1/models');
       expect(loop.status).toBe(200);
-      expect(mapped.status).toBe(200);
-      expect(v6Loop.status).toBe(200);
       expect(denied.status).toBe(401);
-      expect(deniedV6.status).toBe(401);
       expect(JSON.parse(denied.body)).toEqual({ error: 'unauthorized' });
       expect(v4.hits().some((hit) => hit.url.startsWith('/v1/models'))).toBe(true);
       const v4Logs = await waitUntil(
         () => v4.logs(),
         `auth result=missing ip=${lan} method=GET path=/v1/models`
       );
-      const v6Logs = await waitUntil(() => v6.logs(), 'auth result=missing ip=::ffff:');
       expect(v4Logs).not.toContain('ip=127.0.0.1');
+      assertNoSecret(v4Logs, loop.body, denied.body);
+    } finally {
+      for (const proxy of running) await proxy.stop();
+    }
+  });
+
+  // A host with no IPv6 stack refuses listen('::') with EAFNOSUPPORT, and some
+  // containers accept '::' but have no ::1. That is the host, not the proxy.
+  it.skipIf(!hasIPv6Loopback)('allows loopback on a dual-stack :: bind, and still checks a LAN caller', async () => {
+    const running: ProxyHarness[] = [];
+    try {
+      const v6 = await startProxy({ bindHost: '::', mode: 'enforce', keyName: PROXY_KEY_NAME });
+      running.push(v6);
+      const mapped = await proxyCall('127.0.0.1', v6.port, '/v1/models');
+      const v6Loop = await proxyCall('::1', v6.port, '/v1/models');
+      const deniedV6 = await proxyCall(lan, v6.port, '/v1/models');
+      expect(mapped.status).toBe(200);
+      expect(v6Loop.status).toBe(200);
+      expect(deniedV6.status).toBe(401);
+      const v6Logs = await waitUntil(() => v6.logs(), 'auth result=missing ip=::ffff:');
       expect(v6Logs).not.toContain('ip=::1');
       expect(v6Logs).not.toContain('ip=::ffff:127.0.0.1');
-      assertNoSecret(v4Logs, v6Logs, loop.body, mapped.body, v6Loop.body, denied.body, deniedV6.body);
+      assertNoSecret(v6Logs, mapped.body, v6Loop.body, deniedV6.body);
     } finally {
       for (const proxy of running) await proxy.stop();
     }

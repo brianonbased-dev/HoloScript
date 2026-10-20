@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import os from 'os';
 import path from 'path';
 
 export default defineConfig({
@@ -47,6 +48,9 @@ export default defineConfig({
     // EMBEDDING_PROVIDER=openai — tests always run against the native provider.
     env: {
       EMBEDDING_PROVIDER: 'holoembed',
+      // Tests absorb throwaway repos under the OS temp dir and this checkout;
+      // absorb-root-policy.test.ts exercises the default and refusal paths.
+      ABSORB_ALLOWED_ROOTS: [os.tmpdir(), path.resolve(__dirname, '../..')].join(path.delimiter),
     },
   },
 });

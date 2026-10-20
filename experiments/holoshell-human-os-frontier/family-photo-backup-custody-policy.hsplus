@@ -89,7 +89,7 @@ composition "HoloShellFamilyPhotoBackupCustodyPolicy" {
 
   // ── State machine ──────────────────────────────────────────────────────────
 
-  state_machine "BackupCustodyWorkflow" {
+  template "BackupCustodyWorkflow" {
     initial: "idle"
     states: [
       "idle",
@@ -122,32 +122,32 @@ composition "HoloShellFamilyPhotoBackupCustodyPolicy" {
 
   // ── Roles ──────────────────────────────────────────────────────────────────
 
-  role "AlbumScannerAgent" {
+  template "AlbumScannerAgent" {
     laneId: "album-scanner"
     owns: ["album_fingerprint", "file_hashes", "media_kind_detection", "unreadable_detection"]
   }
 
-  role "DuplicateDetectorAgent" {
+  template "DuplicateDetectorAgent" {
     laneId: "duplicate-detector"
     owns: ["duplicate_grouping", "unique_count", "hash_collision_check"]
   }
 
-  role "PrivacyStripAgent" {
+  template "PrivacyStripAgent" {
     laneId: "privacy-strip"
     owns: ["gps_redaction", "face_label_redaction", "camera_serial_redaction", "metadata_policy_enforcement"]
   }
 
-  role "BackupCopyAgent" {
+  template "BackupCopyAgent" {
     laneId: "backup-copy"
     owns: ["target_write", "copy_manifest", "quota_check", "provider_resolution"]
   }
 
-  role "RestoreVerifierAgent" {
+  template "RestoreVerifierAgent" {
     laneId: "restore-verifier"
     owns: ["sample_restore", "hash_comparison", "count_comparison", "privacy_mode_check"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["room_embodiment", "brittney_operator_brief", "hololand_work_card"]
   }

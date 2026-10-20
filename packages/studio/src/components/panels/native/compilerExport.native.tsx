@@ -5,11 +5,12 @@ export function CompilerExportComponent() {
   const [status, setStatus] = useState('pending');
   const [targetCount, setTargetCount] = useState(0);
   const [totalKb, setTotalKb] = useState(0);
+  const [maxTargets, setMaxTargets] = useState(64);
 
   return (
     <div
       className="holoscript-2d-root w-full h-full"
-      data-holo-view-contract="6c81c241b8399705bda4fa1a59d85422ae543ee02a13362ea76c09e462328790"
+      data-holo-view-contract="f4e5ac168f2c3a86c1090a9a35e52f893e83fb12d95ed3763a2c084117c21223"
     >
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
@@ -39,6 +40,49 @@ export function CompilerExportComponent() {
             {`${(totalKb ?? 0).toFixed(2)} KB`}
           </span>
         </div>
+        <div
+          data-proof-claim={'targetCount <= maxTargets'}
+          data-proof-label="Export fan-out bound"
+          data-proof-independence="fault-tested"
+          data-proof-faults={
+            '[{"overrides":{"targetCount":65},"because":"a fan-out past the declared max must never read as in-bound"}]'
+          }
+          className="flex flex-col gap-2"
+        >
+          <div
+            data-proof-state={targetCount <= maxTargets ? 'pass' : 'falsified'}
+            className={`rounded-md p-2 text-xs font-semibold ${targetCount <= maxTargets ? 'bg-studio-success/10 text-studio-success' : 'bg-studio-error/10 text-studio-error'}`}
+          >
+            {targetCount <= maxTargets
+              ? '✓ Export fan-out bound holds'
+              : '✗ Export fan-out bound FALSIFIED'}
+          </div>
+          <span className="text-[10px] text-studio-muted">
+            {
+              'Broken on purpose 1 way when this was built — the check caught it. Press one to watch it fail.'
+            }
+          </span>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                setTargetCount(65);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-text hover:border-studio-error"
+            >
+              {'Break it: a fan-out past the declared max must never read as in-bound'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTargetCount(0);
+              }}
+              className="rounded border border-studio-border bg-studio-panel px-2 py-1 text-[10px] text-studio-muted hover:border-studio-accent"
+            >
+              {'Put it back'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -64,6 +108,16 @@ export const holoViewContract = {
       transform: { precision: 2, suffix: ' KB' },
     },
   ],
-  stateRoots: ['status', 'targetCount', 'totalKb'],
-  contractHash: '6c81c241b8399705bda4fa1a59d85422ae543ee02a13362ea76c09e462328790',
+  stateRoots: ['maxTargets', 'status', 'targetCount', 'totalKb'],
+  liveProofs: [
+    {
+      claim: 'targetCount <= maxTargets',
+      label: 'Export fan-out bound',
+      independence: 'fault-tested',
+      inputs: ['maxTargets', 'targetCount'],
+      anchors: [{ input: 'targetCount', node: 'targetCount', entity: 'compile-job-studio' }],
+      unanchored: ['maxTargets'],
+    },
+  ],
+  contractHash: 'f4e5ac168f2c3a86c1090a9a35e52f893e83fb12d95ed3763a2c084117c21223',
 } as const;

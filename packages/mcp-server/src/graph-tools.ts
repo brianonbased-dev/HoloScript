@@ -744,7 +744,9 @@ function generateHoloStructure(
 
 export async function handleGraphTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  /** trustedCaller: see handlers.ts isTrustedCaller; reaches the HoloMap video fetch. */
+  ctx: { trustedCaller?: boolean } = {}
 ): Promise<unknown> {
   switch (name) {
     case 'holo_map_paper_ingest_probe':
@@ -754,7 +756,7 @@ export async function handleGraphTool(
     case 'holo_reconstruct_step':
     case 'holo_reconstruct_anchor':
     case 'holo_reconstruct_export':
-      return handleHoloMapTool(name, args);
+      return handleHoloMapTool(name, args, ctx);
 
     case 'holo_semantic_scene_graph': {
       const code = args.code as string;

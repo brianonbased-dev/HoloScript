@@ -3,19 +3,18 @@
 // EMITTED AndroidCompiler output BUILDS, not just byte-matches the reference. Mirrors
 // check-android-xr-build-verify.mts + check-quest-build-verify.mts via the shared build-verify runner.
 //
-// STATUS (2026-06-21): compile_to_android codegen is RED — "HARNESS GREEN, CODEGEN RED" with 4 emitter
-// blockers documented in apps/android-reference/README.md (Groovy DSL emitted into a .kts file; compose
-// true without the compose-compiler plugin; package= in AndroidManifest.xml removed in AGP 8; deprecated
-// Sceneform fork). So with a JDK this currently FAILs at gradle configure — that failure IS the
-// codegen-fix signal. It SKIPs gracefully without a JDK (never blocks a commit). Use --require-toolchain
-// in CI / a scheduled job only once the AndroidCompiler emit is buildable.
+// STATUS: GREEN since the SceneView 4.18.0 retarget (2026-06-21) — the emit builds an APK, so a FAIL
+// here is a real codegen regression, not an expected state. Re-proven 2026-09-27 with the reference
+// scene covering all three node kinds: the pre-fix emitter failed compileDebugKotlin on
+// CylinderNode(length = …) ("No parameter with name 'length' found"); the fixed emitter builds.
 //
-// On-device verify (real ARCore session on a Galaxy S23) is a SEPARATE on-demand step, blocked today on
-// (a) the S23 being connected via adb and (b) this codegen going green. See config/sovereign-devices/
-// galaxy-s23.json (status: planned).
+// Without `java` on PATH this reports SKIPPED and exits 0 — a skip is not a pass. On this laptop:
+//   JAVA_HOME=/c/tools/jdk-17.0.19+10 ANDROID_HOME=/c/Android PATH="/c/tools/jdk-17.0.19+10/bin:$PATH" \
+//     npx tsx scripts/holo-ci/check-android-build-verify.mts --require-toolchain
+// --require-toolchain turns a missing toolchain into a FAIL (use it in CI / scheduled jobs).
 //
-//   npx tsx scripts/holo-ci/check-android-build-verify.mts                    # skip if no toolchain
-//   npx tsx scripts/holo-ci/check-android-build-verify.mts --require-toolchain # CI: toolchain mandatory
+// On-device verify (a real ARCore session on the Galaxy S23) is a separate on-demand step over adb;
+// see apps/android-reference/README.md.
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AndroidCompiler } from '../../packages/core/src/compiler/AndroidCompiler';

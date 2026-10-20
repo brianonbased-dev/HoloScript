@@ -13,7 +13,9 @@ import { eq } from 'drizzle-orm';
 import { authOptions } from './auth';
 import { SESSION_COOKIE_NAMES } from './session-cookie-names';
 import { isFounderWorkspaceIdentity } from './workspace/workspaceIdentity';
+import { isInviteAllowlistedToken } from './inviteAllowlist';
 import { getDb } from '../db/client';
+import { benchmarkKeyMatches, bypassesDisabled } from './prodBypass';
 import { users as usersTable } from '../db/schema';
 
 /**
@@ -57,6 +59,10 @@ export async function getSession() {
     }
   }
   if (!token) return null;
+  // Invite-only (lib/inviteAllowlist.ts): getServerSession above already
+  // returns null for a non-allowlisted token, and this raw decode must not
+  // hand that session back.
+  if (!isInviteAllowlistedToken(token)) return null;
 
   // The identity fields founder recognition is allowed to read. The display
   // NAME is deliberately absent: whoever signs in chooses it freely.
@@ -106,10 +112,15 @@ export async function getSession() {
 export async function requireAuth(request?: Request) {
   // Benchmark bypass: if BRITTNEY_BENCHMARK_KEY is configured and the
   // request carries a matching x-benchmark-key header, skip NextAuth.
-  // This is strictly opt-in via env var — never active by default.
-  if (request && process.env.BRITTNEY_BENCHMARK_KEY) {
-    const benchKey = request.headers.get('x-benchmark-key');
-    if (benchKey === process.env.BRITTNEY_BENCHMARK_KEY) {
+  // This is strictly opt-in via env var — never active by default, and
+  // never in production (Muse Gap 3: no prod bypass of any kind).
+  if (request && process.env.BRITTNEY_BENCHMARK_KEY && !bypassesDisabled()) {
+    if (
+      benchmarkKeyMatches(
+        request.headers.get('x-benchmark-key'),
+        process.env.BRITTNEY_BENCHMARK_KEY
+      )
+    ) {
       return {
         user: {
           id: 'benchmark',

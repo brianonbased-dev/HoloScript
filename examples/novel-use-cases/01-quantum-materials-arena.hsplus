@@ -342,7 +342,7 @@ composition "QuantumMaterialsArena" {
   // HUD
   // ========================================================================
 
-  panel "QuantumStatus" {
+  template "QuantumStatus" {
     position: "top-left"
     text "SimCount" {
       bind: "Simulations: " + QuantumSimEngine.state.completed_sims

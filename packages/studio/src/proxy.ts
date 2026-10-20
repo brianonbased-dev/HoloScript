@@ -3,8 +3,10 @@ import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 import { questProofGuardReason } from './lib/questProofGuards';
-import { classifyApiPath } from './lib/api-public-paths';
+import { callerCredentialRuleFor, classifyApiPath, publicRuleFor } from './lib/api-public-paths';
 import { SESSION_COOKIE_NAMES } from './lib/session-cookie-names';
+import { INVITE_ONLY_PATH, isInviteAllowlistedToken } from './lib/inviteAllowlist';
+import { benchmarkKeyMatches } from './lib/prodBypass';
 
 /** The header the mesh reads a caller key from. */
 const MESH_KEY_HEADER = 'x-mcp-api-key';
@@ -16,11 +18,17 @@ const MESH_KEY_HEADER = 'x-mcp-api-key';
  * here, without the upstream that issued it. It answers one question: did
  * somebody arrive claiming to be someone, or did nobody arrive at all. The
  * route the request is heading for does the judging.
+ *
+ * An entry may name further headers its own route judges (`credentialHeaders`,
+ * e.g. the fleet tick's `x-fleet-service-token`); those count on that entry
+ * only, so a header one route checks never opens a route that ignores it.
  */
-function hasCallerCredential(request: NextRequest): boolean {
+function hasCallerCredential(request: NextRequest, pathname: string, method: string): boolean {
   if (request.headers.get(MESH_KEY_HEADER)?.trim()) return true;
   const authorization = request.headers.get('authorization')?.trim() ?? '';
-  return /^Bearer\s+\S+$/i.test(authorization);
+  if (/^Bearer\s+\S+$/i.test(authorization)) return true;
+  const extra = callerCredentialRuleFor(pathname, method)?.credentialHeaders ?? [];
+  return extra.some((header) => Boolean(request.headers.get(header)?.trim()));
 }
 
 /**
@@ -50,10 +58,19 @@ function isBenchmarkRunner(request: NextRequest, pathname: string): boolean {
   }
   // `BRITTNEY_BENCHMARK_KEY` is unset by default, so this is inert unless
   // someone deliberately configured it.
+  // Never in production (Muse Gap 3: no prod bypass of any kind); constant-time compare.
   const configured = process.env.BRITTNEY_BENCHMARK_KEY?.trim();
   if (!configured) return false;
-  return request.headers.get('x-benchmark-key')?.trim() === configured;
+  return benchmarkKeyMatches(request.headers.get('x-benchmark-key')?.trim(), configured);
 }
+
+/**
+ * none:          no verifiable session.
+ * allowed:       a verified session on the invite allowlist.
+ * invite-denied: a verified session NOT on the allowlist. It is treated as
+ *                signed out and its cookies are cleared.
+ */
+type StudioSessionState = 'none' | 'allowed' | 'invite-denied';
 
 /**
  * A real, signature-verified Studio session — not merely a cookie that exists.
@@ -73,41 +90,71 @@ function isBenchmarkRunner(request: NextRequest, pathname: string): boolean {
  * way; only the name of the container changes. A cookie that fails to verify
  * under one name must not stop the other name from being tried.
  */
-async function hasStudioSession(request: NextRequest): Promise<boolean> {
+async function studioSessionState(request: NextRequest): Promise<StudioSessionState> {
   const secret = process.env.NEXTAUTH_SECRET?.trim() || process.env.AUTH_SECRET?.trim();
   // With no secret no session can be verified, so none is trusted. That refuses
   // a misconfigured deploy rather than waving it through, and the refusal says
   // which variable is missing instead of looking like a login bug.
-  if (!secret) return false;
+  if (!secret) return 'none';
   for (const cookieName of SESSION_COOKIE_NAMES) {
     try {
-      if ((await getToken({ req: request, secret, cookieName })) !== null) return true;
+      const token = await getToken({ req: request, secret, cookieName });
+      if (token !== null) {
+        // Invite-only (lib/inviteAllowlist.ts). A correctly signed token that
+        // is not on the allowlist, including one issued before the allowlist
+        // existed, counts as NO session here.
+        return isInviteAllowlistedToken(token) ? 'allowed' : 'invite-denied';
+      }
     } catch {
       // Malformed under this name; the other name still gets its turn.
     }
   }
-  return false;
+  return 'none';
+}
+
+/** Does the request carry a NextAuth session cookie at all (including chunked `.0`, `.1`)? */
+function sessionCookieNames(request: NextRequest): string[] {
+  return request.cookies
+    .getAll()
+    .map((cookie) => cookie.name)
+    .filter((name) =>
+      SESSION_COOKIE_NAMES.some((base) => name === base || name.startsWith(`${base}.`))
+    );
+}
+
+/** Expire every session cookie the request carried, so a refused token is signed out. */
+function clearSessionCookies(request: NextRequest, response: NextResponse): NextResponse {
+  for (const name of sessionCookieNames(request)) {
+    response.cookies.set(name, '', {
+      path: '/',
+      maxAge: 0,
+      httpOnly: true,
+      sameSite: 'lax',
+      // A `__Secure-` cookie is only replaced by a Set-Cookie that is Secure too.
+      secure: name.startsWith('__Secure-'),
+    });
+  }
+  return response;
 }
 
 /**
- * The default for `/api/**`: a caller is required unless the path is declared
- * public in `lib/api-public-paths.ts`.
+ * The pathname with its percent-escapes decoded.
  *
- * Returns a refusal, or null to let the request through to its route — where
- * every existing per-route guard still runs. This is a floor, not a ceiling:
- * it is what a route gets when its author writes no guard at all, which was the
- * case for 164 of 236 route files when it was written.
- */
-/**
- * The pathname as the ROUTE will see it, not as it was typed.
+ * Why the gate looks at this spelling at all: a DYNAMIC segment reaches its
+ * handler decoded, so `/api/holomesh/agent/%73elf` is the `[id]` handler asked
+ * about "self". Classifying only the raw spelling would let that form walk past
+ * an `except` carve-out written as a literal — the carve-out would fail to match
+ * and the wildcard above it would answer instead, which is precisely the
+ * substitution the `self` carve-outs exist to prevent.
  *
- * Next resolves routes on the DECODED path, so `/api/holomesh/agent/%73elf`
- * and `/api/holomesh/agent/self` reach the same handler. Classifying the raw
- * spelling would let the encoded form walk straight past an `except` carve-out
- * written as a literal: the carve-out would fail to match and the wildcard
- * above it would answer instead — which is precisely the substitution the
- * `self` carve-outs exist to prevent. Decoding first makes the gate read the
- * same string the route reads.
+ * Why it cannot be the ONLY spelling: Next matches a FIXED segment against the
+ * spelling as typed. `/api/agents/fleet/%73cheduler-tick` is therefore not the
+ * tick's route at all; Next serves the sibling `[id]` route and hands it
+ * "scheduler-tick" decoded. The gate used to read only the decoded path and so
+ * admitted that request as the tick (reproduced on a real `next start` 16.3.3
+ * in the review of PR #445; an earlier version of this comment claimed Next
+ * resolves every route on the decoded path, which is true of dynamic segments
+ * and false of fixed ones).
  *
  * A malformed escape cannot be decoded; it is then classified exactly as it
  * arrived rather than waved through.
@@ -120,8 +167,36 @@ function decodedPathname(rawPathname: string): string {
   }
 }
 
+/**
+ * Do the typed and the decoded spelling of this path land on the same rules?
+ *
+ * For an escaped path the gate cannot know which handler Next will pick (see
+ * `decodedPathname`), so it must not let the escape choose the tier. A declared
+ * rule applies only when BOTH spellings resolve to it. Comparing the rule, not
+ * just its tier, also keeps `credentialHeaders` honest: a header one entry
+ * judges can never be borrowed through a spelling that matched a different one.
+ * A path with nothing escaped trivially agrees with itself.
+ */
+function spellingsAgree(rawPathname: string, pathname: string, method: string): boolean {
+  if (rawPathname === pathname) return true;
+  return (
+    publicRuleFor(rawPathname, method) === publicRuleFor(pathname, method) &&
+    callerCredentialRuleFor(rawPathname, method) === callerCredentialRuleFor(pathname, method)
+  );
+}
+
+/**
+ * The default for `/api/**`: a caller is required unless the path is declared
+ * public in `lib/api-public-paths.ts`.
+ *
+ * Returns a refusal, or null to let the request through to its route — where
+ * every existing per-route guard still runs. This is a floor, not a ceiling:
+ * it is what a route gets when its author writes no guard at all, which was the
+ * case for 164 of 236 route files when it was written.
+ */
 async function apiGate(request: NextRequest): Promise<NextResponse | null> {
-  const pathname = decodedPathname(request.nextUrl.pathname);
+  const rawPathname = request.nextUrl.pathname;
+  const pathname = decodedPathname(rawPathname);
   const method = request.method.toUpperCase();
 
   // A CORS preflight carries no cookies and no credentials by design — that is
@@ -129,20 +204,31 @@ async function apiGate(request: NextRequest): Promise<NextResponse | null> {
   // a browser before the real, credentialed request is ever sent.
   if (method === 'OPTIONS') return null;
 
-  const access = classifyApiPath(pathname, method);
+  // When the two spellings disagree the request is classified `session`: the
+  // safe default, and what a path that matched no rule gets anyway.
+  const access = spellingsAgree(rawPathname, pathname, method)
+    ? classifyApiPath(pathname, method)
+    : 'session';
   if (access === 'public') return null;
-  if (access === 'caller-credential' && hasCallerCredential(request)) return null;
-  if (isBenchmarkRunner(request, pathname)) return null;
-  if (await hasStudioSession(request)) return null;
+  if (access === 'caller-credential' && hasCallerCredential(request, pathname, method)) return null;
+  // The benchmark bypass is a declared admission too, scoped by path prefix, so
+  // it gets the same rule: BOTH spellings must sit under the prefix, or an
+  // escape (`/api/%62rittney`) would read as the benchmark's path to one reader
+  // and as a different route to the other.
+  if (isBenchmarkRunner(request, rawPathname) && isBenchmarkRunner(request, pathname)) return null;
+  const session = await studioSessionState(request);
+  if (session === 'allowed') return null;
 
-  return NextResponse.json(
+  const refusal = NextResponse.json(
     {
       error:
         'This endpoint needs a caller. Sign in to HoloScript Studio, or send your own API key as "x-mcp-api-key: <your key>".',
       signInRequired: true,
+      ...(session === 'invite-denied' ? { inviteOnly: true } : {}),
     },
     { status: 401 }
   );
+  return session === 'invite-denied' ? clearSessionCookies(request, refusal) : refusal;
 }
 
 function hasQuestProofIntent(request: NextRequest): boolean {
@@ -162,6 +248,31 @@ function applySecurityHeaders(
   response.headers.set('Permissions-Policy', permissionsPolicy);
   response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   return response;
+}
+
+/**
+ * form-action sources for this page. Chrome applies form-action to every
+ * redirect after a form post, so /oauth/consent's Approve/Deny (POST
+ * /api/oauth/consent -> 303 to the client's redirect_uri) was cancelled
+ * silently under plain 'self' (live 2026-10-16). Only on /oauth/consent, add
+ * the exact origin of the redirect_uri query value when it is http(s). The
+ * route itself only redirects to a redirect_uri mcp-server validated for the
+ * client. Anything malformed or of another scheme leaves it at 'self'.
+ */
+export function formActionSources(pathname: string, searchParams: URLSearchParams): string {
+  if (pathname !== '/oauth/consent') return "'self'";
+  const raw = searchParams.get('redirect_uri');
+  if (!raw) return "'self'";
+  let u: URL;
+  try {
+    u = new URL(raw);
+  } catch {
+    return "'self'";
+  }
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return "'self'";
+  // URL.origin is scheme://host[:port]; never contains ; , * or whitespace.
+  if (!/^https?:\/\/[A-Za-z0-9.\-\[\]:]+$/.test(u.origin)) return "'self'";
+  return `'self' ${u.origin}`;
 }
 
 export async function proxy(request: NextRequest) {
@@ -198,7 +309,7 @@ export async function proxy(request: NextRequest) {
     font-src 'self' data:;
     object-src 'none';
     base-uri 'self';
-    form-action 'self';
+    form-action ${formActionSources(pathname, request.nextUrl.searchParams)};
     frame-ancestors 'none';
     connect-src 'self' ws: wss: https: http:;
     worker-src 'self' blob:;
@@ -208,6 +319,22 @@ export async function proxy(request: NextRequest) {
 
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('Content-Security-Policy', cspHeader);
+
+  // Invite-only (lib/inviteAllowlist.ts). A signed-in visitor whose token is
+  // not on the allowlist is signed out and sent to INVITE_ONLY_PATH. That page
+  // needs no session, and visitors without a session cookie skip this check.
+  if (pathname !== INVITE_ONLY_PATH && sessionCookieNames(request).length > 0) {
+    if ((await studioSessionState(request)) === 'invite-denied') {
+      const url = request.nextUrl.clone();
+      url.pathname = INVITE_ONLY_PATH;
+      url.search = '';
+      return applySecurityHeaders(
+        clearSessionCookies(request, NextResponse.redirect(url)),
+        cspHeader,
+        permissionsPolicy
+      );
+    }
+  }
 
   if (hasQuestProofIntent(request)) {
     const guardedReason = questProofGuardReason(request.nextUrl.pathname);

@@ -851,6 +851,293 @@ describe('HoloScriptPlusParser - timeline keyframe tracks (Theatre.js harvest S1
   });
 });
 
+describe('HoloScriptPlusParser - plain error sentences', () => {
+  const parser = new HoloScriptPlusParser();
+
+  it('rewrites HSP001 when EQUALS appears in a node body', () => {
+    const result = parser.parse('object Cube {\n  = true\n}');
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'HSP001',
+          message:
+            'HSP001: This spot needs a colon, as in name: value. A default written with = is only allowed on a field.',
+        }),
+      ])
+    );
+  });
+
+  it('rewrites HSP001 when a colon is at the top of the file', () => {
+    const result = parser.parse(':\n');
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'HSP001',
+          message:
+            'HSP001: A colon is not allowed at the top of the file. Start with a block such as object, composition, or function.',
+        }),
+      ])
+    );
+  });
+
+  it('rewrites HSP300 when a pipe appears where a value was required', () => {
+    const result = parser.parse('object Box {\n  kind: |widget\n}');
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'HSP300',
+          message: 'HSP300: A value was required here, and a "|" was found instead.',
+        }),
+      ])
+    );
+  });
+});
+
+describe('HoloScriptPlusParser - silent skips are errors', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('a bare ${ } value tells you to quote it', () => {
+    const bare = 'composition player {\n  health: ${state.health}\n}\n';
+    const bareResult = parser.parse(bare);
+
+    expect(bareResult.success).toBe(false);
+    expect(bareResult.errors).toEqual([
+      expect.objectContaining({
+        code: 'HSP101',
+        line: 2,
+        column: 12,
+        message:
+          'HSP101: "${ }" only works inside a quoted string here. Put the value in quotes.',
+      }),
+    ]);
+
+    const quoted = 'composition player {\n  health: "${state.health}"\n}\n';
+    const quotedResult = parser.parse(quoted);
+    expect(quotedResult.success).toBe(true);
+    expect(quotedResult.errors).toEqual([]);
+    expect(quotedResult.ast.root.properties).toEqual({ health: '${state.health}' });
+  });
+
+  it('bare block in a composition is an error', () => {
+    const source = 'composition "Room" {\n  { hidden: true }\n}\n';
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: 'HSP101',
+        line: 2,
+        column: 3,
+        message: 'HSP101: A block here needs a name. Write the name, then the brace block.',
+      }),
+    ]);
+  });
+
+  it('named block in a composition and a known logic form still parse', () => {
+    const source = `composition "Room" {
+      object "Chair" {
+        position: [0, 1, 0]
+      }
+      logic {
+        function take_damage(amount) {
+          return amount
+        }
+        action focus(objectId) {
+          return objectId
+        }
+        on_tick(0.5) {
+          return 1
+        }
+        on_scene_load {
+          return 1
+        }
+        on player_enter(player) {
+          return player
+        }
+        on_start() {
+          return 1
+        }
+        on_event("hit", target) {
+          return target
+        }
+      }
+    }`;
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+
+    const chair = result.ast.root.children?.find((child: any) => child.type === 'object');
+    expect(chair).toMatchObject({ name: 'Chair' });
+    expect(chair.properties.position).toEqual([0, 1, 0]);
+
+    const logicNode = result.ast.root.children?.find((child: any) => child.type === 'logic') as any;
+    expect(logicNode.body.functions.map((fn: any) => fn.name)).toEqual(['take_damage']);
+    expect(logicNode.body.actions.map((action: any) => action.name)).toEqual(['focus']);
+    expect(logicNode.body.tickHandlers.map((tick: any) => tick.interval)).toEqual([0.5]);
+    expect(logicNode.body.eventHandlers.map((handler: any) => handler.event)).toEqual([
+      'scene_load',
+      'player_enter',
+      'start',
+      'hit',
+    ]);
+  });
+});
+
+describe('HoloScriptPlusParser - using clause keeps the body', () => {
+  const parser = new HoloScriptPlusParser({ enableVRTraits: true });
+
+  it('stores a template body the same way with or without using', () => {
+    const source = `composition "Templates" {
+      template "BaseInteractive" {
+        @grabbable
+        color: "white"
+      }
+      template "ColoredInteractive" using "BaseInteractive" {
+        @glowing
+        color: "cyan"
+      }
+    }`;
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+
+    const base = result.ast.root.children?.find((child: any) => child.name === 'BaseInteractive');
+    const colored = result.ast.root.children?.find(
+      (child: any) => child.name === 'ColoredInteractive'
+    );
+
+    expect(base).toMatchObject({
+      type: 'template',
+      properties: { color: 'white' },
+    });
+    expect(base.directives).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'trait', name: 'grabbable' })])
+    );
+    expect(colored).toMatchObject({
+      type: 'template',
+      properties: { color: 'cyan', __templateRef: 'BaseInteractive' },
+    });
+    expect(colored.directives).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'trait', name: 'glowing' })])
+    );
+    expect(result.ast.root.properties).toEqual({});
+  });
+
+  it('stores policy and capability bodies on the named node', () => {
+    const source = `composition "Envelope" {
+      policy "SilentFolderRead" using "PermissionEnvelope" {
+        readOnly: true
+        appliesTo: ["list_folder", "hash_asset_file"]
+      }
+      capability "receipt_read" using "NativeCapabilityLane" {
+        laneId: "receipt_read"
+        nativeHostRequired: false
+      }
+    }`;
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    expect(result.ast.root.properties).toEqual({});
+
+    const policy = result.ast.root.children?.find((child: any) => child.type === 'policy');
+    const capability = result.ast.root.children?.find((child: any) => child.type === 'capability');
+    expect(policy).toMatchObject({
+      name: 'SilentFolderRead',
+      properties: {
+        __templateRef: 'PermissionEnvelope',
+        readOnly: true,
+        appliesTo: ['list_folder', 'hash_asset_file'],
+      },
+    });
+    expect(capability).toMatchObject({
+      name: 'receipt_read',
+      properties: {
+        __templateRef: 'NativeCapabilityLane',
+        laneId: 'receipt_read',
+        nativeHostRequired: false,
+      },
+    });
+  });
+
+  it('keeps object using and a quoted property without a body', () => {
+    const source = `composition "Room" {
+      object "EnhancedObject" using "ColoredInteractive" {
+        position: { x: 0, y: 3, z: 0 }
+      }
+      title "Hello"
+    }`;
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+    const object = result.ast.root.children?.find((child: any) => child.type === 'object');
+    expect(object).toMatchObject({
+      name: 'EnhancedObject',
+      properties: {
+        __templateRef: 'ColoredInteractive',
+        position: { x: 0, y: 3, z: 0 },
+      },
+    });
+    expect(result.ast.root.properties).toEqual({ title: 'Hello' });
+  });
+
+  it('does not treat a bare policy block as a new keyword', () => {
+    const source = 'composition "Room" {\n  policy "Bare" {\n    readOnly: true\n  }\n}\n';
+    const result = parser.parse(source);
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: 'HSP101',
+        line: 2,
+        column: 17,
+        message: 'HSP101: A block here needs a name. Write the name, then the brace block.',
+      }),
+    ]);
+    expect(result.ast.root.properties).toEqual({ policy: 'Bare' });
+  });
+
+  it('stores the ColoredInteractive body from the templates reference', () => {
+    const sourcePath = join(
+      __dirname,
+      '../../../../examples/language-reference/01-templates-decorators.hsplus'
+    );
+    const result = parser.parse(readFileSync(sourcePath, 'utf8'));
+
+    expect(result.success).toBe(true);
+    expect(result.errors).toEqual([]);
+
+    const colored = result.ast.root.children?.find(
+      (child: any) => child.name === 'ColoredInteractive'
+    );
+    const enhanced = result.ast.root.children?.find(
+      (child: any) => child.name === 'EnhancedObject'
+    );
+
+    expect(colored).toMatchObject({
+      type: 'template',
+      name: 'ColoredInteractive',
+      properties: { color: 'cyan', __templateRef: 'BaseInteractive' },
+    });
+    expect(colored.directives).toEqual(
+      expect.arrayContaining([expect.objectContaining({ type: 'trait', name: 'glowing' })])
+    );
+    expect(enhanced).toMatchObject({
+      type: 'object',
+      properties: {
+        __templateRef: 'ColoredInteractive',
+        position: { x: 0, y: 3, z: 0 },
+      },
+    });
+  });
+});
+
 describe('HoloScriptPlusParser - unknown words inside logic are errors', () => {
   const parser = new HoloScriptPlusParser({ enableVRTraits: true });
 

@@ -49,7 +49,7 @@ Studio has a generated route inventory guarded by `pnpm --filter @holoscript/stu
 | `/character`    | Character creator — VRM/avatar authoring.                                                 |
 | `/holoclaw`     | Skill shelf — browse `.hsplus` skills, create from templates, SSE activity feed.          |
 | `/holodaemon`   | Daemon dashboard — status, metrics, agent pool, BT progress, event feed.                  |
-| `/projects`     | User's saved projects. List from IndexedDB, open/delete.                                  |
+| `/projects`     | Projects tab: your GitHub repos (via GitHub sign-in) → Import into a server workspace. Repos tab: agent workbench (workspace git ops, jobs). Not IndexedDB. |
 | `/registry`     | Public asset pack browser. Search + tag filters + import.                                 |
 | `/settings`     | User settings. Requires auth.                                                             |
 | `/templates`    | Template gallery. Loads `.holo` into `/create`.                                           |
@@ -60,6 +60,8 @@ Studio has a generated route inventory guarded by `pnpm --filter @holoscript/stu
 ### Dynamic Routes (industry, pipeline, learn, integrations, remote)
 
 Additional pages generated from `.holo` source or dynamic segments: `/industry/[vertical]`, `/pipeline`, `/learn`, `/integrations`, `/remote/[token]`, `/auth/signin`.
+
+`/integrations` is a redirect to `/settings?tab=integrations`; the connector panel lives there.
 
 `/industry/[vertical]` was `(industry)/[vertical]` until 2026-09-16. A route group adds no URL segment, so that file served `/[vertical]` at the root and answered every unmatched address with HTTP 200. The verticals it serves are declared in `src/lib/industry-verticals.ts`; anything else is a 404.
 
@@ -137,18 +139,17 @@ Local export formats: GLB, GLTF, OBJ, USD, HoloScript source. Quality tiers: dra
 
 ### 3. Platform Connectors
 
-Studio bridges to external services for deployment and integration:
+Studio can validate credentials for these services. Today the connector panel does **connect + health check only** — it does not deploy, sync code, or open PRs from this surface:
 
 | Connector | Package                          | Purpose                             |
 | --------- | -------------------------------- | ----------------------------------- |
-| GitHub    | `@holoscript/connector-github`   | Repo access, PR creation, code sync |
-| Railway   | `@holoscript/connector-railway`  | One-click deploy to Railway         |
-| VS Code   | `@holoscript/connector-vscode`   | Extension bridge                    |
-| Docker    | (built-in)                       | Container deployment                |
-| App Store | `@holoscript/connector-appstore` | Mobile distribution                 |
-| Upstash   | `@holoscript/connector-upstash`  | Redis/queue integration             |
+| GitHub    | `@holoscript/connector-github`   | Token / OAuth connect + health check |
+| Railway   | `@holoscript/connector-railway`  | Project token connect + health check |
+| VS Code   | `@holoscript/connector-vscode`   | Local extension bridge reachability (`bridgeUrl`) |
+| App Store | `@holoscript/connector-appstore` | Apple / Google credential connect + health check |
+| Upstash   | `@holoscript/connector-upstash`  | Redis REST (`redisUrl` + `redisToken`) connect + health check |
 
-Connect via `POST /api/connectors/connect`, manage via `/api/connectors/oauth`, monitor via `/api/connectors/activity`.
+Connect via `POST /api/connectors/connect` (credential keys per service: `src/lib/stores/connectorFormFields.ts`), GitHub OAuth via `/api/connectors/oauth`. `/api/connectors/activity` exists but has no server-side event producer yet, so the panel shows only local connect/disconnect activity. Secrets are not persisted; after a reload, re-enter them to reconnect.
 
 ---
 

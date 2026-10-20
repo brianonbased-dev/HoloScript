@@ -87,7 +87,7 @@ composition "SensoryTherapyWorlds" {
   object "Ground" { geometry: "plane"; position: [0, -0.5, 0]; scale: [35, 1, 35]; color: "#1a1a2e" }
   object "Companion_Sky" using "SensoryCompanion" { position: [-8, 1.5, 2]; geometry: "sphere"; color: "#aaccff"; state { companion_id: "sky" } }
 
-  panel "SensoryDashboard" {
+  template "SensoryDashboard" {
     position: "top-right"
     text "Adjustments" { bind: "Adjustments: " + SensoryEngine.state.adjustments; style: "info" }
     text "Level" { bind: "Progress level: " + ProgressTracker.state.level; color: "#00ff88" }

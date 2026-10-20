@@ -24,7 +24,8 @@ composition "Human - Realistic Adult" {
     @morph(targets: { muscle_definition: 0.45, jaw_width: 0.5, cheekbone_height: 0.5 })
     @locomotion(mode: "walk", speed: 1.4)
     @character_voice { spatial_audio: true, lip_sync: true, lip_sync_source: "microphone" }
-    @avatar_embodiment(first_person: true, head_hidden_in_fp: true, mirror_visible: true)
+    // The human drives this body with their own tracked headset: live (no grant).
+    @avatar_embodiment(tracking_source: "headset", first_person: true, head_hidden_in_fp: true, mirror_visible: true)
 
     geometry: "avatar"
     position: [0, 0, 0]

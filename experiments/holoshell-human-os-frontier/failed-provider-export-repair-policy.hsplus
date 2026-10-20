@@ -126,7 +126,7 @@ composition "HoloShellFailedProviderExportRepairPolicy" {
     ]
   }
 
-  state_machine "FailedProviderExportRepairWorkflow" {
+  template "FailedProviderExportRepairWorkflow" {
     initial: "idle"
     states: [
       "idle",
@@ -151,27 +151,27 @@ composition "HoloShellFailedProviderExportRepairPolicy" {
     transition "block" { from: "*", to: "blocked" }
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["local_archive_parts", "hashes", "quarantine_status", "parse_validation"]
   }
 
-  role "BrowserAccountWitness" {
+  template "BrowserAccountWitness" {
     laneId: "browser-account-witness"
     owns: ["provider_status", "link_expiry", "download_ready_state", "profile_boundary"]
   }
 
-  role "HoloShellCustodian" {
+  template "HoloShellCustodian" {
     laneId: "holoshell-custodian"
     owns: ["redaction", "approval_nonce", "mutation_blocks", "repair_receipt_pack"]
   }
 
-  role "HoloScriptSubstrateAgent" {
+  template "HoloScriptSubstrateAgent" {
     laneId: "holoscript-substrate"
     owns: ["receipt_schema", "archive_validator", "retry_policy", "replay_contract"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["repair_room", "brittney_npc_language", "lesson_replay_surface", "import_dock"]
   }

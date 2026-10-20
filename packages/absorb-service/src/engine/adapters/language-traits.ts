@@ -449,6 +449,26 @@ export interface ClauseImportRule {
     /** Node type of a string-literal argument, e.g. 'string'. */
     stringType: string;
   };
+  /**
+   * Re-exports (`export { a } from './x'`, `export * from './x'`). A barrel that
+   * re-exports a file depends on it exactly as an importer does; without these
+   * edges impact analysis stops at every `index.ts` and never reaches the code
+   * (and tests) that use the barrel. Emits one edge per statement that has a
+   * `sourceField`, flagged `isReexport`; `export` statements without a source
+   * (local declarations) are untouched.
+   */
+  reexports?: {
+    /** Node type of the export statement, e.g. 'export_statement'. */
+    declNodeType: string;
+    /** Field holding the module string, e.g. 'source'. */
+    sourceField: string;
+    /** Node type of the `{ … }` clause, e.g. 'export_clause'. Absent = `export *`. */
+    clauseType: string;
+    /** Node type of each specifier, e.g. 'export_specifier'. */
+    specifierType: string;
+    /** Field on a specifier holding the (pre-alias) name, e.g. 'name'. */
+    specifierNameField: string;
+  };
 }
 
 /**

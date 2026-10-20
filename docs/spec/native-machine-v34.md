@@ -75,6 +75,9 @@ before HoloScript accepts ownership or reads the uncertain payload.
 - `load(record.field) ?? fallback` branches on the tag. The payload is loaded only on the known
   branch; the fallback is evaluated only on the unknown branch.
 
+This `@unknown` is a value annotation. It is unrelated to an unknown *trait*, which is the
+`HS1006` warning for a trait name no vocabulary knows (packages/core/strict/ERROR_CONTRACT.md).
+
 Bare `load`, raw `store`, raw constructor payloads, fallback laundering, and borrowing an annotated
 payload fail with native diagnostics. This prevents an uncertainty-bearing field from silently
 becoming `T`.

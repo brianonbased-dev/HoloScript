@@ -23,7 +23,7 @@
   },
   "stableFailures": {
     "//": "Deterministic pre-existing failures (failed in BOTH runs, outside flaky files) — IGNORED; a NEW failure is one not in this list and not in a flaky file.",
-    "count": 90,
+    "count": 88,
     "tests": [
       "src/__tests__/IntegrationTests.test.ts > Cycle 110: Integration Tests > should compile a visual graph with events and state into HoloScript directives",
       "src/__tests__/UIComponents.test.ts > createUIButton > attaches pressable trait to button child",
@@ -91,8 +91,6 @@
       "src/compiler/__tests__/VisionOSCompiler.smoke.test.ts > VisionOSCompiler — Smoke Suite (CG-005) > Fidelity Gaps vs Reality Composer Pro > GAP: on_pinch / on_release / on_gaze_tap are not wired to gesture recognisers",
       "src/compiler/__tests__/VisionOSCompiler.smoke.test.ts > VisionOSCompiler — Smoke Suite (CG-005) > Fidelity Gaps vs Reality Composer Pro > GAP: visible_when, radial layout, and menu items are not generated",
       "src/compiler/__tests__/VisionOSTraitMap.test.ts > VisionOSTraitMap > lists partial traits (all promoted to full)",
-      "src/compiler/__tests__/golden-output/golden.test.ts > Compiler golden-output regression > WASM: canonical scene → WAT source",
-      "src/compiler/__tests__/golden-output/golden.test.ts [ src/compiler/__tests__/golden-output/golden.test.ts ]",
       "src/compiler/__tests__/paper-10-cross-target-theorem-matrix.test.ts > Paper 10 — Cross-Target Hash Theorem (foundational) > verifies the bound on the reference program for WebGPU × VRChat × Unity",
       "src/reconstruction/__tests__/HoloMapStrictWebGpu.test.ts > HoloMap strict WebGPU gate > throws on init when CPU fallback is disabled and WebGPU is absent",
       "src/reconstruction/__tests__/gemm.test.ts > GEMM — WebGPU > throws on size mismatch",

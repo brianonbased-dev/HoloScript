@@ -102,9 +102,50 @@ function founderGateDenial(toolName: string): ToolCallCheckDecision | undefined 
 
 /**
  * The real FounderGate/frame/x402 pre-dispatch check — wired as the `check` option
- * at both `gateToolCall` fold points (index.ts stdio, http-server.ts HTTP).
+ * at the stdio fold point (index.ts) and the SDK transport (http-server.ts).
  */
 export const founderGateX402ToolCallCheck: ToolCallCheck = (envelope, ctx) => {
+  const denial = founderOrFrameDenial(envelope, ctx);
+  if (denial) {
+    return denial;
+  }
+
+  // 3) x402 seat/scope authorization (Gate-2 authorizer at the fold point).
+  const scopes =
+    ctx.transport === 'stdio' && (ctx.callerId === null || ctx.callerId === undefined)
+      ? TRUSTED_LOCAL_SCOPES
+      : (ctx.scopes ?? []);
+  const authz = authorizeToolCall(envelope.name, [...scopes]);
+  if (!authz.authorized) {
+    return {
+      allowed: false,
+      check: X402_SCOPE_CHECK_ID,
+      reason: authz.reason,
+    };
+  }
+
+  return { allowed: true, check: FOUNDER_GATE_X402_CHECK_ID };
+};
+
+/** Check id recorded on an allowed call by the founder-and-frame check. */
+export const FOUNDER_GATE_FRAME_CHECK_ID = `${FOUNDER_GATE_CHECK_ID}+${FRAME_DECLARATION_CHECK_ID}`;
+
+/**
+ * Branches 1 and 2 only: founder routing and the caller's frame, no scope branch. For the
+ * stateless HTTP routes (POST /mcp, POST /tools/call), which dispatch through
+ * securedToolExecution: its triple gate already checks scope, answers a shortfall in its own
+ * shape and writes it to the audit log. Checking scope here too made a scope refusal change
+ * shape and vanish from /api/audit under enforce, and made observe mode log scope refusals as if
+ * enforce would add them (#463 pre-review). What this gate adds on those routes is exactly the
+ * founder and frame refusals.
+ */
+export const founderGateFrameToolCallCheck: ToolCallCheck = (envelope, ctx) =>
+  founderOrFrameDenial(envelope, ctx) ?? { allowed: true, check: FOUNDER_GATE_FRAME_CHECK_ID };
+
+function founderOrFrameDenial(
+  envelope: Parameters<ToolCallCheck>[0],
+  ctx: Parameters<ToolCallCheck>[1]
+): ToolCallCheckDecision | undefined {
   // 1) FounderGate — exact-four / prohibited-operation authority routing.
   const founderDenial = founderGateDenial(envelope.name);
   if (founderDenial) {
@@ -141,20 +182,5 @@ export const founderGateX402ToolCallCheck: ToolCallCheck = (envelope, ctx) => {
       };
     }
   }
-
-  // 3) x402 seat/scope authorization (Gate-2 authorizer at the fold point).
-  const scopes =
-    ctx.transport === 'stdio' && (ctx.callerId === null || ctx.callerId === undefined)
-      ? TRUSTED_LOCAL_SCOPES
-      : (ctx.scopes ?? []);
-  const authz = authorizeToolCall(envelope.name, [...scopes]);
-  if (!authz.authorized) {
-    return {
-      allowed: false,
-      check: X402_SCOPE_CHECK_ID,
-      reason: authz.reason,
-    };
-  }
-
-  return { allowed: true, check: FOUNDER_GATE_X402_CHECK_ID };
-};
+  return undefined;
+}

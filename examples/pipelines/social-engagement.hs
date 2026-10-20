@@ -1,5 +1,10 @@
 // HoloScript Pipeline — Social Media Engagement Monitor
 // Compiles to: Python async worker, Node.js stream, or serverless
+//
+// Reads environment variables, so name them when you run it:
+//   holoscript run social-engagement.hs --allow-env TWITTER_API --allow-env GITHUB_REPO --allow-env DASHBOARD_WEBHOOK
+// (or HOLOSCRIPT_PIPELINE_ALLOW_ENV=TWITTER_API,GITHUB_REPO,DASHBOARD_WEBHOOK). A pipeline
+// that is not allowed to read a variable refuses before making any request.
 
 pipeline "SocialEngagement" {
   schedule: "0 */2 * * *"   // every 2 hours

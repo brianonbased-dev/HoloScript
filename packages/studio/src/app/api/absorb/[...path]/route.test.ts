@@ -33,7 +33,7 @@ describe('/api/absorb/[...path] route', () => {
     expect(body.ok).toBe(true);
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toContain('https://absorb.test/api/projects/abc?depth=deep');
+    expect(url).toContain('https://absorb.test/api/absorb/projects/abc?depth=deep');
     expect(init.method).toBe('GET');
 
     const headers = (init.headers ?? {}) as Record<string, string>;
@@ -78,6 +78,30 @@ describe('/api/absorb/[...path] route', () => {
 
     const firstBody = (fetchMock.mock.calls[0][1] as RequestInit).body;
     expect(String(firstBody)).toContain('hello');
+  });
+
+  it('a by-id Studio request reaches the absorb path', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ project: { id: 'abc' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const getReq = new NextRequest('http://localhost/api/absorb/projects/abc');
+    const deleteReq = new NextRequest('http://localhost/api/absorb/projects/abc', { method: 'DELETE' });
+    await GET(getReq, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
+    await DELETE(deleteReq, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
+
+    const urls = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(urls).toEqual([
+      'https://absorb.test/api/absorb/projects/abc',
+      'https://absorb.test/api/absorb/projects/abc',
+    ]);
+    for (const url of urls) {
+      expect(url.startsWith('https://absorb.test/api/absorb/')).toBe(true);
+    }
   });
 
   it('returns 502 json payload when upstream is unavailable', async () => {

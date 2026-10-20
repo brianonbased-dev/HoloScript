@@ -72,9 +72,10 @@ describe('native compiler fidelity verifiers', () => {
     expect(countMatches(result.activityFile, /SphereNode\(/g)).toBe(1);
     expect(result.activityFile).not.toContain('default placeholder cube');
 
-    // OrbTwo's spec flows through: position, radius-from-scale, and colour.
+    // OrbTwo's spec flows through: position, radius-from-scale, and colour. Scale is size, so
+    // a 0.5 orb is 0.5 across: radius 0.25, the same as Quest's Sphere(0.5 * sx).
     expect(result.activityFile).toContain('Position(x = 1f, y = 0.5f, z = -0.25f)');
-    expect(result.activityFile).toContain('radius = 0.5f');
+    expect(result.activityFile).toContain('radius = 0.25f');
     expect(result.activityFile).toContain('materialLoader.createColorInstance(Color(0xFF00FF00))');
   });
 

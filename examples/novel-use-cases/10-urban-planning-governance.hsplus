@@ -105,7 +105,7 @@ composition "UrbanPlanningGovernance" {
   object "Citizen_03" using "CitizenVoter" { position: [3, 0.5, -2]; geometry: "capsule"; color: "#ecf0f1"; state { voter_id: "c03" } }
   object "Citizen_04" using "CitizenVoter" { position: [-1, 0.5, -6]; geometry: "capsule"; color: "#ecf0f1"; state { voter_id: "c04" } }
 
-  panel "UrbanDashboard" {
+  template "UrbanDashboard" {
     position: "top-right"
     text "Proposals" { bind: "Proposals: " + ReferendumEngine.state.proposals.length; style: "info" }
     text "Completed" { bind: "Completed: " + ReferendumEngine.state.total_completed; color: "#3498db" }

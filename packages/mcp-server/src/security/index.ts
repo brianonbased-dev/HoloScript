@@ -33,6 +33,7 @@ export {
 // Tool Scope Mapping (Gate 2)
 export {
   authorizeToolCall,
+  assertReentrantToolAuthorized,
   getToolRiskLevel,
   getToolScopes,
   getToolsForScope,
@@ -129,3 +130,13 @@ export {
   type HoloLandForkAdmissionInput,
   type HoloLandForkAdmissionReport,
 } from './hololand-fork-admission-gate';
+
+// Outbound URL guard: a server-side fetch of a caller-supplied URL reaches only the public
+// internet unless the caller is trusted (task_1790594666743_g1lo).
+export {
+  assertPublicHttpUrl,
+  fetchPublicHttp,
+  isNonPublicAddress,
+  type LookupAll,
+  type OutboundGuardOptions,
+} from './outbound-url-guard';

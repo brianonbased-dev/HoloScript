@@ -10,7 +10,9 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { QuestCompiler } from '../QuestCompiler';
+import { emitWorldSceneKt } from '../quest-world-emit';
 import { HoloCompositionParser } from '../../parser/HoloCompositionParser';
+import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 import { compileHSPlusStateMachineToKotlin } from '../HSIIRKotlinStateMachineEmitter';
 
 const SCANNER_HOLO = join(
@@ -436,5 +438,309 @@ describe('QuestCompiler immersive_mr (native trait-dispatch)', () => {
     const keys = Object.keys(out);
     expect(keys.some((k) => k.endsWith('MainActivity.kt'))).toBe(true);
     expect(keys.length).toBe(11);
+  });
+});
+
+// =============================================================================
+// Scene blocks
+// =============================================================================
+// The parser keeps what a `scene "X" { ... }` block holds on composition.scenes, not on
+// composition.objects. A Quest app is built from the traits on the composition's objects, so
+// the traits written inside a scene were never read: the composition compiled to the default
+// 2D panel, or to the MR app without the values the traits set.
+
+const READER_HOLO = join(
+  __dirname,
+  '..',
+  '..',
+  '..',
+  '..',
+  '..',
+  'apps',
+  'quest-real-world-reader',
+  'reader.holo'
+);
+
+function parseClean(source: string): HoloComposition {
+  const result = new HoloCompositionParser().parse(source);
+  if (!result.success || !result.ast || (result.errors ?? []).length > 0) {
+    throw new Error(`parse failed: ${JSON.stringify(result.errors)}`);
+  }
+  return result.ast;
+}
+
+/** The same composition with every object moved inside one scene block, traits and all. */
+function objectsIntoAScene(composition: HoloComposition): HoloComposition {
+  return {
+    ...composition,
+    objects: [],
+    scenes: [{ type: 'Scene', name: 'Main', objects: composition.objects }],
+  };
+}
+
+const fileEnding = (out: Record<string, string>, suffix: string): string => {
+  const key = Object.keys(out).find((k) => k.endsWith(suffix));
+  if (!key) throw new Error(`no file ends with ${suffix}`);
+  return out[key];
+};
+
+describe('QuestCompiler: traits and environment written inside scene blocks', () => {
+  const mr = (source: string) => new QuestCompiler().compile(parseClean(source), '');
+
+  it('compiles the scanner app from objects that are all inside a scene exactly as from the top level', () => {
+    const scanner = parseClean(readFileSync(SCANNER_HOLO, 'utf8'));
+    const moved = objectsIntoAScene(scanner);
+    expect(moved.objects).toEqual([]);
+    expect(scanner.objects.length).toBeGreaterThanOrEqual(5);
+
+    const out = new QuestCompiler().compile(moved, '');
+    expect(Object.keys(out).some((k) => k.endsWith('ScannerPanel.kt'))).toBe(true);
+    expect(out).toEqual(new QuestCompiler().compile(scanner, ''));
+  });
+
+  it('compiles the reader app from objects that are all inside a scene exactly as from the top level', () => {
+    const reader = parseClean(readFileSync(READER_HOLO, 'utf8'));
+    const moved = objectsIntoAScene(reader);
+    expect(moved.objects).toEqual([]);
+
+    const out = new QuestCompiler().compile(moved, '');
+    expect(Object.keys(out).some((k) => k.endsWith('ReaderPanel.kt'))).toBe(true);
+    expect(out).toEqual(new QuestCompiler().compile(reader, ''));
+  });
+
+  it('picks the MR app from a trait written only inside a scene, not the 2D panel', () => {
+    const out = mr(`composition "MR" {
+  scene "Main" {
+    object "panel" {
+      @spatial_panel { title: "SceneQR" }
+    }
+  }
+}`);
+    const keys = Object.keys(out);
+    expect(keys.some((k) => k.endsWith('ScannerPanel.kt'))).toBe(true);
+    expect(keys.some((k) => k.endsWith('MainActivity.kt'))).toBe(false);
+    expect(fileEnding(out, 'strings.xml')).toContain('<string name="app_name">SceneQR</string>');
+  });
+
+  it('reads the values of a trait written inside a scene', () => {
+    const out = mr(`composition "MR" {
+  environment { surface: "immersive_mr" package: "net.holoscript.qrscanner" }
+  scene "Main" {
+    object "panel" {
+      @spatial_panel { title: "SceneQR" place: { x: 0.25, y: 0.5, z: -1.2 } }
+    }
+  }
+}`);
+    expect(fileEnding(out, 'strings.xml')).toContain('SceneQR');
+    const content = fileEnding(out, 'ScannerContent.kt');
+    expect(content).toContain('const val panelX = 0.25f');
+    expect(content).toContain('const val panelY = 0.5f');
+    expect(content).toContain('const val panelZ = -1.2f');
+  });
+
+  it("reads top-level objects first, then each scene's objects in scene order: a value written later replaces an earlier one", () => {
+    // The top-level object is written between the scenes; it is still read first.
+    const title = (source: string) =>
+      /<string name="app_name">([^<]*)<\/string>/.exec(fileEnding(mr(source), 'strings.xml'))![1];
+    expect(
+      title(`composition "MR" {
+  scene "First" { object "a" { @spatial_panel { title: "FirstQR" } } }
+  object "top" { @spatial_panel { title: "TopQR" } }
+  scene "Second" { object "b" { @spatial_panel { title: "SecondQR" } } }
+}`)
+    ).toBe('SecondQR');
+    expect(
+      title(`composition "MR" {
+  scene "First" { object "a" { @spatial_panel { title: "FirstQR" } } }
+  object "top" { @spatial_panel { title: "TopQR" } }
+}`)
+    ).toBe('FirstQR');
+    // A trait that sets only some values leaves the others as an earlier object set them.
+    const content = fileEnding(
+      mr(`composition "MR" {
+  object "top" { @spatial_panel { place: { x: 1, y: 2, z: -3 } } }
+  scene "Main" { object "a" { @spatial_panel { title: "SceneQR" } } }
+}`),
+      'ScannerContent.kt'
+    );
+    expect(content).toContain('const val panelX = 1.0f');
+    expect(content).toContain('const val panelZ = -3.0f');
+  });
+
+  it("uses the environment written inside a scene when the composition has none, and the composition's own otherwise", () => {
+    const fromScene = mr(`composition "MR" {
+  scene "Main" {
+    environment {
+      surface: "immersive_mr"
+      package: "net.holoscript.qrscanner"
+      version: { code: 7 name: "2.0.0" }
+    }
+    object "panel" { @spatial_panel { title: "SceneQR" } }
+  }
+}`);
+    // The scene's environment is what selects the MR app and sets its version.
+    expect(Object.keys(fromScene).some((k) => k.endsWith('ScannerPanel.kt'))).toBe(true);
+    const gradle = fileEnding(fromScene, 'app/build.gradle.kts');
+    expect(gradle).toContain('versionCode = 7');
+    expect(gradle).toContain('versionName = "2.0.0"');
+
+    const own = mr(`composition "MR" {
+  scene "Main" {
+    environment { version: { code: 9 name: "9.9.9" } }
+    object "panel" { @spatial_panel { title: "SceneQR" } }
+  }
+  environment {
+    surface: "immersive_mr"
+    package: "net.holoscript.qrscanner"
+    version: { code: 5 name: "1.0.4" }
+  }
+}`);
+    const ownGradle = fileEnding(own, 'app/build.gradle.kts');
+    expect(ownGradle).toContain('versionCode = 5');
+    expect(ownGradle).toContain('versionName = "1.0.4"');
+    expect(ownGradle).not.toContain('9.9.9');
+  });
+
+  it('still emits the 2D panel for scenes that carry no Quest trait', () => {
+    const out = mr(`composition "Plain" {
+  scene "Main" {
+    object "Crate" { geometry: "cube" }
+  }
+}`);
+    expect(Object.keys(out).some((k) => k.endsWith('MainActivity.kt'))).toBe(true);
+    expect(Object.keys(out)).toHaveLength(11);
+  });
+});
+
+describe('quest world emit: scene blocks', () => {
+  const crate = `object "SceneCrate" {
+      geometry: "sphere"
+      position: [1.5, 2.5, -3.5]
+      color: "#ff0000"
+    }`;
+
+  it('emits an object written only inside a scene like the same object at the top level', () => {
+    const inScene = parseClean(`composition "World" {\n  scene "Main" {\n    ${crate}\n  }\n}`);
+    const atTop = parseClean(`composition "World" {\n  ${crate}\n}`);
+    expect(inScene.objects).toEqual([]);
+
+    const kt = emitWorldSceneKt(inScene, 'scene-test');
+    expect(kt).toContain('// object "SceneCrate" (sphere)');
+    expect(kt).toContain('Mesh(Uri.parse("mesh://sphere"))');
+    expect(kt).toContain('Transform(Pose(Vector3(1.5f, 2.5f, -3.5f)))');
+    expect(kt).toBe(emitWorldSceneKt(atTop, 'scene-test'));
+  });
+
+  it("emits top-level objects first, then each scene's objects in scene order", () => {
+    const kt = emitWorldSceneKt(
+      parseClean(`composition "World" {
+  scene "First" {
+    object "InFirst" { geometry: "cube" }
+  }
+  object "AtTop" { geometry: "cube" }
+  scene "Second" {
+    object "InSecond" { geometry: "cube" }
+  }
+}`),
+      'order-test'
+    );
+    const order = ['AtTop', 'InFirst', 'InSecond'].map((n) => kt.indexOf(`// object "${n}"`));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('builds every scene object, even under a name already used: nothing here is declared by name', () => {
+    // An entity has no name in the Kotlin, and an animated one is `o<its place in the list>`.
+    const kt = emitWorldSceneKt(
+      parseClean(`composition "World" {
+  object "Orb" { geometry: "sphere" motion: "spin" }
+  scene "Day" {
+    object "Orb" { geometry: "sphere" motion: "bob" }
+  }
+  scene "Night" {
+    object "Orb" { geometry: "sphere" }
+  }
+}`),
+      'names-test'
+    );
+    expect(kt.match(/\/\/ object "Orb"/g)).toHaveLength(3);
+    expect(kt.match(/val o\d+ =/g)).toEqual(['val o0 =', 'val o1 =']);
+    expect(kt).not.toContain('WARNING');
+  });
+
+  it('uses the environment written inside a scene for the sky when the composition has none', () => {
+    const kt = emitWorldSceneKt(
+      parseClean(`composition "World" {
+  scene "Main" {
+    environment { background: "#ff0000" }
+  }
+}`),
+      'sky-test'
+    );
+    expect(kt).toContain('Color4(1.0f, 0.0f, 0.0f, 1.0f)');
+    expect(kt).not.toContain('WARNING');
+  });
+
+  it("names a scene environment it does not apply, and says the composition's own applies", () => {
+    // The composition's own environment is written after the scenes; it still wins.
+    const kt = emitWorldSceneKt(
+      parseClean(`composition "World" {
+  scene "Night" {
+    environment { background: "#ff0000" }
+  }
+  scene "Dusk" {
+    environment { background: "#00ff00" }
+  }
+  environment { background: "#0000ff" }
+}`),
+      'sky-test'
+    );
+    expect(kt).toContain('Color4(0.0f, 0.0f, 1.0f, 1.0f)');
+    expect(kt).not.toContain('Color4(1.0f, 0.0f, 0.0f, 1.0f)');
+    expect(kt).toContain(
+      `// WARNING: the environment in scene "Night" is not applied: this output is one world with one environment, and the composition's own environment applies.`
+    );
+    expect(kt).toContain(
+      `// WARNING: the environment in scene "Dusk" is not applied: this output is one world with one environment, and the composition's own environment applies.`
+    );
+  });
+
+  it('names the first scene environment that applies when two scenes have one and the composition none', () => {
+    const kt = emitWorldSceneKt(
+      parseClean(`composition "World" {
+  scene "Day" {
+    environment { background: "#00ff00" }
+  }
+  scene "Night" {
+    environment { background: "#ff0000" }
+  }
+}`),
+      'sky-test'
+    );
+    expect(kt).toContain('Color4(0.0f, 1.0f, 0.0f, 1.0f)');
+    expect(kt).toContain(
+      '// WARNING: the environment in scene "Night" is not applied: this output is one world with one environment, and the environment in scene "Day" applies.'
+    );
+  });
+
+  it('writes the warnings ahead of the world, so an opt-in annotation still sits on the object', () => {
+    const kt = emitWorldSceneKt(
+      parseClean(`composition "World" {
+  environment { background: "#0000ff" }
+  scene "Night" {
+    environment { background: "#ff0000" }
+    object "Cloud" { splat: "cloud.spz" }
+  }
+}`),
+      'splat-test'
+    );
+    const warning = kt.indexOf('// WARNING:');
+    const optIn = kt.indexOf('@OptIn(SpatialSDKExperimentalSplatAPI::class)');
+    const world = kt.indexOf('object World_splat_test {');
+    expect(warning).toBeGreaterThan(kt.indexOf('*/'));
+    expect(optIn).toBeGreaterThan(warning);
+    expect(world).toBeGreaterThan(optIn);
+    expect(kt.slice(optIn, world)).toBe('@OptIn(SpatialSDKExperimentalSplatAPI::class)\n');
+    expect(kt).toContain('Splat(Uri.parse("apk:///splats/cloud.spz"))');
   });
 });

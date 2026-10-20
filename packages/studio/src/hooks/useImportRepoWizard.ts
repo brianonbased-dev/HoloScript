@@ -89,6 +89,7 @@ interface WorkspaceImportResponse {
 export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState {
   const addWorkspace = useWorkspaceStore((s) => s.addWorkspace);
   const updateWorkspace = useWorkspaceStore((s) => s.updateWorkspace);
+  const removeWorkspace = useWorkspaceStore((s) => s.removeWorkspace);
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
   const { config, triggerPipeline, isTriggering } = useAbsorbPipelineBridge();
 
@@ -156,6 +157,10 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     setImportError(null);
     setImportProgress(15);
 
+    // Tracked locally: the `workspaceId` state is stale inside this callback,
+    // so the old catch never saw the workspace it had just created.
+    let createdWsId: string | null = null;
+    let absorbSucceeded = false;
     try {
       // Phase 1: Clone
       const cloneRes = await fetch('/api/workspace/import', {
@@ -176,6 +181,7 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
 
       const cloneResult = (await cloneRes.json()) as WorkspaceImportResponse;
       const wsId = cloneResult.id;
+      createdWsId = wsId;
       const candidates = cloneResult.conversionCandidates ?? [];
       setWorkspaceId(wsId);
       setConversionCandidates(candidates);
@@ -222,6 +228,7 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
       }
 
       const absorbResult = await absorbRes.json();
+      absorbSucceeded = true;
       setImportProgress(80);
       setAbsorbStats({
         totalFiles: absorbResult.stats.totalFiles,
@@ -264,11 +271,24 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     } catch (err) {
       setImportStatus('error');
       setImportError((err as Error).message ?? 'Import failed');
-      if (workspaceId) {
-        updateWorkspace(workspaceId, { status: 'error', error: (err as Error).message });
+      // A failed import cleans up after itself: roll back the clone on the
+      // server and drop the local entry, so no orphan "stale" workspace stays.
+      // Only before absorb succeeded: a later DNA/UI error keeps the
+      // absorbed workspace and marks it errored instead.
+      if (createdWsId && absorbSucceeded) {
+        updateWorkspace(createdWsId, { status: 'error', error: (err as Error).message });
+      } else if (createdWsId) {
+        const failedId = createdWsId;
+        removeWorkspace(failedId);
+        setWorkspaceId(null);
+        await fetch(`/api/workspace/import?id=${encodeURIComponent(failedId)}`, {
+          method: 'DELETE',
+        }).catch((cleanupErr: unknown) => {
+          console.error('[import] rollback of failed workspace failed:', cleanupErr);
+        });
       }
     }
-  }, [repoUrl, branch, repoName, addWorkspace, updateWorkspace, goToStep, workspaceId]);
+  }, [repoUrl, branch, repoName, addWorkspace, updateWorkspace, removeWorkspace, goToStep]);
 
   // Kick off import when Step 2 becomes visible
   useEffect(() => {

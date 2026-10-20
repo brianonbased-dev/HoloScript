@@ -44,25 +44,25 @@ composition "FounderControlPlanePolicy" {
     requires: ["blocker_id", "owner_lane", "recovery_receipt"]
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     visualState: ["gpu_proof", "git_status", "build_test_receipts"]
     controls: ["approve", "rollback", "recovery"]
   }
 
-  role "HoloShellOperator" {
+  template "HoloShellOperator" {
     laneId: "holoshell"
     visualState: ["permission_gates", "operator_room", "stale_claims"]
     controls: ["approve", "redirect", "recovery"]
   }
 
-  role "HoloLandWorld" {
+  template "HoloLandWorld" {
     laneId: "hololand"
     visualState: ["consumer_surface", "world_preview", "portable_artifacts"]
     controls: ["approve", "redirect"]
   }
 
-  role "HoloAIDecisionGraph" {
+  template "HoloAIDecisionGraph" {
     laneId: "holoai"
     visualState: ["agent_state", "decision_edges", "next_actions"]
     controls: ["redirect", "recovery"]

@@ -385,6 +385,14 @@ export {
   isBatchableDraftMesh,
   partitionStudioChildren,
 } from './utils/partitionStudioChildren';
+// The one place a compiled `Environment` node's sky becomes a drei-safe preset
+// name (Studio's four viewers and holoscript-net's renderer all read it here).
+export {
+  DREI_ENVIRONMENT_PRESETS,
+  DEFAULT_ENVIRONMENT_PRESET,
+  resolveEnvironmentPreset,
+} from './utils/environmentPreset';
+export type { DreiEnvironmentPreset } from './utils/environmentPreset';
 
 // Hooks
 export { useSimulationField } from './hooks/useSimulationField';

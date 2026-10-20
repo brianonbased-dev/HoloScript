@@ -14,6 +14,7 @@ import {
   HolomapPointCloudViewer,
   WebSurfaceRenderer,
   resolveWebSurfaceConfig,
+  resolveEnvironmentPreset,
 } from '@holoscript/r3f-renderer';
 
 // VR edit session — lazy loaded to avoid SSR issues
@@ -278,7 +279,10 @@ function EmbedNodeRenderer({
       );
     case 'Environment':
       return (
-        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+        <Environment
+          preset={resolveEnvironmentPreset(props)}
+          background={props.background ?? false}
+        />
       );
     case 'fog':
       return null;

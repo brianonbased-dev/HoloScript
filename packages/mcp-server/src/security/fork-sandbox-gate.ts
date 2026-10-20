@@ -345,6 +345,25 @@ export interface ForkSandboxGateOptions {
   toolName?: string;
   /** Enable fork-detection heuristics on code payloads */
   enableHeuristics?: boolean;
+  /**
+   * Whether the manifest's own `attestation.trustTier` may be believed. Nothing signs a
+   * capability manifest yet, so its tier is whatever the sender wrote: a caller could
+   * declare 'founder' and pass the attestation check (task_1790596867936_tyax). When
+   * false, the declared tier reads as 'unverified'. handleTool passes false for every
+   * call that carries a caller context and true only for local stdio, where the one
+   * legitimate sender lives. Unset keeps the old behaviour for the plugin-registration
+   * and direct callers, which do not take a manifest from a remote caller's arguments.
+   */
+  declaredAttestationTrusted?: boolean;
+}
+
+/** The manifest as the gate may believe it: an untrusted declared tier reads as 'unverified'. */
+function manifestAsTrusted(
+  manifest: CapabilityManifest | undefined,
+  declaredAttestationTrusted: boolean | undefined
+): CapabilityManifest | undefined {
+  if (!manifest?.attestation || declaredAttestationTrusted !== false) return manifest;
+  return { ...manifest, attestation: { ...manifest.attestation, trustTier: 'unverified' } };
 }
 
 /**
@@ -362,6 +381,9 @@ export async function runForkSandboxGate(
   subject: SandboxSubject,
   options: ForkSandboxGateOptions = {}
 ): Promise<SandboxGateResult> {
+  // Every check below reads the manifest as the gate may believe it.
+  const manifest = manifestAsTrusted(subject.manifest, options.declaredAttestationTrusted);
+
   // Step 1: Heuristic fork detection (defense-in-depth)
   let effectiveSource: SandboxSubjectSource = subject.source;
   let heuristicSignals: string[] = [];
@@ -372,7 +394,7 @@ export async function runForkSandboxGate(
         heuristicSignals = detection.signals;
         const readOnlyValidationManifest =
           options.toolName === 'validate_holoscript' &&
-          isVerifiedReadOnlyValidationManifest(subject.manifest);
+          isVerifiedReadOnlyValidationManifest(manifest);
         if (
           !readOnlyValidationManifest &&
           (effectiveSource === 'unknown' || effectiveSource === 'generated')
@@ -406,7 +428,10 @@ export async function runForkSandboxGate(
   const checks: Array<{ name: string; passed: boolean; detail?: string }> = [];
 
   // Check 1: Capability manifest
-  const manifestCheck = validateCapabilityManifest({ ...subject, source: effectiveSource }, policy);
+  const manifestCheck = validateCapabilityManifest(
+    { ...subject, manifest, source: effectiveSource },
+    policy
+  );
   checks.push({ name: 'capability_manifest', ...manifestCheck });
   if (!manifestCheck.passed) {
     const receipt = await createDenialReceipt(
@@ -503,6 +528,7 @@ export async function gateHoloScriptCode(
     grantedScopes?: string[];
     toolName?: string;
     manifest?: CapabilityManifest;
+    declaredAttestationTrusted?: boolean;
   } = {}
 ): Promise<SandboxGateResult> {
   const subject: SandboxSubject = {
@@ -515,6 +541,7 @@ export async function gateHoloScriptCode(
   return runForkSandboxGate(subject, {
     grantedScopes: opts.grantedScopes,
     toolName: opts.toolName,
+    declaredAttestationTrusted: opts.declaredAttestationTrusted,
   });
 }
 
@@ -527,6 +554,7 @@ export async function gateMcpTool(
     source?: SandboxSubjectSource;
     grantedScopes?: string[];
     manifest?: CapabilityManifest;
+    declaredAttestationTrusted?: boolean;
   } = {}
 ): Promise<SandboxGateResult> {
   const subject: SandboxSubject = {
@@ -539,6 +567,7 @@ export async function gateMcpTool(
   return runForkSandboxGate(subject, {
     grantedScopes: opts.grantedScopes,
     toolName,
+    declaredAttestationTrusted: opts.declaredAttestationTrusted,
   });
 }
 

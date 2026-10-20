@@ -531,7 +531,11 @@ export class HoloCompositionParser {
 }
 
 export type CanonicalSourceSurface = 'holo' | 'hsplus' | 'hs';
-export type CanonicalValidator = 'holo-parser' | 'typescript-hsplus' | 'rust-wasm';
+export type CanonicalValidator =
+  | 'holo-parser'
+  | 'typescript-hsplus'
+  | 'rust-wasm'
+  | 'empty-source-check';
 export interface CanonicalDiagnostic {
   severity: 'error' | 'warning';
   message: string;
@@ -540,10 +544,21 @@ export interface CanonicalDiagnostic {
   code?: string;
   suggestion?: string;
 }
+// Likeness consent (HS1011, src/validation/LikenessCheck.ts, #590). Type-only on the root entry.
+export type LikenessSource = 'face' | 'voice' | 'body';
+/** The caller's \`.hs\` render_likeness result: grant -> the sources the rule said yes to. */
+export type ConsentRules =
+  | Record<string, Iterable<LikenessSource | string>>
+  | Map<string, Iterable<LikenessSource | string>>;
 export interface CanonicalSourceValidationRequest {
   source: string;
   fileName?: string;
   surface?: CanonicalSourceSurface | '.holo' | '.hsplus' | '.hs';
+  allowEmpty?: boolean;
+  /** \`.holo\` only. Unset or empty: every likeness source is refused with HS1011 (fail closed). */
+  consentRules?: ConsentRules | null;
+  /** Extra trait names known to this caller, for the HS1006 unknown-trait check. */
+  knownTraits?: Iterable<string>;
 }
 export type CanonicalHsDetailedValidator = (source: string) => string | unknown;
 export interface CanonicalSourceValidationDependencies {
@@ -1787,6 +1802,52 @@ export class VRTraitRegistry {
 }
 
 export declare const vrTraitRegistry: VRTraitRegistry;
+
+// Local capture handles (traits/LocalCapture.ts): live_self tracking verification.
+export type LocalCaptureKind = 'face' | 'body';
+export type TrackingSource = 'live_self' | 'recording' | 'remote_user';
+export interface LocalCaptureHandle {
+  readonly kind: LocalCaptureKind;
+  readonly deviceLabel: string;
+}
+export interface LocalCaptureSession {
+  readonly handle: LocalCaptureHandle;
+  event(data: Record<string, unknown>): Record<string, unknown>;
+  end(): void;
+}
+export declare function openLocalCapture(kind: LocalCaptureKind, deviceLabel?: string): LocalCaptureHandle;
+export declare function closeLocalCapture(handle: LocalCaptureHandle): void;
+export declare function isLocalCapture(handle: unknown, kind: LocalCaptureKind): boolean;
+export declare function startLocalCaptureSession(kind: LocalCaptureKind, deviceLabel?: string): LocalCaptureSession;
+export declare function trackingEventAllowed(source: unknown, capture: unknown, kind: LocalCaptureKind): boolean;
+export declare const LOCAL_CAPTURE_EVENT: Readonly<Record<LocalCaptureKind, string>>;
+/** Must be called by every network / spectator path before replicating avatar state (shownToOthers=true). */
+export interface LikenessShareRequest {
+  grantorId: string;
+  trackedPersonId: string;
+  sessionId: string;
+  audience: readonly string[];
+  renderLikenessYes: boolean;
+}
+export interface LikenessShareScope {
+  sessionId?: string;
+  audience?: readonly string[];
+  livePose?: boolean;
+}
+export declare const LIKENESS_OR_TRACKING_TRAITS: readonly string[];
+export declare function grantLikenessShare(node: object, req: LikenessShareRequest): boolean;
+export declare function revokeLikenessShare(node: object): void;
+export declare function likenessShareAllowed(node: object, scope: LikenessShareScope | undefined): boolean;
+export declare function carriesLikenessOrTracking(node: object, opts?: { embodimentDecided?: boolean }): boolean;
+export declare function avatarRenderAllowed(node: Record<string, unknown>, shownToOthers: boolean, scope?: LikenessShareScope): boolean;
+export declare const VOICE_USES: readonly ['record', 'store', 'transcribe', 'replay', 'ai', 'voice_print'];
+export type VoiceUse = (typeof VOICE_USES)[number] | 'live_captions';
+export interface VoiceUseRequest { grantorId: string; speakerId: string; sessionId: string; use: VoiceUse; }
+export declare function grantVoiceUse(node: object, req: VoiceUseRequest): boolean;
+export declare function revokeVoiceUse(node: object, sessionId?: string, use?: VoiceUse): void;
+export declare function voiceUseAllowed(node: object, sessionId: unknown, use: VoiceUse): boolean;
+export declare function avatarEmbodimentNeedsGrant(trackingSource: unknown, carriesLikeness: boolean): boolean;
+export declare function carriesRealLikeness(traitNames: Iterable<unknown>): boolean;
 
 // ============================================================================
 // TRAIT CONTEXT FACTORY (migrated from Hololand)
@@ -4673,6 +4734,17 @@ export function parseHoloPartial(source: string, options?: any): any;
 export type HoloParseResult = any;
 export type HoloParseError = any;
 export type HoloParserOptions = any;
+// The one known-trait check (HS1006), shared with the root entry: src/validation/KnownTraits.ts.
+export {
+  isKnownTrait,
+  normalizeTraitName,
+  coreKnownTraitNames,
+  collectTraitUses,
+  declaredTraitNames,
+  findUnknownTraits,
+  UNKNOWN_TRAIT_CODE,
+} from './index.js';
+export type { KnownTraitOptions, TraitUse } from './index.js';
 `;
 
 const runtimeDTS = `// @holoscript/core/runtime — engine/mesh/framework-backed runtime surface.
@@ -6441,6 +6513,28 @@ export class LlamaServerCompiler extends CompilerBase {
   compile(composition: any, agentToken: string, outputPath?: string): string;
   compileToFiles(composition: any, agentToken?: string): Record<string, string>;
 }
+// HoloScript -> GBNF grammar generator (compiler/holoscript-gbnf.ts).
+export interface HoloScriptGbnfOptions {
+  root?: 'composition' | 'definitions';
+  objectKeywords?: readonly string[];
+  primitiveShapes?: readonly string[];
+  materialKeywords?: readonly string[];
+  requireDefinition?: boolean;
+}
+export declare function generateHoloScriptGbnf(options?: HoloScriptGbnfOptions): string;
+export declare const HOLOSCRIPT_GRAMMAR_PRESETS: readonly ['holoscript', 'holoscript-subset'];
+export type HoloScriptGrammarPreset = (typeof HOLOSCRIPT_GRAMMAR_PRESETS)[number];
+export declare function isHoloScriptGrammarPreset(value: string): value is HoloScriptGrammarPreset;
+export declare function holoScriptGrammarForPreset(preset: HoloScriptGrammarPreset): {
+  path: string;
+  content: string;
+};
+export declare const RESERVED_PROPERTY_NAMES: readonly string[];
+export declare const RESERVED_GROUP_NAMES: readonly string[];
+export declare const RESERVED_MACHINE_NAMES: readonly string[];
+export declare const DEFAULT_OBJECT_KEYWORDS: readonly string[];
+export declare const DEFAULT_PRIMITIVE_SHAPES: readonly string[];
+export declare const DEFAULT_MATERIAL_KEYWORDS: readonly string[];
 export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 export class AgentInferenceCompiler extends CompilerBase {
   constructor(options?: any);
@@ -6788,7 +6882,36 @@ export const SOVEREIGN_ENGINES: readonly SovereignEngine[];
 export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
+
+// Honest maturity tier per export target, earned from evidence (target-tiers.ts)
+export type TargetTier = 'reference' | 'production' | 'preview' | 'experimental' | 'format-only';
+export interface TargetRuntimeProof {
+  readonly file: string;
+  readonly quote: string;
+  readonly onDevice: boolean;
+}
+export interface TargetTierEntry {
+  readonly tier: TargetTier;
+  readonly compiler: string;
+  readonly tests: readonly string[];
+  readonly golden?: string;
+  readonly runtimeProof?: TargetRuntimeProof;
+  readonly referenceApp?: string;
+  readonly knownGaps?: string;
+}
+export interface TierAuditIO {
+  exists(repoRelativePath: string): boolean;
+  read(repoRelativePath: string): string;
+  knownFailingTests: ReadonlySet<string>;
+}
+export const TARGET_TIERS: Readonly<Record<ExportTarget, TargetTierEntry>>;
+export const TIER_MEANING: Readonly<Record<TargetTier, string>>;
+export function earnedTier(entry: TargetTierEntry): TargetTier;
+export function auditTargetTiers(io: TierAuditIO, tiers?: Readonly<Record<string, TargetTierEntry>>): string[];
+export function targetTier(target: string): TargetTier | undefined;
+export function describeTargetLimits(target: string): string;
 export function compilePipelineSourceToNode(source: string, options?: any): any;
+export function summarizePipelineIo(source: string): { success: boolean; envReads: string[]; hosts: string[]; dynamicHost: boolean; errors?: string[] };
 
 /**
  * Native2D — the sovereign HoloScript-native 2D/UI compiler (.holo -> @generated .tsx). Its
@@ -7497,6 +7620,27 @@ export declare function buildKnownTraitSet(
   extras?: ReadonlyArray<string | readonly string[]>
 ): Set<string>;
 export const NATIVE2D_TRAITS: readonly string[];
+
+// The one known-trait check (HS1006): src/validation/KnownTraits.ts. Every surface uses it.
+export interface KnownTraitOptions {
+  declared?: Iterable<string>;
+  knownTraits?: Iterable<string>;
+}
+export interface TraitUse {
+  trait: { type?: unknown; name?: unknown; config?: Record<string, unknown> | null };
+  owner: Record<string, unknown> | null;
+  name: string;
+}
+export declare const UNKNOWN_TRAIT_CODE: 'HS1006';
+export declare function isKnownTrait(name: unknown, options?: KnownTraitOptions): boolean;
+export declare function normalizeTraitName(name: unknown): string;
+export declare function coreKnownTraitNames(): ReadonlySet<string>;
+export declare function collectTraitUses(ast: unknown): TraitUse[];
+export declare function declaredTraitNames(ast: unknown, uses?: TraitUse[]): Set<string>;
+export declare function findUnknownTraits(
+  ast: unknown,
+  options?: { knownTraits?: Iterable<string> }
+): TraitUse[];
 export const CODE_GRAPH_TRAITS: readonly string[];
 
 // AutoRig (traits/AutoRigTrait.ts) — re-exported via the main barrel.

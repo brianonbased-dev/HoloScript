@@ -541,6 +541,24 @@ export declare function partitionStudioChildren(children: R3FNode[] | undefined)
   rest: R3FNode[];
 };
 
+export declare const DREI_ENVIRONMENT_PRESETS: readonly [
+  'apartment',
+  'city',
+  'dawn',
+  'forest',
+  'lobby',
+  'night',
+  'park',
+  'studio',
+  'sunset',
+  'warehouse',
+];
+export type DreiEnvironmentPreset = (typeof DREI_ENVIRONMENT_PRESETS)[number];
+export declare const DEFAULT_ENVIRONMENT_PRESET: DreiEnvironmentPreset;
+export declare function resolveEnvironmentPreset(
+  props: { preset?: unknown; envPreset?: unknown } | null | undefined
+): DreiEnvironmentPreset;
+
 // Hologram MCP Content (task_1778114362909_zp7u)
 
 import type { HologramMcpResponse } from '@holoscript/core';

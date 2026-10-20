@@ -76,7 +76,8 @@ describe('/api/absorb/projects/[id]/knowledge route', () => {
     expect(body.success).toBe(true);
     expect(body.summary.total).toBe(1);
 
-    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/api/projects/proj-2/knowledge');
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain('/api/absorb/projects/proj-2/knowledge');
+    expect(String(fetchMock.mock.calls[1]?.[0]).includes('/api/absorb/')).toBe(true);
   });
 
   it('returns 503 fallback payload when both MCP and REST fail', async () => {

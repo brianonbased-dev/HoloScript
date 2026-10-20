@@ -3,6 +3,18 @@
 import React from 'react';
 import { CREDIT_PACKAGES, OPERATION_COSTS, TIER_LIMITS } from '@/lib/absorb/pricing';
 
+/**
+ * Dollars per credit for a package, e.g. 1000 cents / 1000 credits -> "$0.01".
+ * priceCents is in cents, so divide by 100 before dividing by credits (the old
+ * label skipped that and read 100x too high). Up to 4 decimals, at least 2.
+ */
+export function formatDollarsPerCredit(priceCents: number, credits: number): string {
+  if (!Number.isFinite(priceCents) || !Number.isFinite(credits) || credits <= 0) return '$-';
+  const dollars = priceCents / 100 / credits;
+  const fixed = dollars.toFixed(4).replace(/0{1,2}$/, '');
+  return `$${fixed}`;
+}
+
 export function CreditPackageCard({
   pkg,
   onPurchase,
@@ -29,7 +41,7 @@ export function CreditPackageCard({
       </div>
       <div className="mt-1 text-xs text-studio-muted">{pkg.credits.toLocaleString()} credits</div>
       <div className="mt-1 text-[10px] text-studio-muted">
-        ${(pkg.priceCents / pkg.credits).toFixed(3)}/credit
+        {formatDollarsPerCredit(pkg.priceCents, pkg.credits)}/credit
       </div>
       <button
         onClick={onPurchase}

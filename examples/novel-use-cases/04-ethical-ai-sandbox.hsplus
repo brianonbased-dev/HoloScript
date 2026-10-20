@@ -180,7 +180,7 @@ composition "EthicalAISandbox" {
   object "Agent_Alpha" using "EthicAgent" { position: [-3, 1, 0]; geometry: "sphere"; color: "#00ccff"; state { agent_id: "ethic_alpha" } }
   object "Agent_Beta" using "EthicAgent" { position: [3, 1, 0]; geometry: "sphere"; color: "#cc00ff"; state { agent_id: "ethic_beta" } }
 
-  panel "EthicsStatus" {
+  template "EthicsStatus" {
     position: "top-right"
     text "Checks" { bind: "Norm checks: " + NormEngine.state.total_checks; style: "info" }
     text "Blocks" { bind: "Hard blocks: " + NormEngine.state.hard_blocks; color: "#ff4444" }

@@ -676,7 +676,7 @@ composition "AgentPortalFederation" {
   // HUD -- Reactive portal status panels
   // ========================================================================
 
-  panel "PortalStatus" {
+  template "PortalStatus" {
     position: "top-left"
 
     text "AlphaStatus" {
@@ -693,7 +693,7 @@ composition "AgentPortalFederation" {
     }
   }
 
-  panel "FederationInfo" {
+  module "FederationInfo" {
     position: "top-right"
 
     text "ScenesFound" {

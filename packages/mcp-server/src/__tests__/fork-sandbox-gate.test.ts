@@ -396,6 +396,38 @@ describe('gateMcpTool', () => {
     );
     expect(result.allowed).toBe(true);
   });
+
+  // task_1790596867936_tyax: an unsigned manifest's tier is whatever its sender wrote.
+  it('reads a declared tier as unverified when declaredAttestationTrusted is false', async () => {
+    const untrusted = await gateMcpTool(
+      'create_world',
+      { name: 'MyWorld' },
+      {
+        grantedScopes: ['tools:write'],
+        manifest: {
+          ...validManifest,
+          attestation: { ...validManifest.attestation, trustTier: 'founder' as const },
+        },
+        declaredAttestationTrusted: false,
+      }
+    );
+    expect(untrusted.allowed).toBe(false);
+    const check = untrusted.checks.find((c) => c.name === 'capability_manifest');
+    expect(check?.passed).toBe(false);
+    expect(check?.detail).toContain("'unverified' is below required 'verified'");
+  });
+
+  it('still believes a declared tier when declaredAttestationTrusted is true, and when unset', async () => {
+    for (const declaredAttestationTrusted of [true, undefined]) {
+      const result = await gateMcpTool(
+        'create_world',
+        { name: 'MyWorld' },
+        { grantedScopes: ['tools:write'], manifest: validManifest, declaredAttestationTrusted }
+      );
+      const check = result.checks.find((c) => c.name === 'capability_manifest');
+      expect(check?.passed).toBe(true);
+    }
+  });
 });
 
 describe('gatePluginRegistration', () => {

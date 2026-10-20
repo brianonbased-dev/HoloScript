@@ -169,13 +169,11 @@ export async function validateTenantKey(
     if (dev) tenant = dev;
   }
 
-  // If found, grant scopes dynamically based on tier
+  // A customer key never carries an operator scope, whatever its tier (task jch1). admin:* and
+  // tools:admin reach the host's files, git, secrets, and install_plugin's in-process code: the
+  // server every tenant shares. A tier buys limits (tenantContext.limits), not control of it.
   if (tenant) {
     const scopes = ['tools:read', 'tools:write', 'tools:codebase', 'tools:browser'];
-    if (tenant.subscriptionTier === 'enterprise') {
-      scopes.push('tools:admin');
-      scopes.push('admin:*'); // Give enterprises full standard access
-    }
 
     return {
       active: true,

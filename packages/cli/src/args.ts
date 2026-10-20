@@ -107,6 +107,8 @@ export interface CLIOptions {
   unknownCommand?: string;
   input?: string;
   output?: string;
+  /** `validate`: JSON file with the .hs render_likeness result (HS1011 consent rules) */
+  consentRules?: string;
   /** Check formatter conformance without writing changes */
   check?: boolean;
   /** Write formatter output back to source files */
@@ -256,6 +258,10 @@ export interface CLIOptions {
   absorbMaxFiles?: number;
   /** Comma-separated files for quick blast-radius query (relative to scan dir) */
   impactFiles?: string;
+  /** impact --since: absorb (force:false) before reading the graph */
+  impactRefresh?: boolean;
+  /** impact --since: print only the plain-text reviewer brief */
+  impactBrief?: boolean;
   // ── query command ────────────────────────────────────────────────────────
   /** Embedding provider for holoscript query (default: 'holoembed') */
   queryProvider?: 'holoembed' | 'structural';
@@ -281,6 +287,12 @@ export interface CLIOptions {
   compileFormat?: string;
   /** Public deployment device profile or auto-detection request */
   device?: string;
+  /**
+   * Environment variable names a pipeline run may read (repeatable --allow-env NAME).
+   * No variable is readable without being named, HOLOSCRIPT_MCP_URL included.
+   * Board task task_1791176003202_obsc.
+   */
+  allowEnv?: string[];
 }
 
 const DEFAULT_OPTIONS: CLIOptions = {
@@ -437,6 +449,9 @@ export function parseArgs(args: string[]): CLIOptions {
           options.quiet = true;
         }
         break;
+      case '--consent-rules':
+        options.consentRules = args[++i];
+        break;
       case '-o':
       case '--output':
         options.output = args[++i];
@@ -527,6 +542,16 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--host':
         options.host = args[++i];
         break;
+      case '--allow-env': {
+        const name = args[++i];
+        if (!name || name.startsWith('-')) {
+          throw new Error(
+            '--allow-env requires an environment variable name, e.g. --allow-env API_URL'
+          );
+        }
+        (options.allowEnv ??= []).push(name);
+        break;
+      }
       case '-u':
       case '--username':
         options.username = args[++i];
@@ -705,6 +730,12 @@ export function parseArgs(args: string[]): CLIOptions {
       case '--impact':
         options.impactFiles = args[++i];
         break;
+      case '--refresh':
+        options.impactRefresh = true;
+        break;
+      case '--brief':
+        options.impactBrief = true;
+        break;
       // ── query flags ──────────────────────────────────────────────────────
       case '--llm':
         options.queryLlm = args[++i];
@@ -835,6 +866,10 @@ Usage: holoscript <command> [options] [input]
   impact-analysis <files>
                     Run Absorb then report blast radius for comma-separated files
                     Use --dir <root> to set scan root (default: cwd)
+                    Use --since <ref|a..b> for a HoloCI change report: tests the
+                    change can reach, untouched callers of changed exports, and
+                    a reviewer brief (--brief). Reads the cached graph only;
+                    --refresh absorbs first. No graph = all package tests.
   query <question>  Semantic GraphRAG search over an absorbed codebase
                     Use --provider holoembed (default). structural is a legacy alias; external embedding providers are rejected for project GraphRAG.
                     Use --with-llm to get an LLM-synthesised answer
@@ -882,6 +917,9 @@ Usage: holoscript <command> [options] [input]
   -v, --verbose       Enable verbose output
   -j, --json          Output results as JSON
   -o, --output        Write output to file
+  --consent-rules     validate: JSON { "<grant>": ["face","voice","body"] }, the .hs
+                      render_likeness result. Without it @face_mesh, @voice_print
+                      and @body_scan fail with HS1011
   -t, --target        Compile target (node, threejs, unity, vrchat, babylon, wasm)
   -p, --profile       Runtime profile (headless, minimal, standard, vr)
   --tick-rate <hz>    Tick rate for headless runtime (default: 10)
@@ -950,6 +988,8 @@ Usage: holoscript <command> [options] [input]
   --since <ref>       Limit absorb to files changed since git ref/date
   --max-files <n>     Bound absorb scan size for large local workspaces
   --impact <files>    Comma-separated files to compute blast-radius for
+  --refresh           impact --since: refresh the graph (incremental absorb) first
+  --brief             impact --since: print only the plain-text reviewer brief
   --provider <b>      GraphRAG embedding backend: holoembed (default) | structural alias. External embedding providers are rejected.
   --dir <path>        Directory to scan for query (default: cwd)
   --with-llm          Synthesise a natural-language answer from GraphRAG context
@@ -1039,6 +1079,7 @@ Usage: holoscript <command> [options] [input]
   holoscript graph-status --json              # Machine-readable graph cache status
   holoscript impact "src/cli.ts" --dir packages/cli/src --json
   holoscript impact-analysis "src/cli.ts" --dir packages/cli/src --json
+  holoscript impact --since origin/main --dir . --brief   # HoloCI change report
   holoscript self-improve --cycles 10         # Run 10 improvement cycles
   holoscript self-improve --harvest --commit  # Harvest training data + auto-commit
   holoscript self-improve --daemon            # Continuous mode until convergence

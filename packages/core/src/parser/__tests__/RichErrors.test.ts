@@ -476,16 +476,19 @@ describe('getErrorCodeDocumentation', () => {
     expect(exprDocs.length).toBeGreaterThan(0);
   });
 
-  it('categorizes import errors (HSP400-499) as "Imports"', () => {
+  it('does not categorize deleted import codes (HSP400-499) as "Imports"', () => {
     const docs = getErrorCodeDocumentation();
     const importDocs = docs.filter((d) => d.category === 'Imports');
-    expect(importDocs.length).toBeGreaterThan(0);
+    expect(importDocs).toEqual([]);
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP400');
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP402');
   });
 
-  it('categorizes limit errors (HSP900+) as "Limits"', () => {
+  it('does not categorize deleted limit codes (HSP900+) as "Limits"', () => {
     const docs = getErrorCodeDocumentation();
     const limitDocs = docs.filter((d) => d.category === 'Limits');
-    expect(limitDocs.length).toBeGreaterThan(0);
+    expect(limitDocs).toEqual([]);
+    expect(HSPLUS_ERROR_CODES).not.toHaveProperty('HSP900');
   });
 });
 

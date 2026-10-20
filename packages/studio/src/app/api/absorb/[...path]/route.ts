@@ -11,9 +11,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 
 import { corsHeaders } from '../../_lib/cors';
-async function proxyToAbsorb(req: NextRequest, segments: string[]) {
+
+function upstreamApiPath(segments: string[]): string {
   const path = segments.join('/');
-  const targetUrl = `${ABSORB_BASE}/api/${path}${req.nextUrl.search}`;
+  // absorbRouter is mounted at /api/absorb (services/absorb-service/src/server.ts).
+  // Project ids have to keep that prefix or they miss the owner checks.
+  // Sibling mounts such as moltbook stay on /api/<name>.
+  if (segments[0] === 'projects') return `/api/absorb/${path}`;
+  return `/api/${path}`;
+}
+
+async function proxyToAbsorb(req: NextRequest, segments: string[]) {
+  const targetUrl = `${ABSORB_BASE}${upstreamApiPath(segments)}${req.nextUrl.search}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',

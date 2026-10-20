@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Playwright configuration for HoloScript Studio E2E tests
  *
- * Local: `pnpm dev` (port 3100) or rely on webServer below.
+ * Local: `pnpm dev` (port 3101, see package.json "dev") or rely on webServer below.
  * Staging: set PLAYWRIGHT_BASE_URL=https://your-studio.example and optionally
  * PLAYWRIGHT_STORAGE_STATE=path/to/auth.json (generate once via `npx playwright codegen` with login).
  *
@@ -32,12 +32,12 @@ export default defineConfig({
     ? undefined
     : {
         command: 'pnpm dev',
-        url: 'http://127.0.0.1:3100',
+        url: 'http://127.0.0.1:3101',
         reuseExistingServer: true,
         timeout: 120_000,
       },
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3100',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3101',
     ...(storageState ? { storageState } : {}),
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

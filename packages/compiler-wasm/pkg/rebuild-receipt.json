@@ -1,8 +1,8 @@
 {
   "schema": "holoscript.compiler-wasm.pkg-web.rebuild-receipt.v1",
-  "generatedAt": "2026-08-04T19:33:19Z",
+  "generatedAt": "2026-10-05T20:07:42Z",
   "sourcePath": "packages/compiler-wasm/src",
-  "sourceCommit": "580d91e32dfaff6162a51df20dfd79da737165e2",
+  "sourceCommit": "60066cc2b464d79cf81693c04b16a79ae5f128c2",
   "artifactPath": "packages/compiler-wasm/pkg",
   "commands": [
     "node scripts/build-wasm.mjs (wasm-pack build --target web --out-dir pkg --release)"
@@ -15,10 +15,10 @@
   "result": {
     "rebuilt": true,
     "artifactBytesChanged": true,
-    "wasmBytes": 526813,
-    "wasmSha256": "0d2dd68a8cd2a424485911854fecbffdc8359734bf35d44ad01de06d0eaaaf0d",
-    "previousWasmSha256": "3d13e4f2cce966d119300a3d5f59c980d60847559876e0d08f1f203e6cec1637",
-    "repeatBuildSha256Matched": null,
-    "note": "Regenerated from the merged compiler-artifact-refresh stack on current canon (merge of holoscript-native-compiler-artifact-refresh-v1-20260803 onto 7b00ee93d). Fresh release build with the receipted toolchain; digest pinned from the produced artifact."
+    "wasmBytes": 551044,
+    "wasmSha256": "333f124699d9fb991fcc83cf635bf914adb95f265b1c8284a5405b6bd066441d",
+    "previousWasmSha256": "a87f2ec34570d80662041c5481e3e21ac6c64a6e656139dfd9b1007649fd8c3f",
+    "repeatBuildSha256Matched": true,
+    "note": "Rebuilt with pkg-node from the 5kf8 Kotlin typed-returns fix; pkg/ and pkg-node/ hold byte-identical WASM (sha 333f124699d9). Receipt corrected in a follow-up commit: the rebuild commit updated the wasm but not this receipt."
   }
 }

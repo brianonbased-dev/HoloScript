@@ -19,7 +19,7 @@ composition "SeismicSurvey" {
     recording: true
   }
 
-  simulation "seismic" {
+  template "seismic" {
     @acoustic_simulation {
       grid_resolution: [200, 3, 100]
       domain_size: [4.0, 0.06, 2.0]

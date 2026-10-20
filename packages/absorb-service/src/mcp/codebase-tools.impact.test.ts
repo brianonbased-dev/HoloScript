@@ -6,7 +6,11 @@ import { createHash } from 'crypto';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CodebaseGraph } from '../engine/CodebaseGraph';
 import type { ScannedFile } from '../engine/types';
-import { handleCodebaseTool, resetCodebaseToolStateForTests } from './codebase-tools';
+import {
+  handleCodebaseTool,
+  resetCodebaseToolStateForTests,
+  GRAPH_EXTRACTOR_VERSION,
+} from './codebase-tools';
 
 const originalCacheDir = process.env.HOLOSCRIPT_CACHE_DIR;
 const originalWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACE_ROOT;
@@ -88,6 +92,7 @@ function makeImpactRepo(): { repoDir: string; cacheDir: string } {
     path.join(cacheDir, 'graph-cache.json'),
     JSON.stringify({
       version: 2,
+      extractorVersion: GRAPH_EXTRACTOR_VERSION,
       rootDir: repoDir,
       timestamp: Date.now(),
       stats: graph.getStats(),

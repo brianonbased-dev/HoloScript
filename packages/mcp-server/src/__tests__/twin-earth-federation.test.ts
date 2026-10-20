@@ -150,9 +150,11 @@ describe('twin-earth-federation', () => {
     });
   });
 
-  // ── False-case: canary detects tool-level failure from bad args ─────────────
+  // ── A tool that ANSWERS with an error object ran: the invoke succeeds, the answer is the error ──
+  // (A tool that FAILS, by throwing or by its own isError envelope, fails the invoke: see
+  // reentry-tool-authorization.test.ts.)
 
-  it('canary detects tool-level failure when underlying tool returns error', async () => {
+  it('an invoke whose tool answers with an error object returns that answer as its result', async () => {
     // Publish tools manually so we can invoke a manifest with bad args
     const { published } = publishTwinEarthToolsToMesh({
       publisher: { agentId: 'fail-agent', name: 'fail' },

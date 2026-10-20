@@ -18,7 +18,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { handleTool } from '../handlers';
 import { PluginManager } from '../PluginManager';
 import { globalReceiptStore } from '../security/sandbox-policy';
-import type { SigningContext } from '../holomesh/identity/signing-middleware';
+import { gateMcpTool } from '../security/fork-sandbox-gate';
+import {
+  publicAnonymousContext,
+  type SigningContext,
+} from '../holomesh/identity/signing-middleware';
 
 const mockSigningCtx: SigningContext = {
   signedRequest: false,
@@ -118,14 +122,41 @@ describe('canary: benign fork samples pass the gate', () => {
     },
   };
 
-  it('CANARY-B003: benign HoloScript code through compile_pipeline WITH a verified manifest is allowed', async () => {
-    const result = await callTool('compile_pipeline', {
-      code: BENIGN_HOLO,
-      target: 'node',
-      capabilityManifest: COMPILE_PIPELINE_MANIFEST,
-    });
-    expectAllowed(result);
+  // Nothing signs a capability manifest yet, so its tier is whatever the sender wrote. It
+  // is believed only on the local stdio path; a caller with a context gets its declared
+  // tier read as 'unverified' (task_1790596867936_tyax). Before that fix, B003 passed by
+  // letting a tools:write caller declare its own manifest 'verified'.
+  it('CANARY-B003: a verified manifest is honoured where the declared tier is trusted (the local sender)', async () => {
+    const result = await gateMcpTool(
+      'compile_pipeline',
+      { code: BENIGN_HOLO, target: 'node' },
+      {
+        grantedScopes: ['tools:write'],
+        manifest: COMPILE_PIPELINE_MANIFEST,
+        declaredAttestationTrusted: true,
+      }
+    );
+    expect(result.allowed).toBe(true);
   });
+
+  it.each(['verified', 'gold', 'founder'] as const)(
+    "CANARY-B003-REMOTE: a caller with a context cannot declare its manifest '%s' through handleTool",
+    async (trustTier) => {
+      const result = await callTool('compile_pipeline', {
+        code: BENIGN_HOLO,
+        target: 'node',
+        capabilityManifest: {
+          ...COMPILE_PIPELINE_MANIFEST,
+          attestation: { ...COMPILE_PIPELINE_MANIFEST.attestation, trustTier },
+        },
+      });
+      expectBlocked(result, 'capability_manifest');
+      const checks = (result as { checks: Array<{ name: string; detail?: string }> }).checks;
+      expect(checks.find((c) => c.name === 'capability_manifest')?.detail).toContain(
+        "'unverified' is below required"
+      );
+    }
+  );
 
   it('CANARY-B003-NEG: the same call WITHOUT the manifest is denied at capability_manifest (negative)', async () => {
     const result = await callTool('compile_pipeline', { code: BENIGN_HOLO, target: 'node' });
@@ -391,5 +422,163 @@ describe('canary: denial receipts are complete and actionable', () => {
     entry!.expiresAt = Date.now() - 1;
     const expired = globalReceiptStore.get(receiptId);
     expect(expired).toBeUndefined();
+  });
+});
+
+// ── task x5ku: the admin bridge exists only on the stdio server ──────────────
+// handleTool used to turn ANY call without a signing context into
+// {signer:'stdio-local', scopes:['admin:*']} whenever HOLOSCRIPT_API_KEY was set, and the hosted
+// server sets it. So a call that lost its caller inside the server (a workflow step, a batch
+// child, a health probe) ran as admin, and admin skips this gate (H010) for sensitive tools too.
+// The bridge now also needs this process to BE the stdio server. validate_marketplace_pricing is
+// a sensitive tool (payments) that only computes, so letting it through runs nothing harmful.
+
+describe('canary: with no caller context, only the stdio server is trusted as admin (x5ku)', () => {
+  const saved = {
+    key: process.env.HOLOSCRIPT_API_KEY,
+    transport: process.env.HOLOSCRIPT_MCP_TRANSPORT,
+  };
+  const SENSITIVE: [string, Record<string, unknown>] = [
+    'validate_marketplace_pricing',
+    { traitName: 'grabbable', listPrice: 5 },
+  ];
+
+  beforeEach(() => {
+    globalReceiptStore.purgeExpired();
+    process.env.HOLOSCRIPT_API_KEY = 'canary-x5ku-key';
+  });
+
+  afterEach(() => {
+    for (const [name, value] of [
+      ['HOLOSCRIPT_API_KEY', saved.key],
+      ['HOLOSCRIPT_MCP_TRANSPORT', saved.transport],
+    ] as const) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
+  });
+
+  it('CANARY-X001: over HTTP, a context-less call is nobody, so a sensitive tool is refused', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    expectBlocked(await handleTool(...SENSITIVE), 'capability_manifest');
+  });
+
+  it('CANARY-X002: with no transport marker at all, the key alone grants nothing', async () => {
+    delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    expectBlocked(await handleTool(...SENSITIVE), 'capability_manifest');
+  });
+
+  it('CANARY-X003 (control): on the stdio server the local user keeps admin, as H010 documents', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+    const result = (await handleTool(...SENSITIVE)) as Record<string, unknown>;
+    expectAllowed(result);
+    expect(result.traitName).toBe('grabbable'); // the tool itself answered
+  });
+
+  it('CANARY-X004: the anonymous public caller is nobody, so a sensitive tool is refused to it', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    expectBlocked(
+      await handleTool(SENSITIVE[0], SENSITIVE[1], publicAnonymousContext()),
+      'capability_manifest'
+    );
+  });
+
+  it('CANARY-X005: the anonymous public tier still serves its six tools to benign input', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const { _handleSingleToolLogic } = await import('../index');
+    const calls: Array<[string, Record<string, unknown>]> = [
+      ['parse_holo', { code: BENIGN_HOLO }],
+      ['validate_holoscript', { code: BENIGN_HOLO }],
+      ['explain_trait', { trait: 'grabbable' }],
+      ['get_syntax_reference', { topic: 'orb' }],
+      ['get_examples', {}],
+      ['list_export_targets', {}],
+    ];
+    for (const [tool, args] of calls) {
+      const text = JSON.stringify(
+        await _handleSingleToolLogic(tool, args, publicAnonymousContext())
+      );
+      expect(text, tool).not.toContain('ForkSandboxGate denied');
+      expect(text, tool).not.toMatch(/Unknown tool|not permitted|authorization denied/i);
+    }
+  });
+
+  it('CANARY-X006: each anonymous caller is a fresh object, so one call cannot widen the next', () => {
+    const first = publicAnonymousContext();
+    first.scopes!.push('admin:*');
+    // tools:read only: the scope of the anonymous tier's own tools (claude3's P1-2 on #407).
+    expect(publicAnonymousContext().scopes).toEqual(['tools:read']);
+  });
+
+  // Why POST /api/public/tool passes this caller instead of none: with no context, a manifest's
+  // self-declared tier is believed (handlers.ts declaredAttestationTrusted; #449 narrows that to
+  // stdio). With the anonymous caller it is read as 'unverified', like any remote caller's.
+  it('CANARY-X007: the anonymous public caller cannot declare its own manifest verified', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const result = await handleTool(
+      'compile_pipeline',
+      {
+        code: BENIGN_HOLO,
+        target: 'node',
+        capabilityManifest: {
+          protocol: 'holoscript.capability.v1',
+          declaredCapabilities: ['compile:pipeline'],
+          attestation: {
+            manifestHash: 'abc',
+            signer: 'anyone',
+            trustTier: 'verified',
+            attestedAt: new Date().toISOString(),
+          },
+        },
+      },
+      publicAnonymousContext()
+    );
+    expectBlocked(result, 'capability_manifest');
+    const checks = (result as { checks: Array<{ name: string; detail?: string }> }).checks;
+    expect(checks.find((c) => c.name === 'capability_manifest')?.detail).toContain(
+      "'unverified' is below required"
+    );
+  });
+
+  // task wrn7: the code-payload gate read the RAW context's scopes while the tool gate above it
+  // read the bridge's, so the local stdio user passed the tool gate and was then refused its own
+  // code ("Required one of [tools:write]. Granted []"). Both gates now read the same caller. That
+  // is safe only because the bridge exists only on stdio (x5ku): X009 and X010 hold it.
+  const PIPELINE_WITH_CODE = {
+    code: BENIGN_HOLO,
+    target: 'node',
+    capabilityManifest: {
+      protocol: 'holoscript.capability.v1',
+      declaredCapabilities: ['compile:pipeline'],
+      attestation: {
+        manifestHash: 'abc',
+        signer: 'local',
+        trustTier: 'verified',
+        attestedAt: new Date().toISOString(),
+      },
+    },
+  };
+
+  it('CANARY-X008: the local stdio user can compile code, not only pass the tool gate', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'stdio';
+    const result = await handleTool('compile_pipeline', PIPELINE_WITH_CODE);
+    expect(JSON.stringify(result)).not.toContain('ForkSandboxGate denied');
+  });
+
+  it('CANARY-X009: over HTTP, the same context-less call is still refused', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const result = await handleTool('compile_pipeline', PIPELINE_WITH_CODE);
+    expect(JSON.stringify(result)).toContain('ForkSandboxGate denied');
+  });
+
+  it('CANARY-X010: over HTTP, a tools:read caller is still refused', async () => {
+    process.env.HOLOSCRIPT_MCP_TRANSPORT = 'http';
+    const result = await handleTool('compile_pipeline', PIPELINE_WITH_CODE, {
+      signedRequest: false,
+      signingValid: true,
+      signer: 'reader-agent',
+      scopes: ['tools:read'],
+    });
+    expect(JSON.stringify(result)).toContain('ForkSandboxGate denied');
   });
 });

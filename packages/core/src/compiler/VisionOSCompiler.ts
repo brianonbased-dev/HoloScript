@@ -30,7 +30,10 @@ import type {
 } from '../parser/HoloCompositionTypes';
 import { generateTraitCode, getRequiredImports, getMinVisionOSVersion } from './VisionOSTraitMap';
 import { CompilerBase } from './CompilerBase';
-import { filterCompositionForPlatform } from './PlatformConditionalCompilerMixin';
+import {
+  filterCompositionForPlatform,
+  filterSceneObjectsForPlatform,
+} from './PlatformConditionalCompilerMixin';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import {
   compileDomainBlocks,
@@ -52,6 +55,9 @@ export interface VisionOSCompilerOptions {
   indent?: string;
   useRealityComposerPro?: boolean;
 }
+
+/** A declaration at the very start of a line, and the name it gives (see constantsDeclaredBy). */
+const SWIFT_DECLARATION = /^(?:let|var|func|struct|class|enum|typealias|actor|protocol)\s+(\w+)/;
 
 interface VisionOSWindowDescriptor {
   objectName: string;
@@ -95,6 +101,22 @@ export class VisionOSCompiler extends CompilerBase {
   compile(composition: HoloComposition, agentToken: string, outputPath?: string): string {
     this.validateCompilerAccess(agentToken, outputPath);
     composition = filterCompositionForPlatform(composition, 'visionos');
+    // Objects (and an environment) written inside `scene` blocks are built the same way as
+    // top-level ones, in the same closure. That closure is one scope: objects, lights, groups,
+    // sounds and zones all declare constants in it, along with what an object derives from its
+    // name (`XMesh`, `XMaterial`, and the functions and types its traits write, `XThink`,
+    // `XLODComponent`), the scene `root` and the `content` parameter. A scene object that
+    // would declare a name already declared there is left out and named in a WARNING below.
+    // Everything beyond an object's own name is read off what the compiler writes, so none is
+    // guessed.
+    // The scenes' objects go through the @platform() filter first, so only an object this
+    // platform keeps is built, and only it takes a name.
+    composition = filterSceneObjectsForPlatform(composition, 'visionos');
+    const scenes = this.flattenScenes(composition, (name) => this.sanitizeName(name), {
+      reserved: (content) => this.sceneScopeNames(content),
+      of: (obj) => this.constantsDeclaredBy(() => this.compileObject(obj, 'root')),
+    });
+    composition = scenes.composition;
     this.lines = [];
     this.indentLevel = 0;
 
@@ -103,6 +125,9 @@ export class VisionOSCompiler extends CompilerBase {
       `// Source: composition "${this.escapeStringValue(composition.name as string, 'Swift')}"`
     );
     this.emit('// Do not edit manually — regenerate from .holo source');
+    for (const warning of this.sceneWarnings(scenes, 'Swift')) {
+      this.emit(`// WARNING: ${warning}`);
+    }
     this.emit('');
     this.emit('import SwiftUI');
     this.emit('import RealityKit');
@@ -171,45 +196,8 @@ export class VisionOSCompiler extends CompilerBase {
     this.emit('let root = Entity()');
     this.emit(`root.name = "${this.escapeStringValue(composition.name as string, 'Swift')}"`);
 
-    // Environment
-    if (composition.environment) {
-      this.compileEnvironment(composition.environment);
-    }
-
-    // Lights
-    if (composition.lights) {
-      for (const light of composition.lights) {
-        this.compileLight(light);
-      }
-    }
-
-    // Objects
-    if (composition.objects) {
-      for (const obj of composition.objects) {
-        this.compileObject(obj, 'root');
-      }
-    }
-
-    // Spatial groups
-    if (composition.spatialGroups) {
-      for (const group of composition.spatialGroups) {
-        this.compileSpatialGroup(group, 'root');
-      }
-    }
-
-    // Audio
-    if (composition.audio) {
-      for (const audio of composition.audio) {
-        this.compileAudio(audio);
-      }
-    }
-
-    // Zones
-    if (composition.zones) {
-      for (const zone of composition.zones) {
-        this.compileZone(zone);
-      }
-    }
+    // Environment, lights, objects, spatial groups, audio, zones
+    this.compileSceneParts(composition);
 
     this.emit('');
     this.emit('content.add(root)');
@@ -268,6 +256,82 @@ export class VisionOSCompiler extends CompilerBase {
     this.compileVisionOSDomainBlocks(composition);
 
     return this.lines.join('\n');
+  }
+
+  /**
+   * The body of the RealityView closure, part by part; every constant a part declares lives in
+   * that one scope. compile() writes each part. sceneScopeNames() passes a `part` that reads
+   * what each one declares instead, so the parts are listed here only, and a part added later
+   * is counted too.
+   */
+  private compileSceneParts(
+    composition: HoloComposition,
+    part: (by: string, compile: () => void) => void = (_by, compile) => compile()
+  ): void {
+    const environment = composition.environment;
+    if (environment) {
+      part('the environment', () => this.compileEnvironment(environment));
+    }
+    for (const light of composition.lights ?? []) {
+      part('a light', () => this.compileLight(light));
+    }
+    for (const obj of composition.objects ?? []) {
+      part('another object', () => this.compileObject(obj, 'root'));
+    }
+    for (const group of composition.spatialGroups ?? []) {
+      part('a group', () => this.compileSpatialGroup(group, 'root'));
+    }
+    for (const audio of composition.audio ?? []) {
+      part('a sound', () => this.compileAudio(audio));
+    }
+    for (const zone of composition.zones ?? []) {
+      part('a zone', () => this.compileZone(zone));
+    }
+  }
+
+  /**
+   * Every name the closure declares for `content`, each with plain words for the part that
+   * declares it. Read off what each part writes, so a name a part derives from a name
+   * (`XMesh`, `XMaterial`, `XLODComponent`, ...) counts as well as the name's own. `root` is
+   * declared by compile() itself, and `content` is the closure's own parameter: a constant
+   * with either name would replace it for everything written after.
+   */
+  private sceneScopeNames(content: HoloComposition): Map<string, string> {
+    const names = new Map<string, string>([
+      ['root', 'the scene root'],
+      ['content', 'the scene content'],
+    ]);
+    this.compileSceneParts(content, (by, compile) => {
+      for (const name of this.constantsDeclaredBy(compile)) {
+        if (!names.has(name)) names.set(name, by);
+      }
+    });
+    return names;
+  }
+
+  /**
+   * What `compile` declares in the closure's own scope, read off the lines it writes (those
+   * lines are dropped): its constants, variables, functions and types. It writes from indent
+   * zero, so a declaration at the start of a line is in that scope, and an indented one is
+   * inside a block of its own (a trait's `Task { ... }`, an `if let`, a function body), where
+   * any name can be reused. Trait code is full of those (`anchor`, `controller`, `input`, ...);
+   * counting them would leave a second object with the same trait out for a name that clashes
+   * with nothing.
+   */
+  private constantsDeclaredBy(compile: () => void): string[] {
+    const { lines, indentLevel } = this;
+    this.lines = [];
+    this.indentLevel = 0;
+    try {
+      compile();
+      return this.lines
+        .join('\n')
+        .split('\n')
+        .flatMap((line) => SWIFT_DECLARATION.exec(line)?.[1] ?? []);
+    } finally {
+      this.lines = lines;
+      this.indentLevel = indentLevel;
+    }
   }
 
   private compileVisionOSDomainBlocks(composition: HoloComposition): void {

@@ -58,7 +58,13 @@ import {
   ANONYMOUS_VIEWER,
   type PremiumViewer,
 } from '../entry-lookup';
-import { json, parseJsonBody, pruneStalePresence, isPresenceStale } from '../utils';
+import {
+  answerUnacceptedWrite,
+  json,
+  parseJsonBody,
+  pruneStalePresence,
+  isPresenceStale,
+} from '../utils';
 import { TEAM_ROLE_PERMISSIONS, REPUTATION_TIERS, resolveReputationTier } from '../types';
 
 // ── Domain descriptions ─────────────────────────────────────────────────────
@@ -554,7 +560,8 @@ export async function handleCoreRoutes(
       createdAt: new Date().toISOString(),
       metadata,
     };
-    await client.contributeKnowledge([entry]);
+    // No copy is kept here: a write the orchestrator did not accept exists nowhere (task xzgt).
+    if (answerUnacceptedWrite(res, await client.contributeKnowledgeDetailed([entry]))) return true;
     json(res, 201, {
       success: true,
       provenanceHash,
@@ -2284,7 +2291,8 @@ export async function handleCoreRoutes(
       reuseCount: e.reuseCount ?? 0,
       createdAt: e.createdAt || new Date().toISOString(),
     }));
-    await client.contributeKnowledge(prepared);
+    // The private vault lives only in the orchestrator: a refused write stored nothing (task xzgt).
+    if (answerUnacceptedWrite(res, await client.contributeKnowledgeDetailed(prepared))) return true;
     json(res, 201, {
       success: true,
       workspace_id: workspaceId,
@@ -2341,7 +2349,9 @@ export async function handleCoreRoutes(
           .update(publicId + Date.now())
           .digest('hex'),
     };
-    await client.contributeKnowledge([publicEntry]);
+    // The public copy exists only if the orchestrator took it (task xzgt).
+    if (answerUnacceptedWrite(res, await client.contributeKnowledgeDetailed([publicEntry])))
+      return true;
     json(res, 201, {
       success: true,
       promoted: { from: entryId, to: publicId, price },
@@ -2370,7 +2380,9 @@ export async function handleCoreRoutes(
       tags: ['tombstone'],
       createdAt: new Date().toISOString(),
     };
-    await client.contributeKnowledge([tombstone]);
+    // A refused tombstone leaves the entry in place, so it was not deleted (task xzgt).
+    if (answerUnacceptedWrite(res, await client.contributeKnowledgeDetailed([tombstone])))
+      return true;
     json(res, 200, { success: true, deleted: entryId });
     return true;
   }

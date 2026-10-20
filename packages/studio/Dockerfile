@@ -1,6 +1,9 @@
 ARG PNPM_VERSION=9.15.9
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat dumb-init chromium
+# git: the server runs it. Project import (app/api/workspace/import) runs `git clone`, and
+# workspace provisioning, the existing-workspace importer and daemon jobs run git too. Without it
+# every import on Railway failed at the first step (founder report, 2026-09-29).
+RUN apk add --no-cache libc6-compat dumb-init chromium git
 RUN if [ -x /usr/bin/chromium-browser ] && [ ! -e /usr/bin/chromium ]; then ln -s /usr/bin/chromium-browser /usr/bin/chromium; fi
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 ENV CHROMIUM_PATH=/usr/bin/chromium
@@ -268,6 +271,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/public ./packages
 # cwd is /app (CMD runs node packages/studio/server.js), so the loader's
 # process.cwd()=/app resolves /app/examples.
 COPY --from=manifests --chown=nextjs:nodejs /app/examples ./examples
+
+# Studio surface compositions: /api/surface/[slug] and /api/holomesh/surface
+# read compositions/studio/*.hsplus via fs at runtime (resolveCompositionsDir
+# walks to <cwd>/compositions/studio). Next standalone tracing does not follow
+# fs.readFileSync — same reason examples/ is copied above. Runtime cwd is /app,
+# so this lands at /app/compositions/studio/projects.hsplus etc.
+COPY --from=manifests --chown=nextjs:nodejs /app/compositions ./compositions
 
 # Migrations + runner — copied alongside the standalone output so the runtime
 # can self-heal schema on cold start. The pre-CMD step runs

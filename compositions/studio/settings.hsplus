@@ -10,6 +10,7 @@
  *      - "save"         → save profile (PUT /api/users/:id)
  *      - "stripe-setup" → window.location.href = onboardingUrl
  *      - "oracle-setup" → run oracle setup + re-fetch status
+ *      - "signin"       → signIn('github') /auth/signin
  *
  * Irreducibles kept as @slot: Stripe OAuth redirect, Oracle async setup,
  * detailed Oracle check matrix (complex conditional rendering with object.entries).
@@ -40,6 +41,8 @@ composition "Settings" {
     oracleTier: ""
     oracleLoading: false
     oracleConsultations: 0
+    // Oracle Boost is founder-only (its API answers 403 to anyone else)
+    isFounder: false
 
     // Auth state
     isSignedIn: false
@@ -63,6 +66,7 @@ composition "Settings" {
     on "save"         { /* handled by host: PUT /api/users/:id */ }
     on "stripe-setup" { /* handled by host: window.location.href = onboardingUrl */ }
     on "oracle-setup" { /* handled by host: fetch /api/studio/oracle-boost/setup */ }
+    on "signin"       { /* handled by host: signIn('github') */ }
   }
 
   // ── Root shell ────────────────────────────────────────────────────────────────
@@ -99,9 +103,10 @@ composition "Settings" {
       type: "ui"
       uiType: "panel"
       visible: $showNotSignedIn
-      direction: "row"
+      direction: "column"
       align: "center"
       justify: "center"
+      gap: 16
       padding: 40
 
       object "NotSignedInText" {
@@ -110,6 +115,22 @@ composition "Settings" {
         text: "Please sign in to access settings."
         fontSize: 13
         color: "#888888"
+        textAlign: "center"
+        marginBottom: 8
+      }
+
+      object "SignInBtn" {
+        type: "ui"
+        uiType: "button"
+        text: "Sign in"
+        onClick: "signin"
+        fontSize: 13
+        fontWeight: "500"
+        color: "#6ee7b7"
+        padding: 10
+        cornerRadius: 8
+        borderColor: "#065f46"
+        backgroundColor: "#064e3b"
       }
     }
 
@@ -270,6 +291,7 @@ composition "Settings" {
       object "OracleSection" {
         type: "ui"
         uiType: "panel"
+        visible: $isFounder
         direction: "column"
         gap: 12
 

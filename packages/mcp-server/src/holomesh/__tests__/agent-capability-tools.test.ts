@@ -1,10 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import {
   agentCapabilityTools,
   extractAgentCapabilities,
   handleAgentCapabilityTool,
   resolveMarketplaceSearchUrl,
 } from '../agent-capability-tools';
+
+/** Run `fn` with HOLOSCRIPT_MCP_TRANSPORT set (undefined = unset), then put it back. */
+async function withTransport<T>(transport: string | undefined, fn: () => T | Promise<T>) {
+  const saved = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  if (transport === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  else process.env.HOLOSCRIPT_MCP_TRANSPORT = transport;
+  try {
+    return await fn();
+  } finally {
+    if (saved === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = saved;
+  }
+}
 
 describe('agent capability tools', () => {
   it('exports capability and marketplace search tool definitions', () => {
@@ -144,19 +159,41 @@ describe('resolveMarketplaceSearchUrl SSRF protection', () => {
     ).toBe('https://mcp-orchestrator-production-45f9.up.railway.app/marketplace/search');
   });
 
-  it('allows http URLs to loopback hosts (localhost, 127.0.0.1)', () => {
-    expect(resolveMarketplaceSearchUrl('http://localhost:4555/marketplace/search')).toBe(
-      'http://localhost:4555/marketplace/search'
-    );
-    expect(resolveMarketplaceSearchUrl('http://127.0.0.1:4555/marketplace/search')).toBe(
-      'http://127.0.0.1:4555/marketplace/search'
-    );
+  it('allows http URLs to loopback hosts (localhost, 127.0.0.1) on stdio, the local machine', async () => {
+    await withTransport('stdio', () => {
+      expect(resolveMarketplaceSearchUrl('http://localhost:4555/marketplace/search')).toBe(
+        'http://localhost:4555/marketplace/search'
+      );
+      expect(resolveMarketplaceSearchUrl('http://127.0.0.1:4555/marketplace/search')).toBe(
+        'http://127.0.0.1:4555/marketplace/search'
+      );
+    });
   });
 
-  it('allows https URLs to loopback hosts', () => {
-    expect(resolveMarketplaceSearchUrl('https://localhost/search')).toBe(
-      'https://localhost/search'
-    );
+  it('allows https URLs to loopback hosts on stdio', async () => {
+    await withTransport('stdio', () => {
+      expect(resolveMarketplaceSearchUrl('https://localhost/search')).toBe(
+        'https://localhost/search'
+      );
+    });
+  });
+
+  // task uhom: on the hosted server, loopback is the server's own container, and the search
+  // sends HOLOSCRIPT_API_KEY to the port and path the caller names.
+  it('refuses a loopback override unless this server runs on stdio', async () => {
+    for (const transport of ['http', undefined]) {
+      await withTransport(transport, () => {
+        for (const url of [
+          'http://127.0.0.1:4555/marketplace/search',
+          'http://localhost:3000/api/admin',
+          'https://localhost/search',
+        ]) {
+          expect(() => resolveMarketplaceSearchUrl(url), `${transport}: ${url}`).toThrow(
+            /only when this server runs on stdio/
+          );
+        }
+      });
+    }
   });
 
   it('returns env default when no override is provided', () => {
@@ -244,6 +281,51 @@ describe('resolveMarketplaceSearchUrl SSRF protection', () => {
       } else {
         process.env.HOLOMESH_MARKETPLACE_SEARCH_URL = original;
       }
+    }
+  });
+});
+
+// task uhom, end to end: a stand-in on 127.0.0.1 counts what the search sends it.
+describe('holomesh_marketplace_search sends nothing to a loopback override on the hosted server', () => {
+  const closers: Array<() => Promise<void>> = [];
+  afterEach(async () => {
+    while (closers.length) await closers.pop()!();
+  });
+
+  async function standIn(): Promise<{ url: string; hits: () => number }> {
+    let hits = 0;
+    const server = createServer((_req, res) => {
+      hits += 1;
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end('{"results":[]}');
+    });
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const { port } = server.address() as AddressInfo;
+    closers.push(() => new Promise<void>((resolve) => server.close(() => resolve())));
+    return { url: `http://127.0.0.1:${port}/marketplace/search`, hits: () => hits };
+  }
+
+  it('on http the call is refused before any request leaves; on stdio it still reaches a local marketplace', async () => {
+    const savedKey = process.env.HOLOSCRIPT_API_KEY;
+    process.env.HOLOSCRIPT_API_KEY = 'test-operator-key';
+    try {
+      const server = await standIn();
+      const args = { marketplace_url: server.url, capability_query: 'compiler' };
+
+      await withTransport('http', async () => {
+        await expect(
+          handleAgentCapabilityTool('holomesh_marketplace_search', args)
+        ).rejects.toThrow(/only when this server runs on stdio/);
+      });
+      expect(server.hits()).toBe(0);
+
+      await withTransport('stdio', () =>
+        handleAgentCapabilityTool('holomesh_marketplace_search', args)
+      );
+      expect(server.hits()).toBe(1);
+    } finally {
+      if (savedKey === undefined) delete process.env.HOLOSCRIPT_API_KEY;
+      else process.env.HOLOSCRIPT_API_KEY = savedKey;
     }
   });
 });

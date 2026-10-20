@@ -19,6 +19,7 @@ import {
   resolveWebSurfaceConfig,
   partitionStudioChildren,
   buildScatterMesh,
+  resolveEnvironmentPreset,
 } from '@holoscript/r3f-renderer';
 import { useEditorStore, useSceneGraphStore } from '@/lib/stores';
 import { useBuilderStore } from '@/lib/stores/builderStore';
@@ -400,7 +401,10 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     case 'Environment':
       return (
-        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+        <Environment
+          preset={resolveEnvironmentPreset(props)}
+          background={props.background ?? false}
+        />
       );
 
     case 'fog':

@@ -40,5 +40,39 @@ describe('generatedOutputGate', () => {
     expect(validation.errors).toContain(
       'Generated HoloScript parsed but produced no core scene/world primitives'
     );
+    expect(validation.warnings).toContain(
+      `"hero" parsed as a 'custom' block, which does not count as scene content`
+    );
+  });
+
+  it('still counts a domain block HoloScript defines', () => {
+    const validation = validateGeneratedHoloOutput(`composition "Greenhouse" {
+  sensor "Air" {
+    type: "temperature"
+  }
+}`);
+
+    expect(validation.ast?.domainBlocks?.[0]?.domain).toBe('iot');
+    expect(validation.corePrimitives.domainBlocks).toBe(1);
+    expect(validation.valid).toBe(true);
+  });
+
+  it('passes real scene content next to a user-defined block, and names that block', () => {
+    const validation = validateGeneratedHoloOutput(`composition "Mixed" {
+  hero "Landing" {
+    headline: "A glowing cube"
+  }
+  object "Cube" {
+    geometry: "box"
+    position: [0, 1, 0]
+  }
+}`);
+
+    expect(validation.valid).toBe(true);
+    expect(validation.corePrimitives.objects).toBe(1);
+    expect(validation.corePrimitives.domainBlocks).toBe(0);
+    expect(validation.warnings).toContain(
+      `"hero" parsed as a 'custom' block, which does not count as scene content`
+    );
   });
 });

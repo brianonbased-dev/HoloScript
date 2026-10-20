@@ -57,13 +57,16 @@ import type { PaperUnlockState, PublishWorthinessSummary } from '@/lib/stores/wo
 import {
   buildProjectDna,
   isWorkspaceAbsorbStale,
-  workspaceAbsorbStatus,
-  workspaceAgentStatus,
-  workspaceBuildStatus,
   type BulkWorkspaceProgress,
   type ProjectWorkspaceOverview,
   type WorkspaceGitSnapshot,
 } from './workspaceOverview';
+import {
+  describeJobOutcome,
+  directShipWarning,
+  startMissionCtaLabel,
+  workspaceReadiness,
+} from './workbenchHonesty';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -480,6 +483,8 @@ export function ReposTab() {
   const [importBranch, setImportBranch] = useState('');
   const [importName, setImportName] = useState('');
   const [importing, setImporting] = useState(false);
+  const [addRepoOpen, setAddRepoOpen] = useState(false);
+  const [jobDetailsOpen, setJobDetailsOpen] = useState(false);
 
   // Bulk import (founder 2026-06-11: "everything is setup to configure one
   // project at a time when we have many") — multi-select from the signed-in
@@ -1148,16 +1153,7 @@ export function ReposTab() {
             >
               {`Scan stale (${staleWorkspaces.length})`}
             </IconButton>
-            <IconButton
-              icon={Play}
-              onClick={() => void handleLaunchAgents()}
-              disabled={assignmentTargetCount === 0 || creating || bulkBusy}
-              variant="primary"
-            >
-              {selectedWorkspaceIds.size > 0
-                ? `Assign ${selectedWorkspaceIds.size}`
-                : 'Assign Agent'}
-            </IconButton>
+            {/* Primary Start CTA lives in the Agent tab — no duplicate Assign here */}
           </div>
         </div>
       </header>
@@ -1167,10 +1163,34 @@ export function ReposTab() {
         {/* Left: import + workspace list */}
         <aside className="min-h-0 border-b border-slate-800 bg-slate-950 xl:border-b-0 xl:border-r">
           <div className="flex h-full flex-col">
+            {activeWorkspace && !addRepoOpen ? (
+              <section className="border-b border-slate-800 p-4">
+                <button
+                  type="button"
+                  onClick={() => setAddRepoOpen(true)}
+                  className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-800"
+                >
+                  <GitPullRequestCreate className="h-4 w-4 text-blue-300" />
+                  Add repo
+                </button>
+              </section>
+            ) : (
+              <>
             <section className="border-b border-slate-800 p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-100">
-                <GitPullRequestCreate className="h-4 w-4 text-blue-300" />
-                Import Repository
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                  <GitPullRequestCreate className="h-4 w-4 text-blue-300" />
+                  Import Repository
+                </div>
+                {activeWorkspace && (
+                  <button
+                    type="button"
+                    onClick={() => setAddRepoOpen(false)}
+                    className="text-[11px] text-slate-500 hover:text-slate-300"
+                  >
+                    Hide
+                  </button>
+                )}
               </div>
               <div className="space-y-2">
                 <input
@@ -1321,6 +1341,9 @@ export function ReposTab() {
               )}
             </section>
 
+              </>
+            )}
+
             <section className="border-b border-slate-800 p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
@@ -1341,9 +1364,7 @@ export function ReposTab() {
                 {workspaces.map((workspace) => {
                   const snapshot = workspaceGitSnapshots[workspace.id];
                   const selected = selectedWorkspaceIds.has(workspace.id);
-                  const agentStatus = workspaceAgentStatus(workspace, jobs);
-                  const absorbStatus = workspaceAbsorbStatus(workspace);
-                  const buildStatus = workspaceBuildStatus(workspace);
+                  const readiness = workspaceReadiness(workspace, jobs, snapshot);
                   return (
                     <div
                       key={`overview:${workspace.id}`}
@@ -1369,24 +1390,28 @@ export function ReposTab() {
                           {workspace.name}
                         </button>
                       </div>
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[10px]">
-                        <div className="min-w-0">
-                          <span className="mb-1 block text-slate-500">Git</span>
-                          <StatusPill status={snapshot?.status ?? 'unknown'} />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="mb-1 block text-slate-500">Absorb</span>
-                          <StatusPill status={absorbStatus} />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="mb-1 block text-slate-500">Agent</span>
-                          <StatusPill status={agentStatus} />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="mb-1 block text-slate-500">Build</span>
-                          <StatusPill status={buildStatus} />
-                        </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <StatusPill
+                          status={
+                            readiness.ready
+                              ? 'ready'
+                              : readiness.tone === 'running'
+                                ? 'running'
+                                : readiness.tone === 'blocked'
+                                  ? 'failed'
+                                  : 'stale'
+                          }
+                        />
+                        <span className="text-[11px] text-slate-300">{readiness.label}</span>
                       </div>
+                      {readiness.blockers.length > 1 && (
+                        <p className="mt-1 text-[10px] text-amber-300/90">
+                          {readiness.blockers
+                            .slice(1)
+                            .map((b) => b.label)
+                            .join(' · ')}
+                        </p>
+                      )}
                       <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-500">
                         <span className="truncate">
                           {snapshot?.branch ?? workspace.branch ?? 'branch unknown'}
@@ -1507,7 +1532,39 @@ export function ReposTab() {
                     <h3 className="truncate text-xl font-semibold text-slate-50">
                       {activeWorkspace?.name ?? 'No workspace selected'}
                     </h3>
-                    <StatusPill status={gitStatus?.clean ? 'ready' : activeWorkspace?.status} />
+                    {activeWorkspace && (
+                      <StatusPill
+                        status={
+                          (() => {
+                            const r = workspaceReadiness(
+                              activeWorkspace,
+                              jobs,
+                              activeWorkspace
+                                ? workspaceGitSnapshots[activeWorkspace.id]
+                                : null
+                            );
+                            return r.ready
+                              ? 'ready'
+                              : r.tone === 'running'
+                                ? 'running'
+                                : r.tone === 'blocked'
+                                  ? 'failed'
+                                  : 'stale';
+                          })()
+                        }
+                      />
+                    )}
+                    {activeWorkspace && (
+                      <span className="text-xs text-slate-400">
+                        {
+                          workspaceReadiness(
+                            activeWorkspace,
+                            jobs,
+                            workspaceGitSnapshots[activeWorkspace.id]
+                          ).label
+                        }
+                      </span>
+                    )}
                     {workspaceLoading && <Loader2 className="h-4 w-4 animate-spin text-blue-300" />}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
@@ -1764,15 +1821,17 @@ export function ReposTab() {
                       icon={Rocket}
                       onClick={() => void handleDirectShip()}
                       disabled={operationBusy || !canDirectShip}
-                      variant={canDirectShip ? 'primary' : 'neutral'}
-                      title={
-                        access?.recommendedFlow === 'branch-pr'
-                          ? 'Use branch and PR flow for this role'
-                          : undefined
-                      }
+                      variant="neutral"
+                      title={directShipWarning(canDirectShip)}
                     >
                       Direct Ship
                     </IconButton>
+                    <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-100">
+                      {directShipWarning(canDirectShip)}{' '}
+                      <a href="/settings" className="underline hover:text-amber-50">
+                        Settings
+                      </a>
+                    </p>
                   </div>
                 </div>
               )}
@@ -1835,9 +1894,13 @@ export function ReposTab() {
                       disabled={assignmentTargetCount === 0 || creating || bulkBusy}
                       variant="primary"
                     >
-                      {selectedWorkspaceIds.size > 0
-                        ? `Start ${selectedWorkspaceIds.size}`
-                        : 'Start Job'}
+                      {startMissionCtaLabel(
+                        daemonMissionProfile,
+                        selectedDaemonMission.name,
+                        selectedWorkspaceIds.size > 0
+                          ? selectedWorkspaceIds.size
+                          : assignmentTargetCount
+                      )}
                     </IconButton>
                   </div>
 
@@ -1853,27 +1916,47 @@ export function ReposTab() {
                         </IconButton>
                       </div>
                       <div className="divide-y divide-slate-800">
-                        {workspaceJobs.map((job) => (
+                        {workspaceJobs.map((job) => {
+                          const outcome = describeJobOutcome(job);
+                          const pillStatus =
+                            outcome.tone === 'blocked'
+                              ? 'failed'
+                              : outcome.tone === 'degraded' || outcome.tone === 'neutral'
+                                ? 'stale'
+                                : outcome.tone === 'running'
+                                  ? 'running'
+                                  : outcome.tone === 'ready'
+                                    ? 'completed'
+                                    : job.status;
+                          return (
                           <button
                             key={job.id}
                             type="button"
-                            onClick={() => setSelectedJobId(job.id)}
+                            onClick={() => {
+                              setSelectedJobId(job.id);
+                              setJobDetailsOpen(false);
+                            }}
                             className={`grid w-full grid-cols-[minmax(0,1fr)_90px_90px] items-center gap-3 px-3 py-2 text-left text-sm transition ${
                               selectedJob?.id === job.id ? 'bg-slate-800' : 'hover:bg-slate-900'
                             }`}
                           >
                             <span className="min-w-0">
-                              <span className="block truncate text-slate-100">{job.id}</span>
+                              <span className="block truncate text-slate-100">
+                                {job.status === 'queued' || job.status === 'running'
+                                  ? `What it'll do: ${outcome.headline}`
+                                  : `What it did: ${outcome.headline}`}
+                              </span>
                               <span className="block truncate text-xs text-slate-500">
-                                {job.statusMessage ?? job.summary ?? 'queued'}
+                                {outcome.honesty ?? job.statusMessage ?? 'queued'}
                               </span>
                             </span>
-                            <StatusPill status={job.status} />
+                            <StatusPill status={pillStatus} />
                             <span className="text-right text-xs text-slate-500">
-                              {job.progress}%
+                              {outcome.showProgressPercent ? `${job.progress}%` : '—'}
                             </span>
                           </button>
-                        ))}
+                          );
+                        })}
                         {workspaceJobs.length === 0 && (
                           <div className="px-3 py-8 text-center text-sm text-slate-500">
                             No agent sessions for this workspace yet.
@@ -1887,10 +1970,12 @@ export function ReposTab() {
                         <div className="flex items-center justify-between border-b border-slate-800 px-3 py-2">
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium text-slate-100">
-                              {selectedJob.id}
+                              {describeJobOutcome(selectedJob).headline}
                             </p>
                             <p className="truncate text-xs text-slate-500">
-                              {selectedJob.summary ?? selectedJob.statusMessage}
+                              {describeJobOutcome(selectedJob).honesty ??
+                                selectedJob.summary ??
+                                selectedJob.statusMessage}
                             </p>
                           </div>
                           <IconButton
@@ -1901,6 +1986,13 @@ export function ReposTab() {
                             Review
                           </IconButton>
                         </div>
+                        {(describeJobOutcome(selectedJob).tone === 'blocked' ||
+                          describeJobOutcome(selectedJob).tone === 'degraded' ||
+                          describeJobOutcome(selectedJob).tone === 'neutral') && (
+                          <div className="border-b border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                            {describeJobOutcome(selectedJob).honesty}
+                          </div>
+                        )}
                         <div className="grid grid-cols-3 gap-2 border-b border-slate-800 p-3 text-sm">
                           <div>
                             <p className="text-xs text-slate-500">Patches</p>
@@ -1920,6 +2012,34 @@ export function ReposTab() {
                               {selectedJob.metrics?.qualityDelta ?? 0}
                             </p>
                           </div>
+                        </div>
+                        <div className="border-b border-slate-800 px-3 py-2">
+                          <button
+                            type="button"
+                            onClick={() => setJobDetailsOpen((v) => !v)}
+                            className="text-xs text-slate-400 hover:text-slate-200"
+                          >
+                            {jobDetailsOpen ? 'Hide details' : 'Details'}
+                          </button>
+                          {jobDetailsOpen && (
+                            <dl className="mt-2 space-y-1 font-mono text-[11px] text-slate-500">
+                              <div>id: {selectedJob.id}</div>
+                              <div>path: {selectedJob.projectPath ?? '—'}</div>
+                              <div>
+                                DNA: {Math.round((selectedJob.projectDna?.confidence ?? 0) * 100)}%
+                                {selectedJob.projectDna?.daemonAgent?.missionProfile
+                                  ? ` · ${selectedJob.projectDna.daemonAgent.missionProfile}`
+                                  : ''}
+                              </div>
+                              {selectedJob.limits && (
+                                <div>
+                                  limits: {selectedJob.limits.maxCycles} cycles ·{' '}
+                                  {selectedJob.limits.maxFilesChanged} files ·{' '}
+                                  {Math.round(selectedJob.limits.timeoutMs / 1000)}s
+                                </div>
+                              )}
+                            </dl>
+                          )}
                         </div>
                         <div className="max-h-[280px] overflow-auto p-3 font-mono text-xs text-slate-400">
                           {(selectedJob.logs ?? []).slice(-30).map((log, index) => (
@@ -2099,11 +2219,14 @@ export function ReposTab() {
                     <span className="text-slate-400">Flow</span>
                     <span className="font-medium text-slate-100">{access.recommendedFlow}</span>
                   </div>
-                  <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-950 p-3 text-xs text-slate-400">
-                    <LockKeyhole className="h-4 w-4 shrink-0 text-amber-300" />
-                    {access.canDirectShip
-                      ? 'Direct ship is enabled for this account.'
-                      : 'Branch and PR flow is active for this account.'}
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-100">
+                    <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+                    <span>
+                      {directShipWarning(access.canDirectShip)}{' '}
+                      <a href="/settings" className="underline hover:text-amber-50">
+                        Open Settings
+                      </a>
+                    </span>
                   </div>
                   {access.error && <p className="text-xs text-amber-300">{access.error}</p>}
                 </div>
@@ -2156,25 +2279,38 @@ export function ReposTab() {
                 Session Timeline
               </div>
               <div className="space-y-2">
-                {workspaceJobs.slice(0, 6).map((job) => (
-                  <button
-                    key={job.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedJobId(job.id);
-                      setActiveTab('agent');
-                    }}
-                    className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2 text-left transition hover:border-slate-600"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-xs font-medium text-slate-200">{job.id}</span>
-                      <StatusPill status={job.status} />
-                    </div>
-                    <p className="mt-1 truncate text-xs text-slate-500">
-                      {job.statusMessage ?? job.summary}
-                    </p>
-                  </button>
-                ))}
+                {workspaceJobs.slice(0, 6).map((job) => {
+                  const outcome = describeJobOutcome(job);
+                  return (
+                    <button
+                      key={job.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedJobId(job.id);
+                        setActiveTab('agent');
+                      }}
+                      className="w-full rounded-lg border border-slate-800 bg-slate-950 p-2 text-left transition hover:border-slate-600"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-xs font-medium text-slate-200">
+                          {outcome.headline}
+                        </span>
+                        <StatusPill
+                          status={
+                            outcome.tone === 'blocked'
+                              ? 'failed'
+                              : outcome.tone === 'neutral' || outcome.tone === 'degraded'
+                                ? 'stale'
+                                : job.status
+                          }
+                        />
+                      </div>
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {outcome.honesty ?? job.statusMessage ?? job.summary}
+                      </p>
+                    </button>
+                  );
+                })}
                 {workspaceJobs.length === 0 && <EmptyState>No timeline entries yet.</EmptyState>}
               </div>
             </section>

@@ -15,10 +15,26 @@ import { POST as dispatchPOST } from '../dispatch/route';
  * registry. This endpoint does not add a second cadence engine.
  *
  * Body (all optional):
- *   teamId         — team whose board to work (defaults to session team)
  *   maxDispatches  — max tasks per tick (default 1)
  *   dryRun         — preview without claiming (default false)
- *   executeAfterClaim — activate HoloClaw + execute (default: FLEET_EXECUTOR_ENABLED env)
+ *
+ * THAT IS ALL THE TICK CARRIES. The tick's caller can be nothing but the fleet
+ * service token (the /api gate admits it on this entry alone), and that token is
+ * a cron's credential, not a founder's. So the three settings that decide what a
+ * tick may spend or touch stay with the operator and are never read from the
+ * request:
+ *   - the daily spend cap      FLEET_DAILY_SPEND_CAP_USD, else the default cap
+ *   - the executor switch      FLEET_EXECUTOR_ENABLED
+ *   - the team whose board     HOLOMESH_TEAM_ID, else the default team
+ * A body that sets `capUsd`, `executeAfterClaim` or `teamId` gets none of them:
+ * they are dropped here, and named in `ignoredParams` so the caller can see it.
+ * The tick works the configured team and says which one (`teamId`); it does not
+ * refuse a mismatch, because refusing would need a second copy of the default
+ * team id that could drift from the one dispatch actually uses.
+ *
+ * A founder who wants a different cap, the executor, or another team's board
+ * uses the dispatch route, which takes all three under a founder session (the
+ * Fleet panel posts to it directly). The tick is not a way round that route.
  */
 export async function POST(req: NextRequest) {
   let body: unknown;
@@ -30,15 +46,18 @@ export async function POST(req: NextRequest) {
 
   const params = (body ?? {}) as Record<string, unknown>;
 
-  // Build the dispatch request body, forwarding all relevant params
+  // Build the dispatch request body from an allowlist: only the cadence knobs a
+  // tick needs go through. Anything else a caller sent — including a field added
+  // to dispatch tomorrow — is not forwarded unless someone names it here.
   const dispatchBody: Record<string, unknown> = {};
-  if (params['teamId']) dispatchBody['teamId'] = params['teamId'];
   if (params['maxDispatches'] !== undefined)
     dispatchBody['maxDispatches'] = params['maxDispatches'];
   if (params['dryRun'] !== undefined) dispatchBody['dryRun'] = params['dryRun'];
-  if (params['executeAfterClaim'] !== undefined)
-    dispatchBody['executeAfterClaim'] = params['executeAfterClaim'];
-  if (params['capUsd'] !== undefined) dispatchBody['capUsd'] = params['capUsd'];
+
+  // The settings above that the operator owns, if the caller tried to set any.
+  const ignoredParams = ['teamId', 'capUsd', 'executeAfterClaim'].filter(
+    (key) => params[key] !== undefined
+  );
 
   // Forward auth so the dispatch route can pass it to HoloMesh
   const authHeader = req.headers.get('authorization');
@@ -68,7 +87,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ tick: true, ...((data as Record<string, unknown>) ?? {}) });
+    return NextResponse.json({
+      tick: true,
+      ...(ignoredParams.length > 0 ? { ignoredParams } : {}),
+      ...((data as Record<string, unknown>) ?? {}),
+    });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Tick failed' },

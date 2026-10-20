@@ -498,6 +498,28 @@ export class LlamaServerCompiler extends CompilerBase {
   compile(composition: any, agentToken: string, outputPath?: string): string;
   compileToFiles(composition: any, agentToken?: string): Record<string, string>;
 }
+// HoloScript -> GBNF grammar generator (compiler/holoscript-gbnf.ts).
+export interface HoloScriptGbnfOptions {
+  root?: 'composition' | 'definitions';
+  objectKeywords?: readonly string[];
+  primitiveShapes?: readonly string[];
+  materialKeywords?: readonly string[];
+  requireDefinition?: boolean;
+}
+export declare function generateHoloScriptGbnf(options?: HoloScriptGbnfOptions): string;
+export declare const HOLOSCRIPT_GRAMMAR_PRESETS: readonly ['holoscript', 'holoscript-subset'];
+export type HoloScriptGrammarPreset = (typeof HOLOSCRIPT_GRAMMAR_PRESETS)[number];
+export declare function isHoloScriptGrammarPreset(value: string): value is HoloScriptGrammarPreset;
+export declare function holoScriptGrammarForPreset(preset: HoloScriptGrammarPreset): {
+  path: string;
+  content: string;
+};
+export declare const RESERVED_PROPERTY_NAMES: readonly string[];
+export declare const RESERVED_GROUP_NAMES: readonly string[];
+export declare const RESERVED_MACHINE_NAMES: readonly string[];
+export declare const DEFAULT_OBJECT_KEYWORDS: readonly string[];
+export declare const DEFAULT_PRIMITIVE_SHAPES: readonly string[];
+export declare const DEFAULT_MATERIAL_KEYWORDS: readonly string[];
 export class AgentInferenceExportTarget extends CompilerBase { compile(ast: any, token: CompilerToken): any; }
 export class AgentInferenceCompiler extends CompilerBase {
   constructor(options?: any);
@@ -845,7 +867,36 @@ export const SOVEREIGN_ENGINES: readonly SovereignEngine[];
 export function isSovereignTarget(target: ExportTarget): boolean;
 export function isBridgeTarget(target: ExportTarget): boolean;
 export function targetSovereignty(target: ExportTarget): 'sovereign' | 'bridge' | 'mode';
+
+// Honest maturity tier per export target, earned from evidence (target-tiers.ts)
+export type TargetTier = 'reference' | 'production' | 'preview' | 'experimental' | 'format-only';
+export interface TargetRuntimeProof {
+  readonly file: string;
+  readonly quote: string;
+  readonly onDevice: boolean;
+}
+export interface TargetTierEntry {
+  readonly tier: TargetTier;
+  readonly compiler: string;
+  readonly tests: readonly string[];
+  readonly golden?: string;
+  readonly runtimeProof?: TargetRuntimeProof;
+  readonly referenceApp?: string;
+  readonly knownGaps?: string;
+}
+export interface TierAuditIO {
+  exists(repoRelativePath: string): boolean;
+  read(repoRelativePath: string): string;
+  knownFailingTests: ReadonlySet<string>;
+}
+export const TARGET_TIERS: Readonly<Record<ExportTarget, TargetTierEntry>>;
+export const TIER_MEANING: Readonly<Record<TargetTier, string>>;
+export function earnedTier(entry: TargetTierEntry): TargetTier;
+export function auditTargetTiers(io: TierAuditIO, tiers?: Readonly<Record<string, TargetTierEntry>>): string[];
+export function targetTier(target: string): TargetTier | undefined;
+export function describeTargetLimits(target: string): string;
 export function compilePipelineSourceToNode(source: string, options?: any): any;
+export function summarizePipelineIo(source: string): { success: boolean; envReads: string[]; hosts: string[]; dynamicHost: boolean; errors?: string[] };
 
 /**
  * Native2D — the sovereign HoloScript-native 2D/UI compiler (.holo -> @generated .tsx). Its

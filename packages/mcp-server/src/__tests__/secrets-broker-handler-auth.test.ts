@@ -88,9 +88,42 @@ const validGrantArgs = {
 
 // ── gateSecretsBrokerTool (pure helper) ────────────────────────────────
 
+/** Run `body` with HOLOSCRIPT_MCP_TRANSPORT set to `transport` (or unset), then restore it. */
+async function onTransport<T>(transport: string | undefined, body: () => T | Promise<T>) {
+  const saved = process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  if (transport === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+  else process.env.HOLOSCRIPT_MCP_TRANSPORT = transport;
+  try {
+    return await body();
+  } finally {
+    if (saved === undefined) delete process.env.HOLOSCRIPT_MCP_TRANSPORT;
+    else process.env.HOLOSCRIPT_MCP_TRANSPORT = saved;
+  }
+}
+
 describe('gateSecretsBrokerTool — pure helper', () => {
-  it('FALSE: no signingCtx → null (legacy ungated path preserved)', () => {
-    expect(gateSecretsBrokerTool('holo_secrets_grant', undefined)).toBeNull();
+  it('FALSE: no signingCtx on the stdio server → null (the local user, legacy ungated path)', async () => {
+    await onTransport('stdio', () =>
+      expect(gateSecretsBrokerTool('holo_secrets_grant', undefined)).toBeNull()
+    );
+  });
+
+  // task mplw: off the stdio server a missing context is a call that lost its caller, not the
+  // local user, so a secrets tool refuses it.
+  it('TRUE: no signingCtx over HTTP → SecretsBrokerAuthError (nobody is not the local user)', async () => {
+    await onTransport('http', () => {
+      const err = gateSecretsBrokerTool('holo_secrets_resolve', undefined);
+      expect(err).toMatchObject({ authError: true, tool: 'holo_secrets_resolve' });
+      expect(err?.reason).toMatch(/no caller/);
+    });
+  });
+
+  it('TRUE: no signingCtx and no transport marker → SecretsBrokerAuthError', async () => {
+    await onTransport(undefined, () =>
+      expect(gateSecretsBrokerTool('holo_secrets_grant', undefined)).toMatchObject({
+        authError: true,
+      })
+    );
   });
 
   it('FALSE: unknown tool name → null (gate defers to downstream)', () => {
@@ -187,13 +220,23 @@ describe('SECRETS_BROKER_TOOL_CAPABILITIES', () => {
 // ── handleSecretsBrokerTool integration ──────────────────────────────
 
 describe('handleSecretsBrokerTool — auth integration', () => {
-  it('FALSE: legacy call (no signingCtx) → tool runs ungated (matches existing dispatcher)', async () => {
-    const result = (await handleSecretsBrokerTool('holo_secrets_grant', validGrantArgs)) as {
+  it('FALSE: legacy call (no signingCtx) on the stdio server → tool runs ungated (the local user)', async () => {
+    const result = (await onTransport('stdio', () =>
+      handleSecretsBrokerTool('holo_secrets_grant', validGrantArgs)
+    )) as {
       status?: string;
       grant?: { grantId?: string };
     };
     expect(result.status).toBe('granted');
     expect(result.grant?.grantId).toBeDefined();
+  });
+
+  it('TRUE: the same call with no signingCtx over HTTP → auth error, no grant made (task mplw)', async () => {
+    const result = (await onTransport('http', () =>
+      handleSecretsBrokerTool('holo_secrets_grant', validGrantArgs)
+    )) as SecretsBrokerAuthError & { status?: string };
+    expect(result.authError).toBe(true);
+    expect(result.status).toBeUndefined();
   });
 
   it('TRUE: gated call with correct capability scope → tool runs', async () => {

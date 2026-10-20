@@ -12,6 +12,7 @@ import {
   DraftMeshNode,
   partitionStudioChildren,
   buildScatterMesh,
+  resolveEnvironmentPreset,
 } from '@holoscript/r3f-renderer';
 import { PostProcessingNode } from './PostProcessingNode';
 import { GLTFModelNode } from './GLTFModelNode';
@@ -203,7 +204,10 @@ export function R3FNodeRenderer({ node }: R3FNodeRendererProps) {
 
     case 'Environment':
       return (
-        <Environment preset={props.envPreset || 'studio'} background={props.background ?? false} />
+        <Environment
+          preset={resolveEnvironmentPreset(props)}
+          background={props.background ?? false}
+        />
       );
 
     case 'fog':

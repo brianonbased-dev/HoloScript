@@ -237,7 +237,9 @@ export function dispatchReconstructionFromDecorators(
 
 export async function mcpStartReconstructFromVideo(
   videoUrl: string,
-  configArg: unknown
+  configArg: unknown,
+  /** trustedCaller: an operator or the local stdio process (see fetchVideoToTempFile). */
+  opts: { trustedCaller?: boolean } = {}
 ): Promise<{
   sessionId: string;
   replayFingerprint: string;
@@ -265,7 +267,9 @@ export async function mcpStartReconstructFromVideo(
   if (ingestVideo) {
     let cleanup: (() => Promise<void>) | undefined;
     try {
-      const file = await fetchVideoToTempFile(videoUrl);
+      const file = await fetchVideoToTempFile(videoUrl, {
+        trustedCaller: opts.trustedCaller === true,
+      });
       cleanup = file.cleanup;
       videoBytes = file.bytes;
       await runtime.init({

@@ -9,7 +9,17 @@ vi.mock('@/lib/services/absorb-client', () => ({
   ABSORB_API_KEY: 'absorb-key-test',
 }));
 
+const { getSessionMock } = vi.hoisted(() => ({ getSessionMock: vi.fn() }));
+vi.mock('@/lib/api-auth', () => ({ getSession: getSessionMock }));
+
 import { GET, POST } from './route';
+
+const ACCOUNT_A = '11111111-2222-4333-8444-555555555555';
+const ACCOUNT_B = 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff';
+
+function signInAs(userId: string | null) {
+  getSessionMock.mockResolvedValue(userId ? { user: { id: userId } } : null);
+}
 
 describe('/api/absorb/projects route', () => {
   let tempRoot: string;
@@ -19,6 +29,8 @@ describe('/api/absorb/projects route', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    getSessionMock.mockReset();
+    signInAs(null);
     savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
     savedStateFile = process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'absorb-projects-test-'));
@@ -94,6 +106,7 @@ describe('/api/absorb/projects route', () => {
   });
 
   it('POST falls back to durable local store and GET fallback lists durable projects', async () => {
+    signInAs(ACCOUNT_A);
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('service down')));
 
     const postReq = new NextRequest('http://localhost/api/absorb/projects', {
@@ -123,6 +136,103 @@ describe('/api/absorb/projects route', () => {
     expect(getBody.count).toBe(1);
     expect(Array.isArray(getBody.projects)).toBe(true);
     expect(getBody.projects[0].name).toBe('Local Project');
+    expect(getBody.projects[0].ownerId).toBe(ACCOUNT_A);
+  });
+
+  it('account B cannot see account A local project on the list or the absorb-down fallback', async () => {
+    signInAs(ACCOUNT_A);
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('service down')));
+
+    const postRes = await POST(
+      new NextRequest('http://localhost/api/absorb/projects', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'A only', source_type: 'local' }),
+        headers: { 'Content-Type': 'application/json' },
+      })
+    );
+    expect(postRes.status).toBe(201);
+    const created = await postRes.json();
+    const projectA = created.project.id as string;
+
+    signInAs(ACCOUNT_B);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ projects: [{ id: 'upstream-b', name: 'Upstream B' }] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    );
+    const listed = await GET(new NextRequest('http://localhost/api/absorb/projects'));
+    const listedBody = await listed.json();
+    const listedIds = (listedBody.projects as Array<{ id: string }>).map((project) => project.id);
+    expect(listedIds).toContain('upstream-b');
+    expect(listedIds).not.toContain(projectA);
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('service down')));
+    const fallback = await GET(new NextRequest('http://localhost/api/absorb/projects'));
+    const fallbackBody = await fallback.json();
+    expect(fallbackBody.standalone).toBe(true);
+    expect(fallbackBody.projects).toEqual([]);
+    expect(fallbackBody.count).toBe(0);
+
+    signInAs(null);
+    const stranger = await GET(new NextRequest('http://localhost/api/absorb/projects'));
+    const strangerBody = await stranger.json();
+    expect(strangerBody.projects).toEqual([]);
+  });
+
+  it('a legacy ownerless local entry is visible to nobody', async () => {
+    const statePath = path.join(tempRoot, '.absorb-projects.json');
+    fs.writeFileSync(
+      statePath,
+      JSON.stringify({
+        version: 1,
+        updatedAt: new Date().toISOString(),
+        projects: [
+          {
+            id: 'legacy-1',
+            name: 'Legacy',
+            sourceType: 'local',
+            sourceUrl: null,
+            localPath: null,
+            status: 'pending',
+            lastAbsorbedAt: null,
+            totalSpentCents: 0,
+            totalOperations: 0,
+            metadata: {},
+            absorbJobs: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ],
+      })
+    );
+
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('service down')));
+    for (const userId of [ACCOUNT_A, ACCOUNT_B, null]) {
+      signInAs(userId);
+      const res = await GET(new NextRequest('http://localhost/api/absorb/projects'));
+      const body = await res.json();
+      expect(body.projects).toEqual([]);
+    }
+
+    signInAs(ACCOUNT_A);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ projects: [{ id: 'upstream-a', name: 'Upstream A' }] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      )
+    );
+    const merged = await GET(new NextRequest('http://localhost/api/absorb/projects'));
+    const mergedBody = await merged.json();
+    const ids = (mergedBody.projects as Array<{ id: string }>).map((project) => project.id);
+    expect(ids).toEqual(['upstream-a']);
+    expect(ids).not.toContain('legacy-1');
   });
 
   it('POST fallback returns 400 on invalid request body', async () => {

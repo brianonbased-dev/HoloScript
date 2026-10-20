@@ -18,26 +18,18 @@ export const maxDuration = 300;
  * on disk (including anything under the server cwd). An unauthenticated
  * reader could dump blame metadata for any tracked file on the host. The
  * route now requires an authenticated session, requires `workspacePath`
- * to resolve inside ~/.holoscript/workspaces, and constrains the blamed
+ * to resolve inside the workspaces root (getWorkspacesRoot), and constrains the blamed
  * file path to stay inside that workspace. Wildcard CORS is replaced with
  * the shared allowlist helper.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 import path from 'path';
-import * as os from 'os';
 import { requireAuth } from '@/lib/api-auth';
 import { corsHeaders } from '../../_lib/cors';
-
-const execFileAsync = promisify(execFile);
-
-const WORKSPACE_ROOT = path.join(
-  process.env.HOME ?? process.env.USERPROFILE ?? os.homedir(),
-  '.holoscript',
-  'workspaces'
-);
+import { getWorkspacesRoot } from '@/lib/workspace/workspaceFs';
+import { assertWorkspaceOwner } from '@/lib/workspace/workspaceOwner';
 
 function isInside(root: string, target: string): boolean {
   const rel = path.relative(root, target);
@@ -67,19 +59,32 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // SEC-T06: workspacePath must be a real subdirectory of WORKSPACE_ROOT.
+  // SEC-T06: workspacePath must be inside the workspaces root
+  // (honors HOLOSCRIPT_WORKSPACES_DIR, e.g. /data/workspaces).
+  const workspacesRoot = getWorkspacesRoot();
   const resolvedWorkspace = path.resolve(workspacePath);
   if (
-    resolvedWorkspace !== WORKSPACE_ROOT &&
-    !resolvedWorkspace.startsWith(WORKSPACE_ROOT + path.sep)
+    resolvedWorkspace !== workspacesRoot &&
+    !resolvedWorkspace.startsWith(workspacesRoot + path.sep)
   ) {
     return NextResponse.json(
       {
         ok: false,
-        error: 'workspacePath must be inside ~/.holoscript/workspaces',
+        error: `workspacePath must be inside the workspaces root (${workspacesRoot}; set via HOLOSCRIPT_WORKSPACES_DIR)`,
         entries: [],
       },
       { status: 403 }
+    );
+  }
+
+  // P0 2026-10-05: containment is not ownership. The workspace must belong
+  // to the caller; anything else (missing, ownerless, another account's) gets
+  // one uniform answer. Blame then runs against the realpathed workspace.
+  const owned = assertWorkspaceOwner(auth, workspacePath);
+  if (!owned.ok) {
+    return NextResponse.json(
+      { ok: false, error: owned.error, entries: [] },
+      { status: owned.status }
     );
   }
 
@@ -115,8 +120,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const { stdout } = await execFileAsync(
-      'git',
+    const { stdout } = await runGit(
       ['blame', '--porcelain', '-L', `${startLine},${endLine}`, '--', absPath],
       { cwd: resolvedWorkspace }
     );

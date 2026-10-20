@@ -182,6 +182,55 @@ describe('AndroidCompiler', () => {
       expect(result.activityFile).toContain('Color(0xFF00FF00)');
     });
 
+    it('should compile cylinders with SceneView radius + height (never length)', () => {
+      const composition = createComposition({
+        objects: [
+          createObject('Post', {
+            properties: [
+              { key: 'geometry', value: 'cylinder' },
+              { key: 'scale', value: 0.05 },
+            ],
+          }),
+        ],
+      });
+      const result = compiler.compile(composition);
+
+      // SceneView 4.18.0's CylinderNode composable is (radius, height, …): a `length` argument
+      // fails compileDebugKotlin with "No parameter with name 'length' found".
+      expect(result.activityFile).toContain('import io.github.sceneview.node.CylinderNode');
+      expect(result.activityFile).toContain('CylinderNode(');
+      // Scale is size: a 0.05 cylinder is 0.05 across (radius 0.025) and 0.05 tall.
+      expect(result.activityFile).toContain('radius = 0.025f,');
+      expect(result.activityFile).toContain('height = 0.05f,');
+      expect(result.activityFile).not.toMatch(/^\s*length\s*=/m);
+    });
+
+    it('sizes every shape the same way when no scale is given: 0.1 across', () => {
+      const composition = createComposition({
+        objects: [
+          createObject('Box', { properties: [{ key: 'geometry', value: 'cube' }] }),
+          createObject('Ball', { properties: [{ key: 'geometry', value: 'sphere' }] }),
+          createObject('Post', { properties: [{ key: 'geometry', value: 'cylinder' }] }),
+        ],
+      });
+      const kt = compiler.compile(composition).activityFile;
+
+      expect(kt).toContain('size = Size(0.1f),');
+      // Sphere and cylinder both radius 0.05 (0.1 across); the cylinder 0.1 tall.
+      expect(kt.match(/^\s*radius = 0\.05f,/gm)?.length).toBe(2);
+      expect(kt).toContain('height = 0.1f,');
+    });
+
+    it('should fall back to a cube for unknown geometry, even an inherited name', () => {
+      const composition = createComposition({
+        objects: [createObject('Odd', { properties: [{ key: 'geometry', value: 'constructor' }] })],
+      });
+      const result = compiler.compile(composition);
+
+      expect(result.activityFile).toContain('CubeNode(');
+      expect(result.activityFile).not.toContain('function Object');
+    });
+
     it('should compile interactive objects', () => {
       const composition = createComposition({
         objects: [

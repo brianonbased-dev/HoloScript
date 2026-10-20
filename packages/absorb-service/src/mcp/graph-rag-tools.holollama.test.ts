@@ -18,6 +18,7 @@ import {
 const originalHoloLlamaEndpoint = process.env.HOLOLLAMA_ENDPOINT;
 const originalHoloLlamaProfile = process.env.HOLOLLAMA_PROFILE;
 const originalJetsonLiveEndpoint = process.env.HOLO_LLAMA_JETSON_ENDPOINT;
+const originalEndpointArgSwitch = process.env.HOLOLLAMA_ENDPOINT_ARG;
 
 describe('holo_ask_codebase HoloLlama synthesis lane', () => {
   afterEach(() => {
@@ -25,6 +26,11 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
     vi.unstubAllGlobals();
     resetGraphRAGStateForTests();
     resetConfigSecretResolver();
+    if (originalEndpointArgSwitch === undefined) {
+      delete process.env.HOLOLLAMA_ENDPOINT_ARG;
+    } else {
+      process.env.HOLOLLAMA_ENDPOINT_ARG = originalEndpointArgSwitch;
+    }
     if (originalHoloLlamaEndpoint === undefined) {
       delete process.env.HOLOLLAMA_ENDPOINT;
     } else {
@@ -277,7 +283,57 @@ describe('holo_ask_codebase HoloLlama synthesis lane', () => {
     expect(String(calls[0]?.input)).toBe('http://127.0.0.1:18080/v1/chat/completions');
   });
 
+  // claude9's review of #539: the endpoint is an address the server calls with the inference-proxy
+  // bearer attached. A caller may not name it unless the operator allows it, and the refusal comes
+  // before any request: the server must not contact the address at all.
+  it('refuses a caller-named holoLlamaEndpoint before calling anything, unless the operator allows it', async () => {
+    delete process.env.HOLOLLAMA_ENDPOINT_ARG;
+    const symbol: ExternalSymbolDefinition = {
+      name: 'AbsorbService',
+      type: 'class',
+      filePath: 'packages/absorb-service/src/index.ts',
+      line: 12,
+      column: 1,
+      language: 'typescript',
+      visibility: 'public',
+      signature: 'class AbsorbService',
+    };
+    const hit = { symbol, score: 0.99, file: symbol.filePath, type: symbol.type };
+    const index: SymbolSearchIndex = {
+      search: async () => [hit],
+      searchWithFilters: async () => [hit],
+    };
+    const graph = {
+      getCallersOf: () => [],
+      getCalleesOf: () => [],
+      getSymbolImpact: () => new Set<string>(),
+      getCommunityForFile: () => 'absorb-service',
+      getSymbolsInFile: (file: string) => (file === symbol.filePath ? [symbol] : []),
+    } as unknown as CodebaseGraph;
+    setGraphRAGState(index, new GraphRAGEngine(graph, index));
+    const fetchSpy = vi.fn(async () => new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    for (const endpoint of [
+      'https://attacker.example/v1',
+      'http://169.254.169.254/latest/meta-data',
+    ]) {
+      const result = (await handleGraphRagTool('holo_ask_codebase', {
+        question: 'How does Absorb answer codebase questions?',
+        llmProvider: 'holollama',
+        holoLlamaEndpoint: endpoint,
+        topK: 1,
+      })) as { error?: string; hint?: string; answer?: string };
+      expect(result.answer).toBeUndefined();
+      expect(result.error).toMatch(/address for this server to call/);
+      expect(`${result.error}\n${result.hint}`).not.toContain(endpoint);
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it('attaches a HoloLlama receipt to holo_ask_codebase answers', async () => {
+    // A single-user local server whose operator allows callers to name the endpoint.
+    process.env.HOLOLLAMA_ENDPOINT_ARG = 'allow';
     const symbol: ExternalSymbolDefinition = {
       name: 'AbsorbService',
       type: 'class',

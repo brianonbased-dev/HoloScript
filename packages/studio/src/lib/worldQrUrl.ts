@@ -15,7 +15,8 @@
  *
  * One helper for every QR the studio draws for a world link a headset will scan
  * (SharePanel, PublishModal, and the publish receipt's QR that PublishPanel
- * shows), so the fix cannot be present on one screen and absent on the next,
+ * shows), so the fix is less likely to be present on one screen and absent on the
+ * next (nothing forces a new screen to call it; the per-screen tests are the guard),
  * which is exactly how PR #308 shipped (independent review of 2026-09-21).
  *
  * Scope: the studio's OWN world links. Any host's `/w/<id>` path is rewritten,
@@ -35,8 +36,12 @@
  * (a render must not throw).
  */
 export function worldQrUrl(url: string): string {
-  if (!url) return url;
-  const input = url.trim();
+  if (typeof url !== 'string' || !url) return url;
+  // Clean the string the way the URL parser does before it reads the scheme: tab and
+  // newline removed anywhere, C0 controls and whitespace trimmed from both ends. A plain
+  // trim() missed a leading control character, so '\x01https://host/w/id' lost its
+  // origin (claude3's re-read of #315).
+  const input = url.replace(/[\t\n\r]/g, '').replace(/^[\s\x00-\x1f]+|[\s\x00-\x1f]+$/g, '');
   const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(input);
   const protocolRelative = !hasScheme && input.startsWith('//');
   let parsed: URL;

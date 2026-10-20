@@ -14,12 +14,10 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 
 import { corsHeaders } from '../../_lib/cors';
 import { isSafeGitRef, resolveWorkspaceGitPath } from '../_shared';
-const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
@@ -41,7 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { workspacePath, branch, base, checkout = true } = body;
-  const validated = resolveWorkspaceGitPath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath, session);
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
@@ -58,13 +56,11 @@ export async function POST(req: NextRequest) {
       ? ['checkout', '-b', branch, ...(base ? [base] : [])]
       : ['branch', branch, ...(base ? [base] : [])];
 
-    await execFileAsync('git', args, { cwd: resolved });
+    await runGit(args, { cwd: resolved });
 
-    const { stdout: currentBranch } = await execFileAsync(
-      'git',
-      ['rev-parse', '--abbrev-ref', 'HEAD'],
-      { cwd: resolved }
-    );
+    const { stdout: currentBranch } = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], {
+      cwd: resolved,
+    });
 
     return NextResponse.json({ ok: true, branch, current: currentBranch.trim() });
   } catch (err) {
@@ -88,17 +84,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const validated = resolveWorkspaceGitPath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath, session);
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
   const { resolved } = validated;
 
   try {
-    const { stdout } = await execFileAsync('git', ['branch', '-a', '--format=%(refname:short)'], {
+    const { stdout } = await runGit(['branch', '-a', '--format=%(refname:short)'], {
       cwd: resolved,
     });
-    const { stdout: current } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+    const { stdout: current } = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], {
       cwd: resolved,
     });
     const branches = stdout.trim().split('\n').filter(Boolean);

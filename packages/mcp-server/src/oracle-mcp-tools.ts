@@ -26,8 +26,13 @@ import { premiumTeaser, isPremiumEntry } from './holomesh/premium-view';
 // CONFIG
 // =============================================================================
 
-const RESEARCH_ROOT =
-  process.env.ORACLE_RESEARCH_ROOT || path.join(os.homedir(), '.ai-ecosystem', 'research');
+/**
+ * The research archive. Read on every call, not once at import, so a changed
+ * ORACLE_RESEARCH_ROOT takes effect without a restart and tests can point it at a fixture.
+ */
+function researchRoot(): string {
+  return process.env.ORACLE_RESEARCH_ROOT || path.join(os.homedir(), '.ai-ecosystem', 'research');
+}
 const ORCHESTRATOR_URL =
   process.env.MCP_ORCHESTRATOR_PUBLIC_URL ||
   'https://mcp-orchestrator-production-45f9.up.railway.app';
@@ -86,7 +91,8 @@ function scanResearchArchive(query: string, limit = 20): ResearchFile[] {
   const lowerQuery = query.toLowerCase();
   const words = lowerQuery.split(/\W+/).filter((w) => w.length > 2);
 
-  if (!fs.existsSync(RESEARCH_ROOT)) return results;
+  const root = researchRoot();
+  if (!fs.existsSync(root)) return results;
 
   function recurse(dir: string) {
     let entries: string[];
@@ -142,7 +148,7 @@ function scanResearchArchive(query: string, limit = 20): ResearchFile[] {
     }
   }
 
-  recurse(RESEARCH_ROOT);
+  recurse(root);
   results.sort((a, b) => {
     // Prefer oracle collision files, then newer dates
     const aOracle = a.topic.includes('oracle') ? 1 : 0;
@@ -533,7 +539,7 @@ async function handleSynthesize(args: Record<string, unknown>): Promise<unknown>
   const synthesized: Array<{ type: string; content: string; sourceFiles: string[] }> = [];
 
   for (const filePath of files) {
-    const fullPath = path.isAbsolute(filePath) ? filePath : path.join(RESEARCH_ROOT, filePath);
+    const fullPath = path.isAbsolute(filePath) ? filePath : path.join(researchRoot(), filePath);
     if (!fs.existsSync(fullPath)) {
       continue;
     }

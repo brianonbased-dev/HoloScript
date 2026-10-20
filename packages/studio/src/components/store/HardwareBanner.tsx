@@ -1,12 +1,11 @@
 'use client';
 
-import { Monitor, Download, ArrowRight, ShieldCheck, Zap, Globe } from 'lucide-react';
+import { Monitor, ArrowRight, ShieldCheck, Zap, Globe } from 'lucide-react';
 
+// The setup.ps1 download was pulled on 2026-10-14 pending a security fix
+// (admin rights, machine-wide run-on-double-click, unpinned clone, no uninstaller).
+// The script stays in the repo; it is no longer offered here.
 export function HardwareBanner() {
-  const downloadSetup = () => {
-    window.location.href = '/api/registry/download/setup'; // Proxy to the ps1 script
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-6 lg:px-12 mb-20">
       <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-studio-surface to-[#0d0d1a] border border-studio-border p-8 lg:p-12">
@@ -62,13 +61,12 @@ export function HardwareBanner() {
               ))}
             </div>
 
-            <button
-              onClick={downloadSetup}
-              className="group flex items-center gap-3 bg-white text-black px-8 py-4 rounded-2xl font-bold text-base hover:bg-teal-50 shadow-xl shadow-teal-500/10 transition-all active:scale-95"
+            <p
+              data-testid="installer-paused"
+              className="inline-flex items-center gap-3 rounded-2xl border border-studio-border px-6 py-3 text-sm text-studio-muted"
             >
-              <Download className="h-5 w-5 transition-transform group-hover:-translate-y-1" />
-              Download setup.ps1
-            </button>
+              Installer coming back soon.
+            </p>
           </div>
 
           <div className="hidden lg:block">

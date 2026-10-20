@@ -17,7 +17,7 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { proxyHoloMesh } from '../../../../../lib/holomesh-proxy';
+import { proxyHoloMeshSelf } from '../../../../../lib/holomesh-proxy';
 import { requireAuth } from '@/lib/api-auth';
 import {
   AUTHENTICATED_USER_HEADER,
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     }
   );
 
-  return proxyHoloMesh('/api/holomesh/dashboard/earnings', forwardReq);
+  return proxyHoloMeshSelf('/api/holomesh/dashboard/earnings', forwardReq);
 }
 
 export function OPTIONS(request: Request) {

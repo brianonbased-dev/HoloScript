@@ -80,6 +80,19 @@ export class QuestCompiler extends CompilerBase {
     outputPath?: string
   ): Record<string, string> {
     this.validateCompilerAccess(agentToken, outputPath);
+    // A Quest app is built from the traits on the composition's objects: which app (reader, MR,
+    // 2D panel) and every value in it come from walking `composition.objects[].traits`. The
+    // objects written inside `scene` blocks sit on `composition.scenes`, so their traits, and
+    // the `environment` (surface, package, version, icon) a scene holds, were not read: a
+    // composition whose traits sat in a scene compiled to the default 2D panel. Flatten first,
+    // so each scene's objects follow the top-level ones (a trait value written later in the
+    // file replaces an earlier one, as it does among top-level objects). Nothing here names an
+    // object (the app is fixed Kotlin the traits configure), so nothing can clash and no
+    // object is left out. A second scene's environment is not applied either; this compiler
+    // returns a file map and has no warnings channel, so it is not reported. (The dispatch
+    // below accepts a missing composition, and the default panel needs none, so one is not
+    // required here either.)
+    if (composition) composition = this.flattenScenes(composition).composition;
     // @document_ocr selects the real-world reader bridge. Keep this ahead of the generic MR
     // scanner dispatch so each product has a distinct native application and package identity.
     if (isQuestReader(composition)) {

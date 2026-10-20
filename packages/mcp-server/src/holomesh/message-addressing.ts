@@ -13,7 +13,17 @@
 export const INBOX_MESSAGE_TYPES = ['dm', 'handoff', 'review-request'] as const;
 export const INBOX_MESSAGE_TYPE_SET = new Set<string>(INBOX_MESSAGE_TYPES);
 
-const MENTION_RE = /@([A-Za-z][A-Za-z0-9_-]{1,63})/g;
+/**
+ * An `@name` counts as a handle only where a handle can stand: not as an npm scope
+ * (`@holoscript/wasm`), not inside an email address (`josep@example.com`), and not inside a code
+ * span (`` `@unknown` `` is HoloScript, not a reader). Measured 2026-09-29: a room-wide review
+ * request that named the `pnpm --filter @holoscript/wasm` command reached only the member
+ * "holoscript", and one that wrote `@unknown` reached no one. A bare `@unknown` in prose still
+ * reads as a handle (nothing tells it from one); ai-ecosystem `scripts/room-message.mjs` warns
+ * about a body mention before sending.
+ */
+const MENTION_RE = /(?<![A-Za-z0-9_.@/-])@([A-Za-z][A-Za-z0-9_-]{1,63})(?![A-Za-z0-9_/-])/g;
+const CODE_SPAN_RE = /```[\s\S]*?```|`[^`\n]*`/g;
 
 export function normalizeAgentRef(value: unknown): string {
   return String(value || '')
@@ -30,7 +40,9 @@ export function refsMatch(left: unknown, right: unknown): boolean {
 
 export function extractMentions(text: unknown): string[] {
   const out = new Set<string>();
-  for (const match of String(text || '').matchAll(MENTION_RE)) {
+  for (const match of String(text || '')
+    .replace(CODE_SPAN_RE, ' ')
+    .matchAll(MENTION_RE)) {
     out.add(normalizeAgentRef(match[1]));
   }
   return [...out];

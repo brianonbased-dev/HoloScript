@@ -164,6 +164,11 @@ export default defineConfig({
         find: '@holoscript/absorb-service/schema',
         replacement: path.resolve(__dirname, '../absorb-service/src/schema.ts'),
       },
+      // The daemon runner scans in-process with the engine; tests use source.
+      {
+        find: /^@holoscript\/absorb-service\/engine$/,
+        replacement: path.resolve(__dirname, '../absorb-service/src/engine/index.ts'),
+      },
     ],
   },
 });

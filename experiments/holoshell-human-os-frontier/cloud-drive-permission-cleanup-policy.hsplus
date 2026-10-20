@@ -98,7 +98,7 @@ composition "HoloShellCloudDrivePermissionCleanupPolicy" {
     ]
   }
 
-  state_machine "CloudDriveCleanupWorkflow" {
+  template "CloudDriveCleanupWorkflow" {
     initial: "idle"
     states: [
       "idle",
@@ -123,27 +123,27 @@ composition "HoloShellCloudDrivePermissionCleanupPolicy" {
     transition "block" { from: "*", to: "blocked" }
   }
 
-  role "CodexHardware" {
+  template "CodexHardware" {
     laneId: "codex-hardware"
     owns: ["local_browser_profile_witness", "downloads_quarantine", "hashing", "hardware_baseline"]
   }
 
-  role "ProviderAccountAgent" {
+  template "ProviderAccountAgent" {
     laneId: "provider-account"
     owns: ["provider_permission_screen", "scope_label_mapping", "revocation_witness", "export_ready_witness"]
   }
 
-  role "HoloShellPolicyAgent" {
+  template "HoloShellPolicyAgent" {
     laneId: "holoshell-policy"
     owns: ["minimum_scope_policy", "never_scope_blocker", "fresh_approval", "residual_access_warning"]
   }
 
-  role "HoloScriptSubstrateAgent" {
+  template "HoloScriptSubstrateAgent" {
     laneId: "holoscript-substrate"
     owns: ["permission_gate_receipts", "account_export_receipts", "validator_gap", "stdlib_policy_gap"]
   }
 
-  role "HoloLandProductAgent" {
+  template "HoloLandProductAgent" {
     laneId: "hololand-product"
     owns: ["cloud_cleanup_room", "creator_import_preview", "Brittney_receipt_narration", "Twin_Earth_file_task_surface"]
   }

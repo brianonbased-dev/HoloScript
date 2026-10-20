@@ -337,3 +337,53 @@ export function filterCompositionForPlatform(
     createPlatformTarget(normalized as PlatformTarget)
   );
 }
+
+/**
+ * {@link filterCompositionForPlatform} for the objects written inside `scene` blocks.
+ *
+ * `filterCompositionForPlatform` leaves `composition.scenes` alone, which is right for a
+ * compiler that never reads them. A compiler that builds the objects of its scenes (it calls
+ * `flattenCompositionScenes`) calls this first, so that
+ *
+ * - an object this platform excludes is not built from a scene either, and
+ * - it does not take a name from an object this platform keeps: `@platform(a) object "Hero"` and
+ *   `@platform(b) object "Hero"` in one scene are two variants of one object, and flattening
+ *   would otherwise leave the second out for a name that the filter then frees.
+ *
+ * Each object is validated and filtered by the same code as a top-level one, so an invalid
+ * `@platform()` on it throws the same error. Without scenes the input itself is returned, and
+ * nothing but the scenes' objects is changed.
+ *
+ * Note: the `.holo` parser does not attach a `@platform()` written inside a scene block, or
+ * before one (it reads one only at the top level and drops the others), and a scene has no
+ * place for one in the AST. So a scene object carries a constraint only when its AST is built
+ * another way, and a scene written for one platform compiles on every platform. Writing a
+ * `@platform()` on an object in `.holo` text does not filter anything today: both variants of
+ * a name are read, and the second is left out by name.
+ */
+export function filterSceneObjectsForPlatform(
+  composition: HoloComposition,
+  platform: PlatformTarget | string
+): HoloComposition {
+  const scenes = composition.scenes ?? [];
+  if (scenes.length === 0) return composition;
+  return {
+    ...composition,
+    scenes: scenes.map((scene) => ({
+      ...scene,
+      objects: filterCompositionForPlatform(
+        // Only this scene's objects are filtered: the rest of the composition was already
+        // filtered and validated by the caller.
+        {
+          ...composition,
+          objects: scene.objects ?? [],
+          templates: [],
+          spatialGroups: [],
+          lights: [],
+          norms: undefined,
+        },
+        platform
+      ).objects,
+    })),
+  };
+}

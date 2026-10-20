@@ -33,7 +33,9 @@ import { generateTraitCode } from './AndroidXRTraitMap';
 
 export function generateActivityFile(
   compiler: AndroidXRCompiler,
-  composition: HoloComposition
+  composition: HoloComposition,
+  /** Plain sentences for scene content left out (see AndroidXRCompiler.compile); written as WARNING comments. */
+  warnings: readonly string[] = []
 ): string {
   compiler.lines = [];
   compiler.indentLevel = 0;
@@ -45,6 +47,9 @@ export function generateActivityFile(
   compiler.emit('// Do not edit manually -- regenerate from .holo source');
   if (compiler.options.provenanceHash) {
     compiler.emit(`// Provenance Hash: ${compiler.options.provenanceHash}`);
+  }
+  for (const warning of warnings) {
+    compiler.emit(`// WARNING: ${warning}`);
   }
   compiler.emit('');
   compiler.emit(`package ${compiler.options.packageName}`);
@@ -745,9 +750,30 @@ export function emitSceneComposable(
   // DP3: Use Subspace as the top-level spatial layout container
   compiler.emit('Subspace {');
   compiler.indent();
-  if (composition.environment) emitEnvironment(compiler, composition.environment);
-  if (composition.camera) emitCamera(compiler, composition.camera);
-  for (const l of composition.lights ?? []) emitLight(compiler, l);
+  emitSceneParts(compiler, composition);
+  compiler.dedent();
+  compiler.emit('}');
+
+  compiler.dedent();
+  compiler.emit('}');
+  compiler.emit('');
+}
+
+/**
+ * The body of the Subspace, part by part; every `val` a part declares lives in that one
+ * scope. emitSceneComposable() writes each part. AndroidXRCompiler passes a `part` that reads
+ * what each one declares instead, so the parts are listed here only, and a part added later is
+ * counted too.
+ */
+export function emitSceneParts(
+  compiler: AndroidXRCompiler,
+  composition: HoloComposition,
+  part: (by: string, emit: () => void) => void = (_by, emit) => emit()
+): void {
+  const { environment, camera, ui, effects } = composition;
+  if (environment) part('the environment', () => emitEnvironment(compiler, environment));
+  if (camera) part('the camera', () => emitCamera(compiler, camera));
+  for (const l of composition.lights ?? []) part('a light', () => emitLight(compiler, l));
 
   // Soundstage grounding: activitySpace anchor for environment_probe trait
   if (composition.objects?.some((o) => o.traits?.some((t) => t.name === 'environment_probe'))) {
@@ -757,33 +783,29 @@ export function emitSceneComposable(
   // DP3: Emit objects — head-following objects use UserSubspace,
   // 3D model objects use SceneCoreEntity composable, others use direct entity creation
   for (const o of composition.objects ?? []) {
-    const hasHeadFollow = o.traits?.some(
-      (t) => t.name === 'follows_head' || t.name === 'head_follow'
-    );
-    if (hasHeadFollow) {
-      compiler.emit('');
-      compiler.emit('// DP3: UserSubspace — head-following content');
-      compiler.emit('UserSubspace {');
-      compiler.indent();
-      emitObject(compiler, o);
-      compiler.dedent();
-      compiler.emit('}');
-    } else {
-      emitObject(compiler, o);
-    }
+    part('another object', () => {
+      const hasHeadFollow = o.traits?.some(
+        (t) => t.name === 'follows_head' || t.name === 'head_follow'
+      );
+      if (hasHeadFollow) {
+        compiler.emit('');
+        compiler.emit('// DP3: UserSubspace — head-following content');
+        compiler.emit('UserSubspace {');
+        compiler.indent();
+        emitObject(compiler, o);
+        compiler.dedent();
+        compiler.emit('}');
+      } else {
+        emitObject(compiler, o);
+      }
+    });
   }
 
-  for (const g of composition.spatialGroups ?? []) emitGroup(compiler, g);
-  for (const a of composition.audio ?? []) emitAudio(compiler, a);
-  for (const z of composition.zones ?? []) emitZone(compiler, z);
-  if (composition.ui) emitUI(compiler, composition.ui);
-  if (composition.effects) emitEffects(compiler, composition.effects);
-  compiler.dedent();
-  compiler.emit('}');
-
-  compiler.dedent();
-  compiler.emit('}');
-  compiler.emit('');
+  for (const g of composition.spatialGroups ?? []) part('a group', () => emitGroup(compiler, g));
+  for (const a of composition.audio ?? []) part('a sound', () => emitAudio(compiler, a));
+  for (const z of composition.zones ?? []) part('a zone', () => emitZone(compiler, z));
+  if (ui) part('the UI', () => emitUI(compiler, ui));
+  if (effects) part('the post-processing notes', () => emitEffects(compiler, effects));
 }
 
 // ─── Environment ─────────────────────────────────────────────────────

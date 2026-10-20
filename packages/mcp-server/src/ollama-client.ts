@@ -84,9 +84,11 @@ const LOCAL_CALLER = 'mcp-server local fallback';
 // ── Gemma 4 Hybrid Routing config ────────────────────────────────────────────
 // hybrid-gemma stays Ollama-edge by definition: naming it is an explicit Ollama choice, so
 // its edge half uses OLLAMA_URL behind #384's hosted check, never our own HoloServe /
-// HoloLlama. (Neither GEMMA_*_MODEL reaches the wire yet: task_1790566904265_avh4.)
+// HoloLlama. Each half passes its GEMMA_*_MODEL to the adapter as the model argument.
 const GEMMA_EDGE_MODEL = process.env.GEMMA_EDGE_MODEL || 'gemma4:e4b';
-const GEMMA_CLOUD_MODEL = process.env.GEMMA_CLOUD_MODEL || 'google/gemma-4-31b';
+// OpenRouter's id carries -it. 'google/gemma-4-31b' is not a model there (its /api/v1/models,
+// 2026-09-28); that went unseen while no GEMMA_*_MODEL reached the wire.
+const GEMMA_CLOUD_MODEL = process.env.GEMMA_CLOUD_MODEL || 'google/gemma-4-31b-it';
 
 const LLM_TIMEOUT = 60_000; // 60s for generation
 
@@ -164,15 +166,13 @@ function getOllamaAdapter(): LocalLLMAdapter | null {
 }
 
 /**
- * Every Ollama model name that can go out on the explicit Ollama path. The adapter sends
- * its construction-time OLLAMA_MODEL: an override placed in the request object never
- * reaches it (task_1790566904265_avh4). So hybrid-gemma's GEMMA_EDGE_MODEL alone would let
- * a cloud-tagged OLLAMA_MODEL past #384's check; both names are checked.
+ * The model name the explicit Ollama path sends: the override (hybrid-gemma's
+ * GEMMA_EDGE_MODEL) when there is one, else the adapter's own OLLAMA_MODEL. #384's hosted
+ * check runs on exactly this name. It used to check OLLAMA_MODEL as well, because until
+ * task_1790566904265_avh4 an override never reached the wire and OLLAMA_MODEL went instead.
  */
-function ollamaModelsSent(modelOverride?: string): string[] {
-  return modelOverride && modelOverride !== OLLAMA_MODEL
-    ? [OLLAMA_MODEL, modelOverride]
-    : [OLLAMA_MODEL];
+function ollamaModelSent(modelOverride?: string): string {
+  return modelOverride || OLLAMA_MODEL;
 }
 
 /** #384's hosted-Ollama check for one model on OLLAMA_URL (a missing URL counts as refused). */
@@ -224,14 +224,18 @@ async function queryOpenRouterProvider(
   const adapter = await getOpenRouterAdapter();
   if (!adapter) return null;
   try {
-    const result = await adapter.complete({
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: prompt },
-      ],
-      maxTokens: 4096,
-      ...(modelOverride && { model: modelOverride }),
-    });
+    const result = await adapter.complete(
+      {
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens: 4096,
+      },
+      // The model is the second argument: LLMCompletionRequest has no model field, so an
+      // override spread into the request reached no adapter (task_1790566904265_avh4).
+      modelOverride
+    );
     return result.content || null;
   } catch {
     return null;
@@ -282,16 +286,20 @@ async function queryOllamaProvider(
   if (!adapter) return null;
   // A deliberate foreign choice is still not a hosted one: a hosted Ollama URL, or a
   // cloud-tagged model, is refused unless HOLO_ALLOW_HOSTED_OLLAMA=1.
-  if (ollamaModelsSent(modelOverride).some((model) => isRefusedOllama(model))) return null;
+  if (isRefusedOllama(ollamaModelSent(modelOverride))) return null;
   try {
-    const result = await adapter.complete({
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: prompt },
-      ],
-      maxTokens: 4096,
-      ...(modelOverride && { model: modelOverride }),
-    });
+    const result = await adapter.complete(
+      {
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+        maxTokens: 4096,
+      },
+      // The model is the second argument: LLMCompletionRequest has no model field, so an
+      // override spread into the request reached no adapter (task_1790566904265_avh4).
+      modelOverride
+    );
     return result.content || null;
   } catch {
     return null;
@@ -428,7 +436,7 @@ export async function isOllamaAvailable(): Promise<boolean> {
         // A hosted Ollama that queryOllamaProvider would refuse is not "available".
         if (!OLLAMA_URL) return false;
         const override = LLM_PROVIDER === 'hybrid-gemma' ? GEMMA_EDGE_MODEL : undefined;
-        if (ollamaModelsSent(override).some((model) => isRefusedOllama(model))) return false;
+        if (isRefusedOllama(ollamaModelSent(override))) return false;
         const adapter = getOllamaAdapter();
         if (!adapter) return false;
         const health = await adapter.healthCheck();
@@ -458,15 +466,15 @@ export function getActiveProvider(): string {
 
 /**
  * The local model queryOllama runs on when it runs locally, for status payloads. It does
- * not contact the server. `ollama` + OLLAMA_MODEL for LLM_PROVIDER=ollama and hybrid-gemma
- * (the model the adapter sends: GEMMA_EDGE_MODEL does not reach the wire yet,
- * task_1790566904265_avh4); otherwise our own `holoserve` / `holollama` and the model name
- * sent to it (HoloLlama answers with the model it loaded, whatever the name). null when
- * nothing local is configured.
+ * not contact the server. `ollama` + the model sent there (GEMMA_EDGE_MODEL for
+ * hybrid-gemma, OLLAMA_MODEL for LLM_PROVIDER=ollama); otherwise our own `holoserve` /
+ * `holollama` and the model name sent to it (HoloLlama answers with the model it loaded,
+ * whatever the name). null when nothing local is configured.
  */
 export function describeLocalModel(): { source: string; model: string } | null {
   if (LLM_PROVIDER === 'ollama' || LLM_PROVIDER === 'hybrid-gemma') {
-    return OLLAMA_URL ? { source: 'ollama', model: OLLAMA_MODEL } : null;
+    const override = LLM_PROVIDER === 'hybrid-gemma' ? GEMMA_EDGE_MODEL : undefined;
+    return OLLAMA_URL ? { source: 'ollama', model: ollamaModelSent(override) } : null;
   }
   const local = resolveLocalProvider();
   return local ? { source: local.providerName, model: local.model } : null;

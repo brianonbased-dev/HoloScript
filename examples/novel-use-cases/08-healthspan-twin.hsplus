@@ -112,7 +112,7 @@ composition "HealthspanTwin" {
   object "Floor" { geometry: "plane"; position: [0, -0.5, 0]; scale: [20, 1, 20]; color: "#f0f5f0" }
   object "Companion_A" using "LongevityCompanion" { position: [0, 1, 0]; geometry: "sphere"; color: "#00ddaa"; state { companion_id: "comp_001" } }
 
-  panel "HealthDashboard" {
+  template "HealthDashboard" {
     position: "top-right"
     text "Readings" { bind: "Biomarkers: " + BiomarkerAnalyzer.state.total_processed; style: "info" }
     text "Sims" { bind: "Interventions: " + InterventionSimulator.state.total_run; style: "info" }

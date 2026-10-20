@@ -19,12 +19,12 @@ Applies only when `CLAUDE_CODE_REMOTE=true`: a fresh Ubuntu VM holding a clone o
 
 - **Missing here:** the local MCP on 7411, the GOLD drive, `/room` and HoloMesh credentials, `~/.claude` (Joseph's personal rules), and `~/.ai-ecosystem`. The `C:/Users/Josep/...` hooks in `.claude/settings.json` fail harmlessly. Do not add wirings to "fix" them.
   - One repo hook does run here: `.claude/hooks/validate-edit.mjs`, after every Edit or Write. It is repo-relative, and it exits 2 when an edited `.ts`, `.js`, `.json` or HoloScript file no longer parses. The edit has already been applied by then, so treat that as a real error and fix the file.
-- **Use instead:** for codebase questions, `npx tsx packages/cli/src/cli.ts query|absorb|parse`, after building the CLI's dependencies (see Setup). Run `query` from inside the directory it should search. With `--dir` pointing anywhere else, it absorbs that directory but looks the graph up by the working directory, and fails with `cache_root_mismatch`. The "MCP unavailable, ask the user to start it" steps do not apply here: take the CLI fallback and keep going. Anything meant for the board or the room goes in the PR body, and a local seat relays it.
+- **Use instead:** for codebase questions, `npx tsx packages/cli/src/cli.ts query|absorb|parse`, after building the CLI's dependencies (see Setup). The "MCP unavailable, ask the user to start it" steps do not apply here: take the CLI fallback and keep going. Anything meant for the board or the room goes in the PR body, and a local seat relays it.
 - **Setup each session:** run `corepack enable && corepack prepare pnpm@9.15.9 --activate`, then `pnpm install --frozen-lockfile`, then `pnpm hooks:install`.
   - A fresh clone has no `core.hooksPath`, so without this step no hook runs: no lint, type or secret check. `hooks:install` sets it and makes every file in `.githooks` executable. The hook files are stored executable (`100755`), and pre-commit refuses a commit that stores one as `100644`, because git on Linux skips a non-executable hook with at most a hint. If `git ls-files -s .githooks` ever shows `100644` on `main`, report it.
   - `.npmrc` asks for a 16 GB heap, which is the whole VM, so set `npm_config_node_options=--max-old-space-size=8192` and test one package at a time.
   - Before running core tests, build core together with its dependencies, one package at a time as the root `build` does: `corepack pnpm --workspace-concurrency=1 --filter "@holoscript/core..." run build`.
-  - The CLI loads its eleven workspace dependencies from their gitignored `dist/`, including `@holoscript/formatter` and `@holoscript/absorb-service`. The core build does not produce them, so even `parse` fails with `Cannot find module …/@holoscript/formatter/dist/index.js`. Build the CLI's dependencies before using it: `corepack pnpm --workspace-concurrency=1 --filter "@holoscript/cli..." run build`, which takes about four minutes after the core build.
+  - The CLI loads its workspace dependencies from their gitignored `dist/`, including `@holoscript/formatter` and `@holoscript/absorb-service`. The core build does not produce them, so even `parse` fails with `Cannot find module …/@holoscript/formatter/dist/index.js`. Build the CLI's dependencies before using it: `corepack pnpm --workspace-concurrency=1 --filter "@holoscript/cli..." run build`, which takes about four minutes after the core build.
 - **Hold (2026-08-18):** add no new hook files, script files or hook wirings, and that includes `.claude/settings.json`. Editing or deleting existing ones is fine. Environment setup belongs in the environment's setup script on claude.ai, not in the repo.
 - **Gates:** when a pre-push gate refuses, read why and report it in the PR. Never use `--no-verify`, and never push by another route. Since PR #325, the doctrine-slot check (`scripts/check-doctrine-slots.mjs`) passes on a machine where nothing marks a HoloCI dispatch lane: no `~/.ai-ecosystem`, and none of `AI_ECOSYSTEM_ROOT`, `HOLOMESH_ROOT`, `AI_ECOSYSTEM_DIR`, `HOLOCI_WORKLOAD_PATH` or `HOLO_CI_WORKLOAD_PATH` set.
   - Never set `HOLOCI_ALLOW_MISSING_WORKLOAD`, even though the check's own refusal message suggests it. The fleet's HoloCI runs this check with `HOLOCI_ALLOW_MISSING_WORKLOAD=1` (ai-ecosystem `scripts/holo-ci/gates.mjs`). There it passes whenever no workload breadcrumb exists, and it still enforces the slots when one does. A refusal here is a finding to report, not a reason to copy that setting.
@@ -55,6 +55,8 @@ On every session start, execute this sequence IN ORDER:
 ```
 
 **Skip nothing. If MCP server is unavailable, say so explicitly and ask user to start it.**
+
+**On Claude's local MCP (`holoscript-local`, 127.0.0.1:7411) the language tools are refused, not missing.** Its loopback caller holds only `tools:codebase`, so `suggest_traits`, `validate_holoscript` and `generate_*` answer "Insufficient scope ... Granted: [tools:codebase]" through `batch_tool_call` (measured 2026-10-08). Steps 3 and 4 then run through the CLI, which works there: `npx tsx packages/cli/src/cli.ts suggest "<description>" --json` and `npx tsx packages/cli/src/cli.ts parse <file>` (prints "Validation successful").
 
 ---
 
@@ -176,8 +178,10 @@ MCP tools unavailable / tool call errors?
   → Step 5: FALLBACK → if this host cannot reattach, use transport-independent CLI equivalents:
        holo_absorb_repo    → npx tsx packages/cli/src/cli.ts absorb <dir> --json
        holo_query_codebase → npx tsx packages/cli/src/cli.ts query "<question>" --dir <dir> --json
-       validate_holoscript → npx tsx packages/cli/src/cli.ts parse <file>
-       suggest_traits / generate_* → no CLI equivalent; skip or notify user
+       validate_holoscript → npx tsx packages/cli/src/cli.ts validate <file>
+         (not `parse`: for .hs it runs a non-authoritative TS parser and passes code validate rejects)
+       suggest_traits      → npx tsx packages/cli/src/cli.ts suggest "<description>" --json
+       generate_*          → no CLI equivalent; skip or notify user
      The query fallback uses the canonical Absorb handlers and workspace cache, not a second scanner/index.
   → Step 6: REPORT   → distinguish service health from host-handle health
 ```
@@ -245,8 +249,8 @@ If any MCP tool call fails:
   4. CLI fallback map:
      holo_absorb_repo    → npx tsx packages/cli/src/cli.ts absorb <dir> --json
      holo_query_codebase → npx tsx packages/cli/src/cli.ts query "<question>"
-     validate_holoscript → npx tsx packages/cli/src/cli.ts parse <file>
-     suggest_traits      → no CLI equivalent (LLM-based)
+     validate_holoscript → npx tsx packages/cli/src/cli.ts validate <file>   (not `parse`, see above)
+     suggest_traits      → npx tsx packages/cli/src/cli.ts suggest "<description>" --json
      generate_object     → no CLI equivalent (LLM-based)
   5. Notify user: "MCP server is down. Run: node packages/mcp-server/dist/index.js"
 ```

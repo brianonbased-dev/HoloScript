@@ -873,7 +873,7 @@ describe('WebGPUCompiler', () => {
       expect(result).toContain('WGSL_PHYSICS_COMPUTE');
     });
 
-    it('should emit custom compute pipeline', () => {
+    it('names a custom compute shader it cannot build, instead of an undefined WGSL constant', () => {
       const composition = createComposition({
         objects: [
           createObject('customCompute', {
@@ -890,9 +890,13 @@ describe('WebGPUCompiler', () => {
 
       const result = compiler.compile(composition, 'test-token');
 
-      expect(result).toContain('CustomCompute');
-      expect(result).toContain('my_shader');
-      expect(result).toContain('[32,1,1]');
+      // The output has no WGSL for my_shader and nothing to bind to it, so it
+      // builds no pipeline for it and says so (task_1790661750956_nedf).
+      expect(result).not.toContain('WGSL_CUSTOM_');
+      expect(result).not.toContain('CustomCompute');
+      expect(result).toContain(
+        '// WARNING: the @compute block of "customCompute" names the shader "my_shader", which this output does not contain, so its compute pass is not built.'
+      );
     });
 
     it('should not emit compute pipelines when enableCompute is false', () => {

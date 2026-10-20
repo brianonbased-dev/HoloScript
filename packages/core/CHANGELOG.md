@@ -1,5 +1,101 @@
 # @holoscript/core
 
+## 8.10.0
+
+### Minor Changes
+
+- 4ecc50e: `generateHoloScriptGbnf()` now returns the whole-program grammar by default: one
+  `composition "Name" { ... }` program, measured to parse with zero errors under the
+  parser and the strict layer. The `holoscript` grammar preset (LlamaServerCompiler,
+  `holoScriptGrammarForPreset`) is that grammar too. Callers that relied on the old
+  root-less first subset ask for it with `generateHoloScriptGbnf({ root: 'definitions' })`
+  or the new `holoscript-subset` preset, which is byte-identical to the grammar before
+  this change, so receipts that name it can still be re-derived. Core also exports the
+  reserved-name lists the grammar is built from (`RESERVED_PROPERTY_NAMES`,
+  `RESERVED_GROUP_NAMES`, `RESERVED_MACHINE_NAMES`).
+
+  The MCP server's `.holo` requests to `local-llm` carry the grammar; a local endpoint
+  that fails the call with it (one that takes a grammar name rather than GBNF) is asked
+  once more without it.
+
+- Fixes merged 2026-10-15:
+
+  - `@holoscript/core/constants` and `@holoscript/core/tools` can be `require()`d (CJS export conditions), and the Docker core build emits `dist/constants.cjs`, so the mcp-server image boots again (#582, #583, #585).
+  - Unknown traits produce an HS1006 warning in parseHolo, HoloScriptValidator, the strict layer, CLI `validate`, MCP and LSP. It's a warning only, so exit codes don't change (#592).
+  - Garbage-input hardening: `parseHolo('')` → HS1001, non-string input → HS1009 without throwing, `parseHoloStrict` no longer fabricates traits, and HS1006 output is capped at 100 plus a summary (also in strict). Locations come from a single linear pass, so 20k unknown traits parse in about 140 ms instead of about 29 s. `compileToWASM` parses source text and refuses non-Composition objects with HS1009 (#593).
+  - Likeness: the canonical validator applies HS1011 fail-closed across CLI, MCP and LSP. face/body tracking need `source: live_self` (or a recording). Live pose, face and voice stay on the device unless the tracked person grants sharing. An unbound tracked person fails closed. `@collaborative` voice joins muted, and each voice use needs its own grant (#590, #591).
+  - Studio Verify runs the real parser, and no rule passes without running (#594).
+
+### Patch Changes
+
+- 857c54a: The whole-program grammar writes `@platform(...)` on objects with at least one name, the
+  only form the parser takes there, and keeps quoted keys out of a state transition's
+  `condition:` and `when:`. The MCP server now retries a local-llm call without the grammar
+  only when the server refuses it (400 or 422), not after a 5xx or a timeout, and a result
+  that was not held to the grammar says so with `grammarDropped: true`.
+- Updated dependencies [268e183]
+  - @holoscript/llm-provider@1.7.0
+  - @holoscript/agent-protocol@8.10.0
+
+## 8.9.0
+
+### Minor Changes
+
+- Core and CLI changes merged to main between the 8.7.0 release (2026-08-13) and
+  this one. They were not recorded as changesets at the time; the git history of
+  `packages/core` and `packages/cli` since 2026-08-13 is the full list.
+
+  **Behavior change (security):** a pipeline no longer reads environment variables
+  on its own. Each variable it reads must be allowed by the operator with
+  `--allow-env <NAME>` or the `HOLOSCRIPT_PIPELINE_ALLOW_ENV=NAME,NAME` environment
+  variable (this includes `HOLOSCRIPT_MCP_URL`). A pipeline that read
+  environment variables under 8.7.0 runs under 8.9.0 without them until they are
+  allowed. A pipeline file can also no longer send `HOLOSCRIPT_API_KEY` to a
+  server it chose, and gets no loopback server of its own.
+
+  Other highlights:
+
+  - Scene blocks: objects written inside a `scene` now reach WebGPU, Godot, Android,
+    iOS, visionOS, Android XR, Quest and Studio's viewport, and a scene that reuses
+    an object name no longer breaks WebGPU or Godot output.
+  - Every export target carries a readiness tier its evidence earns.
+  - Three.js output emits rotation in radians (HoloScript rotation is degrees);
+    iOS and Android round parts and cylinders are sized like Quest and the web.
+  - The `.hsplus` Rust checker loads from built output.
+  - `query --dir` searches the directory it absorbed.
+  - Traits can describe their own fields, and editor affordances are refused for a
+    trait name two traits claim.
+
+### Patch Changes
+
+- @holoscript/agent-protocol@8.9.0
+
+## 8.7.0
+
+### Minor Changes
+
+- 64f7022: Expose structured HoloScript+ record fields through the supported core and parser entry points,
+  including a fail-closed source-to-HoloMeaning projection for `@unknown` fields. Canonical parser
+  APIs now return `HSPlusParseResult` with a required typed AST while `HSPlusCompileResult` retains
+  optional typed AST compatibility for handwritten results. Keep the zero-runtime core-types mirror
+  in sync and harden LSP safety extraction against malformed or cyclic AST input.
+- d26629c: Add source-run receipt v3 with deterministic `.holo` source re-projection,
+  world-provenance verification, closed nested receipt contracts, and a durable
+  three-format Model Village experiment fixture while preserving v2
+  verification. Expose the canonical `.holo` tokenizer so the admitted world
+  profile can fail closed on non-static token classes, properties, traits, and
+  lifecycle syntax. Pose/physics output is declaration metadata, not solver
+  execution.
+
+### Patch Changes
+
+- 7c22951: Fix clean public-registry imports by lazily materializing `VR_TRAITS` in parser error recovery instead of spreading it at module load time.
+- 664f178: Require authored `.holo` `seeks` and selected-barrier `shields` relationships before the bounded
+  HSI causal loop can resolve or act, with deterministic fail-closed receipts for unbound queries.
+- Updated dependencies [64f7022]
+  - @holoscript/core-types@6.2.0
+  - @holoscript/agent-protocol@8.7.0
+
 ## 8.0.13
 
 ### Patch Changes

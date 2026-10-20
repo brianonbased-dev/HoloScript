@@ -19,7 +19,7 @@ composition "MaterialSweep" {
   }
 
   // Base simulation (template for the sweep)
-  simulation "base" {
+  template "base" {
     @structural_fem {
       mesh: { primitive: box, size: [0.1, 0.1, 1.0], divisions: [2, 2, 8] }
       element_type: tet10
@@ -45,7 +45,7 @@ composition "MaterialSweep" {
   }
 
   // Experiment: sweep material stiffness
-  experiment "stiffness_sweep" {
+  module "stiffness_sweep" {
     @parameter_sweep {
       base_config: $base
       solver_type: structural-tet10
@@ -75,7 +75,7 @@ composition "MaterialSweep" {
     }
   }
 
-  hud "status" {
+  template "status" {
     @text_overlay {
       content: "Sweep: {$state.sweepStatus} | Best: {$state.bestMaterial ?? 'pending'}"
       position: top_right

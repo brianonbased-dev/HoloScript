@@ -25,8 +25,9 @@
  *     positioned by the outer declaration node.
  *   - clauseImports — ESM `import { a } from 'x'` clause walking (default /
  *     namespace / named + isDefault/isWildcard flags) plus dynamic-import and
- *     require() call imports. (Re-exports `export … from` are deliberately NOT
- *     imports — the bespoke never emitted them.)
+ *     require() call imports. Re-exports (`export … from`) are edges flagged
+ *     `isReexport` — the bespoke never emitted them, which hid every barrel's
+ *     dependents from impact analysis; this is the one deliberate departure.
  *   - eventSites — HoloGraph emit/listen extraction (extractEmitSites /
  *     extractListenSites), TypeScript-unique among the migrated languages.
  *   - callerScope — the push-only scope stack the bespoke used for callerId:
@@ -53,8 +54,8 @@ import type {
 
 // Representative TypeScript source exercising every rule the bespoke
 // TypeScriptAdapter had: all import forms (default, named, aliased, namespace,
-// side-effect, type-only, mixed), dynamic import + require, re-exports (which
-// are NOT imports), interface, exported + local type alias, exported + local
+// side-effect, type-only, mixed), dynamic import + require, re-exports (edges
+// flagged isReexport), interface, exported + local type alias, exported + local
 // enum, a generic exported function with typed params + return type, a private
 // function, an exported arrow const, a bare arrow const, exported + local plain
 // constants, a class with fields (public/private/protected/implicit),
@@ -573,6 +574,27 @@ const EXPECTED_IMPORTS: ImportEdge[] = [
   },
   { fromFile: 'sample.ts', toModule: './dynamic-mod', line: 9 },
   { fromFile: 'sample.ts', toModule: './required-mod', line: 10 },
+  // Re-exports: the one deliberate departure from the bespoke snapshot
+  // (task_1791232117105_b2p1). A barrel depends on what it re-exports; without
+  // these edges impact analysis stopped at every index.ts.
+  {
+    fromFile: 'sample.ts',
+    toModule: './reexport-mod',
+    line: 11,
+    namedImports: ['reexportedA', 'reexportedB'],
+    isWildcard: false,
+    isDefault: false,
+    isReexport: true,
+  },
+  {
+    fromFile: 'sample.ts',
+    toModule: './star-reexport-mod',
+    line: 12,
+    namedImports: [],
+    isWildcard: true,
+    isDefault: false,
+    isReexport: true,
+  },
 ];
 
 const EXPECTED_CALLS: CallEdge[] = [

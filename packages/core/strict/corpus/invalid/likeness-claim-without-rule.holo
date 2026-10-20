@@ -1,0 +1,6 @@
+object "Ava" {
+  @consent_gate(grant: "grant_ava_2026_10_14", scope: ["biometric"])
+  @face_mesh
+  @voice_print
+  @body_scan
+}

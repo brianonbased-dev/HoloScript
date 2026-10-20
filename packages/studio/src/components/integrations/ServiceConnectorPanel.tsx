@@ -4,23 +4,22 @@
 /**
  * ServiceConnectorPanel — Integration Hub for External Services
  *
- * Tabbed interface for managing 5 service connectors (GitHub, Railway, VSCode,
- * App Store, Upstash). Each tab shows connection status, configuration forms,
- * and recent activity logs.
+ * Tabbed interface for 5 service connectors (GitHub, Railway, VSCode,
+ * App Store, Upstash). What it actually does today: validate credentials via
+ * POST /api/connectors/connect (connect + health check) and show status.
  *
  * Features:
  * - Per-service connection status indicator (green/yellow/red dot)
  * - OAuth connect flow for GitHub (device code flow)
- * - Service-specific configuration forms
- * - Recent activity log (last 10 events per service)
+ * - Service-specific configuration forms (keys from connectorFormFields)
+ * - Local activity log (connect / disconnect attempts from this browser)
  * - Disconnect with confirmation dialog
  * - ARIA tab/tabpanel pattern for accessibility
- * - Real-time SSE activity stream
  *
  * Part of the Studio Integration Hub vision (W.164-W.171, P.STUDIO.01).
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import clsx from 'clsx';
 import {
@@ -45,12 +44,17 @@ import {
   type ServiceId as StoreServiceId,
   type ConnectionStatus as StoreConnectionStatus,
 } from '@/lib/stores/connectorStore';
+import {
+  CONNECTOR_FORM_FIELDS,
+  MASKED_SECRET,
+  buildConnectPayload,
+} from '@/lib/stores/connectorFormFields';
 import { GitHubOAuthModal, type GitHubOAuthConnection } from './GitHubOAuthModal';
 import { logger } from '@/lib/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ServiceId = 'github' | 'railway' | 'vscode' | 'appstore' | 'upstash' | 'pipeline';
+type ServiceId = StoreServiceId;
 
 /** Reuse the store's ConnectionStatus so types stay in sync */
 type ConnectionStatus = StoreConnectionStatus;
@@ -101,43 +105,36 @@ const SERVICE_CONFIGS: Record<
     id: 'github',
     name: 'GitHub',
     icon: GithubIcon,
-    description: 'Repository sync, PR previews, Actions integration',
+    description: 'Connect a token and check it is valid (connection + health check only)',
     dashboardUrl: 'https://github.com/settings/tokens',
   },
   railway: {
     id: 'railway',
     name: 'Railway',
     icon: Train,
-    description: 'One-click deploys, environment management',
+    description: 'Connect a project token and check it is valid (connection + health check only)',
     dashboardUrl: 'https://railway.app/dashboard',
   },
   vscode: {
     id: 'vscode',
     name: 'VSCode',
     icon: Code,
-    description: 'MCP integration, live preview, bidirectional sync',
+    description: 'Check that the local VS Code extension bridge is reachable',
     dashboardUrl: 'vscode://holoscript.holoscript-mcp',
   },
   appstore: {
     id: 'appstore',
     name: 'App Store',
     icon: Package,
-    description: 'TestFlight, build upload, metadata management',
+    description: 'Validate App Store Connect / Google Play credentials (connection + health check only)',
     dashboardUrl: 'https://appstoreconnect.apple.com',
   },
   upstash: {
     id: 'upstash',
     name: 'Upstash',
     icon: Database,
-    description: 'Redis cache, Vector search, QStash scheduling',
+    description: 'Validate Upstash Redis REST credentials (connection + health check only)',
     dashboardUrl: 'https://console.upstash.com',
-  },
-  pipeline: {
-    id: 'pipeline',
-    name: 'Recursive Pipeline',
-    icon: RefreshCw,
-    description: 'Auto-triggered improvement pipeline from absorb results',
-    dashboardUrl: '#',
   },
 };
 
@@ -190,7 +187,7 @@ function ActivityLog({ entries }: { entries: ActivityEntry[] }) {
   if (entries.length === 0) {
     return (
       <div className="flex h-32 items-center justify-center text-sm text-studio-muted">
-        No recent activity
+        No connect / disconnect attempts from this browser yet
       </div>
     );
   }
@@ -241,13 +238,9 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
 
   const handleConnect = useCallback(async () => {
     try {
-      // Collect credentials from config fields
-      const credentials: Record<string, string> = {};
-      service.configFields.forEach((field) => {
-        if (field.value) {
-          credentials[field.key] = field.value;
-        }
-      });
+      // Collect credentials using the exact keys the connect route reads.
+      const values = Object.fromEntries(service.configFields.map((f) => [f.key, f.value]));
+      const { credentials } = buildConnectPayload(service.id as StoreServiceId, values);
 
       await connect(service.id as StoreServiceId, credentials);
     } catch (err) {
@@ -342,6 +335,10 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
         <legend className="text-xs font-semibold uppercase tracking-wide text-studio-muted">
           Configuration
         </legend>
+        <p className="text-[10px] text-studio-muted">
+          Secrets are never saved. After a page reload this connector shows Disconnected —
+          re-enter secrets to reconnect.
+        </p>
         {service.configFields.map((field) => (
           <div key={field.key} className="flex flex-col gap-1">
             <label
@@ -446,7 +443,7 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
       {/* Recent Activity */}
       <div className="space-y-2">
         <h4 className="text-xs font-semibold uppercase tracking-wide text-studio-muted">
-          Recent Activity
+          Recent Activity (this browser)
         </h4>
         <div className="rounded border border-studio-border bg-studio-bg-muted/50">
           <ActivityLog entries={service.recentActivity} />
@@ -493,21 +490,13 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
 
   // Pull data from store
   const connections = useConnectorStore((s) => s.connections);
+  // Activity is local to this browser: connect / disconnect attempts made from
+  // this panel. No server-side event producer exists yet, so we do not open
+  // the /api/connectors/activity SSE stream (it only ever sent a hello event).
   const activities = useConnectorStore((s) => s.activities);
-  const startActivityStream = useConnectorStore((s) => s.startActivityStream);
-  const stopActivityStream = useConnectorStore((s) => s.stopActivityStream);
-
-  // Start SSE activity stream on mount
-  useEffect(() => {
-    startActivityStream();
-    return () => {
-      stopActivityStream();
-    };
-  }, [startActivityStream, stopActivityStream]);
 
   // Build service configs from store data
   const services: ServiceConfig[] = Object.values(SERVICE_CONFIGS)
-    .filter((config) => config.id !== 'pipeline') // Exclude pipeline from connectors
     .map((config) => {
       const connection = connections[config.id as StoreServiceId];
       const serviceActivities = activities
@@ -518,112 +507,22 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
           status: a.status,
         }));
 
-      // Define config fields per service
-      const configFields: ConfigField[] =
-        config.id === 'github'
-          ? [
-              {
-                key: 'token',
-                label: 'Personal Access Token',
-                type: 'password' as const,
-                placeholder:
-                  'ghp_\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-                value: connection?.config?.token || '',
-                helpText: 'Requires repo, read:org, and workflow scopes',
-              },
-              {
-                key: 'repo',
-                label: 'Default Repository',
-                type: 'text' as const,
-                placeholder: 'username/repository',
-                value: connection?.config?.repo || '',
-              },
-            ]
-          : config.id === 'railway'
-            ? [
-                {
-                  key: 'token',
-                  label: 'Railway API Token',
-                  type: 'password' as const,
-                  placeholder:
-                    '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-                  value: connection?.config?.token || '',
-                  helpText: 'Generate at railway.app/account/tokens',
-                },
-                {
-                  key: 'project',
-                  label: 'Default Project ID',
-                  type: 'text' as const,
-                  placeholder: 'proj_\u2022\u2022\u2022\u2022\u2022\u2022',
-                  value: connection?.config?.project || '',
-                },
-              ]
-            : config.id === 'vscode'
-              ? [
-                  {
-                    key: 'mcpServerUrl',
-                    label: 'MCP Server URL',
-                    type: 'url' as const,
-                    placeholder: 'https://mcp.holoscript.net',
-                    value: connection?.config?.mcpServerUrl || '',
-                    helpText: 'The HoloScript MCP endpoint for VS Code to connect to',
-                  },
-                  {
-                    key: 'token',
-                    label: 'Extension Auth Token',
-                    type: 'password' as const,
-                    placeholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-                    value: connection?.config?.token || '',
-                    helpText: 'Used for bidirectional sync between Studio and VS Code',
-                  },
-                ]
-              : config.id === 'appstore'
-                ? [
-                    {
-                      key: 'appleKey',
-                      label: 'Apple API Key ID',
-                      type: 'password' as const,
-                      placeholder: 'ABCD1234EF',
-                      value: connection?.config?.appleKey || '',
-                      helpText: 'App Store Connect API key for TestFlight and submissions',
-                    },
-                    {
-                      key: 'googleKey',
-                      label: 'Google Service Account JSON',
-                      type: 'password' as const,
-                      placeholder: '{"type":"service_account"...}',
-                      value: connection?.config?.googleKey || '',
-                      helpText: 'Service account with Play Developer API access',
-                    },
-                  ]
-                : config.id === 'upstash'
-                  ? [
-                      {
-                        key: 'redisUrl',
-                        label: 'Redis REST URL',
-                        type: 'url' as const,
-                        placeholder: 'https://\u2022\u2022\u2022.upstash.io',
-                        value: connection?.config?.redisUrl || '',
-                        helpText: 'REST endpoint from Upstash console',
-                      },
-                      {
-                        key: 'token',
-                        label: 'REST Token',
-                        type: 'password' as const,
-                        placeholder: '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-                        value: connection?.config?.token || '',
-                      },
-                    ]
-                  : [
-                      {
-                        key: 'token',
-                        label: 'API Token / Key',
-                        type: 'password' as const,
-                        placeholder:
-                          '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022',
-                        value: connection?.config?.token || '',
-                      },
-                    ];
+      // Config fields come from the shared form-field table whose keys match
+      // what POST /api/connectors/connect actually reads (see connectorFormFields).
+      const configFields: ConfigField[] = (
+        CONNECTOR_FORM_FIELDS[config.id as StoreServiceId] ?? []
+      ).map((field) => {
+        const raw = connection?.config?.[field.key];
+        return {
+          key: field.key,
+          label: field.label,
+          type: field.type,
+          placeholder: field.placeholder,
+          helpText: field.helpText,
+          // Never pre-fill the masked echo the API returns for secrets.
+          value: typeof raw === 'string' && raw !== MASKED_SECRET ? raw : '',
+        };
+      });
 
       // GitHub: the signed-in session counts as connected (session token is
       // what /api/github/* actually uses). Store connection, when present,
@@ -657,7 +556,7 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
           <p className="text-xs text-studio-muted">
             {connectedCount > 0
               ? `${connectedCount}/${services.length} services connected`
-              : 'Connect external services to unlock deployment, testing, and collaboration'}
+              : 'Connect external services to validate credentials and check health'}
           </p>
         </div>
         <button

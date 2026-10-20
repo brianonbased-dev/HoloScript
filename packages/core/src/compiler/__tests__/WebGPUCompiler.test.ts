@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { WebGPUCompiler } from '../WebGPUCompiler';
+import { parseHolo } from '../../parser/HoloCompositionParser';
 import type { HoloComposition } from '../../parser/HoloCompositionTypes';
 
 vi.mock('../identity/AgentRBAC', async (importOriginal) => {
@@ -12,6 +13,14 @@ vi.mock('../identity/AgentRBAC', async (importOriginal) => {
 
 function makeComposition(overrides: Partial<HoloComposition> = {}): HoloComposition {
   return { name: 'TestScene', objects: [], ...overrides } as HoloComposition;
+}
+
+/** Parse .holo source that must read without an error. */
+function parseClean(source: string): HoloComposition {
+  const result = parseHolo(source);
+  expect(result.errors).toEqual([]);
+  expect(result.ast).toBeDefined();
+  return result.ast as HoloComposition;
 }
 
 describe('WebGPUCompiler', () => {
@@ -278,5 +287,120 @@ describe('WebGPUCompiler', () => {
     });
     const code = compiler.compile(comp, 'test-token');
     expect(code).toContain('my_cube');
+  });
+
+  // =========== Scene blocks ===========
+  // The parser keeps a scene's contents on composition.scenes, not composition.objects.
+
+  const crate = `object "SceneCrate" {
+      geometry: "sphere"
+      position: [1.5, 2.5, -3.5]
+      color: "#ff0000"
+    }`;
+
+  it('compiles an object written only inside a scene like the same object at the top level', () => {
+    const inScene = parseClean(`composition "Scenes" {\n  scene "Main" {\n    ${crate}\n  }\n}`);
+    const atTop = parseClean(`composition "Scenes" {\n  ${crate}\n}`);
+    expect(inScene.objects).toEqual([]);
+
+    const code = compiler.compile(inScene, 'test-token');
+    expect(code).toContain('// Object: SceneCrate');
+    expect(code).toContain('geometry: "sphere"');
+    expect(code).toContain('0,0,1,0, 1.5,2.5,-3.5,1]');
+    expect(code).toContain('rp.setPipeline(SceneCratePipeline)');
+    expect(code).toBe(compiler.compile(atTop, 'test-token'));
+  });
+
+  it("emits top-level objects first, then each scene's objects in scene order", () => {
+    const code = compiler.compile(
+      parseClean(`composition "Scenes" {
+  scene "First" {
+    object "InFirst" { geometry: "cube" }
+  }
+  object "AtTop" { geometry: "cube" }
+  scene "Second" {
+    object "InSecond" { geometry: "cube" }
+  }
+}`),
+      'test-token'
+    );
+    const order = ['AtTop', 'InFirst', 'InSecond'].map((n) => code.indexOf(`// Object: ${n}`));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    for (const n of ['AtTop', 'InFirst', 'InSecond']) {
+      expect(code).toContain(`rp.setPipeline(${n}Pipeline)`);
+    }
+  });
+
+  it('uses the environment written inside a scene when the composition has none', () => {
+    const code = compiler.compile(
+      parseClean(`composition "Scenes" {
+  scene "Main" {
+    environment { background: "#336699" }
+  }
+}`),
+      'test-token'
+    );
+    expect(code).toContain('const clearColor: GPUColor = { r: 0.2, g: 0.4, b: 0.6, a: 1.0 };');
+    expect(code).not.toContain('WARNING: the environment in scene');
+  });
+
+  it("names a scene environment it does not apply, and says the composition's own applies", () => {
+    // The composition's own environment is written after the scene; it still wins.
+    const code = compiler.compile(
+      parseClean(`composition "Scenes" {
+  scene "Night" {
+    environment { background: "#ff0000" }
+  }
+  environment { background: "#336699" }
+}`),
+      'test-token'
+    );
+    expect(code).toContain('const clearColor: GPUColor = { r: 0.2, g: 0.4, b: 0.6, a: 1.0 };');
+    expect(code).toContain(
+      `// WARNING: the environment in scene "Night" is not applied: this output is one world with one environment, and the composition's own environment applies.`
+    );
+  });
+
+  it('leaves out a scene object whose name is already taken, and names it', () => {
+    const code = compiler.compile(
+      parseClean(`composition "Scenes" {
+  scene "Day" {
+    object "Ground" { geometry: "plane" }
+  }
+  scene "Night" {
+    object "Ground" { geometry: "plane" }
+    object "Moon" { geometry: "sphere" }
+  }
+}`),
+      'test-token'
+    );
+    // One world has one "Ground": a second `const GroundVertices` would not load.
+    expect(code.match(/const GroundVertices =/g)).toHaveLength(1);
+    expect(code).toContain('// Object: Moon');
+    expect(code).toContain(
+      '// WARNING: object "Ground" in scene "Night" is not built: this output is one world, and another object in it already uses the name "Ground".'
+    );
+  });
+
+  it('builds a scene object that shares its name with a light or a group: only object names are identifiers here', () => {
+    // A light is an entry in one array, and a group's identifier ends in
+    // `GroupXform`, so neither takes the name from a scene object.
+    const code = compiler.compile(
+      parseClean(`composition "Parts" {
+  light "Ground" point { intensity: 1 }
+  spatial_group "Ground" {
+    object "Lamp" { geometry: "sphere" }
+  }
+  scene "Level" {
+    object "Ground" { geometry: "plane" }
+  }
+}`),
+      'test-token'
+    );
+    expect(code.match(/const GroundVertices =/g)).toHaveLength(1);
+    expect(code.match(/const GroundGroupXform =/g)).toHaveLength(1);
+    expect(code).toContain('rp.setPipeline(GroundPipeline)');
+    expect(code).not.toContain('WARNING');
   });
 });

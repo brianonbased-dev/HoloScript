@@ -880,14 +880,20 @@ async function main(): Promise<void> {
         let parseResult: any;
 
         if (options.command === 'validate') {
-          const { validateCanonicalSource } = await import('@holoscript/core');
+          const { validateForCli, loadConsentRules } = await import('./consent-rules');
           const validateHsDetailed =
             !isHolo && !isHsplus
               ? (await import('@holoscript/wasm/node')).validate_detailed
               : undefined;
-          const canonicalResult = validateCanonicalSource(
-            { source: content, fileName: options.input },
-            { validateHsDetailed }
+          // HS1011: without --consent-rules every likeness source fails (fail closed).
+          const consentRules = options.consentRules
+            ? loadConsentRules(path.resolve(options.consentRules))
+            : undefined;
+          const canonicalResult = validateForCli(
+            content,
+            options.input,
+            consentRules,
+            validateHsDetailed
           );
           parseResult = { ast: canonicalResult.ast };
           success = canonicalResult.valid;
@@ -2069,6 +2075,24 @@ async function main(): Promise<void> {
         const outputPath = path.resolve(options.output || 'index.mjs');
         writeCompileOutputFile(outputPath, compiled.code);
         console.log(`\n\x1b[32m✓ Pipeline compiled to Node.js module: ${outputPath}\x1b[0m\n`);
+
+        // List the environment variables this pipeline reads and the hosts it targets,
+        // so a reviewer sees them without running it (task_1791176003202_obsc).
+        const { summarizePipelineIo } = await import('@holoscript/core/compiler/index');
+        const io = summarizePipelineIo(content);
+        if (io.success) {
+          const reads = io.envReads.length ? io.envReads.join(', ') : '(none)';
+          const hosts =
+            (io.hosts.length ? io.hosts.join(', ') : '(no static hosts)') +
+            (io.dynamicHost ? ' + host(s) from ${env.*}' : '');
+          console.log(`  reads env: ${reads}`);
+          console.log(`  sends requests to: ${hosts}`);
+          if (io.envReads.length) {
+            console.log(
+              `  to run: holoscript run ${options.input} ${io.envReads.map((n: string) => `--allow-env ${n}`).join(' ')}`
+            );
+          }
+        }
         process.exit(0);
       }
 
@@ -5037,10 +5061,51 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 
     case 'impact':
     case 'impact-analysis': {
+      // HoloCI change report: `impact --since <ref|a..b>` reads the graph for a
+      // git change (test selection, forgotten callers, reviewer brief).
+      if (options.absorbSince && !options.input && !options.impactFiles) {
+        try {
+          const path = await import('path');
+          const { analyzeChangeImpact } = await import('./commands/change-impact');
+          const { execFileSync } = await import('child_process');
+          // --dir is the graph root (default cwd); git paths are relative to the top level.
+          const graphRoot = options.queryDir ? path.resolve(options.queryDir) : process.cwd();
+          const repoRoot = execFileSync('git', ['-C', graphRoot, 'rev-parse', '--show-toplevel'], {
+            encoding: 'utf8',
+          }).trim();
+          // The graph cache is authoritative only for the workspace root it was
+          // built for; a cwd nested inside it reads as a "nested slice" and refuses.
+          process.env.HOLOSCRIPT_WORKSPACE_ROOT = graphRoot;
+          const report = await analyzeChangeImpact({
+            repoRoot,
+            graphRoot,
+            since: options.absorbSince,
+            refresh: options.impactRefresh === true,
+          });
+          if (options.json) {
+            printJson(report);
+          } else if (options.impactBrief) {
+            console.log(report.brief);
+          } else {
+            console.log(`\n\x1b[36mHoloCI change report\x1b[0m (mode: ${report.mode})\n`);
+            console.log(report.brief);
+            console.log('\nSelected tests:');
+            for (const t of report.tests.selected) console.log(`  ${t}`);
+            console.log('');
+          }
+          process.exit(0);
+        } catch (err: unknown) {
+          console.error(
+            `\x1b[31mChange report error: ${err instanceof Error ? err.message : String(err)}\x1b[0m`
+          );
+          process.exit(1);
+        }
+      }
       const filesArg = options.input || options.impactFiles;
       if (!filesArg) {
         cliError('E001', 'No changed files specified.', {
-          usage: 'holoscript impact-analysis <comma-separated-files> [--dir <scan-root>] [--json]',
+          usage:
+            'holoscript impact-analysis <comma-separated-files> [--dir <scan-root>] [--json]  |  holoscript impact --since <ref|a..b> [--dir <repo-root>] [--refresh] [--brief] [--json]',
           hint: 'Paths are relative to --dir. Example: `holoscript impact src/cli.ts --dir packages/cli/src --json`.',
         });
         process.exit(1);
@@ -5055,19 +5120,15 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
           .map((file) => file.trim())
           .filter(Boolean);
 
-        const absorb = await handleCodebaseTool('holo_absorb_repo', {
-          rootDir,
-          force: false,
-          outputFormat: 'stats',
-          includeBuildArtifacts: false,
-          interactive: false,
-        });
-        const absorbPayload = asRecord(absorb);
-        if (absorbPayload.error) {
-          console.error(`\x1b[31mAbsorb failed: ${String(absorbPayload.error)}\x1b[0m`);
-          if (absorbPayload.hint) console.error(String(absorbPayload.hint));
+        // A large root is absorbed in a background worker of this process;
+        // wait for it, or the impact query below finds no graph.
+        const { absorbAndWait } = await import('./commands/change-impact');
+        const absorbed = await absorbAndWait(handleCodebaseTool, rootDir);
+        if (!absorbed.ok) {
+          console.error(`\x1b[31mAbsorb failed: ${absorbed.error}\x1b[0m`);
           process.exit(1);
         }
+        const absorb = absorbed.result;
 
         const impact = await handleCodebaseTool('holo_impact_analysis', { changedFiles });
         const impactPayload = asRecord(impact);

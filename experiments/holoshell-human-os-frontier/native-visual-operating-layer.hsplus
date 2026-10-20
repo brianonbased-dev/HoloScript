@@ -48,7 +48,7 @@ composition "HoloShellNativeVisualOperatingLayer" {
     desktopAutomationExecuted: false
   }
 
-  policy "VisualPanelsAreReceiptedOperatingControls" {
+  template "VisualPanelsAreReceiptedOperatingControls" {
     appliesTo: ["native_window", "browser_bootstrap_projection", "agent_utility_capsules"]
     panelsRequired: ["service_dock", "terminal_run_timeline", "agent_utility_capsules", "hololand_node_city", "consent_command_palette"]
     sourceRequiredBeforeProjection: true
@@ -60,7 +60,7 @@ composition "HoloShellNativeVisualOperatingLayer" {
     receiptRequired: true
   }
 
-  policy "CommandPaletteUsesConsentBoundaries" {
+  template "CommandPaletteUsesConsentBoundaries" {
     appliesTo: ["consent_command_palette", "guarded_service_ensure", "read_only_adapter_execution", "open_url"]
     readOnlyCommandsMayRunAfterExplicitClick: true
     guardedCommandsRequireConfirmationReceipt: true

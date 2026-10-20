@@ -17,6 +17,7 @@ use crate::ast::{
 use crate::kotlin_emit::{check_semantics, SemanticDiagnostic};
 
 const OP_PUSH: u16 = 0x01;
+const OP_POP: u16 = 0x02;
 const OP_EXEC: u16 = 0x20;
 const OP_JUMP: u16 = 0x30;
 const OP_JUMP_IF: u16 = 0x31;
@@ -190,6 +191,18 @@ struct UaalEmitter<'a> {
     current_borrowed_buffers: HashMap<String, UaalBorrowedBuffer>,
     current_borrowed_aggregates: HashMap<String, UaalBorrowedAggregate>,
     current_control_flow_depth: usize,
+    /// For each function, the callees whose calls can re-enter it (itself included). UAAL slots
+    /// are named per function, not per call, so such a call site saves the caller's slots.
+    reentrant_callees: HashMap<String, HashSet<String>>,
+    /// For each call node, by address, the names code may read after it returns
+    /// (`live_after_calls`). A re-entrant call saves only those of the caller's slots.
+    live_after_calls: HashMap<usize, HashSet<String>>,
+    /// Functions with no `return <value>` anywhere.
+    no_value_functions: HashSet<String>,
+    /// Names declared in each open block of the current function, innermost last.
+    current_scopes: Vec<Vec<String>>,
+    /// Address of the call node the current statement discards.
+    statement_call: Option<usize>,
 }
 
 pub fn compile_source_to_uaal(source: &str) -> Result<UaalBytecode, UaalEmitError> {
@@ -246,6 +259,16 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         .map(|function| (function.name.clone(), function.return_type.clone()))
         .collect::<HashMap<_, _>>();
     let aggregate_layouts = collect_aggregate_layouts(ast)?;
+    let reentrant_callees = reentrant_callees(&functions, &function_names);
+    let live_after_calls = functions
+        .iter()
+        .flat_map(|function| live_after_calls(&function.body))
+        .collect::<HashMap<_, _>>();
+    let no_value_functions = functions
+        .iter()
+        .filter(|function| !has_value_return(&function.body))
+        .map(|function| function.name.clone())
+        .collect::<HashSet<_>>();
 
     validate_imports_resolved(ast, &function_names)?;
 
@@ -269,6 +292,11 @@ pub fn emit_uaal_bytecode(ast: &Ast) -> Result<UaalBytecode, UaalEmitError> {
         current_borrowed_buffers: HashMap::new(),
         current_borrowed_aggregates: HashMap::new(),
         current_control_flow_depth: 0,
+        reentrant_callees,
+        live_after_calls,
+        no_value_functions,
+        current_scopes: Vec::new(),
+        statement_call: None,
     };
 
     emitter.emit_bootstrap()?;
@@ -519,6 +547,344 @@ fn validate_imports_resolved(
     Ok(())
 }
 
+/// Calls to user functions anywhere in `node`. Covers every statement and expression form
+/// `compile_to_uaal` lowers; any other form fails lowering on its own, so a call inside it never
+/// reaches the VM.
+fn collect_user_calls(node: &AstNode, names: &HashSet<String>, found: &mut HashSet<String>) {
+    match node {
+        AstNode::CallExpression(call) => {
+            match call.callee.as_ref() {
+                AstNode::Identifier(callee) => {
+                    if names.contains(&callee.name) {
+                        found.insert(callee.name.clone());
+                    }
+                }
+                other => collect_user_calls(other, names, found),
+            }
+            collect_user_calls_in(&call.arguments, names, found);
+        }
+        AstNode::BinaryExpression(binary) => {
+            collect_user_calls(&binary.left, names, found);
+            collect_user_calls(&binary.right, names, found);
+        }
+        AstNode::UnaryExpression(unary) => collect_user_calls(&unary.argument, names, found),
+        AstNode::MemberExpression(member) => {
+            collect_user_calls(&member.object, names, found);
+            collect_user_calls(&member.property, names, found);
+        }
+        AstNode::Return(ret) => {
+            if let Some(argument) = &ret.argument {
+                collect_user_calls(argument, names, found);
+            }
+        }
+        AstNode::If(if_node) => {
+            collect_user_calls(&if_node.test, names, found);
+            collect_user_calls_in(&if_node.consequent, names, found);
+            if let Some(alternate) = &if_node.alternate {
+                collect_user_calls_in(alternate, names, found);
+            }
+        }
+        AstNode::While(while_node) => {
+            collect_user_calls(&while_node.test, names, found);
+            collect_user_calls_in(&while_node.body, names, found);
+        }
+        AstNode::VariableDeclaration(var) => collect_user_calls(&var.value, names, found),
+        AstNode::StackSlotDeclaration(slot) => collect_user_calls(&slot.value, names, found),
+        AstNode::Assignment(assignment) => {
+            collect_user_calls(&assignment.target, names, found);
+            collect_user_calls(&assignment.value, names, found);
+        }
+        _ => {}
+    }
+}
+
+fn collect_user_calls_in(nodes: &[AstNode], names: &HashSet<String>, found: &mut HashSet<String>) {
+    for node in nodes {
+        collect_user_calls(node, names, found);
+    }
+}
+
+/// For each function F, the callees G such that a call F -> G can re-enter F: G is F itself, or F is
+/// reachable from G through user-function calls.
+fn reentrant_callees(
+    functions: &[&FunctionNode],
+    function_names: &HashSet<String>,
+) -> HashMap<String, HashSet<String>> {
+    let mut direct = HashMap::new();
+    for function in functions {
+        let mut callees = HashSet::new();
+        collect_user_calls_in(&function.body, function_names, &mut callees);
+        direct.insert(function.name.clone(), callees);
+    }
+
+    let reachable_from = |start: &String| {
+        let mut seen = HashSet::new();
+        let mut pending = direct
+            .get(start)
+            .map(|callees: &HashSet<String>| callees.iter().cloned().collect::<Vec<_>>())
+            .unwrap_or_default();
+        while let Some(next) = pending.pop() {
+            if seen.insert(next.clone()) {
+                if let Some(callees) = direct.get(&next) {
+                    pending.extend(callees.iter().cloned());
+                }
+            }
+        }
+        seen
+    };
+
+    let mut result = HashMap::new();
+    for (caller, callees) in &direct {
+        let reentrant = callees
+            .iter()
+            .filter(|callee| *callee == caller || reachable_from(callee).contains(caller))
+            .cloned()
+            .collect::<HashSet<_>>();
+        result.insert(caller.clone(), reentrant);
+    }
+    result
+}
+
+/// True when every path through `body` ends in `return <value>` and no `return` in it is bare.
+fn definitely_returns_value(body: &[AstNode]) -> bool {
+    ends_in_value_return(body) && every_return_has_value(body)
+}
+
+/// The end of `body` is unreachable except through `return <value>`. Trailing comments are ignored.
+fn ends_in_value_return(body: &[AstNode]) -> bool {
+    match body
+        .iter()
+        .rev()
+        .find(|node| !matches!(node, AstNode::Comment(_)))
+    {
+        Some(AstNode::Return(ret)) => ret.argument.is_some(),
+        Some(AstNode::If(if_node)) => {
+            ends_in_value_return(&if_node.consequent)
+                && if_node
+                    .alternate
+                    .as_deref()
+                    .is_some_and(ends_in_value_return)
+        }
+        _ => false,
+    }
+}
+
+fn every_return_has_value(body: &[AstNode]) -> bool {
+    body.iter().all(|node| match node {
+        AstNode::Return(ret) => ret.argument.is_some(),
+        AstNode::If(if_node) => {
+            every_return_has_value(&if_node.consequent)
+                && if_node
+                    .alternate
+                    .as_deref()
+                    .map_or(true, every_return_has_value)
+        }
+        AstNode::While(while_node) => every_return_has_value(&while_node.body),
+        _ => true,
+    })
+}
+
+fn has_value_return(body: &[AstNode]) -> bool {
+    body.iter().any(|node| match node {
+        AstNode::Return(ret) => ret.argument.is_some(),
+        AstNode::If(if_node) => {
+            has_value_return(&if_node.consequent)
+                || if_node.alternate.as_deref().is_some_and(has_value_return)
+        }
+        AstNode::While(while_node) => has_value_return(&while_node.body),
+        _ => false,
+    })
+}
+
+/// Every path through `body` ends in a `return`, with or without a value, so its end cannot be
+/// reached. Trailing comments are ignored.
+fn ends_in_return(body: &[AstNode]) -> bool {
+    match body
+        .iter()
+        .rev()
+        .find(|node| !matches!(node, AstNode::Comment(_)))
+    {
+        Some(AstNode::Return(_)) => true,
+        Some(AstNode::If(if_node)) => {
+            ends_in_return(&if_node.consequent)
+                && if_node.alternate.as_deref().is_some_and(ends_in_return)
+        }
+        _ => false,
+    }
+}
+
+/// The address `live_after_calls` and the emitter use to name one call node.
+fn call_address(call: &CallExpression) -> usize {
+    call as *const CallExpression as usize
+}
+
+/// Every name `node` mentions, as a read, a write or a declaration. With `skip`, the subtree of
+/// that call is left out: a call's arguments run before it, so they read nothing after it returns.
+/// Covers every form `compile_to_uaal` lowers; any other form fails lowering on its own.
+fn collect_names(node: &AstNode, skip: Option<usize>, names: &mut HashSet<String>) {
+    match node {
+        AstNode::Identifier(identifier) => {
+            names.insert(identifier.name.clone());
+        }
+        AstNode::CallExpression(call) => {
+            if skip == Some(call_address(call)) {
+                return;
+            }
+            collect_names(&call.callee, skip, names);
+            collect_names_in(&call.arguments, skip, names);
+        }
+        AstNode::BinaryExpression(binary) => {
+            collect_names(&binary.left, skip, names);
+            collect_names(&binary.right, skip, names);
+        }
+        AstNode::UnaryExpression(unary) => collect_names(&unary.argument, skip, names),
+        AstNode::MemberExpression(member) => {
+            collect_names(&member.object, skip, names);
+            collect_names(&member.property, skip, names);
+        }
+        AstNode::Return(ret) => {
+            if let Some(argument) = &ret.argument {
+                collect_names(argument, skip, names);
+            }
+        }
+        AstNode::If(if_node) => {
+            collect_names(&if_node.test, skip, names);
+            collect_names_in(&if_node.consequent, skip, names);
+            if let Some(alternate) = &if_node.alternate {
+                collect_names_in(alternate, skip, names);
+            }
+        }
+        AstNode::While(while_node) => {
+            collect_names(&while_node.test, skip, names);
+            collect_names_in(&while_node.body, skip, names);
+        }
+        AstNode::VariableDeclaration(var) => {
+            names.insert(var.name.clone());
+            collect_names(&var.value, skip, names);
+        }
+        AstNode::StackSlotDeclaration(slot) => {
+            names.insert(slot.name.clone());
+            collect_names(&slot.value, skip, names);
+        }
+        AstNode::Assignment(assignment) => {
+            collect_names(&assignment.target, skip, names);
+            collect_names(&assignment.value, skip, names);
+        }
+        _ => {}
+    }
+}
+
+fn collect_names_in(nodes: &[AstNode], skip: Option<usize>, names: &mut HashSet<String>) {
+    for node in nodes {
+        collect_names(node, skip, names);
+    }
+}
+
+/// Addresses of the calls in one statement's own expressions. The blocks of an `if` or a `while`
+/// are walked statement by statement instead.
+fn collect_call_addresses(node: &AstNode, calls: &mut Vec<usize>) {
+    match node {
+        AstNode::CallExpression(call) => {
+            calls.push(call_address(call));
+            collect_call_addresses(&call.callee, calls);
+            for argument in &call.arguments {
+                collect_call_addresses(argument, calls);
+            }
+        }
+        AstNode::BinaryExpression(binary) => {
+            collect_call_addresses(&binary.left, calls);
+            collect_call_addresses(&binary.right, calls);
+        }
+        AstNode::UnaryExpression(unary) => collect_call_addresses(&unary.argument, calls),
+        AstNode::MemberExpression(member) => {
+            collect_call_addresses(&member.object, calls);
+            collect_call_addresses(&member.property, calls);
+        }
+        AstNode::Return(ret) => {
+            if let Some(argument) = &ret.argument {
+                collect_call_addresses(argument, calls);
+            }
+        }
+        AstNode::VariableDeclaration(var) => collect_call_addresses(&var.value, calls),
+        AstNode::StackSlotDeclaration(slot) => collect_call_addresses(&slot.value, calls),
+        AstNode::Assignment(assignment) => {
+            collect_call_addresses(&assignment.target, calls);
+            collect_call_addresses(&assignment.value, calls);
+        }
+        _ => {}
+    }
+}
+
+/// For every call in a function body, the names code may read after that call returns. Slots are
+/// per function, so a call that can re-enter its caller must save the caller's slots that are
+/// still to be read; the rest are dead and saving them only costs operand stack (one entry per
+/// slot per recursion level, out of 4096). The answer is a sound over-approximation: the rest of
+/// the call's own statement outside the call, every later statement of each enclosing block, and
+/// all of every enclosing `while`, whose next iteration runs its test and earlier statements again.
+/// Nothing after a `return` runs in the frame, so `return f(...)` saves nothing.
+fn live_after_calls(body: &[AstNode]) -> HashMap<usize, HashSet<String>> {
+    let mut live = HashMap::new();
+    live_in_block(body, &HashSet::new(), &mut live);
+    live
+}
+
+/// `after_block`: the names code that runs after this block may read.
+fn live_in_block(
+    block: &[AstNode],
+    after_block: &HashSet<String>,
+    live: &mut HashMap<usize, HashSet<String>>,
+) {
+    let mut after = after_block.clone();
+    let mut after_each = Vec::with_capacity(block.len());
+    for statement in block.iter().rev() {
+        after_each.push(after.clone());
+        collect_names(statement, None, &mut after);
+    }
+    for (statement, after) in block.iter().zip(after_each.into_iter().rev()) {
+        live_in_statement(statement, &after, live);
+    }
+}
+
+fn live_in_statement(
+    statement: &AstNode,
+    after: &HashSet<String>,
+    live: &mut HashMap<usize, HashSet<String>>,
+) {
+    match statement {
+        AstNode::If(if_node) => {
+            record_live_calls(&if_node.test, statement, after, live);
+            live_in_block(&if_node.consequent, after, live);
+            if let Some(alternate) = &if_node.alternate {
+                live_in_block(alternate, after, live);
+            }
+        }
+        AstNode::While(while_node) => {
+            let mut looping = after.clone();
+            collect_names(statement, None, &mut looping);
+            record_live_calls(&while_node.test, statement, &looping, live);
+            live_in_block(&while_node.body, &looping, live);
+        }
+        AstNode::Return(_) => record_live_calls(statement, statement, &HashSet::new(), live),
+        _ => record_live_calls(statement, statement, after, live),
+    }
+}
+
+/// Each call in `expression` gets `after` plus whatever `statement` mentions outside that call.
+fn record_live_calls(
+    expression: &AstNode,
+    statement: &AstNode,
+    after: &HashSet<String>,
+    live: &mut HashMap<usize, HashSet<String>>,
+) {
+    let mut calls = Vec::new();
+    collect_call_addresses(expression, &mut calls);
+    for call in calls {
+        let mut names = after.clone();
+        collect_names(statement, Some(call), &mut names);
+        live.insert(call, names);
+    }
+}
+
 impl<'a> UaalEmitter<'a> {
     fn emit_bootstrap(&mut self) -> Result<(), UaalEmitError> {
         let entry = if self.function_names.contains("main") {
@@ -554,6 +920,19 @@ impl<'a> UaalEmitter<'a> {
             self.current_borrowed_buffers.clear();
             self.current_borrowed_aggregates.clear();
             self.current_control_flow_depth = 0;
+            self.current_scopes = vec![Vec::new()];
+            if let Some(return_type) = function
+                .return_type
+                .as_deref()
+                .filter(|annotation| !annotation.is_empty() && *annotation != "void")
+            {
+                if !definitely_returns_value(&function.body) {
+                    return Err(UaalEmitError::new(format!(
+                        "function `{}` declares `{return_type}` but can finish without returning a value in compile_to_uaal; every path must end in `return`",
+                        function.name
+                    )));
+                }
+            }
             if function
                 .return_type
                 .as_deref()
@@ -638,6 +1017,12 @@ impl<'a> UaalEmitter<'a> {
                 self.emit_statement(statement)?;
             }
             if !matches!(function.body.last(), Some(AstNode::Return(_))) {
+                // Falling off the end returns null, as a bare `return` does, so every call
+                // leaves exactly one value. When every path has returned already, this tail
+                // cannot run and is emitted as before.
+                if !ends_in_return(&function.body) {
+                    self.emit_op(OP_PUSH, vec![Value::Null]);
+                }
                 self.emit_owned_buffer_cleanup()?;
                 self.emit_op(OP_RET, Vec::new());
             }
@@ -651,6 +1036,7 @@ impl<'a> UaalEmitter<'a> {
             self.current_borrowed_buffers.clear();
             self.current_borrowed_aggregates.clear();
             self.current_control_flow_depth = 0;
+            self.current_scopes.clear();
         }
         Ok(())
     }
@@ -675,12 +1061,21 @@ impl<'a> UaalEmitter<'a> {
                 if let Some(argument) = &ret.argument {
                     let expected = self.current_function_return_type()?.cloned();
                     self.emit_expression_with_expected(argument, expected.as_deref())?;
+                } else {
+                    // A bare `return` yields null: every call leaves exactly one value.
+                    self.emit_op(OP_PUSH, vec![Value::Null]);
                 }
                 self.emit_owned_buffer_cleanup()?;
                 self.emit_op(OP_RET, Vec::new());
                 Ok(())
             }
-            AstNode::CallExpression(call) => self.emit_call_expression(call),
+            AstNode::CallExpression(call) => {
+                self.statement_call = Some(call_address(call));
+                let emitted = self.emit_call_expression(call);
+                self.statement_call = None;
+                emitted?;
+                self.discard_statement_call_value(call)
+            }
             AstNode::If(if_node) => self.emit_if(if_node),
             AstNode::While(while_node) => self.emit_while(while_node),
             AstNode::VariableDeclaration(var) => {
@@ -721,6 +1116,7 @@ impl<'a> UaalEmitter<'a> {
                         element_type,
                         &var.value,
                     )?;
+                    self.declare_binding(&var.name)?;
                     self.current_bindings.insert(var.name.clone());
                     self.current_binding_types
                         .insert(var.name.clone(), var.type_annotation.clone());
@@ -745,6 +1141,7 @@ impl<'a> UaalEmitter<'a> {
                     }
                     self.emit_owned_buffer_initializer(&var.name, element_type, &var.value)?;
                     let slot = Self::slot_key(self.current_function_name()?, &var.name);
+                    self.declare_binding(&var.name)?;
                     self.current_bindings.insert(var.name.clone());
                     self.current_binding_types
                         .insert(var.name.clone(), var.type_annotation.clone());
@@ -771,6 +1168,7 @@ impl<'a> UaalEmitter<'a> {
                 }
                 self.emit_expression_with_expected(&var.value, var.type_annotation.as_deref())?;
                 let slot = Self::slot_key(self.current_function_name()?, &var.name);
+                self.declare_binding(&var.name)?;
                 self.current_bindings.insert(var.name.clone());
                 self.current_binding_types
                     .insert(var.name.clone(), var.type_annotation.clone());
@@ -790,6 +1188,7 @@ impl<'a> UaalEmitter<'a> {
                 }
                 self.emit_expression_with_expected(&slot.value, Some(&slot.type_annotation))?;
                 let key = Self::slot_key(self.current_function_name()?, &slot.name);
+                self.declare_binding(&slot.name)?;
                 self.current_bindings.insert(slot.name.clone());
                 self.current_binding_types
                     .insert(slot.name.clone(), Some(slot.type_annotation.clone()));
@@ -984,6 +1383,11 @@ impl<'a> UaalEmitter<'a> {
         if self.aggregate_layouts.contains_key(callee) {
             return self.emit_aggregate_constructor(callee, &call.arguments);
         }
+        if !self.call_leaves_value(callee) && self.statement_call != Some(call_address(call)) {
+            return Err(UaalEmitError::new(format!(
+                "`{callee}(...)` is a statement and leaves no value, so it cannot be used as one in compile_to_uaal"
+            )));
+        }
         if callee == "load" {
             return self.emit_aggregate_load(call);
         }
@@ -1034,6 +1438,15 @@ impl<'a> UaalEmitter<'a> {
             ));
         }
         self.emit_user_function_call(callee, call)
+    }
+
+    /// What a call leaves on the operand stack, following `emit_call_expression`. A user function
+    /// leaves exactly one value on every path (its result, or null when it returns none), and so
+    /// do a constructor, `load` and `move`; `drop` and `store` consume their operands and leave
+    /// nothing. A statement discards what its call leaves; only a call that leaves a value can be
+    /// used as one.
+    fn call_leaves_value(&self, callee: &str) -> bool {
+        self.aggregate_layouts.contains_key(callee) || !matches!(callee, "drop" | "store")
     }
 
     fn emit_owned_buffer_returning_call(
@@ -1150,6 +1563,17 @@ impl<'a> UaalEmitter<'a> {
                 ));
             }
         }
+        let address = call_address(call);
+        if self.statement_call != Some(address) && self.no_value_functions.contains(callee) {
+            return Err(UaalEmitError::new(format!(
+                "function `{callee}` never returns a value, so a call to it cannot be used as one in compile_to_uaal"
+            )));
+        }
+        let saved_slots = if self.is_reentrant_call(callee) {
+            self.begin_reentrant_call(callee, address, &param_types)?
+        } else {
+            Vec::new()
+        };
         let mut call_borrows = HashMap::new();
         let mut acquired_params = Vec::new();
         for (index, argument) in call.arguments.iter().enumerate() {
@@ -1171,6 +1595,9 @@ impl<'a> UaalEmitter<'a> {
             }
         }
         self.emit_call(callee);
+        if !saved_slots.is_empty() {
+            self.end_reentrant_call(&saved_slots)?;
+        }
         for index in acquired_params.into_iter().rev() {
             let parameter = param_names.get(index).ok_or_else(|| {
                 UaalEmitError::new(format!(
@@ -2179,6 +2606,11 @@ impl<'a> UaalEmitter<'a> {
         member: &MemberExpression,
     ) -> Result<UaalAggregateProjection, UaalEmitError> {
         let (root_name, field_names) = flatten_aggregate_member_path(member)?;
+        if !self.current_bindings.contains(&root_name) {
+            return Err(UaalEmitError::new(format!(
+                "unresolved slot `{root_name}` in compile_to_uaal"
+            )));
+        }
         let root_layout = self
             .binding_aggregate_layout(&root_name)
             .cloned()
@@ -2277,6 +2709,12 @@ impl<'a> UaalEmitter<'a> {
                 "runtime aggregate indexing requires a named aggregate root",
             ));
         };
+        if !self.current_bindings.contains(&root.name) {
+            return Err(UaalEmitError::new(format!(
+                "unresolved slot `{}` in compile_to_uaal",
+                root.name
+            )));
+        }
         let layout = self
             .binding_aggregate_layout(&root.name)
             .cloned()
@@ -2372,9 +2810,11 @@ impl<'a> UaalEmitter<'a> {
             self.current_moved_aggregates = moved_before.clone();
             self.current_unavailable_owned_buffers = unavailable_owned_before.clone();
             self.current_control_flow_depth = control_flow_depth_before + 1;
+            self.enter_scope();
             for statement in alternate {
                 self.emit_statement(statement)?;
             }
+            self.exit_scope();
         }
         let alternate_moved = self.current_moved_aggregates.clone();
         let alternate_unavailable_owned = self.current_unavailable_owned_buffers.clone();
@@ -2386,9 +2826,11 @@ impl<'a> UaalEmitter<'a> {
         self.current_moved_aggregates = moved_before.clone();
         self.current_unavailable_owned_buffers = unavailable_owned_before;
         self.current_control_flow_depth = control_flow_depth_before + 1;
+        self.enter_scope();
         for statement in &if_node.consequent {
             self.emit_statement(statement)?;
         }
+        self.exit_scope();
         self.current_control_flow_depth = control_flow_depth_before;
         let consequent_moved = self.current_moved_aggregates.clone();
         if consequent_moved != alternate_moved {
@@ -2427,9 +2869,11 @@ impl<'a> UaalEmitter<'a> {
         self.instructions[jump_to_body].operands = vec![Value::from(body_start)];
 
         self.current_control_flow_depth = control_flow_depth_before + 1;
+        self.enter_scope();
         for statement in &while_node.body {
             self.emit_statement(statement)?;
         }
+        self.exit_scope();
         self.current_control_flow_depth = control_flow_depth_before;
         if self.current_moved_aggregates != moved_before {
             return Err(Self::target_capability_error(
@@ -2804,6 +3248,144 @@ impl<'a> UaalEmitter<'a> {
 
     fn slot_key(function_name: &str, name: &str) -> String {
         format!("__hs::{function_name}::{name}")
+    }
+
+    /// Holds a re-entrant call's result while the caller's slots are restored. `#` cannot appear
+    /// in an identifier, so this slot never collides with a binding.
+    fn call_result_slot(function_name: &str) -> String {
+        format!("__hs::{function_name}::#call-result")
+    }
+
+    fn is_reentrant_call(&self, callee: &str) -> bool {
+        self.current_function
+            .as_ref()
+            .and_then(|caller| self.reentrant_callees.get(caller))
+            .is_some_and(|callees| callees.contains(callee))
+    }
+
+    /// Slots are named per function, not per call, so a call that can re-enter the caller would
+    /// overwrite the caller's parameters and locals. Push each visible slot of the caller that
+    /// code may still read after the call (`live_after_calls`) before the arguments;
+    /// `end_reentrant_call` restores them once the callee returns. `return f(...)` saves nothing,
+    /// so deep tail recursion keeps a flat operand stack.
+    fn begin_reentrant_call(
+        &mut self,
+        callee: &str,
+        call: usize,
+        callee_param_types: &[Option<String>],
+    ) -> Result<Vec<String>, UaalEmitError> {
+        let caller = self.current_function_name()?.to_string();
+        let carries_affine_state = !self.current_owned_buffers.is_empty()
+            || !self.current_borrowed_buffers.is_empty()
+            || !self.current_borrowed_aggregates.is_empty()
+            || self
+                .current_bindings
+                .iter()
+                .any(|name| self.binding_aggregate_layout(name).is_some())
+            || callee_param_types.iter().flatten().any(|annotation| {
+                borrowed_slice_element_type(annotation).is_some()
+                    || aggregate_reference_annotation(annotation).is_some()
+                    || owned_buffer_element_type(annotation).is_some()
+                    || self.aggregate_layouts.contains_key(annotation.as_str())
+            });
+        if carries_affine_state {
+            return Err(Self::target_capability_error(
+                "HS-UAAL-CAP-007",
+                "uaal.call.frames.v1",
+                format!(
+                    "recursive call from `{caller}` to `{callee}` involves owned buffers, borrows or aggregate values; uaal.call.frames.v1 saves scalar slots only"
+                ),
+            ));
+        }
+        // A call the analysis did not reach saves every visible slot, as before it existed.
+        let live = self.live_after_calls.get(&call);
+        let mut names = self
+            .current_bindings
+            .iter()
+            .filter(|name| live.is_none_or(|live| live.contains(*name)))
+            .cloned()
+            .collect::<Vec<_>>();
+        names.sort();
+        let slots = names
+            .iter()
+            .map(|name| Self::slot_key(&caller, name))
+            .collect::<Vec<_>>();
+        for slot in &slots {
+            self.emit_op(OP_STATE_GET, vec![Value::from(slot.clone())]);
+        }
+        Ok(slots)
+    }
+
+    /// Stack after the call: saved slot values, then the callee's result. Park the result, pop the
+    /// saved values back into their slots in reverse order, then push the result again.
+    fn end_reentrant_call(&mut self, saved_slots: &[String]) -> Result<(), UaalEmitError> {
+        let result_slot = Self::call_result_slot(self.current_function_name()?);
+        self.emit_op(OP_STATE_SET, vec![Value::from(result_slot.clone())]);
+        for slot in saved_slots.iter().rev() {
+            self.emit_op(OP_STATE_SET, vec![Value::from(slot.clone())]);
+        }
+        self.emit_op(OP_STATE_GET, vec![Value::from(result_slot)]);
+        Ok(())
+    }
+
+    /// A statement leaves the operand stack as it found it, so a call made as a statement discards
+    /// the one value its call leaves (`call_leaves_value`). A stray value would shift every saved
+    /// slot a recursive caller restores after it, and would be what `main` returns.
+    fn discard_statement_call_value(&mut self, call: &CallExpression) -> Result<(), UaalEmitError> {
+        let AstNode::Identifier(callee) = call.callee.as_ref() else {
+            return Ok(());
+        };
+        if self.call_leaves_value(&callee.name) {
+            self.emit_op(OP_POP, Vec::new());
+        }
+        Ok(())
+    }
+
+    /// Record a new local in the innermost open block. A plain local whose name is already visible —
+    /// a parameter or a local of an enclosing block — is refused, as the native backend refuses it,
+    /// because both would share one slot. Aggregate slots follow the same rule. Owned buffers and
+    /// borrows keep their function-wide rules, so the same owner name in sibling branches stays
+    /// admitted.
+    fn declare_binding(&mut self, name: &str) -> Result<(), UaalEmitError> {
+        if self.current_bindings.contains(name) && !self.keeps_function_scope(name) {
+            return Err(UaalEmitError::new(format!(
+                "function `{}` redeclares binding `{name}` in compile_to_uaal; a name visible from an enclosing block cannot be declared again",
+                self.current_function_name()?
+            )));
+        }
+        if let Some(scope) = self.current_scopes.last_mut() {
+            scope.push(name.to_string());
+        }
+        Ok(())
+    }
+
+    /// Owned buffers and borrows keep their affine tracking until the function's cleanup, so they
+    /// stay visible after their block. Every other binding, an aggregate slot included, ends with
+    /// its block as in the native backend: a slot still visible after its block could be read
+    /// after a recursive call in a loop had overwritten it, since the call cannot save a slot
+    /// declared after it.
+    fn keeps_function_scope(&self, name: &str) -> bool {
+        self.current_owned_buffers.contains_key(name)
+            || self.current_borrowed_buffers.contains_key(name)
+            || self.current_borrowed_aggregates.contains_key(name)
+    }
+
+    fn enter_scope(&mut self) {
+        self.current_scopes.push(Vec::new());
+    }
+
+    /// Close the innermost block: its locals and aggregate slots stop being visible, as in the
+    /// native backend. Owned buffers and borrows keep their function-wide affine tracking.
+    fn exit_scope(&mut self) {
+        let Some(names) = self.current_scopes.pop() else {
+            return;
+        };
+        for name in names {
+            if !self.keeps_function_scope(&name) {
+                self.current_bindings.remove(&name);
+                self.current_binding_types.remove(&name);
+            }
+        }
     }
 }
 
@@ -3464,6 +4046,859 @@ function main(): i32 { return decide(true) }"#,
         .expect_err("missing function should fail");
 
         assert!(error.message.contains("unresolved function call `missing`"));
+    }
+
+    #[test]
+    fn recursive_calls_save_and_restore_the_callers_slots() {
+        let bytecode = compile(
+            r#"function fib(n: i32): i32 {
+  if (n < 2) {
+    return n
+  }
+  return fib(n - 1) + fib(n - 2)
+}
+
+function main(): i32 {
+  return fib(10)
+}"#,
+        );
+
+        let param_slot = Value::from("__hs::fib::n");
+        let result_slot = Value::from("__hs::fib::#call-result");
+        let wrapped_calls = bytecode
+            .instructions
+            .iter()
+            .enumerate()
+            .filter(|(_, instruction)| instruction.op_code == OP_CALL)
+            .filter(|(pc, _)| {
+                bytecode
+                    .instructions
+                    .get(pc + 1)
+                    .is_some_and(|next| next.operands == vec![result_slot.clone()])
+            })
+            .map(|(pc, _)| pc)
+            .collect::<Vec<_>>();
+
+        // Only fib's two self-calls can overwrite `n`; main -> fib cannot re-enter main.
+        assert_eq!(wrapped_calls.len(), 2, "{:?}", bytecode.instructions);
+        for pc in wrapped_calls {
+            let restore = &bytecode.instructions[pc + 1..pc + 4];
+            assert_eq!(restore[0].op_code, OP_STATE_SET);
+            assert_eq!(restore[1].op_code, OP_STATE_SET);
+            assert_eq!(restore[1].operands, vec![param_slot.clone()]);
+            assert_eq!(restore[2].op_code, OP_STATE_GET);
+            assert_eq!(restore[2].operands, vec![result_slot.clone()]);
+        }
+    }
+
+    #[test]
+    fn a_returned_recursive_call_saves_nothing() {
+        let bytecode = compile(
+            r#"function walk(i: i32, n: i32, acc: i32): i32 {
+  if (i >= n) {
+    return acc
+  }
+  let next: i32 = acc + i
+  return walk(i + 1, n, next)
+}
+
+function main(): i32 {
+  return walk(0, 900, 0)
+}"#,
+        );
+        let result_slot = Value::from("__hs::walk::#call-result");
+        assert!(
+            !bytecode
+                .instructions
+                .iter()
+                .any(|instruction| instruction.operands == vec![result_slot.clone()]),
+            "a tail call must not save and restore the caller's slots: {:?}",
+            bytecode.instructions
+        );
+    }
+
+    #[test]
+    fn a_statement_call_discards_the_value_it_leaves() {
+        let bytecode = compile(
+            r#"function note(x: i32): i32 {
+  return x
+}
+
+function f(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  note(n)
+  return f(n - 1) + n
+}
+
+function main(): i32 {
+  return f(3)
+}"#,
+        );
+        let pops_after_calls = bytecode
+            .instructions
+            .windows(2)
+            .filter(|pair| pair[0].op_code == OP_CALL && pair[1].op_code == OP_POP)
+            .count();
+        assert_eq!(pops_after_calls, 1, "{:?}", bytecode.instructions);
+    }
+
+    /// The instruction that follows each instruction with `op_code`.
+    fn ops_after(bytecode: &UaalBytecode, op_code: u16) -> Vec<u16> {
+        bytecode
+            .instructions
+            .windows(2)
+            .filter(|pair| pair[0].op_code == op_code)
+            .map(|pair| pair[1].op_code)
+            .collect()
+    }
+
+    #[test]
+    fn every_statement_call_discards_exactly_the_value_it_leaves() {
+        // Every call leaves one value, a function without one included, except `drop` and
+        // `store`, which leave none. Each statement must leave the stack as it found it.
+        let bytecode = compile(
+            r#"struct Packet { code: i32 }
+
+function note(x: i32): i32 {
+  return x
+}
+
+function maybe(x: i32) {
+  if (x != 2) {
+    return x
+  }
+}
+
+function quiet(x: i32) {
+  let y: i32 = x
+}
+
+function put(view: &mut [i32]): i32 {
+  store(view[0], 9)
+  return load(view[0])
+}
+
+function main(): i32 {
+  note(1)
+  maybe(2)
+  quiet(3)
+  slot p: Packet = Packet(4)
+  Packet(5)
+  load(p.code)
+  let b: [i32] = buffer(2, 0)
+  let got: i32 = put(&mut b)
+  drop(b)
+  return got
+}"#,
+        );
+        // note, maybe and quiet: one POP after each statement CALL; the call to `put` is a value.
+        let after_calls = ops_after(&bytecode, OP_CALL);
+        assert_eq!(
+            after_calls.iter().filter(|op| **op == OP_POP).count(),
+            3,
+            "{:?}",
+            bytecode.instructions
+        );
+        // `Packet(5)` and `load(p.code)`: their EXEC leaves a record and a field, both discarded.
+        assert_eq!(
+            ops_after(&bytecode, OP_EXEC)
+                .iter()
+                .filter(|op| **op == OP_POP)
+                .count(),
+            2,
+            "{:?}",
+            bytecode.instructions
+        );
+        assert!(!ops_after(&bytecode, OP_HS_BUFFER_STORE).contains(&OP_POP));
+        assert!(!ops_after(&bytecode, OP_HS_BUFFER_DROP).contains(&OP_POP));
+        assert_eq!(
+            bytecode
+                .instructions
+                .iter()
+                .filter(|instruction| instruction.op_code == OP_POP)
+                .count(),
+            5,
+            "{:?}",
+            bytecode.instructions
+        );
+    }
+
+    #[test]
+    fn drop_and_store_leave_no_value_so_they_cannot_be_used_as_one() {
+        let dropped = compile_source_to_uaal(
+            r#"function main(): i32 {
+  let b: [i32] = buffer(2, 5)
+  let x: i32 = drop(b)
+  return 1
+}"#,
+        )
+        .expect_err("`drop` leaves nothing for `x`; native refuses it too");
+        assert!(
+            dropped
+                .message
+                .contains("`drop(...)` is a statement and leaves no value"),
+            "{}",
+            dropped.message
+        );
+
+        let stored = compile_source_to_uaal(
+            r#"function write(view: &mut [i32], index: i32, value: i32): i32 {
+  return store(view[index], value)
+}
+
+function main(): i32 {
+  let values: [i32] = buffer(2, 5)
+  let changed: i32 = write(&mut values, 1, 9)
+  drop(values)
+  return changed
+}"#,
+        )
+        .expect_err("`store` leaves nothing to return; native refuses it too");
+        assert!(
+            stored
+                .message
+                .contains("`store(...)` is a statement and leaves no value"),
+            "{}",
+            stored.message
+        );
+    }
+
+    #[test]
+    fn a_bare_return_and_falling_off_the_end_both_yield_null() {
+        let bytecode = compile(
+            r#"function f(n: i32) {
+  if (n == 0) {
+    return
+  }
+  return f(n - 1)
+}
+
+function g(n: i32) {
+  let x: i32 = n
+}
+
+function h(x: i32): i32 {
+  if (x > 0) {
+    return 1
+  } else {
+    return 2
+  }
+}
+
+function main() {
+  g(1)
+  let k: i32 = h(1)
+  return f(3)
+}"#,
+        );
+        let null_returns = bytecode
+            .instructions
+            .windows(2)
+            .filter(|pair| {
+                pair[0].op_code == OP_PUSH
+                    && pair[0].operands == vec![Value::Null]
+                    && pair[1].op_code == OP_RET
+            })
+            .count();
+        // f's bare `return` and g's end. h cannot reach its end, so its trailing RET stays as it
+        // was, with no value before it.
+        assert_eq!(null_returns, 2, "{:?}", bytecode.instructions);
+        assert_eq!(
+            bytecode
+                .instructions
+                .iter()
+                .filter(|instruction| instruction.operands == vec![Value::Null])
+                .count(),
+            2,
+            "{:?}",
+            bytecode.instructions
+        );
+    }
+
+    #[test]
+    fn a_function_that_never_returns_a_value_is_not_a_value() {
+        let valueless = compile_source_to_uaal(
+            r#"function g(n: i32) {
+  let x: i32 = n
+}
+
+function main(): i32 {
+  return g(1)
+}"#,
+        )
+        .expect_err("a function that never returns a value cannot be used as one");
+        assert!(
+            valueless.message.contains("never returns a value"),
+            "{}",
+            valueless.message
+        );
+    }
+
+    #[test]
+    fn three_way_mutual_recursion_saves_around_every_cycle_call() {
+        let bytecode = compile(
+            r#"function a(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return b(n - 1) + n
+}
+
+function b(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return c(n - 1) + n * 2
+}
+
+function c(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  return a(n - 1) + n * 3
+}
+
+function main(): i32 {
+  return a(7)
+}"#,
+        );
+        for function in ["a", "b", "c"] {
+            let result_slot = Value::from(format!("__hs::{function}::#call-result"));
+            assert!(
+                bytecode
+                    .instructions
+                    .iter()
+                    .any(|instruction| instruction.operands == vec![result_slot.clone()]),
+                "`{function}` reads `n` after a call that can re-enter it: {:?}",
+                bytecode.instructions
+            );
+        }
+    }
+
+    #[test]
+    fn recursion_carrying_an_owned_buffer_fails_closed() {
+        let error = compile_source_to_uaal(
+            r#"function f(n: i32): i32 {
+  let scratch: [i32] = buffer(2, 0)
+  if (n < 1) {
+    return 0
+  }
+  return f(n - 1) + n
+}
+
+function main(): i32 {
+  return f(3)
+}"#,
+        )
+        .expect_err("uaal.call.frames.v1 saves scalar slots only");
+        assert!(
+            error.message.contains("HS-UAAL-CAP-007"),
+            "{}",
+            error.message
+        );
+    }
+
+    #[test]
+    fn long_expressions_and_sibling_owner_names_still_compile() {
+        let terms = vec!["x"; 300].join(" + ");
+        compile(&format!(
+            "function main(): i32 {{\n  let x: i32 = 1\n  return {terms}\n}}"
+        ));
+
+        compile(
+            r#"function main(): i32 {
+  if (true) {
+    let b: [i32] = buffer(2, 5)
+    drop(b)
+  } else {
+    let b: [i32] = buffer(3, 5)
+    drop(b)
+  }
+  return 5
+}"#,
+        );
+    }
+
+    #[test]
+    fn recursion_through_a_function_without_a_value_stays_balanced() {
+        // `spin` returns nothing, so each call leaves null, and each statement call drops it.
+        let bytecode = compile(
+            r#"function spin(n: i32) {
+  if (n > 0) {
+    spin(n - 1)
+  }
+}
+
+function main(): i32 {
+  spin(3)
+  return 4
+}"#,
+        );
+        let after_calls = ops_after(&bytecode, OP_CALL);
+        // The bootstrap's CALL main is followed by HALT; both calls to `spin` by POP.
+        assert_eq!(
+            after_calls,
+            vec![OP_HALT, OP_POP, OP_POP],
+            "{:?}",
+            bytecode.instructions
+        );
+        assert!(
+            bytecode
+                .instructions
+                .windows(2)
+                .any(|pair| pair[0].operands == vec![Value::Null] && pair[1].op_code == OP_RET),
+            "{:?}",
+            bytecode.instructions
+        );
+    }
+
+    /// The slot each instruction in `instructions[from..from + count]` reads or writes.
+    fn slot_ops(bytecode: &UaalBytecode, from: usize, count: usize) -> Vec<(u16, String)> {
+        bytecode.instructions[from..from + count]
+            .iter()
+            .map(|instruction| {
+                (
+                    instruction.op_code,
+                    instruction
+                        .operands
+                        .first()
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .to_string(),
+                )
+            })
+            .collect()
+    }
+
+    /// Index of the only CALL whose next instruction parks a result in `function`'s
+    /// `#call-result` slot, i.e. the only re-entrant call that saves anything.
+    fn only_saving_call(bytecode: &UaalBytecode, function: &str) -> usize {
+        let result_slot = Value::from(format!("__hs::{function}::#call-result"));
+        let calls = bytecode
+            .instructions
+            .iter()
+            .enumerate()
+            .filter(|(pc, instruction)| {
+                instruction.op_code == OP_CALL
+                    && bytecode
+                        .instructions
+                        .get(pc + 1)
+                        .is_some_and(|next| next.operands == vec![result_slot.clone()])
+            })
+            .map(|(pc, _)| pc)
+            .collect::<Vec<_>>();
+        assert_eq!(calls.len(), 1, "{:?}", bytecode.instructions);
+        calls[0]
+    }
+
+    #[test]
+    fn two_live_bindings_are_restored_in_reverse_into_their_own_slots() {
+        let bytecode = compile(
+            r#"function g(a: i32, b: i32): i32 {
+  if (a < 1) {
+    return b
+  }
+  let r: i32 = g(a - 1, b + 2)
+  return r + a * 3 + b
+}
+
+function main(): i32 {
+  return g(4, 1)
+}"#,
+        );
+        let call = only_saving_call(&bytecode, "g");
+        let a = "__hs::g::a".to_string();
+        let b = "__hs::g::b".to_string();
+        let result = "__hs::g::#call-result".to_string();
+        let i32_binary = HS_I32_BINARY_ABI.to_string();
+        // Saved in name order, a then b, before the arguments `a - 1` and `b + 2`.
+        assert_eq!(
+            slot_ops(&bytecode, call - 8, 8),
+            vec![
+                (OP_STATE_GET, a.clone()),
+                (OP_STATE_GET, b.clone()),
+                (OP_STATE_GET, a.clone()),
+                (OP_PUSH, String::new()),
+                (OP_EXEC, i32_binary.clone()),
+                (OP_STATE_GET, b.clone()),
+                (OP_PUSH, String::new()),
+                (OP_EXEC, i32_binary),
+            ]
+        );
+        // Restored last-in first-out, each into its own slot, around the parked result.
+        assert_eq!(
+            slot_ops(&bytecode, call + 1, 4),
+            vec![
+                (OP_STATE_SET, result.clone()),
+                (OP_STATE_SET, b),
+                (OP_STATE_SET, a),
+                (OP_STATE_GET, result),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_recursive_call_saves_only_the_bindings_read_after_it() {
+        // Six visible bindings; only c, d and e are read once the call returns. Saving all six
+        // costs six operand-stack entries per level and overflows the 4096-entry stack near
+        // depth 683, where native and the old emitter return 1400 at depth 700.
+        let bytecode = compile(
+            r#"function wide(n: i32, a: i32, b: i32): i32 {
+  if (n < 1) {
+    return a + b
+  }
+  let c: i32 = a + 1
+  let d: i32 = b + 1
+  let e: i32 = c + d
+  let r: i32 = wide(n - 1, c, d)
+  return r + e - c - d
+}
+
+function main(): i32 {
+  return wide(700, 0, 0)
+}"#,
+        );
+        let call = only_saving_call(&bytecode, "wide");
+        let result = "__hs::wide::#call-result".to_string();
+        assert_eq!(
+            slot_ops(&bytecode, call + 1, 5),
+            vec![
+                (OP_STATE_SET, result.clone()),
+                (OP_STATE_SET, "__hs::wide::e".to_string()),
+                (OP_STATE_SET, "__hs::wide::d".to_string()),
+                (OP_STATE_SET, "__hs::wide::c".to_string()),
+                (OP_STATE_GET, result),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_call_in_an_if_test_keeps_what_its_branches_read() {
+        let bytecode = compile(
+            r#"function g(a: i32, b: i32): i32 {
+  if (a < 1) {
+    return b
+  }
+  if (g(a - 1, b + 1) > 100) {
+    return a
+  } else {
+    return a * 10 + b
+  }
+}
+
+function main(): i32 {
+  return g(3, 1)
+}"#,
+        );
+        let call = only_saving_call(&bytecode, "g");
+        let result = "__hs::g::#call-result".to_string();
+        assert_eq!(
+            slot_ops(&bytecode, call + 1, 4),
+            vec![
+                (OP_STATE_SET, result.clone()),
+                (OP_STATE_SET, "__hs::g::b".to_string()),
+                (OP_STATE_SET, "__hs::g::a".to_string()),
+                (OP_STATE_GET, result),
+            ]
+        );
+    }
+
+    #[test]
+    fn a_call_in_an_else_block_keeps_what_follows_the_if() {
+        let bytecode = compile(
+            r#"function g(a: i32, b: i32): i32 {
+  var r: i32 = 0
+  if (a < 1) {
+    r = b
+  } else {
+    r = g(a - 1, b + 2)
+  }
+  return r + a * 3 + b
+}
+
+function main(): i32 {
+  return g(3, 1)
+}"#,
+        );
+        let call = only_saving_call(&bytecode, "g");
+        let result = "__hs::g::#call-result".to_string();
+        assert_eq!(
+            slot_ops(&bytecode, call + 1, 5),
+            vec![
+                (OP_STATE_SET, result.clone()),
+                (OP_STATE_SET, "__hs::g::r".to_string()),
+                (OP_STATE_SET, "__hs::g::b".to_string()),
+                (OP_STATE_SET, "__hs::g::a".to_string()),
+                (OP_STATE_GET, result),
+            ]
+        );
+    }
+
+    #[test]
+    fn an_aggregate_slot_ends_with_its_block_as_in_native() {
+        // Native: "`load` references unknown aggregate slot `p`" and "redeclares binding `p`".
+        let after_block = compile_source_to_uaal(
+            r#"struct Packet { code: i32 }
+
+function main(): i32 {
+  if (true) {
+    slot p: Packet = Packet(7)
+  }
+  return load(p.code)
+}"#,
+        )
+        .expect_err("a block-local slot is not visible after its block");
+        assert!(
+            after_block.message.contains("unresolved slot `p`"),
+            "{}",
+            after_block.message
+        );
+
+        let hidden = compile_source_to_uaal(
+            r#"struct Packet { code: i32 }
+
+function main(): i32 {
+  slot p: Packet = Packet(1)
+  if (true) {
+    slot p: Packet = Packet(2)
+  }
+  return load(p.code)
+}"#,
+        )
+        .expect_err("an inner slot would overwrite the outer one (it returned 2)");
+        assert!(
+            hidden.message.contains("redeclares binding `p`"),
+            "{}",
+            hidden.message
+        );
+
+        // The same slot name in sibling branches still compiles (native returns 1).
+        compile(
+            r#"struct Packet { code: i32 }
+
+function main(): i32 {
+  if (true) {
+    slot p: Packet = Packet(1)
+    let a: i32 = load(p.code)
+  } else {
+    slot p: Packet = Packet(2)
+    let b: i32 = load(p.code)
+  }
+  return 1
+}"#,
+        );
+
+        // A slot declared after a recursive call in a loop body cannot be saved by that call; read
+        // after its block it held a deeper frame's value (1, where frames give 2).
+        let in_loop = compile_source_to_uaal(
+            r#"struct Packet { code: i32 }
+
+function f(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  var i: i32 = 0
+  while (i < 2) {
+    let r: i32 = f(n - 1)
+    if (i == 0) {
+      slot p: Packet = Packet(n)
+    }
+    i = i + 1
+  }
+  return load(p.code)
+}
+
+function main(): i32 {
+  return f(2)
+}"#,
+        )
+        .expect_err("`p` is out of scope after its block");
+        assert!(
+            in_loop.message.contains("unresolved slot `p`"),
+            "{}",
+            in_loop.message
+        );
+    }
+
+    #[test]
+    fn a_returned_call_saves_nothing_even_with_statements_after_its_branch() {
+        // Nothing after a `return` runs in its frame, so the later `return acc + i + n + p + q`
+        // reads nothing the call could have overwritten. Saving those five slots would cost five
+        // operand-stack entries per level: 4500 at depth 900, past the 4096-entry stack.
+        let bytecode = compile(
+            r#"function walk(i: i32, n: i32, acc: i32, p: i32, q: i32): i32 {
+  if (i < n) {
+    let sq: i32 = i * i
+    let next: i32 = acc + sq
+    return walk(i + 1, n, next, p, q)
+  }
+  return acc + i + n + p + q
+}
+
+function main(): i32 {
+  return walk(0, 900, 0, 1, 2)
+}"#,
+        );
+        let result_slot = Value::from("__hs::walk::#call-result");
+        assert!(
+            !bytecode
+                .instructions
+                .iter()
+                .any(|instruction| instruction.operands == vec![result_slot.clone()]),
+            "a returned call must not save and restore the caller's slots: {:?}",
+            bytecode.instructions
+        );
+    }
+
+    #[test]
+    fn a_loop_keeps_alive_what_its_next_iteration_reads() {
+        // `n` is read only before the call in the loop body, and only by the call's own
+        // argument in the loop test; the next iteration reads it again either way.
+        let body = compile(
+            r#"function f(n: i32): i32 {
+  if (n < 1) {
+    return 0
+  }
+  var i: i32 = 0
+  var acc: i32 = 0
+  while (i < 2) {
+    acc = acc + n
+    let r: i32 = f(n - 1)
+    acc = acc + r
+    i = i + 1
+  }
+  return acc
+}
+
+function main(): i32 {
+  return f(3)
+}"#,
+        );
+        let call = only_saving_call(&body, "f");
+        let result = "__hs::f::#call-result".to_string();
+        assert_eq!(
+            slot_ops(&body, call + 1, 5),
+            vec![
+                (OP_STATE_SET, result.clone()),
+                (OP_STATE_SET, "__hs::f::n".to_string()),
+                (OP_STATE_SET, "__hs::f::i".to_string()),
+                (OP_STATE_SET, "__hs::f::acc".to_string()),
+                (OP_STATE_GET, result),
+            ]
+        );
+
+        let test = compile(
+            r#"function h(n: i32, k: i32): i32 {
+  if (n < 1) {
+    return k
+  }
+  var count: i32 = 0
+  while (h(n - 1, count + n) < 20) {
+    count = count + 1
+  }
+  return count + k
+}
+
+function main(): i32 {
+  return h(3, 5)
+}"#,
+        );
+        let call = only_saving_call(&test, "h");
+        let result = "__hs::h::#call-result".to_string();
+        assert_eq!(
+            slot_ops(&test, call + 1, 5),
+            vec![
+                (OP_STATE_SET, result.clone()),
+                (OP_STATE_SET, "__hs::h::n".to_string()),
+                (OP_STATE_SET, "__hs::h::k".to_string()),
+                (OP_STATE_SET, "__hs::h::count".to_string()),
+                (OP_STATE_GET, result),
+            ]
+        );
+    }
+
+    #[test]
+    fn block_locals_cannot_hide_an_outer_name_or_outlive_their_block() {
+        let hidden = compile_source_to_uaal(
+            r#"function main(): i32 {
+  let x: i32 = 1
+  if (true) {
+    let x: i32 = 2
+  }
+  return x
+}"#,
+        )
+        .expect_err("an inner binding would overwrite the outer slot");
+        assert!(
+            hidden.message.contains("redeclares binding `x`"),
+            "{}",
+            hidden.message
+        );
+
+        let escaped = compile_source_to_uaal(
+            r#"function main(): i32 {
+  if (true) {
+    let t: i32 = 7
+  }
+  return t
+}"#,
+        )
+        .expect_err("a block-local name is not visible after its block");
+        assert!(
+            escaped.message.contains("unresolved slot `t`"),
+            "{}",
+            escaped.message
+        );
+
+        compile(
+            r#"function main(): i32 {
+  if (true) {
+    let t: i32 = 1
+  } else {
+    let t: i32 = 2
+  }
+  return 1
+}"#,
+        );
+    }
+
+    #[test]
+    fn typed_functions_must_return_a_value_on_every_path() {
+        let error = compile_source_to_uaal(
+            r#"function f(x: i32): i32 {
+  if (x > 0) {
+    return 1
+  }
+}
+
+function main(): i32 {
+  return f(0)
+}"#,
+        )
+        .expect_err("a typed function that can fall off its end must not yield null");
+        assert!(
+            error
+                .message
+                .contains("can finish without returning a value"),
+            "{}",
+            error.message
+        );
+
+        compile(
+            r#"function f(x: i32): i32 {
+  if (x > 0) {
+    return 1
+  } else {
+    return 2
+  }
+}
+
+function main(): i32 {
+  return f(5)
+}"#,
+        );
     }
 
     #[test]

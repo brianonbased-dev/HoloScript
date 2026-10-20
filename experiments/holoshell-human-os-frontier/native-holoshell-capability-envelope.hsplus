@@ -133,7 +133,7 @@ composition "HoloShellNativeCapabilityEnvelope" {
     ]
   }
 
-  policy "BrowserIsHarnessNativeIsCustody" {
+  template "BrowserIsHarnessNativeIsCustody" {
     browserMayValidateLayout: true
     browserMayRunSelfTestReceipt: true
     browserMayOwnServiceLifecycle: false
@@ -143,7 +143,7 @@ composition "HoloShellNativeCapabilityEnvelope" {
     nativeHostMustEmitReceipt: true
   }
 
-  policy "HoloGateNativeLaneGrant" {
+  template "HoloGateNativeLaneGrant" {
     appliesTo: [
       "guarded_service_ensure",
       "guarded_open_url",
@@ -157,7 +157,7 @@ composition "HoloShellNativeCapabilityEnvelope" {
     receiptRequired: true
   }
 
-  policy "TerminalEventsBeforeTerminalUi" {
+  template "TerminalEventsBeforeTerminalUi" {
     rawShellScrollbackIsEvidenceOnly: true
     appendOnlyEventStreamRequired: true
     eventKinds: [
@@ -172,7 +172,7 @@ composition "HoloShellNativeCapabilityEnvelope" {
     humanSurfaceRendersRunCards: true
   }
 
-  policy "JetsonIsApplianceNotWebPage" {
+  template "JetsonIsApplianceNotWebPage" {
     jetsonOwnsAlwaysOnSurface: true
     laptopOwnsValidationAndDesktopBridge: true
     endpointImpersonationForbidden: true
@@ -180,7 +180,7 @@ composition "HoloShellNativeCapabilityEnvelope" {
     receiptRequired: true
   }
 
-  state_machine "NativeCapabilityWorkflow" {
+  template "NativeCapabilityWorkflow" {
     initial: "source_declared"
     states: [
       "source_declared",
@@ -201,17 +201,17 @@ composition "HoloShellNativeCapabilityEnvelope" {
     transition "block" { from: "*", to: "blocked" }
   }
 
-  role "HoloScriptSubstrate" {
+  template "HoloScriptSubstrate" {
     laneId: "holoscript-substrate"
     owns: ["capability_vocabulary", "receipt_schema", "permission_envelope", "validation_gate"]
   }
 
-  role "HoloLandHoloShell" {
+  template "HoloLandHoloShell" {
     laneId: "hololand-holoshell"
     owns: ["native_window_runtime", "brittney_surface", "service_supervisor_bridge", "operator_terminal_projection"]
   }
 
-  role "JetsonAppliance" {
+  template "JetsonAppliance" {
     laneId: "jetson-appliance"
     owns: ["always_on_surface", "owned_inference", "edge_service_receipts", "lan_health"]
   }

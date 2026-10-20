@@ -187,7 +187,7 @@ composition "WildfireResponseSwarm" {
   object "Guardian_Alpha" using "FireGuardian" { position: [-15, 1, 10]; geometry: "capsule"; color: "#ff3300"; state { agent_id: "fire_alpha"; sector: "north_ridge" } }
   object "Guardian_Beta" using "FireGuardian" { position: [15, 1, -10]; geometry: "capsule"; color: "#ff6600"; state { agent_id: "fire_beta"; sector: "south_valley" } }
 
-  panel "FireStatus" {
+  module "FireStatus" {
     position: "top-right"
     text "Active" { bind: "Active fires: " + IncidentCommand.state.active_fires.filter(f => f.status === "active").length; color: "#ff4444" }
     text "Deployed" { bind: "Resources deployed: " + IncidentCommand.state.resources_deployed; style: "info" }

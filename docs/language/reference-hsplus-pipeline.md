@@ -107,7 +107,7 @@ source POS {
 | `pagination`             | `{ type: "cursor" \| "offset", param: "…", limit: <N> }`                            |
 | `items`                  | Array literal for `type: "list"`                                                    |
 | `output`                 | Variable name to bind the source response body for subsequent blocks                |
-| `server`, `tool`, `args` | MCP source: server name, tool name, argument object                                 |
+| `server`, `tool`, `args` | MCP source: server name or allowed URL (see below), tool name, argument object      |
 
 **MCP source example**
 
@@ -124,6 +124,32 @@ source TargetLookup {
   output: target_result
 }
 ```
+
+**Which servers an MCP stage may use**
+
+A pipeline file may come from someone else, so it cannot choose where your
+`HOLOSCRIPT_API_KEY` or your records go. An MCP source, transform or sink compiles
+only if its `server` is:
+
+- left out: the configured MCP server, which is `HOLOSCRIPT_MCP_URL`, or
+  `https://mcp.holoscript.net` when that is not set;
+- exactly `${env.HOLOSCRIPT_MCP_URL}` or `${env.HOLOSCRIPT_MCP_URL:-<url>}`, where
+  `<url>` is `https://mcp.holoscript.net`;
+- an `http` or `https` URL on the configured MCP server (same scheme, host and
+  port);
+- a plain server name such as `"bio-research"` (letters, digits, `-` and `_`).
+
+A server on this machine is no exception. The MCP service on this machine can
+trust any caller on `localhost`, so a pipeline file may not pick a `localhost`,
+`127.0.0.1` or `[::1]` address or port: such a server compiles only when
+`HOLOSCRIPT_MCP_URL` is set to that same address.
+
+Anything else, including any other `${…}`, stops the compile with an error that
+names the stage and the server. When the pipeline runs, the API key goes only to
+the configured MCP server. A plain name is not an address, so a stage that has one
+cannot send a request: the generated code stops with an error that names the stage
+and the server, before it builds a request. To use a different MCP server, set
+`HOLOSCRIPT_MCP_URL`.
 
 **Filesystem source example**
 
@@ -286,7 +312,7 @@ transform HealthCheck {
 
 | Property | Description                                                                                       |
 | -------- | ------------------------------------------------------------------------------------------------- |
-| `server` | MCP server name                                                                                   |
+| `server` | MCP server name or allowed URL (see "Which servers an MCP stage may use")                         |
 | `tool`   | Tool name                                                                                         |
 | `args`   | Argument object (supports `${…}` interpolation)                                                   |
 | `output` | Variable name to bind the tool response                                                           |
@@ -503,6 +529,36 @@ ${item.name}               // loop variable for list sources
 ${response.status}         // HTTP response field (http transform)
 ${source.reply_url}        // source metadata (in chained sinks)
 ```
+
+### Environment reads must be allowed at run time
+
+A pipeline file can come from someone else, so it may not read any environment
+variable it likes. When you run a compiled pipeline, you name the variables it is
+allowed to read:
+
+```
+holoscript run inventory-sync.hs --allow-env POS_API_URL --allow-env STORE_API
+```
+
+`--allow-env` is repeatable. For non-interactive runs, set a comma-separated list
+instead:
+
+```
+HOLOSCRIPT_PIPELINE_ALLOW_ENV=POS_API_URL,STORE_API holoscript run inventory-sync.hs
+```
+
+- At run start the pipeline prints one line naming the variables it reads and the
+  hosts it will send to, so you can see when an allowed secret is heading to an
+  unexpected host.
+- If the pipeline reads a variable you did not allow, it refuses the whole run —
+  before any request or file write — and names the variable and the exact flag to add.
+- No variable is readable without a flag, `HOLOSCRIPT_MCP_URL` (the configured MCP
+  server) included: it can carry a credential, and in an endpoint, a URL or a path
+  the file would choose where it goes. It needs no flag only in an MCP stage's
+  `server` value, which the server rules above already confine to the configured
+  server.
+- `holoscript compile … --target node` lists the variables a pipeline reads, so a
+  reviewer sees them without running it.
 
 ---
 

@@ -603,7 +603,7 @@ composition "DungeonCrawler" {
   // HUD — reactive UI panels bound to game state
   // ========================================================================
 
-  panel "GameHUD" {
+  template "GameHUD" {
     position: "top-left"
 
     text "HP" {
@@ -628,7 +628,7 @@ composition "DungeonCrawler" {
     }
   }
 
-  panel "CombatLog" {
+  module "CombatLog" {
     position: "bottom-left"
     visible: GameController.current_state === "combat"
 
@@ -642,7 +642,7 @@ composition "DungeonCrawler" {
     }
   }
 
-  panel "WaveInfo" {
+  module "WaveInfo" {
     position: "top-right"
     visible: GameController.current_state === "exploring"
 
