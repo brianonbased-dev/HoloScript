@@ -646,7 +646,7 @@ importers:
   packages/config:
     dependencies:
       '@holoscript/secrets-broker':
-        specifier: workspace:^
+        specifier: workspace:^6.1.1
         version: link:../secrets-broker
     devDependencies:
       tsup:

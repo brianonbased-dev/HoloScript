@@ -1,5 +1,12 @@
 # @holoscript/aerospace-plugin
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [0ed29dc]
+  - @holoscript/core@8.10.1
+
 ## 0.1.4
 
 ### Patch Changes
