@@ -23,6 +23,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { SignInCta } from '@/components/auth/SignInCta';
+import { AccountMenu } from '@/components/auth/AccountMenu';
 import {
   STUDIO_PRIMARY_NAVIGATION_ITEMS,
   STUDIO_SETTINGS_NAVIGATION_ITEM,
@@ -150,6 +151,7 @@ export function GlobalNavigation() {
         {sessionStatus !== 'loading' && !session?.user && (
           <SignInCta compact callbackUrl={pathname || '/'} />
         )}
+        {session?.user && <AccountMenu />}
       </div>
     </nav>
   );
