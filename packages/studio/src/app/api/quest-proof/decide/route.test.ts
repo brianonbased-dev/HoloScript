@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Founder gate (#607 follow-up a): these routes call requireFounder first.
+const authState = vi.hoisted(() => ({ res: null as unknown }));
+vi.mock('@/lib/api-auth', () => ({
+  requireFounder: async () => authState.res ?? { user: { id: 'user_founder' } },
+}));
+
 /**
  * POST /api/quest-proof/decide — Founder Console decide-all proxy.
  *
@@ -25,6 +31,7 @@ describe('decide POST — founder console decide-all proxy', () => {
     vi.doMock('@/lib/auth', () => ({ authOptions: {} }));
   });
   afterEach(() => {
+    authState.res = null;
     process.env.HOLOMESH_TEAM_ID = ORIG_TEAM;
     process.env.HOLOMESH_API_KEY = ORIG_KEY;
     vi.unstubAllGlobals();
@@ -105,10 +112,8 @@ describe('decide POST — founder console decide-all proxy', () => {
 
   it('401s when caller is unauthenticated', async () => {
     vi.resetModules();
-    vi.doMock('next-auth', () => ({
-      getServerSession: vi.fn(async () => null),
-    }));
-    vi.doMock('@/lib/auth', () => ({ authOptions: {} }));
+    const { NextResponse } = await import('next/server');
+    authState.res = NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 });
     const POST = await loadPOST();
     const res = await POST(req({ taskIds: ['task_1'] }));
     expect(res.status).toBe(401);
@@ -138,6 +143,6 @@ describe('decide POST — founder console decide-all proxy', () => {
     expect(res.status).toBe(503);
     const json = await res.json();
     expect(json.ok).toBe(false);
-    expect(json.error).toContain('HOLOMESH_TEAM_ID');
+    expect(json.error).toContain('not configured');
   });
 });

@@ -3,7 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { fetchHoloMeshJson, usesServerKeyFor } from '../../../../../lib/holomesh-proxy';
+import { fetchHoloMeshJson, fetchHoloMeshJsonSelf } from '../../../../../lib/holomesh-proxy';
 import {
   asBoolean,
   asNumber,
@@ -52,14 +52,14 @@ function resolveCompositionsDir(): string {
 }
 
 async function injectSelfProfile(code: string, req: NextRequest): Promise<string> {
-  // No caller key: /me would be Studio's server agent ("Founder"). Serve the
-  // un-personalised surface rather than someone else's profile.
-  if (usesServerKeyFor(req)) return code;
-  const [me, profile, agentsPayload] = await Promise.all([
-    fetchHoloMeshJson<MePayload>('/api/holomesh/me', req),
-    fetchHoloMeshJson<ProfilePayload>('/api/holomesh/profile', req),
-    fetchHoloMeshJson<AgentsPayload>('/api/holomesh/agents?limit=500', req),
+  // The caller's own agent only; never Studio's server-key agent ("Founder").
+  // No key of their own: serve the composition without any agent filled in.
+  const [me, profile] = await Promise.all([
+    fetchHoloMeshJsonSelf<MePayload>('/api/holomesh/me', req),
+    fetchHoloMeshJsonSelf<ProfilePayload>('/api/holomesh/profile', req),
   ]);
+  if (!me || !profile) return code;
+  const agentsPayload = await fetchHoloMeshJson<AgentsPayload>('/api/holomesh/agents?limit=500', req);
 
   if (!me.ok || !me.data?.success) return code;
 
@@ -116,13 +116,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ path
 
     const rawCode = fs.readFileSync(filePath, 'utf-8');
     const code = key === 'profile/self' ? await injectSelfProfile(rawCode, req) : rawCode;
-    const noAgent = key === 'profile/self' && usesServerKeyFor(req);
 
     return NextResponse.json({
       kind: key,
       format: 'hsplus',
       code,
-      ...(noAgent ? { noHoloMeshAgent: true } : {}),
       sourcePath: filePath,
       generation: {
         native: true,

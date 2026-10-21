@@ -1,0 +1,23 @@
+{
+  "grant_concert_vocalist": [
+    "voice"
+  ],
+  "grant_three_voices_anger": [
+    "voice"
+  ],
+  "grant_three_voices_grief": [
+    "voice"
+  ],
+  "grant_three_voices_wonder": [
+    "voice"
+  ],
+  "grant_emotion_npc_1": [
+    "body"
+  ],
+  "grant_emotion_npc_2": [
+    "body"
+  ],
+  "grant_emotion_npc_3": [
+    "body"
+  ]
+}

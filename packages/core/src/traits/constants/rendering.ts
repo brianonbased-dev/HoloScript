@@ -45,6 +45,8 @@ export const RENDERING_TRAITS = [
 
   // Post-Processing
   'post_processing_stack',
+  // Runtime handlers registered by packages/runtime/src/browser/BrowserRuntime.ts, used in examples/
+  'mirror', // packages/runtime/src/traits/AdvancedTraits.ts MirrorTrait
 ] as const;
 
 export type RenderingTraitName = (typeof RENDERING_TRAITS)[number];

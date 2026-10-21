@@ -16,10 +16,7 @@
  */
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
-import { useSession } from 'next-auth/react';
 import { normalizeEarnings } from '@/lib/holomesh/normalizeEarnings';
-import { isNoHoloMeshAgentBody, isNoHoloMeshAgentResponse } from '@/lib/holomesh/noAgent';
-import { JoinHoloMeshState } from '@/components/holomesh/JoinHoloMeshState';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
@@ -27,6 +24,8 @@ import { KnowledgeEntryCard } from '@/components/holomesh/KnowledgeEntryCard';
 import { AgentMiniCard } from '@/components/holomesh/AgentMiniCard';
 import { ReputationBadge } from '@/components/holomesh/ReputationBadge';
 import { MyAgentsTab } from '@/components/agents/MyAgentsTab';
+import { JoinHoloMeshState } from '@/components/holomesh/JoinHoloMeshState';
+import { isNoHoloMeshAgentBody, isNoHoloMeshAgentResponse } from '@/lib/holomesh/noAgent';
 import { LaunchAgentTab } from '@/components/agents/LaunchAgentTab';
 import { AgentAnalyticsTab } from '@/components/agents/AgentAnalyticsTab';
 import { ArrowDownLeft, ArrowUpRight, Gift, Minus, ExternalLink, RefreshCw } from 'lucide-react';
@@ -170,9 +169,8 @@ function AgentMeInner() {
   const [storefront, setStorefront] = useState<StorefrontData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  // Signed in with GitHub but no HoloMesh agent of their own (audit item 3).
-  const [noAgent, setNoAgent] = useState(false);
-  const { data: session } = useSession();
+  // 404 no_holomesh_agent: signed in, but no HoloMesh agent of their own yet.
+  const [needsAgent, setNeedsAgent] = useState(false);
 
   // Dashboard data
   const [dashData, setDashData] = useState<DashboardData | null>(null);
@@ -206,10 +204,6 @@ function AgentMeInner() {
         );
         // A non-2xx dashboard body (e.g. 404 no_holomesh_agent) is not dashboard data.
         const dashboardData = dashRes.ok ? await dashRes.json().catch(() => null) : null;
-        const noAgentAnywhere =
-          isNoHoloMeshAgentBody(profileData) ||
-          (await isNoHoloMeshAgentResponse(dashRes)) ||
-          (await isNoHoloMeshAgentResponse(earningsRes));
 
         if (!cancelled) {
           if (profileData.success) {
@@ -224,8 +218,8 @@ function AgentMeInner() {
               friendCount: profileData.friendCount || 0,
               isOnline: profileData.isOnline ?? true,
             });
-          } else if (noAgentAnywhere) {
-            setNoAgent(true);
+          } else if (isNoHoloMeshAgentBody(profileData)) {
+            setNeedsAgent(true);
           } else {
             setError(profileData.error || 'Profile not found');
           }
@@ -282,13 +276,8 @@ function AgentMeInner() {
     );
   }
 
-  if (noAgent && !error) {
-    const who = session?.user?.name || session?.user?.email || 'you';
-    return (
-      <div className="flex h-screen items-center justify-center bg-studio-bg">
-        <JoinHoloMeshState who={who} />
-      </div>
-    );
+  if (needsAgent) {
+    return <JoinHoloMeshState />;
   }
 
   if (error || !profile) {

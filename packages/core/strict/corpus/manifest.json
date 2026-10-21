@@ -270,6 +270,56 @@
       "errors": [
         ["HS1005", 1, 1]
       ]
+    },
+    {
+      "file": "invalid/likeness-voice-trait-grant.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-face-no-claim.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-voice-no-claim.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-body-no-claim.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-claim-without-rule.holo",
+      "errors": [
+        ["HS1011", 3, 3],
+        ["HS1011", 4, 3],
+        ["HS1011", 5, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-face-tracking-no-source.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-body-tracking-remote-user.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
+    },
+    {
+      "file": "invalid/likeness-face-tracking-recording.holo",
+      "errors": [
+        ["HS1011", 2, 3]
+      ]
     }
   ]
 }

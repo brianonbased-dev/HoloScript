@@ -1,4 +1,4 @@
-﻿/**
+/**
  * User-scoped HoloMesh routes must not fall back to Studio's server key.
  * Under that key the upstream answers as Studio's service agent ("Founder"),
  * so every signed-in user without a HoloMesh key saw the Founder's dashboard,
@@ -67,9 +67,8 @@ describe('user-scoped HoloMesh routes refuse the server-key fallback', () => {
     const res = await GET(new NextRequest('http://localhost/api/holomesh/surface/profile/self'), {
       params: Promise.resolve({ path: ['profile', 'self'] }),
     });
-    const body = (await res.json()) as { code?: string; noHoloMeshAgent?: boolean };
+    const body = (await res.json()) as { code?: string };
     expect(res.status).toBe(200);
-    expect(body.noHoloMeshAgent).toBe(true);
     expect(body.code ?? '').not.toContain('Founder');
     expect(body.code ?? '').not.toContain('agent_founder');
     expect(fetchMock).not.toHaveBeenCalled();

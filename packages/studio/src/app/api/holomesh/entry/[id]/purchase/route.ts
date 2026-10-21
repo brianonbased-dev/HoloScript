@@ -5,17 +5,17 @@ import { getDb } from '../../../../../../db/client';
 import { holomeshReferrals, holomeshTransactions } from '../../../../../../db/schema';
 import * as crypto from 'crypto';
 import { hidePremiumRowsDeep } from '../../../../../../lib/premium-view';
-import { usesServerKeyFor } from '../../../../../../lib/holomesh-proxy';
+import { noHoloMeshAgentResponse, usesServerKeyFor } from '../../../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../../../_lib/cors';
 const BASE =
   process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
-const KEY = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
 const DEFAULT_REFERRAL_BPS = parseInt(process.env.REFERRAL_BPS ?? '500', 10); // 5%
 
 function buildHeaders(req: NextRequest): Record<string, string> {
+  // Never Studio's own HOLOMESH_API_KEY: a purchase spends as the key holder.
+  // POST refuses a caller without its own key before we get here.
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (KEY) headers['Authorization'] = `Bearer ${KEY}`;
   const xPayment = req.headers.get('x-payment');
   if (xPayment) headers['X-Payment'] = xPayment;
   const clientAuth = req.headers.get('authorization');
@@ -37,6 +37,12 @@ function buildHeaders(req: NextRequest): Record<string, string> {
  *   buyerAgentName?    string  — buyer display name
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  // Release 2026-10-15: a signed-in caller with no HoloMesh key of its own
+  // used to buy under Studio's server key (the founder's), so the founder
+  // paid. Refuse like the #570 user-scoped routes: 404 no_holomesh_agent,
+  // nothing upstream. An X-Payment proof alone is not an identity.
+  if (usesServerKeyFor(req)) return noHoloMeshAgentResponse();
+
   const { id: entryId } = await params;
 
   let body: Record<string, unknown> = {};

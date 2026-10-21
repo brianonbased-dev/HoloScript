@@ -50,11 +50,14 @@ describe('HoloMesh "self" never resolves to the server key (audit item 3)', () =
     expect(body.success).toBe(true);
   });
 
-  it('/api/holomesh/agent/self/knowledge without a caller key: no entries (not the founder\'s)', async () => {
-    mockUpstream();
+  it('/api/holomesh/agent/self/knowledge without a caller key: 404 no_holomesh_agent, nothing upstream (not the founder\'s)', async () => {
+    const fetchMock = mockUpstream();
     const { GET } = await import('../self/knowledge/route');
     const res = await GET(new NextRequest('http://localhost/api/holomesh/agent/self/knowledge?limit=30'));
-    const body = (await res.json()) as { entries: unknown[] };
-    expect(body.entries).toEqual([]);
+    const body = (await res.json()) as { code?: string; entries?: unknown[] };
+    expect(res.status).toBe(404);
+    expect(body.code).toBe('no_holomesh_agent');
+    expect(body.entries ?? []).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

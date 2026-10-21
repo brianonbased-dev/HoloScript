@@ -79,16 +79,8 @@ export interface CreditGateFailure {
 
 export type CreditGateResult = CreditGateSuccess | CreditGateFailure;
 
-// Folded from #558: length-checked constant-time compare for the (non-prod) benchmark key.
-function constantTimeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-// Shared with api-auth's benchmark gate; re-exported for existing callers.
-import { bypassesDisabled } from './prodBypass';
+// Shared with api-auth's and proxy's benchmark gates; re-exported for existing callers.
+import { bypassesDisabled, constantTimeEqual } from './prodBypass';
 export { bypassesDisabled };
 
 /**

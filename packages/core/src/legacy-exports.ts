@@ -136,6 +136,28 @@ export {
   type CanonicalSourceValidationResult,
   type CanonicalValidator,
 } from './validation/CanonicalSourceValidator';
+export {
+  checkLikeness,
+  likenessTraitName,
+  LIKENESS_SOURCES,
+  SOURCE_GATED_TRACKING,
+  LIKENESS_CODE,
+  type ConsentRules,
+  type LikenessFinding,
+  type LikenessSource,
+} from './validation/LikenessCheck';
+export {
+  isKnownTrait,
+  findUnknownTraits,
+  collectTraitUses,
+  declaredTraitNames,
+  normalizeTraitName,
+  coreKnownTraitNames,
+  UNKNOWN_TRAIT_CODE,
+  type KnownTraitOptions,
+  type TraitUse,
+} from './validation/KnownTraits';
+export { traitNameKey, resolveTraitName } from './validation/TraitName';
 export { factory as holoFactory } from './parser/HoloCompositionFactory';
 export { generateHoloSource } from './parser/HoloCompositionGenerator';
 export type {
@@ -907,6 +929,37 @@ export {
 
 // HoloScript+ VR Traits (NEW)
 export { VRTraitRegistry, vrTraitRegistry } from './traits/VRTraitSystem';
+export {
+  openLocalCapture,
+  closeLocalCapture,
+  isLocalCapture,
+  startLocalCaptureSession,
+  trackingEventAllowed,
+  LOCAL_CAPTURE_EVENT,
+  type LocalCaptureHandle,
+  type LocalCaptureKind,
+  type LocalCaptureSession,
+  type TrackingSource,
+} from './traits/LocalCapture';
+export {
+  avatarRenderAllowed,
+} from './traits/AvatarEmbodimentTrait';
+export { avatarEmbodimentNeedsGrant, carriesRealLikeness } from './traits/AvatarLikeness';
+export {
+  grantLikenessShare,
+  revokeLikenessShare,
+  likenessShareAllowed,
+  carriesLikenessOrTracking,
+  LIKENESS_OR_TRACKING_TRAITS,
+  type LikenessShareRequest,
+  type LikenessShareScope,
+  grantVoiceUse,
+  revokeVoiceUse,
+  voiceUseAllowed,
+  VOICE_USES,
+  type VoiceUse,
+  type VoiceUseRequest,
+} from './traits/LikenessShareGrant';
 
 // HoloScript+ Expanded Trait Handlers (Phases 1-13)
 export {

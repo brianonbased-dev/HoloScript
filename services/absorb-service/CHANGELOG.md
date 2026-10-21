@@ -1,5 +1,16 @@
 # @holoscript/absorb-service-host
 
+## 6.1.7
+
+### Patch Changes
+
+- Updated dependencies [9498a8f]
+- Updated dependencies [4ecc50e]
+- Updated dependencies [857c54a]
+- Updated dependencies
+  - @holoscript/secrets-broker@6.2.0
+  - @holoscript/core@8.10.0
+
 ## 6.1.6
 
 ### Patch Changes

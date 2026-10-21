@@ -2,9 +2,9 @@ export const maxDuration = 300;
 
 import { NextRequest } from 'next/server';
 import {
+  callerHoloMeshHeaders,
   noHoloMeshAgentResponse,
-  proxyHoloMesh,
-  usesServerKeyFor,
+  proxyHoloMeshSelf,
 } from '../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../_lib/cors';
@@ -21,8 +21,8 @@ import { corsHeaders } from '../../_lib/cors';
  * that caller. The cache stays for server-side use (withdraw balances).
  */
 export async function GET(req: NextRequest) {
-  if (usesServerKeyFor(req)) return noHoloMeshAgentResponse();
-  return proxyHoloMesh('/api/holomesh/transactions', req);
+  if (!callerHoloMeshHeaders(req)) return noHoloMeshAgentResponse();
+  return proxyHoloMeshSelf('/api/holomesh/transactions', req);
 }
 
 export function OPTIONS(request: Request) {

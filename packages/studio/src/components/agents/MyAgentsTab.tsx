@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { JoinHoloMeshState } from '@/components/holomesh/JoinHoloMeshState';
+import { isNoHoloMeshAgentResponse } from '@/lib/holomesh/noAgent';
 import {
   Globe,
   MessageCircle,
@@ -79,6 +81,9 @@ export function MyAgentsTab() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<AgentPlatform | 'all'>('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  // 404 no_holomesh_agent from /api/agents/fleet/[id]: no HoloMesh agent of
+  // the caller's own, so Studio will not act on fleet agents for it.
+  const [needsAgent, setNeedsAgent] = useState(false);
 
   const loadAgents = useCallback(async () => {
     setLoading(true);
@@ -113,6 +118,10 @@ export function MyAgentsTab() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: statusMap[action] }),
       });
+      if (await isNoHoloMeshAgentResponse(res)) {
+        setNeedsAgent(true);
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated: unknown = await res.json();
       const body = updated as { agent: FleetAgent };
@@ -131,6 +140,10 @@ export function MyAgentsTab() {
     { id: 'moltbook', label: 'Moltbook' },
     { id: 'custom', label: 'Custom' },
   ];
+
+  if (needsAgent) {
+    return <JoinHoloMeshState what="control over fleet agents" />;
+  }
 
   if (loading) {
     return (

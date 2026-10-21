@@ -24,6 +24,7 @@ import {
 } from './CompilerBase';
 import { ANSCapabilityPath, type ANSCapabilityPathValue } from '@holoscript/core-types/ans';
 import { compileDomainBlocks, compileMaterialBlock } from './DomainBlockCompilerMixin';
+import { parseHolo } from '../parser/HoloCompositionParser';
 
 // =============================================================================
 // TYPES
@@ -1594,15 +1595,55 @@ export function createWASMCompiler(options?: WASMCompilerOptions): WASMCompiler 
   return new WASMCompiler(options);
 }
 
+/** A parsed Composition (type "Composition"), or a hand-built one: no type, an objects array. */
+function isCompositionShaped(c: object): boolean {
+  const { type, objects } = c as { type?: unknown; objects?: unknown };
+  return type === 'Composition' || (type === undefined && Array.isArray(objects));
+}
+
 /**
  * Compile HoloComposition to WASM
  */
 export function compileToWASM(
-  composition: HoloComposition,
+  composition: HoloComposition | string,
   options?: WASMCompilerOptions
 ): WASMCompileResult {
+  // Source text is parsed first, and a failed parse is refused: garbage must never compile to
+  // the same artifact as a real composition. Anything that is neither source nor a composition
+  // object is refused too (HS1009 in packages/core/strict/ERROR_CONTRACT.md).
+  if (typeof composition === 'string') {
+    const parsed = parseHolo(composition);
+    if (!parsed.success || !parsed.ast) {
+      const first = parsed.errors[0];
+      throw new Error(
+        `compileToWASM: source does not parse${first?.code ? ` (${first.code})` : ''}: ${first?.message ?? 'no AST'}`
+      );
+    }
+    composition = parsed.ast;
+  } else if (
+    !composition ||
+    typeof composition !== 'object' ||
+    Array.isArray(composition) ||
+    !isCompositionShaped(composition)
+  ) {
+    // A bare object ({}) is not a composition: it must not compile to an artifact either.
+    throw new TypeError(
+      'compileToWASM: expected a HoloComposition AST (type "Composition") or HoloScript source string (HS1009).'
+    );
+  }
   const compiler = new WASMCompiler(options);
-  return compiler.compile(composition, createTestCompilerToken()) as WASMCompileResult;
+  try {
+    return compiler.compile(composition, createTestCompilerToken()) as WASMCompileResult;
+  } catch (err) {
+    // A composition-shaped object with malformed parts (objects: 5, an object with no name, ...)
+    // fails deep in the compiler. Carry the contract code instead of a raw TypeError.
+    const detail = err instanceof Error ? err.message : String(err);
+    if (/\(HS\d{4}\)/.test(detail)) throw err;
+    const wrapped = new TypeError(`compileToWASM: the composition could not be compiled (HS1009): ${detail}`);
+    (wrapped as TypeError & { code?: string; cause?: unknown }).code = 'HS1009';
+    (wrapped as TypeError & { cause?: unknown }).cause = err;
+    throw wrapped;
+  }
 }
 
 /**

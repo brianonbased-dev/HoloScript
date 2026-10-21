@@ -186,7 +186,9 @@ composition "ReadyPlayerMeAvatar" {
       personal_space_radius: 0.5
     }
 
+    // Driven by the wearer's own Quest 3 headset (tracking_source: "headset"): live_self.
     @body_tracking {
+      source: "live_self"
       mode: "full_body"
       joint_smoothing: 0.3
       prediction: true

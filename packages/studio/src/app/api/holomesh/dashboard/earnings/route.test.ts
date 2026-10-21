@@ -7,12 +7,7 @@ const { requireAuthMock, proxyHoloMeshMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/api-auth', () => ({ requireAuth: requireAuthMock }));
-vi.mock('../../../../../lib/holomesh-proxy', () => ({
-  proxyHoloMesh: proxyHoloMeshMock,
-  usesServerKeyFor: (req?: Request) => !req?.headers.get('authorization'),
-  noHoloMeshAgentResponse: () =>
-    Response.json({ success: false, code: 'no_holomesh_agent' }, { status: 404 }),
-}));
+vi.mock('../../../../../lib/holomesh-proxy', () => ({ proxyHoloMeshSelf: proxyHoloMeshMock }));
 
 import { GET } from './route';
 import { AUTHENTICATED_USER_HEADER } from '../../../_lib/earningsIdentity';
@@ -42,8 +37,7 @@ describe('/api/holomesh/dashboard/earnings route', () => {
     requireAuthMock.mockResolvedValue({ user: { id: USER_A } });
 
     const req = new NextRequest(
-      'http://localhost/api/holomesh/dashboard/earnings?wallet=0xVICTIM&agentId=agent_victim&period=30d',
-      { headers: { authorization: 'Bearer caller-own-key' } }
+      'http://localhost/api/holomesh/dashboard/earnings?wallet=0xVICTIM&agentId=agent_victim&period=30d'
     );
     await GET(req);
 
@@ -59,13 +53,5 @@ describe('/api/holomesh/dashboard/earnings route', () => {
 
     // Authed identity forwarded out-of-band.
     expect(forwardReq.headers.get(AUTHENTICATED_USER_HEADER)).toBe(USER_A);
-  });
-
-  it('SECURITY: a session with no HoloMesh key of its own is refused, never proxied under the server key', async () => {
-    requireAuthMock.mockResolvedValue({ user: { id: USER_A } });
-    const res = await GET(new NextRequest('http://localhost/api/holomesh/dashboard/earnings'));
-    expect(res.status).toBe(404);
-    expect(((await res.json()) as { code: string }).code).toBe('no_holomesh_agent');
-    expect(proxyHoloMeshMock).not.toHaveBeenCalled();
   });
 });

@@ -140,6 +140,14 @@ describe('strict corpus: files the canonical validator must refuse', () => {
     }
   });
 
+  it('the likeness files are refused with HS1011 at the strict layer\'s positions', () => {
+    for (const { file, errors } of manifest.invalid.filter((e) => e.file.includes('/likeness-'))) {
+      const result = validateCanonicalSource({ source: readCorpus(file), surface: 'holo' });
+      const likeness = result.errors.filter((error) => error.code === 'HS1011');
+      expect(likeness.map((e) => [e.code, e.line, e.column]), file).toEqual(errors);
+    }
+  });
+
   it('the zero-column gap is still real for every file listed as known', () => {
     for (const file of KNOWN_ZERO_COLUMN_FILES) {
       const result = validateCanonicalSource({ source: readCorpus(file), surface: 'holo' });
@@ -263,11 +271,15 @@ describe('empty source is refused on every surface (HS1001)', () => {
     expect(refused.errors.length).toBeGreaterThan(0);
   });
 
-  it('known gap: comment-only source is not refused by HS1001 (it still routes to the parser)', () => {
-    // Out of scope for HS1001 by decision; tracked as an open issue. When the
-    // canonical path learns to refuse comment-only source, flip this test.
+  it('comment-only .holo source is refused with HS1001 by the parser', () => {
+    // Was a known gap: the canonical path routed comment-only source to the parser, which
+    // accepted it. The .holo parser now refuses it; allowEmpty still waives it for editors.
     const result = validateCanonicalSource({ surface: 'holo', source: '// a note\n' });
     expect(result.validator).toBe('holo-parser');
-    expect(result.valid).toBe(true);
+    expect(result.valid).toBe(false);
+    expect(result.errors.map((error) => error.code)).toEqual(['HS1001']);
+    expect(
+      validateCanonicalSource({ surface: 'holo', source: '// a note\n', allowEmpty: true })
+    ).toMatchObject({ valid: true, validator: 'holo-parser', errors: [] });
   });
 });

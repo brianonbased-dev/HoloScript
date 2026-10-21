@@ -17,6 +17,8 @@ GARBAGE = [
     "}}}}}}}}",
     "SELECT * FROM users; DROP TABLE users;",
     "this is not holo at all",
+    # The exact inputs of the 2026-10-14 graded verdict on PyPI 6.0.7, verbatim.
+    "this is not holo at all {{{",
     "",
     "\n\n\t",
 ]

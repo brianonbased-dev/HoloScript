@@ -1,11 +1,30 @@
-﻿/**
+/**
  * /api/holomesh/transactions without a caller key must not fall back to
  * Studio's server key (#573 follow-up). Twin: fails before the refuse.
  */
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
-afterEach(() => vi.unstubAllGlobals());
+// The local holomesh_transactions cache is the SERVER key's ledger (filled by
+// /transactions/sync). Make it available so a route that reads it would leak.
+const { getDbMock } = vi.hoisted(() => ({ getDbMock: vi.fn() }));
+vi.mock('../../../../../db/client', () => ({ getDb: getDbMock }));
+
+function serverKeyCacheDb() {
+  const rows = [{ id: 'server-key-cache-tx', amount: 999 }];
+  const chain = {
+    select: () => chain,
+    from: () => chain,
+    orderBy: () => chain,
+    limit: async () => rows,
+  };
+  return chain;
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  getDbMock.mockReset();
+});
 
 describe('GET /api/holomesh/transactions', () => {
   it('without a caller key: 404 no_holomesh_agent and nothing upstream', async () => {
@@ -30,5 +49,22 @@ describe('GET /api/holomesh/transactions', () => {
     expect(res.status).toBe(200);
     expect(((await res.json()) as { transactions: { id: string }[] }).transactions[0].id).toBe('mine');
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer caller-own-key');
+  });
+
+  it('SECURITY: a caller with its own key never sees the server-key transactions cache', async () => {
+    getDbMock.mockReturnValue(serverKeyCacheDb());
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ success: true, transactions: [{ id: 'mine' }] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const { GET } = await import('../route');
+    const res = await GET(
+      new NextRequest('http://localhost/api/holomesh/transactions?limit=50', {
+        headers: { authorization: 'Bearer caller-own-key' },
+      })
+    );
+    const body = (await res.json()) as { transactions: { id: string }[]; source?: string };
+    expect(body.source).not.toBe('db');
+    expect(body.transactions.map((t) => t.id)).not.toContain('server-key-cache-tx');
+    expect(body.transactions.map((t) => t.id)).toEqual(['mine']);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

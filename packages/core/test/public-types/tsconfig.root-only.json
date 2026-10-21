@@ -8,5 +8,5 @@
     "skipLibCheck": false,
     "types": []
   },
-  "files": ["root-only.consumer.ts"]
+  "files": ["root-only.consumer.ts", "ConsentRules.consumer.ts"]
 }

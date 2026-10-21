@@ -352,7 +352,7 @@ interface Token {
 import { VR_TRAITS, LIFECYCLE_HOOKS, STRUCTURAL_DIRECTIVES } from '../constants';
 import { analyzeFunctionRegion, scanHsType } from './hsTypeAnnotation';
 import { checkTypedHsFunction, type RustFunctionDiagnostic } from './hsplusRustTypeCheck';
-import { RUNTIME_DIRECTIVE_TRAITS } from '../traits/knownTraitSet';
+import { isKnownTrait } from '../validation/KnownTraits';
 import { ChunkDetector } from './ChunkDetector';
 import { ParseCache, globalParseCache } from './ParseCache';
 import { ChunkBasedIncrementalParser, type IncrementalParseResult } from './IncrementalParser';
@@ -3280,7 +3280,9 @@ export class HoloScriptPlusParser {
     // Runtime/governance directive traits (@freeze_when, @llama_serve, @evolve_program, @model_fleet,
     // @provider_policy) are KNOWN top-level directives — they parse as generic traits (unchanged
     // downstream) but must NOT trip the unknown-directive diagnostic (or strict error).
-    const isKnownRuntimeDirective = (RUNTIME_DIRECTIVE_TRAITS as readonly string[]).includes(name);
+    // HSP001's trait-name check is derived from the one known-trait set (validation/KnownTraits.ts,
+    // which includes RUNTIME_DIRECTIVE_TRAITS); HS1006 is the authoritative report of the same `@`.
+    const isKnownRuntimeDirective = isKnownTrait(name);
     if (!isKnownRuntimeDirective) {
       if (this.options.strict) {
         this.traitError(name);

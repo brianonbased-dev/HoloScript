@@ -255,7 +255,9 @@ describe('POST /oauth/register when the durable client store is full', () => {
       scope: 'tools:read',
     });
 
-    expect(r.status).toBe(400);
+    // RFC 6749 §5.2: an unknown client is invalid_client (401), Trust & Consent A4.
+    expect(r.status).toBe(401);
+    expect(r.body.error).toBe('invalid_client');
     expect(r.body.access_token).toBeUndefined();
     expect(String(r.body.error_description)).toMatch(/not registered/);
     expect(await inMemoryClientCount()).toBe(inMemoryBefore - 1);

@@ -18,4 +18,6 @@ export const ENVIRONMENT_INPUT_TRAITS = [
   'body_tracking',
   'face_tracking',
   'haptic',
+  // Runtime handlers registered by packages/runtime/src/browser/BrowserRuntime.ts, used in examples/
+  'proximity', // packages/runtime/src/traits/InteractionTraits.ts ProximityTrait
 ] as const;

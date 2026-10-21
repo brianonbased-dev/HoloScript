@@ -35,6 +35,9 @@ export default function EntryDetailPage() {
   // Purchase flow
   const [buying, setBuying] = useState(false);
   const [buyError, setBuyError] = useState('');
+  // 404 no_holomesh_agent: the buyer has no HoloMesh agent of its own, and
+  // Studio no longer buys under its server key for them.
+  const [buyNeedsAgent, setBuyNeedsAgent] = useState(false);
 
   // Sort
   const [sort, setSort] = useState<'best' | 'new' | 'old'>('best');
@@ -178,6 +181,25 @@ export default function EntryDetailPage() {
     if (!entry || buying || entry.paid) return;
     setBuying(true);
     setBuyError('');
+    setBuyNeedsAgent(false);
+    const readJson = async (res: Response): Promise<Record<string, any> | null> => {
+      try {
+        return (await res.json()) as Record<string, any>;
+      } catch {
+        return null;
+      }
+    };
+    const failed = (res: Response, data: Record<string, any> | null, fallback: string) => {
+      if (res.status === 404 && data?.code === 'no_holomesh_agent') {
+        setBuyNeedsAgent(true);
+        return;
+      }
+      setBuyError(
+        typeof data?.error === 'string' && data.error
+          ? data.error
+          : `${fallback} (HTTP ${res.status})`
+      );
+    };
     try {
       // Step 1: Initiate payment — server returns a 402 with X-PAYMENT-REQUIRED details
       const initRes = await fetch(`/api/holomesh/entry/${encodeURIComponent(entryId)}/purchase`, {
@@ -187,7 +209,7 @@ export default function EntryDetailPage() {
 
       if (initRes.status === 402) {
         // Step 2: Parse payment requirements and resubmit with X-PAYMENT header
-        const paymentRequired = await initRes.json();
+        const paymentRequired = await readJson(initRes);
         const paymentToken = paymentRequired?.paymentToken ?? paymentRequired?.x_payment ?? '';
         if (!paymentToken) {
           setBuyError('Payment gateway unavailable. Please try again later.');
@@ -200,9 +222,9 @@ export default function EntryDetailPage() {
             'X-PAYMENT': paymentToken,
           },
         });
-        const payData = await payRes.json();
-        if (!payRes.ok || !payData.success) {
-          setBuyError(payData.error || 'Payment failed');
+        const payData = await readJson(payRes);
+        if (!payRes.ok || !payData?.success) {
+          failed(payRes, payData, 'Payment failed');
           return;
         }
         // Refresh to get unlocked content
@@ -210,9 +232,9 @@ export default function EntryDetailPage() {
         return;
       }
 
-      const data = await initRes.json();
-      if (!initRes.ok || !data.success) {
-        setBuyError(data.error || 'Purchase failed');
+      const data = await readJson(initRes);
+      if (!initRes.ok || !data?.success) {
+        failed(initRes, data, 'Purchase failed');
         return;
       }
       // Already succeeded (free or included in plan)
@@ -345,6 +367,20 @@ export default function EntryDetailPage() {
                     </button>
                   </div>
                   {buyError && <div className="mt-2 text-xs text-red-400">{buyError}</div>}
+                  {buyNeedsAgent && (
+                    <div
+                      data-testid="buy-join-holomesh"
+                      className="mt-2 flex items-center gap-3 text-xs text-emerald-200"
+                    >
+                      <span>
+                        No HoloMesh agent is linked to your account yet. Join to buy entries with
+                        your own agent.
+                      </span>
+                      <Link href="/holomesh" className="font-semibold underline">
+                        Join HoloMesh
+                      </Link>
+                    </div>
+                  )}
                 </div>
               )}
 
