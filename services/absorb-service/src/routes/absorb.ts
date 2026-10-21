@@ -5,6 +5,11 @@ import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { userUuid } from '../middleware/auth.js';
 import { cloneRepo, CloneRefusal } from '../lib/absorb/clone-from-url.js';
+import {
+  MemoryImportClaimStore,
+  PostgresImportClaimStore,
+  type ImportClaimStore,
+} from '../lib/absorb/importClaims.js';
 
 const router = Router();
 
@@ -41,21 +46,35 @@ const ScanRequestSchema = z
   })
   .refine((b) => (b.path ? 1 : 0) + (b.repoUrl ? 1 : 0) === 1, {
     message: 'send exactly one of path or repoUrl',
+  })
+  // A URL import is charged once per importId, so it must carry one: without
+  // it a retry could not be told apart from a new import.
+  .refine((b) => !b.repoUrl || !!b.importId, {
+    message: 'importId is required with repoUrl',
+    path: ['importId'],
   });
 
 type ScanBody = z.infer<typeof ScanRequestSchema>;
 type ScanOutcome = { status: number; json: Record<string, unknown> };
 
-// Finished and in-flight URL imports, per (account, importId). In memory, so
-// it holds for one absorb instance and resets on restart (see PR body).
-const IMPORT_TTL_MS = 24 * 60 * 60 * 1000;
-const importResults = new Map<string, { at: number; outcome: ScanOutcome }>();
+// URL imports running on THIS instance, per (account, importId): two requests
+// here share one run. Across instances and restarts the durable claim decides
+// (lib/absorb/importClaims.ts, table absorb_import_claims, migration 0003).
 const importsInFlight = new Map<string, Promise<ScanOutcome>>();
+const memoryClaims = new MemoryImportClaimStore();
+
+function importClaimStore(): ImportClaimStore {
+  const db = getDb();
+  if (!db) return memoryClaims; // no database (local dev): this process only
+  return new PostgresImportClaimStore(async (text, params) =>
+    db.$client.query(text, params as unknown[])
+  );
+}
 
 /** Test seam: forget remembered imports and saved scans. */
 export function __resetImportsForTests(): void {
   graphStore.clear();
-  importResults.clear();
+  memoryClaims.clear();
   importsInFlight.clear();
 }
 
@@ -100,31 +119,86 @@ router.post('/scan', async (req: Request, res: Response) => {
   }
 });
 
-/** URL import, at most once per (account, importId). */
+const replayed = (o: ScanOutcome): ScanOutcome => ({
+  status: o.status,
+  json: { ...o.json, cost: 0, replayed: true },
+});
+
+/** URL import, at most once per (account, importId), across instances. */
 async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcome> {
   const account = userUuid(req);
-  const key = account && body.importId ? `${account}:${body.importId}` : null;
-  if (!key) return scanFromUrl(req, body);
+  // No account: nobody is charged, so there is nothing to guard.
+  if (!account) return scanFromUrl(req, body);
+  const importId = body.importId as string; // required with repoUrl (schema)
+  const key = `${account}:${importId}`;
 
-  const now = Date.now();
-  for (const [k, v] of importResults) if (now - v.at > IMPORT_TTL_MS) importResults.delete(k);
-  const done = importResults.get(key);
-  if (done) return { status: done.outcome.status, json: { ...done.outcome.json, cost: 0, replayed: true } };
   const running = importsInFlight.get(key);
-  if (running) {
-    const o = await running;
-    return { status: o.status, json: { ...o.json, cost: 0, replayed: true } };
-  }
-  const p = scanFromUrl(req, body);
+  if (running) return replayed(await running);
+  const p = claimAndScan(req, body, account, importId);
   importsInFlight.set(key, p);
   try {
-    const o = await p;
-    // Only a delivered (charged or free) scan is remembered; a failure can be retried.
-    if (o.status === 200) importResults.set(key, { at: Date.now(), outcome: o });
-    return o;
+    return await p;
   } finally {
     importsInFlight.delete(key);
   }
+}
+
+/**
+ * Claim (user, importId) in the database BEFORE cloning, scanning or charging.
+ * Only the claim holder runs the import; a finished one replays with cost 0.
+ */
+async function claimAndScan(
+  req: Request,
+  body: ScanBody,
+  account: string,
+  importId: string
+): Promise<ScanOutcome> {
+  const store = importClaimStore();
+  let claim;
+  try {
+    claim = await store.claim(account, importId);
+  } catch (err) {
+    // Fail closed: without the claim a retry elsewhere could be charged again.
+    console.error('[absorb/scan] import guard unavailable:', (err as Error)?.message);
+    return {
+      status: 503,
+      json: {
+        error: 'import_guard_unavailable',
+        message: 'This import could not be recorded before charging for it. Try again shortly.',
+      },
+    };
+  }
+  if (claim.kind === 'done') return replayed(claim.outcome);
+  if (claim.kind === 'pending') {
+    return {
+      status: 409,
+      json: {
+        error: 'import_in_progress',
+        message: 'This import is already running. Retry with the same importId to get its result.',
+      },
+    };
+  }
+
+  let outcome: ScanOutcome;
+  try {
+    outcome = await scanFromUrl(req, body);
+  } catch (err) {
+    await store.release(account, importId).catch(() => undefined);
+    throw err;
+  }
+  if (outcome.status === 200) {
+    try {
+      await store.complete(account, importId, outcome);
+    } catch (err) {
+      // The charge has landed; the claim stays pending, so a retry gets 409
+      // (not a second charge) until the claim goes stale.
+      console.error('[absorb/scan] import charged but not recorded as done:', (err as Error)?.message);
+    }
+  } else {
+    // Not delivered, so nothing was charged: let the import be retried.
+    await store.release(account, importId).catch(() => undefined);
+  }
+  return outcome;
 }
 
 async function scanFromUrl(req: Request, body: ScanBody): Promise<ScanOutcome> {

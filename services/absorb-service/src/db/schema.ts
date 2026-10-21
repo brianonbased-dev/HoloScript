@@ -484,3 +484,28 @@ export const rateCounters = pgTable('rate_counters', {
   windowStart: timestamp('window_start', { mode: 'date', withTimezone: true }).notNull(),
   count: integer('count').notNull(),
 });
+
+// ── Absorb import claims ────────────────────────────────────────────────────
+// One /scan repoUrl import = one charge, across instances and restarts. The row
+// is claimed (unique per user and importId) BEFORE the clone, scan and charge;
+// a repeat replays `outcome` with cost 0. Written only by
+// lib/absorb/importClaims.ts. Migration 0003.
+
+export const absorbImportClaims = pgTable(
+  'absorb_import_claims',
+  {
+    userId: text('user_id').notNull(),
+    importId: text('import_id').notNull(),
+    // 'pending' while an instance runs the import, 'done' once delivered.
+    status: text('status').notNull(),
+    outcome: jsonb('outcome'),
+    claimedAt: timestamp('claimed_at', { mode: 'date', withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp('completed_at', { mode: 'date', withTimezone: true }),
+  },
+  (t) => ({
+    idx_absorb_import_claims_user_import: uniqueIndex('idx_absorb_import_claims_user_import').on(
+      t.userId,
+      t.importId
+    ),
+  })
+);

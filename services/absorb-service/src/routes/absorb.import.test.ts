@@ -13,6 +13,12 @@ const h = vi.hoisted(() => ({
   cleanups: 0,
   clones: 0,
   cloneError: null as null | Error,
+  // A shared database for the import claims (null: no database configured).
+  db: null as unknown,
+  // While set, a clone waits on it (to hold an import open on one instance).
+  cloneGate: null as null | Promise<void>,
+  // Claim and charge order, as the shared database and the ledger see them.
+  order: [] as string[],
 }));
 
 vi.mock('@holoscript/absorb-service/credits', () => {
@@ -24,6 +30,7 @@ vi.mock('@holoscript/absorb-service/credits', () => {
       if (h.balance < cents) return null;
       h.balance -= cents;
       h.debits.push({ userId, cents, meta });
+      h.order.push('debit');
       return { balanceCents: h.balance };
     }),
     isCreditError: (r: Record<string, unknown>) => 'error' in r && 'status' in r,
@@ -50,7 +57,7 @@ vi.mock('@holoscript/absorb-service/engine', () => {
   return { ...api, default: api };
 });
 
-vi.mock('../db/client.js', () => ({ getDb: vi.fn(() => null) }));
+vi.mock('../db/client.js', () => ({ getDb: vi.fn(() => h.db) }));
 
 vi.mock('../lib/absorb/clone-from-url.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/absorb/clone-from-url.js')>();
@@ -59,6 +66,7 @@ vi.mock('../lib/absorb/clone-from-url.js', async (importOriginal) => {
     cloneRepo: vi.fn(async (url: unknown) => {
       actual.normalizeRepoUrl(url); // the real allowlist still runs
       h.clones += 1;
+      if (h.cloneGate) await h.cloneGate;
       if (h.cloneError) throw h.cloneError;
       return { dir: '/data/absorb-clones/c-test/repo', cleanup: async () => void (h.cleanups += 1) };
     }),
@@ -85,6 +93,9 @@ beforeEach(async () => {
   h.cleanups = 0;
   h.clones = 0;
   h.cloneError = null;
+  h.db = null;
+  h.cloneGate = null;
+  h.order = [];
   reset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
   const { CloneRefusal } = await import('../lib/absorb/clone-from-url.js');
@@ -179,4 +190,152 @@ describe('/scan repoUrl import', () => {
     expect(r._status).toBe(400);
     expect(h.clones).toBe(0);
   });
+});
+
+describe('/scan repoUrl import: importId is required', () => {
+  it('repoUrl without importId is 400, with no clone and no charge', async () => {
+    const { importId: _omit, ...noId } = IMPORT;
+    void _omit;
+    const r = await call(noId);
+    expect(r._status).toBe(400);
+    expect(JSON.stringify(r._json)).toContain('importId is required with repoUrl');
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+});
+
+/**
+ * Two absorb instances sharing one database. Each instance is a fresh import of
+ * absorb.ts (its own in-memory state); only the claim table is shared, the way
+ * Postgres is shared between replicas.
+ */
+function sharedDb(opts: { failClaim?: boolean } = {}) {
+  const rows = new Map<string, { status: string; outcome: unknown; claimedAt: number }>();
+  const query = vi.fn(async (text: string, p: unknown[]) => {
+    const key = `${p[0]}:${p[1]}`;
+    if (text.startsWith('INSERT INTO absorb_import_claims')) {
+      h.order.push('claim');
+      if (opts.failClaim) throw new Error('db down');
+      const row = rows.get(key);
+      if (!row || (row.status === 'pending' && Date.now() - row.claimedAt > Number(p[2]))) {
+        rows.set(key, { status: 'pending', outcome: null, claimedAt: Date.now() });
+        return { rows: [{ import_id: p[1] }] };
+      }
+      return { rows: [] };
+    }
+    if (text.startsWith('SELECT status, outcome FROM absorb_import_claims')) {
+      const row = rows.get(key);
+      return { rows: row ? [{ status: row.status, outcome: row.outcome }] : [] };
+    }
+    if (text.startsWith('UPDATE absorb_import_claims')) {
+      const row = rows.get(key);
+      if (row) Object.assign(row, { status: 'done', outcome: JSON.parse(String(p[2])) });
+      return { rows: [] };
+    }
+    if (text.startsWith('DELETE FROM absorb_import_claims')) {
+      if (rows.get(key)?.status === 'pending') rows.delete(key);
+      return { rows: [] };
+    }
+    throw new Error(`unexpected SQL: ${text}`);
+  });
+  return { rows, db: { $client: { query } } };
+}
+
+async function newInstance(): Promise<Handler> {
+  vi.resetModules();
+  const mod = await import('./absorb.js');
+  const stack = (mod.absorbRouter as unknown as { stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: Handler }> } }> }).stack;
+  const route = stack.find((l) => l.route?.path === '/scan' && l.route.methods.post)!.route!;
+  return route.stack[route.stack.length - 1].handle;
+}
+
+async function callOn(handler: Handler, body: Record<string, unknown>) {
+  const res = {
+    _status: 200,
+    _json: null as Record<string, unknown> | null,
+    status(c: number) {
+      res._status = c;
+      return res;
+    },
+    json(d: Record<string, unknown>) {
+      res._json = d;
+      return res;
+    },
+  };
+  await handler(
+    { body, authenticated: true, userId: USER, headers: {} } as unknown as Request,
+    res as unknown as Response
+  );
+  return res;
+}
+
+describe('/scan repoUrl import across instances (shared database)', () => {
+  it('a retry on another instance replays the first result: one clone, one charge', async () => {
+    const shared = sharedDb();
+    h.db = shared.db;
+    const a = await newInstance();
+    const b = await newInstance();
+    const first = await callOn(a, IMPORT);
+    expect(first._status).toBe(200);
+    expect(first._json?.cost).toBe(10);
+    const again = await callOn(b, IMPORT);
+    expect(again._status).toBe(200);
+    expect(again._json?.cost).toBe(0);
+    expect(again._json?.replayed).toBe(true);
+    expect(again._json?.graphId).toBe(first._json?.graphId);
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(1);
+    expect(shared.rows.get(`${USER}:${IMPORT.importId}`)?.status).toBe('done');
+  }, 30_000);
+
+  it('the claim is taken before the charge', async () => {
+    h.db = sharedDb().db;
+    const a = await newInstance();
+    await callOn(a, IMPORT);
+    expect(h.order).toEqual(['claim', 'debit']);
+  }, 30_000);
+
+  it('while one instance is still importing, another answers 409 and charges nothing; its retry afterwards replays', async () => {
+    h.db = sharedDb().db;
+    const a = await newInstance();
+    const b = await newInstance();
+    let open!: () => void;
+    h.cloneGate = new Promise<void>((resolve) => (open = resolve));
+    const running = callOn(a, IMPORT);
+    await vi.waitFor(() => expect(h.clones).toBe(1));
+    const busy = await callOn(b, IMPORT);
+    expect(busy._status).toBe(409);
+    expect(busy._json?.error).toBe('import_in_progress');
+    open();
+    expect((await running)._status).toBe(200);
+    const after = await callOn(b, IMPORT);
+    expect(after._json?.replayed).toBe(true);
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(1);
+  }, 30_000);
+
+  it('a failed import on one instance releases its claim; a retry on another is charged once', async () => {
+    const shared = sharedDb();
+    h.db = shared.db;
+    const a = await newInstance();
+    const b = await newInstance();
+    h.scanFails = true;
+    expect((await callOn(a, IMPORT))._status).toBe(500);
+    expect(shared.rows.size).toBe(0);
+    h.scanFails = false;
+    const retry = await callOn(b, IMPORT);
+    expect(retry._status).toBe(200);
+    expect(retry._json?.cost).toBe(10);
+    expect(h.debits).toHaveLength(1);
+  }, 30_000);
+
+  it('if the claim cannot be recorded, the import is refused (503) before any clone or charge', async () => {
+    h.db = sharedDb({ failClaim: true }).db;
+    const a = await newInstance();
+    const r = await callOn(a, IMPORT);
+    expect(r._status).toBe(503);
+    expect(r._json?.error).toBe('import_guard_unavailable');
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  }, 30_000);
 });
