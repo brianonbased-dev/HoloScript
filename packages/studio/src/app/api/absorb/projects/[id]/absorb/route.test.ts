@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
 const { callMcpToolMock } = vi.hoisted(() => ({
@@ -16,7 +16,17 @@ vi.mock('@/lib/services/absorb-client', () => ({
 
 import { POST } from './route';
 
-describe('/api/absorb/projects/[id]/absorb route', () => {
+const WS_PATH = '/ws/ws-1/repo';
+
+function post(id: string, body: string, headers: Record<string, string> = {}): NextRequest {
+  return new NextRequest(`http://localhost/api/absorb/projects/${encodeURIComponent(id)}/absorb`, {
+    method: 'POST',
+    body,
+    headers: { 'Content-Type': 'application/json', ...headers },
+  });
+}
+
+describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP loop)', () => {
   let tempRoot: string;
   let savedWorkspaceRoot: string | undefined;
   let savedStateFile: string | undefined;
@@ -34,153 +44,100 @@ describe('/api/absorb/projects/[id]/absorb route', () => {
   });
 
   afterEach(() => {
-    if (savedWorkspaceRoot === undefined) {
-      delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
-    } else {
-      process.env.HOLOSCRIPT_WORKSPACES_DIR = savedWorkspaceRoot;
-    }
-    if (savedStateFile === undefined) {
-      delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
-    } else {
-      process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE = savedStateFile;
-    }
+    if (savedWorkspaceRoot === undefined) delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
+    else process.env.HOLOSCRIPT_WORKSPACES_DIR = savedWorkspaceRoot;
+    if (savedStateFile === undefined) delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    else process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE = savedStateFile;
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
-  it('returns MCP tool result when available', async () => {
-    callMcpToolMock.mockResolvedValue({
-      ok: true,
-      data: { jobId: 'job-1', status: 'queued' },
-    });
-
-    const req = new NextRequest('http://localhost/api/absorb/projects/p123/absorb', {
-      method: 'POST',
-      body: JSON.stringify({ depth: 'deep', tier: 'high' }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const res = await POST(req, { params: Promise.resolve({ id: 'p123' }) });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.jobId).toBe('job-1');
-    const state = JSON.parse(
-      fs.readFileSync(path.join(tempRoot, '.absorb-projects.json'), 'utf-8')
-    ) as {
-      projects: Array<{ id: string; absorbJobs: Array<{ jobId: string; source: string }> }>;
-    };
-    expect(state.projects[0].id).toBe('p123');
-    expect(state.projects[0].absorbJobs[0]).toMatchObject({
-      jobId: 'job-1',
-      source: 'mcp',
-    });
-
-    expect(callMcpToolMock).toHaveBeenCalledWith('absorb_run_absorb', {
-      projectId: 'p123',
-      depth: 'deep',
-      tier: 'high',
-    });
-  });
-
-  it('falls back to HTTP API when MCP result is unavailable', async () => {
-    callMcpToolMock.mockResolvedValue({ ok: false, data: null });
-
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ jobId: 'job-http', status: 'running' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
-    vi.stubGlobal('fetch', fetchMock);
-
-    const req = new NextRequest('http://localhost/api/absorb/projects/p999/absorb', {
-      method: 'POST',
-      body: JSON.stringify({ depth: 'shallow', tier: 'medium' }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const res = await POST(req, { params: Promise.resolve({ id: 'p999' }) });
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.jobId).toBe('job-http');
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/absorb/projects/p999/absorb');
-  });
-
-  it('returns 502 when both MCP and HTTP fallback fail', async () => {
-    callMcpToolMock.mockResolvedValue({ ok: false, data: null });
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('timeout')));
-
-    const req = new NextRequest('http://localhost/api/absorb/projects/p404/absorb', {
-      method: 'POST',
-      body: JSON.stringify({ depth: 'shallow', tier: 'medium' }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const res = await POST(req, { params: Promise.resolve({ id: 'p404' }) });
-    expect(res.status).toBe(502);
-    const body = await res.json();
-    expect(body.error).toMatch(/Absorb could not run/i);
-  });
-
-  it('records the real MCP and HTTP failure reasons in the job (not the response), not a generic message', async () => {
-    callMcpToolMock.mockResolvedValue({
-      ok: false,
-      data: null,
-      error: 'MCP absorb_run_absorb HTTP 401 Unauthorized: bad key',
-    });
+  it('never calls the absorb_run_absorb MCP tool (that tool calls this route: the loop)', async () => {
     vi.stubGlobal(
       'fetch',
-      vi
-        .fn()
-        .mockResolvedValue(
-          new Response('Cannot POST /api/absorb/projects/p405/absorb', { status: 404 })
-        )
+      vi.fn(async () => new Response('{"graphId":"g1","stats":{"totalFiles":1}}', { status: 200 }))
     );
+    await POST(post(WS_PATH, '{"depth":"deep"}'), { params: Promise.resolve({ id: WS_PATH }) });
+    expect(callMcpToolMock).not.toHaveBeenCalled();
+  });
 
-    const req = new NextRequest('http://localhost/api/absorb/projects/p405/absorb', {
-      method: 'POST',
-      body: JSON.stringify({ depth: 'shallow' }),
-      headers: { 'Content-Type': 'application/json' },
+  it('calls absorb /scan once with only path, shallow and projectId, and returns its result', async () => {
+    const fetchMock = vi.fn(
+      async () => new Response('{"graphId":"g1","stats":{"totalFiles":3},"cost":10}', { status: 200 })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await POST(post(WS_PATH, '{"depth":"shallow","tier":"ultra","rootDir":"/etc"}'), {
+      params: Promise.resolve({ id: WS_PATH }),
     });
+    expect(res.status).toBe(200);
+    expect((await res.json()).graphId).toBe('g1');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://absorb.test/api/absorb/scan');
+    expect(JSON.parse(init.body as string)).toEqual({ path: WS_PATH, shallow: true, projectId: WS_PATH });
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer absorb-key-test');
+  });
 
-    const res = await POST(req, { params: Promise.resolve({ id: 'p405' }) });
+  it("forwards the caller's own Authorization instead of the service key", async () => {
+    const fetchMock = vi.fn(async () => new Response('{"graphId":"g1"}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await POST(post(WS_PATH, '{}', { Authorization: 'Bearer user-key' }), {
+      params: Promise.resolve({ id: WS_PATH }),
+    });
+    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer user-key');
+  });
+
+  it('an id that is neither a saved project nor a path: 404, nothing sent', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await POST(post('p999', '{}'), { params: Promise.resolve({ id: 'p999' }) });
+    expect(res.status).toBe(404);
+    expect((await res.json()).reason).toBe('absorb_no_project_path');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('timeout or network error: 502, one attempt, no retry', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new DOMException('timed out', 'TimeoutError'));
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await POST(post(WS_PATH, '{}'), { params: Promise.resolve({ id: WS_PATH }) });
+    expect(res.status).toBe(502);
+    expect((await res.json()).error).toMatch(/Absorb could not run/i);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('absorb 5xx: 502 with a short reason; upstream text only in the job record', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('stack trace secret-ish', { status: 500 })));
+    const res = await POST(post(WS_PATH, '{"depth":"shallow"}'), {
+      params: Promise.resolve({ id: WS_PATH }),
+    });
     expect(res.status).toBe(502);
     const body = await res.json();
-    // Client gets a short reason only; the upstream text stays server-side.
     expect(body.reason).toBe('absorb_upstream_failed');
-    expect(body.detail).toBeUndefined();
-    expect(JSON.stringify(body)).not.toContain('bad key');
-    expect(JSON.stringify(body)).not.toContain('Cannot POST');
+    expect(JSON.stringify(body)).not.toContain('stack trace');
     const state = JSON.parse(
       fs.readFileSync(path.join(tempRoot, '.absorb-projects.json'), 'utf-8')
     ) as { projects: Array<{ absorbJobs: Array<{ status: string; error: string | null }> }> };
     const recorded = state.projects[0].absorbJobs[0];
     expect(recorded.status).toBe('failed');
-    expect(recorded.error).toContain('HTTP 401 Unauthorized');
-    expect(recorded.error).toContain('HTTP 404');
-    expect(recorded.error).not.toBe('MCP and HTTP absorb calls failed');
+    expect(recorded.error).toContain('HTTP 500');
+  });
+
+  it("absorb's own refusals pass through: 402 not enough credits", async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"error":"Not enough credits"}', { status: 402 })));
+    const res = await POST(post(WS_PATH, '{}'), { params: Promise.resolve({ id: WS_PATH }) });
+    expect(res.status).toBe(402);
+    expect((await res.json()).reason).toBe('absorb_refused');
   });
 
   it('refuses a JSON body that is not an object (null) with 400, not a 500', async () => {
-    const req = new NextRequest('http://localhost/api/absorb/projects/p401/absorb', {
-      method: 'POST',
-      body: 'null',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const res = await POST(req, { params: Promise.resolve({ id: 'p401' }) });
+    const res = await POST(post('p401', 'null'), { params: Promise.resolve({ id: 'p401' }) });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toBe('JSON body must be an object');
-    expect(callMcpToolMock).not.toHaveBeenCalled();
   });
 
   it('refuses a malformed JSON body with the parse error instead of running with defaults', async () => {
-    const req = new NextRequest('http://localhost/api/absorb/projects/p400/absorb', {
-      method: 'POST',
-      body: '{"depth":',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const res = await POST(req, { params: Promise.resolve({ id: 'p400' }) });
+    const res = await POST(post('p400', '{"depth":'), { params: Promise.resolve({ id: 'p400' }) });
     expect(res.status).toBe(400);
     expect((await res.json()).error).toMatch(/^Invalid JSON body: /);
-    expect(callMcpToolMock).not.toHaveBeenCalled();
   });
 });

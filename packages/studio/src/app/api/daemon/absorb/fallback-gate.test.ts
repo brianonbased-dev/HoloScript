@@ -106,6 +106,21 @@ describe('/api/daemon/absorb: HTTP /scan fallback only when MCP clearly did not 
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('tool answered { error } (it ran): 502 absorb_tool_error, no fallback', async () => {
+    callMcpToolMock.mockResolvedValue({
+      ok: false,
+      data: { error: 'No API key provided.' },
+      error: 'MCP absorb_run_absorb tool error: No API key provided.',
+      failure: 'tool_error',
+    });
+    const res = await POST(post(IMPORT));
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as { reason: string; error: string };
+    expect(body.reason).toBe('absorb_tool_error');
+    expect(body.error).not.toContain('No API key');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('forwards only path, shallow, languages and projectId to /scan', async () => {
     callMcpToolMock.mockResolvedValue({
       ok: false,
