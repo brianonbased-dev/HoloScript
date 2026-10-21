@@ -24,6 +24,7 @@ import { createServer, type AddressInfo, type Socket } from 'net';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { consentedGrant, TEST_STUDIO_CONSENT_SECRET } from './consented-test-token';
 
 // Accepted by the legacy-key path; not in the key registry, so not a founder.
 const TEST_KEY = 'local-custody-dispatch-key-not-a-founder';
@@ -189,6 +190,7 @@ beforeAll(async () => {
     HOLOMESH_DATA_DIR: dataDir,
     HOLOSCRIPT_CACHE_DIR: sandbox,
     HOLOMESH_NO_DOTENV: '1',
+    STUDIO_CONSENT_SECRET: TEST_STUDIO_CONSENT_SECRET,
     ORCHESTRATOR_URL: 'http://127.0.0.1:9',
     MCP_TRUST_LOOPBACK: 'true',
     ABSORB_ALLOWED_ROOTS: join(sandbox, 'allowed'),
@@ -264,27 +266,20 @@ async function callTool(
   return { ...r, text: JSON.stringify(r.body) };
 }
 
-/** A non-admin OAuth token (tools:read + tools:execute) minted over loopback. */
+/**
+ * A non-admin OAuth token (tools:read + tools:execute), minted the way #610 does:
+ * register, then the human-consent path (Studio consent assertion + PKCE). A bare
+ * client_credentials grant for tools:read is refused with consent_required.
+ */
 async function mintToken(): Promise<string> {
-  const reg = await request('POST', '/oauth/register', {
-    body: {
-      client_name: 'local-custody-dispatch',
-      redirect_uris: ['https://client.test/callback'],
-      scope: 'tools:read tools:execute',
-      token_endpoint_auth_method: 'client_secret_post',
-    },
-  });
-  expect(reg.status, JSON.stringify(reg.body)).toBeLessThan(300);
-  const tok = await request('POST', '/oauth/token', {
-    body: {
-      grant_type: 'client_credentials',
-      client_id: reg.body.client_id,
-      client_secret: reg.body.client_secret,
-      scope: 'tools:read tools:execute',
-    },
-  });
-  expect(tok.status, JSON.stringify(tok.body)).toBe(200);
-  return String(tok.body.access_token);
+  const issued = await consentedGrant(
+    request as unknown as Parameters<typeof consentedGrant>[0],
+    'tools:read tools:execute',
+    { clientName: 'local-custody-dispatch' }
+  );
+  expect(issued.status, JSON.stringify(issued.body)).toBe(200);
+  expect(issued.granted).toEqual(expect.arrayContaining(['tools:read', 'tools:execute']));
+  return String(issued.body.access_token);
 }
 
 describe('local custody at dispatch (real /mcp)', () => {
