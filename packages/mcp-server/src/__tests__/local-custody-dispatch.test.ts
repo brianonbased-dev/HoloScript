@@ -338,5 +338,24 @@ describe('local custody at dispatch (real /mcp)', () => {
       // Reaching the absorb allowlist means the host-path rule was skipped.
       expect(r.text).not.toContain(ROOT_REFUSED);
     });
+
+    // NC1 (Release's #407 post-merge review): if the unsigned fallback always set
+    // localCustody, a token caller would get host-path custody. C2 sees that only
+    // through /etc, which the absorb allowlist also refuses. Here the path is
+    // INSIDE the allowed roots, so the allowlist would let it through: only the
+    // host-path rule stands between this caller and the server's disk.
+    it('NC1 a non-admin token gets no local custody, even for a folder inside the allowed roots (direct and batch child)', async () => {
+      const allowed = join(sandbox, 'allowed');
+      const auth = { headers: { authorization: `Bearer ${bearer}` } };
+      const direct = await callTool('holo_absorb_repo', { rootDir: allowed }, auth);
+      expect(direct.text).toContain(HOST_PATH_REFUSED);
+      const batch = await callTool(
+        'batch_tool_call',
+        { calls: [{ name: 'holo_absorb_repo', args: { rootDir: allowed } }] },
+        auth
+      );
+      expect(batch.text).toContain(HOST_PATH_REFUSED);
+      expect(batch.text).not.toContain(ROOT_REFUSED);
+    });
   });
 });

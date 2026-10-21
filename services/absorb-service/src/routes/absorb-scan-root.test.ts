@@ -135,6 +135,36 @@ describe('POST /scan root confinement', () => {
     expect(credits.deductCredits).not.toHaveBeenCalled();
   });
 
+  // NC2 (Release's #407 post-merge review): moving the root check after the
+  // credits work. A caller the credits module would refuse still gets the root
+  // refusal (403), never the credits answer (402): the root is checked first.
+  it('NC2 a disallowed root is refused before the credits answer, even when credits would refuse', async () => {
+    process.env.ABSORB_ALLOWED_ROOTS = tempDir(os.tmpdir(), 'scan-allowed-');
+    const outside = tempDir(os.tmpdir(), 'scan-outside-');
+    const handler = await freshScanHandler();
+    credits.requireCredits.mockResolvedValueOnce({ error: 'Insufficient credits', status: 402 } as never);
+    const res = mockRes();
+    let calls = -1;
+    try {
+      await handler(payingReq(outside), res);
+    } finally {
+      calls = credits.requireCredits.mock.calls.length;
+      // Drop the one-off answer if it went unused, so it cannot leak into the next test.
+      credits.requireCredits.mockReset();
+      credits.requireCredits.mockImplementation(async (userId: string) => ({
+        userId,
+        costCents: 10,
+        operationType: 'absorb_shallow',
+      }));
+    }
+    expect(res.status).toHaveBeenCalledWith(403);
+    expect(res.status).not.toHaveBeenCalledWith(402);
+    expect(res.json.mock.calls[0][0]).toMatchObject({ error: 'path_not_allowed' });
+    expect(credits.loads).toBe(0);
+    expect(calls).toBe(0);
+    expect(credits.deductCredits).not.toHaveBeenCalled();
+  });
+
   it('control: the same caller on an allowed root is scanned and charged once', async () => {
     const allowed = tempDir(os.tmpdir(), 'scan-allowed-');
     process.env.ABSORB_ALLOWED_ROOTS = allowed;
