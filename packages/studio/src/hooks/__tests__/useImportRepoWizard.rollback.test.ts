@@ -103,6 +103,27 @@ describe('useImportRepoWizard failed-import cleanup', () => {
     await waitFor(() => expect(calls).toContainEqual({ url: `/api/workspace/import?id=${WS}`, method: 'DELETE' }));
   });
 
+  it('absorb is asked by workspaceId + importId, never by a local path', async () => {
+    const bodies: unknown[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      if (url === '/api/workspace/import' && method === 'POST') return new Response(JSON.stringify(clone), { status: 200 });
+      if (url === '/api/daemon/absorb') {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response(JSON.stringify({ stats: { totalFiles: 1, totalSymbols: 1, totalLoc: 1 }, hubFiles: [], leafFirstOrder: [] }), { status: 200 });
+      }
+      return new Response('{"ok":true}', { status: 200 });
+    }));
+    const { result } = renderHook(() => useImportRepoWizard(() => {}));
+    act(() => { result.current.setUseManual(true); result.current.setManualUrl(clone.repoUrl); });
+    act(() => result.current.retryImport());
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    const sent = bodies[0] as Record<string, unknown>;
+    expect(sent.workspaceId).toBe(WS);
+    expect(typeof sent.importId).toBe('string');
+    expect(sent.projectPath).toBeUndefined();
+  });
+
   it('a 200 with an empty body: generic clean error, no crash', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
       const method = init?.method ?? 'GET';

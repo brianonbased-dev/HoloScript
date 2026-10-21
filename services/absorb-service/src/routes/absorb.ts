@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { userUuid } from '../middleware/auth.js';
+import { cloneRepo, CloneRefusal } from '../lib/absorb/clone-from-url.js';
 
 const router = Router();
 
@@ -24,12 +25,39 @@ const graphStore = new Map<string, {
   userId: string | null;
 }>();
 
-const ScanRequestSchema = z.object({
-  path: z.string().min(1),
-  languages: z.array(z.string()).optional(),
-  shallow: z.boolean().optional().default(false),
-  projectId: z.string().optional(),
-});
+const ScanRequestSchema = z
+  .object({
+    // Exactly one of: a folder on this server, or a public github.com repo
+    // that absorb clones itself (Studio's clone lives on another volume).
+    path: z.string().min(1).optional(),
+    repoUrl: z.string().min(1).max(300).optional(),
+    branch: z.string().max(200).optional(),
+    // One import = one charge. A retry with the same importId gets the first
+    // result back and is not charged again.
+    importId: z.string().min(8).max(100).optional(),
+    languages: z.array(z.string()).optional(),
+    shallow: z.boolean().optional().default(false),
+    projectId: z.string().optional(),
+  })
+  .refine((b) => (b.path ? 1 : 0) + (b.repoUrl ? 1 : 0) === 1, {
+    message: 'send exactly one of path or repoUrl',
+  });
+
+type ScanBody = z.infer<typeof ScanRequestSchema>;
+type ScanOutcome = { status: number; json: Record<string, unknown> };
+
+// Finished and in-flight URL imports, per (account, importId). In memory, so
+// it holds for one absorb instance and resets on restart (see PR body).
+const IMPORT_TTL_MS = 24 * 60 * 60 * 1000;
+const importResults = new Map<string, { at: number; outcome: ScanOutcome }>();
+const importsInFlight = new Map<string, Promise<ScanOutcome>>();
+
+/** Test seam: forget remembered imports and saved scans. */
+export function __resetImportsForTests(): void {
+  graphStore.clear();
+  importResults.clear();
+  importsInFlight.clear();
+}
 
 const QueryRequestSchema = z.object({
   graphId: z.string().min(1),
@@ -51,177 +79,257 @@ const loadEngine = () => (enginePromise ??= import('@holoscript/absorb-service/e
 let creditsPromise: Promise<any> | undefined;
 const loadCredits = () => (creditsPromise ??= import('@holoscript/absorb-service/credits'));
 
-// POST /scan — Scan a codebase
+// POST /scan — Scan a codebase (a server folder, or a github.com repo by URL)
 router.post('/scan', async (req: Request, res: Response) => {
+  let body: ScanBody;
   try {
-    const body = ScanRequestSchema.parse(req.body);
-    // The scan root must sit inside the folders this server may scan; before
-    // 2026-10-04 any authenticated caller could map any server directory here.
-    const { absorbRootRefusal } = await loadEngine();
-    const rootRefusal = absorbRootRefusal(body.path);
-    if (rootRefusal) {
-      return res.status(403).json({ error: 'path_not_allowed', message: rootRefusal });
-    }
-
-    // A saved scan is reused only for the account that paid for it.
-    // The id is the same one the charge uses (a user uuid). Matching on
-    // the folder alone handed that scan to anyone, free, for 5 minutes,
-    // including someone who had just been refused.
-    //
-    // Someone with no account id is not charged, and their scan is not
-    // saved for reuse. A paid scan is never given to them.
-    const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-    const now = new Date();
-    const callerId = userUuid(req);
-    if (callerId) {
-      for (const [id, entry] of graphStore.entries()) {
-        if (entry.ownerId === callerId && entry.path === body.path && entry.shallow === body.shallow) {
-          if (now.getTime() - entry.createdAt.getTime() < CACHE_TTL_MS) {
-            return res.json({
-              graphId: id,
-              stats: entry.stats,
-              fileCount: entry.fileCount,
-              cost: 0, // Already paid by this caller. Not charged again.
-              cached: true,
-              topology: entry.topology
-            });
-          }
-        }
-      }
-    }
-
-    // Lazy import to avoid loading heavy modules at startup
-    const engineModule = await loadEngine();
-    const { CodebaseScanner, CodebaseGraph } = (engineModule as any).default || engineModule;
-
-    // @ts-ignore - Automatic remediation for TS18046
-    const scanner = new CodebaseScanner();
-    const scanResult = await scanner.scan({
-      rootDir: body.path,
-      languages: body.languages as any,
-      shallow: body.shallow,
-    });
-
-    // @ts-ignore - Automatic remediation for TS18046
-    const graph = new CodebaseGraph();
-    graph.buildFromScanResult(scanResult);
-
-    const graphId = uuidv4();
-
-    // Build in-degree map for topological intelligence
-    const inDegree: Record<string, number> = {};
-    const filesList = scanResult.files || [];
-    for (const file of filesList) {
-      if (!(file.path in inDegree)) inDegree[file.path] = 0;
-      for (const imp of file.imports || []) {
-        if (imp.resolvedPath) {
-          inDegree[imp.resolvedPath] = (inDegree[imp.resolvedPath] ?? 0) + 1;
-        }
-      }
-    }
-
-    // Leaf-first order: sort files by in-degree ascending (safest to fix first)
-    const leafFirstOrder = filesList
-      .map((f: any) => f.path)
-      .sort((a: string, b: string) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
-
-    // Deduct credits if authenticated.
-    //
-    // Two faults lived here until 2026-09-21. The userId fell back to the
-    // literal 'anonymous', which entry-lookup.ts defines as the id every
-    // UNAUTHENTICATED caller carries — so an authenticated caller with no id
-    // spent from, and was billed against, the bucket that belongs to nobody.
-    // And the charge is gated on body.projectId while the response below
-    // reported `cost: 10` or `cost: 50` unconditionally, so a scan with no
-    // projectId told the client it had been billed when nothing was taken.
-    let chargedCents = 0;
-    // Set only after the charge lands, so a refused scan is not saved
-    // for a free replay, and an unpaid scan is not saved under an account.
-    let cacheOwnerId: string | null = null;
-    // userUuid(), not a truthiness test. middleware/auth.ts sets
-    // userId = `orchestrator:${key}` for an orchestrator caller: authenticated,
-    // truthy, and not a uuid. It would flow into requireCredits -> checkBalance
-    // -> getOrCreateAccount, which queries a uuid column and throws, 500-ing an
-    // orchestrator scan. This guard is new in this change and chose the weaker
-    // predicate when the right one was already imported.
-    const scanUserId = userUuid(req);
-    if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
-      const creditsModule = await loadCredits();
-      const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
-      const userId = scanUserId;
-      const opType = body.shallow ? 'absorb_shallow' : 'absorb_deep';
-      
-      // @ts-ignore - Automatic remediation for TS18046
-      const creditCheck = await requireCredits(userId, opType);
-      // @ts-ignore - Automatic remediation for TS18046
-      if (isCreditError(creditCheck)) {
-        res.status(402).json(creditCheck);
-        return;
-      }
-      
-      // requireCredits only looks. Two scans can both be told the balance
-      // covers them before either charge lands. deductCredits is the charge:
-      // it returns empty when the balance is no longer enough, and it does
-      // not take the money in that case. Handing over the scan anyway, and
-      // reporting cost, would bill the customer for a charge that never
-      // happened.
-      //
-      // The scan above has already run. The charge comes after it. The
-      // ledger can add credits back only by recording a purchase, which
-      // would say the customer bought money they did not buy. A scan that
-      // fails therefore costs nothing, and a charge that comes back empty
-      // is not delivered. A refused scan has still used the machine.
-      const debit = await deductCredits(
-        userId,
-        creditCheck.costCents,
-        `Codebase scan: ${body.path}`,
-        { graphId, shallow: body.shallow }
-      );
-      if (!debit) {
-        res.status(402).json({ error: 'Not enough credits for this scan.' });
-        return;
-      }
-      chargedCents = creditCheck.costCents;
-      cacheOwnerId = userId;
-    }
-
-    const topology = {
-      leafFirstOrder,
-      inDegree,
-      communities: (graph as any).communities ?? {},
-      graphJson: typeof graph.serialize === 'function' ? graph.serialize() : '{}',
-      durationMs: scanResult.stats.durationMs ?? 0,
-    };
-
-    graphStore.set(graphId, {
-      graph,
-      stats: scanResult.stats,
-      createdAt: new Date(),
-      path: body.path,
-      shallow: body.shallow,
-      ownerId: cacheOwnerId,
-      topology,
-      fileCount: scanResult.files?.length ?? 0,
-      userId: userUuid(req),
-    });
-
-    res.json({
-      graphId,
-      stats: scanResult.stats,
-      fileCount: scanResult.files?.length ?? 0,
-      cost: chargedCents,
-      cached: false,
-      topology
-    });
+    body = ScanRequestSchema.parse(req.body);
   } catch (error: any) {
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: 'Validation error', details: error.issues });
       return;
     }
+    throw error;
+  }
+  try {
+    const outcome = body.repoUrl ? await scanFromUrlOnce(req, body) : await scanPath(req, body);
+    res.status(outcome.status).json(outcome.json);
+  } catch (error: any) {
     console.error('[absorb/scan] Error:', error.message);
     res.status(500).json({ error: 'Scan failed', message: error.message });
   }
 });
+
+/** URL import, at most once per (account, importId). */
+async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcome> {
+  const account = userUuid(req);
+  const key = account && body.importId ? `${account}:${body.importId}` : null;
+  if (!key) return scanFromUrl(req, body);
+
+  const now = Date.now();
+  for (const [k, v] of importResults) if (now - v.at > IMPORT_TTL_MS) importResults.delete(k);
+  const done = importResults.get(key);
+  if (done) return { status: done.outcome.status, json: { ...done.outcome.json, cost: 0, replayed: true } };
+  const running = importsInFlight.get(key);
+  if (running) {
+    const o = await running;
+    return { status: o.status, json: { ...o.json, cost: 0, replayed: true } };
+  }
+  const p = scanFromUrl(req, body);
+  importsInFlight.set(key, p);
+  try {
+    const o = await p;
+    // Only a delivered (charged or free) scan is remembered; a failure can be retried.
+    if (o.status === 200) importResults.set(key, { at: Date.now(), outcome: o });
+    return o;
+  } finally {
+    importsInFlight.delete(key);
+  }
+}
+
+async function scanFromUrl(req: Request, body: ScanBody): Promise<ScanOutcome> {
+  let repo;
+  try {
+    repo = await cloneRepo(body.repoUrl, body.branch);
+  } catch (err) {
+    if (err instanceof CloneRefusal) {
+      const status =
+        err.code === 'repo_url_not_allowed' || err.code === 'branch_not_allowed'
+          ? 400
+          : err.code === 'clone_too_large'
+            ? 413
+            : err.code === 'clone_timeout'
+              ? 504
+              : 502;
+      console.error(`[absorb/scan] clone refused (${err.code}): ${err.message}`);
+      return { status, json: { error: err.code, message: err.message } };
+    }
+    throw err;
+  }
+  try {
+    // The clone dir is ours (made just now under absorb's clone root), so the
+    // caller-path root check does not apply. The URL is the cache identity.
+    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}`);
+  } finally {
+    await repo.cleanup();
+  }
+}
+
+async function scanPath(req: Request, body: ScanBody): Promise<ScanOutcome> {
+  const scanRoot = body.path as string;
+  // The scan root must sit inside the folders this server may scan; before
+  // 2026-10-04 any authenticated caller could map any server directory here.
+  const { absorbRootRefusal } = await loadEngine();
+  const rootRefusal = absorbRootRefusal(scanRoot);
+  if (rootRefusal) {
+    return { status: 403, json: { error: 'path_not_allowed', message: rootRefusal } };
+  }
+  return scanAndCharge(req, body, scanRoot, scanRoot);
+}
+
+async function scanAndCharge(
+  req: Request,
+  body: ScanBody,
+  rootDir: string,
+  cacheKey: string
+): Promise<ScanOutcome> {
+  const shallow = body.shallow;
+  // A saved scan is reused only for the account that paid for it.
+  // The id is the same one the charge uses (a user uuid). Matching on
+  // the folder alone handed that scan to anyone, free, for 5 minutes,
+  // including someone who had just been refused.
+  //
+  // Someone with no account id is not charged, and their scan is not
+  // saved for reuse. A paid scan is never given to them.
+  const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  const now = new Date();
+  const callerId = userUuid(req);
+  if (callerId) {
+    for (const [id, entry] of graphStore.entries()) {
+      if (entry.ownerId === callerId && entry.path === cacheKey && entry.shallow === shallow) {
+        if (now.getTime() - entry.createdAt.getTime() < CACHE_TTL_MS) {
+          return {
+            status: 200,
+            json: {
+              graphId: id,
+              stats: entry.stats,
+              fileCount: entry.fileCount,
+              cost: 0, // Already paid by this caller. Not charged again.
+              cached: true,
+              topology: entry.topology,
+            },
+          };
+        }
+      }
+    }
+  }
+
+  // Lazy import to avoid loading heavy modules at startup
+  const engineModule = await loadEngine();
+  const { CodebaseScanner, CodebaseGraph } = (engineModule as any).default || engineModule;
+
+  // @ts-ignore - Automatic remediation for TS18046
+  const scanner = new CodebaseScanner();
+  const scanResult = await scanner.scan({
+    rootDir,
+    languages: body.languages as any,
+    shallow,
+  });
+
+  // @ts-ignore - Automatic remediation for TS18046
+  const graph = new CodebaseGraph();
+  graph.buildFromScanResult(scanResult);
+
+  const graphId = uuidv4();
+
+  // Build in-degree map for topological intelligence
+  const inDegree: Record<string, number> = {};
+  const filesList = scanResult.files || [];
+  for (const file of filesList) {
+    if (!(file.path in inDegree)) inDegree[file.path] = 0;
+    for (const imp of file.imports || []) {
+      if (imp.resolvedPath) {
+        inDegree[imp.resolvedPath] = (inDegree[imp.resolvedPath] ?? 0) + 1;
+      }
+    }
+  }
+
+  // Leaf-first order: sort files by in-degree ascending (safest to fix first)
+  const leafFirstOrder = filesList
+    .map((f: any) => f.path)
+    .sort((a: string, b: string) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
+
+  // Deduct credits if authenticated.
+  //
+  // Two faults lived here until 2026-09-21. The userId fell back to the
+  // literal 'anonymous', which entry-lookup.ts defines as the id every
+  // UNAUTHENTICATED caller carries — so an authenticated caller with no id
+  // spent from, and was billed against, the bucket that belongs to nobody.
+  // And the charge is gated on body.projectId while the response below
+  // reported `cost: 10` or `cost: 50` unconditionally, so a scan with no
+  // projectId told the client it had been billed when nothing was taken.
+  let chargedCents = 0;
+  // Set only after the charge lands, so a refused scan is not saved
+  // for a free replay, and an unpaid scan is not saved under an account.
+  let cacheOwnerId: string | null = null;
+  // userUuid(), not a truthiness test. middleware/auth.ts sets
+  // userId = `orchestrator:${key}` for an orchestrator caller: authenticated,
+  // truthy, and not a uuid. It would flow into requireCredits -> checkBalance
+  // -> getOrCreateAccount, which queries a uuid column and throws, 500-ing an
+  // orchestrator scan. This guard is new in this change and chose the weaker
+  // predicate when the right one was already imported.
+  const scanUserId = userUuid(req);
+  if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
+    const creditsModule = await loadCredits();
+    const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
+    const userId = scanUserId;
+    const opType = shallow ? 'absorb_shallow' : 'absorb_deep';
+    
+    // @ts-ignore - Automatic remediation for TS18046
+    const creditCheck = await requireCredits(userId, opType);
+    // @ts-ignore - Automatic remediation for TS18046
+    if (isCreditError(creditCheck)) {
+      return { status: 402, json: creditCheck as Record<string, unknown> };
+    }
+    
+    // requireCredits only looks. Two scans can both be told the balance
+    // covers them before either charge lands. deductCredits is the charge:
+    // it returns empty when the balance is no longer enough, and it does
+    // not take the money in that case. Handing over the scan anyway, and
+    // reporting cost, would bill the customer for a charge that never
+    // happened.
+    //
+    // The scan above has already run. The charge comes after it. The
+    // ledger can add credits back only by recording a purchase, which
+    // would say the customer bought money they did not buy. A scan that
+    // fails therefore costs nothing, and a charge that comes back empty
+    // is not delivered. A refused scan has still used the machine.
+    const debit = await deductCredits(
+      userId,
+      creditCheck.costCents,
+      `Codebase scan: ${cacheKey}`,
+      { graphId, shallow, importId: body.importId ?? null }
+    );
+    if (!debit) {
+      return { status: 402, json: { error: 'Not enough credits for this scan.' } };
+    }
+    chargedCents = creditCheck.costCents;
+    cacheOwnerId = userId;
+  }
+
+  const topology = {
+    leafFirstOrder,
+    inDegree,
+    communities: (graph as any).communities ?? {},
+    graphJson: typeof graph.serialize === 'function' ? graph.serialize() : '{}',
+    durationMs: scanResult.stats.durationMs ?? 0,
+  };
+
+  graphStore.set(graphId, {
+    graph,
+    stats: scanResult.stats,
+    createdAt: new Date(),
+    path: cacheKey,
+    shallow,
+    ownerId: cacheOwnerId,
+    topology,
+    fileCount: scanResult.files?.length ?? 0,
+    userId: userUuid(req),
+  });
+
+  return {
+    status: 200,
+    json: {
+    graphId,
+    stats: scanResult.stats,
+    fileCount: scanResult.files?.length ?? 0,
+    cost: chargedCents,
+    cached: false,
+    topology,
+    },
+  };
+
+}
 
 // POST /query — GraphRAG query
 router.post('/query', async (req: Request, res: Response) => {

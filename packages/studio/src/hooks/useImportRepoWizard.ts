@@ -216,8 +216,12 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
       const absorbRes = await fetch('/api/daemon/absorb', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // absorb clones the repo itself from the workspace's URL (it cannot
+        // see Studio's clone). One importId per attempt: a retried request
+        // with the same id is not charged twice.
         body: JSON.stringify({
-          projectPath: cloneResult.localPath,
+          workspaceId: wsId,
+          importId: crypto.randomUUID(),
           depth: 'medium',
         }),
       });
