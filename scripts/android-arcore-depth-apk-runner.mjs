@@ -4,6 +4,10 @@
  *
  * Generated Android projects and receipts live under .scratch. The tracked
  * template proves exactly which native APIs the workflow exercises.
+ *
+ * pull-sweep turns a phone room sweep (full-res JPEGs + sweep/manifest.json
+ * written by the probe APK) into a HoloMap manifest, replay fingerprint, and
+ * point count via createArCoreDepthMobileSensorBundle/replayMobileSensorBundle.
  */
 
 import { createHash } from 'node:crypto';
@@ -21,14 +25,19 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';
 export const FRAME_RECEIPT_VERSION = 'holomap-android-arcore-depth-frame/v1';
 export const REPLAY_RECEIPT_VERSION = 'holomap-android-arcore-depth-replay/v1';
+export const SWEEP_MANIFEST_VERSION = 'holomap-arcore-hq-sweep/v1';
+export const SWEEP_REPLAY_RECEIPT_VERSION = 'holomap-android-arcore-sweep-replay/v1';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, '..');
 const TEMPLATE_DIR = join(__dirname, 'android-arcore-depth-probe-template');
 const DEFAULT_DATE = new Date().toISOString().slice(0, 10);
+/** MainActivity writes sweeps to getExternalFilesDir(null): sweep/ is the latest, sweep_<epochMs>/ are archives. */
+const DEVICE_APP_ID = 'com.holoscript.depthprobe';
+const DEVICE_FILES_DIR = `/storage/emulated/0/Android/data/${DEVICE_APP_ID}/files`;
 
 function parseArgs(argv) {
   const args = {
@@ -43,13 +52,20 @@ function parseArgs(argv) {
     androidHome: undefined,
     waitSec: 10,
     json: false,
+    deviceDir: DEVICE_FILES_DIR,
+    sweepDir: undefined,
+    serial: undefined,
+    rgbWidth: 320,
+    tileGrid: 8,
+    maxFrames: 0,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--') continue;
-    if (['generate', 'run', 'replay', 'self-test', 'help'].includes(arg)) args.command = arg;
-    else if (arg === '--self-test') args.command = 'self-test';
+    if (['generate', 'run', 'replay', 'pull-sweep', 'self-test', 'help'].includes(arg)) {
+      args.command = arg;
+    } else if (arg === '--self-test') args.command = 'self-test';
     else if (arg === '--project') args.project = argv[++i];
     else if (arg === '--receipt') args.receipt = argv[++i];
     else if (arg === '--out') args.out = argv[++i];
@@ -59,6 +75,12 @@ function parseArgs(argv) {
     else if (arg === '--java-home') args.javaHome = argv[++i];
     else if (arg === '--android-home') args.androidHome = argv[++i];
     else if (arg === '--wait-sec') args.waitSec = Number.parseFloat(argv[++i]);
+    else if (arg === '--device-dir') args.deviceDir = argv[++i];
+    else if (arg === '--sweep-dir') args.sweepDir = argv[++i];
+    else if (arg === '--serial') args.serial = argv[++i];
+    else if (arg === '--rgb-width') args.rgbWidth = Number.parseInt(argv[++i], 10);
+    else if (arg === '--tile-grid') args.tileGrid = Number.parseInt(argv[++i], 10);
+    else if (arg === '--max-frames') args.maxFrames = Number.parseInt(argv[++i], 10);
     else if (arg === '--json') args.json = true;
     else if (arg === '-h' || arg === '--help') args.command = 'help';
     else throw new Error(`Unknown argument: ${arg}`);
@@ -73,6 +95,8 @@ Usage:
   node scripts/android-arcore-depth-apk-runner.mjs generate [--project .scratch/android-arcore-depth-apk]
   node scripts/android-arcore-depth-apk-runner.mjs run [--wait-sec 10] [--json]
   node scripts/android-arcore-depth-apk-runner.mjs replay --receipt path.json [--out replay.json]
+  node scripts/android-arcore-depth-apk-runner.mjs pull-sweep [--serial R5CW20QRNMK] [--rgb-width 320]
+      [--tile-grid 8] [--max-frames 0] [--sweep-dir local/dir] [--out receipt.json]
   node scripts/android-arcore-depth-apk-runner.mjs --self-test
 
 Defaults expect scratch toolchain paths:
@@ -81,6 +105,14 @@ Defaults expect scratch toolchain paths:
   .scratch/android-native-toolchain/gradle/gradle-9.5.1/bin/gradle.bat
 
 The APK writes a native frame receipt from Frame.acquireDepthImage16Bits().
+
+pull-sweep pulls the newest on-device room sweep (${DEVICE_FILES_DIR}/sweep,
+archives sweep_<epochMs>), decodes the full-res JPEGs to --rgb-width RGB via the
+workspace sharp dependency, converts manifest+frames into ARCore mobile sensor
+bundle input, and replays it through HoloMap into a receipt under .scratch/.
+--sweep-dir skips the device and converts an already-pulled local sweep. adb is
+resolved from --adb, the scratch android-sdk, .scratch/android-platform-tools,
+then PATH.
 `);
 }
 
@@ -333,6 +365,403 @@ function pullReceipt(adb, outPath) {
   return outPath;
 }
 
+export function validateSweepManifest(manifest) {
+  const errors = [];
+  if (!manifest || typeof manifest !== 'object') return ['manifest must be an object'];
+  if (manifest.schemaVersion !== SWEEP_MANIFEST_VERSION) errors.push('schemaVersion mismatch');
+  if (!['pass', 'blocked'].includes(manifest.status)) errors.push('status must be pass or blocked');
+  if (manifest.status === 'blocked' && !manifest.blockedReason) {
+    errors.push('blocked manifest missing blockedReason');
+  }
+  if (manifest.status === 'pass') {
+    const intrinsics = manifest.intrinsics;
+    for (const key of ['imageWidth', 'imageHeight', 'fx', 'fy', 'cx', 'cy']) {
+      if (!Number.isFinite(intrinsics?.[key]) || intrinsics[key] <= 0) {
+        errors.push(`intrinsics.${key} must be positive finite`);
+      }
+    }
+    if (!Array.isArray(manifest.frames) || manifest.frames.length === 0) {
+      errors.push('frames missing');
+    } else {
+      if (manifest.frameCount !== manifest.frames.length) {
+        errors.push('frameCount does not match frames length');
+      }
+      manifest.frames.forEach((frame, i) => {
+        const prefix = `frames[${i}]`;
+        if (!Number.isInteger(frame?.index) || frame.index < 0) {
+          errors.push(`${prefix}.index invalid`);
+        }
+        if (!Number.isFinite(frame?.timestampNs)) errors.push(`${prefix}.timestampNs invalid`);
+        if (
+          typeof frame?.jpeg !== 'string' ||
+          frame.jpeg.length === 0 ||
+          frame.jpeg.includes('..') ||
+          frame.jpeg.includes(':') ||
+          frame.jpeg.startsWith('/') ||
+          frame.jpeg.startsWith('\\')
+        ) {
+          errors.push(`${prefix}.jpeg must be a sweep-relative path`);
+        }
+        if (
+          !Number.isInteger(frame?.depthWidth) ||
+          frame.depthWidth <= 0 ||
+          !Number.isInteger(frame?.depthHeight) ||
+          frame.depthHeight <= 0
+        ) {
+          errors.push(`${prefix}.depth dimensions invalid`);
+        } else if (
+          !Array.isArray(frame?.depthMillimeters) ||
+          frame.depthMillimeters.length !== frame.depthWidth * frame.depthHeight
+        ) {
+          errors.push(`${prefix}.depthMillimeters length invalid`);
+        }
+        if (
+          !Array.isArray(frame?.cameraTransformColumnMajor4x4) ||
+          frame.cameraTransformColumnMajor4x4.length !== 16
+        ) {
+          errors.push(`${prefix}.cameraTransformColumnMajor4x4 invalid`);
+        }
+      });
+    }
+  }
+  return errors;
+}
+
+/**
+ * Pure converter: sweep manifest entries + already-decoded RGB planes into the
+ * ArCoreDepthMobileSensorBundleInput shape createArCoreDepthMobileSensorBundle
+ * expects. decodedFrames[i] = { width, height, rgb } aligned with the first
+ * maxFrames (or all) manifest frames; JPEG decode stays in convertSweepDir.
+ */
+export function sweepManifestToArCoreBundleInput(manifest, decodedFrames, options = {}) {
+  const errors = validateSweepManifest(manifest);
+  if (errors.length > 0) throw new Error(`Invalid ARCore sweep manifest: ${errors.join('; ')}`);
+  if (manifest.status !== 'pass') {
+    throw new Error(`Cannot convert blocked sweep: ${manifest.blockedReason}`);
+  }
+  const maxFrames = options.maxFrames ?? 0;
+  const used = maxFrames > 0 ? manifest.frames.slice(0, maxFrames) : manifest.frames;
+  if (!Array.isArray(decodedFrames) || decodedFrames.length !== used.length) {
+    throw new Error(`decodedFrames length must be ${used.length}`);
+  }
+  const first = decodedFrames[0];
+  decodedFrames.forEach((decoded, i) => {
+    if (
+      !Number.isInteger(decoded?.width) ||
+      decoded.width <= 0 ||
+      !Number.isInteger(decoded?.height) ||
+      decoded.height <= 0
+    ) {
+      throw new Error(`decodedFrames[${i}] dimensions invalid`);
+    }
+    if (decoded.width !== first.width || decoded.height !== first.height) {
+      throw new Error(`decodedFrames[${i}] resolution differs from decodedFrames[0]`);
+    }
+    if ((decoded.rgb?.length ?? 0) !== decoded.width * decoded.height * 3) {
+      throw new Error(
+        `decodedFrames[${i}].rgb length must be ${decoded.width * decoded.height * 3}`
+      );
+    }
+  });
+  const sx = first.width / manifest.intrinsics.imageWidth;
+  const sy = first.height / manifest.intrinsics.imageHeight;
+  return {
+    bundleId:
+      'arcore-hq-sweep-' +
+      createHash('sha256')
+        .update(
+          JSON.stringify({
+            deviceModel: manifest.deviceModel,
+            frames: used.map((frame) => [frame.index, frame.timestampNs]),
+          })
+        )
+        .digest('hex')
+        .slice(0, 12),
+    deviceModel: manifest.deviceModel,
+    intrinsics: {
+      width: first.width,
+      height: first.height,
+      fx: manifest.intrinsics.fx * sx,
+      fy: manifest.intrinsics.fy * sy,
+      cx: manifest.intrinsics.cx * sx,
+      cy: manifest.intrinsics.cy * sy,
+      source: 'arcore-camera-image-intrinsics-scaled-to-sweep-rgb',
+    },
+    frames: used.map((frame, i) => ({
+      index: frame.index,
+      timestampMs: frame.timestampNs / 1_000_000,
+      width: first.width,
+      height: first.height,
+      stride: 3,
+      rgb: decodedFrames[i].rgb,
+      depthImage16Bits: {
+        width: frame.depthWidth,
+        height: frame.depthHeight,
+        millimeters: frame.depthMillimeters,
+      },
+      cameraTransformColumnMajor4x4: frame.cameraTransformColumnMajor4x4,
+    })),
+  };
+}
+
+/**
+ * Decode a pulled sweep dir (manifest.json + frames/*.jpg) into bundle input.
+ * JPEGs are downsampled to rgbWidth (aspect kept from the sweep intrinsics) so
+ * a 120-frame full-res sweep stays memory-bounded; hashes keep the receipt
+ * anchored to the exact bytes without embedding them.
+ */
+export async function convertSweepDir(sweepDir, options = {}) {
+  const rgbWidth = options.rgbWidth ?? 320;
+  const maxFrames = options.maxFrames ?? 0;
+  const manifestPath = join(sweepDir, 'manifest.json');
+  requireFile(manifestPath, 'Sweep manifest');
+  const manifestText = readFileSync(manifestPath, 'utf8').replace(/^\uFEFF/, '');
+  const manifest = JSON.parse(manifestText);
+  const errors = validateSweepManifest(manifest);
+  if (errors.length > 0) throw new Error(`Invalid ARCore sweep manifest: ${errors.join('; ')}`);
+  if (manifest.status !== 'pass') {
+    throw new Error(`Cannot convert blocked sweep: ${manifest.blockedReason}`);
+  }
+
+  let sharp;
+  try {
+    sharp = (await import('sharp')).default;
+  } catch (error) {
+    throw new Error(
+      `pull-sweep needs the workspace sharp dependency for JPEG decode (${error.message})`
+    );
+  }
+
+  const used = maxFrames > 0 ? manifest.frames.slice(0, maxFrames) : manifest.frames;
+  const targetWidth = Math.max(2, Math.round(rgbWidth));
+  const targetHeight = Math.max(
+    2,
+    Math.round((targetWidth * manifest.intrinsics.imageHeight) / manifest.intrinsics.imageWidth)
+  );
+  const decodedFrames = [];
+  const frameJpegSha256 = [];
+  for (const frame of used) {
+    const jpegPath = join(sweepDir, frame.jpeg);
+    requireFile(jpegPath, `Sweep frame ${frame.index} jpeg`);
+    const bytes = readFileSync(jpegPath);
+    const { data, info } = await sharp(bytes)
+      .resize(targetWidth, targetHeight, { fit: 'fill' })
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    if (info.channels !== 3) {
+      throw new Error(`Sweep frame ${frame.index}: expected 3 raw channels, got ${info.channels}`);
+    }
+    decodedFrames.push({
+      width: info.width,
+      height: info.height,
+      rgb: new Uint8Array(data.buffer, data.byteOffset, data.length),
+    });
+    frameJpegSha256.push({
+      jpeg: frame.jpeg,
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+    });
+  }
+
+  return {
+    manifest,
+    manifestSha256: createHash('sha256').update(manifestText).digest('hex'),
+    usedFrames: used,
+    bundleInput: sweepManifestToArCoreBundleInput(manifest, decodedFrames, { maxFrames }),
+    frameJpegSha256,
+    rgb: { width: targetWidth, height: targetHeight },
+  };
+}
+
+function resolveAdbForPull(args) {
+  if (args.adb) {
+    const explicit = abs(args.adb);
+    requireFile(explicit, 'ADB');
+    return explicit;
+  }
+  const exe = process.platform === 'win32' ? 'adb.exe' : 'adb';
+  const candidates = [
+    join(defaultToolchain(args).androidHome, 'platform-tools', exe),
+    abs(join('.scratch', 'android-platform-tools', 'extracted', 'platform-tools', exe)),
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+  }
+  return exe;
+}
+
+function adbSerialArgs(serial) {
+  return serial ? ['-s', serial] : [];
+}
+
+function listDeviceSweeps(adb, serial, deviceDir) {
+  const root = runCommand(adb, [...adbSerialArgs(serial), 'shell', 'ls', '-1', deviceDir], {
+    timeoutMs: 20000,
+  });
+  if (!root.ok) throw new Error(`adb ls ${deviceDir} failed:\n${commandFailure(root)}`);
+  const names = root.stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((name) => /^sweep(_\d+)?$/.test(name));
+  const candidates = names.map((name) => {
+    const dir = `${deviceDir}/${name}`;
+    const entries = runCommand(adb, [...adbSerialArgs(serial), 'shell', 'ls', '-1', dir], {
+      timeoutMs: 20000,
+    });
+    const listing = entries.ok ? entries.stdout.split(/\r?\n/).map((line) => line.trim()) : [];
+    const hasManifest = listing.includes('manifest.json');
+    let frameCount = 0;
+    if (listing.includes('frames')) {
+      const frames = runCommand(
+        adb,
+        [...adbSerialArgs(serial), 'shell', 'ls', '-1', `${dir}/frames`],
+        { timeoutMs: 20000 }
+      );
+      if (frames.ok) {
+        frameCount = frames.stdout
+          .split(/\r?\n/)
+          .filter((line) => line.trim().endsWith('.jpg')).length;
+      }
+    }
+    return {
+      name,
+      hasManifest,
+      frameCount,
+      // MainActivity archives prior sweeps as sweep_<epochMs>; bare `sweep` is always the latest.
+      newness: name === 'sweep' ? Number.POSITIVE_INFINITY : Number.parseInt(name.slice(6), 10),
+    };
+  });
+  const best = candidates
+    .filter((candidate) => candidate.hasManifest && candidate.frameCount > 0)
+    .sort((a, b) => b.newness - a.newness)[0];
+  const blockedReason = best
+    ? undefined
+    : 'no-usable-sweep: ' +
+      (candidates.length === 0
+        ? 'no sweep directories on device'
+        : candidates
+            .map(
+              (candidate) =>
+                `${candidate.name}(frames=${candidate.frameCount},manifest=${candidate.hasManifest ? 'present' : 'missing'})`
+            )
+            .join(', '));
+  return {
+    candidates: candidates.map(({ newness: _newness, ...rest }) => rest),
+    best,
+    blockedReason,
+  };
+}
+
+function pullDeviceDir(adb, serial, remoteDir, localDir) {
+  rmSync(localDir, { recursive: true, force: true });
+  mkdirSync(dirname(localDir), { recursive: true });
+  const result = runCommand(adb, [...adbSerialArgs(serial), 'pull', remoteDir, localDir], {
+    timeoutMs: 600000,
+    maxBuffer: 1024 * 1024 * 64,
+  });
+  if (!result.ok) throw new Error(`adb pull ${remoteDir} failed:\n${commandFailure(result)}`);
+  requireFile(join(localDir, 'manifest.json'), 'Pulled sweep manifest');
+  return localDir;
+}
+
+async function runPullSweep(args) {
+  const dateDir = abs(join('.scratch', 'android-arcore-depth', args.date));
+  const outPath = args.out ? abs(args.out) : join(dateDir, 'sweep-holomap-replay.json');
+  let sweepDir;
+  let device;
+  if (args.sweepDir) {
+    sweepDir = abs(args.sweepDir);
+  } else {
+    const adb = resolveAdbForPull(args);
+    const listing = listDeviceSweeps(adb, args.serial, args.deviceDir);
+    device = {
+      serial: args.serial,
+      filesDir: args.deviceDir,
+      candidates: listing.candidates,
+    };
+    if (!listing.best) {
+      const receipt = {
+        schemaVersion: SWEEP_REPLAY_RECEIPT_VERSION,
+        status: 'blocked',
+        blockedReason: listing.blockedReason,
+        device,
+        honestScope:
+          'The device has no sweep directory containing both frames/*.jpg and manifest.json; nothing was converted or replayed.',
+      };
+      mkdirSync(dirname(outPath), { recursive: true });
+      writeFileSync(outPath, `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+      return { ok: false, blockedReason: listing.blockedReason, receiptPath: outPath, device };
+    }
+    device.pulled = listing.best.name;
+    sweepDir = pullDeviceDir(
+      adb,
+      args.serial,
+      `${args.deviceDir}/${listing.best.name}`,
+      join(dateDir, listing.best.name)
+    );
+  }
+
+  const conversion = await convertSweepDir(sweepDir, {
+    rgbWidth: args.rgbWidth,
+    maxFrames: args.maxFrames,
+  });
+  const {
+    createArCoreDepthMobileSensorBundle,
+    replayMobileSensorBundle,
+    validateMobileSensorBundle,
+  } = await import('../packages/core/dist/reconstruction/index.js');
+  const bundle = createArCoreDepthMobileSensorBundle(conversion.bundleInput);
+  const bundleErrors = validateMobileSensorBundle(bundle);
+  if (bundleErrors.length > 0) {
+    throw new Error(`Generated invalid mobile sensor bundle: ${bundleErrors.join('; ')}`);
+  }
+  const replay = await replayMobileSensorBundle(bundle, { tileGrid: args.tileGrid });
+  const manifest = conversion.manifest;
+  const receipt = {
+    schemaVersion: SWEEP_REPLAY_RECEIPT_VERSION,
+    status: 'pass',
+    sourceSweep: rel(sweepDir),
+    device,
+    sweep: {
+      schemaVersion: manifest.schemaVersion,
+      deviceModel: manifest.deviceModel,
+      manifestSha256: conversion.manifestSha256,
+      manifestFrameCount: manifest.frameCount,
+      usedFrameCount: conversion.usedFrames.length,
+      pathLengthM: manifest.pathLengthM,
+      durationMs: manifest.durationMs,
+      cameraImage: manifest.cameraImage,
+    },
+    conversion: {
+      rgb: { ...conversion.rgb, decoder: 'sharp-jpeg-raw' },
+      depth: {
+        width: conversion.usedFrames[0].depthWidth,
+        height: conversion.usedFrames[0].depthHeight,
+      },
+      tileGrid: args.tileGrid,
+      frameJpegSha256: conversion.frameJpegSha256,
+    },
+    bundle: {
+      bundleId: bundle.bundleId,
+      platform: bundle.capture.platform,
+      intrinsics: bundle.capture.intrinsics,
+      frameCount: bundle.frames.length,
+    },
+    replay: {
+      source: replay.source,
+      stepCount: replay.steps.length,
+      pointCount: replay.manifest.pointCount,
+      frameCount: replay.manifest.frameCount,
+      replayFingerprint: replay.manifest.simulationContract.replayFingerprint,
+      videoHash: replay.manifest.videoHash,
+    },
+    honestScope: `Converts a posed multi-frame ARCore room sweep (full-res JPEGs downsampled to ${conversion.rgb.width}x${conversion.rgb.height} RGB + per-frame 16-bit depth and pose) into HoloMap mobile sensor ingest and replays it deterministically. JPEG bytes are referenced by sha256, not embedded; this is pose-anchored depth splatting, not 3DGS training.`,
+  };
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, `${JSON.stringify(receipt, null, 2)}\n`, 'utf8');
+  return { ok: true, receiptPath: outPath, sweepDir, replay: receipt.replay };
+}
+
 async function runHardware(args) {
   const toolchain = defaultToolchain(args);
   requireFile(toolchain.gradle, 'Gradle');
@@ -395,7 +824,8 @@ function runSelfTest() {
     'utf8'
   );
   const gradle = readFileSync(join(TEMPLATE_DIR, 'app', 'build.gradle'), 'utf8');
-  if (!main.includes('Frame.acquireDepthImage16Bits()'))
+  // v3 sweep template invokes the API on a Frame instance: frame.acquireDepthImage16Bits()
+  if (!main.includes('acquireDepthImage16Bits()'))
     throw new Error('template missing depth frame API');
   if (!main.includes('Config.DepthMode.AUTOMATIC'))
     throw new Error('template missing depth mode config');
@@ -405,6 +835,10 @@ function runSelfTest() {
     throw new Error('template missing camera permission');
   if (!gradle.includes('com.google.ar:core:1.54.0'))
     throw new Error('template missing ARCore dependency');
+  if (!main.includes(SWEEP_MANIFEST_VERSION))
+    throw new Error('template missing sweep manifest schema');
+  if (!main.includes('getExternalFilesDir'))
+    throw new Error('template missing external sweep dir (pull-sweep source path)');
 
   const fixture = {
     schemaVersion: FRAME_RECEIPT_VERSION,
@@ -436,6 +870,55 @@ function runSelfTest() {
   if (!validateFrameReceipt(overclaim).includes('sample depth length invalid')) {
     throw new Error('invalid depth length was not rejected');
   }
+
+  const sweepFixture = {
+    schemaVersion: SWEEP_MANIFEST_VERSION,
+    status: 'pass',
+    deviceModel: 'SM-S918U',
+    frameCount: 2,
+    durationMs: 700,
+    pathLengthM: 0.24,
+    cameraImage: { width: 8, height: 4, format: 'jpeg' },
+    intrinsics: { imageWidth: 8, imageHeight: 4, fx: 8, fy: 4, cx: 4, cy: 2 },
+    frames: [0, 1].map((i) => ({
+      index: i,
+      timestampNs: 5_000_000 + i * 1_000_000,
+      jpeg: `frames/frame_00${i}.jpg`,
+      depthCoverage: 0.8,
+      sharpness: 400,
+      cameraTransformColumnMajor4x4: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0.2 * i, 0, 0, 1],
+      depthWidth: 2,
+      depthHeight: 2,
+      depthMillimeters: [600 + i, 900, 1200, 0],
+    })),
+  };
+  if (validateSweepManifest(sweepFixture).length > 0) {
+    throw new Error('sweep fixture failed validation');
+  }
+  const sweepDecoded = sweepFixture.frames.map(() => ({
+    width: 4,
+    height: 2,
+    rgb: new Uint8Array(4 * 2 * 3).fill(7),
+  }));
+  const sweepBundleInput = sweepManifestToArCoreBundleInput(sweepFixture, sweepDecoded);
+  if (sweepBundleInput.frames[1].depthImage16Bits.millimeters[0] !== 601) {
+    throw new Error('sweep depth millimeters were not preserved');
+  }
+  if (sweepBundleInput.intrinsics.fx !== 4 || sweepBundleInput.intrinsics.cy !== 1) {
+    throw new Error('sweep intrinsics were not scaled to the decoded rgb frame');
+  }
+  if (sweepBundleInput.frames[0].timestampMs !== 5) {
+    throw new Error('sweep timestamps were not converted to milliseconds');
+  }
+  const sweepOverclaim = {
+    ...sweepFixture,
+    frames: [{ ...sweepFixture.frames[0], depthMillimeters: [600] }, sweepFixture.frames[1]],
+  };
+  if (
+    !validateSweepManifest(sweepOverclaim).includes('frames[0].depthMillimeters length invalid')
+  ) {
+    throw new Error('invalid sweep depth length was not rejected');
+  }
   return { ok: true, version: VERSION };
 }
 
@@ -465,6 +948,20 @@ async function main() {
     const result = await replayFrameReceipt(abs(args.receipt), abs(out));
     process.stdout.write(
       `${JSON.stringify({ ok: true, out: rel(result.out), replay: result.receipt.replay }, null, 2)}\n`
+    );
+    return;
+  }
+  if (args.command === 'pull-sweep') {
+    const result = await runPullSweep(args);
+    if (!result.ok) {
+      process.stdout.write(
+        `${JSON.stringify({ ok: false, status: 'blocked', blockedReason: result.blockedReason, receipt: rel(result.receiptPath), device: result.device }, null, 2)}\n`
+      );
+      process.exitCode = 1;
+      return;
+    }
+    process.stdout.write(
+      `${JSON.stringify({ ok: true, receipt: rel(result.receiptPath), sweep: rel(result.sweepDir), replay: result.replay }, null, 2)}\n`
     );
     return;
   }
