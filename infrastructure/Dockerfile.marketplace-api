@@ -44,6 +44,12 @@ COPY packages/crdt/ packages/crdt/
 COPY packages/agent-protocol/ packages/agent-protocol/
 COPY packages/config/ packages/config/
 COPY packages/core/ packages/core/
+# core's dist imports @holoscript/meaning (declared workspace dep, external in the
+# Docker bundle) and resolves @holoscript/wasm/node (packages/compiler-wasm) at runtime.
+# Omitting meaning crashed every start with ERR_MODULE_NOT_FOUND (93d7f11c, #598).
+# Same COPYs as Dockerfile.absorb-service / Dockerfile.mcp-server.
+COPY packages/meaning/ packages/meaning/
+COPY packages/compiler-wasm/ packages/compiler-wasm/
 COPY packages/engine/ packages/engine/
 COPY packages/framework/ packages/framework/
 COPY packages/llm-provider/ packages/llm-provider/
@@ -58,10 +64,18 @@ COPY packages/marketplace-api/ packages/marketplace-api/
 RUN chmod +x scripts/docker/build-engine-no-dts.sh scripts/docker/build-core-stack-no-dts.sh && ./scripts/docker/build-core-stack-no-dts.sh
 RUN cd packages/config && pnpm exec tsup --no-dts
 RUN cd packages/llm-provider && pnpm exec tsup --no-dts
+RUN cd packages/meaning && pnpm exec tsup --no-dts
 RUN cd packages/auth && pnpm exec tsup --no-dts
 RUN cd packages/registry && pnpm exec tsup --no-dts
 RUN cd packages/marketplace-agentkit && pnpm exec tsup --no-dts
 RUN cd packages/marketplace-api && pnpm exec tsup --no-dts
+# Fail the build (not the deploy) if core's runtime workspace closure is missing.
+RUN test -f packages/core/dist/index.js && \
+    test -f packages/meaning/dist/index.js && \
+    test -f packages/meaning/dist/index.cjs && \
+    test -f packages/compiler-wasm/pkg-node/holoscript_wasm.js && \
+    test -f packages/compiler-wasm/pkg-node/holoscript_wasm_bg.wasm && \
+    test -f packages/marketplace-api/dist/server.js
 
 # --- Production stage ---
 FROM node:20-alpine
@@ -80,6 +94,14 @@ RUN pnpm install --frozen-lockfile --ignore-scripts --prod=false --shamefully-ho
 
 COPY --from=builder --chown=nodejs:nodejs /app/packages packages
 COPY --chown=nodejs:nodejs tsconfig.json tsconfig.base.json ./
+# Link @holoscript/wasm where core/dist resolves it (pnpm's store doesn't), then
+# prove core's full ESM + CJS barrel loads from the API package in the runtime image.
+RUN mkdir -p /app/node_modules/@holoscript && \
+    ln -sfn /app/packages/compiler-wasm /app/node_modules/@holoscript/wasm && \
+    test -f /app/packages/core/node_modules/@holoscript/meaning/dist/index.js && \
+    cd /app/packages/marketplace-api && \
+    node --input-type=module -e "await import('@holoscript/core'); await import('@holoscript/meaning'); console.log('core runtime closure OK')" && \
+    node -e "require('@holoscript/core'); const {createRequire}=require('module'); const r=createRequire('/app/packages/core/dist/parser.js'); r(r.resolve(['@holoscript','wasm','node'].join('/'))); console.log('core cjs + wasm OK')"
 
 RUN chown nodejs:nodejs /app
 USER nodejs
