@@ -418,6 +418,41 @@ ${banner}
   }
 }
 
+// 4. The executable-hooks gate (task uakx), run as the hook runs it, in a scratch repo (review of
+//    #412 by session fc9486: deleting the gate left every pre-commit test green). A hook stored
+//    100644 is blocked and named, literally even when its name is not ASCII; a hook stored 100755
+//    passes; a file in a subfolder of .githooks is not a hook.
+{
+  const start = hook.indexOf('NONEXEC_HOOKS=$(');
+  const end = start >= 0 ? hook.indexOf('\nfi\n', start) : -1;
+  assertTrue(start >= 0 && end > start, 'pre-commit has the executable-hooks gate');
+  const gate = hook.slice(start, end + '\nfi\n'.length);
+  const root = mkdtempSync(join(tmpdir(), 'hooks-executable-'));
+  try {
+    git(root, ['init']);
+    git(root, ['config', 'core.quotepath', 'true']);
+    mkdirSync(join(root, '.githooks', 'lib'), { recursive: true });
+    const stage = (rel, mode) => {
+      writeFileSync(join(root, rel), '#!/bin/sh\nexit 0\n');
+      git(root, ['add', '--', rel]);
+      git(root, ['update-index', `--chmod=${mode}`, '--', rel]);
+    };
+    const run = () => spawnSync('bash', ['-c', `RED=''; NC=''\n${gate}`], { cwd: root, encoding: 'utf8' });
+    stage('.githooks/commit-msg', '+x');
+    stage('.githooks/lib/helper.sh', '-x');
+    let r = run();
+    assertEq(r.status, 0, 'executable-hooks gate passes a hook stored 100755 and ignores a file in a subfolder', `${r.stdout || ''}${r.stderr || ''}`);
+    stage('.githooks/pré-commit', '-x');
+    r = run();
+    const out = `${r.stdout || ''}${r.stderr || ''}`;
+    assertEq(r.status, 1, 'executable-hooks gate blocks a hook stored 100644');
+    assertTrue(withSlashes(out).includes('.githooks/pré-commit'), 'executable-hooks gate names that hook literally, non-ASCII included', out);
+    assertTrue(!out.includes('helper.sh'), 'executable-hooks gate does not name the file in the subfolder', out);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+}
+
 const testsPassed = testsRun - testsFailed - testsSkipped;
 if (testsFailed > 0) {
   console.error(`\n${testsPassed} passed, ${testsSkipped} skipped, ${testsFailed} failed (${testsRun} run)`);
