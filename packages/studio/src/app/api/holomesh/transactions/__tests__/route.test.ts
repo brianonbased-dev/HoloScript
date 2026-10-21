@@ -67,4 +67,28 @@ describe('GET /api/holomesh/transactions', () => {
     expect(body.transactions.map((t) => t.id)).toEqual(['mine']);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    ['unreachable', () => Promise.reject(new TypeError('fetch failed')), 503, 'holomesh_unavailable'],
+    ['timed out', () => Promise.reject(new DOMException('timeout', 'TimeoutError')), 504, 'holomesh_timeout'],
+  ])('SECURITY: upstream %s with the cache populated: %i, never the cache', async (_l, fail, status, code) => {
+    getDbMock.mockReturnValue(serverKeyCacheDb());
+    const fetchMock = vi.fn(fail);
+    vi.stubGlobal('fetch', fetchMock);
+    const { GET } = await import('../route');
+    const res = await GET(
+      new NextRequest('http://localhost/api/holomesh/transactions?limit=50', {
+        headers: { authorization: 'Bearer caller-own-key' },
+      })
+    );
+    expect(res.status).toBe(status);
+    const text = await res.text();
+    expect(text).not.toContain('server-key-cache-tx');
+    const body = JSON.parse(text) as { code: string; source?: string; transactions?: unknown };
+    expect(body.code).toBe(code);
+    expect(body.source).toBeUndefined();
+    expect(body.transactions).toBeUndefined();
+    expect(getDbMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
 });
