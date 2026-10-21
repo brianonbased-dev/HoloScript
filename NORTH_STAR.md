@@ -105,7 +105,7 @@ a question the substrate answers. Full doctrine + reasoning:
 5. **Simulation-first.** Digital twin before physical twin. Every feature.
 6. **Sovereign > bridge.** New capabilities go in sovereign compilers. When that path is not ready, an outside tool ships only as a labelled bridge (**Label the bridge** above).
 7. **Systems-language ratchet.** Never constrain the language to scenes, descriptions, or external-runtime wrappers; move semantics and execution into owned language/runtime layers.
-8. **Every change is a pull request.** All agents, all changes. Release merges after `release-gate/pass`; seats never merge.
+8. **Every change is a pull request.** All agents, all changes. A PR merges only through the gate: `release-gate/pass` plus a distinct second seat; seats never merge.
 9. **Stage explicitly.** `git add <file>`, never `git add -A` or `git add .`
 
 ## Key paths

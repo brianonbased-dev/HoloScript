@@ -6,11 +6,11 @@
 ## Git Workflow — PULL REQUESTS ONLY (read this first)
 
 **Every change goes through a pull request. `main` cannot be pushed to directly.** (F.089)
-`main` has a ruleset: a PR is required, Release's GitHub App posts the required
+`main` has a ruleset: a PR is required, the release-gate GitHub App posts the required
 status check `release-gate/pass`, and there is no bypass.
 
-- Seats (agents) never merge a PR, their own or anyone's. Merges go through
-  Release after a distinct second-seat review.
+- Seats (agents) never merge a PR, their own or anyone's. A PR merges only through
+  the gate: `release-gate/pass` plus a distinct second-seat review (not the author).
 - **Open-PR cap:** 5 or fewer open. While above it, open or reopen no PR.
 - **Explicit paths only:** `git add <file>` — NEVER `git add -A` or `.` (you will
   snatch peer in-flight files in the shared tree).
@@ -21,8 +21,8 @@ status check `release-gate/pass`, and there is no bypass.
 **CI is HoloCI, not GitHub Actions.** Validation runs on the vast.ai fleet via the
 mcp-orchestrator queue and reports through free GitHub commit statuses
 (`~/.ai-ecosystem/scripts/holo-ci/`; triggered by the pre-push hook, with
-`reconcile.mjs` as the scheduled floor). Nothing merges a PR except Release, after
-`release-gate/pass`. GitHub Actions is billing-locked and unused — do not add `.github/workflows/*`.
+`reconcile.mjs` as the scheduled floor). Nothing merges a PR except through the gate:
+`release-gate/pass` plus a distinct second seat. GitHub Actions is billing-locked and unused — do not add `.github/workflows/*`.
 
 ## What This Project Does
 
