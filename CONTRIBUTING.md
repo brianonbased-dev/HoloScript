@@ -432,9 +432,9 @@ The docs build (`pnpm docs:build`) will fail on dead links. Do not add placehold
 ## PR Policy
 
 Every change goes through a pull request, from internal agents and external
-contributors alike; `main` cannot be pushed to directly. Release's GitHub App
-posts the required status check `release-gate/pass`, and Release merges after a
-distinct second-seat review. Agents never merge their own or anyone's PRs, and
+contributors alike; `main` cannot be pushed to directly. A PR merges only
+through the gate: the release-gate GitHub App's required status check
+`release-gate/pass` plus a distinct second-seat review (not the author). Agents never merge their own or anyone's PRs, and
 no new PR is opened or reopened while more than 5 are open.
 
 For internal agents, `AGENTS.md` is authoritative: validate locally, stage

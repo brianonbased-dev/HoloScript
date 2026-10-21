@@ -66,7 +66,7 @@ git add packages/studio/
 git commit -m "feat: improve scene builder UI"
 git push origin HEAD:feat/scene-builder-ui
 
-# Railway automatically deploys once Release merges the PR
+# Railway automatically deploys once the PR merges through the gate (release-gate/pass + a distinct second seat)
 # ✅ Live in ~3-5 minutes
 ```
 
@@ -462,7 +462,7 @@ pnpm test
 git add package.json pnpm-lock.yaml
 git commit -m "chore: update dependencies"
 git push origin HEAD:chore/update-dependencies
-# Auto-deploys via Railway once Release merges the PR
+# Auto-deploys via Railway once the PR merges through the gate (release-gate/pass + a distinct second seat)
 ```
 
 ### Security Audit

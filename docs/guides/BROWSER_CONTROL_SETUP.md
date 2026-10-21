@@ -173,7 +173,7 @@ Once browser control is tested locally, deploy to Railway:
    git commit -m "Add browser control tools (launch, execute, screenshot)"
    ```
 
-2. Open a pull request (Railway auto-deploys once Release merges it)
+2. Open a pull request (Railway auto-deploys once it merges through the gate: `release-gate/pass` plus a distinct second seat)
 
    ```bash
    git push origin HEAD:browser-control-tools
