@@ -63,6 +63,33 @@ describe('absorb-client failure classification', () => {
     expect(mcpClearlyDidNotRun(r)).toBe(false);
   });
 
+  it('tool answered { error } with HTTP 200 -> tool_error (ran, not ok, no fallback)', async () => {
+    const r = await failWith(
+      async () =>
+        new Response(
+          JSON.stringify({ result: { content: [{ text: '{"error":"Absorb failed"}' }] } }),
+          { status: 200 }
+        )
+    );
+    expect(r.ok).toBe(false);
+    expect(r.failure).toBe('tool_error');
+    expect(r.error).toContain('Absorb failed');
+    expect(mcpClearlyDidNotRun(r)).toBe(false);
+  });
+
+  it('result.isError -> tool_error', async () => {
+    const r = await failWith(
+      async () =>
+        new Response(
+          JSON.stringify({ result: { isError: true, content: [{ text: 'boom' }] } }),
+          { status: 200 }
+        )
+    );
+    expect(r.ok).toBe(false);
+    expect(r.failure).toBe('tool_error');
+    expect(mcpClearlyDidNotRun(r)).toBe(false);
+  });
+
   it('success has no failure kind', async () => {
     vi.stubGlobal(
       'fetch',

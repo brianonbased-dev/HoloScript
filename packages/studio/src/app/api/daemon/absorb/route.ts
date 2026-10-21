@@ -116,14 +116,20 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  // The upstream text stays in the server log and the job record; the
+  // client gets a short reason, never raw upstream bodies.
+  const toolRanAndFailed = mcpResult.failure === 'tool_error' && !scanBody;
   return NextResponse.json(
-    {
-      // The upstream text stays in the server log and the job record; the
-      // client gets a short reason, never raw upstream bodies.
-      error:
-        'Absorb could not run: the absorb service did not answer. Details are in the server log.',
-      reason: 'absorb_upstream_failed',
-    },
+    toolRanAndFailed
+      ? {
+          error: 'Absorb ran but reported an error. Details are in the server log.',
+          reason: 'absorb_tool_error',
+        }
+      : {
+          error:
+            'Absorb could not run: the absorb service did not answer. Details are in the server log.',
+          reason: 'absorb_upstream_failed',
+        },
     { status: 502 }
   );
 }
