@@ -103,6 +103,32 @@ export function mintStudioGrantsSession(userId: string, nowMs: number = Date.now
     nowMs
   );
 }
+/**
+ * Admin client provisioning (mcp-server POST /oauth/admin/clients). Mint ONLY
+ * after requireFounder: mcp-server trusts this audience plus the founder mark
+ * as "a signed-in human admin". Never a valid client id; single-use, 60 s.
+ */
+export const STUDIO_ADMIN_CLIENTS_AUDIENCE = 'studio:admin-clients';
+export const STUDIO_FOUNDER_MARK = 'studio:founder';
+
+export function mintStudioAdminClientsSession(
+  founderUserId: string,
+  nowMs: number = Date.now()
+): string | null {
+  const secret = getStudioConsentSecret();
+  if (!secret || !founderUserId) return null;
+  return signStudioConsent(
+    {
+      sub: founderUserId,
+      cid: STUDIO_ADMIN_CLIENTS_AUDIENCE,
+      scp: [STUDIO_FOUNDER_MARK],
+      gid: newConsentGrantId(),
+      ttlS: 60,
+    },
+    secret,
+    nowMs
+  );
+}
 export function mcpOAuthBaseUrl(): string {
   const raw =
     process.env.MCP_OAUTH_ISSUER_URL || process.env.MCP_SERVER_URL || 'https://mcp.holoscript.net';

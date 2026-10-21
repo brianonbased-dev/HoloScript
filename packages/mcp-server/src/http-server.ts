@@ -87,6 +87,7 @@ import {
   SCOPE_CATEGORIES,
   type TokenIntrospection,
   type OAuthScope,
+  PROVISIONED_NO_BROWSER_ERROR,
 } from './security/oauth21';
 import type { TokenIntrospectionWithTenant } from './security/tenant-auth';
 import { runTripleGate } from './security/gates';
@@ -114,7 +115,11 @@ import {
 } from './auth/oauth2-provider';
 import { creditCheckSubject } from './security/credit-check-subject';
 import { setUserCreditsResolver } from './security/user-credits';
-import { verifyStudioConsent, verifyStudioGrantsSession } from './security/studio-consent';
+import {
+  verifyStudioAdminSession,
+  verifyStudioConsent,
+  verifyStudioGrantsSession,
+} from './security/studio-consent';
 import { issueOAuthCsrfToken, verifyOAuthCsrfToken } from './security/oauth-csrf';
 import {
   clientDeletionActor,
@@ -196,6 +201,12 @@ import {
 } from './ops/railway-autoscale-loop.js';
 import { maybeStartPredictiveCloudflareLbLoop } from './ops/predictive-cloudflare-lb.js';
 import { maybeStartKeepAliveLoop, getKeepAliveStatus } from './ops/keep-alive.js';
+import {
+  ADMIN_CLIENT_MAX_SECRET_DAYS,
+  ADMIN_CLIENT_ROTATE_OVERLAP_MS,
+  adminProvisioningActor,
+  parseAdminClientRequest,
+} from './security/admin-client-provisioning';
 import { isLoopbackAddress, isTrustedLoopbackMcpPeer, resolveMcpBindHost } from './http-bind-host';
 
 // Initialize native agent compositions
@@ -2610,6 +2621,12 @@ const httpServer = http.createServer(async (req, res) => {
         return;
       }
 
+      if (client.provisioning) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'unauthorized_client', error_description: PROVISIONED_NO_BROWSER_ERROR }));
+        return;
+      }
+
       if (!client.redirectUris.includes(redirectUri)) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(
@@ -3038,6 +3055,148 @@ const httpServer = http.createServer(async (req, res) => {
       });
       res.writeHead(204, { 'Cache-Control': 'no-store' });
       res.end();
+      return;
+    }
+  }
+
+  // Admin-provisioned machine clients (card tools-codebase-scope Option 1;
+  // Trust review of #611). Only a signed-in HUMAN admin: a single-use Studio
+  // founder assertion (audience studio:admin-clients). API keys, bearer tokens
+  // and ?apiKey= are refused, never read. POST /oauth/admin/clients creates a
+  // confidential client_credentials-only client (no redirect URIs, no
+  // authorization_code), NOT selfRegistered, owned by that human, secret
+  // returned once, stored hashed, expiring in <= 90 days.
+  // POST /oauth/admin/clients/:id/rotate issues a new secret (old one valid
+  // 15 min). Clean up with DELETE /oauth/clients/:id.
+  {
+    const rotateMatch =
+      req.method === 'POST'
+        ? /^\/oauth\/admin\/clients\/([A-Za-z0-9_-]{1,128})\/rotate$/.exec(url ?? '')
+        : null;
+    if ((url === '/oauth/admin/clients' && req.method === 'POST') || rotateMatch) {
+      const json = (status: number, body: unknown) => {
+        res.writeHead(status, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
+        res.end(JSON.stringify(body));
+      };
+      const actor = adminProvisioningActor(
+        { url: req.url, headers: req.headers as Record<string, string | string[] | undefined> },
+        (a) => verifyStudioAdminSession(a)
+      );
+      if (!actor.ok) {
+        auditLog.logAuthEvent({
+          event: 'auth_failure',
+          ip: clientIP,
+          reason: `admin client ${rotateMatch ? 'rotate' : 'provision'} refused: ${actor.reason}`,
+        });
+        json(actor.status, {
+          error: actor.status === 400 ? 'invalid_request' : 'login_required',
+          error_description: actor.reason,
+        });
+        return;
+      }
+      const humanAdmin = actor.userId;
+
+      if (rotateMatch) {
+        const targetClientId = rotateMatch[1];
+        await ensureClientHydrated(targetClientId);
+        const rotated = oauth.rotateProvisionedSecret(targetClientId, {
+          overlapMs: ADMIN_CLIENT_ROTATE_OVERLAP_MS,
+          ttlMs: ADMIN_CLIENT_MAX_SECRET_DAYS * 86_400_000,
+          rotatedBy: humanAdmin,
+        });
+        if (!rotated) {
+          json(404, { error: 'not_found', error_description: 'No admin-provisioned client with that id.' });
+          return;
+        }
+        let durableOk = false;
+        try {
+          durableOk = await oauth2.replaceClientSecret(
+            targetClientId,
+            rotated.clientSecretHash,
+            rotated.provisioning
+          );
+        } catch {
+          durableOk = false;
+        }
+        if (!durableOk) {
+          oauth.importClient(rotated.previous);
+          json(503, {
+            error: 'temporarily_unavailable',
+            error_description: 'The durable client store could not be updated; nothing was rotated.',
+          });
+          return;
+        }
+        auditLog.logAuthEvent({
+          event: 'client_secret_rotated',
+          clientId: targetClientId,
+          ip: clientIP,
+          reason: `rotated by human admin ${humanAdmin}; new secret expires ${new Date(rotated.provisioning.secretExpiresAt).toISOString()}; old secret valid until ${new Date(rotated.provisioning.previousSecretValidUntil ?? 0).toISOString()}`,
+        });
+        json(200, {
+          client_id: targetClientId,
+          client_secret: rotated.clientSecret,
+          client_secret_expires_at: Math.floor(rotated.provisioning.secretExpiresAt / 1000),
+          previous_secret_valid_until: Math.floor((rotated.provisioning.previousSecretValidUntil ?? 0) / 1000),
+          owner_user_id: rotated.provisioning.ownerUserId,
+          client_secret_note: 'Shown once. Store it in a secret store; the server keeps only a hash.',
+        });
+        return;
+      }
+
+      let parsed: ReturnType<typeof parseAdminClientRequest>;
+      try {
+        parsed = parseAdminClientRequest(await parseJsonBody(req));
+      } catch {
+        json(400, { error: 'invalid_request', error_description: 'Body must be a JSON object.' });
+        return;
+      }
+      if (!parsed.ok) {
+        json(400, { error: 'invalid_client_metadata', error_description: parsed.error });
+        return;
+      }
+      const secretExpiresAt = Date.now() + parsed.secretTtlMs;
+      const registration = await registerClientDurably(
+        { memory: oauth, durable: oauth2 },
+        {
+          clientName: parsed.clientName,
+          redirectUris: [],
+          scopes: parsed.scopes,
+          clientType: 'confidential',
+          rateLimit: 120,
+          provisioning: { ownerUserId: humanAdmin, purpose: parsed.purpose, secretExpiresAt },
+        },
+        { metrics: getPrometheusMetrics('holoscript') }
+      );
+      if (!registration.ok) {
+        json(503, { error: 'temporarily_unavailable', error_description: registration.message });
+        return;
+      }
+      const flagText = Object.entries(parsed.flags)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(' ');
+      auditLog.logAuthEvent({
+        event: 'client_registered',
+        clientId: registration.clientId,
+        ip: clientIP,
+        reason: `admin-provisioned by human admin ${humanAdmin}; purpose=${parsed.purpose} scopes=${parsed.scopes.join(' ')} ${flagText} expires=${new Date(secretExpiresAt).toISOString()}`,
+      });
+      json(201, {
+        client_id: registration.clientId,
+        client_secret: registration.clientSecret,
+        client_secret_expires_at: Math.floor(secretExpiresAt / 1000),
+        client_name: parsed.clientName,
+        purpose: parsed.purpose,
+        owner_user_id: humanAdmin,
+        scope: parsed.scopes.join(' '),
+        grant_types: ['client_credentials'],
+        redirect_uris: [],
+        token_endpoint_auth_method: 'client_secret_post',
+        self_registered: false,
+        client_secret_note: 'Shown once. Store it in a secret store; the server keeps only a hash.',
+      });
       return;
     }
   }

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+﻿import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { McpClient, defaultMcpConfig } from '../mcp-client.js';
 
-// ── helpers ───────────────────────────────────────────────────────────────────
+// â”€â”€ helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface FetchCall {
   url: string;
@@ -41,7 +41,7 @@ const TOKEN_RESPONSE = {
   scope: 'tools:read tools:execute tasks:read tasks:write',
 };
 
-// ── defaultMcpConfig ──────────────────────────────────────────────────────────
+// â”€â”€ defaultMcpConfig â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('defaultMcpConfig', () => {
   it('sets the default OAuth endpoint to mcp.holoscript.net', () => {
@@ -55,9 +55,9 @@ describe('defaultMcpConfig', () => {
   });
 });
 
-// ── happy path ────────────────────────────────────────────────────────────────
+// â”€â”€ happy path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('McpClient — OAuth 2.1 client_credentials flow', () => {
+describe('McpClient â€” OAuth 2.1 client_credentials flow', () => {
   it('registers a client, fetches a bearer token, then calls the tool endpoint', async () => {
     const { fetchFn, calls } = makeFetch([
       { status: 200, body: REGISTER_RESPONSE }, // POST /oauth/register
@@ -78,11 +78,12 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
     expect(result.ok).toBe(true);
     expect(result.status).toBe(200);
 
-    // Registration used the legacy x-mcp-api-key header, not Bearer.
+    // Registration (dev fallback) sends no shared key and no Bearer.
     const registerCall = calls[0];
     expect(registerCall.url).toBe('https://oauth.example.com/oauth/register');
     const registerHeaders = registerCall.init.headers as Record<string, string>;
-    expect(registerHeaders['x-mcp-api-key']).toBe('raw-api-key');
+    // No shared key on registration either (Trust review of #611).
+    expect(registerHeaders['x-mcp-api-key']).toBeUndefined();
     expect(registerHeaders['Authorization']).toBeUndefined();
 
     // Token call must have the right grant_type.
@@ -128,8 +129,8 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
     const { fetchFn, calls } = makeFetch([
       { status: 200, body: REGISTER_RESPONSE }, // register (only once)
       { status: 200, body: TOKEN_RESPONSE }, // token
-      { status: 401, body: { error: 'invalid_token' } }, // tool call → 401
-      // Retry path: token cache cleared, but _oauthClient is preserved —
+      { status: 401, body: { error: 'invalid_token' } }, // tool call â†’ 401
+      // Retry path: token cache cleared, but _oauthClient is preserved â€”
       // re-issue using the existing client credentials (no re-registration).
       { status: 200, body: freshTokenResponse },
       { status: 200, body: { ok: true } }, // tool call retry
@@ -176,17 +177,36 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
     expect(result.error).toMatch(/HTTP 500/);
   });
 
-  it('returns an error immediately when apiKey is empty', async () => {
-    const client = new McpClient({
-      endpoint: 'https://orch.example.com',
-      oauthEndpoint: 'https://oauth.example.com',
-      apiKey: '',
-      timeoutMs: 5000,
-    });
-
-    const result = await client.callTool({ server: 's', tool: 't', args: {} });
-    expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/HOLOSCRIPT_API_KEY/);
+  it('needs no HOLOSCRIPT_API_KEY: no apiKey, stored client, Bearer only, no key header anywhere', async () => {
+    const saved = { ...process.env };
+    try {
+      process.env.HOLOSCRIPT_API_KEY = 'shared-key-must-not-be-sent';
+      process.env.MCP_API_KEY = 'shared-key-must-not-be-sent';
+      const { fetchFn, calls } = makeFetch([
+        { status: 200, body: TOKEN_RESPONSE },
+        { status: 200, body: { success: true } },
+      ]);
+      const cfg = defaultMcpConfig({
+        endpoint: 'https://orch.example.com',
+        oauthEndpoint: 'https://oauth.example.com',
+        clientId: 'hsc_stored',
+        clientSecret: 'stored_secret',
+        fetchImpl: fetchFn,
+      });
+      expect(cfg.apiKey).toBeUndefined();
+      const result = await new McpClient(cfg).callTool({ server: 's', tool: 't', args: {} });
+      expect(result.ok).toBe(true);
+      for (const c of calls) {
+        const h = (c.init.headers ?? {}) as Record<string, string>;
+        expect(h['x-mcp-api-key']).toBeUndefined();
+        expect(JSON.stringify(c.init.body ?? '')).not.toContain('shared-key-must-not-be-sent');
+      }
+      expect((calls[1].init.headers as Record<string, string>)['Authorization']).toBe(
+        'Bearer hs_bearer_token_abc'
+      );
+    } finally {
+      process.env = saved;
+    }
   });
 
   it('returns an error when oauth/register fails', async () => {
@@ -250,5 +270,58 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
     expect(calls).toHaveLength(1);
     const h = calls[0].init.headers as Record<string, string>;
     expect(h['Authorization']).toBe('Bearer pre-issued-token');
+  });
+});
+
+describe('McpClient - stored admin-provisioned client', () => {
+  it('skips /oauth/register when clientId and clientSecret are configured', async () => {
+    const { fetchFn, calls } = makeFetch([
+      { status: 200, body: TOKEN_RESPONSE }, // POST /oauth/token
+      { status: 200, body: { success: true } }, // POST /tools/call
+    ]);
+    const client = new McpClient({
+      endpoint: 'https://orch.example.com',
+      oauthEndpoint: 'https://oauth.example.com',
+      apiKey: 'raw-api-key',
+      timeoutMs: 5000,
+      clientId: 'hsc_stored',
+      clientSecret: 'stored_secret',
+      oauthScope: 'tools:read',
+      fetchImpl: fetchFn,
+    });
+    const result = await client.callTool({ server: 's', tool: 't', args: {} });
+    expect(result.ok).toBe(true);
+    expect(calls.map((c) => c.url)).toEqual([
+      'https://oauth.example.com/oauth/token',
+      'https://orch.example.com/tools/call',
+    ]);
+    const tokenBody = JSON.parse(calls[0].init.body as string);
+    expect(tokenBody).toMatchObject({
+      grant_type: 'client_credentials',
+      client_id: 'hsc_stored',
+      client_secret: 'stored_secret',
+      scope: 'tools:read',
+    });
+  });
+
+  it('defaultMcpConfig reads MCP_CLIENT_ID_BRITTNEY / MCP_CLIENT_SECRET_BRITTNEY / MCP_CLIENT_SCOPE_BRITTNEY', () => {
+    const saved = { ...process.env };
+    try {
+      process.env.MCP_CLIENT_ID_BRITTNEY = 'hsc_env';
+      process.env.MCP_CLIENT_SECRET_BRITTNEY = 'env_secret';
+      process.env.MCP_CLIENT_SCOPE_BRITTNEY = 'tools:read';
+      const cfg = defaultMcpConfig({ apiKey: 'k' });
+      expect(cfg.clientId).toBe('hsc_env');
+      expect(cfg.clientSecret).toBe('env_secret');
+      expect(cfg.oauthScope).toBe('tools:read');
+      delete process.env.MCP_CLIENT_ID_BRITTNEY;
+      delete process.env.MCP_CLIENT_SECRET_BRITTNEY;
+      delete process.env.MCP_CLIENT_SCOPE_BRITTNEY;
+      const bare = defaultMcpConfig({ apiKey: 'k' });
+      expect(bare.clientId).toBeUndefined();
+      expect(bare.oauthScope).toBe('tools:read');
+    } finally {
+      process.env = saved;
+    }
   });
 });
