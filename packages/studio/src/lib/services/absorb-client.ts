@@ -28,8 +28,17 @@ export const ABSORB_API_KEY = getAbsorbKey() || getMcpApiKey() || '';
  * - http_5xx / timeout / rpc_error / network: the request was sent and the
  *             tool may have run (and charged). Callers must not retry these
  *             on another paid path.
+ * - tool_error: the tool ran and answered with `{ error }` (or isError). It
+ *             ran, so this is never retried on another path either.
  */
-export type McpFailure = 'refused' | 'http_4xx' | 'http_5xx' | 'timeout' | 'rpc_error' | 'network';
+export type McpFailure =
+  | 'refused'
+  | 'http_4xx'
+  | 'http_5xx'
+  | 'timeout'
+  | 'rpc_error'
+  | 'tool_error'
+  | 'network';
 
 export interface McpToolResult {
   ok: boolean;
@@ -94,21 +103,40 @@ export async function callMcpTool(
     }
 
     const textContent = json.result?.content?.[0]?.text;
+    let data: unknown = json.result;
     if (textContent) {
       try {
-        return { ok: true, data: JSON.parse(textContent) };
+        data = JSON.parse(textContent);
       } catch {
         // Not JSON: the tool answered in plain text, which is still its answer.
-        return { ok: true, data: { text: textContent } };
+        data = { text: textContent };
       }
     }
 
-    return { ok: true, data: json.result };
+    // A tool that answers `{ error }` (absorb's handlers report every failure
+    // this way) or flags isError has failed, even though HTTP said 200.
+    const toolError = toolErrorText(data, json.result?.isError === true ? textContent : undefined);
+    if (toolError !== null) {
+      const error = `MCP ${toolName} tool error: ${toolError}`;
+      console.error(`[absorb-client] ${error}`);
+      return { ok: false, data, error, failure: 'tool_error' };
+    }
+
+    return { ok: true, data };
   } catch (err: unknown) {
     const error = `MCP ${toolName} request failed: ${errorText(err)}`;
     console.error(`[absorb-client] ${error}`);
     return { ok: false, data: null, error, failure: classifyThrown(err) };
   }
+}
+
+/** The tool's own error text, or null when the answer is not an error. */
+function toolErrorText(data: unknown, isErrorText: string | undefined): string | null {
+  if (isErrorText !== undefined) return isErrorText || 'isError with no text';
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return null;
+  const err = (data as { error?: unknown }).error;
+  if (err === undefined || err === null || err === false || err === '') return null;
+  return typeof err === 'string' ? err : JSON.stringify(err);
 }
 
 function errorText(err: unknown): string {

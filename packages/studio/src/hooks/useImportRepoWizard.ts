@@ -227,7 +227,17 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         throw new Error(body.error ?? `Absorb failed: HTTP ${absorbRes.status}`);
       }
 
-      const absorbResult = await absorbRes.json();
+      const absorbResult = await absorbRes.json().catch(() => null);
+      // A 200 without stats is not a finished absorb (a tool error once came
+      // back this way and crashed on stats.totalFiles). Fail cleanly instead,
+      // so the catch below reports it and cleans up the workspace.
+      if (!absorbResult?.stats || typeof absorbResult.stats.totalFiles !== 'number') {
+        const reason =
+          typeof absorbResult?.error === 'string' && absorbResult.error
+            ? absorbResult.error
+            : 'the absorb service returned no results';
+        throw new Error(`Absorb failed: ${reason}`);
+      }
       absorbSucceeded = true;
       setImportProgress(80);
       setAbsorbStats({
