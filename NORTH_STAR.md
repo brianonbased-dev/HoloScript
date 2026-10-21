@@ -1,10 +1,10 @@
 # North Star -- HoloScript
 
-Anyone can help build powerful realities, but no one is forced to live inside a reality they cannot understand, question, or change.
+Technology people can build with, understand, and keep accountable.
 
 HoloScript helps people turn intentions into worlds, and turns those worlds back into evidence people can understand, question, and change.
 
-HoloScript is a contract for executable intent: claims rise only as evidence rises, and "unknown" is a legitimate answer. AI proposes and implements; humans decide what was meant.
+Hololand can hide complexity, but it must never hide meaning.
 
 **Five commitments.** These are commitments, not shipped features: where tooling does not deliver one yet (for example, challenging behavior without reading code), it is a goal.
 
