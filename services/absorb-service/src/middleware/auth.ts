@@ -2,6 +2,13 @@ import { Request, Response, NextFunction } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { resolveGitHubToken } from './github-identity.js';
 import {
+  CHARGE_OWNER_HEADER,
+  SCOPED_OWNER_HOURLY_LIMIT,
+  loadScopedServiceKeys,
+  matchScopedKey,
+  scopedKeyOwner,
+} from './scopedServiceKeys.js';
+import {
   FallbackRateCounterStore,
   MemoryRateCounterStore,
   PostgresRateCounterStore,
@@ -27,6 +34,8 @@ export interface AuthenticatedRequest extends Request {
    * The per-(user, app) rate limit takes its app id and cap from here.
    */
   grant?: { clientId: string; hourlyLimit?: number };
+  /** Set when a scoped service key charges a named owner (scopedServiceKeys.ts). */
+  scopedKeyId?: string;
 }
 
 /** Rate-limit inputs for a verified caller. App id/cap come from the grant only. */
@@ -157,6 +166,46 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
   if (authHeader) {
     const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
 
+    // Path 0: scoped service key that charges a named owner (card
+    // absorb-service-key-path). Matched first, and a match never falls
+    // through to another path: a refused owner is refused, not retried on the
+    // shared key. The request then runs as that owner, so routes charge the
+    // owner with the owner's own importId claim (same rules as a session).
+    const scopedKey = matchScopedKey(token, loadScopedServiceKeys());
+    if (scopedKey) {
+      const owner = scopedKeyOwner(scopedKey, req.headers[CHARGE_OWNER_HEADER]);
+      if (!owner.ok) {
+        res.status(owner.status).json({ error: owner.error, message: owner.message });
+        return;
+      }
+      const limiter = await getRateLimiter();
+      const perKey = await limiter.check({
+        userId: `svckey:${scopedKey.id}`,
+        userLimit: scopedKey.hourlyLimit,
+      });
+      const perOwner = perKey.limited
+        ? perKey
+        : await limiter.check({
+            userId: owner.ownerId,
+            userLimit: SCOPED_OWNER_HOURLY_LIMIT,
+            clientId: `svckey:${scopedKey.id}`,
+            appLimit: scopedKey.hourlyLimit,
+          });
+      if (perKey.limited || perOwner.limited) {
+        res.status(429).json({
+          error: 'rate_limited',
+          scope: perKey.limited ? 'key' : 'owner',
+          retryAfterMs: RATE_LIMIT_WINDOW_MS,
+          remaining: 0,
+        });
+        return;
+      }
+      authReq.authenticated = true;
+      authReq.userId = owner.ownerId;
+      authReq.scopedKeyId = scopedKey.id;
+      res.setHeader('X-RateLimit-Remaining', Math.min(perKey.remaining, perOwner.remaining));
+      return next();
+    }
     // Path 1: Service-to-service API key — no rate limit.
     // When the Studio proxy forwards a request it authenticates with the service
     // key (ABSORB_API_KEY) AND passes the original user's GitHub token in
