@@ -15,6 +15,7 @@ Short, plain principles learned the hard way. Every agent and human reads this b
 - **We are customer zero.** If HoloScript can't run our own projects, it isn't ready for anyone else's. *(Joseph, 2026-10-22 customer-zero plan)*
 - **Adding HoloScript should improve what people already do.** Never make a newcomer start over to get value. *(Joseph, 2026-10-22)*
 - **Most people start from something, not a blank slate.** Analyze what they already have first, and ask only where there's no reference. *(Joseph, 2026-10-22)*
+- **Training on the whole internet doesn't fix what breaks live; the value is in the nuances and caveats learned from running real systems.** *(Joseph, 2026-10-22; shared graph slot, Windows-only test failures found only by running)*
 - **Consent gates likeness.** A face, voice or body renders only through a grant the checker can see; without one, show the generic avatar. *(Consent rule, 2026-10-14)*
 
 ## Language
@@ -33,6 +34,7 @@ Short, plain principles learned the hard way. Every agent and human reads this b
 - **A service key alone pays for no one.** Calls must carry the user's identity, or they bill the house. *(card-callmcptool-no-headers, 2026-10-22)*
 - **Forwarding identity isn't charging.** A header that names the user only matters if the server that receives it actually deducts. *(#625 review, absorb_extract_knowledge has no billing)*
 - **Retries must not double-charge.** A charge needs a server-side id so a reload after a dropped response is recognized. *(#620 review N1, #623)*
+- **Knowledge is only sellable if it's owned, isolated and paid for per call.** *(Joseph, 2026-10-22; agent knowledge market goal; #617-#630 absorb stack)*
 - **Deduct atomically or not at all.** Check-then-charge in two steps lets two requests spend the same credit. *(card-freepath-7 holodaemon atomic deduct)*
 - **A fix can break the paying path.** Before shipping a refusal, check which legitimate button stops working. *(#617/#623 release prep, 2026-10-22)*
 
