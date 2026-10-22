@@ -475,7 +475,7 @@ export function upsertDurableAbsorbProject(
 export function removeUnabsorbedAbsorbProject(
   id: string,
   ownerId: string
-): 'removed' | 'absorbed' | 'missing' {
+): 'removed' | 'absorbed' | 'pending' | 'missing' {
   return withStateLock(() => {
     const state = readState();
     const index = state.projects.findIndex((p) => p.id === id && p.ownerId === ownerId);
@@ -484,6 +484,9 @@ export function removeUnabsorbedAbsorbProject(
     const absorbed =
       project.lastAbsorbedAt !== null || project.absorbJobs.some((job) => job.status !== 'failed');
     if (absorbed) return 'absorbed';
+    // N14 (#617): an import with a pending importId may have been charged
+    // (outcome unknown, or charged but not recorded). Not a failed import.
+    if (typeof project.metadata.pendingImportId === 'string') return 'pending';
     state.projects.splice(index, 1);
     writeState(state);
     return 'removed';

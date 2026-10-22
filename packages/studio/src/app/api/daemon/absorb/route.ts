@@ -248,6 +248,37 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
     const name = (err as { name?: unknown } | null)?.name;
     if (name === 'TimeoutError' || name === 'AbortError') reason = 'absorb_outcome_unknown';
   }
+  // N13 (#617 follow-up): absorb says this import was already charged but its
+  // result was never recorded. It will never charge it again, so record the
+  // job (the workspace is absorbed) and clear the pending id in one write.
+  // import_in_progress keeps the id: absorb's own stale cutoff (15 min, then
+  // a takeover that checks the ledger) resolves it to a result or to this.
+  if (reason === 'import_already_charged') {
+    try {
+      recordAbsorbJob({
+        projectId: workspaceId,
+        source: 'http',
+        depth: body.depth,
+        request: { workspaceId, importId, depth: body.depth },
+        result: { status: 'complete', importId, alreadyCharged: true },
+        clearPendingImportId: { ownerId, importId },
+      });
+    } catch (err) {
+      if (!isAbsorbStateLockTimeout(err)) throw err;
+      console.error(
+        `[API] import ${importId} already charged; job record failed: state lock timeout`
+      );
+    }
+    return NextResponse.json(
+      {
+        error: 'This import was already charged. You will not be charged again.',
+        reason,
+        importId,
+        alreadyCharged: true,
+      },
+      { status: 409 }
+    );
+  }
   console.error(`[API daemon/absorb] absorb failed for ${workspaceId}: ${failure}`);
   recordAbsorbJob({
     projectId: workspaceId,

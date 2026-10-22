@@ -119,7 +119,7 @@ router.post('/scan', async (req: Request, res: Response) => {
     throw error;
   }
   try {
-    const outcome = body.repoUrl ? await scanFromUrlOnce(req, body) : await scanPath(req, body);
+    const outcome = body.repoUrl ? await scanFromUrlOnce(req, body) : await scanPathOnce(req, body);
     res.status(outcome.status).json(outcome.json);
   } catch (error: any) {
     console.error('[absorb/scan] Error:', error.message);
@@ -153,7 +153,12 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
 
   const running = importsInFlight.get(key);
   if (running) return replayed(await running);
-  const p = claimAndScan(req, body, account, importId);
+  const p = claimAndScan(
+    account,
+    importId,
+    { repoUrl: body.repoUrl as string, branch: body.branch ?? null },
+    (beforeCharge, chargeGuard) => scanFromUrl(req, body, beforeCharge, chargeGuard)
+  );
   importsInFlight.set(key, p);
   try {
     return await p;
@@ -169,18 +174,18 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
  * whose stale claim was taken over changes nothing.
  */
 async function claimAndScan(
-  req: Request,
-  body: ScanBody,
   account: string,
-  importId: string
+  importId: string,
+  ref: { repoUrl: string; branch: string | null },
+  run: (
+    beforeCharge: () => Promise<boolean>,
+    chargeGuard: (tx: unknown) => Promise<boolean>
+  ) => Promise<ScanOutcome>
 ): Promise<ScanOutcome> {
   const store = importClaimStore();
   let claim;
   try {
-    claim = await store.claim(account, importId, {
-      repoUrl: body.repoUrl as string,
-      branch: body.branch ?? null,
-    });
+    claim = await store.claim(account, importId, ref);
   } catch (err) {
     // Fail closed: without the claim a retry elsewhere could be charged again.
     console.error('[absorb/scan] import guard unavailable:', (err as Error)?.message);
@@ -244,7 +249,7 @@ async function claimAndScan(
   try {
     let outcome: ScanOutcome;
     try {
-      outcome = await scanFromUrl(req, body, stillHolder, chargeGuard);
+      outcome = await run(stillHolder, chargeGuard);
     } catch (err) {
       await store.release(account, importId, holder).catch(() => undefined);
       throw err;
@@ -299,7 +304,40 @@ async function scanFromUrl(
   }
 }
 
-async function scanPath(req: Request, body: ScanBody): Promise<ScanOutcome> {
+/**
+ * Folder scan that will be charged (signed-in user + projectId) and carries an
+ * importId: at most once per (account, importId), through the same durable
+ * claim as URL imports (#617 follow-up). The claim's repo_url is the folder,
+ * prefixed `path:`, so an importId reused for another folder is refused
+ * (409 import_id_reused). No schema change. Without an importId, or when it
+ * would not be charged, the folder scan is unchanged.
+ */
+async function scanPathOnce(req: Request, body: ScanBody): Promise<ScanOutcome> {
+  const account = userUuid(req);
+  const charged = (req as AuthenticatedRequest).authenticated && !!account && !!body.projectId;
+  if (!charged || !body.importId || !account) return scanPath(req, body);
+  const importId = body.importId;
+  const ref = { repoUrl: `path:${body.path as string}`, branch: null };
+  const key = `${account}:${importId}:${ref.repoUrl}#`;
+  const running = importsInFlight.get(key);
+  if (running) return replayed(await running);
+  const p = claimAndScan(account, importId, ref, (beforeCharge, chargeGuard) =>
+    scanPath(req, body, beforeCharge, chargeGuard)
+  );
+  importsInFlight.set(key, p);
+  try {
+    return await p;
+  } finally {
+    importsInFlight.delete(key);
+  }
+}
+
+async function scanPath(
+  req: Request,
+  body: ScanBody,
+  beforeCharge?: () => Promise<boolean>,
+  chargeGuard?: (tx: unknown) => Promise<boolean>
+): Promise<ScanOutcome> {
   const scanRoot = body.path as string;
   // The scan root must sit inside the folders this server may scan; before
   // 2026-10-04 any authenticated caller could map any server directory here.
@@ -308,7 +346,7 @@ async function scanPath(req: Request, body: ScanBody): Promise<ScanOutcome> {
   if (rootRefusal) {
     return { status: 403, json: { error: 'path_not_allowed', message: rootRefusal } };
   }
-  return scanAndCharge(req, body, scanRoot, scanRoot);
+  return scanAndCharge(req, body, scanRoot, scanRoot, beforeCharge, chargeGuard);
 }
 
 async function scanAndCharge(

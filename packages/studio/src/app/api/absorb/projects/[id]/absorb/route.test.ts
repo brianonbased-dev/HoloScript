@@ -73,7 +73,12 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('https://absorb.test/api/absorb/scan');
-    expect(JSON.parse(init.body as string)).toEqual({ path: WS_PATH, shallow: true, projectId: WS_PATH });
+    expect(JSON.parse(init.body as string)).toEqual({
+      path: WS_PATH,
+      shallow: true,
+      projectId: WS_PATH,
+      importId: expect.stringMatching(/^imp-/),
+    });
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer absorb-key-test');
   });
 
@@ -101,7 +106,8 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     vi.stubGlobal('fetch', fetchMock);
     const res = await POST(post(WS_PATH, '{}'), { params: Promise.resolve({ id: WS_PATH }) });
     expect(res.status).toBe(502);
-    expect((await res.json()).error).toMatch(/Absorb could not run/i);
+    // A cut call is an unknown outcome (#617 follow-up): the id is kept for a free replay.
+    expect((await res.json()).reason).toBe('absorb_outcome_unknown');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

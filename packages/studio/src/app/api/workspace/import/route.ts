@@ -407,6 +407,16 @@ async function deleteImport(req: NextRequest): Promise<Response> {
   if (removal === 'missing') {
     return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
   }
+  if (removal === 'pending') {
+    return NextResponse.json(
+      {
+        error:
+          'This workspace has an import that may have been charged. Retry the absorb to finish it before removing the workspace.',
+        reason: 'import_pending',
+      },
+      { status: 409 }
+    );
+  }
   if (removal === 'absorbed') {
     return NextResponse.json(
       { error: 'Workspace has a completed absorb; it is not a failed import.' },
