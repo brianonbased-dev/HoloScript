@@ -651,3 +651,48 @@ describe('/scan repoUrl import: production needs a database; cost is labeled cen
     expect(again._json?.costCents).toBe(0);
   });
 });
+
+/**
+ * Mapping N2 (#617): the charge was gated on projectId, so a URL scan without
+ * one ran free. It is charged by user now; with no account it is refused.
+ */
+describe('/scan repoUrl import: never free (Mapping N2)', () => {
+  const { projectId: _p, ...NO_PROJECT } = IMPORT;
+  void _p;
+
+  it('a URL scan without projectId is charged once (and a retry replays free)', async () => {
+    const r = await call(NO_PROJECT);
+    expect(r._status).toBe(200);
+    expect(r._json?.costCents).toBe(10);
+    expect(h.debits).toHaveLength(1);
+    expect(h.debits[0].userId).toBe(USER);
+    const again = await call(NO_PROJECT);
+    expect(again._json?.costCents).toBe(0);
+    expect(h.debits).toHaveLength(1);
+  });
+
+  it('a URL scan with no account is refused (401) before any clone, never run free', async () => {
+    for (const who of [
+      { authenticated: false },
+      { authenticated: true, userId: 'orchestrator:key' },
+    ]) {
+      const res = {
+        _status: 200,
+        _json: null as Record<string, unknown> | null,
+        status(c: number) {
+          res._status = c;
+          return res;
+        },
+        json(d: Record<string, unknown>) {
+          res._json = d;
+          return res;
+        },
+      };
+      await scan({ body: NO_PROJECT, headers: {}, ...who } as unknown as Request, res as unknown as Response);
+      expect(res._status).toBe(401);
+      expect(res._json?.error).toBe('account_required');
+    }
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+});

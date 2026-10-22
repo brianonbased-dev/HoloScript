@@ -10,20 +10,65 @@ export const maxDuration = 300;
  */
 export const ABSORB_FETCH_TIMEOUT_MS = 280_000;
 
+import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
-import { findDurableAbsorbProject, recordAbsorbJob } from '@/lib/absorb/projectState';
+import {
+  findDurableAbsorbProject,
+  recordAbsorbJob,
+  upsertDurableAbsorbProject,
+  type DurableAbsorbProject,
+} from '@/lib/absorb/projectState';
 import { callerUserId } from '@/lib/workspace/workspaceOwner';
 import { getGitHubToken } from '@/app/api/github/_shared';
 
 import { corsHeaders } from '../../_lib/cors';
 
-export async function GET(_req: NextRequest) {
+/**
+ * The pending importId lives on the SERVER, in the workspace's own row
+ * (metadata.pendingImportId in Studio's absorb project state file, on the
+ * workspaces volume), so it survives a reload, a new tab and a new device
+ * (Mapping N1, #617). Written before the absorb call, cleared on success or
+ * a definitive refusal. No database table or column.
+ */
+export function pendingImportIdOf(project: DurableAbsorbProject): string | null {
+  const v = project.metadata.pendingImportId;
+  return typeof v === 'string' && IMPORT_ID_RE.test(v) ? v : null;
+}
+
+function setPendingImportId(project: DurableAbsorbProject, importId: string | null): void {
+  upsertDurableAbsorbProject({
+    id: project.id,
+    name: project.name,
+    ownerId: project.ownerId,
+    metadata: { pendingImportId: importId },
+  });
+}
+
+const IMPORT_ID_RE = /^[A-Za-z0-9-]{8,100}$/;
+
+/** Statuses after which absorb has definitely not charged: the pending id is cleared. */
+const DEFINITIVE_REFUSALS = new Set([400, 401, 402, 403, 404, 413, 504]);
+
+export async function GET(req: NextRequest) {
+  const workspaceId = req.nextUrl?.searchParams.get('workspaceId');
+  if (workspaceId) {
+    const session = await getServerSession(authOptions);
+    const ownerId = callerUserId(session);
+    if (!session?.user || !ownerId) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    const project = findDurableAbsorbProject({ projectId: workspaceId });
+    if (!project || project.ownerId !== ownerId) {
+      return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+    }
+    return NextResponse.json({ workspaceId, pendingImportId: pendingImportIdOf(project) });
+  }
   return NextResponse.json({
     cached: false,
-    hint: 'POST { workspaceId, importId, depth } to absorb an imported workspace.',
+    hint: 'POST { workspaceId, importId?, depth } to absorb an imported workspace. GET ?workspaceId= returns its pending importId.',
   });
 }
 
@@ -64,9 +109,9 @@ export async function POST(req: NextRequest) {
   if (!/^ws-[0-9a-f-]{36}$/.test(workspaceId)) {
     return NextResponse.json({ error: 'workspaceId must be a workspace id' }, { status: 400 });
   }
-  const importId = typeof body.importId === 'string' ? body.importId : '';
-  if (!/^[A-Za-z0-9-]{8,100}$/.test(importId)) {
-    return NextResponse.json({ error: 'importId is required' }, { status: 400 });
+  const clientImportId = typeof body.importId === 'string' ? body.importId : null;
+  if (clientImportId !== null && !IMPORT_ID_RE.test(clientImportId)) {
+    return NextResponse.json({ error: 'importId must be 8-100 letters, digits or dashes' }, { status: 400 });
   }
 
   // Owner check: the same rule as DELETE /api/workspace/import.
@@ -78,6 +123,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Workspace has no repository URL' }, { status: 409 });
   }
   const branch = typeof project.metadata.branch === 'string' ? project.metadata.branch : undefined;
+  // The server's pending importId wins over whatever this client sends: a
+  // reloaded page, another tab or another device retries the SAME import, so
+  // absorb replays it instead of charging again (Mapping N1).
+  const pendingImportId = pendingImportIdOf(project);
+  const importId = pendingImportId ?? clientImportId ?? `imp-${randomUUID()}`;
 
   const scanBody = {
     repoUrl: project.sourceUrl,
@@ -98,6 +148,8 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   }
+  // Recorded BEFORE the call: once it is sent, absorb may charge.
+  if (!pendingImportId) setPendingImportId(project, importId);
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (ABSORB_API_KEY) {
     headers.Authorization = `Bearer ${ABSORB_API_KEY}`;
@@ -118,6 +170,7 @@ export async function POST(req: NextRequest) {
     });
     if (res.ok) {
       const data = await res.json();
+      setPendingImportId(project, null);
       recordAbsorbJob({
         projectId: workspaceId,
         source: 'http',
@@ -125,7 +178,7 @@ export async function POST(req: NextRequest) {
         request: { workspaceId, importId, depth: body.depth },
         result: data,
       });
-      return NextResponse.json(data);
+      return NextResponse.json({ ...data, importId });
     }
     const text = await res.text().catch((err: unknown) => `(body unreadable: ${String(err)})`);
     failure = `absorb /scan HTTP ${res.status}: ${text.slice(0, 300)}`;
@@ -143,6 +196,11 @@ export async function POST(req: NextRequest) {
         code = undefined;
       }
       reason = typeof code === 'string' && /^import_[a-z_]+$/.test(code) ? code : 'import_conflict';
+    }
+    // Definitive: nothing was charged under this id (or it names another
+    // repo), so the next attempt starts a new import. Anything else keeps it.
+    if (DEFINITIVE_REFUSALS.has(res.status) || reason === 'import_id_reused') {
+      setPendingImportId(project, null);
     }
   } catch (err) {
     failure = `absorb /scan threw: ${err instanceof Error ? err.message : String(err)}`;
@@ -181,7 +239,7 @@ export async function POST(req: NextRequest) {
         ? 'Absorb is taking longer than expected. Retry to get the result; you will not be charged twice.'
         : message[status] ??
           'Absorb could not run: the absorb service did not answer. Details are in the server log.';
-  return NextResponse.json({ error, reason }, { status });
+  return NextResponse.json({ error, reason, importId }, { status });
 }
 
 export function OPTIONS(request: Request) {

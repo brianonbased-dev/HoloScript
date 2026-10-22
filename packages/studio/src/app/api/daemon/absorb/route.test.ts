@@ -99,9 +99,13 @@ describe('/api/daemon/absorb: owner-checked, sends repoUrl (never a path) to abs
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('missing importId is refused', async () => {
+  it('missing importId: the server mints one (or uses its pending one); a malformed one is refused', async () => {
     const res = await POST(post({ workspaceId: WS }));
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    const sent = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(sent.importId).toMatch(/^imp-[0-9a-f-]{36}$/);
+    const bad = await POST(post({ workspaceId: WS, importId: 'x' }));
+    expect(bad.status).toBe(400);
   });
 
   it('absorb timeout (504), oversize (413) and no credits (402) pass through with a clear message', async () => {

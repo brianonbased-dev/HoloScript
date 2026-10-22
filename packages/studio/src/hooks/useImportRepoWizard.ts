@@ -249,6 +249,15 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
 
       // Phase 2: Absorb
       setImportProgress(55);
+      // The server keeps this workspace's pending importId (Mapping N1): read
+      // it first, so a reload, another tab or another device replays the same
+      // import. The route also prefers it over what is sent here.
+      const pendingImportId: string | null = await fetch(
+        `/api/daemon/absorb?workspaceId=${encodeURIComponent(wsId)}`
+      )
+        .then((r) => (r && r.ok ? r.json() : null))
+        .then((d) => (typeof d?.pendingImportId === 'string' ? d.pendingImportId : null))
+        .catch(() => null);
       const absorbRes = await fetch('/api/daemon/absorb', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -257,7 +266,7 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         // id: every retry for this workspace replays instead of recharging.
         body: JSON.stringify({
           workspaceId: wsId,
-          importId: absorbImportIdFor(wsId),
+          importId: pendingImportId ?? absorbImportIdFor(wsId),
           depth: 'medium',
         }),
       }).finally(() => {

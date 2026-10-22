@@ -135,8 +135,17 @@ const replayed = (o: ScanOutcome): ScanOutcome => ({
 /** URL import, at most once per (account, importId), across instances. */
 async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcome> {
   const account = userUuid(req);
-  // No account: nobody is charged, so there is nothing to guard.
-  if (!account) return scanFromUrl(req, body);
+  // No account: nobody could be charged, so a URL import is refused before
+  // any clone (Mapping N2, #617). A URL scan is never free.
+  if (!account) {
+    return {
+      status: 401,
+      json: {
+        error: 'account_required',
+        message: 'A repository import is charged to a signed-in account. Sign in and retry.',
+      },
+    };
+  }
   const importId = body.importId as string; // required with repoUrl (schema)
   // The repo and branch are part of the in-process key, so a reused importId
   // for another repo never shares this run; the claim refuses it (409).
@@ -407,7 +416,9 @@ async function scanAndCharge(
     durationMs: scanResult.stats.durationMs ?? 0,
   };
 
-  if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
+  // Charged by USER, whatever projectId says (Mapping N2, #617): projectId is
+  // a label, not a payer. Gating on it let a scan with no projectId run free.
+  if ((req as AuthenticatedRequest).authenticated && scanUserId) {
     const creditsModule = await loadCredits();
     const { requireCredits, isCreditError, deductCredits, CHARGE_GUARD_REFUSED } =
       (creditsModule as any).default || creditsModule;

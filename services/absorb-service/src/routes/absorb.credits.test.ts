@@ -354,6 +354,8 @@ describe('POST /scan saved result is only for the account that paid', () => {
 
 describe('POST /query when the charge comes back empty', () => {
   it('a query whose charge comes back empty is refused and reports no cost', async () => {
+    // The seeding scan is charged by user now, projectId or not (Mapping N2).
+    ledger.state.byUser.set(USER, SHALLOW_CENTS);
     const seeded = mockRes();
     await scan(
       {
@@ -366,7 +368,7 @@ describe('POST /query when the charge comes back empty', () => {
     expect(seeded._status).toBe(200);
     const graphId = seeded._json?.graphId;
     expect(typeof graphId).toBe('string');
-    expect(ledger.state.debited).toBe(0);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
 
     ledger.state.balance = 0;
     ledger.state.forceEmptyDebit = true;
@@ -382,12 +384,13 @@ describe('POST /query when the charge comes back empty', () => {
     );
 
     expect(ledger.requireCredits).toHaveBeenCalledWith(USER, 'query_with_llm');
-    expect(ledger.deductCredits).toHaveBeenCalledTimes(1);
+    // One for the seeding scan, one for the query that came back empty.
+    expect(ledger.deductCredits).toHaveBeenCalledTimes(2);
     expect(res._status).toBe(402);
     expect(res._json).toEqual({ error: 'Not enough credits for this query.' });
     expect(res._json).not.toHaveProperty('cost');
     expect(res._json).not.toHaveProperty('results');
-    expect(ledger.state.debited).toBe(0);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS); // the scan only; the query took nothing
     expect(ledger.state.balance).toBe(0);
     expect(ledger.state.wentNegative).toBe(false);
   });
