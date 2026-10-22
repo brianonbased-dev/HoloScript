@@ -65,7 +65,8 @@ export const knowledgeExtractionTools: Tool[] = [
         },
         url: {
           type: 'string',
-          description: 'Single page URL to fetch as text and extract. One URL only — not a crawl.',
+          description:
+            'Page URL, used only as a label for markdown/bodyText/observe text. This tool never fetches it: a url with no page text is refused (url_fetch_refused). Fetch the page on the caller side (Studio does this behind an SSRF guard) and pass its text.',
         },
         title: {
           type: 'string',
@@ -78,25 +79,24 @@ export const knowledgeExtractionTools: Tool[] = [
 ];
 
 // =============================================================================
-// STATE — shares graph state with graph-rag-tools
+// STATE
 // =============================================================================
+//
+// There is deliberately no module-level graph. A shared "active graph" let one
+// tenant's call extract from whatever graph the previous caller (any tenant)
+// had loaded. The graph is built per request from the page text in the call,
+// or handed in by an in-process caller that already holds its own graph.
 
-let activeGraph: CodebaseGraph | null = null;
-
-/**
- * Set the active graph for knowledge extraction.
- * Called by the absorb pipeline after building the graph.
- */
-export function setKnowledgeExtractionGraph(graph: CodebaseGraph | null): void {
-  activeGraph = graph;
+export interface KnowledgeExtractionContext {
+  /** A graph the in-process caller owns (e.g. its own absorb run). Never shared. */
+  graph?: CodebaseGraph | null;
 }
 
-/**
- * Get the active graph (for testing).
- */
-export function getActiveGraph(): CodebaseGraph | null {
-  return activeGraph;
-}
+/** Thrown by the fetch stub below: this tool never fetches a caller-supplied URL. */
+const URL_FETCH_REFUSED = 'url_fetch_refused';
+const refuseFetch = (async () => {
+  throw new Error(URL_FETCH_REFUSED);
+}) as unknown as typeof fetch;
 
 // =============================================================================
 // HANDLER
@@ -104,7 +104,8 @@ export function getActiveGraph(): CodebaseGraph | null {
 
 export async function handleKnowledgeExtractionTool(
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  context: KnowledgeExtractionContext = {}
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   const respond = (data: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -121,13 +122,24 @@ export async function handleKnowledgeExtractionTool(
     bodyText: typeof args.bodyText === 'string' ? args.bodyText : undefined,
     url: typeof args.url === 'string' ? args.url : undefined,
     title: typeof args.title === 'string' ? args.title : undefined,
+    // Never fetch the caller's URL from this server (SSRF). Text only.
+    fetchImpl: refuseFetch,
   };
+  let graph: CodebaseGraph | null = context.graph ?? null;
   let pageExtract: Awaited<ReturnType<typeof ingestObservedPage>> | undefined;
   if (hasObservedPageExtractInput(pageExtractInput)) {
     try {
       pageExtract = await ingestObservedPage(pageExtractInput);
-      setKnowledgeExtractionGraph(pageExtract.graph);
+      graph = pageExtract.graph;
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === URL_FETCH_REFUSED) {
+        return respond({
+          error: URL_FETCH_REFUSED,
+          message:
+            'absorb_extract_knowledge does not fetch URLs. Pass the page text (markdown, bodyText or observe); url is only a label.',
+        });
+      }
       return respond({
         error: 'page_extract_failed',
         message: error instanceof Error ? error.message : String(error),
@@ -135,7 +147,7 @@ export async function handleKnowledgeExtractionTool(
     }
   }
 
-  if (!activeGraph) {
+  if (!graph) {
     return respond({
       error: 'No codebase graph loaded. Run absorb_run_absorb first to build the graph.',
       hint: 'Pass a browser_session observe payload (markdown/bodyText) or one URL, or call absorb_run_absorb / holo_absorb_repo first.',
@@ -151,7 +163,7 @@ export async function handleKnowledgeExtractionTool(
   };
 
   const extractor = new KnowledgeExtractor();
-  const result: ExtractionResult = extractor.extract(activeGraph, options);
+  const result: ExtractionResult = extractor.extract(graph, options);
 
   return respond({
     success: true,
