@@ -498,6 +498,11 @@ export const absorbImportClaims = pgTable(
     importId: text('import_id').notNull(),
     // 'pending' while an instance runs the import, 'done' once delivered.
     status: text('status').notNull(),
+    // Fresh token per claim; done/delete writes match on it (late writes are no-ops).
+    holder: text('holder').notNull(),
+    // The import this id names; a reuse for another repo or branch is refused.
+    repoUrl: text('repo_url'),
+    branch: text('branch'),
     outcome: jsonb('outcome'),
     claimedAt: timestamp('claimed_at', { mode: 'date', withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp('completed_at', { mode: 'date', withTimezone: true }),

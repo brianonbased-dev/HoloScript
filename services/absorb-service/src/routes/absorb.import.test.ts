@@ -209,38 +209,64 @@ describe('/scan repoUrl import: importId is required', () => {
  * absorb.ts (its own in-memory state); only the claim table is shared, the way
  * Postgres is shared between replicas.
  */
-function sharedDb(opts: { failClaim?: boolean } = {}) {
-  const rows = new Map<string, { status: string; outcome: unknown; claimedAt: number }>();
+function sharedDb(opts: { failClaim?: boolean; failComplete?: boolean } = {}) {
+  const rows = new Map<
+    string,
+    { status: string; outcome: unknown; claimedAt: number; holder: string; repoUrl: unknown; branch: unknown }
+  >();
+  // The ledger is h.debits: a usage row for (user, importId) means "charged".
+  const charged = (user: unknown, importId: unknown) =>
+    h.debits.some((d) => d.userId === user && d.meta.importId === importId);
   const query = vi.fn(async (text: string, p: unknown[]) => {
     const key = `${p[0]}:${p[1]}`;
     if (text.startsWith('INSERT INTO absorb_import_claims')) {
       h.order.push('claim');
       if (opts.failClaim) throw new Error('db down');
       const row = rows.get(key);
-      if (!row || (row.status === 'pending' && Date.now() - row.claimedAt > Number(p[2]))) {
-        rows.set(key, { status: 'pending', outcome: null, claimedAt: Date.now() });
+      const takeover =
+        row &&
+        row.status === 'pending' &&
+        Date.now() - row.claimedAt > Number(p[2]) &&
+        row.repoUrl === p[4] &&
+        row.branch === p[5] &&
+        !charged(p[0], p[1]);
+      if (!row || takeover) {
+        rows.set(key, { status: 'pending', outcome: null, claimedAt: Date.now(), holder: String(p[3]), repoUrl: p[4], branch: p[5] });
         return { rows: [{ import_id: p[1] }] };
       }
       return { rows: [] };
     }
-    if (text.startsWith('SELECT status, outcome FROM absorb_import_claims')) {
+    if (text.startsWith('SELECT status, outcome, repo_url, branch')) {
       const row = rows.get(key);
-      return { rows: row ? [{ status: row.status, outcome: row.outcome }] : [] };
+      return {
+        rows: row
+          ? [{ status: row.status, outcome: row.outcome, repo_url: row.repoUrl, branch: row.branch, charged: charged(p[0], p[1]) }]
+          : [],
+      };
+    }
+    if (text.startsWith('UPDATE absorb_import_claims SET claimed_at')) {
+      const row = rows.get(key);
+      if (row && row.holder === p[2] && row.status === 'pending') {
+        row.claimedAt = Date.now();
+        return { rows: [{ import_id: p[1] }] };
+      }
+      return { rows: [] };
     }
     if (text.startsWith('UPDATE absorb_import_claims')) {
+      if (opts.failComplete) throw new Error('db blip on complete');
       const row = rows.get(key);
-      if (row) Object.assign(row, { status: 'done', outcome: JSON.parse(String(p[2])) });
+      if (row && row.holder === p[2]) Object.assign(row, { status: 'done', outcome: JSON.parse(String(p[3])) });
       return { rows: [] };
     }
     if (text.startsWith('DELETE FROM absorb_import_claims')) {
-      if (rows.get(key)?.status === 'pending') rows.delete(key);
+      const row = rows.get(key);
+      if (row?.status === 'pending' && row.holder === p[2]) rows.delete(key);
       return { rows: [] };
     }
     throw new Error(`unexpected SQL: ${text}`);
   });
   return { rows, db: { $client: { query } } };
 }
-
 async function newInstance(): Promise<Handler> {
   vi.resetModules();
   const mod = await import('./absorb.js');
@@ -338,4 +364,73 @@ describe('/scan repoUrl import across instances (shared database)', () => {
     expect(h.clones).toBe(0);
     expect(h.debits).toHaveLength(0);
   }, 30_000);
+});
+
+describe('/scan repoUrl import: stale takeover, late writes, reused importIds (Mapping, #617)', () => {
+  const key = `${USER}:${IMPORT.importId}`;
+
+  it('a takeover after the charge does not charge again', async () => {
+    // Instance A charges, then fails to record "done": the claim stays pending.
+    const shared = sharedDb({ failComplete: true });
+    h.db = shared.db;
+    const a = await newInstance();
+    const b = await newInstance();
+    expect((await callOn(a, IMPORT))._status).toBe(200);
+    expect(h.debits).toHaveLength(1);
+    expect(shared.rows.get(key)?.status).toBe('pending');
+    shared.rows.get(key)!.claimedAt = 0; // long past PENDING_STALE_MS
+    const again = await callOn(b, IMPORT);
+    expect(again._status).toBe(409);
+    expect(again._json?.error).toBe('import_already_charged');
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(1);
+  }, 30_000);
+
+  it('a late write from the old holder is ignored, and the old holder does not charge', async () => {
+    const shared = sharedDb();
+    h.db = shared.db;
+    const a = await newInstance();
+    const b = await newInstance();
+    let open!: () => void;
+    h.cloneGate = new Promise<void>((resolve) => (open = resolve));
+    const slow = callOn(a, IMPORT); // A claims, then stalls in the clone
+    await vi.waitFor(() => expect(h.clones).toBe(1));
+    const oldHolder = shared.rows.get(key)!.holder;
+    shared.rows.get(key)!.claimedAt = 0; // A looks dead
+    h.cloneGate = null;
+    const takeover = await callOn(b, IMPORT); // B takes over and finishes
+    expect(takeover._status).toBe(200);
+    expect(takeover._json?.cost).toBe(10);
+    const newRow = { ...shared.rows.get(key)! };
+    expect(newRow.holder).not.toBe(oldHolder);
+    expect(newRow.status).toBe('done');
+    open(); // A wakes up late
+    const late = await slow;
+    expect(late._status).toBe(409);
+    expect(late._json?.error).toBe('import_claim_lost');
+    expect(h.debits).toHaveLength(1); // A never charged
+    expect(shared.rows.get(key)).toEqual(newRow); // A's late writes changed nothing
+  }, 30_000);
+
+  it('a reused importId with another branch or URL is refused (409) and charges nothing', async () => {
+    h.db = sharedDb().db;
+    const a = await newInstance();
+    expect((await callOn(a, IMPORT))._status).toBe(200);
+    const otherBranch = await callOn(a, { ...IMPORT, branch: 'dev' });
+    expect(otherBranch._status).toBe(409);
+    expect(otherBranch._json?.error).toBe('import_id_reused');
+    const otherRepo = await callOn(a, { ...IMPORT, repoUrl: 'https://github.com/owner/other' });
+    expect(otherRepo._status).toBe(409);
+    expect(otherRepo._json?.error).toBe('import_id_reused');
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(1);
+  }, 30_000);
+
+  it('the same refusal holds with no database (in-memory claims)', async () => {
+    expect((await call(IMPORT))._status).toBe(200);
+    const r = await call({ ...IMPORT, branch: 'dev' });
+    expect(r._status).toBe(409);
+    expect(r._json?.error).toBe('import_id_reused');
+    expect(h.debits).toHaveLength(1);
+  });
 });

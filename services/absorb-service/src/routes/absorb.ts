@@ -130,7 +130,9 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
   // No account: nobody is charged, so there is nothing to guard.
   if (!account) return scanFromUrl(req, body);
   const importId = body.importId as string; // required with repoUrl (schema)
-  const key = `${account}:${importId}`;
+  // The repo and branch are part of the in-process key, so a reused importId
+  // for another repo never shares this run; the claim refuses it (409).
+  const key = `${account}:${importId}:${body.repoUrl}#${body.branch ?? ''}`;
 
   const running = importsInFlight.get(key);
   if (running) return replayed(await running);
@@ -146,6 +148,8 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
 /**
  * Claim (user, importId) in the database BEFORE cloning, scanning or charging.
  * Only the claim holder runs the import; a finished one replays with cost 0.
+ * Every later write names the holder token, so a late write from a holder
+ * whose stale claim was taken over changes nothing.
  */
 async function claimAndScan(
   req: Request,
@@ -156,7 +160,10 @@ async function claimAndScan(
   const store = importClaimStore();
   let claim;
   try {
-    claim = await store.claim(account, importId);
+    claim = await store.claim(account, importId, {
+      repoUrl: body.repoUrl as string,
+      branch: body.branch ?? null,
+    });
   } catch (err) {
     // Fail closed: without the claim a retry elsewhere could be charged again.
     console.error('[absorb/scan] import guard unavailable:', (err as Error)?.message);
@@ -168,7 +175,25 @@ async function claimAndScan(
       },
     };
   }
+  if (claim.kind === 'mismatch') {
+    return {
+      status: 409,
+      json: {
+        error: 'import_id_reused',
+        message: 'This importId belongs to a different repository or branch. Use a new importId.',
+      },
+    };
+  }
   if (claim.kind === 'done') return replayed(claim.outcome);
+  if (claim.kind === 'charged') {
+    return {
+      status: 409,
+      json: {
+        error: 'import_already_charged',
+        message: 'This import was already charged but its result was not recorded. It will not be charged again.',
+      },
+    };
+  }
   if (claim.kind === 'pending') {
     return {
       status: 409,
@@ -178,30 +203,39 @@ async function claimAndScan(
       },
     };
   }
+  const holder = claim.holder;
+
+  // Right before the charge: still the holder? (refreshes the claim, so a live
+  // holder is never stale when it charges). False means another instance took
+  // the claim over, and this one must not charge.
+  const stillHolder = () => store.confirm(account, importId, holder);
 
   let outcome: ScanOutcome;
   try {
-    outcome = await scanFromUrl(req, body);
+    outcome = await scanFromUrl(req, body, stillHolder);
   } catch (err) {
-    await store.release(account, importId).catch(() => undefined);
+    await store.release(account, importId, holder).catch(() => undefined);
     throw err;
   }
   if (outcome.status === 200) {
     try {
-      await store.complete(account, importId, outcome);
+      await store.complete(account, importId, holder, outcome);
     } catch (err) {
-      // The charge has landed; the claim stays pending, so a retry gets 409
-      // (not a second charge) until the claim goes stale.
+      // The charge has landed; the claim stays pending, and the ledger row
+      // keeps any takeover from charging again (409 import_already_charged).
       console.error('[absorb/scan] import charged but not recorded as done:', (err as Error)?.message);
     }
   } else {
     // Not delivered, so nothing was charged: let the import be retried.
-    await store.release(account, importId).catch(() => undefined);
+    await store.release(account, importId, holder).catch(() => undefined);
   }
   return outcome;
 }
-
-async function scanFromUrl(req: Request, body: ScanBody): Promise<ScanOutcome> {
+async function scanFromUrl(
+  req: Request,
+  body: ScanBody,
+  beforeCharge?: () => Promise<boolean>
+): Promise<ScanOutcome> {
   let repo;
   try {
     repo = await cloneRepo(body.repoUrl, body.branch);
@@ -223,7 +257,7 @@ async function scanFromUrl(req: Request, body: ScanBody): Promise<ScanOutcome> {
   try {
     // The clone dir is ours (made just now under absorb's clone root), so the
     // caller-path root check does not apply. The URL is the cache identity.
-    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}`);
+    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}`, beforeCharge);
   } finally {
     await repo.cleanup();
   }
@@ -245,7 +279,8 @@ async function scanAndCharge(
   req: Request,
   body: ScanBody,
   rootDir: string,
-  cacheKey: string
+  cacheKey: string,
+  beforeCharge?: () => Promise<boolean>
 ): Promise<ScanOutcome> {
   const shallow = body.shallow;
   // A saved scan is reused only for the account that paid for it.
@@ -358,6 +393,16 @@ async function scanAndCharge(
     // would say the customer bought money they did not buy. A scan that
     // fails therefore costs nothing, and a charge that comes back empty
     // is not delivered. A refused scan has still used the machine.
+    // A URL import charges only while it still holds its claim (#617).
+    if (beforeCharge && !(await beforeCharge())) {
+      return {
+        status: 409,
+        json: {
+          error: 'import_claim_lost',
+          message: 'Another request took over this import. This one was not charged.',
+        },
+      };
+    }
     const debit = await deductCredits(
       userId,
       creditCheck.costCents,
