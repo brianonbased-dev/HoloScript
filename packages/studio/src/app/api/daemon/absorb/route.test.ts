@@ -4,6 +4,17 @@ import * as path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const fbAuth = vi.hoisted(() => ({ session: { user: { id: 'user-owner' } } as unknown, token: 'gho_owner' as string | null }));
+vi.mock('next-auth', () => ({ getServerSession: async () => fbAuth.session }));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+// The workspace owner check (#620) has its own real-filesystem test in
+// fallback-workspace-owner.test.ts; here every path counts as owned.
+vi.mock('@/lib/workspace/workspaceOwner', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/workspace/workspaceOwner')>()),
+  assertWorkspaceOwner: (_s: unknown, p: string) => ({ ok: true, resolved: p, workspaceDir: p, workspaceId: 'ws', project: {} }),
+}));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => fbAuth.token }));
+
 const { callMcpToolMock, forwardAuthHeadersMock } = vi.hoisted(() => ({
   callMcpToolMock: vi.fn(),
   forwardAuthHeadersMock: vi.fn(() => ({ Authorization: 'Bearer user-token' })),
@@ -15,6 +26,7 @@ vi.mock('@/lib/services/absorb-client', () => ({
     !r.ok && (r.failure === 'refused' || r.failure === 'http_4xx'),
   MCP_SERVER_URL: 'https://mcp.test',
   ABSORB_BASE: 'https://absorb.test',
+  ABSORB_API_KEY: '',
 }));
 
 vi.mock('@/lib/api-auth', () => ({
@@ -69,7 +81,7 @@ describe('/api/daemon/absorb route', () => {
 
     const req = new NextRequest('http://localhost/api/daemon/absorb', {
       method: 'POST',
-      body: JSON.stringify({ projectId: 'proj-1', depth: 'deep', tier: 'high' }),
+      body: JSON.stringify({ projectId: 'proj-1', projectPath: '/ws/ws-1/repo', depth: 'deep', tier: 'high' }),
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -88,11 +100,11 @@ describe('/api/daemon/absorb route', () => {
       source: 'mcp',
     });
 
-    expect(callMcpToolMock).toHaveBeenCalledWith('absorb_run_absorb', {
-      projectId: 'proj-1',
-      depth: 'deep',
-      tier: 'high',
-    });
+    expect(callMcpToolMock).toHaveBeenCalledWith(
+      'absorb_run_absorb',
+      { projectId: '/ws/ws-1/repo', depth: 'deep', tier: 'high', importId: expect.any(String) },
+      expect.any(Object)
+    );
   });
 
   it('POST falls back to absorb /scan when MCP was refused (never ran)', async () => {
@@ -116,11 +128,11 @@ describe('/api/daemon/absorb route', () => {
     const body = await res.json();
     expect(body.jobId).toBe('job-http');
 
-    expect(forwardAuthHeadersMock).toHaveBeenCalled();
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://absorb.test/api/absorb/scan');
     const fetchInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const headers = (fetchInit.headers ?? {}) as Record<string, string>;
-    expect(headers.Authorization).toBe('Bearer user-token');
+    // The session owner's own credential, never a forwarded caller header (CoS, #620).
+    expect(headers.Authorization).toBe('Bearer gho_owner');
   });
 
   it('POST returns 502 when MCP and HTTP fallback both fail', async () => {

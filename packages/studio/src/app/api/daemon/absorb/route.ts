@@ -1,7 +1,11 @@
 export const maxDuration = 300;
 
+import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { forwardAuthHeaders } from '@/lib/api-auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { assertWorkspaceOwner, callerUserId } from '@/lib/workspace/workspaceOwner';
+import { getGitHubToken } from '@/app/api/github/_shared';
 import {
   callMcpTool,
   mcpClearlyDidNotRun,
@@ -38,11 +42,49 @@ export async function POST(req: NextRequest) {
     body = parsed as Record<string, unknown>;
   }
 
-  const mcpResult = await callMcpTool('absorb_run_absorb', {
-    projectId: body.projectPath || body.projectId || 'local',
-    depth: body.depth ?? 'medium',
-    tier: body.tier ?? 'medium',
-  });
+  // Nothing paid runs before these three checks (CoS, #620): the session,
+  // the payer (the session owner's own credential, never the service key
+  // alone), then the workspace the owner owns. A missing session is refused.
+  const payer = await ownerPayer(req);
+  if ('refusal' in payer) return payer.refusal;
+  const requestedPath = typeof body.projectPath === 'string' ? body.projectPath.trim() : '';
+  if (!requestedPath) {
+    return NextResponse.json(
+      { error: 'projectPath is required: a workspace folder you own', reason: 'absorb_project_path_required' },
+      { status: 400 }
+    );
+  }
+  const owned = assertWorkspaceOwner(payer.session, requestedPath);
+  if (!owned.ok) {
+    return NextResponse.json(
+      { error: owned.error, reason: 'absorb_workspace_not_owned' },
+      { status: owned.status }
+    );
+  }
+  body.projectPath = owned.resolved;
+
+  // importId (as #623): one id per absorb, sent on the MCP call AND on the
+  // /scan fallback, so absorb's claim can charge the owner once. A client
+  // retry may pass its own (8-100 letters, digits or dashes) to replay.
+  if (body.importId !== undefined && !(typeof body.importId === 'string' && IMPORT_ID_RE.test(body.importId))) {
+    return NextResponse.json(
+      { error: 'importId must be 8-100 letters, digits or dashes', reason: 'absorb_bad_import_id' },
+      { status: 400 }
+    );
+  }
+  const importId = typeof body.importId === 'string' ? body.importId : randomUUID();
+  body.importId = importId;
+
+  const mcpResult = await callMcpTool(
+    'absorb_run_absorb',
+    {
+      projectId: owned.resolved,
+      depth: body.depth ?? 'medium',
+      tier: body.tier ?? 'medium',
+      importId,
+    },
+    payer.headers
+  );
 
   if (mcpResult.ok && mcpResult.data) {
     recordAbsorbJob({
@@ -71,12 +113,14 @@ export async function POST(req: NextRequest) {
     );
   }
   if (scanBody) {
+    // Same payer, same owned realpath and same importId as the MCP call.
+    scanBody.importId = importId;
     try {
       const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...absorbFallbackAuth(req),
+          ...payer.headers,
         },
         // Only the fields /scan reads, never the raw client body.
         body: JSON.stringify(scanBody),
@@ -145,10 +189,11 @@ function scanRequestFrom(body: Record<string, unknown>): {
   shallow: boolean;
   languages?: string[];
   projectId?: string;
+  importId?: string;
 } | null {
   const path = typeof body.projectPath === 'string' ? body.projectPath.trim() : '';
   if (!path) return null;
-  const scan: { path: string; shallow: boolean; languages?: string[]; projectId?: string } = {
+  const scan: { path: string; shallow: boolean; languages?: string[]; projectId?: string; importId?: string } = {
     path,
     shallow: body.depth === 'shallow',
   };
@@ -160,15 +205,52 @@ function scanRequestFrom(body: Record<string, unknown>): {
 }
 
 /**
- * Browser callers sign in with a session cookie, so they carry no
- * Authorization header and the absorb REST API answered 401. Forward the
- * caller's own bearer when there is one; otherwise use the same service key
- * the MCP path already uses.
+ * Who every absorb call bills (MCP and the /scan fallback): the signed-in session owner, by their own
+ * credential (the session's GitHub token, userOnly). Studio's service key goes
+ * only together with it in X-User-Authorization, never alone.
+ *   - no session: 401
+ *   - a caller Authorization that is not the owner's own credential: 403
+ *   - a session with no user credential: 401
  */
-function absorbFallbackAuth(req: NextRequest): Record<string, string> {
-  const forwarded = forwardAuthHeaders(req);
-  if (forwarded.Authorization) return forwarded;
-  return ABSORB_API_KEY ? { Authorization: `Bearer ${ABSORB_API_KEY}` } : {};
+const IMPORT_ID_RE = /^[A-Za-z0-9-]{8,100}$/;
+
+async function ownerPayer(
+  req: NextRequest
+): Promise<{ headers: Record<string, string>; session: { user?: { id?: string | null } | null } } | { refusal: NextResponse }> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || !callerUserId(session)) {
+    return { refusal: NextResponse.json({ error: 'Not authenticated', reason: 'absorb_not_authenticated' }, { status: 401 }) };
+  }
+  let ownerAuth: string | null = null;
+  try {
+    const token = await getGitHubToken(req, { userOnly: true });
+    ownerAuth = token ? `Bearer ${token}` : null;
+  } catch {
+    ownerAuth = null;
+  }
+  const header = req.headers.get('authorization')?.trim();
+  if (header && header !== ownerAuth) {
+    return {
+      refusal: NextResponse.json(
+        { error: "The credential sent is not the signed-in user's own.", reason: 'absorb_credential_not_session_owner' },
+        { status: 403 }
+      ),
+    };
+  }
+  if (!ownerAuth) {
+    return {
+      refusal: NextResponse.json(
+        { error: 'Absorb needs your own credential; sign in again.', reason: 'absorb_no_user_credential' },
+        { status: 401 }
+      ),
+    };
+  }
+  return {
+    session,
+    headers: ABSORB_API_KEY
+      ? { Authorization: `Bearer ${ABSORB_API_KEY}`, 'X-User-Authorization': ownerAuth }
+      : { Authorization: ownerAuth },
+  };
 }
 
 export function OPTIONS(request: Request) {

@@ -1,6 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const fbAuth = vi.hoisted(() => ({ session: { user: { id: 'user-owner' } } as unknown, token: 'gho_owner' as string | null }));
+vi.mock('next-auth', () => ({ getServerSession: async () => fbAuth.session }));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+// The workspace owner check (#620) has its own real-filesystem test in
+// fallback-workspace-owner.test.ts; here every path counts as owned.
+vi.mock('@/lib/workspace/workspaceOwner', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/workspace/workspaceOwner')>()),
+  assertWorkspaceOwner: (_s: unknown, p: string) => ({ ok: true, resolved: p, workspaceDir: p, workspaceId: 'ws', project: {} }),
+}));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => fbAuth.token }));
+
 // Real mcpClearlyDidNotRun; only the network call is mocked.
 const { callMcpToolMock, recordAbsorbJobMock } = vi.hoisted(() => ({
   callMcpToolMock: vi.fn(),
@@ -61,7 +72,7 @@ describe('/api/daemon/absorb: HTTP /scan fallback only when MCP clearly did not 
     callMcpToolMock.mockResolvedValue({
       ok: false,
       data: null,
-      error: 'MCP HTTP 406',
+      error: 'MCP HTTP 400',
       failure: 'http_4xx',
     });
     const res = await POST(post(IMPORT));
@@ -144,10 +155,12 @@ describe('/api/daemon/absorb: HTTP /scan fallback only when MCP clearly did not 
       shallow: true,
       languages: ['typescript'],
       projectId: 'proj-1',
+      importId: expect.any(String),
     });
   });
 
-  it('refused but no projectPath: nothing to scan, no fallback', async () => {
+  it('no projectPath: refused (400) before any paid call', async () => {
+    callMcpToolMock.mockClear();
     callMcpToolMock.mockResolvedValue({
       ok: false,
       data: null,
@@ -155,7 +168,8 @@ describe('/api/daemon/absorb: HTTP /scan fallback only when MCP clearly did not 
       failure: 'refused',
     });
     const res = await POST(post({ projectId: 'proj-1' }));
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(400);
+    expect(callMcpToolMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

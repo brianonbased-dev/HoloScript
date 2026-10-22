@@ -24,8 +24,8 @@ describe('absorb-client failure classification', () => {
     expect(mcpClearlyDidNotRun(r)).toBe(true);
   });
 
-  it('4xx -> http_4xx (did not run)', async () => {
-    const r = await failWith(async () => new Response('nope', { status: 406 }));
+  it('clean 4xx (400) -> http_4xx (did not run)', async () => {
+    const r = await failWith(async () => new Response('nope', { status: 400 }));
     expect(r.failure).toBe('http_4xx');
     expect(mcpClearlyDidNotRun(r)).toBe(true);
   });

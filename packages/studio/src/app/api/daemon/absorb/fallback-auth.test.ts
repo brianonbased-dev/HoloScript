@@ -1,7 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { callMcpToolMock } = vi.hoisted(() => ({ callMcpToolMock: vi.fn() }));
+// CoS, #620: the /scan fallback bills the session owner by their own
+// credential, never a caller-supplied bearer and never the service key alone.
+const { callMcpToolMock, auth } = vi.hoisted(() => ({
+  callMcpToolMock: vi.fn(),
+  auth: { session: { user: { id: 'user-owner' } } as unknown, token: 'gho_owner' as string | null },
+}));
+vi.mock('next-auth', () => ({ getServerSession: vi.fn(async () => auth.session) }));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+// The workspace owner check (#620) has its own real-filesystem test in
+// fallback-workspace-owner.test.ts; here every path counts as owned.
+vi.mock('@/lib/workspace/workspaceOwner', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/workspace/workspaceOwner')>()),
+  assertWorkspaceOwner: (_s: unknown, p: string) => ({ ok: true, resolved: p, workspaceDir: p, workspaceId: 'ws', project: {} }),
+}));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: vi.fn(async () => auth.token) }));
 vi.mock('@/lib/services/absorb-client', async (importOriginal) => ({
   mcpClearlyDidNotRun: (await importOriginal<typeof import('@/lib/services/absorb-client')>())
     .mcpClearlyDidNotRun,
@@ -21,39 +35,50 @@ function post(headers: Record<string, string> = {}): NextRequest {
   });
 }
 
-describe('/api/daemon/absorb HTTP fallback auth', () => {
-  let seenAuth: string | null;
+describe('/api/daemon/absorb HTTP fallback: the payer is the session owner', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
   beforeEach(() => {
-    seenAuth = null;
+    auth.session = { user: { id: 'user-owner' } };
+    auth.token = 'gho_owner';
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    callMcpToolMock.mockResolvedValue({
-      ok: false,
-      data: null,
-      error: 'MCP 406',
-      failure: 'http_4xx',
-    });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (_u: string, init: RequestInit) => {
-        seenAuth = new Headers(init.headers).get('authorization');
-        // Mirrors absorb-service: 401 without a bearer.
-        return seenAuth
-          ? new Response('{"status":"complete"}', { status: 200 })
-          : new Response('{"error":"Authentication required"}', { status: 401 });
-      })
-    );
+    callMcpToolMock.mockResolvedValue({ ok: false, data: null, error: 'MCP 400', failure: 'http_4xx' });
+    fetchMock = vi.fn(async () => new Response('{"status":"complete"}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => vi.unstubAllGlobals());
+  const sent = () => new Headers((fetchMock.mock.calls[0][1] as RequestInit).headers);
 
-  it('cookie-session browser call (no Authorization) uses the service key and succeeds', async () => {
+  it('cookie session (no Authorization): service key + the owner credential in X-User-Authorization', async () => {
     const res = await POST(post());
-    expect(seenAuth).toBe('Bearer service-key');
     expect(res.status).toBe(200);
+    expect(sent().get('authorization')).toBe('Bearer service-key');
+    expect(sent().get('x-user-authorization')).toBe('Bearer gho_owner');
   });
 
-  it('twin: a caller bearer is forwarded as-is, not replaced by the service key', async () => {
-    const res = await POST(post({ Authorization: 'Bearer user-token' }));
-    expect(seenAuth).toBe('Bearer user-token');
+  it("a caller bearer that IS the owner's own credential is allowed", async () => {
+    const res = await POST(post({ Authorization: 'Bearer gho_owner' }));
     expect(res.status).toBe(200);
+    expect(sent().get('x-user-authorization')).toBe('Bearer gho_owner');
+  });
+
+  it('a caller bearer that differs from the session owner: 403, no fallback', async () => {
+    const res = await POST(post({ Authorization: 'Bearer user-token' }));
+    expect(res.status).toBe(403);
+    expect((await res.json()).reason).toBe('absorb_credential_not_session_owner');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('no session: 401, no fallback (the service key never bills alone)', async () => {
+    auth.session = null;
+    const res = await POST(post());
+    expect(res.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a session with no user credential: 401, no fallback', async () => {
+    auth.token = null;
+    const res = await POST(post());
+    expect(res.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
