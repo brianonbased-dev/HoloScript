@@ -129,11 +129,14 @@ async function postProjectAbsorb(
 
   // N20 (#623): the charge is bound to the signed-in user's OWN token. There
   // is no service-key-only fallback: no user token is a 401 and nothing is
-  // sent. The claim above stays first (before any await, Mapping N1); an id
-  // this request just stored is compare-and-cleared, an older one is kept.
+  // sent. The claim above stays first (before any await, Mapping N1).
+  // N21 (#623): the pending id is NOT cleared here. Between the claim and
+  // this await a concurrent same-owner request may have been handed the id
+  // and sent it to absorb; clearing it would lose that request's unknown
+  // outcome and let a retry charge twice. The next request's replay or
+  // import_already_charged resolves it.
   const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
   if (!userToken) {
-    if (claim.storedNow) clearPending();
     return NextResponse.json(
       {
         error: 'Absorb needs your own credential; sign in again.',

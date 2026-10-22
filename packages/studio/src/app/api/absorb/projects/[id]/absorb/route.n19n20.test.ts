@@ -14,10 +14,15 @@ import { NextRequest } from 'next/server';
  * same request stored the client's own candidate; an id stored earlier is
  * kept (fail closed) with an owner-visible error.
  */
-const m = vi.hoisted(() => ({ token: 'gh-user-token' as string | null }));
+const m = vi.hoisted(() => ({
+  token: 'gh-user-token' as string | null,
+  tokenFn: null as null | (() => Promise<string | null>),
+}));
 vi.mock('next-auth', () => ({ getServerSession: async () => ({ user: { id: 'user-a' } }) }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
-vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => m.token }));
+vi.mock('@/app/api/github/_shared', () => ({
+  getGitHubToken: async () => (m.tokenFn ? m.tokenFn() : m.token),
+}));
 vi.mock('@/lib/services/absorb-client', () => ({
   ABSORB_BASE: 'https://absorb.test',
   ABSORB_API_KEY: 'service-key',
@@ -59,6 +64,7 @@ describe('N19/N20: own-token charge and import_id_reused origin', () => {
     process.env.HOLOSCRIPT_WORKSPACES_DIR = root;
     delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
     m.token = 'gh-user-token';
+    m.tokenFn = null;
     state.upsertDurableAbsorbProject({
       id: WS,
       name: 'tiny',
@@ -84,13 +90,14 @@ describe('N19/N20: own-token charge and import_id_reused origin', () => {
     fs.rmSync(root, { recursive: true, force: true });
   });
 
-  it('N20 folder: no user token is 401, nothing sent, no pending id stored (no service-key fallback)', async () => {
+  it('N20 folder: no user token is 401, nothing sent (no service-key fallback)', async () => {
     m.token = null;
     const res = await folder({}, { Authorization: 'Bearer someone-else' });
     expect(res.status).toBe(401);
     expect((await res.json()).reason).toBe('absorb_no_user_credential');
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(meta().pendingFolderImportId).toBeFalsy();
+    // N21: the id may already have been handed to a concurrent request: kept.
+    expect(meta().pendingFolderImportId).toBeTruthy();
   });
 
   it("N20 folder: charges the session user's own token, never the request's Authorization", async () => {
@@ -102,12 +109,12 @@ describe('N19/N20: own-token charge and import_id_reused origin', () => {
     expect(JSON.stringify(h)).not.toContain('someone-else');
   });
 
-  it('N20 daemon: no user token is 401 before any pending id is stored', async () => {
+  it('N20 daemon: no user token is 401, nothing sent; the claimed id is kept (N21)', async () => {
     m.token = null;
     const res = await daemon();
     expect(res.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(meta().pendingImportId).toBeFalsy();
+    expect(meta().pendingImportId).toBeTruthy();
   });
 
   it("N19: the client's own id, stored by this request, reused elsewhere: cleared, and the next try is new", async () => {
@@ -138,6 +145,48 @@ describe('N19/N20: own-token charge and import_id_reused origin', () => {
       expect(j.importId).toBe(FOREIGN);
       expect(j.error).toMatch(KEPT);
       expect(meta()[key]).toBe(FOREIGN);
+    }
+  });
+  it('N21: concurrent same-owner requests; the first has no token, the second is unknown; the retry charges once', async () => {
+    for (const [send, key] of [
+      [daemon, 'pendingImportId'],
+      [folder, 'pendingFolderImportId'],
+    ] as const) {
+      const claims = new Map<string, number>(); // importId -> charges
+      let drop = true;
+      fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
+        const b = JSON.parse(init.body as string) as { importId: string };
+        const replay = claims.has(b.importId);
+        if (!replay) claims.set(b.importId, 1);
+        if (drop) {
+          drop = false;
+          throw new DOMException('The operation timed out.', 'TimeoutError');
+        }
+        return new Response(JSON.stringify({ graphId: 'g1', cost: replay ? 0 : 10 }), {
+          status: 200,
+        });
+      });
+      // First request: claims the id, then its token lookup is slow and empty.
+      // Second request: finds that id, has a token, sends it, outcome unknown.
+      const tokens: Array<() => Promise<string | null>> = [
+        () => new Promise((r) => setTimeout(() => r(null), 30)),
+        async () => 'gh-user-token',
+      ];
+      m.tokenFn = () => (tokens.shift() ?? (async () => 'gh-user-token'))();
+      const [first, second] = await Promise.all([send(), send()]);
+      expect(first.status).toBe(401);
+      expect((await second.json()).reason).toBe('absorb_outcome_unknown');
+      const sentId = (
+        JSON.parse((fetchMock.mock.calls.at(-1)![1] as RequestInit).body as string) as {
+          importId: string;
+        }
+      ).importId;
+      expect(meta()[key]).toBe(sentId);
+      const retry = await send();
+      expect(retry.status).toBe(200);
+      expect(claims.size).toBe(1);
+      m.tokenFn = null;
+      fetchMock.mockClear();
     }
   });
 });
