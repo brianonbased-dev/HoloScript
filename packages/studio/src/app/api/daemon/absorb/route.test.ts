@@ -109,8 +109,10 @@ describe('/api/daemon/absorb: owner-checked, sends repoUrl (never a path) to abs
   });
 
   it('absorb timeout (504), oversize (413) and no credits (402) pass through with a clear message', async () => {
+    // With absorb's own codes: a bare 504/413 is a proxy's, outcome unknown (Mapping H1).
+    const own: Record<number, string> = { 504: 'clone_timeout', 413: 'clone_too_large', 402: 'x' };
     for (const status of [504, 413, 402]) {
-      fetchMock.mockResolvedValueOnce(new Response('{"error":"x"}', { status }));
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: own[status] }), { status }));
       const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
       expect(res.status).toBe(status);
       expect((await res.json()).reason).toBe('absorb_refused');

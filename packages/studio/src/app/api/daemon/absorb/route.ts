@@ -18,7 +18,8 @@ import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 import {
   findDurableAbsorbProject,
   recordAbsorbJob,
-  upsertDurableAbsorbProject,
+  claimPendingAbsorbImportId,
+  clearPendingAbsorbImportId,
   type DurableAbsorbProject,
 } from '@/lib/absorb/projectState';
 import { callerUserId } from '@/lib/workspace/workspaceOwner';
@@ -38,19 +39,17 @@ export function pendingImportIdOf(project: DurableAbsorbProject): string | null 
   return typeof v === 'string' && IMPORT_ID_RE.test(v) ? v : null;
 }
 
-function setPendingImportId(project: DurableAbsorbProject, importId: string | null): void {
-  upsertDurableAbsorbProject({
-    id: project.id,
-    name: project.name,
-    ownerId: project.ownerId,
-    metadata: { pendingImportId: importId },
-  });
-}
-
 const IMPORT_ID_RE = /^[A-Za-z0-9-]{8,100}$/;
 
-/** Statuses after which absorb has definitely not charged: the pending id is cleared. */
-const DEFINITIVE_REFUSALS = new Set([400, 401, 402, 403, 404, 413, 504]);
+/**
+ * Statuses after which absorb has definitely not charged: the pending id is
+ * cleared. 413 and 504 count only with absorb's OWN code in the body
+ * (clone_too_large, clone_timeout); a gateway or proxy 413/504 (HTML or empty
+ * body) is an unknown outcome and keeps the id (Mapping H1, #617). absorb's
+ * /scan never answers 404 for a URL import, so a 404 always keeps it.
+ */
+const DEFINITIVE_REFUSALS = new Set([400, 401, 402, 403]);
+const ABSORB_OWN_CODE: Record<number, string> = { 413: 'clone_too_large', 504: 'clone_timeout' };
 
 export async function GET(req: NextRequest) {
   const workspaceId = req.nextUrl?.searchParams.get('workspaceId');
@@ -126,8 +125,16 @@ export async function POST(req: NextRequest) {
   // The server's pending importId wins over whatever this client sends: a
   // reloaded page, another tab or another device retries the SAME import, so
   // absorb replays it instead of charging again (Mapping N1).
-  const pendingImportId = pendingImportIdOf(project);
-  const importId = pendingImportId ?? clientImportId ?? `imp-${randomUUID()}`;
+  // Saved BEFORE any await, first writer wins under the state file's lock
+  // (Mapping N1): two first attempts from two devices get ONE importId.
+  const importId = claimPendingAbsorbImportId(
+    workspaceId,
+    ownerId,
+    clientImportId ?? `imp-${randomUUID()}`
+  );
+  if (!importId) {
+    return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+  }
 
   const scanBody = {
     repoUrl: project.sourceUrl,
@@ -148,8 +155,6 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   }
-  // Recorded BEFORE the call: once it is sent, absorb may charge.
-  if (!pendingImportId) setPendingImportId(project, importId);
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (ABSORB_API_KEY) {
     headers.Authorization = `Bearer ${ABSORB_API_KEY}`;
@@ -170,7 +175,7 @@ export async function POST(req: NextRequest) {
     });
     if (res.ok) {
       const data = await res.json();
-      setPendingImportId(project, null);
+      clearPendingAbsorbImportId(workspaceId, ownerId, importId);
       recordAbsorbJob({
         projectId: workspaceId,
         source: 'http',
@@ -182,9 +187,19 @@ export async function POST(req: NextRequest) {
     }
     const text = await res.text().catch((err: unknown) => `(body unreadable: ${String(err)})`);
     failure = `absorb /scan HTTP ${res.status}: ${text.slice(0, 300)}`;
-    if ([400, 402, 403, 409, 413, 504].includes(res.status)) {
+    let ownCode: unknown;
+    try {
+      ownCode = (JSON.parse(text) as { error?: unknown }).error;
+    } catch {
+      ownCode = undefined;
+    }
+    const fromAbsorb = !(res.status in ABSORB_OWN_CODE) || ownCode === ABSORB_OWN_CODE[res.status];
+    if ([400, 402, 403, 409, 413, 504].includes(res.status) && fromAbsorb) {
       status = res.status;
       reason = 'absorb_refused';
+    } else if (res.status in ABSORB_OWN_CODE || res.status === 404) {
+      // A proxy's 404/413/504: absorb may still have run. Unknown, not a refusal.
+      reason = 'absorb_outcome_unknown';
     }
     if (res.status === 409) {
       // Pass absorb's own 409 code through (import_in_progress,
@@ -199,8 +214,12 @@ export async function POST(req: NextRequest) {
     }
     // Definitive: nothing was charged under this id (or it names another
     // repo), so the next attempt starts a new import. Anything else keeps it.
-    if (DEFINITIVE_REFUSALS.has(res.status) || reason === 'import_id_reused') {
-      setPendingImportId(project, null);
+    if (
+      DEFINITIVE_REFUSALS.has(res.status) ||
+      (res.status in ABSORB_OWN_CODE && fromAbsorb) ||
+      reason === 'import_id_reused'
+    ) {
+      clearPendingAbsorbImportId(workspaceId, ownerId, importId);
     }
   } catch (err) {
     failure = `absorb /scan threw: ${err instanceof Error ? err.message : String(err)}`;

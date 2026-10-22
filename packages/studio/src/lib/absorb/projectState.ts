@@ -189,6 +189,79 @@ function writeState(state: AbsorbProjectStateFile): void {
   fs.renameSync(tempPath, statePath);
 }
 
+/**
+ * Read-modify-write of the state file under an exclusive lock file
+ * (`<state>.lock`, created with O_EXCL), so two Studio processes sharing the
+ * volume cannot interleave. Within one process the callers are synchronous,
+ * so the lock only matters across processes. A lock older than 30 s is a
+ * crashed holder and is taken over.
+ */
+function withStateLock<T>(fn: () => T): T {
+  const lockPath = `${getAbsorbProjectStatePath()}.lock`;
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  const deadline = Date.now() + 5_000;
+  let fd: number | null = null;
+  while (fd === null) {
+    try {
+      fd = fs.openSync(lockPath, 'wx');
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== 'EEXIST') throw err;
+      try {
+        if (Date.now() - fs.statSync(lockPath).mtimeMs > 30_000) fs.rmSync(lockPath, { force: true });
+      } catch {
+        /* the holder just released it */
+      }
+      if (Date.now() > deadline) throw new Error('absorb project state is locked');
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    fs.closeSync(fd);
+    fs.rmSync(lockPath, { force: true });
+  }
+}
+
+const PENDING_IMPORT_ID_RE = /^[A-Za-z0-9-]{8,100}$/;
+
+/**
+ * First writer wins (Mapping N1, #617): store `candidate` as the workspace's
+ * pending importId unless one is already stored, and return the stored one.
+ * Null when the row is missing or not the caller's.
+ */
+export function claimPendingAbsorbImportId(
+  projectId: string,
+  ownerId: string,
+  candidate: string
+): string | null {
+  return withStateLock(() => {
+    const state = readState();
+    const project = state.projects.find((p) => p.id === projectId);
+    if (!project || project.ownerId !== ownerId) return null;
+    const stored = project.metadata.pendingImportId;
+    if (typeof stored === 'string' && PENDING_IMPORT_ID_RE.test(stored)) return stored;
+    project.metadata = { ...project.metadata, pendingImportId: candidate };
+    project.updatedAt = new Date().toISOString();
+    writeState(state);
+    return candidate;
+  });
+}
+
+/** Compare-and-clear: clears the pending importId only if it is still `expected`. */
+export function clearPendingAbsorbImportId(projectId: string, ownerId: string, expected: string): boolean {
+  return withStateLock(() => {
+    const state = readState();
+    const project = state.projects.find((p) => p.id === projectId);
+    if (!project || project.ownerId !== ownerId) return false;
+    if (project.metadata.pendingImportId !== expected) return false;
+    project.metadata = { ...project.metadata, pendingImportId: null };
+    project.updatedAt = new Date().toISOString();
+    writeState(state);
+    return true;
+  });
+}
+
 export function listDurableAbsorbProjects(ownerId?: string | null): DurableAbsorbProject[] {
   const caller = typeof ownerId === 'string' && ownerId.trim() ? ownerId : null;
   // No signed-in account, and any row with no stored owner, match nobody.
