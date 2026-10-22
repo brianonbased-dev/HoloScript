@@ -11,6 +11,21 @@ import { useAbsorbServiceStore } from '@/lib/stores/absorbServiceStore';
 import { OPERATION_COSTS, type OperationType } from '@/lib/absorb/pricing';
 import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
 
+/**
+ * The importId of each project absorb that has not definitely finished (#617
+ * follow-up). A retry after a dropped connection or a double click reuses it,
+ * so absorb replays the first result at cost 0 instead of charging again. The
+ * server also keeps it per saved project; its id wins when it answers one.
+ */
+const pendingProjectImportIds = new Map<string, string>();
+/** Statuses after which nothing was charged under the id: start a new import next time. */
+const NOT_CHARGED = new Set([400, 401, 402, 403]);
+
+/** Test seam. */
+export function __pendingProjectImportIdsForTests(): Map<string, string> {
+  return pendingProjectImportIds;
+}
+
 export function useAbsorbService() {
   const store = useAbsorbServiceStore();
 
@@ -43,12 +58,25 @@ export function useAbsorbService() {
    */
   const runAbsorb = useCallback(
     async (projectId: string, depth: 'shallow' | 'deep' = 'shallow') => {
+      const importId = pendingProjectImportIds.get(projectId) ?? `imp-${crypto.randomUUID()}`;
+      pendingProjectImportIds.set(projectId, importId);
+      // A thrown fetch (dropped connection) keeps the id for the retry.
       const res = await absorbFetch(`/api/absorb/projects/${projectId}/absorb`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ depth, tier: store.qualityTier }),
+        body: JSON.stringify({ depth, tier: store.qualityTier, importId }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      // N16 (#623): absorb will never charge this id again (already charged)
+      // or will never accept it (reused for another folder): start fresh.
+      const settled409 =
+        res.status === 409 &&
+        (data?.reason === 'import_already_charged' || data?.reason === 'import_id_reused');
+      if (res.ok || NOT_CHARGED.has(res.status) || settled409) {
+        pendingProjectImportIds.delete(projectId);
+      } else if (typeof data?.importId === 'string') {
+        pendingProjectImportIds.set(projectId, data.importId);
+      }
       if (res.ok) {
         store.fetchBalance();
         store.fetchProjects();

@@ -67,7 +67,7 @@ export interface RecordAbsorbJobInput {
    * write as the job record, so a successful charge is never left with the id
    * cleared but no job recorded.
    */
-  clearPendingImportId?: { ownerId: string; importId: string };
+  clearPendingImportId?: { ownerId: string; importId: string; key?: PendingImportKey };
 }
 
 interface AbsorbProjectStateFile {
@@ -355,22 +355,62 @@ function withStateLock<T>(fn: () => T): T {
 const PENDING_IMPORT_ID_RE = /^[A-Za-z0-9-]{8,100}$/;
 
 /**
+ * H3 (#623): pending importIds are kept PER REF. The URL import
+ * (/api/daemon/absorb, absorb claim ref = repo URL + branch) and the folder
+ * scan (/api/absorb/projects/[id]/absorb, ref = path:<folder>) each have their
+ * own slot, so one route can never reuse, clear or replace the other's id.
+ */
+export type PendingImportKey = 'pendingImportId' | 'pendingFolderImportId';
+export const PENDING_IMPORT_KEYS: readonly PendingImportKey[] = [
+  'pendingImportId',
+  'pendingFolderImportId',
+];
+
+/**
  * First writer wins (Mapping N1, #617): store `candidate` as the workspace's
  * pending importId unless one is already stored, and return the stored one.
  * Null when the row is missing or not the caller's.
  */
+/**
+ * N19 (#623): like claimPendingAbsorbImportId, but also says whether THIS call
+ * stored `candidate` (storedNow) or found an id stored earlier. A route may
+ * clear an id on import_id_reused only when it stored the client's own
+ * candidate in this same request.
+ */
+export function claimPendingAbsorbImportIdDetailed(
+  projectId: string,
+  ownerId: string,
+  candidate: string,
+  key: PendingImportKey = 'pendingImportId'
+): { importId: string; storedNow: boolean } | null {
+  return withStateLock(() => {
+    const state = readState();
+    const project = state.projects.find((p) => p.id === projectId);
+    if (!project || project.ownerId !== ownerId) return null;
+    const stored = project.metadata[key];
+    if (typeof stored === 'string' && PENDING_IMPORT_ID_RE.test(stored)) {
+      return { importId: stored, storedNow: false };
+    }
+    project.metadata = { ...project.metadata, [key]: candidate };
+    project.updatedAt = new Date().toISOString();
+    writeState(state);
+    return { importId: candidate, storedNow: true };
+  });
+}
+
 export function claimPendingAbsorbImportId(
   projectId: string,
   ownerId: string,
-  candidate: string
+  candidate: string,
+  key: PendingImportKey = 'pendingImportId'
 ): string | null {
   return withStateLock(() => {
     const state = readState();
     const project = state.projects.find((p) => p.id === projectId);
     if (!project || project.ownerId !== ownerId) return null;
-    const stored = project.metadata.pendingImportId;
+    const stored = project.metadata[key];
     if (typeof stored === 'string' && PENDING_IMPORT_ID_RE.test(stored)) return stored;
-    project.metadata = { ...project.metadata, pendingImportId: candidate };
+    project.metadata = { ...project.metadata, [key]: candidate };
     project.updatedAt = new Date().toISOString();
     writeState(state);
     return candidate;
@@ -381,14 +421,15 @@ export function claimPendingAbsorbImportId(
 export function clearPendingAbsorbImportId(
   projectId: string,
   ownerId: string,
-  expected: string
+  expected: string,
+  key: PendingImportKey = 'pendingImportId'
 ): boolean {
   return withStateLock(() => {
     const state = readState();
     const project = state.projects.find((p) => p.id === projectId);
     if (!project || project.ownerId !== ownerId) return false;
-    if (project.metadata.pendingImportId !== expected) return false;
-    project.metadata = { ...project.metadata, pendingImportId: null };
+    if (project.metadata[key] !== expected) return false;
+    project.metadata = { ...project.metadata, [key]: null };
     project.updatedAt = new Date().toISOString();
     writeState(state);
     return true;
@@ -475,7 +516,7 @@ export function upsertDurableAbsorbProject(
 export function removeUnabsorbedAbsorbProject(
   id: string,
   ownerId: string
-): 'removed' | 'absorbed' | 'missing' {
+): 'removed' | 'absorbed' | 'pending' | 'missing' {
   return withStateLock(() => {
     const state = readState();
     const index = state.projects.findIndex((p) => p.id === id && p.ownerId === ownerId);
@@ -484,6 +525,9 @@ export function removeUnabsorbedAbsorbProject(
     const absorbed =
       project.lastAbsorbedAt !== null || project.absorbJobs.some((job) => job.status !== 'failed');
     if (absorbed) return 'absorbed';
+    // N14 (#617): an import with a pending importId may have been charged
+    // (outcome unknown, or charged but not recorded). Not a failed import.
+    if (PENDING_IMPORT_KEYS.some((k) => typeof project.metadata[k] === 'string')) return 'pending';
     state.projects.splice(index, 1);
     writeState(state);
     return 'removed';
@@ -620,9 +664,9 @@ export function recordAbsorbJob(input: RecordAbsorbJobInput): {
     if (
       clear &&
       project.ownerId === clear.ownerId &&
-      project.metadata.pendingImportId === clear.importId
+      project.metadata[clear.key ?? 'pendingImportId'] === clear.importId
     ) {
-      project.metadata = { ...project.metadata, pendingImportId: null };
+      project.metadata = { ...project.metadata, [clear.key ?? 'pendingImportId']: null };
     }
     state.projects[projectIndex] = project;
     writeState(state);

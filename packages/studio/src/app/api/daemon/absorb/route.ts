@@ -17,7 +17,7 @@ import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 import {
   findDurableAbsorbProject,
   recordAbsorbJob,
-  claimPendingAbsorbImportId,
+  claimPendingAbsorbImportIdDetailed,
   clearPendingAbsorbImportId,
   isAbsorbStateLockTimeout,
   type DurableAbsorbProject,
@@ -131,13 +131,35 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
   // absorb replays it instead of charging again (Mapping N1).
   // Saved BEFORE any await, first writer wins under the state file's lock
   // (Mapping N1): two first attempts from two devices get ONE importId.
-  const importId = claimPendingAbsorbImportId(
+  // N19 (#623): remember whether THIS request stored the client's own id.
+  const claim = claimPendingAbsorbImportIdDetailed(
     workspaceId,
     ownerId,
     clientImportId ?? `imp-${randomUUID()}`
   );
-  if (!importId) {
+  if (!claim) {
     return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+  }
+  const importId = claim.importId;
+  const ownCandidateStoredNow = claim.storedNow && clientImportId !== null;
+
+  // N20 (#623): the charge is bound to the signed-in user's OWN token. There
+  // is no service-key-only fallback: no user token is a 401 and nothing is
+  // sent. The claim above stays first (before any await, Mapping N1).
+  // N21 (#623): the pending id is NOT cleared here. Between the claim and
+  // this await a concurrent same-owner request may have been handed the id
+  // and sent it to absorb; clearing it would lose that request's unknown
+  // outcome and let a retry charge twice. The next request's replay or
+  // import_already_charged resolves it.
+  const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
+  if (!userToken) {
+    return NextResponse.json(
+      {
+        error: 'Absorb needs your own credential; sign in again.',
+        reason: 'absorb_no_user_credential',
+      },
+      { status: 401 }
+    );
   }
 
   const scanBody = {
@@ -152,16 +174,6 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
   // absorb by their own GitHub token, exactly like /api/absorb/credits. The
   // key never goes alone (#618's rule): without the user's own credential
   // absorb has no payer, skips the claim and charges nothing (Treasurer, #617).
-  const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
-  if (!userToken) {
-    return NextResponse.json(
-      {
-        error: 'Absorb needs your own credential; sign in again.',
-        reason: 'absorb_no_user_credential',
-      },
-      { status: 401 }
-    );
-  }
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (ABSORB_API_KEY) {
     headers.Authorization = `Bearer ${ABSORB_API_KEY}`;
@@ -234,11 +246,15 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
     }
     // Definitive: nothing was charged under this id (or it names another
     // repo), so the next attempt starts a new import. Anything else keeps it.
-    if (
-      DEFINITIVE_REFUSALS.has(res.status) ||
-      (res.status in ABSORB_OWN_CODE && fromAbsorb) ||
-      reason === 'import_id_reused'
-    ) {
+    // H3 (#623): import_id_reused never clears the server-stored id: it may be
+    // an unknown-outcome import that only its own retry can settle.
+    if (DEFINITIVE_REFUSALS.has(res.status) || (res.status in ABSORB_OWN_CODE && fromAbsorb)) {
+      clearPendingAbsorbImportId(workspaceId, ownerId, importId);
+    }
+    // N19 (#623): import_id_reused may clear only an id this same request
+    // stored from the client's own candidate (nothing earlier can be pending
+    // under it). An id found already stored is kept (fail closed).
+    if (reason === 'import_id_reused' && ownCandidateStoredNow) {
       clearPendingAbsorbImportId(workspaceId, ownerId, importId);
     }
   } catch (err) {
@@ -247,6 +263,37 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
     failure = `absorb /scan threw: ${err instanceof Error ? err.message : String(err)}`;
     const name = (err as { name?: unknown } | null)?.name;
     if (name === 'TimeoutError' || name === 'AbortError') reason = 'absorb_outcome_unknown';
+  }
+  // N13 (#617 follow-up): absorb says this import was already charged but its
+  // result was never recorded. It will never charge it again, so record the
+  // job (the workspace is absorbed) and clear the pending id in one write.
+  // import_in_progress keeps the id: absorb's own stale cutoff (15 min, then
+  // a takeover that checks the ledger) resolves it to a result or to this.
+  if (reason === 'import_already_charged') {
+    try {
+      recordAbsorbJob({
+        projectId: workspaceId,
+        source: 'http',
+        depth: body.depth,
+        request: { workspaceId, importId, depth: body.depth },
+        result: { status: 'complete', importId, alreadyCharged: true },
+        clearPendingImportId: { ownerId, importId },
+      });
+    } catch (err) {
+      if (!isAbsorbStateLockTimeout(err)) throw err;
+      console.error(
+        `[API] import ${importId} already charged; job record failed: state lock timeout`
+      );
+    }
+    return NextResponse.json(
+      {
+        error: 'This import was already charged. You will not be charged again.',
+        reason,
+        importId,
+        alreadyCharged: true,
+      },
+      { status: 409 }
+    );
   }
   console.error(`[API daemon/absorb] absorb failed for ${workspaceId}: ${failure}`);
   recordAbsorbJob({
@@ -271,7 +318,9 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
     import_already_charged:
       'This import was already charged but its result was not recorded. You will not be charged again.',
     import_claim_lost: 'Another request took over this import. This one was not charged.',
-    import_id_reused: 'This import id belongs to a different repository or branch.',
+    import_id_reused: ownCandidateStoredNow
+      ? 'This import id belongs to a different repository or branch. It was not used; retry without it.'
+      : "This workspace's pending import id is tied to a different repository or folder. It was kept so a possible earlier charge is not repeated; retry later or contact support to resolve it.",
     import_conflict: 'This import conflicts with another one. You were not charged twice.',
   };
   const error =

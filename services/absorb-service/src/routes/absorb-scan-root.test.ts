@@ -26,9 +26,13 @@ vi.mock('@holoscript/absorb-service/engine', async () => ({
 import { absorbRouter } from './absorb.js';
 
 function scanHandler(): (req: Request, res: Response) => Promise<unknown> {
-  const layer = (absorbRouter as unknown as {
-    stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: any }> } }>;
-  }).stack.find((entry) => entry.route?.path === '/scan' && entry.route.methods.post);
+  const layer = (
+    absorbRouter as unknown as {
+      stack: Array<{
+        route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: any }> };
+      }>;
+    }
+  ).stack.find((entry) => entry.route?.path === '/scan' && entry.route.methods.post);
   if (!layer?.route) throw new Error('POST /scan not registered');
   return layer.route.stack[layer.route.stack.length - 1].handle;
 }
@@ -52,7 +56,15 @@ describe('POST /scan root confinement', () => {
     process.env.ABSORB_ALLOWED_ROOTS = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-allowed-'));
     const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'scan-outside-'));
     const res = mockRes();
-    await scanHandler()({ body: { path: outside } } as Request, res);
+    // Signed in and naming a project (no free scans, #623), so only the root check refuses.
+    await scanHandler()(
+      {
+        body: { path: outside, projectId: 'ws-root' },
+        authenticated: true,
+        userId: '11111111-2222-4333-8444-555555555555',
+      } as unknown as Request,
+      res
+    );
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json.mock.calls[0][0]).toMatchObject({ error: 'path_not_allowed' });
     expect(scan).not.toHaveBeenCalled();

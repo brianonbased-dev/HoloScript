@@ -26,6 +26,11 @@ async function runBenchmark() {
 
   if (!scanRes.ok) {
     console.error(`Scan failed with status ${scanRes.status}:`, await scanRes.text());
+    if (scanRes.status === 401 || scanRes.status === 400) {
+      console.error(
+        'absorb no longer runs free folder scans (#623): a scan must be charged to a signed-in account (401 account_required) and a projectId (400 project_required). An API key alone names nobody to charge; this benchmark needs the planned service-key path that charges a named owner.'
+      );
+    }
     return;
   }
 

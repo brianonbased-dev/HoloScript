@@ -216,7 +216,14 @@ async function runAbsorbPhase(
     });
 
     if (!res.ok) {
-      throw new Error(`Absorb service failed with status ${res.status}`);
+      // #623 (no free scans): absorb refuses a folder scan with no signed-in
+      // account (401 account_required) or no projectId (400 project_required).
+      // This runner sends neither, so say so instead of failing silently.
+      const detail =
+        res.status === 401 || res.status === 400
+          ? ' (absorb refuses folder scans without a signed-in account and a projectId; this runner sends neither, so its graph phase is unavailable)'
+          : '';
+      throw new Error(`Absorb service failed with status ${res.status}${detail}`);
     }
 
     const data = await res.json();
@@ -235,8 +242,12 @@ async function runAbsorbPhase(
     }
 
     return { ...empty, durationMs: Date.now() - absorbStart };
-  } catch (_err) {
-    // Core not available or scan failed — continue without graph
+  } catch (err) {
+    // Core not available or scan failed: continue without graph, but say why.
+    console.error(
+      '[daemon runner] absorb graph phase skipped:',
+      err instanceof Error ? err.message : String(err)
+    );
     return { ...empty, durationMs: Date.now() - absorbStart };
   }
 }
