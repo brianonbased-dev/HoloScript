@@ -53,6 +53,11 @@ paths = [
   '''(^|[\\/])examples[\\/]cryptography[\\/].*\.holo$''',
   '''packages[\\/]core[\\/]src[\\/]compiler[\\/]COMPILER_INTEGRATION\.md$''',
   '''packages[\\/]connector-appstore[\\/](README|IMPLEMENTATION_SUMMARY)\.md$''',
+  # Triaged test fakes (2026-10-21), exact file paths only: REST_EXAMPLES.md:323 is a
+  # bare curl URL (placeholder auth headers only); the canary JSON lines 42/49/56 are
+  # public apiSha256 content digests.
+  '''^docs[\\/]api[\\/]REST_EXAMPLES\.md$''',
+  '''^artifacts[\\/]releases[\\/]0\.1\.0[\\/]systems-preview-public-canary-after-framework-6\.1\.7\.json$''',
   # (The temporary .env.docker allowlist marker was removed 2026-05-31 once the
   #  unneeded OPENAI_API_KEY was deleted from the file — HoloEmbed/structural
   #  cover embeddings, so the key was dropped rather than rotated. The tree-scan
@@ -60,3 +65,25 @@ paths = [
   #  HISTORY — founder must revoke it on the OpenAI dashboard; a managed Railway
   #  OPENAI_API_KEY still exists for services that opt into OpenAI.)
 ]
+
+# -- F.106 follow-up (2026-10-21): holoabsorb checkpoint resume IDs --
+# resumeToken / sourceResumeToken / receiptResumeToken are randomUUID() with dashes
+# stripped (32 lowercase hex): a checkpoint DIRECTORY NAME, format-checked only
+# (validateResumeToken), never accepted as auth. The authority is the separate
+# writer-lease token, which is NEVER allowlisted (lease / writerLease stay scanned).
+# condition AND: exact key name + exact 32-hex value AND benchmark/report JSON path.
+# Rule-scoped [[rules.allowlists]] works on gitleaks 8.21.2 (HoloCI) and newer.
+[[rules]]
+id = "generic-api-key"
+
+    [[rules.allowlists]]
+    description = "holoabsorb checkpoint resume IDs (32-hex, not credentials) in benchmark/report JSON only"
+    condition = "AND"
+    regexTarget = "line"
+    regexes = [
+      '''"(?:resumeToken|sourceResumeToken|receiptResumeToken)"\s*:\s*"[a-f0-9]{32}"''',
+    ]
+    paths = [
+      '''^research[\\/]holoabsorb-artifacts[\\/].*\.json$''',
+      '''^reports[\\/]library-coherence[\\/].*\.json$''',
+    ]
