@@ -193,7 +193,7 @@ NODE_ENV=production
 ```bash
 git switch -c revert-<bad-commit-sha> origin/main
 git revert <bad-commit-sha> --no-edit
-git push origin HEAD   # open a PR; Railway deploys once Release merges it
+git push origin HEAD   # open a PR; Railway deploys once it merges through the gate: release-gate/pass plus a distinct second seat
 ```
 
 ---

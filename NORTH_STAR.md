@@ -1,8 +1,8 @@
 # North Star -- HoloScript
 
-Technology people can build with, understand, and keep accountable.
-
 HoloScript helps people turn intentions into worlds, and turns those worlds back into evidence people can understand, question, and change.
+
+Technology people can build with, understand, and keep accountable.
 
 Hololand can hide complexity, but it must never hide meaning.
 
