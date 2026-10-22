@@ -53,9 +53,23 @@ vi.mock('@holoscript/absorb-service/engine', () => {
 });
 vi.mock('../db/client.js', () => ({ getDb: vi.fn(() => null) }));
 
-import { authMiddleware, __setRateLimiterForTests, type AuthenticatedRequest } from './auth.js';
-import { MemoryRateCounterStore, RateLimiter } from './rateLimiter.js';
-import { loadScopedServiceKeys, matchScopedKey, sha256Hex, SCOPED_KEYS_ENV } from './scopedServiceKeys.js';
+import {
+  authMiddleware,
+  __setRateLimiterForTests,
+  __setScopedOwnerLookupForTests,
+  type AuthenticatedRequest,
+} from './auth.js';
+import * as credits from '@holoscript/absorb-service/credits';
+import { MemoryRateCounterStore, RateLimiter, type RateCounterStore } from './rateLimiter.js';
+import {
+  loadScopedServiceKeys,
+  matchScopedKey,
+  scopedKeyRouteAllowed,
+  sha256Hex,
+  sqlOwnerLookup,
+  OWNER_EXISTS_SQL,
+  SCOPED_KEYS_ENV,
+} from './scopedServiceKeys.js';
 
 const OWNER = '11111111-2222-4333-8444-555555555555';
 const OTHER = '99999999-2222-4333-8444-555555555555';
@@ -80,10 +94,10 @@ function mockRes() {
   return res as Response & { statusCode: number; body: any };
 }
 
-async function auth(token: string, owner?: string) {
+async function auth(token: string, owner?: string, method = 'POST', path = '/api/absorb/scan') {
   const headers: Record<string, string> = { authorization: `Bearer ${token}` };
   if (owner !== undefined) headers['x-absorb-charge-owner'] = owner;
-  const req = { path: '/api/absorb/scan', method: 'POST', headers } as unknown as AuthenticatedRequest;
+  const req = { path, method, headers } as unknown as AuthenticatedRequest;
   const res = mockRes();
   const next = vi.fn() as unknown as NextFunction;
   await authMiddleware(req as unknown as Request, res, next);
@@ -110,6 +124,8 @@ beforeEach(() => {
   process.env[SCOPED_KEYS_ENV] = config();
   delete process.env.ABSORB_API_KEY;
   __setRateLimiterForTests(new RateLimiter(new MemoryRateCounterStore(), 60 * 60 * 1000));
+  __setScopedOwnerLookupForTests(async (id) => id === OWNER || id === OTHER);
+  vi.mocked(credits.getOrCreateAccount).mockClear();
 });
 
 async function scanAs(token: string, owner: string, importId: string) {
@@ -223,5 +239,102 @@ describe('charging the named owner', () => {
     expect(res.statusCode).toBe(401);
     expect(res.body.error).toBe('account_required');
     expect(h.scans).toBe(0);
+  });
+});
+describe('Mapping notes on #624', () => {
+  it('N4: an owner with no account is refused 403 owner_unknown; no account is created', async () => {
+    const STRANGER = '22222222-2222-4333-8444-555555555555';
+    process.env[SCOPED_KEYS_ENV] = JSON.stringify([
+      { id: 'agent-a', sha256: sha256Hex(KEY), owners: [STRANGER], hourlyLimit: 60 },
+    ]);
+    const r = await scanAs(KEY, STRANGER, 'imp-00000010');
+    expect(r.statusCode).toBe(403);
+    expect(r.body.error).toBe('owner_unknown');
+    expect(credits.getOrCreateAccount).not.toHaveBeenCalled();
+    expect(h.scans).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+  it('N4: when the owner cannot be checked, nothing runs (503)', async () => {
+    __setScopedOwnerLookupForTests(async () => null);
+    const r = await scanAs(KEY, OWNER, 'imp-00000011');
+    expect(r.statusCode).toBe(503);
+    expect(r.body.error).toBe('owner_lookup_unavailable');
+    expect(h.scans).toBe(0);
+  });
+  it('N4: the lookup is a read-only SELECT', async () => {
+    const seen: string[] = [];
+    const lookup = sqlOwnerLookup(async (text) => {
+      seen.push(text);
+      return { rows: [] };
+    });
+    expect(await lookup(OWNER)).toBe(false);
+    expect(seen).toEqual([OWNER_EXISTS_SQL]);
+    expect(OWNER_EXISTS_SQL).toMatch(/^SELECT /);
+    expect(OWNER_EXISTS_SQL).not.toMatch(/INSERT|UPDATE|DELETE/i);
+  });
+  it.each([
+    ['GET', '/api/absorb/projects'],
+    ['POST', '/api/absorb/projects'],
+    ['DELETE', '/api/absorb/projects/p1'],
+    ['POST', '/api/absorb/query'],
+    ['GET', '/api/absorb/graphs'],
+    ['GET', '/api/absorb/scan'],
+    ['GET', '/api/credits/balance'],
+    ['POST', '/api/credits/purchase'],
+    ['POST', '/api/pipeline/run'],
+    ['POST', '/api/holodaemon/run'],
+    ['GET', '/api/moltbook/agents'],
+    ['POST', '/api/admin/clients'],
+    ['POST', '/api/emergent-spacetime/exports'],
+    ['POST', '/mcp'],
+    ['GET', '/mcp'],
+  ])('N1: a scoped key is refused on %s %s', async (method, path) => {
+    const a = await auth(KEY, OWNER, method, path);
+    expect(a.passed).toBe(false);
+    expect(a.res.statusCode).toBe(403);
+    expect(a.res.body.error).toBe('scoped_key_route_not_allowed');
+  });
+  it('N1: only POST /api/absorb/scan is allowed, also when mounted under /api', () => {
+    expect(scopedKeyRouteAllowed('POST', '/api/absorb/scan')).toBe(true);
+    expect(scopedKeyRouteAllowed('post', '/api/absorb/scan/')).toBe(true);
+    expect(scopedKeyRouteAllowed('POST', '/absorb/scan')).toBe(false);
+    expect(scopedKeyRouteAllowed('POST', '/api/absorb/scan/x')).toBe(false);
+  });
+  it('N1: mounted at /api (baseUrl + path) the scan route passes', async () => {
+    const req = {
+      baseUrl: '/api',
+      path: '/absorb/scan',
+      method: 'POST',
+      headers: { authorization: `Bearer ${KEY}`, 'x-absorb-charge-owner': OWNER },
+    } as unknown as Request;
+    const res = mockRes();
+    const next = vi.fn();
+    await authMiddleware(req, res, next as unknown as NextFunction);
+    expect(next).toHaveBeenCalledOnce();
+  });
+  it('N3: duplicate sha256 entries turn all scoped keys off', async () => {
+    const dup = JSON.stringify([
+      { id: 'a', sha256: sha256Hex(KEY), owners: [OWNER] },
+      { id: 'b', sha256: sha256Hex(KEY).toUpperCase(), owners: [OTHER] },
+    ]);
+    expect(loadScopedServiceKeys({ [SCOPED_KEYS_ENV]: dup })).toEqual([]);
+    process.env[SCOPED_KEYS_ENV] = dup;
+    const a = await auth(KEY, OWNER);
+    expect(a.passed).toBe(false);
+    expect(a.res.statusCode).toBe(401);
+  });
+  it("N2: a scoped key counts on its own counters, never the owner's own", async () => {
+    const keys: string[] = [];
+    const mem = new MemoryRateCounterStore();
+    const spy: RateCounterStore = {
+      hit: (k, w, n) => {
+        keys.push(k);
+        return mem.hit(k, w, n);
+      },
+    };
+    __setRateLimiterForTests(new RateLimiter(spy, 60 * 60 * 1000));
+    expect((await auth(KEY, OWNER)).passed).toBe(true);
+    expect(keys).toEqual(['u:svckey:agent-a', `u:svcowner:${OWNER}`]);
+    expect(keys).not.toContain(`u:${OWNER}`);
   });
 });

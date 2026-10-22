@@ -61,6 +61,7 @@ export function loadScopedServiceKeys(env: NodeJS.ProcessEnv = process.env): Sco
   if (!Array.isArray(parsed)) return [];
   const out: ScopedServiceKey[] = [];
   const ids = new Set<string>();
+  const hashes = new Set<string>();
   for (const e of parsed as Array<Record<string, unknown>>) {
     const id = e?.id;
     const sha = e?.sha256;
@@ -72,6 +73,9 @@ export function loadScopedServiceKeys(env: NodeJS.ProcessEnv = process.env): Sco
       !ids.has(id) &&
       typeof sha === 'string' &&
       HEX64_RE.test(sha) &&
+      // N3 (Mapping, #624): two entries with one hash make the owner scope
+      // ambiguous, so the whole config is malformed.
+      !hashes.has((sha as string).toLowerCase()) &&
       Array.isArray(owners) &&
       owners.length > 0 &&
       owners.every((o) => typeof o === 'string' && UUID_RE.test(o)) &&
@@ -83,6 +87,7 @@ export function loadScopedServiceKeys(env: NodeJS.ProcessEnv = process.env): Sco
       return [];
     }
     ids.add(id as string);
+    hashes.add((sha as string).toLowerCase());
     out.push({
       id: id as string,
       sha256: (sha as string).toLowerCase(),
@@ -144,4 +149,34 @@ export function scopedKeyOwner(
     };
   }
   return { ok: true, ownerId: owner.toLowerCase() };
+}
+/**
+ * N1 (Mapping, #624): a scoped key reaches only the absorb scan/import route
+ * (POST /api/absorb/scan carries both folder scans and URL imports). Every
+ * other route (projects, query, credits, admin, MCP, ...) refuses it, so the
+ * key never acts as the owner's whole account.
+ */
+export const SCOPED_KEY_ROUTES: ReadonlyArray<{ method: string; path: string }> = [
+  { method: 'POST', path: '/api/absorb/scan' },
+];
+
+export function scopedKeyRouteAllowed(method: string, fullPath: string): boolean {
+  const p = fullPath.replace(/\/+$/, '');
+  return SCOPED_KEY_ROUTES.some((r) => r.method === method.toUpperCase() && r.path === p);
+}
+
+/**
+ * N4 (Mapping, #624): does the owner already have a credit account? Read-only.
+ * This path never creates an account or grants starter credits; an unknown
+ * owner is refused (403 owner_unknown). Returns null when it cannot tell
+ * (no database), and the caller refuses (fail closed).
+ */
+export type OwnerLookup = (ownerId: string) => Promise<boolean | null>;
+
+export const OWNER_EXISTS_SQL = 'SELECT 1 FROM credit_accounts WHERE user_id = $1 LIMIT 1';
+
+export function sqlOwnerLookup(
+  query: (text: string, params: unknown[]) => Promise<{ rows: unknown[] }>
+): OwnerLookup {
+  return async (ownerId) => (await query(OWNER_EXISTS_SQL, [ownerId])).rows.length > 0;
 }
