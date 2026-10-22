@@ -78,13 +78,34 @@ export async function foldObservedPageIntoAbsorbArgs(
       },
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message === URL_FETCH_REFUSED) {
+      return {
+        ok: false,
+        error: URL_FETCH_REFUSED,
+        message:
+          'holo_absorb_repo does not fetch URLs. Pass the page text (markdown, bodyText or observe); url is only a label.',
+      };
+    }
     return {
       ok: false,
       error: 'page_extract_failed',
-      message: error instanceof Error ? error.message : String(error),
+      message,
     };
   }
 }
+
+/**
+ * The server never fetches a caller-supplied URL (SSRF: metadata, loopback,
+ * private ranges, redirects). ingestObservedPage only calls fetchImpl when the
+ * input has no page text, so url-only input is refused with no network call and
+ * a url sent with text stays a label. Callers fetch pages themselves (Studio
+ * does it behind its SSRF guard) and pass the text.
+ */
+const URL_FETCH_REFUSED = 'url_fetch_refused';
+const refuseFetch = (async () => {
+  throw new Error(URL_FETCH_REFUSED);
+}) as unknown as typeof fetch;
 
 function pageExtractInputFromAbsorbArgs(args: Record<string, unknown>): ObservedPageExtractInput {
   return {
@@ -94,5 +115,6 @@ function pageExtractInputFromAbsorbArgs(args: Record<string, unknown>): Observed
     bodyText: typeof args.bodyText === 'string' ? args.bodyText : undefined,
     url: typeof args.url === 'string' ? args.url : undefined,
     title: typeof args.title === 'string' ? args.title : undefined,
+    fetchImpl: refuseFetch,
   };
 }
