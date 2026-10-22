@@ -155,10 +155,12 @@ describe('/api/daemon/absorb: HTTP /scan fallback only when MCP clearly did not 
       shallow: true,
       languages: ['typescript'],
       projectId: 'proj-1',
+      importId: expect.any(String),
     });
   });
 
-  it('refused but no projectPath: nothing to scan, no fallback', async () => {
+  it('no projectPath: refused (400) before any paid call', async () => {
+    callMcpToolMock.mockClear();
     callMcpToolMock.mockResolvedValue({
       ok: false,
       data: null,
@@ -166,7 +168,8 @@ describe('/api/daemon/absorb: HTTP /scan fallback only when MCP clearly did not 
       failure: 'refused',
     });
     const res = await POST(post({ projectId: 'proj-1' }));
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(400);
+    expect(callMcpToolMock).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });

@@ -84,7 +84,10 @@ function classifyThrown(err: unknown): McpFailure {
 
 export async function callMcpTool(
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  // The caller's auth headers (the session owner's). When given they replace
+  // the bare service key, so a paid tool is charged to that caller.
+  authHeaders?: Record<string, string>
 ): Promise<McpToolResult> {
   try {
     const res = await fetch(`${ABSORB_BASE}/mcp`, {
@@ -94,7 +97,7 @@ export async function callMcpTool(
         // The absorb MCP endpoint is a Streamable HTTP transport: it answers
         // 406 unless the client accepts both JSON and SSE (prod 2026-10-14).
         Accept: 'application/json, text/event-stream',
-        Authorization: `Bearer ${ABSORB_API_KEY}`,
+        ...(authHeaders ?? { Authorization: `Bearer ${ABSORB_API_KEY}` }),
       },
       body: JSON.stringify({
         jsonrpc: '2.0',

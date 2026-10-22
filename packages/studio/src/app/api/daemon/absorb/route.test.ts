@@ -81,7 +81,7 @@ describe('/api/daemon/absorb route', () => {
 
     const req = new NextRequest('http://localhost/api/daemon/absorb', {
       method: 'POST',
-      body: JSON.stringify({ projectId: 'proj-1', depth: 'deep', tier: 'high' }),
+      body: JSON.stringify({ projectId: 'proj-1', projectPath: '/ws/ws-1/repo', depth: 'deep', tier: 'high' }),
       headers: { 'Content-Type': 'application/json' },
     });
 
@@ -100,11 +100,11 @@ describe('/api/daemon/absorb route', () => {
       source: 'mcp',
     });
 
-    expect(callMcpToolMock).toHaveBeenCalledWith('absorb_run_absorb', {
-      projectId: 'proj-1',
-      depth: 'deep',
-      tier: 'high',
-    });
+    expect(callMcpToolMock).toHaveBeenCalledWith(
+      'absorb_run_absorb',
+      { projectId: '/ws/ws-1/repo', depth: 'deep', tier: 'high', importId: expect.any(String) },
+      expect.any(Object)
+    );
   });
 
   it('POST falls back to absorb /scan when MCP was refused (never ran)', async () => {

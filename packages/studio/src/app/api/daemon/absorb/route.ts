@@ -1,5 +1,6 @@
 export const maxDuration = 300;
 
+import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -41,11 +42,49 @@ export async function POST(req: NextRequest) {
     body = parsed as Record<string, unknown>;
   }
 
-  const mcpResult = await callMcpTool('absorb_run_absorb', {
-    projectId: body.projectPath || body.projectId || 'local',
-    depth: body.depth ?? 'medium',
-    tier: body.tier ?? 'medium',
-  });
+  // Nothing paid runs before these three checks (CoS, #620): the session,
+  // the payer (the session owner's own credential, never the service key
+  // alone), then the workspace the owner owns. A missing session is refused.
+  const payer = await ownerPayer(req);
+  if ('refusal' in payer) return payer.refusal;
+  const requestedPath = typeof body.projectPath === 'string' ? body.projectPath.trim() : '';
+  if (!requestedPath) {
+    return NextResponse.json(
+      { error: 'projectPath is required: a workspace folder you own', reason: 'absorb_project_path_required' },
+      { status: 400 }
+    );
+  }
+  const owned = assertWorkspaceOwner(payer.session, requestedPath);
+  if (!owned.ok) {
+    return NextResponse.json(
+      { error: owned.error, reason: 'absorb_workspace_not_owned' },
+      { status: owned.status }
+    );
+  }
+  body.projectPath = owned.resolved;
+
+  // importId (as #623): one id per absorb, sent on the MCP call AND on the
+  // /scan fallback, so absorb's claim can charge the owner once. A client
+  // retry may pass its own (8-100 letters, digits or dashes) to replay.
+  if (body.importId !== undefined && !(typeof body.importId === 'string' && IMPORT_ID_RE.test(body.importId))) {
+    return NextResponse.json(
+      { error: 'importId must be 8-100 letters, digits or dashes', reason: 'absorb_bad_import_id' },
+      { status: 400 }
+    );
+  }
+  const importId = typeof body.importId === 'string' ? body.importId : randomUUID();
+  body.importId = importId;
+
+  const mcpResult = await callMcpTool(
+    'absorb_run_absorb',
+    {
+      projectId: owned.resolved,
+      depth: body.depth ?? 'medium',
+      tier: body.tier ?? 'medium',
+      importId,
+    },
+    payer.headers
+  );
 
   if (mcpResult.ok && mcpResult.data) {
     recordAbsorbJob({
@@ -74,23 +113,8 @@ export async function POST(req: NextRequest) {
     );
   }
   if (scanBody) {
-    // The fallback bills the SESSION OWNER, and only them (CoS, #620). A caller
-    // bearer that is not the owner's own credential is refused (403), as #618
-    // does, instead of being billed through this second path.
-    const payer = await fallbackPayer(req);
-    if ('refusal' in payer) return payer.refusal;
-    // The folder must be a workspace the session owner OWNS (as #618 does):
-    // realpathed, inside the caller's own workspace under the workspaces root.
-    // Anything else, including another user's workspace, is refused before
-    // any paid /scan call; the realpath is what gets scanned.
-    const owned = assertWorkspaceOwner(payer.session, scanBody.path);
-    if (!owned.ok) {
-      return NextResponse.json(
-        { error: owned.error, reason: 'absorb_workspace_not_owned' },
-        { status: owned.status }
-      );
-    }
-    scanBody.path = owned.resolved;
+    // Same payer, same owned realpath and same importId as the MCP call.
+    scanBody.importId = importId;
     try {
       const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
         method: 'POST',
@@ -165,10 +189,11 @@ function scanRequestFrom(body: Record<string, unknown>): {
   shallow: boolean;
   languages?: string[];
   projectId?: string;
+  importId?: string;
 } | null {
   const path = typeof body.projectPath === 'string' ? body.projectPath.trim() : '';
   if (!path) return null;
-  const scan: { path: string; shallow: boolean; languages?: string[]; projectId?: string } = {
+  const scan: { path: string; shallow: boolean; languages?: string[]; projectId?: string; importId?: string } = {
     path,
     shallow: body.depth === 'shallow',
   };
@@ -180,14 +205,16 @@ function scanRequestFrom(body: Record<string, unknown>): {
 }
 
 /**
- * Who the /scan fallback bills: the signed-in session owner, by their own
+ * Who every absorb call bills (MCP and the /scan fallback): the signed-in session owner, by their own
  * credential (the session's GitHub token, userOnly). Studio's service key goes
  * only together with it in X-User-Authorization, never alone.
  *   - no session: 401
  *   - a caller Authorization that is not the owner's own credential: 403
  *   - a session with no user credential: 401
  */
-async function fallbackPayer(
+const IMPORT_ID_RE = /^[A-Za-z0-9-]{8,100}$/;
+
+async function ownerPayer(
   req: NextRequest
 ): Promise<{ headers: Record<string, string>; session: { user?: { id?: string | null } | null } } | { refusal: NextResponse }> {
   const session = await getServerSession(authOptions);
