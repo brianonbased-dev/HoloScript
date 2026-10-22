@@ -41,6 +41,10 @@ export interface ObservedPageExtractInput {
   bodyText?: string;
   url?: string;
   title?: string;
+  /**
+   * Fetch used for url-only input. There is NO default: without it a url-only
+   * extract is refused with URL_FETCH_REFUSED (never the global fetch).
+   */
   fetchImpl?: typeof fetch;
   fetchTimeoutMs?: number;
 }
@@ -296,11 +300,24 @@ export function observedPageToFeedBlock(extract: NormalizedObservedPage): string
   ].join('\n');
 }
 
+/**
+ * Error raised when a url-only page extract has no caller-supplied fetchImpl.
+ * The process-global fetch (redirect: 'follow', no SSRF guard) is never a
+ * default: a mesh caller's url must not reach loopback, metadata or private
+ * hosts from this server. Hosts that really want a fetch pass a guarded one.
+ */
+export const URL_FETCH_REFUSED = 'url_fetch_refused';
+
 async function fetchObservedPageText(
   url: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: typeof fetch | undefined,
   timeoutMs = DEFAULT_FETCH_TIMEOUT_MS
 ): Promise<{ text: string; markdown: string; bodyText: string; title: string }> {
+  if (typeof fetchImpl !== 'function') {
+    throw new Error(
+      `${URL_FETCH_REFUSED}: page extract will not fetch a url without a caller-supplied fetchImpl. Send observe, pageExtract, or bodyText/markdown with the url instead.`
+    );
+  }
   const parsed = new URL(url);
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`Page extract URL protocol is not allowed: ${parsed.protocol}`);
