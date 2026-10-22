@@ -1,4 +1,3 @@
-
 export const maxDuration = 300;
 
 /**
@@ -20,8 +19,10 @@ import {
   recordAbsorbJob,
   claimPendingAbsorbImportId,
   clearPendingAbsorbImportId,
+  isAbsorbStateLockTimeout,
   type DurableAbsorbProject,
 } from '@/lib/absorb/projectState';
+import { withAbsorbStateLock503 } from '@/lib/absorb/stateLockResponse';
 import { callerUserId } from '@/lib/workspace/workspaceOwner';
 import { getGitHubToken } from '@/app/api/github/_shared';
 
@@ -81,7 +82,7 @@ export async function GET(req: NextRequest) {
  * no MCP hop and no fallback: the importId makes a retry free, not a second
  * charge.
  */
-export async function POST(req: NextRequest) {
+async function postAbsorb(req: NextRequest): Promise<Response> {
   let body: Record<string, unknown> = {};
   const rawBody = await req.text();
   if (rawBody.trim() !== '') {
@@ -110,7 +111,10 @@ export async function POST(req: NextRequest) {
   }
   const clientImportId = typeof body.importId === 'string' ? body.importId : null;
   if (clientImportId !== null && !IMPORT_ID_RE.test(clientImportId)) {
-    return NextResponse.json({ error: 'importId must be 8-100 letters, digits or dashes' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'importId must be 8-100 letters, digits or dashes' },
+      { status: 400 }
+    );
   }
 
   // Owner check: the same rule as DELETE /api/workspace/import.
@@ -151,7 +155,10 @@ export async function POST(req: NextRequest) {
   const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
   if (!userToken) {
     return NextResponse.json(
-      { error: 'Absorb needs your own credential; sign in again.', reason: 'absorb_no_user_credential' },
+      {
+        error: 'Absorb needs your own credential; sign in again.',
+        reason: 'absorb_no_user_credential',
+      },
       { status: 401 }
     );
   }
@@ -222,6 +229,8 @@ export async function POST(req: NextRequest) {
       clearPendingAbsorbImportId(workspaceId, ownerId, importId);
     }
   } catch (err) {
+    // A state-lock timeout is not an absorb failure: the route answers 503.
+    if (isAbsorbStateLockTimeout(err)) throw err;
     failure = `absorb /scan threw: ${err instanceof Error ? err.message : String(err)}`;
     const name = (err as { name?: unknown } | null)?.name;
     if (name === 'TimeoutError' || name === 'AbortError') reason = 'absorb_outcome_unknown';
@@ -244,7 +253,8 @@ export async function POST(req: NextRequest) {
     504: 'Cloning this repository took too long.',
   };
   const conflict: Record<string, string> = {
-    import_in_progress: 'This import is still running. Retry shortly to get its result; you will not be charged twice.',
+    import_in_progress:
+      'This import is still running. Retry shortly to get its result; you will not be charged twice.',
     import_already_charged:
       'This import was already charged but its result was not recorded. You will not be charged again.',
     import_claim_lost: 'Another request took over this import. This one was not charged.',
@@ -253,13 +263,16 @@ export async function POST(req: NextRequest) {
   };
   const error =
     status === 409
-      ? conflict[reason] ?? conflict.import_conflict
+      ? (conflict[reason] ?? conflict.import_conflict)
       : reason === 'absorb_outcome_unknown'
         ? 'Absorb is taking longer than expected. Retry to get the result; you will not be charged twice.'
-        : message[status] ??
-          'Absorb could not run: the absorb service did not answer. Details are in the server log.';
+        : (message[status] ??
+          'Absorb could not run: the absorb service did not answer. Details are in the server log.');
   return NextResponse.json({ error, reason, importId }, { status });
 }
+
+/** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
+export const POST = withAbsorbStateLock503(postAbsorb);
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

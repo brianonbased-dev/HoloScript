@@ -1,11 +1,15 @@
-
 export const maxDuration = 300;
 
 import * as path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { forwardAuthHeaders } from '@/lib/api-auth';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
-import { findDurableAbsorbProject, recordAbsorbJob } from '@/lib/absorb/projectState';
+import {
+  findDurableAbsorbProject,
+  isAbsorbStateLockTimeout,
+  recordAbsorbJob,
+} from '@/lib/absorb/projectState';
+import { withAbsorbStateLock503 } from '@/lib/absorb/stateLockResponse';
 
 import { corsHeaders } from '../../../../_lib/cors';
 
@@ -20,7 +24,10 @@ import { corsHeaders } from '../../../../_lib/cors';
  * have (404). It now calls absorb-service's own POST /api/absorb/scan once,
  * directly. One request, one possible charge, no retry on another path.
  */
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function postProjectAbsorb(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   const { id: projectId } = await params;
 
   // An empty body means "defaults"; a malformed one is refused with the parse
@@ -91,6 +98,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // allowed, 400 bad request). Anything else is an upstream failure.
     if (res.status === 400 || res.status === 402 || res.status === 403) status = res.status;
   } catch (err) {
+    // A state-lock timeout is not an absorb failure: the route answers 503.
+    if (isAbsorbStateLockTimeout(err)) throw err;
     failure = `absorb /scan threw: ${err instanceof Error ? err.message : String(err)}`;
   }
   console.error(`[API absorb/projects/[id]/absorb] absorb failed for ${projectId}: ${failure}`);
@@ -135,6 +144,9 @@ function scanAuth(req: NextRequest): Record<string, string> {
   if (forwarded.Authorization) return forwarded;
   return ABSORB_API_KEY ? { Authorization: `Bearer ${ABSORB_API_KEY}` } : {};
 }
+
+/** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
+export const POST = withAbsorbStateLock503(postProjectAbsorb);
 
 export function OPTIONS(request: Request) {
   return new Response(null, {
