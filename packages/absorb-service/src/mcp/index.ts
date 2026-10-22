@@ -38,6 +38,11 @@ export {
   setGraphRAGState,
   isGraphRAGReady,
   handleGraphRagTool,
+  runWithGraphRAGOwner,
+  currentGraphRAGOwner,
+  getGraphRAGStateStatus,
+  LOCAL_GRAPH_RAG_OWNER,
+  type GraphRagToolContext,
 } from './graph-rag-tools';
 export { oracleTools, handleOracleTool } from './oracle-tools';
 export {

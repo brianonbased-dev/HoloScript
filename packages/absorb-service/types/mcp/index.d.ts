@@ -51,4 +51,7 @@ export declare function isGraphRAGReady(): boolean;
 export declare function handleGraphRagTool(
   name: string,
   args: Record<string, unknown>,
+  ctx?: { ownerKey?: string | null },
 ): Promise<unknown | null>;
+
+export declare function runWithGraphRAGOwner<T>(ownerKey: string, fn: () => T): T;

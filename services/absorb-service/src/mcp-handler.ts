@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
@@ -13,8 +14,12 @@ const transports = new Map<string, SSEServerTransport>();
 /** Legacy SSE sessionId -> the verified caller who opened it (see sessionPrincipal). */
 const sessionUserMap = new Map<string, string>();
 
-/** Principal for a service-key request that forwards no end-user identity. */
-const SERVICE_PRINCIPAL = 'service:absorb-api-key';
+/**
+ * SSE session-binding marker for a service-key request that forwards no
+ * end-user identity. It binds a legacy SSE session to "the key" (as on main);
+ * it is NEVER a GraphRAG owner -- see graphOwner().
+ */
+const SERVICE_SESSION_BINDING = 'service:absorb-api-key';
 
 /**
  * The verified caller a legacy SSE session belongs to, or null.
@@ -27,8 +32,30 @@ const SERVICE_PRINCIPAL = 'service:absorb-api-key';
 function sessionPrincipal(req: Request): string | null {
   const authReq = req as AuthenticatedRequest;
   if (!authReq.authenticated) return null;
-  return authReq.userId ?? SERVICE_PRINCIPAL;
+  return authReq.userId ?? SERVICE_SESSION_BINDING;
 }
+
+/**
+ * GraphRAG owner for a request: only a verified, forwarded end-user identity.
+ * A key-only (or unauthenticated dev-mode) caller has no owner: its calls run
+ * stateless (fresh per-call slot, discarded afterwards) and graph-rag tools that
+ * need a saved graph refuse with owner_required (401). There is no shared
+ * service-key slot.
+ */
+export function graphOwner(req: Request): string | null {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.authenticated) return null;
+  const id = typeof authReq.userId === 'string' ? authReq.userId.trim() : '';
+  return id ? id : null;
+}
+
+/** Error returned to a graph-rag tool call with no owner. */
+export const OWNER_REQUIRED_ERROR = {
+  error: 'owner_required',
+  status: 401,
+  message:
+    'Graph tools need a saved graph owned by a forwarded user identity. Key-only calls are stateless and cannot read a saved graph.',
+} as const;
 
 /**
  * Live tool count registered on the most recent createMcpServer() call.
@@ -49,28 +76,66 @@ export function getRegisteredToolCount(): number {
   return _lastRegisteredToolCount;
 }
 
-async function createMcpServer(): Promise<McpServer> {
+/**
+ * Build an MCP server whose tool calls run as `principal`. GraphRAG absorb state
+ * is per owner in @holoscript/absorb-service: every call runs inside
+ * runWithGraphRAGOwner(principal) so an absorb lands in the caller's own slot, and
+ * the graph-rag family gets { ownerKey: principal } (no principal -> refused).
+ */
+async function createMcpServer(principal: string | null = null): Promise<McpServer> {
   const server = new McpServer({
     name: 'absorb-service',
     version: SERVICE_VERSION,
   });
 
-  type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
-  const registeredTools = new Map<string, { definition: any; handler: ToolHandler }>();
+  type ToolHandler = (
+    name: string,
+    args: Record<string, unknown>,
+    ctx?: { ownerKey: string | null },
+  ) => Promise<unknown>;
+  const registeredTools = new Map<
+    string,
+    { definition: any; handler: ToolHandler; ownerCtx: boolean }
+  >();
+  type RunWithOwner = <T>(ownerKey: string, fn: () => T) => T;
+  const ownerRunner: { run: RunWithOwner | null; reset: (() => void) | null } = {
+    run: null,
+    reset: null,
+  };
 
-  const addToolFamily = (definitions: unknown, handler: unknown) => {
+  const addToolFamily = (definitions: unknown, handler: unknown, ownerCtx = false) => {
     if (!Array.isArray(definitions) || typeof handler !== 'function') return;
     for (const definition of definitions) {
       if (!definition || typeof definition.name !== 'string') continue;
       registeredTools.set(definition.name, {
         definition,
         handler: handler as ToolHandler,
+        ownerCtx,
       });
     }
   };
 
   try {
     const mcpModule = (await import('@holoscript/absorb-service/mcp')) as Record<string, any>;
+    // Read defensively: a strict test mock throws on an export it does not define.
+    let ownerScope: unknown;
+    try {
+      ownerScope = mcpModule.runWithGraphRAGOwner;
+    } catch {
+      ownerScope = undefined;
+    }
+    if (typeof ownerScope === 'function') {
+      ownerRunner.run = ownerScope as RunWithOwner;
+    }
+    let ownerReset: unknown;
+    try {
+      ownerReset = mcpModule.resetGraphRAGState;
+    } catch {
+      ownerReset = undefined;
+    }
+    if (typeof ownerReset === 'function') {
+      ownerRunner.reset = ownerReset as () => void;
+    }
 
     addToolFamily(
       mcpModule.absorbServiceTools,
@@ -87,6 +152,7 @@ async function createMcpServer(): Promise<McpServer> {
     addToolFamily(
       mcpModule.graphRagTools,
       mcpModule.handleGraphRagTool ?? mcpModule.graphRagToolHandler,
+      true,
     );
 
   } catch (e: any) {
@@ -120,10 +186,33 @@ async function createMcpServer(): Promise<McpServer> {
     }
 
     try {
-      const result = await entry.handler(
-        name,
-        (request.params.arguments ?? {}) as Record<string, unknown>,
-      );
+      const args = (request.params.arguments ?? {}) as Record<string, unknown>;
+      if (entry.ownerCtx && !principal) {
+        return {
+          content: [{ type: 'text' as const, text: JSON.stringify(OWNER_REQUIRED_ERROR, null, 2) }],
+          isError: true,
+        };
+      }
+      const call = () =>
+        entry.ownerCtx
+          ? entry.handler(name, args, { ownerKey: principal })
+          : entry.handler(name, args);
+      const runWithOwner = ownerRunner.run;
+      let result: unknown;
+      if (principal && runWithOwner) {
+        result = await runWithOwner(principal, call);
+      } else if (runWithOwner) {
+        // No owner: stateless. Run in a fresh slot nobody else can name, then drop it.
+        const ephemeral = `ephemeral:${randomUUID()}`;
+        try {
+          result = await runWithOwner(ephemeral, call);
+        } finally {
+          const reset = ownerRunner.reset;
+          if (reset) runWithOwner(ephemeral, () => reset());
+        }
+      } else {
+        result = await call();
+      }
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
       };
@@ -191,7 +280,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
     sessionUserMap.delete(sessionId);
   });
 
-  const server = await createMcpServer();
+  const server = await createMcpServer(graphOwner(req));
   // connect() starts the transport (SSE headers + endpoint event). The extra
   // transport.start() that followed threw "already started" on every session.
   await server.connect(transport);
@@ -207,7 +296,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
  * remaining protocol-compatible with Streamable HTTP clients.
  */
 export async function handleMcpStreamableHttp(req: Request, res: Response): Promise<void> {
-  const server = await createMcpServer();
+  const server = await createMcpServer(graphOwner(req));
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
