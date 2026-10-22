@@ -3,7 +3,9 @@
  * The clone is replaced by a stand-in (clone-from-url.test.ts covers the
  * guards); the ledger stands in the same way absorb.credits.test.ts does.
  */
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CLAIM_HEARTBEAT_MS, PENDING_STALE_MS } from '../lib/absorb/importClaims.js';
+import { CLONE_TIMEOUT_MS } from '../lib/absorb/clone-from-url.js';
 import type { Request, Response } from 'express';
 
 const h = vi.hoisted(() => ({
@@ -480,4 +482,78 @@ describe('/scan repoUrl import: exception after the charge (Mapping H1, #617)', 
     expect(h.debits).toHaveLength(1);
     expect(h.clones).toBe(1);
   }, 30_000);
+});
+describe('/scan repoUrl import: heartbeat while cloning and scanning (Mapping, #617)', () => {
+  const key = `${USER}:${IMPORT.importId}`;
+  const ticks = async (n: number) => {
+    for (let i = 0; i < n; i++) await vi.advanceTimersByTimeAsync(60_000);
+  };
+  const until = async (ok: () => boolean) => {
+    for (let i = 0; i < 1000 && !ok(); i++) await new Promise((r) => setImmediate(r));
+    expect(ok()).toBe(true);
+  };
+  afterEach(() => vi.useRealTimers());
+
+  it('a takeover during a long clone is refused while the holder heartbeats', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const shared = sharedDb();
+    h.db = shared.db;
+    const a = await newInstance();
+    const b = await newInstance();
+    let open!: () => void;
+    h.cloneGate = new Promise<void>((resolve) => (open = resolve));
+    const slow = callOn(a, IMPORT); // A claims and is still cloning
+    await until(() => h.clones === 1);
+    const holderA = shared.rows.get(key)!.holder;
+    await ticks(20); // 20 minutes of cloning, past PENDING_STALE_MS (15 min)
+    expect(Date.now() - shared.rows.get(key)!.claimedAt).toBeLessThan(PENDING_STALE_MS);
+    const takeover = await callOn(b, IMPORT);
+    expect(takeover._status).toBe(409);
+    expect(takeover._json?.error).toBe('import_in_progress');
+    expect(shared.rows.get(key)!.holder).toBe(holderA);
+    open();
+    const done = await slow;
+    expect(done._status).toBe(200);
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(1);
+  }, 30_000);
+
+  it('after the holder dies (no heartbeat), a takeover is allowed and sees the ledger', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const shared = sharedDb();
+    h.db = shared.db;
+    const b = await newInstance();
+    // A died mid-import: its pending claim stopped refreshing.
+    shared.rows.set(key, {
+      status: 'pending', outcome: null, claimedAt: Date.now(), holder: 'dead-holder',
+      repoUrl: IMPORT.repoUrl, branch: IMPORT.branch,
+    });
+    await ticks(16);
+    const taken = await callOn(b, IMPORT);
+    expect(taken._status).toBe(200);
+    expect(shared.rows.get(key)!.holder).not.toBe('dead-holder');
+    expect(h.debits).toHaveLength(1);
+  }, 30_000);
+
+  it('after the holder dies having charged, the takeover sees the ledger and does not charge again', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval', 'Date'] });
+    const shared = sharedDb();
+    h.db = shared.db;
+    const b = await newInstance();
+    shared.rows.set(key, {
+      status: 'pending', outcome: null, claimedAt: Date.now(), holder: 'dead-holder',
+      repoUrl: IMPORT.repoUrl, branch: IMPORT.branch,
+    });
+    h.debits.push({ userId: USER, cents: 10, meta: { graphId: 'g-dead', shallow: true, importId: IMPORT.importId } });
+    await ticks(16);
+    const taken = await callOn(b, IMPORT);
+    expect(taken._status).toBe(409);
+    expect(taken._json?.error).toBe('import_already_charged');
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(0);
+  }, 30_000);
+
+  it('the stale cutoff outlasts the clone cap and many heartbeats', () => {
+    expect(PENDING_STALE_MS).toBeGreaterThan(CLONE_TIMEOUT_MS + 5 * CLAIM_HEARTBEAT_MS);
+  });
 });

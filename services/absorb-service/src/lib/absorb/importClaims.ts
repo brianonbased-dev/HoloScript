@@ -59,8 +59,25 @@ export interface ImportClaimStore {
 /** A pending claim older than this belongs to an instance that died mid-import. */
 export const PENDING_STALE_MS = 15 * 60 * 1000;
 
-/** A usage row in the ledger for this user and importId: the import was charged. */
-const CHARGED_SQL = `EXISTS (SELECT 1 FROM credit_transactions ct
+/**
+ * A live holder refreshes its claim this often for as long as it clones and
+ * scans (Mapping, #617), so the claim's age is the time since the holder last
+ * proved it was alive, never the length of the clone or scan. The clone is
+ * capped at CLONE_TIMEOUT_MS (60 s); the scan has no cap of its own, which is
+ * why the heartbeat is the guard and not a longer cutoff. PENDING_STALE_MS is
+ * 15 heartbeats, so a live holder would have to miss 14 refreshes in a row
+ * before a takeover could start.
+ */
+export const CLAIM_HEARTBEAT_MS = 60 * 1000;
+
+/**
+ * A usage row in the ledger for this user and importId: the import was charged.
+ * It must match the row deductCredits writes (packages/absorb-service
+ * src/credits/creditService.ts: type 'usage', the caller's metadata as given),
+ * and /scan passes metadata { graphId, shallow, importId }. Pinned by
+ * importClaims.ledger.test.ts against the real deductCredits.
+ */
+export const CHARGED_SQL = `EXISTS (SELECT 1 FROM credit_transactions ct
     WHERE ct.user_id::text = $1 AND ct.type = 'usage' AND ct.metadata->>'importId' = $2)`;
 
 /**

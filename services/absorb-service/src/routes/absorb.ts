@@ -6,6 +6,7 @@ import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { userUuid } from '../middleware/auth.js';
 import { cloneRepo, CloneRefusal } from '../lib/absorb/clone-from-url.js';
 import {
+  CLAIM_HEARTBEAT_MS,
   MemoryImportClaimStore,
   PostgresImportClaimStore,
   type ImportClaimStore,
@@ -210,26 +211,41 @@ async function claimAndScan(
   // the claim over, and this one must not charge.
   const stillHolder = () => store.confirm(account, importId, holder);
 
-  let outcome: ScanOutcome;
+  // Heartbeat (Mapping, #617): while this holder clones and scans, refresh the
+  // claim every CLAIM_HEARTBEAT_MS, so a long clone or scan never looks stale
+  // and cannot be taken over. Only a holder that stopped beating (died) ages
+  // past PENDING_STALE_MS, and a takeover still checks the ledger first.
+  const heartbeat = setInterval(() => {
+    store.confirm(account, importId, holder).catch((err: unknown) => {
+      console.error('[absorb/scan] import claim heartbeat failed:', (err as Error)?.message);
+    });
+  }, CLAIM_HEARTBEAT_MS);
+  heartbeat.unref?.();
+
   try {
-    outcome = await scanFromUrl(req, body, stillHolder);
-  } catch (err) {
-    await store.release(account, importId, holder).catch(() => undefined);
-    throw err;
-  }
-  if (outcome.status === 200) {
+    let outcome: ScanOutcome;
     try {
-      await store.complete(account, importId, holder, outcome);
+      outcome = await scanFromUrl(req, body, stillHolder);
     } catch (err) {
-      // The charge has landed; the claim stays pending, and the ledger row
-      // keeps any takeover from charging again (409 import_already_charged).
-      console.error('[absorb/scan] import charged but not recorded as done:', (err as Error)?.message);
+      await store.release(account, importId, holder).catch(() => undefined);
+      throw err;
     }
-  } else {
-    // Not delivered, so nothing was charged: let the import be retried.
-    await store.release(account, importId, holder).catch(() => undefined);
+    if (outcome.status === 200) {
+      try {
+        await store.complete(account, importId, holder, outcome);
+      } catch (err) {
+        // The charge has landed; the claim stays pending, and the ledger row
+        // keeps any takeover from charging again (409 import_already_charged).
+        console.error('[absorb/scan] import charged but not recorded as done:', (err as Error)?.message);
+      }
+    } else {
+      // Not delivered, so nothing was charged: let the import be retried.
+      await store.release(account, importId, holder).catch(() => undefined);
+    }
+    return outcome;
+  } finally {
+    clearInterval(heartbeat);
   }
-  return outcome;
 }
 async function scanFromUrl(
   req: Request,
