@@ -61,7 +61,7 @@ describe('/api/daemon/absorb: HTTP /scan fallback only when MCP clearly did not 
     callMcpToolMock.mockResolvedValue({
       ok: false,
       data: null,
-      error: 'MCP HTTP 406',
+      error: 'MCP HTTP 400',
       failure: 'http_4xx',
     });
     const res = await POST(post(IMPORT));

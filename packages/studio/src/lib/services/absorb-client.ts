@@ -23,8 +23,11 @@ export const ABSORB_API_KEY = getAbsorbKey() || getMcpApiKey() || '';
 /**
  * Why an MCP call failed, as far as the caller can tell.
  * - refused:  the connection was refused; the request never reached the tool.
- * - http_4xx: the MCP endpoint rejected the request (auth, Accept, bad args)
- *             before the tool ran.
+ * - http_4xx: a CLEAN refusal before any charge: 400/422 validation, 401/403
+ *             auth, 402 payment. Only these statuses (Treasurer's rule).
+ * - http_4xx_unclear: any other 4xx (404, 405, 406, 408, 409, 429, ...). It
+ *             does not prove the tool never ran, so it is treated as
+ *             'may have run' and is never retried on another paid path.
  * - http_5xx / timeout / rpc_error / network: the request was sent and the
  *             tool may have run (and charged). Callers must not retry these
  *             on another paid path.
@@ -34,6 +37,7 @@ export const ABSORB_API_KEY = getAbsorbKey() || getMcpApiKey() || '';
 export type McpFailure =
   | 'refused'
   | 'http_4xx'
+  | 'http_4xx_unclear'
   | 'http_5xx'
   | 'timeout'
   | 'rpc_error'
@@ -52,13 +56,26 @@ export function mcpClearlyDidNotRun(result: McpToolResult): boolean {
   return !result.ok && (result.failure === 'refused' || result.failure === 'http_4xx');
 }
 
+/**
+ * 4xx statuses that are a clean refusal before any charge (Treasurer's rule):
+ * validation 400/422, auth 401/403, payment 402. Nothing else falls back.
+ */
+export const CLEAN_REFUSAL_STATUSES: ReadonlySet<number> = new Set([400, 401, 402, 403, 422]);
+
+/**
+ * Error codes that prove the request never left this host: the connection was
+ * refused, or the host name never resolved. A reset, a timeout or any other
+ * error after connecting may mean the tool ran.
+ */
+const NOTHING_SENT_CODES: ReadonlySet<string> = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN']);
+
 function classifyThrown(err: unknown): McpFailure {
   const name = (err as { name?: unknown } | null)?.name;
   if (name === 'TimeoutError' || name === 'AbortError') return 'timeout';
   const code =
     (err as { cause?: { code?: unknown } } | null)?.cause?.code ??
     (err as { code?: unknown } | null)?.code;
-  if (code === 'ECONNREFUSED') return 'refused';
+  if (typeof code === 'string' && NOTHING_SENT_CODES.has(code)) return 'refused';
   return 'network';
 }
 
@@ -89,10 +106,16 @@ export async function callMcpTool(
       const text = await res.text().catch((err: unknown) => `(body unreadable: ${errorText(err)})`);
       const error = `MCP ${toolName} HTTP ${res.status}${res.statusText ? ` ${res.statusText}` : ''}: ${text.slice(0, 300)}`;
       console.error(`[absorb-client] ${error}`);
-      const failure: McpFailure = res.status >= 400 && res.status < 500 ? 'http_4xx' : 'http_5xx';
+      const failure: McpFailure = CLEAN_REFUSAL_STATUSES.has(res.status)
+        ? 'http_4xx'
+        : res.status >= 400 && res.status < 500
+          ? 'http_4xx_unclear'
+          : 'http_5xx';
       return { ok: false, data: null, error, failure };
     }
 
+    // A reset, an aborted or truncated stream, or an unparseable body throws
+    // here AFTER the request was sent: classified as 'network' (may have run).
     const json = await res.json();
     if (json.error) {
       const error = `MCP ${toolName} error: ${
