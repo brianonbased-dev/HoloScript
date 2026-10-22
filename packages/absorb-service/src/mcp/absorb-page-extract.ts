@@ -10,7 +10,6 @@ import {
   type IngestObservedPageResult,
   type ObservedPageExtractInput,
 } from '../ingest/ingestObservedPage';
-import { setKnowledgeExtractionGraph } from './knowledge-extraction-tools';
 
 export interface AbsorbPageExtractReceipt {
   kind: IngestObservedPageResult['kind'];
@@ -57,7 +56,6 @@ export async function foldObservedPageIntoAbsorbArgs(
 
   try {
     const ingested = await ingestObservedPage(pageExtractInput);
-    setKnowledgeExtractionGraph(ingested.graph);
     return {
       ok: true,
       args: {

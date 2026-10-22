@@ -4,12 +4,11 @@
  * Verifies the absorb_extract_knowledge tool handler.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { CodebaseGraph } from '../../engine/CodebaseGraph';
 import type { ScannedFile } from '../../engine/types';
 import {
   handleKnowledgeExtractionTool,
-  setKnowledgeExtractionGraph,
   knowledgeExtractionTools,
 } from '../knowledge-extraction-tools';
 
@@ -58,10 +57,6 @@ function parseResponse(result: { content: Array<{ type: string; text: string }> 
 // =============================================================================
 
 describe('knowledge-extraction-tools', () => {
-  afterEach(() => {
-    setKnowledgeExtractionGraph(null);
-  });
-
   describe('tool definitions', () => {
     it('exports exactly one tool', () => {
       expect(knowledgeExtractionTools).toHaveLength(1);
@@ -122,9 +117,7 @@ describe('knowledge-extraction-tools', () => {
           loc: 80,
         }),
       ]);
-      setKnowledgeExtractionGraph(graph);
-
-      const result = await handleKnowledgeExtractionTool('absorb_extract_knowledge', {});
+      const result = await handleKnowledgeExtractionTool('absorb_extract_knowledge', {}, { graph });
       const data = parseResponse(result);
 
       expect(data.success).toBe(true);
@@ -170,13 +163,11 @@ describe('knowledge-extraction-tools', () => {
         makeFile({ path: 'src/a.ts', loc: 100 }),
         makeFile({ path: 'src/b.ts', loc: 200 }),
       ]);
-      setKnowledgeExtractionGraph(graph);
-
-      const result = await handleKnowledgeExtractionTool('absorb_extract_knowledge', {
-        minConfidence: 0.9,
-        maxPerType: 2,
-        workspaceId: 'test-ws',
-      });
+      const result = await handleKnowledgeExtractionTool(
+        'absorb_extract_knowledge',
+        { minConfidence: 0.9, maxPerType: 2, workspaceId: 'test-ws' },
+        { graph }
+      );
       const data = parseResponse(result);
 
       expect(data.success).toBe(true);
@@ -188,6 +179,87 @@ describe('knowledge-extraction-tools', () => {
       const hasWs = data.entries.some((e: any) => e.id.includes('test-ws'));
       if (data.entries.length > 0) {
         expect(hasWs).toBe(true);
+      }
+    });
+  });
+  describe('tenant isolation (no shared module graph)', () => {
+    it("tenant B cannot read tenant A's last graph", async () => {
+      const secret = 'TenantAlphaSecretRoadmap';
+      const a = await handleKnowledgeExtractionTool('absorb_extract_knowledge', {
+        markdown: `# ${secret}\n\nalpha private planning notes for the alpha workspace only`,
+        title: secret,
+        workspaceId: 'tenant-a',
+      });
+      const aData = parseResponse(a);
+      expect(aData.success).toBe(true);
+      expect(JSON.stringify(aData)).toContain(secret);
+
+      // Tenant B calls right after with no input of its own.
+      const b = await handleKnowledgeExtractionTool('absorb_extract_knowledge', { workspaceId: 'tenant-b' });
+      const bText = JSON.stringify(parseResponse(b));
+      expect(parseResponse(b).error).toContain('No codebase graph loaded');
+      expect(bText).not.toContain(secret);
+      expect(bText).not.toContain('tenant-a');
+    });
+
+    it("an in-process caller's graph is used for that call only", async () => {
+      const graph = buildGraph([makeFile({ path: 'src/private-a.ts', loc: 120 })]);
+      const a = parseResponse(await handleKnowledgeExtractionTool('absorb_extract_knowledge', { workspaceId: 'tenant-a' }, { graph }));
+      expect(a.success).toBe(true);
+      const b = parseResponse(await handleKnowledgeExtractionTool('absorb_extract_knowledge', { workspaceId: 'tenant-b' }));
+      expect(b.error).toContain('No codebase graph loaded');
+      expect(JSON.stringify(b)).not.toContain('private-a');
+    });
+
+    it("tenant B's own page builds B's graph, never mixed with A's", async () => {
+      await handleKnowledgeExtractionTool('absorb_extract_knowledge', { markdown: '# AlphaOnlyHeading\n\nalpha text', workspaceId: 'tenant-a' });
+      const b = parseResponse(await handleKnowledgeExtractionTool('absorb_extract_knowledge', { markdown: '# BetaHeading\n\nbeta text', workspaceId: 'tenant-b' }));
+      expect(b.success).toBe(true);
+      expect(JSON.stringify(b)).not.toContain('AlphaOnlyHeading');
+    });
+
+    it('no module-level graph setter or getter is exported', async () => {
+      const mod = await import('../knowledge-extraction-tools');
+      expect(mod).not.toHaveProperty('setKnowledgeExtractionGraph');
+      expect(mod).not.toHaveProperty('getActiveGraph');
+      const idx = await import('../index');
+      expect(idx).not.toHaveProperty('setKnowledgeExtractionGraph');
+      expect(idx).not.toHaveProperty('getActiveGraph');
+    });
+  });
+
+  describe('caller url is never fetched server-side', () => {
+    it.each([
+      'http://169.254.169.254/latest/meta-data/',
+      'http://127.0.0.1:8080/admin',
+      'http://[fd00:ec2::254]/',
+      'https://example.com/page',
+    ])('url-only %s is refused without any network call', async (url) => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network must not be used'));
+      try {
+        const data = parseResponse(await handleKnowledgeExtractionTool('absorb_extract_knowledge', { url }));
+        expect(data.error).toBe('url_fetch_refused');
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        fetchSpy.mockRestore();
+      }
+    });
+
+    it('url with page text is only a label and is not fetched', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network must not be used'));
+      try {
+        const data = parseResponse(
+          await handleKnowledgeExtractionTool('absorb_extract_knowledge', {
+            url: 'http://169.254.169.254/latest/meta-data/',
+            bodyText: 'caller supplied page text about widgets',
+            title: 'Widgets',
+          })
+        );
+        expect(data.success).toBe(true);
+        expect(data.pageExtract.source).toBe('bodyText');
+        expect(fetchSpy).not.toHaveBeenCalled();
+      } finally {
+        fetchSpy.mockRestore();
       }
     });
   });

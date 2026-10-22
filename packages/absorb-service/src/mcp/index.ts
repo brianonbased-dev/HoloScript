@@ -43,6 +43,5 @@ export { oracleTools, handleOracleTool } from './oracle-tools';
 export {
   knowledgeExtractionTools,
   handleKnowledgeExtractionTool,
-  setKnowledgeExtractionGraph,
-  getActiveGraph,
+  type KnowledgeExtractionContext,
 } from './knowledge-extraction-tools';
