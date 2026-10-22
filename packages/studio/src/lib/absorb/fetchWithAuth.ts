@@ -26,7 +26,7 @@ export function getAbsorbHeaders(): HeadersInit {
  * session's GitHub token, the owner's own request would be refused.
  * Same mechanism as #618; #621 (Mapping N1) adds the absorb stream route.
  */
-const SESSION_ONLY_ROUTES: RegExp[] = [/^\/api\/absorb\/projects\/[^/?#]+\/absorb\/stream(?:[?#].*)?$/];
+const SESSION_ONLY_ROUTES: RegExp[] = [/^\/api\/absorb\/projects\/[^/?#]+\/absorb\/stream\/?(?:[?#].*)?$/];
 
 /** True for a route that must not receive the connector Authorization header. */
 export function isSessionOnlyRoute(url: string): boolean {

@@ -41,6 +41,11 @@ describe('absorbFetch connector header: stream is session-only (#621)', () => {
     expect(headers.get('Content-Type')).toBe('application/json');
   });
 
+  it('omits it on the trailing-slash stream path too (/absorb/stream/)', async () => {
+    await absorbFetch('/api/absorb/projects/p1/absorb/stream/', { headers: { Authorization: 'Bearer other' } });
+    expect(sentHeaders(fetchMock).has('Authorization')).toBe(false);
+  });
+
   it('omits it even when the caller passes one explicitly', async () => {
     await absorbFetch('/api/absorb/projects/p1/absorb/stream', { headers: { Authorization: 'Bearer other' } });
     expect(sentHeaders(fetchMock).has('Authorization')).toBe(false);
@@ -57,7 +62,10 @@ describe('absorbFetch connector header: stream is session-only (#621)', () => {
   it('matches the stream route by path, with or without origin or query', () => {
     expect(isSessionOnlyRoute('/api/absorb/projects/p1/absorb/stream')).toBe(true);
     expect(isSessionOnlyRoute('https://holoscript.studio/api/absorb/projects/p1/absorb/stream?cursor=3')).toBe(true);
+    expect(isSessionOnlyRoute('/api/absorb/projects/p1/absorb/stream/')).toBe(true);
+    expect(isSessionOnlyRoute('/api/absorb/projects/p1/absorb/stream/?cursor=3')).toBe(true);
     expect(isSessionOnlyRoute('/api/absorb/projects/p1/absorb/stream/extra')).toBe(false);
+    expect(isSessionOnlyRoute('/api/absorb/projects/p1/absorb/stream//')).toBe(false);
     expect(isSessionOnlyRoute('/api/absorb/projects')).toBe(false);
   });
 });
