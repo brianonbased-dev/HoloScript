@@ -32,7 +32,7 @@ import {
 import {
   findDurableAbsorbProject,
   listDurableAbsorbProjects,
-  removeDurableAbsorbProject,
+  removeUnabsorbedAbsorbProject,
   upsertDurableAbsorbProject,
   isAbsorbStateLockTimeout,
 } from '@/lib/absorb/projectState';
@@ -400,13 +400,25 @@ async function deleteImport(req: NextRequest): Promise<Response> {
   } catch {
     return NextResponse.json({ error: 'id must be a workspace id' }, { status: 400 });
   }
+  // N10 (#617): re-check "never absorbed" and remove the row in ONE locked
+  // step, before touching files, so an absorb recorded since the check above
+  // is never rolled back.
+  const removal = removeUnabsorbedAbsorbProject(id, ownerId);
+  if (removal === 'missing') {
+    return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+  }
+  if (removal === 'absorbed') {
+    return NextResponse.json(
+      { error: 'Workspace has a completed absorb; it is not a failed import.' },
+      { status: 409 }
+    );
+  }
   try {
     fs.rmSync(workspaceDir, { recursive: true, force: true });
   } catch (err) {
     console.error('[API workspace/import] rollback rm failed:', err);
     return NextResponse.json({ error: 'Could not remove workspace files' }, { status: 500 });
   }
-  removeDurableAbsorbProject(id, ownerId);
   return NextResponse.json({ ok: true, id, removed: true });
 }
 

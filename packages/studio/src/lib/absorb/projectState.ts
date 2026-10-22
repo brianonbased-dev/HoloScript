@@ -62,6 +62,12 @@ export interface RecordAbsorbJobInput {
   request?: Record<string, unknown>;
   result?: unknown;
   error?: unknown;
+  /**
+   * H2 (#617): compare-and-clear this pending importId in the SAME locked
+   * write as the job record, so a successful charge is never left with the id
+   * cleared but no job recorded.
+   */
+  clearPendingImportId?: { ownerId: string; importId: string };
 }
 
 interface AbsorbProjectStateFile {
@@ -310,9 +316,24 @@ let heldLockToken: string | null = null;
  * PER PROCESS / PER VOLUME: this coordinates processes that share one
  * volume. Several replicas need a DB-backed lock (follow-up card).
  * Re-entrant within one process (callers are synchronous).
+ *
+ * N7: the locked body MUST be synchronous. Re-entrancy relies on one
+ * in-process holder at a time, and an async body would release the lock at
+ * its first await while still writing. A body that returns a thenable throws.
  */
+function assertSyncLockBody<T>(result: T): T {
+  if (
+    result !== null &&
+    (typeof result === 'object' || typeof result === 'function') &&
+    typeof (result as { then?: unknown }).then === 'function'
+  ) {
+    throw new Error('withStateLock body must be synchronous (returned a thenable)');
+  }
+  return result;
+}
+
 function withStateLock<T>(fn: () => T): T {
-  if (heldLockToken !== null) return fn();
+  if (heldLockToken !== null) return assertSyncLockBody(fn());
   const lockPath = getAbsorbStateLockPath();
   fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   const token = `${process.pid}-${randomUUID()}`;
@@ -325,7 +346,7 @@ function withStateLock<T>(fn: () => T): T {
   }
   heldLockToken = token;
   try {
-    return fn();
+    return assertSyncLockBody(fn());
   } finally {
     heldLockToken = null;
     __releaseStateLock(lockPath, token);
@@ -443,6 +464,29 @@ export function upsertDurableAbsorbProject(
     }
     writeState(state);
     return project;
+  });
+}
+
+/**
+ * N10 (#617): DELETE /api/workspace/import's "never absorbed" check and the
+ * row removal in ONE locked step, so an absorb recorded in between is never
+ * deleted. 'absorbed' means a successful absorb is on record (refuse, 409).
+ */
+export function removeUnabsorbedAbsorbProject(
+  id: string,
+  ownerId: string
+): 'removed' | 'absorbed' | 'missing' {
+  return withStateLock(() => {
+    const state = readState();
+    const index = state.projects.findIndex((p) => p.id === id && p.ownerId === ownerId);
+    if (index < 0) return 'missing';
+    const project = state.projects[index];
+    const absorbed =
+      project.lastAbsorbedAt !== null || project.absorbJobs.some((job) => job.status !== 'failed');
+    if (absorbed) return 'absorbed';
+    state.projects.splice(index, 1);
+    writeState(state);
+    return 'removed';
   });
 }
 
@@ -572,6 +616,14 @@ export function recordAbsorbJob(input: RecordAbsorbJobInput): {
     project.status = projectStatusFromJob(status);
     project.updatedAt = now;
     if (!input.error) project.lastAbsorbedAt = now;
+    const clear = input.clearPendingImportId;
+    if (
+      clear &&
+      project.ownerId === clear.ownerId &&
+      project.metadata.pendingImportId === clear.importId
+    ) {
+      project.metadata = { ...project.metadata, pendingImportId: null };
+    }
     state.projects[projectIndex] = project;
     writeState(state);
     return { project, job };

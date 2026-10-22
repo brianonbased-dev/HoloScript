@@ -81,15 +81,27 @@ async function postProjectAbsorb(
     });
     if (res.ok) {
       const data = await res.json();
-      recordAbsorbJob({
-        projectId,
-        projectPath: scanPath,
-        source: 'http',
-        depth: body.depth,
-        tier: body.tier,
-        request: body,
-        result: data,
-      });
+      // H2 (#617): absorb may have charged. A state-lock timeout here must not
+      // become an error that invites a re-charge: answer 200 with the result
+      // and recordPending, and log. This route has no importId, so absorb
+      // cannot dedupe a client retry; see the PR body.
+      try {
+        recordAbsorbJob({
+          projectId,
+          projectPath: scanPath,
+          source: 'http',
+          depth: body.depth,
+          tier: body.tier,
+          request: body,
+          result: data,
+        });
+      } catch (err) {
+        if (!isAbsorbStateLockTimeout(err)) throw err;
+        console.error(
+          `[API absorb/projects/[id]/absorb] scan succeeded for ${projectId} but the job record failed: state lock timeout`
+        );
+        return NextResponse.json({ ...data, recordPending: true });
+      }
       return NextResponse.json(data);
     }
     const text = await res.text().catch((err: unknown) => `(body unreadable: ${String(err)})`);

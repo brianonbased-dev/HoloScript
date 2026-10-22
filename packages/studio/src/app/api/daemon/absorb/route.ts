@@ -182,14 +182,27 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
     });
     if (res.ok) {
       const data = await res.json();
-      clearPendingAbsorbImportId(workspaceId, ownerId, importId);
-      recordAbsorbJob({
-        projectId: workspaceId,
-        source: 'http',
-        depth: body.depth,
-        request: { workspaceId, importId, depth: body.depth },
-        result: data,
-      });
+      // H2 (#617): absorb has charged. Record the job and compare-and-clear
+      // the pending id in ONE locked write. If the lock times out, nothing was
+      // written: the id stays pending, so a retry replays at cost 0, and the
+      // caller still gets the result (200), never a 503 that invites a
+      // re-charge.
+      try {
+        recordAbsorbJob({
+          projectId: workspaceId,
+          source: 'http',
+          depth: body.depth,
+          request: { workspaceId, importId, depth: body.depth },
+          result: data,
+          clearPendingImportId: { ownerId, importId },
+        });
+      } catch (err) {
+        if (!isAbsorbStateLockTimeout(err)) throw err;
+        console.error(
+          `[API daemon/absorb] absorb succeeded for ${workspaceId} (importId ${importId}) but the job record failed: state lock timeout; pending importId kept`
+        );
+        return NextResponse.json({ ...data, importId, recordPending: true });
+      }
       return NextResponse.json({ ...data, importId });
     }
     const text = await res.text().catch((err: unknown) => `(body unreadable: ${String(err)})`);
