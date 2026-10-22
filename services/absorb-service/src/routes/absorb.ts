@@ -9,6 +9,8 @@ import {
   CLAIM_HEARTBEAT_MS,
   MemoryImportClaimStore,
   PostgresImportClaimStore,
+  RefusingImportClaimStore,
+  databaseRequiredRefusal,
   type ImportClaimStore,
 } from '../lib/absorb/importClaims.js';
 
@@ -66,7 +68,12 @@ const memoryClaims = new MemoryImportClaimStore();
 
 function importClaimStore(): ImportClaimStore {
   const db = getDb();
-  if (!db) return memoryClaims; // no database (local dev): this process only
+  if (!db) {
+    // Production without a database fails closed (503, nothing charged);
+    // server.ts also refuses to start. Local dev: this process only.
+    const refusal = databaseRequiredRefusal();
+    return refusal ? new RefusingImportClaimStore(refusal) : memoryClaims;
+  }
   return new PostgresImportClaimStore(async (text, params) =>
     db.$client.query(text, params as unknown[])
   );
@@ -122,7 +129,7 @@ router.post('/scan', async (req: Request, res: Response) => {
 
 const replayed = (o: ScanOutcome): ScanOutcome => ({
   status: o.status,
-  json: { ...o.json, cost: 0, replayed: true },
+  json: { ...o.json, cost: 0, costCents: 0, replayed: true },
 });
 
 /** URL import, at most once per (account, importId), across instances. */
@@ -210,6 +217,9 @@ async function claimAndScan(
   // holder is never stale when it charges). False means another instance took
   // the claim over, and this one must not charge.
   const stillHolder = () => store.confirm(account, importId, holder);
+  // The same check inside the debit's transaction (CoS, #617): a stall between
+  // the confirm above and the debit cannot let a taken-over holder charge.
+  const chargeGuard = store.chargeGuard(account, importId, holder);
 
   // Heartbeat (Mapping, #617): while this holder clones and scans, refresh the
   // claim every CLAIM_HEARTBEAT_MS, so a long clone or scan never looks stale
@@ -225,7 +235,7 @@ async function claimAndScan(
   try {
     let outcome: ScanOutcome;
     try {
-      outcome = await scanFromUrl(req, body, stillHolder);
+      outcome = await scanFromUrl(req, body, stillHolder, chargeGuard);
     } catch (err) {
       await store.release(account, importId, holder).catch(() => undefined);
       throw err;
@@ -250,7 +260,8 @@ async function claimAndScan(
 async function scanFromUrl(
   req: Request,
   body: ScanBody,
-  beforeCharge?: () => Promise<boolean>
+  beforeCharge?: () => Promise<boolean>,
+  chargeGuard?: (tx: unknown) => Promise<boolean>
 ): Promise<ScanOutcome> {
   let repo;
   try {
@@ -273,7 +284,7 @@ async function scanFromUrl(
   try {
     // The clone dir is ours (made just now under absorb's clone root), so the
     // caller-path root check does not apply. The URL is the cache identity.
-    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}`, beforeCharge);
+    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}`, beforeCharge, chargeGuard);
   } finally {
     await repo.cleanup();
   }
@@ -296,7 +307,8 @@ async function scanAndCharge(
   body: ScanBody,
   rootDir: string,
   cacheKey: string,
-  beforeCharge?: () => Promise<boolean>
+  beforeCharge?: () => Promise<boolean>,
+  chargeGuard?: (tx: unknown) => Promise<boolean>
 ): Promise<ScanOutcome> {
   const shallow = body.shallow;
   // A saved scan is reused only for the account that paid for it.
@@ -320,6 +332,7 @@ async function scanAndCharge(
               stats: entry.stats,
               fileCount: entry.fileCount,
               cost: 0, // Already paid by this caller. Not charged again.
+              costCents: 0,
               cached: true,
               topology: entry.topology,
             },
@@ -396,7 +409,8 @@ async function scanAndCharge(
 
   if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
     const creditsModule = await loadCredits();
-    const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
+    const { requireCredits, isCreditError, deductCredits, CHARGE_GUARD_REFUSED } =
+      (creditsModule as any).default || creditsModule;
     const userId = scanUserId;
     const opType = shallow ? 'absorb_shallow' : 'absorb_deep';
     
@@ -429,12 +443,29 @@ async function scanAndCharge(
         },
       };
     }
-    const debit = await deductCredits(
-      userId,
-      creditCheck.costCents,
-      `Codebase scan: ${cacheKey}`,
-      { graphId, shallow, importId: body.importId ?? null }
-    );
+    const claimLost: ScanOutcome = {
+      status: 409,
+      json: {
+        error: 'import_claim_lost',
+        message: 'Another request took over this import. This one was not charged.',
+      },
+    };
+    let debit;
+    try {
+      debit = await deductCredits(
+        userId,
+        creditCheck.costCents,
+        `Codebase scan: ${cacheKey}`,
+        { graphId, shallow, importId: body.importId ?? null },
+        chargeGuard ? { guard: chargeGuard } : undefined
+      );
+    } catch (err) {
+      // The guard ran in the debit's transaction and found the claim gone:
+      // rolled back, nothing charged.
+      const code = (err as { code?: unknown } | null)?.code;
+      if (code === (CHARGE_GUARD_REFUSED ?? 'charge_guard_refused')) return claimLost;
+      throw err;
+    }
     if (!debit) {
       return { status: 402, json: { error: 'Not enough credits for this scan.' } };
     }
@@ -460,7 +491,9 @@ async function scanAndCharge(
     graphId,
     stats: scanResult.stats,
     fileCount: scanResult.files?.length ?? 0,
+    // `cost` is in CENTS (credits at $0.01 each, as #569). costCents says so.
     cost: chargedCents,
+    costCents: chargedCents,
     cached: false,
     topology,
     },

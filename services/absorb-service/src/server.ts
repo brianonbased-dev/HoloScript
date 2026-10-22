@@ -241,6 +241,11 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 // --- Initialize credit system DB provider ---
 async function initializeCreditSystem(): Promise<void> {
+  // Production must have a database: the in-memory import claims have no
+  // ledger check and no billing (Treasurer, #617). Refuse to start instead.
+  const { databaseRequiredRefusal } = await import('./lib/absorb/importClaims.js');
+  const refusal = databaseRequiredRefusal();
+  if (refusal) throw new Error(refusal);
   const db = getDb();
   if (db) {
     try {

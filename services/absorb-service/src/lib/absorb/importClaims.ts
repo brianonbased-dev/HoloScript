@@ -31,6 +31,7 @@
  * for this process only (no ledger, so guard 1 is the confirm step only).
  */
 import { randomUUID } from 'node:crypto';
+import { sql } from 'drizzle-orm';
 import type { SqlQuery } from '../../middleware/rateLimiter.js';
 
 export type ScanOutcome = { status: number; json: Record<string, unknown> };
@@ -50,10 +51,44 @@ export interface ImportClaimStore {
   claim(userId: string, importId: string, ref: ImportRef): Promise<ClaimResult>;
   /** True (and the claim refreshed) only while `holder` still holds a pending claim. */
   confirm(userId: string, importId: string, holder: string): Promise<boolean>;
+  /**
+   * The same confirm, run on the debit's own transaction (deductCredits
+   * `opts.guard`), so "still the holder" and the debit commit or roll back
+   * together. The UPDATE row-locks the claim until that transaction ends, so a
+   * takeover waits for it and then sees a fresh claim and the usage row.
+   */
+  chargeGuard(userId: string, importId: string, holder: string): (tx: unknown) => Promise<boolean>;
   /** Record the delivered result; later claims replay it. Ignored for a non-holder. */
   complete(userId: string, importId: string, holder: string, outcome: ScanOutcome): Promise<void>;
   /** Drop a pending claim after a failure, so the import can be retried. Ignored for a non-holder. */
   release(userId: string, importId: string, holder: string): Promise<void>;
+}
+
+/**
+ * Production never runs the memory store: it has no ledger check (a stale
+ * takeover and a release never consult credit_transactions), so it is for local
+ * dev with no billing only. Treasurer, #617.
+ */
+export function databaseRequiredRefusal(env: NodeJS.ProcessEnv = process.env): string | null {
+  return env.NODE_ENV === 'production' && !env.DATABASE_URL
+    ? 'DATABASE_URL is required in production: absorb will not run imports or charges on the in-memory claim store.'
+    : null;
+}
+
+/** A store that refuses every claim (fails closed: 503, never charged). */
+export class RefusingImportClaimStore implements ImportClaimStore {
+  constructor(private readonly reason: string) {}
+  async claim(): Promise<ClaimResult> {
+    throw new Error(this.reason);
+  }
+  async confirm(): Promise<boolean> {
+    return false;
+  }
+  chargeGuard(): (tx: unknown) => Promise<boolean> {
+    return async () => false;
+  }
+  async complete(): Promise<void> {}
+  async release(): Promise<void> {}
 }
 
 /** A pending claim older than this belongs to an instance that died mid-import. */
@@ -166,6 +201,19 @@ export class PostgresImportClaimStore implements ImportClaimStore {
     return rows.length > 0;
   }
 
+  chargeGuard(userId: string, importId: string, holder: string): (tx: unknown) => Promise<boolean> {
+    return async (tx: unknown) => {
+      // CONFIRM_CLAIM_SQL, on the transaction's own client: holder- and
+      // pending-gated, and it holds the claim row's lock until commit.
+      const res = (await (tx as { execute: (q: unknown) => Promise<{ rows?: unknown[] }> }).execute(
+        sql`UPDATE absorb_import_claims SET claimed_at = now()
+WHERE user_id = ${userId} AND import_id = ${importId} AND holder = ${holder} AND status = 'pending'
+RETURNING import_id`
+      )) as { rows?: unknown[] };
+      return (res.rows?.length ?? 0) > 0;
+    };
+  }
+
   async complete(userId: string, importId: string, holder: string, outcome: ScanOutcome): Promise<void> {
     await this.query(COMPLETE_CLAIM_SQL, [userId, importId, holder, JSON.stringify(outcome)]);
   }
@@ -208,6 +256,11 @@ export class MemoryImportClaimStore implements ImportClaimStore {
     if (!row || row.holder !== holder || row.status !== 'pending') return false;
     row.at = Date.now();
     return true;
+  }
+
+  /** One process, no database: the check runs synchronously before the debit. Local dev only. */
+  chargeGuard(userId: string, importId: string, holder: string): (tx: unknown) => Promise<boolean> {
+    return () => this.confirm(userId, importId, holder);
   }
 
   async complete(userId: string, importId: string, holder: string, outcome: ScanOutcome): Promise<void> {

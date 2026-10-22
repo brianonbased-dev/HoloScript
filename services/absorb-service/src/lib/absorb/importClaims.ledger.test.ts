@@ -7,9 +7,9 @@
  * creditTransactions table, and checked against the predicate CHARGED_SQL
  * states. Nothing here is a hand-made row.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { getTableColumns } from 'drizzle-orm';
-import { deductCredits, setDbProvider } from '../../../../../packages/absorb-service/src/credits/creditService';
+import { ChargeGuardRefused, deductCredits, setDbProvider } from '../../../../../packages/absorb-service/src/credits/creditService';
 import { creditTransactions } from '../../../../../packages/absorb-service/src/schema';
 import { CHARGED_SQL } from './importClaims.js';
 
@@ -81,5 +81,51 @@ describe('CHARGED_SQL matches the row the real deductCredits writes (Mapping, #6
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(new URL('../../routes/absorb.ts', import.meta.url), 'utf8');
     expect(src).toMatch(/\{ graphId, shallow, importId: body\.importId \?\? null \}/);
+  });
+});
+describe('deductCredits opts.guard: the guard and the debit share one transaction (CoS, #617)', () => {
+  function txDb() {
+    const log: string[] = [];
+    const tx = {
+      update: () => { log.push('update'); const c = { set: () => c, where: () => c, returning: async () => [{ balanceCents: 90 }] }; return c; },
+      insert: () => ({ values: async () => void log.push('insert') }),
+    };
+    const db = {
+      update: () => { throw new Error('the debit must run on the transaction, not the pool'); },
+      insert: () => { throw new Error('the ledger row must be written on the transaction'); },
+      transaction: vi.fn(async (fn: (t: typeof tx) => Promise<unknown>) => {
+        log.push('begin');
+        try { const r = await fn(tx); log.push('commit'); return r; } catch (e) { log.push('rollback'); throw e; }
+      }),
+    };
+    return { db, tx, log };
+  }
+
+  it('guard true: guard, debit and ledger row on the same transaction, then commit', async () => {
+    const { db, tx, log } = txDb();
+    setDbProvider(() => db);
+    try {
+      const guard = vi.fn(async (t: unknown) => { expect(t).toBe(tx); log.push('guard'); return true; });
+      expect(await deductCredits(USER, 10, 'scan', { importId: IMPORT_ID }, { guard })).toEqual({ balanceCents: 90 });
+      expect(log).toEqual(['begin', 'guard', 'update', 'insert', 'commit']);
+    } finally { setDbProvider(() => null); }
+  });
+
+  it('guard false: rollback, ChargeGuardRefused, no debit and no ledger row', async () => {
+    const { db, log } = txDb();
+    setDbProvider(() => db);
+    try {
+      await expect(deductCredits(USER, 10, 'scan', { importId: IMPORT_ID }, { guard: async () => false })).rejects.toBeInstanceOf(ChargeGuardRefused);
+      expect(log).toEqual(['begin', 'rollback']);
+    } finally { setDbProvider(() => null); }
+  });
+
+  it('a guarded charge on a client with no transaction() fails closed (not charged)', async () => {
+    const { db } = txDb();
+    const noTx = { update: db.update, insert: db.insert };
+    setDbProvider(() => noTx);
+    try {
+      await expect(deductCredits(USER, 10, 'scan', {}, { guard: async () => true })).rejects.toBeInstanceOf(ChargeGuardRefused);
+    } finally { setDbProvider(() => null); }
   });
 });

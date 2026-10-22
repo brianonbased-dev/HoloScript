@@ -128,4 +128,34 @@ describe('/api/daemon/absorb: owner-checked, sends repoUrl (never a path) to abs
     const res = await POST(post('{"x":'));
     expect(res.status).toBe(400);
   });
+
+  it('no GitHub token: 401, nothing sent (the service key never goes alone; Treasurer A)', async () => {
+    m.ghToken = null;
+    const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(res.status).toBe(401);
+    expect((await res.json()).reason).toBe('absorb_no_user_credential');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('the absorb call has a timeout; a cut call is "outcome unknown" (502), not a refusal', async () => {
+    const res0 = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(res0.status).toBe(200);
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    fetchMock.mockRejectedValueOnce(new DOMException('The operation timed out.', 'TimeoutError'));
+    const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(res.status).toBe(502);
+    expect((await res.json()).reason).toBe('absorb_outcome_unknown');
+  });
+
+  it("absorb's 409 is passed through with its own code and message (Treasurer, #617)", async () => {
+    for (const code of ['import_in_progress', 'import_already_charged', 'import_claim_lost', 'import_id_reused']) {
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: code, message: 'x' }), { status: 409 }));
+      const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+      expect(res.status).toBe(409);
+      const body = await res.json();
+      expect(body.reason).toBe(code);
+      expect(body.error).not.toContain('did not answer');
+    }
+  });
 });

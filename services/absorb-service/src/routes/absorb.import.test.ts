@@ -23,6 +23,9 @@ const h = vi.hoisted(() => ({
   order: [] as string[],
   // Throw right after the ledger row lands (Mapping H1: exception after the debit).
   throwAfterDebit: false,
+  // Runs at the start of deductCredits, after the route's own confirm (CoS: a
+  // stall between the holder check and the debit).
+  beforeDebit: null as null | (() => void),
 }));
 
 vi.mock('@holoscript/absorb-service/credits', () => {
@@ -30,7 +33,28 @@ vi.mock('@holoscript/absorb-service/credits', () => {
     requireCredits: vi.fn(async (userId: string) =>
       h.balance >= 10 ? { userId, costCents: 10, operationType: 'absorb_shallow' } : { error: 'Insufficient credits', status: 402 }
     ),
-    deductCredits: vi.fn(async (userId: string, cents: number, _d: string, meta: Record<string, unknown>) => {
+    deductCredits: vi.fn(async (
+      userId: string,
+      cents: number,
+      _d: string,
+      meta: Record<string, unknown>,
+      opts?: { guard?: (tx: unknown) => Promise<boolean> }
+    ) => {
+      h.beforeDebit?.();
+      if (opts?.guard) {
+        // The real deductCredits runs the guard on its transaction's client;
+        // here that client is the shared database's query, fed the same SQL.
+        const { PgDialect } = await import('drizzle-orm/pg-core');
+        const dialect = new PgDialect();
+        const client = (h.db as { $client: { query: (t: string, p: unknown[]) => Promise<{ rows: unknown[] }> } } | null)?.$client;
+        const tx = {
+          execute: async (q: unknown) => {
+            const { sql, params } = dialect.sqlToQuery(q as never);
+            return client!.query(sql, params);
+          },
+        };
+        if (!(await opts.guard(tx))) throw Object.assign(new Error('guard refused'), { code: 'charge_guard_refused' });
+      }
       if (h.balance < cents) return null;
       h.balance -= cents;
       h.debits.push({ userId, cents, meta });
@@ -39,6 +63,7 @@ vi.mock('@holoscript/absorb-service/credits', () => {
       return { balanceCents: h.balance };
     }),
     isCreditError: (r: Record<string, unknown>) => 'error' in r && 'status' in r,
+    CHARGE_GUARD_REFUSED: 'charge_guard_refused',
   };
   return { ...api, default: api };
 });
@@ -102,6 +127,7 @@ beforeEach(async () => {
   h.cloneGate = null;
   h.order = [];
   h.throwAfterDebit = false;
+  h.beforeDebit = null;
   reset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
   const { CloneRefusal } = await import('../lib/absorb/clone-from-url.js');
@@ -555,5 +581,73 @@ describe('/scan repoUrl import: heartbeat while cloning and scanning (Mapping, #
 
   it('the stale cutoff outlasts the clone cap and many heartbeats', () => {
     expect(PENDING_STALE_MS).toBeGreaterThan(CLONE_TIMEOUT_MS + 5 * CLAIM_HEARTBEAT_MS);
+  });
+});
+describe('/scan repoUrl import: holder check and debit in one transaction (CoS, #617)', () => {
+  const key = `${USER}:${IMPORT.importId}`;
+
+  it('the holder is replaced between its confirm and the debit: it does not charge, one debit total', async () => {
+    const shared = sharedDb();
+    h.db = shared.db;
+    const a = await newInstance();
+    // A has passed its own confirm; then it stalls (GC, event loop, DB wait)
+    // past PENDING_STALE_MS, B takes the claim over and charges.
+    h.beforeDebit = () => {
+      h.beforeDebit = null;
+      const row = shared.rows.get(key)!;
+      row.holder = 'holder-b';
+      h.debits.push({ userId: USER, cents: 10, meta: { graphId: 'g-b', shallow: true, importId: IMPORT.importId } });
+    };
+    const late = await callOn(a, IMPORT);
+    expect(late._status).toBe(409);
+    expect(late._json?.error).toBe('import_claim_lost');
+    expect(h.debits).toHaveLength(1); // B's only
+    expect(h.debits[0].meta.graphId).toBe('g-b');
+    expect(shared.rows.get(key)!.holder).toBe('holder-b');
+  }, 30_000);
+
+  it('a holder that keeps its claim is charged once, through the guarded transaction', async () => {
+    const shared = sharedDb();
+    h.db = shared.db;
+    const a = await newInstance();
+    expect((await callOn(a, IMPORT))._status).toBe(200);
+    expect(h.debits).toHaveLength(1);
+    const confirms = shared.db.$client.query.mock.calls.filter(([s]) => String(s).startsWith('UPDATE absorb_import_claims SET claimed_at'));
+    expect(confirms.length).toBeGreaterThanOrEqual(2); // the route's confirm and the in-transaction guard
+  }, 30_000);
+});
+
+describe('/scan repoUrl import: production needs a database; cost is labeled cents (Treasurer, #617)', () => {
+  it('NODE_ENV=production with no DATABASE_URL: 503 before any clone, never the memory store', async () => {
+    const saved = { env: process.env.NODE_ENV, url: process.env.DATABASE_URL };
+    process.env.NODE_ENV = 'production';
+    delete process.env.DATABASE_URL;
+    try {
+      const r = await call(IMPORT);
+      expect(r._status).toBe(503);
+      expect(r._json?.error).toBe('import_guard_unavailable');
+      expect(h.clones).toBe(0);
+      expect(h.debits).toHaveLength(0);
+    } finally {
+      process.env.NODE_ENV = saved.env;
+      if (saved.url === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = saved.url;
+    }
+  });
+
+  it('databaseRequiredRefusal: refuses only production without DATABASE_URL', async () => {
+    const { databaseRequiredRefusal } = await import('../lib/absorb/importClaims.js');
+    expect(databaseRequiredRefusal({ NODE_ENV: 'production' } as NodeJS.ProcessEnv)).toMatch(/DATABASE_URL is required/);
+    expect(databaseRequiredRefusal({ NODE_ENV: 'production', DATABASE_URL: 'postgres://x' } as NodeJS.ProcessEnv)).toBeNull();
+    expect(databaseRequiredRefusal({ NODE_ENV: 'development' } as NodeJS.ProcessEnv)).toBeNull();
+  });
+
+  it('a charged import reports costCents next to cost; a replay reports costCents 0', async () => {
+    const first = await call(IMPORT);
+    expect(first._status).toBe(200);
+    expect(first._json?.cost).toBe(10);
+    expect(first._json?.costCents).toBe(10);
+    const again = await call(IMPORT);
+    expect(again._json?.costCents).toBe(0);
   });
 });

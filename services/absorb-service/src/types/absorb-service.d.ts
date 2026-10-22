@@ -201,8 +201,10 @@ declare module '@holoscript/absorb-service/credits' {
     userId: string,
     amountCents: number,
     description: string,
-    metadata?: Record<string, unknown>
+    metadata?: Record<string, unknown>,
+    opts?: { guard?: (tx: any) => Promise<boolean> }
   ) => Promise<{ balanceCents: number } | null>;
+  export const CHARGE_GUARD_REFUSED: 'charge_guard_refused';
   export const addCredits: (
     userId: string,
     amountCents: number,

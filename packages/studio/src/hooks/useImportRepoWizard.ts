@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useGitHubRepos } from '@/hooks/useGitHubRepos';
 import type { GitHubRepoItem } from '@/hooks/useGitHubRepos';
 import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
@@ -86,6 +86,18 @@ interface WorkspaceImportResponse {
   paperUnlockState?: PaperUnlockState | null;
 }
 
+/**
+ * Absorb answers these BEFORE any charge (bad URL or branch, no credential,
+ * not enough credits, refused, not found, too large, clone timeout). Only these
+ * roll a new workspace back.
+ */
+const CLEAN_ABSORB_REFUSALS: ReadonlySet<number> = new Set([400, 401, 402, 403, 404, 413, 504]);
+
+/** One importId per workspace: a retry of the same workspace replays, never recharges. */
+export function absorbImportIdFor(workspaceId: string): string {
+  return `imp-${workspaceId}`;
+}
+
 export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState {
   const addWorkspace = useWorkspaceStore((s) => s.addWorkspace);
   const updateWorkspace = useWorkspaceStore((s) => s.updateWorkspace);
@@ -150,6 +162,13 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
   }, [selectedRepo, useManual]);
 
   // ── Import flow (Step 2) ──
+  // An absorb whose outcome is unknown (timeout, 5xx, 409, network error) may
+  // have been charged. Its workspace is kept, and the next attempt re-asks
+  // absorb with the SAME workspace and importId, which replays a finished
+  // import at cost 0 instead of cloning again and charging again
+  // (Treasurer, #617).
+  const pendingAbsorbRef = useRef<{ repoUrl: string; cloneResult: WorkspaceImportResponse } | null>(null);
+
   const runImport = useCallback(async () => {
     if (!repoUrl) return;
 
@@ -161,7 +180,20 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     // so the old catch never saw the workspace it had just created.
     let createdWsId: string | null = null;
     let absorbSucceeded = false;
+    let absorbAttempted = false;
+    let cleanRefusal = false;
+    const pending = pendingAbsorbRef.current?.repoUrl === repoUrl ? pendingAbsorbRef.current : null;
+    let cloneForRetry: WorkspaceImportResponse | null = pending?.cloneResult ?? null;
     try {
+      let cloneResult: WorkspaceImportResponse;
+      if (pending) {
+        // Retry of an absorb with an unknown outcome: no new clone, same ids.
+        cloneResult = pending.cloneResult;
+        createdWsId = cloneResult.id;
+        setWorkspaceId(cloneResult.id);
+        updateWorkspace(cloneResult.id, { status: 'absorbing', error: null });
+        setImportStatus('absorbing');
+      } else {
       // Phase 1: Clone
       const cloneRes = await fetch('/api/workspace/import', {
         method: 'POST',
@@ -179,9 +211,10 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         throw new Error(body.error ?? `Clone failed: HTTP ${cloneRes.status}`);
       }
 
-      const cloneResult = (await cloneRes.json()) as WorkspaceImportResponse;
+      cloneResult = (await cloneRes.json()) as WorkspaceImportResponse;
+      cloneForRetry = cloneResult;
+      createdWsId = cloneResult.id;
       const wsId = cloneResult.id;
-      createdWsId = wsId;
       const candidates = cloneResult.conversionCandidates ?? [];
       setWorkspaceId(wsId);
       setConversionCandidates(candidates);
@@ -210,6 +243,9 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
       };
       addWorkspace(ws);
       setImportStatus('absorbing');
+      }
+      const wsId = cloneResult.id;
+      const candidates = cloneResult.conversionCandidates ?? [];
 
       // Phase 2: Absorb
       setImportProgress(55);
@@ -217,16 +253,21 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // absorb clones the repo itself from the workspace's URL (it cannot
-        // see Studio's clone). One importId per attempt: a retried request
-        // with the same id is not charged twice.
+        // see Studio's clone). One importId per WORKSPACE, derived from its
+        // id: every retry for this workspace replays instead of recharging.
         body: JSON.stringify({
           workspaceId: wsId,
-          importId: crypto.randomUUID(),
+          importId: absorbImportIdFor(wsId),
           depth: 'medium',
         }),
+      }).finally(() => {
+        absorbAttempted = true;
       });
 
       if (!absorbRes.ok) {
+        // Only a refusal that absorb answers BEFORE any charge may roll the
+        // workspace back; anything else may have been charged.
+        cleanRefusal = CLEAN_ABSORB_REFUSALS.has(absorbRes.status);
         const body = await absorbRes.json().catch(() => ({ error: 'Absorb failed' }));
         throw new Error(body.error ?? `Absorb failed: HTTP ${absorbRes.status}`);
       }
@@ -243,6 +284,7 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         throw new Error(`Absorb failed: ${reason}`);
       }
       absorbSucceeded = true;
+      pendingAbsorbRef.current = null;
       setImportProgress(80);
       setAbsorbStats({
         totalFiles: absorbResult.stats.totalFiles,
@@ -291,7 +333,13 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
       // absorbed workspace and marks it errored instead.
       if (createdWsId && absorbSucceeded) {
         updateWorkspace(createdWsId, { status: 'error', error: (err as Error).message });
+      } else if (createdWsId && absorbAttempted && !cleanRefusal) {
+        // Outcome unknown (may have been charged): keep the workspace, and let
+        // the next attempt replay the same importId before anything is rolled back.
+        updateWorkspace(createdWsId, { status: 'error', error: (err as Error).message });
+        if (cloneForRetry) pendingAbsorbRef.current = { repoUrl, cloneResult: cloneForRetry };
       } else if (createdWsId) {
+        pendingAbsorbRef.current = null;
         const failedId = createdWsId;
         removeWorkspace(failedId);
         setWorkspaceId(null);
