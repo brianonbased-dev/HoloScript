@@ -42,6 +42,9 @@ export interface BrowserSessionObserveExtract {
   session?: { url?: string };
 }
 
+/** Error message thrown when a url-only input has no explicit fetchImpl. */
+export const URL_FETCH_REFUSED = 'url_fetch_refused';
+
 export interface ObservedPageExtractInput {
   observe?: BrowserSessionObserveExtract | unknown;
   pageExtract?: BrowserSessionObserveExtract | unknown;
@@ -49,6 +52,12 @@ export interface ObservedPageExtractInput {
   bodyText?: string;
   url?: string;
   title?: string;
+  /**
+   * Fetcher used ONLY when the input carries a url but no page text. There is no
+   * default: omitting it refuses the fetch (Error 'url_fetch_refused') so no caller
+   * can reach the global fetch with a user-supplied url (SSRF). Pass an SSRF-guarded
+   * fetcher explicitly to opt in.
+   */
   fetchImpl?: typeof fetch;
   fetchTimeoutMs?: number;
 }
@@ -327,9 +336,12 @@ function observedPageToScanResult(extract: NormalizedObservedPage): ScanResult {
 
 async function fetchObservedPageText(
   url: string,
-  fetchImpl: typeof fetch = fetch,
+  fetchImpl: typeof fetch | undefined,
   timeoutMs = DEFAULT_FETCH_TIMEOUT_MS
 ): Promise<{ text: string; markdown: string; bodyText: string; title: string }> {
+  if (typeof fetchImpl !== 'function') {
+    throw new Error(URL_FETCH_REFUSED);
+  }
   const parsed = new URL(url);
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     throw new Error(`Page extract URL protocol is not allowed: ${parsed.protocol}`);

@@ -1,6 +1,6 @@
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   OBSERVED_PAGE_HOLO_PATH,
   OBSERVED_PAGE_MARKDOWN_PATH,
@@ -100,11 +100,41 @@ describe('ingestObservedPage URL fetch', () => {
     });
   });
 
-  it('accepts one URL and returns structured absorb sourceFiles', async () => {
-    const result = await ingestObservedPage({ url: pageUrl });
+  it('accepts one URL with an explicit fetchImpl and returns structured absorb sourceFiles', async () => {
+    const result = await ingestObservedPage({ url: pageUrl, fetchImpl: fetch });
     expect(result.extract.fetched).toBe(true);
     expect(result.extract.text).toContain('One URL extract lands on HoloAbsorb');
     expect(result.sourceFiles).toHaveLength(2);
     expect(result.graph.getStats().totalFiles).toBe(1);
+  });
+});
+
+describe('ingestObservedPage refuses url fetch by default', () => {
+  it.each([
+    'http://169.254.169.254/latest/meta-data/',
+    'http://127.0.0.1:6379/',
+    'http://[fd12:3456::1]/',
+    'https://example.com/redirects-to-private',
+  ])('refuses %s without fetchImpl and never calls global fetch', async (url) => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(null, { status: 302, headers: { location: 'http://169.254.169.254/' } })
+    );
+    try {
+      await expect(ingestObservedPage({ url })).rejects.toThrow('url_fetch_refused');
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('still folds page text with a url label and no fetch', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch');
+    try {
+      const r = await ingestObservedPage({ url: 'http://169.254.169.254/', bodyText: 'hello world page' });
+      expect(r.extract.fetched).toBe(false);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
