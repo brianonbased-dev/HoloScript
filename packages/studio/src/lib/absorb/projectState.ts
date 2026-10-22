@@ -371,6 +371,33 @@ export const PENDING_IMPORT_KEYS: readonly PendingImportKey[] = [
  * pending importId unless one is already stored, and return the stored one.
  * Null when the row is missing or not the caller's.
  */
+/**
+ * N19 (#623): like claimPendingAbsorbImportId, but also says whether THIS call
+ * stored `candidate` (storedNow) or found an id stored earlier. A route may
+ * clear an id on import_id_reused only when it stored the client's own
+ * candidate in this same request.
+ */
+export function claimPendingAbsorbImportIdDetailed(
+  projectId: string,
+  ownerId: string,
+  candidate: string,
+  key: PendingImportKey = 'pendingImportId'
+): { importId: string; storedNow: boolean } | null {
+  return withStateLock(() => {
+    const state = readState();
+    const project = state.projects.find((p) => p.id === projectId);
+    if (!project || project.ownerId !== ownerId) return null;
+    const stored = project.metadata[key];
+    if (typeof stored === 'string' && PENDING_IMPORT_ID_RE.test(stored)) {
+      return { importId: stored, storedNow: false };
+    }
+    project.metadata = { ...project.metadata, [key]: candidate };
+    project.updatedAt = new Date().toISOString();
+    writeState(state);
+    return { importId: candidate, storedNow: true };
+  });
+}
+
 export function claimPendingAbsorbImportId(
   projectId: string,
   ownerId: string,

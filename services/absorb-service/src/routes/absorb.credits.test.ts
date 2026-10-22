@@ -47,7 +47,8 @@ const ledger = vi.hoisted(() => {
   }
 
   async function requireCreditsImpl(userId: string, opType: string) {
-    const costCents = opType === 'absorb_shallow' ? SHALLOW_CENTS : opType === 'query_with_llm' ? 0 : 0;
+    const costCents =
+      opType === 'absorb_shallow' ? SHALLOW_CENTS : opType === 'query_with_llm' ? 0 : 0;
     const balance = readBalance(userId);
     if (balance < costCents) {
       return {
@@ -160,8 +161,12 @@ let query: Handler;
 beforeAll(async () => {
   const { absorbRouter } = await import('./absorb.js');
   const stack = (absorbRouter as unknown as { stack: RouteLayer[] }).stack;
-  const scanRoute = stack.find((layer) => layer.route?.path === '/scan' && layer.route.methods.post)?.route;
-  const queryRoute = stack.find((layer) => layer.route?.path === '/query' && layer.route.methods.post)?.route;
+  const scanRoute = stack.find(
+    (layer) => layer.route?.path === '/scan' && layer.route.methods.post
+  )?.route;
+  const queryRoute = stack.find(
+    (layer) => layer.route?.path === '/query' && layer.route.methods.post
+  )?.route;
   if (!scanRoute || !queryRoute) throw new Error('scan or query route is missing');
   scan = scanRoute.stack[scanRoute.stack.length - 1].handle;
   query = queryRoute.stack[queryRoute.stack.length - 1].handle;
@@ -169,9 +174,14 @@ beforeAll(async () => {
   // Load the engine once, before two scans run together. A pair of first-time
   // imports racing each other can miss the mock and fail the scan before the
   // charge, which is not the race this file is about.
+  ledger.state.byUser.set('99999999-9999-4999-8999-999999999999', SHALLOW_CENTS);
   const warmup = mockRes();
   await scan(
-    { body: { path: '/repo/warmup', shallow: true } } as unknown as Request,
+    {
+      body: { path: '/repo/warmup', shallow: true, projectId: 'p-warmup' },
+      authenticated: true,
+      userId: '99999999-9999-4999-8999-999999999999',
+    } as unknown as Request,
     warmup as unknown as Response
   );
   if (warmup._status !== 200) {
@@ -224,7 +234,10 @@ describe('POST /scan when two scans share a balance that covers one', () => {
     let waiting: Array<() => void> = [];
     ledger.state.hold = () =>
       new Promise((resolve, reject) => {
-        const timer = setTimeout(() => reject(new Error('the other scan never reached the charge')), 3000);
+        const timer = setTimeout(
+          () => reject(new Error('the other scan never reached the charge')),
+          3000
+        );
         const go = () => {
           clearTimeout(timer);
           resolve();
@@ -279,7 +292,7 @@ describe('POST /scan when two scans share a balance that covers one', () => {
 });
 
 describe('POST /scan saved result is only for the account that paid', () => {
-  it('a caller with no credits does not receive another caller\'s saved scan', async () => {
+  it("a caller with no credits does not receive another caller's saved scan", async () => {
     const path = '/repo/paid-by-a';
     ledger.state.byUser.set(USER, SHALLOW_CENTS);
     ledger.state.byUser.set(USER_B, 0);
@@ -345,23 +358,30 @@ describe('POST /scan saved result is only for the account that paid', () => {
       { body: { path, shallow: true } } as unknown as Request,
       stranger as unknown as Response
     );
-    expect(stranger._status).toBe(200);
-    expect(stranger._json).toMatchObject({ cost: 0, cached: false });
-    expect(stranger._json?.graphId).not.toBe(paidGraph);
+    // #623 (no free scans): no account is refused before any scan or cache read.
+    expect(stranger._status).toBe(401);
+    expect(stranger._json?.error).toBe('account_required');
+    expect(stranger._json).not.toHaveProperty('graphId');
+    expect(paidGraph).toBeTruthy();
     expect(ledger.deductCredits).toHaveBeenCalledTimes(1);
   });
 });
 
-describe('/scan of a server folder without projectId (unchanged from main, #617 N2)', () => {
-  it('charges nothing', async () => {
+describe('/scan of a server folder without projectId (#623: refused, never free)', () => {
+  it('is refused with 400 project_required and charges nothing', async () => {
     ledger.state.byUser.set(USER, SHALLOW_CENTS);
     const res = mockRes();
     await scan(
-      { body: { path: '/repo/folder-no-project', shallow: true }, authenticated: true, userId: USER } as unknown as Request,
+      {
+        body: { path: '/repo/folder-no-project', shallow: true },
+        authenticated: true,
+        userId: USER,
+      } as unknown as Request,
       res as unknown as Response
     );
-    expect(res._status).toBe(200);
-    expect(res._json?.cost).toBe(0);
+    expect(res._status).toBe(400);
+    expect(res._json?.error).toBe('project_required');
+    expect(res._json).not.toHaveProperty('cost');
     expect(ledger.deductCredits).not.toHaveBeenCalled();
     expect(ledger.state.debited).toBe(0);
   });
@@ -369,10 +389,11 @@ describe('/scan of a server folder without projectId (unchanged from main, #617 
 
 describe('POST /query when the charge comes back empty', () => {
   it('a query whose charge comes back empty is refused and reports no cost', async () => {
+    ledger.state.byUser.set(USER, SHALLOW_CENTS);
     const seeded = mockRes();
     await scan(
       {
-        body: { path: '/repo/already-scanned', shallow: true },
+        body: { path: '/repo/already-scanned', shallow: true, projectId: PROJECT },
         authenticated: true,
         userId: USER,
       } as unknown as Request,
@@ -381,7 +402,11 @@ describe('POST /query when the charge comes back empty', () => {
     expect(seeded._status).toBe(200);
     const graphId = seeded._json?.graphId;
     expect(typeof graphId).toBe('string');
-    expect(ledger.state.debited).toBe(0);
+    // #623: the seeding folder scan is itself charged (no free scans).
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+    const debitedBefore = ledger.state.debited;
+    ledger.deductCredits.mockClear();
+    ledger.requireCredits.mockClear();
 
     ledger.state.balance = 0;
     ledger.state.forceEmptyDebit = true;
@@ -402,7 +427,7 @@ describe('POST /query when the charge comes back empty', () => {
     expect(res._json).toEqual({ error: 'Not enough credits for this query.' });
     expect(res._json).not.toHaveProperty('cost');
     expect(res._json).not.toHaveProperty('results');
-    expect(ledger.state.debited).toBe(0);
+    expect(ledger.state.debited).toBe(debitedBefore);
     expect(ledger.state.balance).toBe(0);
     expect(ledger.state.wentNegative).toBe(false);
   });

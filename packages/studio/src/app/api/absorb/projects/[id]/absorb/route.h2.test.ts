@@ -15,6 +15,7 @@ vi.mock('next-auth', () => ({
   getServerSession: async () => (sessionState.user ? { user: sessionState.user } : null),
 }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => 'gh-user-token' }));
 
 import { POST } from './route';
 import * as state from '@/lib/absorb/projectState';

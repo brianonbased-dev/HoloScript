@@ -30,9 +30,7 @@ import {
 // =============================================================================
 
 function getStudioUrl(): string {
-  return (
-    process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://holoscript.studio'
-  );
+  return process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://holoscript.studio';
 }
 
 function getDefaultApiKey(): string {
@@ -591,18 +589,35 @@ async function handleCheckCredits(args: Record<string, unknown>): Promise<unknow
 // PAID HANDLERS — Studio proxy, credits deducted
 // =============================================================================
 
+/**
+ * #623 (CoS 2026-10-22): /api/absorb/projects/[id]/absorb now requires the
+ * signed-in project owner, so an API-key call gets 401 by design. Say so
+ * once; no silent failure and no retry.
+ */
+export const RUN_ABSORB_API_KEY_UNAVAILABLE =
+  'Absorb via API key is not available yet: this route now requires the signed-in project owner (prevents double charges). Use Studio while signed in; a service-key path is planned.';
+
 async function handleRunAbsorb(args: Record<string, unknown>): Promise<unknown> {
   const apiKey = args.apiKey as string | undefined;
   const projectId = args.projectId as string;
   const depth = (args.depth as string) ?? 'shallow';
   const tier = (args.tier as string) ?? 'medium';
 
-  const { ok, data } = await studioFetch(
+  const { ok, status, data } = await studioFetch(
     `/api/absorb/projects/${encodeURIComponent(projectId)}/absorb`,
     'POST',
     apiKey,
     { depth, tier }
   );
+  // The missing-key case keeps its own message (set the key); a 401 from the
+  // route itself means an API key cannot absorb there.
+  if (status === 401 && !String(data.error ?? '').startsWith('No API key')) {
+    return {
+      error: RUN_ABSORB_API_KEY_UNAVAILABLE,
+      reason: 'absorb_requires_signed_in_owner',
+      status: 401,
+    };
+  }
   if (!ok) return { error: data.error || 'Absorb failed' };
   return data;
 }

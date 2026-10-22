@@ -110,7 +110,9 @@ vi.mock('../db/client.js', () => ({
           return chain;
         },
         limit() {
-          return Promise.resolve(harness.projects.filter((row) => harness.matches(row, state.clause)));
+          return Promise.resolve(
+            harness.projects.filter((row) => harness.matches(row, state.clause))
+          );
         },
       };
       return chain;
@@ -165,7 +167,9 @@ beforeAll(async () => {
   const { absorbRouter } = await import('./absorb.js');
   const stack = (absorbRouter as unknown as { stack: RouteLayer[] }).stack;
   const take = (method: string, path: string): Handler => {
-    const route = stack.find((layer) => layer.route?.path === path && layer.route.methods[method])?.route;
+    const route = stack.find(
+      (layer) => layer.route?.path === path && layer.route.methods[method]
+    )?.route;
     if (!route) throw new Error(`no ${method} ${path} route`);
     return route.stack[route.stack.length - 1].handle;
   };
@@ -199,14 +203,19 @@ function mockRes(): MockRes {
 
 function call(handler: Handler, req: Record<string, unknown>): Promise<MockRes> {
   const res = mockRes();
-  return Promise.resolve(handler(req as unknown as Request, res as unknown as Response)).then(() => res);
+  return Promise.resolve(handler(req as unknown as Request, res as unknown as Response)).then(
+    () => res
+  );
 }
 
 let pathSeq = 0;
 
 async function scanOwned(userId: string | undefined): Promise<string> {
   pathSeq += 1;
-  const req: Record<string, unknown> = { body: { path: `/repo/owner-check-${pathSeq}`, shallow: true } };
+  const req: Record<string, unknown> = {
+    body: { path: `/repo/owner-check-${pathSeq}`, shallow: true, projectId: 'p-owner' },
+    authenticated: true,
+  };
   if (userId !== undefined) req.userId = userId;
   const res = await call(scan, req);
   expect(res._status).toBe(200);
@@ -293,9 +302,15 @@ describe('owner checks on graphs, query and projects', () => {
 
   it('caller B reading or deleting caller A project gets the missing project response and the project still exists', async () => {
     const projectA = await postProject(CALLER_A, 'project-a');
-    const missingRead = await call(readProject, { userId: CALLER_B, params: { id: MISSING_PROJECT } });
+    const missingRead = await call(readProject, {
+      userId: CALLER_B,
+      params: { id: MISSING_PROJECT },
+    });
     const deniedRead = await call(readProject, { userId: CALLER_B, params: { id: projectA } });
-    const missingDelete = await call(deleteProject, { userId: CALLER_B, params: { id: MISSING_PROJECT } });
+    const missingDelete = await call(deleteProject, {
+      userId: CALLER_B,
+      params: { id: MISSING_PROJECT },
+    });
     const deniedDelete = await call(deleteProject, { userId: CALLER_B, params: { id: projectA } });
 
     expect(missingRead._status).toBe(404);
@@ -313,7 +328,11 @@ describe('owner checks on graphs, query and projects', () => {
     const res = await call(readProject, { userId: CALLER_A, params: { id: projectA } });
 
     expect(res._status).toBe(200);
-    expect(res._json?.project).toMatchObject({ id: projectA, userId: CALLER_A, name: 'project-a-own' });
+    expect(res._json?.project).toMatchObject({
+      id: projectA,
+      userId: CALLER_A,
+      name: 'project-a-own',
+    });
   });
 
   it('a caller with no signed-in account gets nothing from these routes', async () => {
@@ -330,13 +349,25 @@ describe('owner checks on graphs, query and projects', () => {
       expect(querySignature(denied)).toBe(querySignature(missing));
       expect(denied._json).toEqual({ error: 'Graph not found', graphId: graphA });
 
-      const missingRead = await call(readProject, { ...(userId === undefined ? {} : { userId }), params: { id: MISSING_PROJECT } });
-      const deniedRead = await call(readProject, { ...(userId === undefined ? {} : { userId }), params: { id: projectA } });
+      const missingRead = await call(readProject, {
+        ...(userId === undefined ? {} : { userId }),
+        params: { id: MISSING_PROJECT },
+      });
+      const deniedRead = await call(readProject, {
+        ...(userId === undefined ? {} : { userId }),
+        params: { id: projectA },
+      });
       expect(responseSignature(deniedRead)).toBe(responseSignature(missingRead));
       expect(deniedRead._json).toEqual({ error: 'Project not found' });
 
-      const missingDelete = await call(deleteProject, { ...(userId === undefined ? {} : { userId }), params: { id: MISSING_PROJECT } });
-      const deniedDelete = await call(deleteProject, { ...(userId === undefined ? {} : { userId }), params: { id: projectA } });
+      const missingDelete = await call(deleteProject, {
+        ...(userId === undefined ? {} : { userId }),
+        params: { id: MISSING_PROJECT },
+      });
+      const deniedDelete = await call(deleteProject, {
+        ...(userId === undefined ? {} : { userId }),
+        params: { id: projectA },
+      });
       expect(responseSignature(deniedDelete)).toBe(responseSignature(missingDelete));
     }
 
@@ -345,20 +376,15 @@ describe('owner checks on graphs, query and projects', () => {
     expect((stillThere._json?.project as { id?: string }).id).toBe(projectA);
   });
 
-  it('a graph with no owner is not visible on these routes', async () => {
-    const ownerless = await scanOwned(undefined);
-
-    for (const userId of [CALLER_A, CALLER_B, undefined] as const) {
-      const listed = await call(listGraphs, userId === undefined ? {} : { userId });
-      expect(graphIds(listed)).not.toContain(ownerless);
-    }
-
-    for (const userId of [CALLER_A, CALLER_B]) {
-      const missing = await call(query, queryReq(MISSING_GRAPH, userId));
-      const denied = await call(query, queryReq(ownerless, userId));
-      expect(querySignature(denied)).toBe(querySignature(missing));
-      expect(denied._json).toEqual({ error: 'Graph not found', graphId: ownerless });
-    }
+  it('a scan with no signed-in account is refused, so no ownerless graph is created (#623, no free scans)', async () => {
+    const before = graphIds(await call(listGraphs, { userId: CALLER_A }));
+    const res = await call(scan, {
+      body: { path: '/repo/owner-check-ownerless', shallow: true, projectId: 'p-owner' },
+      authenticated: true,
+    });
+    expect(res._status).toBe(401);
+    expect(res._json?.error).toBe('account_required');
+    expect(graphIds(await call(listGraphs, { userId: CALLER_A }))).toEqual(before);
   });
 
   it('a project with no owner is not visible and is not deleted', async () => {

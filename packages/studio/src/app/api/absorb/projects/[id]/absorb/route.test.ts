@@ -20,6 +20,7 @@ vi.mock('next-auth', () => ({
   getServerSession: async () => (sessionState.user ? { user: sessionState.user } : null),
 }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => 'gh-user-token' }));
 
 import { POST } from './route';
 import { upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
@@ -93,14 +94,17 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer absorb-key-test');
   });
 
-  it("forwards the caller's own Authorization instead of the service key", async () => {
+  it("N20: sends the session user's own token, not the caller's Authorization header", async () => {
     const fetchMock = vi.fn(async () => new Response('{"graphId":"g1"}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     await POST(post(WS_PATH, '{}', { Authorization: 'Bearer user-key' }), {
       params: Promise.resolve({ id: WS_PATH }),
     });
     const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer user-key');
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer absorb-key-test');
+    expect((init.headers as Record<string, string>)['X-User-Authorization']).toBe(
+      'Bearer gh-user-token'
+    );
   });
 
   it('an id that is not a saved project of the caller: 404, nothing sent (H4: no raw paths)', async () => {

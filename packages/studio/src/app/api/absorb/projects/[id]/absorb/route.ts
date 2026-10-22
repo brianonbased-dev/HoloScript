@@ -12,10 +12,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { callerUserId } from '@/lib/workspace/workspaceOwner';
-import { forwardAuthHeaders } from '@/lib/api-auth';
+import { getGitHubToken } from '@/app/api/github/_shared';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 import {
-  claimPendingAbsorbImportId,
+  claimPendingAbsorbImportIdDetailed,
   clearPendingAbsorbImportId,
   findDurableAbsorbProject,
   isAbsorbStateLockTimeout,
@@ -116,11 +116,41 @@ async function postProjectAbsorb(
   // URL import's (/api/daemon/absorb), so neither route touches the other's id.
   const PENDING_KEY = 'pendingFolderImportId' as const;
   const candidate = clientImportId ?? `imp-${randomUUID()}`;
-  const importId =
-    claimPendingAbsorbImportId(project.id, ownerId, candidate, PENDING_KEY) ?? candidate;
+  // N19 (#623): remember whether THIS request stored the client's own id.
+  const claim = claimPendingAbsorbImportIdDetailed(project.id, ownerId, candidate, PENDING_KEY);
+  if (!claim) {
+    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  }
+  const importId = claim.importId;
+  const ownCandidateStoredNow = claim.storedNow && clientImportId !== null;
   const clearPending = () => {
     clearPendingAbsorbImportId(project.id, ownerId, importId, PENDING_KEY);
   };
+
+  // N20 (#623): the charge is bound to the signed-in user's OWN token. There
+  // is no service-key-only fallback: no user token is a 401 and nothing is
+  // sent. The claim above stays first (before any await, Mapping N1); an id
+  // this request just stored is compare-and-cleared, an older one is kept.
+  const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
+  if (!userToken) {
+    if (claim.storedNow) clearPending();
+    return NextResponse.json(
+      {
+        error: 'Absorb needs your own credential; sign in again.',
+        reason: 'absorb_no_user_credential',
+      },
+      { status: 401 }
+    );
+  }
+  // Never the request's own Authorization header, never the service key alone
+  // (that was a free, unclaimed scan): the key plus the user's own token.
+  const scanHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (ABSORB_API_KEY) {
+    scanHeaders.Authorization = `Bearer ${ABSORB_API_KEY}`;
+    scanHeaders['X-User-Authorization'] = `Bearer ${userToken}`;
+  } else {
+    scanHeaders.Authorization = `Bearer ${userToken}`;
+  }
 
   // Only the fields /scan reads. projectId is what lets absorb charge the
   // caller; importId is what lets it charge once.
@@ -147,7 +177,7 @@ async function postProjectAbsorb(
   try {
     const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...scanAuth(req) },
+      headers: scanHeaders,
       body: JSON.stringify(scanBody),
       signal: AbortSignal.timeout(ABSORB_FETCH_TIMEOUT_MS),
     });
@@ -200,6 +230,8 @@ async function postProjectAbsorb(
     if (DEFINITIVE_REFUSALS.has(res.status) || (res.status in ABSORB_OWN_CODE && fromAbsorb)) {
       clearPending();
     }
+    // N19 (#623): see /api/daemon/absorb. Clear only our own just-stored id.
+    if (reason === 'import_id_reused' && ownCandidateStoredNow) clearPending();
   } catch (err) {
     // A state-lock timeout is not an absorb failure: the route answers 503.
     if (isAbsorbStateLockTimeout(err)) throw err;
@@ -253,25 +285,22 @@ async function postProjectAbsorb(
   });
 
   const error =
-    status === 409
-      ? 'This import conflicts with another one, or is still running. Retry with the same importId; you will not be charged twice.'
-      : reason === 'absorb_outcome_unknown'
-        ? 'Absorb is taking longer than expected. Retry to get the result; you will not be charged twice.'
-        : status === 502
-          ? 'Absorb could not run: the absorb service did not answer. Details are in the server log.'
-          : 'Absorb refused this scan.';
+    reason === 'import_id_reused'
+      ? ownCandidateStoredNow
+        ? 'This import id belongs to a different folder or repository. It was not used; retry without it.'
+        : "This workspace's pending import id is tied to a different repository or folder. It was kept so a possible earlier charge is not repeated; retry later or contact support to resolve it."
+      : status === 409
+        ? 'This import conflicts with another one, or is still running. Retry with the same importId; you will not be charged twice.'
+        : reason === 'absorb_outcome_unknown'
+          ? 'Absorb is taking longer than expected. Retry to get the result; you will not be charged twice.'
+          : status === 502
+            ? 'Absorb could not run: the absorb service did not answer. Details are in the server log.'
+            : 'Absorb refused this scan.';
   return NextResponse.json({ error, reason, status, importId }, { status });
 }
 
 /** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
 export const POST = withAbsorbStateLock503(postProjectAbsorb);
-
-/** The caller's own credential when it sent one, else Studio's service key. */
-function scanAuth(req: NextRequest): Record<string, string> {
-  const forwarded = forwardAuthHeaders(req);
-  if (forwarded.Authorization) return forwarded;
-  return ABSORB_API_KEY ? { Authorization: `Bearer ${ABSORB_API_KEY}` } : {};
-}
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

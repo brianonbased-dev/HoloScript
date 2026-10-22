@@ -315,8 +315,29 @@ async function scanFromUrl(
  */
 async function scanPathOnce(req: Request, body: ScanBody): Promise<ScanOutcome> {
   const account = userUuid(req);
-  const charged = (req as AuthenticatedRequest).authenticated && !!account && !!body.projectId;
-  if (!charged || !body.importId || !account) return scanPath(req, body);
+  // No free scans (CoS, #623): a folder scan that would not be charged is
+  // refused before anything runs, instead of running at cost 0. A service or
+  // orchestrator key alone names nobody to charge (401); a signed-in user
+  // must name the project it is charged to (400).
+  if (!(req as AuthenticatedRequest).authenticated || !account) {
+    return {
+      status: 401,
+      json: {
+        error: 'account_required',
+        message: 'A folder scan is charged to a signed-in account. Sign in and retry.',
+      },
+    };
+  }
+  if (!body.projectId) {
+    return {
+      status: 400,
+      json: {
+        error: 'project_required',
+        message: 'A folder scan is charged to a project. Send projectId.',
+      },
+    };
+  }
+  if (!body.importId) return scanPath(req, body);
   const importId = body.importId;
   // N18 (#623): one folder, one ref: resolved (no ./, .., or trailing
   // separator), so the same folder spelled two ways cannot get two claims.
