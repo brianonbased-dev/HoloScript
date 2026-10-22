@@ -3,6 +3,8 @@
 > Cross-tool agent configuration. Read by: Claude Code, Codex, Copilot, Cursor, Windsurf, Amp, Devin, Continue.
 > Tool-specific files (CLAUDE.md, .cursorrules, copilot-instructions.md) layer on top for advanced features.
 
+> **Read [WISDOM.md](WISDOM.md) first** - short lines of wisdom learned the hard way, so you guess less.
+
 ## Git Workflow — DIRECT TO MAIN (read this first)
 
 **Every surface commits straight to `main`. No pull requests. No feature branches.** (F.089)
