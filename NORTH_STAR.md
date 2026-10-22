@@ -6,7 +6,7 @@ Technology people can build with, understand, and keep accountable.
 
 Hololand can hide complexity, but it must never hide meaning.
 
-**Five commitments.** These are commitments, not shipped features: where tooling does not deliver one yet (for example, challenging behavior without reading code), it is a goal.
+**Five commitments.** These are commitments, not shipped features.
 
 1. Nothing silently disappears.
 2. Nothing claims more than it proves.
