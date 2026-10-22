@@ -19,6 +19,8 @@ const h = vi.hoisted(() => ({
   cloneGate: null as null | Promise<void>,
   // Claim and charge order, as the shared database and the ledger see them.
   order: [] as string[],
+  // Throw right after the ledger row lands (Mapping H1: exception after the debit).
+  throwAfterDebit: false,
 }));
 
 vi.mock('@holoscript/absorb-service/credits', () => {
@@ -31,6 +33,7 @@ vi.mock('@holoscript/absorb-service/credits', () => {
       h.balance -= cents;
       h.debits.push({ userId, cents, meta });
       h.order.push('debit');
+      if (h.throwAfterDebit) throw new Error('connection reset after the debit');
       return { balanceCents: h.balance };
     }),
     isCreditError: (r: Record<string, unknown>) => 'error' in r && 'status' in r,
@@ -96,6 +99,7 @@ beforeEach(async () => {
   h.db = null;
   h.cloneGate = null;
   h.order = [];
+  h.throwAfterDebit = false;
   reset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
   const { CloneRefusal } = await import('../lib/absorb/clone-from-url.js');
@@ -230,11 +234,18 @@ function sharedDb(opts: { failClaim?: boolean; failComplete?: boolean } = {}) {
         row.repoUrl === p[4] &&
         row.branch === p[5] &&
         !charged(p[0], p[1]);
+      // The fake follows the SQL it is sent: a fresh insert is ledger-gated
+      // only when the statement itself says so (WHERE NOT EXISTS before ON CONFLICT).
+      const insertGated = /WHERE NOT EXISTS[\s\S]*ON CONFLICT/.test(text);
+      if (!row && insertGated && charged(p[0], p[1])) return { rows: [] };
       if (!row || takeover) {
         rows.set(key, { status: 'pending', outcome: null, claimedAt: Date.now(), holder: String(p[3]), repoUrl: p[4], branch: p[5] });
         return { rows: [{ import_id: p[1] }] };
       }
       return { rows: [] };
+    }
+    if (text.startsWith('SELECT EXISTS')) {
+      return { rows: [{ charged: charged(p[0], p[1]) }] };
     }
     if (text.startsWith('SELECT status, outcome, repo_url, branch')) {
       const row = rows.get(key);
@@ -260,7 +271,8 @@ function sharedDb(opts: { failClaim?: boolean; failComplete?: boolean } = {}) {
     }
     if (text.startsWith('DELETE FROM absorb_import_claims')) {
       const row = rows.get(key);
-      if (row?.status === 'pending' && row.holder === p[2]) rows.delete(key);
+      const deleteGated = text.includes('credit_transactions');
+      if (row?.status === 'pending' && row.holder === p[2] && !(deleteGated && charged(p[0], p[1]))) rows.delete(key);
       return { rows: [] };
     }
     throw new Error(`unexpected SQL: ${text}`);
@@ -433,4 +445,39 @@ describe('/scan repoUrl import: stale takeover, late writes, reused importIds (M
     expect(r._json?.error).toBe('import_id_reused');
     expect(h.debits).toHaveLength(1);
   });
+});
+
+describe('/scan repoUrl import: exception after the charge (Mapping H1, #617)', () => {
+  const key = `${USER}:${IMPORT.importId}`;
+
+  it('an exception after the debit keeps the claim; the retry is not charged again (409)', async () => {
+    const shared = sharedDb();
+    h.db = shared.db;
+    const a = await newInstance();
+    const b = await newInstance();
+    h.throwAfterDebit = true;
+    const first = await callOn(a, IMPORT);
+    expect(first._status).toBe(500);
+    expect(h.debits).toHaveLength(1);
+    expect(shared.rows.has(key)).toBe(true); // release refused: the ledger shows the charge
+    h.throwAfterDebit = false;
+    const retry = await callOn(b, IMPORT);
+    expect(retry._status).toBe(409);
+    expect(retry._json?.error).toBe('import_already_charged');
+    expect(h.debits).toHaveLength(1);
+  }, 30_000);
+
+  it('a fresh claim for an import the ledger already charged is refused (409), not charged', async () => {
+    const shared = sharedDb();
+    h.db = shared.db;
+    const a = await newInstance();
+    expect((await callOn(a, IMPORT))._status).toBe(200);
+    shared.rows.clear(); // the claim row is gone (e.g. lost), the ledger row is not
+    const b = await newInstance();
+    const again = await callOn(b, IMPORT);
+    expect(again._status).toBe(409);
+    expect(again._json?.error).toBe('import_already_charged');
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(1);
+  }, 30_000);
 });

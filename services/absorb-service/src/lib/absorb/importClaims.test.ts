@@ -45,6 +45,9 @@ describe('migration 0003_absorb_import_claims', () => {
     expect(CLAIM_SQL).toContain('branch IS NOT DISTINCT FROM EXCLUDED.branch');
     expect(CLAIM_SQL).toMatch(/AND NOT EXISTS \(SELECT 1 FROM credit_transactions ct/);
     expect(CLAIM_SQL).toContain(`ct.metadata->>'importId' = $2`);
+    // Mapping H1: no fresh insert and no release once the ledger shows the charge.
+    expect(CLAIM_SQL).toMatch(/SELECT \$1, \$2, 'pending'[\s\S]*WHERE NOT EXISTS \(SELECT 1 FROM credit_transactions/);
+    expect(RELEASE_CLAIM_SQL).toMatch(/AND NOT EXISTS \(SELECT 1 FROM credit_transactions ct/);
     for (const sql of [CONFIRM_CLAIM_SQL, COMPLETE_CLAIM_SQL, RELEASE_CLAIM_SQL]) {
       expect(sql).toContain('holder = $3');
     }

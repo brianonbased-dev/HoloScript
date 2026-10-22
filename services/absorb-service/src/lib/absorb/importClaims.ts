@@ -14,7 +14,7 @@
  * mid-import can be taken over after PENDING_STALE_MS, with three guards
  * (Mapping second seat on #617):
  *
- *   1. No takeover after a charge. A stale pending claim is taken over only
+ *   1. No takeover, fresh claim or release after a charge. A stale pending claim is taken over only
  *      when the ledger (`credit_transactions`) holds no usage row for this
  *      user and importId. An import that was charged but never recorded as
  *      done answers 409 import_already_charged instead of charging twice.
@@ -70,7 +70,8 @@ const CHARGED_SQL = `EXISTS (SELECT 1 FROM credit_transactions ct
  * Params: $1 user, $2 import, $3 stale ms, $4 holder, $5 repo_url, $6 branch.
  */
 export const CLAIM_SQL = `INSERT INTO absorb_import_claims (user_id, import_id, status, holder, repo_url, branch, claimed_at)
-VALUES ($1, $2, 'pending', $4, $5, $6, now())
+SELECT $1, $2, 'pending', $4, $5, $6, now()
+WHERE NOT ${CHARGED_SQL}
 ON CONFLICT (user_id, import_id) DO UPDATE SET claimed_at = now(), holder = EXCLUDED.holder
   WHERE absorb_import_claims.status = 'pending'
     AND absorb_import_claims.claimed_at < now() - ($3 * interval '1 millisecond')
@@ -93,9 +94,17 @@ export const COMPLETE_CLAIM_SQL = `UPDATE absorb_import_claims
 SET status = 'done', outcome = $4::jsonb, completed_at = now()
 WHERE user_id = $1 AND import_id = $2 AND holder = $3`;
 
-/** Params: $1 user, $2 import, $3 holder. */
+/**
+ * Params: $1 user, $2 import, $3 holder. A charged claim is never deleted
+ * (Mapping H1): an exception after the debit must not free the import for a
+ * second charge.
+ */
 export const RELEASE_CLAIM_SQL = `DELETE FROM absorb_import_claims
-WHERE user_id = $1 AND import_id = $2 AND holder = $3 AND status = 'pending'`;
+WHERE user_id = $1 AND import_id = $2 AND holder = $3 AND status = 'pending'
+  AND NOT ${CHARGED_SQL}`;
+
+/** Params: $1 user, $2 import. Was this import already charged? */
+export const CHARGED_ONLY_SQL = `SELECT ${CHARGED_SQL} AS charged`;
 
 function sameRef(row: { repo_url?: unknown; branch?: unknown }, ref: ImportRef): boolean {
   return (row.repo_url ?? null) === ref.repoUrl && (row.branch ?? null) === (ref.branch ?? null);
@@ -120,7 +129,12 @@ export class PostgresImportClaimStore implements ImportClaimStore {
     if (won.rows.length > 0) return { kind: 'claimed', holder };
     const { rows } = await this.query(READ_CLAIM_SQL, [userId, importId]);
     const row = rows[0];
-    if (!row) return { kind: 'pending' }; // lost to a concurrent delete; the caller retries
+    if (!row) {
+      // No row and no insert: either the import was already charged (the
+      // fresh insert is refused by the ledger check) or a concurrent delete.
+      const ledger = await this.query(CHARGED_ONLY_SQL, [userId, importId]);
+      return ledger.rows[0]?.charged === true ? { kind: 'charged' } : { kind: 'pending' };
+    }
     if (!sameRef(row, ref)) return { kind: 'mismatch' };
     if (row.status === 'done' && row.outcome) {
       const outcome = (typeof row.outcome === 'string' ? JSON.parse(row.outcome) : row.outcome) as ScanOutcome;

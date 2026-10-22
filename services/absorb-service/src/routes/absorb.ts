@@ -368,6 +368,16 @@ async function scanAndCharge(
   // orchestrator scan. This guard is new in this change and chose the weaker
   // predicate when the right one was already imported.
   const scanUserId = userUuid(req);
+  // Built BEFORE the charge (Mapping H1), so nothing that can throw runs
+  // between the debit and the delivered result.
+  const topology = {
+    leafFirstOrder,
+    inDegree,
+    communities: (graph as any).communities ?? {},
+    graphJson: typeof graph.serialize === 'function' ? graph.serialize() : '{}',
+    durationMs: scanResult.stats.durationMs ?? 0,
+  };
+
   if ((req as AuthenticatedRequest).authenticated && body.projectId && scanUserId) {
     const creditsModule = await loadCredits();
     const { requireCredits, isCreditError, deductCredits } = (creditsModule as any).default || creditsModule;
@@ -415,14 +425,6 @@ async function scanAndCharge(
     chargedCents = creditCheck.costCents;
     cacheOwnerId = userId;
   }
-
-  const topology = {
-    leafFirstOrder,
-    inDegree,
-    communities: (graph as any).communities ?? {},
-    graphJson: typeof graph.serialize === 'function' ? graph.serialize() : '{}',
-    durationMs: scanResult.stats.durationMs ?? 0,
-  };
 
   graphStore.set(graphId, {
     graph,
