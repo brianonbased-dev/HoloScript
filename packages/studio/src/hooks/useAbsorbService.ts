@@ -67,7 +67,12 @@ export function useAbsorbService() {
         body: JSON.stringify({ depth, tier: store.qualityTier, importId }),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.ok || NOT_CHARGED.has(res.status)) {
+      // N16 (#623): absorb will never charge this id again (already charged)
+      // or will never accept it (reused for another folder): start fresh.
+      const settled409 =
+        res.status === 409 &&
+        (data?.reason === 'import_already_charged' || data?.reason === 'import_id_reused');
+      if (res.ok || NOT_CHARGED.has(res.status) || settled409) {
         pendingProjectImportIds.delete(projectId);
       } else if (typeof data?.importId === 'string') {
         pendingProjectImportIds.set(projectId, data.importId);

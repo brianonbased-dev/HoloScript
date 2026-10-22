@@ -8,8 +8,10 @@ export const maxDuration = 300;
 export const ABSORB_FETCH_TIMEOUT_MS = 280_000;
 
 import { randomUUID } from 'crypto';
-import * as path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { callerUserId } from '@/lib/workspace/workspaceOwner';
 import { forwardAuthHeaders } from '@/lib/api-auth';
 import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
 import {
@@ -18,7 +20,6 @@ import {
   findDurableAbsorbProject,
   isAbsorbStateLockTimeout,
   recordAbsorbJob,
-  type DurableAbsorbProject,
 } from '@/lib/absorb/projectState';
 import { withAbsorbStateLock503 } from '@/lib/absorb/stateLockResponse';
 
@@ -87,8 +88,19 @@ async function postProjectAbsorb(
     );
   }
 
+  // H4 (#623): only the project's owner may scan it, or read, claim, clear
+  // or record its pending importId. Same rule as /api/daemon/absorb: no
+  // session is 401, another user's (or an ownerless or unknown) project is 404.
+  const session = await getServerSession(authOptions);
+  const ownerId = callerUserId(session);
+  if (!session?.user || !ownerId) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
   const project = findDurableAbsorbProject({ projectId, projectPath: projectId });
-  const scanPath = project?.localPath ?? (path.isAbsolute(projectId) ? projectId : null);
+  if (!project || project.ownerId !== ownerId) {
+    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  }
+  const scanPath = project.localPath;
   if (!scanPath) {
     return NextResponse.json(
       {
@@ -100,14 +112,14 @@ async function postProjectAbsorb(
   }
 
   // The server's pending importId wins over the client's, before any await.
-  const pendingOwner = persistableOwner(project);
+  // H3 (#623): the folder scan has its OWN pending slot, separate from the
+  // URL import's (/api/daemon/absorb), so neither route touches the other's id.
+  const PENDING_KEY = 'pendingFolderImportId' as const;
   const candidate = clientImportId ?? `imp-${randomUUID()}`;
   const importId =
-    project && pendingOwner
-      ? (claimPendingAbsorbImportId(project.id, pendingOwner, candidate) ?? candidate)
-      : candidate;
+    claimPendingAbsorbImportId(project.id, ownerId, candidate, PENDING_KEY) ?? candidate;
   const clearPending = () => {
-    if (project && pendingOwner) clearPendingAbsorbImportId(project.id, pendingOwner, importId);
+    clearPendingAbsorbImportId(project.id, ownerId, importId, PENDING_KEY);
   };
 
   // Only the fields /scan reads. projectId is what lets absorb charge the
@@ -153,9 +165,7 @@ async function postProjectAbsorb(
           tier: body.tier,
           request: recordRequest,
           result: data,
-          ...(project && pendingOwner
-            ? { clearPendingImportId: { ownerId: pendingOwner, importId } }
-            : {}),
+          clearPendingImportId: { ownerId, importId, key: PENDING_KEY },
         });
       } catch (err) {
         if (!isAbsorbStateLockTimeout(err)) throw err;
@@ -187,11 +197,7 @@ async function postProjectAbsorb(
           ? ownCode
           : 'import_conflict';
     }
-    if (
-      DEFINITIVE_REFUSALS.has(res.status) ||
-      (res.status in ABSORB_OWN_CODE && fromAbsorb) ||
-      reason === 'import_id_reused'
-    ) {
+    if (DEFINITIVE_REFUSALS.has(res.status) || (res.status in ABSORB_OWN_CODE && fromAbsorb)) {
       clearPending();
     }
   } catch (err) {
@@ -215,9 +221,7 @@ async function postProjectAbsorb(
         depth: body.depth,
         request: recordRequest,
         result: { status: 'complete', importId, alreadyCharged: true },
-        ...(project && pendingOwner
-          ? { clearPendingImportId: { ownerId: pendingOwner, importId } }
-          : {}),
+        clearPendingImportId: { ownerId, importId, key: PENDING_KEY },
       });
     } catch (err) {
       if (!isAbsorbStateLockTimeout(err)) throw err;
@@ -261,11 +265,6 @@ async function postProjectAbsorb(
 
 /** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
 export const POST = withAbsorbStateLock503(postProjectAbsorb);
-
-/** The owner the pending importId can be stored under; legacy ownerless rows have none. */
-function persistableOwner(project: DurableAbsorbProject | null): string | null {
-  return project?.ownerId ?? null;
-}
 
 /** The caller's own credential when it sent one, else Studio's service key. */
 function scanAuth(req: NextRequest): Record<string, string> {

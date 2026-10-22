@@ -119,4 +119,13 @@ describe('/scan folder scan with importId', () => {
     await call({ ...FOLDER, importId: 'imp-path-0002', shallow: false });
     expect(h.debits).toHaveLength(2);
   });
+
+  it('N18: the same folder spelled with a trailing separator or ./ is one ref, one charge', async () => {
+    await call(FOLDER);
+    const r = await call({ ...FOLDER, path: FOLDER.path + '/' });
+    expect(r._status).toBe(200);
+    const r2 = await call({ ...FOLDER, path: FOLDER.path + '/./' });
+    expect(r2._status).toBe(200);
+    expect(h.debits).toHaveLength(1);
+  });
 });

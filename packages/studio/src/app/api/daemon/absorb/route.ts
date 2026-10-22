@@ -234,11 +234,9 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
     }
     // Definitive: nothing was charged under this id (or it names another
     // repo), so the next attempt starts a new import. Anything else keeps it.
-    if (
-      DEFINITIVE_REFUSALS.has(res.status) ||
-      (res.status in ABSORB_OWN_CODE && fromAbsorb) ||
-      reason === 'import_id_reused'
-    ) {
+    // H3 (#623): import_id_reused never clears the server-stored id: it may be
+    // an unknown-outcome import that only its own retry can settle.
+    if (DEFINITIVE_REFUSALS.has(res.status) || (res.status in ABSORB_OWN_CODE && fromAbsorb)) {
       clearPendingAbsorbImportId(workspaceId, ownerId, importId);
     }
   } catch (err) {

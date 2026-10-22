@@ -14,7 +14,15 @@ vi.mock('@/lib/services/absorb-client', () => ({
   callMcpTool: callMcpToolMock,
 }));
 
+// H4 (#623): the route requires the project owner's session.
+const sessionState = vi.hoisted(() => ({ user: { id: 'user-a' } as { id: string } | null }));
+vi.mock('next-auth', () => ({
+  getServerSession: async () => (sessionState.user ? { user: sessionState.user } : null),
+}));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+
 import { POST } from './route';
+import { upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
 
 const WS_PATH = '/ws/ws-1/repo';
 
@@ -41,6 +49,8 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'project-absorb-test-'));
     process.env.HOLOSCRIPT_WORKSPACES_DIR = tempRoot;
     delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    sessionState.user = { id: 'user-a' };
+    upsertDurableAbsorbProject({ id: 'ws-1', name: 'repo', ownerId: 'user-a', localPath: WS_PATH });
   });
 
   afterEach(() => {
@@ -62,7 +72,8 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
 
   it('calls absorb /scan once with only path, shallow and projectId, and returns its result', async () => {
     const fetchMock = vi.fn(
-      async () => new Response('{"graphId":"g1","stats":{"totalFiles":3},"cost":10}', { status: 200 })
+      async () =>
+        new Response('{"graphId":"g1","stats":{"totalFiles":3},"cost":10}', { status: 200 })
     );
     vi.stubGlobal('fetch', fetchMock);
     const res = await POST(post(WS_PATH, '{"depth":"shallow","tier":"ultra","rootDir":"/etc"}'), {
@@ -92,12 +103,11 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer user-key');
   });
 
-  it('an id that is neither a saved project nor a path: 404, nothing sent', async () => {
+  it('an id that is not a saved project of the caller: 404, nothing sent (H4: no raw paths)', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     const res = await POST(post('p999', '{}'), { params: Promise.resolve({ id: 'p999' }) });
     expect(res.status).toBe(404);
-    expect((await res.json()).reason).toBe('absorb_no_project_path');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -112,7 +122,10 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
   });
 
   it('absorb 5xx: 502 with a short reason; upstream text only in the job record', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('stack trace secret-ish', { status: 500 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('stack trace secret-ish', { status: 500 }))
+    );
     const res = await POST(post(WS_PATH, '{"depth":"shallow"}'), {
       params: Promise.resolve({ id: WS_PATH }),
     });
@@ -129,7 +142,10 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
   });
 
   it("absorb's own refusals pass through: 402 not enough credits", async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"error":"Not enough credits"}', { status: 402 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('{"error":"Not enough credits"}', { status: 402 }))
+    );
     const res = await POST(post(WS_PATH, '{}'), { params: Promise.resolve({ id: WS_PATH }) });
     expect(res.status).toBe(402);
     expect((await res.json()).reason).toBe('absorb_refused');

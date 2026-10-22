@@ -1,3 +1,4 @@
+import * as nodePath from 'path';
 import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
@@ -317,7 +318,10 @@ async function scanPathOnce(req: Request, body: ScanBody): Promise<ScanOutcome> 
   const charged = (req as AuthenticatedRequest).authenticated && !!account && !!body.projectId;
   if (!charged || !body.importId || !account) return scanPath(req, body);
   const importId = body.importId;
-  const ref = { repoUrl: `path:${body.path as string}`, branch: null };
+  // N18 (#623): one folder, one ref: resolved (no ./, .., or trailing
+  // separator), so the same folder spelled two ways cannot get two claims.
+  // Case is left as is (the code does not fold case anywhere else).
+  const ref = { repoUrl: `path:${nodePath.resolve(body.path as string)}`, branch: null };
   const key = `${account}:${importId}:${ref.repoUrl}#`;
   const running = importsInFlight.get(key);
   if (running) return replayed(await running);

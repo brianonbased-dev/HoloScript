@@ -15,6 +15,13 @@ vi.mock('@/lib/services/absorb-client', () => ({
   ABSORB_API_KEY: 'absorb-key-test',
 }));
 
+// H4 (#623): the route requires the project owner's session.
+const sessionState = vi.hoisted(() => ({ user: { id: 'user-a' } as { id: string } | null }));
+vi.mock('next-auth', () => ({
+  getServerSession: async () => (sessionState.user ? { user: sessionState.user } : null),
+}));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+
 import { POST } from './route';
 import * as state from '@/lib/absorb/projectState';
 
@@ -39,7 +46,7 @@ describe('/api/absorb/projects/[id]/absorb importId (#617 follow-up)', () => {
   let savedTimeout = 0;
   const lockPath = () => path.join(root, '.absorb-projects.json.lock');
   const pending = () =>
-    state.findDurableAbsorbProject({ projectId: PID })?.metadata.pendingImportId;
+    state.findDurableAbsorbProject({ projectId: PID })?.metadata.pendingFolderImportId;
   const post = (body: Record<string, unknown> = {}) =>
     POST(
       new NextRequest(`http://localhost/api/absorb/projects/${PID}/absorb`, {

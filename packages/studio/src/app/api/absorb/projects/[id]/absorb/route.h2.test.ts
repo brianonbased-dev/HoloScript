@@ -9,6 +9,13 @@ vi.mock('@/lib/services/absorb-client', () => ({
   ABSORB_API_KEY: 'absorb-key-test',
 }));
 
+// H4 (#623): the route requires the project owner's session.
+const sessionState = vi.hoisted(() => ({ user: { id: 'user-a' } as { id: string } | null }));
+vi.mock('next-auth', () => ({
+  getServerSession: async () => (sessionState.user ? { user: sessionState.user } : null),
+}));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+
 import { POST } from './route';
 import * as state from '@/lib/absorb/projectState';
 
@@ -41,6 +48,12 @@ describe('/api/absorb/projects/[id]/absorb: lock held between charge and record 
   });
 
   it('answers 200 with the scan data and recordPending, after exactly one charge', async () => {
+    state.upsertDurableAbsorbProject({
+      id: 'ws-1',
+      name: 'repo',
+      ownerId: 'user-a',
+      localPath: wsPath(),
+    });
     const lock = path.join(root, '.absorb-projects.json.lock');
     const fetchMock = vi.fn(async () => {
       fs.writeFileSync(lock, 'another-studio-process');
