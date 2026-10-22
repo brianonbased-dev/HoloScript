@@ -9,6 +9,7 @@
  * - holo_ask_codebase: Natural language Q&A with graph-enriched context
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import type { SearchResult } from '../engine/EmbeddingIndex';
 import type { SymbolSearchIndex } from '../engine/SearchIndex';
@@ -217,17 +218,81 @@ export const graphRagTools: Tool[] = [
 // HANDLER
 // =============================================================================
 
-// These will be set by codebase-tools.ts when absorb completes
-let cachedEmbeddingIndex: SymbolSearchIndex | null = null;
-let cachedGraphRAGEngine: GraphRAGEngine | null = null;
-let cachedGraphRAGRootDir: string | null = null;
-let cachedGraphRAGTimestamp = 0;
-let cachedVisualGraph: GraphRAGEngine['graph'] | null = null;
-let cachedVisualGraphRootDir: string | null = null;
-let cachedVisualGraphTimestamp = 0;
+// Absorb state is per owner. It used to be seven module-level lets, so the
+// last caller to absorb a repo served its index, engine, graph and rootDir to
+// every other caller of the same process (Mapping H1/H2). Each owner now has its
+// own slot; a caller with no slot gets the absorb-first error, never another
+// owner's state.
+
+/** Owner for in-process, single-user callers (stdio MCP server, CLI, scripts). */
+export const LOCAL_GRAPH_RAG_OWNER = 'local';
+
+/** Per-call identity for handleGraphRagTool. ownerKey is the authenticated principal. */
+export interface GraphRagToolContext {
+  ownerKey?: string | null;
+}
+
+interface GraphRAGOwnerState {
+  embeddingIndex: SymbolSearchIndex | null;
+  engine: GraphRAGEngine | null;
+  rootDir: string | null;
+  timestamp: number;
+  visualGraph: GraphRAGEngine['graph'] | null;
+  visualRootDir: string | null;
+  visualTimestamp: number;
+}
+
+const graphRAGStateByOwner = new Map<string, GraphRAGOwnerState>();
+const graphRAGOwnerScope = new AsyncLocalStorage<string>();
+
+function emptyOwnerState(): GraphRAGOwnerState {
+  return {
+    embeddingIndex: null,
+    engine: null,
+    rootDir: null,
+    timestamp: 0,
+    visualGraph: null,
+    visualRootDir: null,
+    visualTimestamp: 0,
+  };
+}
+
+function normalizeOwnerKey(ownerKey: unknown): string | null {
+  return typeof ownerKey === 'string' && ownerKey.trim() ? ownerKey.trim() : null;
+}
 
 /**
- * Set the structural graph used by visual selection tools.
+ * Run fn with ownerKey as the GraphRAG owner, so absorb (codebase-tools ->
+ * setGraphRAGState) and the graph-rag handlers read and write that owner's slot.
+ * A multi-tenant host must wrap every tool call with the authenticated principal.
+ */
+export function runWithGraphRAGOwner<T>(ownerKey: string, fn: () => T): T {
+  const owner = normalizeOwnerKey(ownerKey);
+  if (!owner) throw new Error('runWithGraphRAGOwner requires a non-empty ownerKey');
+  return graphRAGOwnerScope.run(owner, fn);
+}
+
+/** The owner of the current call: the scoped principal, else the local owner. */
+export function currentGraphRAGOwner(): string {
+  return graphRAGOwnerScope.getStore() ?? LOCAL_GRAPH_RAG_OWNER;
+}
+
+function ownerState(ownerKey: string = currentGraphRAGOwner()): GraphRAGOwnerState {
+  return graphRAGStateByOwner.get(ownerKey) ?? emptyOwnerState();
+}
+
+function writableOwnerState(ownerKey: string): GraphRAGOwnerState {
+  let state = graphRAGStateByOwner.get(ownerKey);
+  if (!state) {
+    state = emptyOwnerState();
+    graphRAGStateByOwner.set(ownerKey, state);
+  }
+  return state;
+}
+
+/**
+ * Set the structural graph used by visual selection tools, for the current
+ * owner (or provenance.ownerKey).
  *
  * Visual graph context does not require HoloEmbed. Keeping this state separate
  * lets a verified stats-only HoloGraph cache serve visual agents without
@@ -235,62 +300,87 @@ let cachedVisualGraphTimestamp = 0;
  */
 export function setVisualGraphState(
   graph: GraphRAGEngine['graph'],
-  provenance: { rootDir?: string; timestamp?: number } = {}
+  provenance: { rootDir?: string; timestamp?: number; ownerKey?: string } = {}
 ): void {
-  cachedVisualGraph = graph;
-  cachedVisualGraphRootDir = provenance.rootDir ?? null;
-  cachedVisualGraphTimestamp = provenance.timestamp ?? Date.now();
+  const state = writableOwnerState(normalizeOwnerKey(provenance.ownerKey) ?? currentGraphRAGOwner());
+  state.visualGraph = graph;
+  state.visualRootDir = provenance.rootDir ?? null;
+  state.visualTimestamp = provenance.timestamp ?? Date.now();
 }
 
 /**
- * Set the cached embedding index and RAG engine (called from codebase-tools after absorb).
+ * Set the cached embedding index and RAG engine for the current owner (or
+ * provenance.ownerKey). Called from codebase-tools after absorb.
  */
 export function setGraphRAGState(
   embeddingIndex: SymbolSearchIndex,
   ragEngine: GraphRAGEngine,
-  provenance: { rootDir?: string; timestamp?: number } = {}
+  provenance: { rootDir?: string; timestamp?: number; ownerKey?: string } = {}
 ): void {
-  cachedEmbeddingIndex = embeddingIndex;
-  cachedGraphRAGEngine = ragEngine;
-  cachedGraphRAGRootDir = provenance.rootDir ?? null;
-  cachedGraphRAGTimestamp = provenance.timestamp ?? Date.now();
-  setVisualGraphState(ragEngine.graph, provenance);
+  const ownerKey = normalizeOwnerKey(provenance.ownerKey) ?? currentGraphRAGOwner();
+  const state = writableOwnerState(ownerKey);
+  state.embeddingIndex = embeddingIndex;
+  state.engine = ragEngine;
+  state.rootDir = provenance.rootDir ?? null;
+  state.timestamp = provenance.timestamp ?? Date.now();
+  setVisualGraphState(ragEngine.graph, { ...provenance, ownerKey });
 }
 
 /**
- * Get whether Graph RAG is initialized.
+ * Get whether Graph RAG is initialized for the current owner.
  */
-export function isGraphRAGReady(): boolean {
-  return cachedEmbeddingIndex !== null && cachedGraphRAGEngine !== null;
+export function isGraphRAGReady(ownerKey?: string): boolean {
+  const state = ownerState(normalizeOwnerKey(ownerKey) ?? currentGraphRAGOwner());
+  return state.embeddingIndex !== null && state.engine !== null;
 }
 
-export function getGraphRAGStateStatus(): {
+/** Status of the current owner's state; rootDir is only ever the caller's own. */
+export function getGraphRAGStateStatus(ownerKey?: string): {
   ready: boolean;
   rootDir: string | null;
   timestamp: number | null;
   ageMs: number | null;
 } {
+  const owner = normalizeOwnerKey(ownerKey) ?? currentGraphRAGOwner();
+  const state = ownerState(owner);
   return {
-    ready: isGraphRAGReady(),
-    rootDir: cachedGraphRAGRootDir,
-    timestamp: cachedGraphRAGTimestamp || null,
-    ageMs: cachedGraphRAGTimestamp ? Date.now() - cachedGraphRAGTimestamp : null,
+    ready: isGraphRAGReady(owner),
+    rootDir: state.rootDir,
+    timestamp: state.timestamp || null,
+    ageMs: state.timestamp ? Date.now() - state.timestamp : null,
   };
 }
 
+/** Clear the current owner's state only. */
 export function resetGraphRAGState(): void {
-  cachedEmbeddingIndex = null;
-  cachedGraphRAGEngine = null;
-  cachedGraphRAGRootDir = null;
-  cachedGraphRAGTimestamp = 0;
-  cachedVisualGraph = null;
-  cachedVisualGraphRootDir = null;
-  cachedVisualGraphTimestamp = 0;
+  graphRAGStateByOwner.delete(currentGraphRAGOwner());
 }
 
-export const resetGraphRAGStateForTests = resetGraphRAGState;
+/** Clear every owner's state (tests). */
+export function resetGraphRAGStateForTests(): void {
+  graphRAGStateByOwner.clear();
+}
 
 export async function handleGraphRagTool(
+  name: string,
+  args: Record<string, unknown>,
+  ctx?: GraphRagToolContext
+): Promise<unknown | null> {
+  if (ctx !== undefined) {
+    // A host that passes a context is multi-tenant: no principal, no state.
+    const ownerKey = normalizeOwnerKey(ctx?.ownerKey);
+    if (!ownerKey) {
+      return {
+        error: 'graph_rag_owner_required',
+        hint: 'This tool reads per-caller absorb state; the request carried no authenticated caller.',
+      };
+    }
+    return runWithGraphRAGOwner(ownerKey, () => handleGraphRagToolForOwner(name, args));
+  }
+  return handleGraphRagToolForOwner(name, args);
+}
+
+async function handleGraphRagToolForOwner(
   name: string,
   args: Record<string, unknown>
 ): Promise<unknown | null> {
@@ -300,7 +390,7 @@ export async function handleGraphRagTool(
     return nestedSliceRefuse;
   }
 
-  if (name === 'holo_visual_graph_context' && !cachedVisualGraph) {
+  if (name === 'holo_visual_graph_context' && !ownerState().visualGraph) {
     await hydrateCachedVisualGraphStateFromCodebaseTools();
   } else if (
     (name === 'holo_semantic_search' || name === 'holo_ask_codebase') &&
@@ -323,8 +413,16 @@ export async function handleGraphRagTool(
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// Disk hydration reads codebase-tools' process-wide absorb cache, which is not
+// owner-keyed, so only the local single-user owner may hydrate from it. A scoped
+// tenant gets only what it absorbed itself.
+function ownerMayHydrateFromDisk(): boolean {
+  return currentGraphRAGOwner() === LOCAL_GRAPH_RAG_OWNER;
+}
+
 async function hydrateCachedGraphRAGStateFromCodebaseTools(): Promise<void> {
   if (isGraphRAGReady()) return;
+  if (!ownerMayHydrateFromDisk()) return;
 
   try {
     const { ensureCachedGraphRAGStateFromCodebaseTools } = await import('./codebase-tools');
@@ -335,7 +433,8 @@ async function hydrateCachedGraphRAGStateFromCodebaseTools(): Promise<void> {
 }
 
 async function hydrateCachedVisualGraphStateFromCodebaseTools(): Promise<void> {
-  if (cachedVisualGraph) return;
+  if (ownerState().visualGraph) return;
+  if (!ownerMayHydrateFromDisk()) return;
 
   try {
     const { getAuthoritativeGraphForVisualContext } = await import('./codebase-tools');
@@ -706,6 +805,7 @@ async function resolveSemanticSearchIndex(
   | { index: SymbolSearchIndex; source: string; manifestPath?: string; warning?: string }
   | { error: string; hint: string }
 > {
+  const { embeddingIndex: cachedEmbeddingIndex } = ownerState();
   if (args.useCachedAbsorbIndex === true) {
     return cachedEmbeddingIndex
       ? { index: cachedEmbeddingIndex, source: 'cached-embedding-index' }
@@ -867,6 +967,11 @@ function buildVisualFocus(
 }
 
 function handleVisualGraphContext(args: Record<string, unknown>): Record<string, unknown> {
+  const {
+    visualGraph: cachedVisualGraph,
+    visualRootDir: cachedVisualGraphRootDir,
+    visualTimestamp: cachedVisualGraphTimestamp,
+  } = ownerState();
   if (!cachedVisualGraph) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
@@ -1018,6 +1123,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         'On a single-user local server the operator can set HOLOLLAMA_ENDPOINT_ARG=allow.',
     };
   }
+  const { embeddingIndex: cachedEmbeddingIndex, engine: cachedGraphRAGEngine } = ownerState();
   if (!cachedEmbeddingIndex || !cachedGraphRAGEngine) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,

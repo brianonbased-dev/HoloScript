@@ -49,28 +49,54 @@ export function getRegisteredToolCount(): number {
   return _lastRegisteredToolCount;
 }
 
-async function createMcpServer(): Promise<McpServer> {
+/**
+ * Build an MCP server whose tool calls run as `principal`. GraphRAG absorb state
+ * is per owner in @holoscript/absorb-service: every call runs inside
+ * runWithGraphRAGOwner(principal) so an absorb lands in the caller's own slot, and
+ * the graph-rag family gets { ownerKey: principal } (no principal -> refused).
+ */
+async function createMcpServer(principal: string | null = null): Promise<McpServer> {
   const server = new McpServer({
     name: 'absorb-service',
     version: SERVICE_VERSION,
   });
 
-  type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
-  const registeredTools = new Map<string, { definition: any; handler: ToolHandler }>();
+  type ToolHandler = (
+    name: string,
+    args: Record<string, unknown>,
+    ctx?: { ownerKey: string | null },
+  ) => Promise<unknown>;
+  const registeredTools = new Map<
+    string,
+    { definition: any; handler: ToolHandler; ownerCtx: boolean }
+  >();
+  type RunWithOwner = <T>(ownerKey: string, fn: () => T) => T;
+  const ownerRunner: { run: RunWithOwner | null } = { run: null };
 
-  const addToolFamily = (definitions: unknown, handler: unknown) => {
+  const addToolFamily = (definitions: unknown, handler: unknown, ownerCtx = false) => {
     if (!Array.isArray(definitions) || typeof handler !== 'function') return;
     for (const definition of definitions) {
       if (!definition || typeof definition.name !== 'string') continue;
       registeredTools.set(definition.name, {
         definition,
         handler: handler as ToolHandler,
+        ownerCtx,
       });
     }
   };
 
   try {
     const mcpModule = (await import('@holoscript/absorb-service/mcp')) as Record<string, any>;
+    // Read defensively: a strict test mock throws on an export it does not define.
+    let ownerScope: unknown;
+    try {
+      ownerScope = mcpModule.runWithGraphRAGOwner;
+    } catch {
+      ownerScope = undefined;
+    }
+    if (typeof ownerScope === 'function') {
+      ownerRunner.run = ownerScope as RunWithOwner;
+    }
 
     addToolFamily(
       mcpModule.absorbServiceTools,
@@ -87,6 +113,7 @@ async function createMcpServer(): Promise<McpServer> {
     addToolFamily(
       mcpModule.graphRagTools,
       mcpModule.handleGraphRagTool ?? mcpModule.graphRagToolHandler,
+      true,
     );
 
   } catch (e: any) {
@@ -120,10 +147,13 @@ async function createMcpServer(): Promise<McpServer> {
     }
 
     try {
-      const result = await entry.handler(
-        name,
-        (request.params.arguments ?? {}) as Record<string, unknown>,
-      );
+      const args = (request.params.arguments ?? {}) as Record<string, unknown>;
+      const call = () =>
+        entry.ownerCtx
+          ? entry.handler(name, args, { ownerKey: principal })
+          : entry.handler(name, args);
+      const runWithOwner = ownerRunner.run;
+      const result = await (principal && runWithOwner ? runWithOwner(principal, call) : call());
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
       };
@@ -191,7 +221,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
     sessionUserMap.delete(sessionId);
   });
 
-  const server = await createMcpServer();
+  const server = await createMcpServer(principal);
   // connect() starts the transport (SSE headers + endpoint event). The extra
   // transport.start() that followed threw "already started" on every session.
   await server.connect(transport);
@@ -207,7 +237,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
  * remaining protocol-compatible with Streamable HTTP clients.
  */
 export async function handleMcpStreamableHttp(req: Request, res: Response): Promise<void> {
-  const server = await createMcpServer();
+  const server = await createMcpServer(sessionPrincipal(req));
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
