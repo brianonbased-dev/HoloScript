@@ -9,6 +9,12 @@ const { callMcpToolMock, auth } = vi.hoisted(() => ({
 }));
 vi.mock('next-auth', () => ({ getServerSession: vi.fn(async () => auth.session) }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+// The workspace owner check (#620) has its own real-filesystem test in
+// fallback-workspace-owner.test.ts; here every path counts as owned.
+vi.mock('@/lib/workspace/workspaceOwner', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/workspace/workspaceOwner')>()),
+  assertWorkspaceOwner: (_s: unknown, p: string) => ({ ok: true, resolved: p, workspaceDir: p, workspaceId: 'ws', project: {} }),
+}));
 vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: vi.fn(async () => auth.token) }));
 vi.mock('@/lib/services/absorb-client', async (importOriginal) => ({
   mcpClearlyDidNotRun: (await importOriginal<typeof import('@/lib/services/absorb-client')>())

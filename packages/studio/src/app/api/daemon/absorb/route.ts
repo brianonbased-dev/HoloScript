@@ -3,7 +3,7 @@ export const maxDuration = 300;
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { callerUserId } from '@/lib/workspace/workspaceOwner';
+import { assertWorkspaceOwner, callerUserId } from '@/lib/workspace/workspaceOwner';
 import { getGitHubToken } from '@/app/api/github/_shared';
 import {
   callMcpTool,
@@ -79,6 +79,18 @@ export async function POST(req: NextRequest) {
     // does, instead of being billed through this second path.
     const payer = await fallbackPayer(req);
     if ('refusal' in payer) return payer.refusal;
+    // The folder must be a workspace the session owner OWNS (as #618 does):
+    // realpathed, inside the caller's own workspace under the workspaces root.
+    // Anything else, including another user's workspace, is refused before
+    // any paid /scan call; the realpath is what gets scanned.
+    const owned = assertWorkspaceOwner(payer.session, scanBody.path);
+    if (!owned.ok) {
+      return NextResponse.json(
+        { error: owned.error, reason: 'absorb_workspace_not_owned' },
+        { status: owned.status }
+      );
+    }
+    scanBody.path = owned.resolved;
     try {
       const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
         method: 'POST',
@@ -177,7 +189,7 @@ function scanRequestFrom(body: Record<string, unknown>): {
  */
 async function fallbackPayer(
   req: NextRequest
-): Promise<{ headers: Record<string, string> } | { refusal: NextResponse }> {
+): Promise<{ headers: Record<string, string>; session: { user?: { id?: string | null } | null } } | { refusal: NextResponse }> {
   const session = await getServerSession(authOptions);
   if (!session?.user || !callerUserId(session)) {
     return { refusal: NextResponse.json({ error: 'Not authenticated', reason: 'absorb_not_authenticated' }, { status: 401 }) };
@@ -207,6 +219,7 @@ async function fallbackPayer(
     };
   }
   return {
+    session,
     headers: ABSORB_API_KEY
       ? { Authorization: `Bearer ${ABSORB_API_KEY}`, 'X-User-Authorization': ownerAuth }
       : { Authorization: ownerAuth },

@@ -4,6 +4,12 @@ import { NextRequest } from 'next/server';
 const fbAuth = vi.hoisted(() => ({ session: { user: { id: 'user-owner' } } as unknown, token: 'gho_owner' as string | null }));
 vi.mock('next-auth', () => ({ getServerSession: async () => fbAuth.session }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+// The workspace owner check (#620) has its own real-filesystem test in
+// fallback-workspace-owner.test.ts; here every path counts as owned.
+vi.mock('@/lib/workspace/workspaceOwner', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/workspace/workspaceOwner')>()),
+  assertWorkspaceOwner: (_s: unknown, p: string) => ({ ok: true, resolved: p, workspaceDir: p, workspaceId: 'ws', project: {} }),
+}));
 vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => fbAuth.token }));
 
 // Treasurer's rule, end to end: the REAL callMcpTool and mcpClearlyDidNotRun,
