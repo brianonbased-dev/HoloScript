@@ -416,9 +416,11 @@ async function scanAndCharge(
     durationMs: scanResult.stats.durationMs ?? 0,
   };
 
-  // Charged by USER, whatever projectId says (Mapping N2, #617): projectId is
-  // a label, not a payer. Gating on it let a scan with no projectId run free.
-  if ((req as AuthenticatedRequest).authenticated && scanUserId) {
+  // A URL import (repoUrl) is charged to the signed-in user whatever projectId
+  // says (Mapping N2, #617): gating it on projectId let a URL scan run free.
+  // A server-folder scan keeps main's rule (charged only with a projectId);
+  // this PR makes no pricing change for folder scans.
+  if ((req as AuthenticatedRequest).authenticated && scanUserId && (body.repoUrl || body.projectId)) {
     const creditsModule = await loadCredits();
     const { requireCredits, isCreditError, deductCredits, CHARGE_GUARD_REFUSED } =
       (creditsModule as any).default || creditsModule;

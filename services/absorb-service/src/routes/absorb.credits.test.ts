@@ -352,10 +352,23 @@ describe('POST /scan saved result is only for the account that paid', () => {
   });
 });
 
+describe('/scan of a server folder without projectId (unchanged from main, #617 N2)', () => {
+  it('charges nothing', async () => {
+    ledger.state.byUser.set(USER, SHALLOW_CENTS);
+    const res = mockRes();
+    await scan(
+      { body: { path: '/repo/folder-no-project', shallow: true }, authenticated: true, userId: USER } as unknown as Request,
+      res as unknown as Response
+    );
+    expect(res._status).toBe(200);
+    expect(res._json?.cost).toBe(0);
+    expect(ledger.deductCredits).not.toHaveBeenCalled();
+    expect(ledger.state.debited).toBe(0);
+  });
+});
+
 describe('POST /query when the charge comes back empty', () => {
   it('a query whose charge comes back empty is refused and reports no cost', async () => {
-    // The seeding scan is charged by user now, projectId or not (Mapping N2).
-    ledger.state.byUser.set(USER, SHALLOW_CENTS);
     const seeded = mockRes();
     await scan(
       {
@@ -368,7 +381,7 @@ describe('POST /query when the charge comes back empty', () => {
     expect(seeded._status).toBe(200);
     const graphId = seeded._json?.graphId;
     expect(typeof graphId).toBe('string');
-    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+    expect(ledger.state.debited).toBe(0);
 
     ledger.state.balance = 0;
     ledger.state.forceEmptyDebit = true;
@@ -384,13 +397,12 @@ describe('POST /query when the charge comes back empty', () => {
     );
 
     expect(ledger.requireCredits).toHaveBeenCalledWith(USER, 'query_with_llm');
-    // One for the seeding scan, one for the query that came back empty.
-    expect(ledger.deductCredits).toHaveBeenCalledTimes(2);
+    expect(ledger.deductCredits).toHaveBeenCalledTimes(1);
     expect(res._status).toBe(402);
     expect(res._json).toEqual({ error: 'Not enough credits for this query.' });
     expect(res._json).not.toHaveProperty('cost');
     expect(res._json).not.toHaveProperty('results');
-    expect(ledger.state.debited).toBe(SHALLOW_CENTS); // the scan only; the query took nothing
+    expect(ledger.state.debited).toBe(0);
     expect(ledger.state.balance).toBe(0);
     expect(ledger.state.wentNegative).toBe(false);
   });
