@@ -33,18 +33,50 @@ const ABSORB_SERVICE_URL = ENDPOINTS.ABSORB_SERVICE;
 const DEPTHS = new Set(['shallow', 'deep']);
 const TIERS = new Set(['low', 'medium', 'high']);
 
+/** At most this many languages, each a short language tag (Mapping, #621). */
+export const MAX_LANGUAGES = 20;
+export const MAX_LANGUAGE_LENGTH = 32;
+const LANGUAGE_TAG = /^[A-Za-z0-9+#._-]+$/;
+
 type StreamBody = { projectId: string; depth: string; tier: string; languages?: string[] };
 
-function allowlistedBody(projectId: string, input: Record<string, unknown>): StreamBody {
-  const body: StreamBody = {
-    projectId,
-    depth: typeof input.depth === 'string' && DEPTHS.has(input.depth) ? input.depth : 'shallow',
-    tier: typeof input.tier === 'string' && TIERS.has(input.tier) ? input.tier : 'medium',
-  };
-  if (Array.isArray(input.languages) && input.languages.every((l) => typeof l === 'string')) {
-    body.languages = input.languages as string[];
+/**
+ * The only body sent upstream. A missing depth or tier takes its default; a
+ * present but invalid one, or an invalid languages list, is a 400.
+ */
+function allowlistedBody(
+  projectId: string,
+  input: Record<string, unknown>
+): { body: StreamBody } | { invalid: string } {
+  const depth = input.depth ?? 'shallow';
+  const tier = input.tier ?? 'medium';
+  if (typeof depth !== 'string' || !DEPTHS.has(depth)) {
+    return { invalid: `depth must be one of: ${[...DEPTHS].join(', ')}` };
   }
-  return body;
+  if (typeof tier !== 'string' || !TIERS.has(tier)) {
+    return { invalid: `tier must be one of: ${[...TIERS].join(', ')}` };
+  }
+  const body: StreamBody = { projectId, depth, tier };
+  if (input.languages !== undefined) {
+    const langs = input.languages;
+    if (
+      !Array.isArray(langs) ||
+      langs.length > MAX_LANGUAGES ||
+      !langs.every(
+        (l) => typeof l === 'string' && l.length >= 1 && l.length <= MAX_LANGUAGE_LENGTH && LANGUAGE_TAG.test(l)
+      )
+    ) {
+      return {
+        invalid: `languages must be at most ${MAX_LANGUAGES} language tags of 1-${MAX_LANGUAGE_LENGTH} characters`,
+      };
+    }
+    body.languages = langs as string[];
+  }
+  return { body };
+}
+
+function invalidBody(message: string): Response {
+  return NextResponse.json({ error: message, reason: 'absorb_invalid_request' }, { status: 400 });
 }
 
 function ownsWorkspace(projectId: string, session: Parameters<typeof assertWorkspaceOwner>[0]): boolean {
@@ -137,9 +169,14 @@ async function proxyStream(
     });
 
     if (!res.ok) {
-      const errText = await res.text();
+      // The upstream text stays in the server log (truncated); the client gets
+      // a generic reason, never absorb's raw body (Mapping, #621).
+      const errText = await res.text().catch(() => '(body unreadable)');
+      console.error(
+        `[API absorb/projects/[id]/absorb/stream] upstream HTTP ${res.status} for ${projectId}: ${errText.slice(0, 300)}`
+      );
       return new Response(
-        JSON.stringify({ error: `Absorb service failed [${res.status}]: ${errText}` }),
+        JSON.stringify({ error: 'The absorb stream could not start.', reason: 'absorb_upstream_failed', status: res.status }),
         { status: res.status, headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -161,11 +198,15 @@ async function proxyStream(
       },
     });
   } catch (error) {
+    console.error(
+      `[API absorb/projects/[id]/absorb/stream] upstream threw for ${projectId}: ${error instanceof Error ? error.message : String(error)}`
+    );
     const event = toAbsorbProgressContractEvent({
       type: 'error',
       status: 'failed',
       jobId: projectId,
-      error: `Absorb Service is offline. ${String(error)}`,
+      // Generic for the client; the thrown text goes to the server log only.
+      error: 'The absorb service is unavailable.',
     });
 
     const encoder = new TextEncoder();
@@ -195,11 +236,12 @@ export async function GET(
   const g = await guard(req, projectId);
   if ('refusal' in g) return g.refusal;
   const q = req.nextUrl.searchParams;
-  const body = allowlistedBody(projectId, {
+  const checked = allowlistedBody(projectId, {
     depth: q.get('depth') ?? undefined,
     tier: q.get('tier') ?? undefined,
   });
-  return proxyStream(req, projectId, JSON.stringify(body), g.headers);
+  if ('invalid' in checked) return invalidBody(checked.invalid);
+  return proxyStream(req, projectId, JSON.stringify(checked.body), g.headers);
 }
 
 export async function POST(
@@ -225,7 +267,9 @@ export async function POST(
     input = parsed as Record<string, unknown>;
   }
   // Only the allowlisted fields go upstream; projectId always comes from the URL.
-  return proxyStream(req, projectId, JSON.stringify(allowlistedBody(projectId, input)), g.headers);
+  const checked = allowlistedBody(projectId, input);
+  if ('invalid' in checked) return invalidBody(checked.invalid);
+  return proxyStream(req, projectId, JSON.stringify(checked.body), g.headers);
 }
 
 export function OPTIONS(request: Request) {

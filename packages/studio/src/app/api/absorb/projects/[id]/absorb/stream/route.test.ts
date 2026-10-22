@@ -182,10 +182,32 @@ describe('/api/absorb/projects/[id]/absorb/stream owner check', () => {
     expect(sent().body).toEqual({ projectId: WS_ID, depth: 'deep', tier: 'medium', languages: ['ts'] });
   });
 
-  it('POST with unknown depth or tier values falls back to the defaults', async () => {
+  it('POST with no depth or tier uses the defaults', async () => {
     asOwner();
-    await post(WS_ID, { depth: 'everything', tier: 'free' });
+    await post(WS_ID, {});
     expect(sent().body).toEqual({ projectId: WS_ID, depth: 'shallow', tier: 'medium' });
+  });
+
+  it('an invalid depth or tier: 400, absorb never called (Mapping, #621)', async () => {
+    asOwner();
+    expect((await post(WS_ID, { depth: 'everything' })).status).toBe(400);
+    expect((await post(WS_ID, { tier: 'free' })).status).toBe(400);
+    expect((await post(WS_ID, { depth: 7 })).status).toBe(400);
+    expect((await get(WS_ID, '?depth=everything')).status).toBe(400);
+    expect((await get(WS_ID, '?tier=free')).status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('languages are capped in count and length: 400 beyond the cap, absorb never called', async () => {
+    asOwner();
+    expect((await post(WS_ID, { languages: Array.from({ length: 21 }, (_, i) => `l${i}`) })).status).toBe(400);
+    expect((await post(WS_ID, { languages: ['x'.repeat(33)] })).status).toBe(400);
+    expect((await post(WS_ID, { languages: [''] })).status).toBe(400);
+    expect((await post(WS_ID, { languages: ['ts; rm -rf /'] })).status).toBe(400);
+    expect((await post(WS_ID, { languages: 'ts' })).status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
+    await post(WS_ID, { languages: Array.from({ length: 20 }, () => 'c++') });
+    expect(sent().body.languages).toHaveLength(20);
   });
 
   it('POST with a malformed body: 400, absorb never called', async () => {
@@ -194,11 +216,24 @@ describe('/api/absorb/projects/[id]/absorb/stream owner check', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('the owner: an upstream error is passed back with its status', async () => {
+  it("the owner: an upstream error keeps its status but not absorb's raw text (Mapping, #621)", async () => {
     asOwner();
-    fetchMock.mockResolvedValueOnce(new Response('rate limited', { status: 429 }));
+    fetchMock.mockResolvedValueOnce(new Response('rate limited; key=abc123 internal detail', { status: 429 }));
     const res = await post(WS_ID, {});
     expect(res.status).toBe(429);
-    expect((await res.json()).error).toContain('429');
+    const body = await res.json();
+    expect(body.reason).toBe('absorb_upstream_failed');
+    expect(JSON.stringify(body)).not.toContain('internal detail');
+    expect(JSON.stringify(body)).not.toContain('abc123');
+  });
+
+  it("a thrown upstream error reaches the client as a generic event, not the error's text", async () => {
+    asOwner();
+    fetchMock.mockRejectedValueOnce(new Error('connect ECONNREFUSED 10.0.0.7:8080 secret-host'));
+    const res = await get(WS_ID);
+    const text = await res.text();
+    expect(text).toContain('The absorb service is unavailable.');
+    expect(text).not.toContain('10.0.0.7');
+    expect(text).not.toContain('secret-host');
   });
 });
