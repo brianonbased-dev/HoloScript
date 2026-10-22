@@ -65,6 +65,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   const userAuth = await userAuthorization(req);
+  if (userAuth === MISMATCH) {
+    // The owner and the payer are always the same user: a credential that is
+    // not the signed-in owner's own is refused, never forwarded.
+    return NextResponse.json(
+      {
+        error: "The credential sent is not the signed-in user's own.",
+        reason: 'absorb_credential_not_session_owner',
+      },
+      { status: 403 }
+    );
+  }
   if (!userAuth) {
     return NextResponse.json(
       {
@@ -167,17 +178,26 @@ function resolveOwnedScanPath(
   return owned.resolved;
 }
 
-/** The user's own credential: the header they sent, else their session's GitHub token. */
-async function userAuthorization(req: NextRequest): Promise<string | null> {
-  const header = req.headers.get('authorization')?.trim();
-  if (header) return header;
+const MISMATCH = Symbol('credential-not-session-owner');
+
+/**
+ * The signed-in owner's own credential: their session's GitHub token. A
+ * client Authorization header is accepted only when it IS that credential;
+ * any other identity (or a header with no session credential to match) is
+ * MISMATCH (403), so absorb never charges someone other than the owner.
+ */
+async function userAuthorization(req: NextRequest): Promise<string | null | typeof MISMATCH> {
+  let sessionAuth: string | null = null;
   try {
     // userOnly: a server-wide GitHub token must never stand in for the caller.
     const token = await getGitHubToken(req, { userOnly: true });
-    return token ? `Bearer ${token}` : null;
+    sessionAuth = token ? `Bearer ${token}` : null;
   } catch {
-    return null;
+    sessionAuth = null;
   }
+  const header = req.headers.get('authorization')?.trim();
+  if (header && header !== sessionAuth) return MISMATCH;
+  return sessionAuth;
 }
 
 export function OPTIONS(request: Request) {

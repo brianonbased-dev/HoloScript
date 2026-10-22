@@ -121,16 +121,16 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     });
   });
 
-  it("an Authorization header the caller sent is forwarded as the user identity", async () => {
+  it("an Authorization header that is the owner's own credential is forwarded as the user identity", async () => {
     const fetchMock = vi.fn(async () => new Response('{"graphId":"g1"}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
-    await POST(post(WS_ID, '{}', { Authorization: 'Bearer user-key' }), {
+    await POST(post(WS_ID, '{}', { Authorization: 'Bearer gho_owner' }), {
       params: Promise.resolve({ id: WS_ID }),
     });
     const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
     const headers = init.headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer absorb-key-test');
-    expect(headers['X-User-Authorization']).toBe('Bearer user-key');
+    expect(headers['X-User-Authorization']).toBe('Bearer gho_owner');
   });
 
   it('an id that is not a saved workspace: 404, nothing sent', async () => {

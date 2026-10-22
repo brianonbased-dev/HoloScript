@@ -149,6 +149,23 @@ describe('/api/absorb/projects/[id]/absorb owner check', () => {
     expect(fs.realpathSync(sent.path)).toBe(fs.realpathSync(repoDir));
   });
 
+  it("5. an Authorization header for someone other than the session owner: 403, nothing sent", async () => {
+    sessionMock.mockResolvedValue({ user: { id: OWNER } });
+    tokenMock.mockResolvedValue('gho_owner');
+    const res = await call(WS_ID, { Authorization: 'Bearer gho_someone_else' });
+    expect(res.status).toBe(403);
+    expect((await res.json()).reason).toBe('absorb_credential_not_session_owner');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('5b. a header with no session credential to match it: 403, nothing sent', async () => {
+    sessionMock.mockResolvedValue({ user: { id: OWNER } });
+    tokenMock.mockResolvedValue(null);
+    const res = await call(WS_ID, { Authorization: 'Bearer gho_someone_else' });
+    expect(res.status).toBe(403);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('4b. a signed-in caller with no user credential: 401, the service key is never sent alone', async () => {
     sessionMock.mockResolvedValue({ user: { id: OWNER } });
     tokenMock.mockResolvedValue(null);
