@@ -4,6 +4,11 @@ import * as path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const fbAuth = vi.hoisted(() => ({ session: { user: { id: 'user-owner' } } as unknown, token: 'gho_owner' as string | null }));
+vi.mock('next-auth', () => ({ getServerSession: async () => fbAuth.session }));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => fbAuth.token }));
+
 const { callMcpToolMock, forwardAuthHeadersMock } = vi.hoisted(() => ({
   callMcpToolMock: vi.fn(),
   forwardAuthHeadersMock: vi.fn(() => ({ Authorization: 'Bearer user-token' })),
@@ -15,6 +20,7 @@ vi.mock('@/lib/services/absorb-client', () => ({
     !r.ok && (r.failure === 'refused' || r.failure === 'http_4xx'),
   MCP_SERVER_URL: 'https://mcp.test',
   ABSORB_BASE: 'https://absorb.test',
+  ABSORB_API_KEY: '',
 }));
 
 vi.mock('@/lib/api-auth', () => ({
@@ -116,11 +122,11 @@ describe('/api/daemon/absorb route', () => {
     const body = await res.json();
     expect(body.jobId).toBe('job-http');
 
-    expect(forwardAuthHeadersMock).toHaveBeenCalled();
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://absorb.test/api/absorb/scan');
     const fetchInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const headers = (fetchInit.headers ?? {}) as Record<string, string>;
-    expect(headers.Authorization).toBe('Bearer user-token');
+    // The session owner's own credential, never a forwarded caller header (CoS, #620).
+    expect(headers.Authorization).toBe('Bearer gho_owner');
   });
 
   it('POST returns 502 when MCP and HTTP fallback both fail', async () => {

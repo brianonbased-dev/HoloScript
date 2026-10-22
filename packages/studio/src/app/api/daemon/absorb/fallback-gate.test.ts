@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const fbAuth = vi.hoisted(() => ({ session: { user: { id: 'user-owner' } } as unknown, token: 'gho_owner' as string | null }));
+vi.mock('next-auth', () => ({ getServerSession: async () => fbAuth.session }));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => fbAuth.token }));
+
 // Real mcpClearlyDidNotRun; only the network call is mocked.
 const { callMcpToolMock, recordAbsorbJobMock } = vi.hoisted(() => ({
   callMcpToolMock: vi.fn(),

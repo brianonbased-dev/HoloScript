@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const fbAuth = vi.hoisted(() => ({ session: { user: { id: 'user-owner' } } as unknown, token: 'gho_owner' as string | null }));
+vi.mock('next-auth', () => ({ getServerSession: async () => fbAuth.session }));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => fbAuth.token }));
+
 // Treasurer's rule, end to end: the REAL callMcpTool and mcpClearlyDidNotRun,
 // only fetch is faked. Falls back to /api/absorb/scan ONLY when MCP was refused
 // before anything was sent, or answered a clean pre-charge 4xx
@@ -59,7 +64,6 @@ async function scanned(): Promise<boolean> {
 describe("absorb fallback: Treasurer's rule", () => {
   describe('nothing was sent or a clean pre-charge 4xx: falls back to /scan', () => {
     it('ECONNREFUSED', async () => { mcp = thrown('ECONNREFUSED'); expect(await scanned()).toBe(true); });
-    it('ENOTFOUND (DNS, nothing sent)', async () => { mcp = thrown('ENOTFOUND'); expect(await scanned()).toBe(true); });
     it('400 validation', async () => { mcp = status(400); expect(await scanned()).toBe(true); });
     it('401 auth', async () => { mcp = status(401); expect(await scanned()).toBe(true); });
     it('402 payment', async () => { mcp = status(402); expect(await scanned()).toBe(true); });
@@ -67,7 +71,9 @@ describe("absorb fallback: Treasurer's rule", () => {
     it('422 validation', async () => { mcp = status(422); expect(await scanned()).toBe(true); });
   });
 
-  describe('may have run: never falls back', () => {
+  describe('may have run, or the fallback host is unreachable too: never falls back', () => {
+    it('ENOTFOUND (DNS: /scan is on the same host; Mapping N3)', async () => { mcp = thrown('ENOTFOUND'); expect(await scanned()).toBe(false); });
+    it('EAI_AGAIN (DNS: same host)', async () => { mcp = thrown('EAI_AGAIN'); expect(await scanned()).toBe(false); });
     it('404', async () => { mcp = status(404); expect(await scanned()).toBe(false); });
     it('406', async () => { mcp = status(406); expect(await scanned()).toBe(false); });
     it('408 request timeout', async () => { mcp = status(408); expect(await scanned()).toBe(false); });

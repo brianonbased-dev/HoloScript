@@ -1,7 +1,10 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { forwardAuthHeaders } from '@/lib/api-auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { callerUserId } from '@/lib/workspace/workspaceOwner';
+import { getGitHubToken } from '@/app/api/github/_shared';
 import {
   callMcpTool,
   mcpClearlyDidNotRun,
@@ -71,12 +74,17 @@ export async function POST(req: NextRequest) {
     );
   }
   if (scanBody) {
+    // The fallback bills the SESSION OWNER, and only them (CoS, #620). A caller
+    // bearer that is not the owner's own credential is refused (403), as #618
+    // does, instead of being billed through this second path.
+    const payer = await fallbackPayer(req);
+    if ('refusal' in payer) return payer.refusal;
     try {
       const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...absorbFallbackAuth(req),
+          ...payer.headers,
         },
         // Only the fields /scan reads, never the raw client body.
         body: JSON.stringify(scanBody),
@@ -160,15 +168,49 @@ function scanRequestFrom(body: Record<string, unknown>): {
 }
 
 /**
- * Browser callers sign in with a session cookie, so they carry no
- * Authorization header and the absorb REST API answered 401. Forward the
- * caller's own bearer when there is one; otherwise use the same service key
- * the MCP path already uses.
+ * Who the /scan fallback bills: the signed-in session owner, by their own
+ * credential (the session's GitHub token, userOnly). Studio's service key goes
+ * only together with it in X-User-Authorization, never alone.
+ *   - no session: 401
+ *   - a caller Authorization that is not the owner's own credential: 403
+ *   - a session with no user credential: 401
  */
-function absorbFallbackAuth(req: NextRequest): Record<string, string> {
-  const forwarded = forwardAuthHeaders(req);
-  if (forwarded.Authorization) return forwarded;
-  return ABSORB_API_KEY ? { Authorization: `Bearer ${ABSORB_API_KEY}` } : {};
+async function fallbackPayer(
+  req: NextRequest
+): Promise<{ headers: Record<string, string> } | { refusal: NextResponse }> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user || !callerUserId(session)) {
+    return { refusal: NextResponse.json({ error: 'Not authenticated', reason: 'absorb_not_authenticated' }, { status: 401 }) };
+  }
+  let ownerAuth: string | null = null;
+  try {
+    const token = await getGitHubToken(req, { userOnly: true });
+    ownerAuth = token ? `Bearer ${token}` : null;
+  } catch {
+    ownerAuth = null;
+  }
+  const header = req.headers.get('authorization')?.trim();
+  if (header && header !== ownerAuth) {
+    return {
+      refusal: NextResponse.json(
+        { error: "The credential sent is not the signed-in user's own.", reason: 'absorb_credential_not_session_owner' },
+        { status: 403 }
+      ),
+    };
+  }
+  if (!ownerAuth) {
+    return {
+      refusal: NextResponse.json(
+        { error: 'Absorb needs your own credential; sign in again.', reason: 'absorb_no_user_credential' },
+        { status: 401 }
+      ),
+    };
+  }
+  return {
+    headers: ABSORB_API_KEY
+      ? { Authorization: `Bearer ${ABSORB_API_KEY}`, 'X-User-Authorization': ownerAuth }
+      : { Authorization: ownerAuth },
+  };
 }
 
 export function OPTIONS(request: Request) {

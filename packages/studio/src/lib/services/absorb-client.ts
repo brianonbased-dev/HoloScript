@@ -63,11 +63,14 @@ export function mcpClearlyDidNotRun(result: McpToolResult): boolean {
 export const CLEAN_REFUSAL_STATUSES: ReadonlySet<number> = new Set([400, 401, 402, 403, 422]);
 
 /**
- * Error codes that prove the request never left this host: the connection was
- * refused, or the host name never resolved. A reset, a timeout or any other
- * error after connecting may mean the tool ran.
+ * Error codes that prove the request never left this host and that the
+ * fallback can still reach absorb: the connection was refused. A DNS failure
+ * (ENOTFOUND, EAI_AGAIN) also sends nothing, but the /scan fallback goes to the
+ * SAME host (ABSORB_BASE), so it would fail the same way; it is not a fallback
+ * case (Mapping N3). A reset, a timeout or any other error after connecting
+ * may mean the tool ran.
  */
-const NOTHING_SENT_CODES: ReadonlySet<string> = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN']);
+const NOTHING_SENT_CODES: ReadonlySet<string> = new Set(['ECONNREFUSED']);
 
 function classifyThrown(err: unknown): McpFailure {
   const name = (err as { name?: unknown } | null)?.name;
