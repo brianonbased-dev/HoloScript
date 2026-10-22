@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   HOLOMESH_PAGE_EXTRACT_KIND,
   hasCrawlShape,
@@ -10,6 +10,7 @@ import {
   observedPageToFeedBlock,
   observedPageToKnowledgeContent,
   resolveMeshObservedPage,
+  URL_FETCH_REFUSED,
 } from '../observed-page-extract';
 
 const OBSERVE = {
@@ -159,5 +160,47 @@ describe('mesh fold helpers', () => {
       url: 'https://a.example',
     });
     expect(resolved).toMatchObject({ ok: false, error: 'page_extract_not_crawl' });
+  });
+});
+
+describe('url-only page extract refuses the global fetch by default', () => {
+  const urls = [
+    'http://169.254.169.254/latest/meta-data/',
+    'http://127.0.0.1:6379/',
+    'http://[fd00::1]/',
+    'https://redirector.example/to-metadata',
+  ];
+  for (const url of urls) {
+    it(`refuses ${url} without calling fetch`, async () => {
+      const spy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockResolvedValue(
+          new Response('', { status: 302, headers: { location: 'http://169.254.169.254/' } })
+        );
+      try {
+        await expect(normalizeObservedPageExtract({ url })).rejects.toThrow(URL_FETCH_REFUSED);
+        const mesh = await resolveMeshObservedPage({ url });
+        expect(mesh).toMatchObject({ ok: false, error: 'page_extract_failed' });
+        expect((mesh as { message: string }).message).toContain(URL_FETCH_REFUSED);
+        expect(spy).not.toHaveBeenCalled();
+      } finally {
+        spy.mockRestore();
+      }
+    });
+  }
+
+  it('still folds url + bodyText without any fetch', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch');
+    try {
+      const out = await normalizeObservedPageExtract({
+        url: 'http://127.0.0.1/',
+        title: 'T',
+        bodyText: 'observed body text',
+      });
+      expect(out.fetched).toBe(false);
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
