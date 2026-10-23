@@ -1,0 +1,22 @@
+{
+  "command": "NODE_OPTIONS=--require block.cjs (railway|mcp.holoscript.net denied at dns/net/http/fetch) sh a19-receipts.sh (receipts 1-5)",
+  "gitCommit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5",
+  "machine": "holojetson",
+  "startedAt": "2026-10-23T22:16:02Z",
+  "result": {
+    "blockedHosts": [
+      "*railway*",
+      "mcp.holoscript.net"
+    ],
+    "blockedAttempts": [],
+    "exitCodes": [
+      "binding=0",
+      "replay=0",
+      "ingest=0",
+      "links=0",
+      "ledger=0"
+    ],
+    "embeddings": "StructuralEmbeddingProvider (local, no network)",
+    "pass": true
+  }
+}

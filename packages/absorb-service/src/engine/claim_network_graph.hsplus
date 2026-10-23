@@ -13,7 +13,7 @@
 //
 // ClaimGraphEdgeKind:
 //   supports | depends-on | imports | refutes | anchored-at | discharged-by
-//   captured-by | sourced-from | in-frame | located-in | fits-claim
+//   captured-by | sourced-from | in-frame | located-in | fits-claim | implemented-by
 //
 // ClaimGraphNode: { id, kind, label?, owner_id?, proof_status?, claim_kind?,
 //   supported_claim_kinds?, evidence_kinds?, required_evidence_kinds?,
@@ -57,7 +57,7 @@
   @receipt claim_graph_config {
     type: "ClaimNetworkGraphReceipt"
     node_kinds: ["claim", "holomap_capture", "source", "geo_anchor", "solver_contract", "cael_receipt", "frame", "region"]
-    edge_kinds: ["supports", "depends-on", "imports", "refutes", "anchored-at", "discharged-by", "captured-by", "sourced-from", "in-frame", "located-in", "fits-claim"]
+    edge_kinds: ["supports", "depends-on", "imports", "refutes", "anchored-at", "discharged-by", "captured-by", "sourced-from", "in-frame", "located-in", "fits-claim", "implemented-by"]
     proof_statuses: ["proven", "labeled", "perceptual", "captured", "unverified", "claimable", "refuted"]
     timestamp: now()
   }

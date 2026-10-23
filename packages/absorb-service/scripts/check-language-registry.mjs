@@ -50,7 +50,7 @@ const DEFAULTS = {
 
 const STATUS_TEXT = {
   implemented: 'Has a registered adapter; tree-sitter grammars must be installed package deps.',
-  native: 'Parsed by the HoloScript-native adapter rather than tree-sitter.',
+  native: 'Parsed by a native adapter (isNativeAdapter) rather than tree-sitter.',
   declared: 'Present in SupportedLanguage but no adapter is registered yet.',
   fallback: 'Plain text path for unrecognized extensions.',
 };
@@ -101,6 +101,7 @@ function adapterMetadata(adapterName) {
     language: parseReadonlyString(source, 'language'),
     extensions: parseReadonlyArray(source, 'extensions'),
     grammarPackage: parseReadonlyString(source, 'grammarPackage'),
+    isNative: /readonly\s+isNativeAdapter\s*=\s*true/.test(source),
   };
 }
 
@@ -267,7 +268,7 @@ function generateRegistry() {
       continue;
     }
     applyAdapter(entries, metadata.language, adapter, metadata, {
-      status: adapter === 'HoloAdapter' ? 'native' : 'implemented',
+      status: adapter === 'HoloAdapter' || metadata.isNative ? 'native' : 'implemented',
     });
   }
 

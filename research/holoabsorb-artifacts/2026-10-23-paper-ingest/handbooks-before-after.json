@@ -1,0 +1,28 @@
+{
+  "command": "node buildDocGraph(ai-ecosystem/docs/handbooks)",
+  "gitCommit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5",
+  "machine": "holojetson",
+  "startedAt": "2026-10-23T22:28:55.441Z",
+  "result": {
+    "before": {
+      "language": "plaintext",
+      "files": 73,
+      "symbols": 0,
+      "links": 88,
+      "headings": 665
+    },
+    "after": {
+      "files": 66,
+      "languages": {
+        "markdown": 66
+      },
+      "symbols": 703,
+      "sectionSymbols": 637,
+      "links": 87,
+      "linkKinds": {
+        "?": 87
+      }
+    },
+    "note": "baseline counted 73 files incl. non-.md; this mirror holds 66 .md"
+  }
+}

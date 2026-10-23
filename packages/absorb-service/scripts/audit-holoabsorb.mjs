@@ -123,6 +123,7 @@ export async function main(argv = process.argv.slice(2)) {
       mcp.graphRagTools,
       mcp.oracleTools,
       mcp.knowledgeExtractionTools,
+      mcp.claimLinkTools,
     ]
       .filter(Array.isArray)
       .flatMap((tools) => tools.map((tool) => tool.name))

@@ -1,0 +1,77 @@
+{
+  "command": "node packages/absorb-service/scripts/replay-answer.mjs --query How is the cascade binding chained across keyword, graph, embed and llm layers? --runs 2",
+  "gitCommit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5",
+  "machine": "holojetson",
+  "startedAt": "2026-10-23T22:16:05.695Z",
+  "finishedAt": "2026-10-23T22:16:05.968Z",
+  "result": {
+    "query": "How is the cascade binding chained across keyword, graph, embed and llm layers?",
+    "corpus": [
+      "ai-ecosystem/research/paper-5-data",
+      "ai-ecosystem/docs/handbooks"
+    ],
+    "runs": 2,
+    "deterministic": true,
+    "envelope": {
+      "graphSnapshotHash": "3671d243addd9c647184237c2b01d83d3be823ac56ce61f39b50bbf21b5b4b44",
+      "gitCommitHash": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5",
+      "evidenceHash": "12043b8433d7d5e825e20fc1c4dc1a95dc1611f94d0d41fad401e41f00c8ffa3",
+      "cascadeLayers": [
+        {
+          "layer": "keyword",
+          "inputHash": "8e4c14452d005c2d48a205ba653958567dcda44379ed6c8b1259af95147e1e77",
+          "outputHash": "14c5020787e1e8a6bf022ecdba966b267a6892725ef82da118befabef67f1d42"
+        },
+        {
+          "layer": "graph",
+          "inputHash": "14c5020787e1e8a6bf022ecdba966b267a6892725ef82da118befabef67f1d42",
+          "outputHash": "38a476dfe0a919f9e98097843601ddc6122269ce1601f4708b34fd8f3fc50673"
+        },
+        {
+          "layer": "embed",
+          "inputHash": "38a476dfe0a919f9e98097843601ddc6122269ce1601f4708b34fd8f3fc50673",
+          "outputHash": "10318c7f8469d59594574d7538009d02d0f310c583a22a8b4aa8c085867ae7d7"
+        },
+        {
+          "layer": "llm",
+          "inputHash": "10318c7f8469d59594574d7538009d02d0f310c583a22a8b4aa8c085867ae7d7",
+          "outputHash": "17b757865c15227867b979b1365910f87c6ea748c0f83fd91fc1fb7386f53c39",
+          "mode": "recorded-extractive-no-model"
+        }
+      ]
+    },
+    "results": [
+      "ai-ecosystem/docs/handbooks/fleet-capability-expansion-plan.md:1:Fleet Capability Expansion Plan",
+      "ai-ecosystem/docs/handbooks/absorb-graphrag-question-playbook.md:56:Core HoloScript Domains",
+      "ai-ecosystem/docs/handbooks/absorb-graphrag-question-playbook.md:75:Domain Starters",
+      "ai-ecosystem/docs/handbooks/holon-product-architecture.md:1:holon-product-architecture.md",
+      "ai-ecosystem/docs/handbooks/holorepo-operating-model.md:163:Role 0: Repo Graph SSOT",
+      "ai-ecosystem/docs/handbooks/absorb-graphrag-question-playbook.md:176:Bad Questions To Rewrite",
+      "ai-ecosystem/docs/handbooks/absorb-graphrag-question-playbook.md:43:Query Intents",
+      "ai-ecosystem/docs/handbooks/fleet-capability-expansion-plan.md:34:Capability Layers"
+    ],
+    "llmMode": "recorded-extractive-no-model",
+    "embeddingProvider": "structural",
+    "replays": [
+      {
+        "pass": true,
+        "sameResults": true,
+        "sameEvidenceHash": true,
+        "sameSnapshot": true,
+        "sameCommit": true,
+        "chain": {
+          "ok": true,
+          "failedAt": -1,
+          "failedLayer": null,
+          "reason": null
+        }
+      }
+    ],
+    "tamper": {
+      "layer": "graph",
+      "detected": true,
+      "failedLayer": "graph",
+      "reason": "recorded output does not hash to outputHash"
+    }
+  }
+}

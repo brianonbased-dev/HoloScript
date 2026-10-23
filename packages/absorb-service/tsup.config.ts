@@ -57,6 +57,7 @@ export default defineConfig([
       'daemon/index': 'src/daemon/index.ts',
       'self-improvement/index': 'src/self-improvement/index.ts',
       'mcp/index': 'src/mcp/index.ts',
+      'paper/index': 'src/engine/paper/index.ts',
       'mcp/codebase-tools': 'src/mcp/codebase-tools.ts',
       bridge: 'src/bridge.ts',
       'credits/index': 'src/credits/index.ts',

@@ -29,6 +29,7 @@ import {
 } from '../engine/HoloGraphHoloEmbedManifest';
 import { LLMCreditExhaustedError } from '@holoscript/llm-provider';
 import { validateCitations, type Citation } from '../engine/ProvenanceIntegrityGuard';
+import { buildReplayEnvelope, CascadeBinder } from '../engine/AnswerProvenance';
 import {
   ABSORB_EMBEDDING_INDEX_ERROR,
   ABSORB_GRAPH_RAG_ENGINE_ERROR,
@@ -315,7 +316,7 @@ export async function handleGraphRagTool(
     case 'holo_visual_graph_context':
       return handleVisualGraphContext(args);
     case 'holo_ask_codebase':
-      return handleAskCodebase(args);
+      return attachReplayEnvelope(await handleAskCodebase(args), args);
     default:
       return null;
   }
@@ -1312,4 +1313,41 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
       };
     }
   }
+}
+
+// ── A19: replay envelope on holo_ask_codebase answers ───────────────────────
+const snapshotCache = new WeakMap<object, string>();
+
+/**
+ * Attach {graphSnapshotHash, gitCommitHash, cascadeLayers, evidenceHash}.
+ * The live ask path exposes only retrieval (graph+embed context) and the LLM
+ * answer, so cascadeLayers records those two chained layers; the full
+ * keyword->graph->embed->llm chain is produced by holo_replay_answer.
+ */
+function attachReplayEnvelope(result: unknown, args: Record<string, unknown>): unknown {
+  if (!result || typeof result !== 'object' || !cachedGraphRAGEngine) return result;
+  const r = result as Record<string, unknown>;
+  if (!Array.isArray(r.citations)) return result;
+  const graph = cachedGraphRAGEngine.graph as unknown as { serialize?: () => string };
+  if (typeof graph.serialize !== 'function') return result;
+  let serialized = snapshotCache.get(graph);
+  if (serialized === undefined) {
+    serialized = graph.serialize();
+    snapshotCache.set(graph, serialized);
+  }
+  const citations = r.citations as Array<{ file?: string; name?: string; line?: number }>;
+  const binder = new CascadeBinder(args.question ?? args.query ?? null);
+  binder.add('graph+embed', citations.map((c) => `${c.file}:${c.line}:${c.name}`));
+  binder.add('llm', r.answer ?? null, typeof r.mode === 'string' ? r.mode : undefined);
+  const prov = (r.provenance ?? {}) as Record<string, unknown>;
+  const commit = (r.gitCommitHash ?? prov.gitCommitHash ?? null) as string | null;
+  return {
+    ...r,
+    replay: buildReplayEnvelope({
+      serializedGraph: serialized,
+      gitCommitHash: commit,
+      evidence: citations.map((c) => ({ filePath: String(c.file ?? ''), name: c.name, line: c.line })),
+      cascadeLayers: binder.records(false),
+    }),
+  };
 }

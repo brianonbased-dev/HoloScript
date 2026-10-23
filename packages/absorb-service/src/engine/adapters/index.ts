@@ -14,6 +14,8 @@
 
 import type { LanguageAdapter, SupportedLanguage } from '../types';
 import { HoloAdapter } from './HoloAdapter';
+import { PaperAdapter } from './PaperAdapter';
+import { PaperTexAdapter } from './PaperTexAdapter';
 import { TreeSitterTraitAdapter } from './TreeSitterTraitAdapter';
 import { LANGUAGE_TRAITS } from './language-traits';
 
@@ -95,10 +97,16 @@ for (const trait of LANGUAGE_TRAITS) {
 // `@holoscript/core` `parseHoloPartial()`. Falls back to regex imports
 // if `@holoscript/core` (optional peer dep) is unavailable at runtime.
 registerAdapter(new HoloAdapter());
+// Native paper/doc adapters (A19 HoloAbsorb paper ingest). PaperAdapter is the
+// ONLY .md adapter; .tex is a sibling class (one adapter class per language).
+registerAdapter(new PaperAdapter());
+registerAdapter(new PaperTexAdapter());
 
 // Re-export adapters for direct use
 export { HoloAdapter, isNativeAdapter, type HoloParseTree } from './HoloAdapter';
 export { TreeSitterTraitAdapter } from './TreeSitterTraitAdapter';
+export { PaperAdapter, type MarkdownParseTree } from './PaperAdapter';
+export { PaperTexAdapter, type TexParseTree } from './PaperTexAdapter';
 // Re-export base utilities
 export {
   walkTree,
