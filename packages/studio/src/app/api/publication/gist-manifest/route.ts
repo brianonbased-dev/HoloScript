@@ -22,7 +22,6 @@ function resolveHolomeshEndpoint(explicit?: string): string | undefined {
 
 async function deployToHolomesh(params: {
   endpoint: string;
-  apiKey?: string;
   room: string;
   title?: string;
   gistId?: string;
@@ -34,13 +33,16 @@ async function deployToHolomesh(params: {
     'Content-Type': 'application/json',
   };
 
-  const token = params.apiKey || process.env.HOLOMESH_API_KEY;
+  // Only the server-configured key is ever sent; a request-body apiKey is ignored.
+  const token = process.env.HOLOMESH_API_KEY;
   if (token && token.trim().length > 0) {
     headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(params.endpoint, {
     method: 'POST',
+    // Never follow redirects: a 3xx must not carry the Bearer token to another host.
+    redirect: 'error',
     headers,
     body: JSON.stringify({
       source: 'studio-gist-publication',
@@ -171,7 +173,6 @@ function normalizeFilm3dAttestation(raw: unknown): Film3dAttestationBinding | un
  *   deployToHolomesh?: boolean;
  *   holomesh?: {
  *     endpoint?: string;
- *     apiKey?: string;
  *     scene?: Record<string, unknown>;
  *     gistId?: string;
  *     gistUrl?: string;
@@ -283,7 +284,6 @@ export async function POST(req: NextRequest) {
       try {
         const deployResult = await deployToHolomesh({
           endpoint,
-          apiKey: typeof holomesh.apiKey === 'string' ? holomesh.apiKey : undefined,
           room,
           title: typeof body.title === 'string' ? body.title : undefined,
           gistId: typeof holomesh.gistId === 'string' ? holomesh.gistId : undefined,
