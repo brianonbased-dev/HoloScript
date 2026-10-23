@@ -16,7 +16,8 @@ An independent, read-only review that ends in a verdict bound to one exact commi
 - CLEAR with notes: safe to merge; notes are follow-ups and do not block.
 - HOLD: waiting on a fact (prod state, owner decision, missing proof). Not a defect.
 - BLOCK: a concrete defect. Give evidence and a fix path; re-seat on a new head.
-  A verdict never transfers to another SHA except by the carry-over rule.
+
+A verdict never transfers to another SHA except by the carry-over rule.
 
 ## Read-only rules
 
