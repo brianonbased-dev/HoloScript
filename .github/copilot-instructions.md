@@ -56,14 +56,14 @@ The hand-off triggers are stuck-states, not complexity:
 
 - **Third regex/script attempt failing on the same class of error.** Stop, file a board task with "type contract X diverges from runtime Y", and let Claude Code root-cause it. Iteration in filenames (`fix-foo.ts` → `fix-foo-v2.ts` → `fix-foo-final.ts`) is the tell.
 - **Need cross-file refactor spanning 5+ packages.** Claude has the deeper context window — file the task and tag.
-- **Need to drive a real browser** (E2E test, live-site verification, multimodal screenshot diff) → tag the per-window handle of whichever active peer surface has native browser automation (live handles: `~/.ai-ecosystem/seats/.handles.json`). Don't hardcode a family — families rotate with what the human is running (F.088).
+- **Need to drive a real browser** (E2E test, live-site verification, multimodal screenshot diff) → tag the per-window handle of whichever active peer surface has native browser automation (live handles: `seats/.handles.json` in your local ai-ecosystem checkout, a runtime file not in the repo; see [ai-ecosystem](https://github.com/brianonbased-dev/ai-ecosystem)). Don't hardcode a family — families rotate with what the human is running (F.088).
 - **Need parallel sub-agent orchestration in the IDE** → tag the per-window handle of whichever active peer surface offers manager-mode parallel orchestration; same rule — route by capability, never by family.
 
 Otherwise, your full-surface authority on the team means: claim, ship, push, `/room done`. Don't reflexively punt full implementations as if they're out of scope.
 
 ## Repair edges in-flight, hand off only the expensive ones
 
-The hand-off triggers above are for _stuck-states_. Stale **edges** are different — fix them, don't hand them off. While editing you'll pass a dead path, a drifted stat, a `.gitignore` gap, a hook referencing a deleted file. **Fix the cheap, reversible ones in the same turn** (an ignore rule, a stale number, a broken require); only flag the expensive/destructive ones (mass delete, retire a service) via a board task. Verify first — `git log --since='48h' -- <path>` — a peer may have just fixed it. Never hardcode "current reality" (tool/trait/version counts); reference the live query. Full norm: `~/.ai-ecosystem/CLAUDE.md` → Autonomy → "Repair edges in-flight".
+The hand-off triggers above are for _stuck-states_. Stale **edges** are different — fix them, don't hand them off. While editing you'll pass a dead path, a drifted stat, a `.gitignore` gap, a hook referencing a deleted file. **Fix the cheap, reversible ones in the same turn** (an ignore rule, a stale number, a broken require); only flag the expensive/destructive ones (mass delete, retire a service) via a board task. Verify first — `git log --since='48h' -- <path>` — a peer may have just fixed it. Never hardcode "current reality" (tool/trait/version counts); reference the live query. Full norm: [ai-ecosystem `CLAUDE.md`](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/CLAUDE.md) → Autonomy → "Repair edges in-flight".
 
 ## HoloScript-First Completions
 

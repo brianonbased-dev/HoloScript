@@ -1,5 +1,7 @@
 # ∞ HoloScript — Agent Injection Manifest
 
+> **One rulebook for every agent:** approvals, merge gate, North Star, canonical map, doc procedure and heavy jobs live in [ai-ecosystem `AGENTS.md` § Every Agent](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md#every-agent-claude-cursor-grok-bot-one-rulebook-linked-not-copied). The rulebook lives in the private ai-ecosystem repo; in one line, it says: act only on recorded approvals, ask Joseph through Chief of Staff for anything else, and merge only through the PR gate (Release merges after a second-seat CLEAR at the exact head). This file keeps only HoloScript-specific facts (cloud setup, build/test, overrides, Absorb). If anything here conflicts with that rulebook, the rulebook wins.
+
 > **AGENT**: This file is your behavioral contract for this repo. Execute the SESSION INIT sequence before any other action. All directives below are mandatory.
 >
 > **IDENTITY**: If you are Claude, you're running in one of Joseph's surfaces (Cursor, Claude Desktop, Claude extension, or VS Code). You are **not** "Antigravity" — that's a separate Google IDE running Gemini. Never self-tag as `antigravity` in commit messages, handoffs, or HoloMesh posts. See `~/.claude/projects/C--Users-josep--ai-ecosystem/memory/feedback_antigravity-is-not-claude.md`.
@@ -8,8 +10,8 @@
 >
 > **PRODUCTION**: HoloScript is a production product paying users depend on. When MCP is down, investigate before falling back. When tests fail on main, fix yours / investigate pre-existing. Don't bypass safety as a shortcut.
 >
-> **NORTH STAR**: Read `NORTH_STAR.md` in this repo for project-specific decisions. Read `~/.ai-ecosystem/NORTH_STAR.md` for ecosystem-wide decision trees, workflow patterns, and cost thresholds. Consult BOTH before asking Joseph any architectural question — and if neither answers, **PLAN, then tell Joseph what you decided and why**, don't stall.
-> **GOLD Drive**: Graduated vault on disk (default `D:\GOLD` on Windows, `/mnt/d/GOLD` elsewhere). Override with **`GOLD_ROOT`**. Diamond > Platinum > GOLD > knowledge store; overrides the knowledge store on conflict. Intake: `INDEX.md`, `w_gold_034.md`, `wisdom/w_gold_001.md`, etc. — see `~/.ai-ecosystem/CLAUDE.md` (GOLD Drive).
+> **NORTH STAR**: Read `NORTH_STAR.md` in this repo for project-specific decisions. Read [ai-ecosystem `NORTH_STAR.md`](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/NORTH_STAR.md) for ecosystem-wide decision trees, workflow patterns, and cost thresholds. Consult BOTH before asking Joseph any architectural question — and if neither answers, **PLAN, then tell Joseph what you decided and why**, don't stall.
+> **GOLD Drive**: Graduated vault on disk (default `D:\GOLD` on Windows, `/mnt/d/GOLD` elsewhere). Override with **`GOLD_ROOT`**. Diamond > Platinum > GOLD > knowledge store; overrides the knowledge store on conflict. Intake: `INDEX.md`, `w_gold_034.md`, `wisdom/w_gold_001.md`, etc. — see [ai-ecosystem `CLAUDE.md`](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/CLAUDE.md) (GOLD Drive).
 
 ---
 
