@@ -153,6 +153,7 @@ describe('gist publication manifest route', () => {
   });
 
   it('rejects deployToHolomesh requests without scene payload', async () => {
+    process.env.HOLOMESH_SCENE_INGEST_URL = 'https://example.invalid/mesh-ingest';
     const { POST } = await import('../app/api/publication/gist-manifest/route');
 
     const req = new Request('http://localhost/api/publication/gist-manifest', {
@@ -175,6 +176,7 @@ describe('gist publication manifest route', () => {
   });
 
   it('deploys to holomesh endpoint when deployToHolomesh=true', async () => {
+    process.env.HOLOMESH_SCENE_INGEST_URL = 'https://example.invalid/mesh-ingest';
     fetchMock.mockResolvedValue({
       ok: true,
       status: 200,
@@ -210,6 +212,7 @@ describe('gist publication manifest route', () => {
   });
 
   it('returns 502 when holomesh deploy endpoint fails', async () => {
+    process.env.HOLOMESH_SCENE_INGEST_URL = 'https://example.invalid/mesh-ingest';
     fetchMock.mockResolvedValue({
       ok: false,
       status: 503,
@@ -236,5 +239,43 @@ describe('gist publication manifest route', () => {
     expect(response.status).toBe(502);
     const data = await response.json();
     expect(data.error).toContain('HoloMesh deploy failed');
+  });
+
+  it('refuses a caller-supplied holomesh.endpoint that differs from server config', async () => {
+    process.env.HOLOMESH_SCENE_INGEST_URL = 'https://example.invalid/mesh-ingest';
+    const { POST } = await import('../app/api/publication/gist-manifest/route');
+
+    for (const endpoint of ['http://169.254.169.254/latest/meta-data/', 'https://attacker.invalid/x']) {
+      const req = new Request('http://localhost/api/publication/gist-manifest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          room: 'film3d-room',
+          loroDocVersion: { peerA: 1 },
+          deployToHolomesh: true,
+          holomesh: { endpoint, scene: { composition: 'Demo' } },
+        }),
+      });
+      const response = await POST(req as never);
+      expect(response.status).toBe(400);
+    }
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('refuses deploy when HOLOMESH_SCENE_INGEST_URL is unset even if holomesh.endpoint is given', async () => {
+    const { POST } = await import('../app/api/publication/gist-manifest/route');
+    const req = new Request('http://localhost/api/publication/gist-manifest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        room: 'film3d-room',
+        loroDocVersion: { peerA: 1 },
+        deployToHolomesh: true,
+        holomesh: { endpoint: 'https://attacker.invalid/x', scene: { composition: 'Demo' } },
+      }),
+    });
+    const response = await POST(req as never);
+    expect(response.status).toBe(400);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

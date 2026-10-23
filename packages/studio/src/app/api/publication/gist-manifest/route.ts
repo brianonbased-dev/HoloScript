@@ -7,10 +7,17 @@ import {
 
 export const maxDuration = 30;
 
+/**
+ * The deploy target comes only from server config (HOLOMESH_SCENE_INGEST_URL).
+ * A caller-supplied `holomesh.endpoint` is accepted only when it names that same
+ * URL; anything else is refused, so this route cannot be used to POST (with the
+ * server's HOLOMESH_API_KEY attached) to an arbitrary host (CodeQL js/request-forgery).
+ */
 function resolveHolomeshEndpoint(explicit?: string): string | undefined {
-  if (explicit && explicit.trim().length > 0) return explicit.trim();
-  const fromEnv = process.env.HOLOMESH_SCENE_INGEST_URL;
-  return fromEnv && fromEnv.trim().length > 0 ? fromEnv.trim() : undefined;
+  const fromEnv = process.env.HOLOMESH_SCENE_INGEST_URL?.trim();
+  if (!fromEnv) return undefined;
+  if (explicit && explicit.trim().length > 0 && explicit.trim() !== fromEnv) return undefined;
+  return fromEnv;
 }
 
 async function deployToHolomesh(params: {
@@ -259,7 +266,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             error:
-              'holomesh.endpoint or HOLOMESH_SCENE_INGEST_URL is required when deployToHolomesh=true',
+              'HOLOMESH_SCENE_INGEST_URL must be configured (and holomesh.endpoint, if given, must match it) when deployToHolomesh=true',
           },
           { status: 400 }
         );
