@@ -511,13 +511,15 @@ Accessibility configuration.
 
 Define reusable functions within objects.
 
+v0.1 does not support parameter defaults. Write `name` or `name: Type` for each parameter; `= value` after a parameter is a parse error. Pass every argument at the call site. See the spec: [No parameter defaults in v0.1](../spec/holoscript-spec-v0.1.md#forms-it-rejects-2).
+
 ```hsplus
 composition controller {
   function toggle_lights(state: boolean) {
     lights.forEach(light => light.enabled = state)
   }
 
-  function play_sound(name: string, volume: number = 1.0) {
+  function play_sound(name: string, volume: number) {
     audio.play(name, { volume: volume })
   }
 }

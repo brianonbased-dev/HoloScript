@@ -767,6 +767,12 @@ Three `@` signs with no name. Message: `HSP201: Expected directive name, got AT.
 @@@
 ```
 
+**No parameter defaults in v0.1.** A function parameter cannot have a default value. Write `name` or `name: Type`, and nothing after it. `= value` after a parameter is not part of v0.1 in `.hsplus` or `.holo`. Every reader stops at the `=`: the plain `.hsplus` function reader expects the next parameter name (`HoloScriptPlusParser.ts` lines 5149–5156), the typed function reader marks the list malformed (lines 8153–8160), and the `.holo` parameter list expects `)` (`HoloCompositionParser.ts` lines 2891–2902). A default written with `=` is only allowed on a field, as described above. For example, this is not v0.1:
+
+```text
+function play_sound(name: string, volume: number = 1.0) { }
+```
+
 ## Known gaps
 
 These are bugs and disagreements measured on this checkout. This spec records them. It does not fix them.
