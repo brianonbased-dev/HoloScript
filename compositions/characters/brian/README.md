@@ -16,6 +16,18 @@ What it states, and what it does not claim:
   (0 skins, 0 animations). Earlier notes calling these "rigged" were wrong.
 - **Body map.** `Brian_Body_Map.jpg` is a guide for future rigging and texturing,
   not a rig.
+- **Local filename aliases.** The sha256 is canon, not the filename. Some local
+  copies use other names for the same bytes: `Brian_Flexing.glb` is an alias of
+  `Brian_Flexing_001.glb`, and `Brian_BicycleCrunch.glb` is an alias of
+  `Bicycle Crunch.glb`. Any copy counts only if its sha256 matches.
+- **Export logs.** `Brian_Boxing.glb.log` and `Brian_Situps.glb.log` are listed by
+  filename, size and sha256. They are evidence for the exporter, not geometry.
+- **Provenance.** Exported from 3ds Max with the Autodesk glTF exporter (named in
+  both export logs). Material channels were dropped and no rig was ever attempted;
+  those two facts are per Idea's seed note, not proven by the logs.
+- **Non-canonical reference.** `openart-d2c449cdef724e68bd71444cacd154fd_raw.png`
+  is labelled "reference render, not canon sheet": it is AI-generated and has no
+  turnaround. It is not part of the canonical set.
 - **Likeness and consent.** Pending with Trust. Not cleared.
 - **Not Brian.** The quadruped/winged placeholder skeleton in
   `gltfpipeline-brian-generate.glb`.

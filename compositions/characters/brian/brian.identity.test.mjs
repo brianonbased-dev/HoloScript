@@ -3,6 +3,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+const README = readFileSync(new URL('./README.md', import.meta.url), 'utf8');
+const LEAK =
+  /[A-Za-z]:\\|\/Users\/|\/home\/|\/mnt\/|\\\\[A-Za-z0-9._$-]+|DESKTOP-[A-Z0-9]+|[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+|josep\b|OneDrive/i;
 const spec = JSON.parse(readFileSync(new URL('./brian.identity.json', import.meta.url), 'utf8'));
 const FILES = [
   'Brian_Flexing_001.glb',
@@ -29,8 +32,7 @@ test('canonical source: 4 GLBs by filename + sha256, no personal paths', () => {
     assert.equal(a.skins, 0);
     assert.equal(a.animations, 0);
   }
-  const raw = JSON.stringify(spec);
-  assert.doesNotMatch(raw, /[A-Za-z]:\\\\|\/Users\/|\/home\/|josep\b|OneDrive/i);
+  assert.doesNotMatch(JSON.stringify(spec), LEAK);
 });
 
 test('static x4, rig unknown', () => {
@@ -55,7 +57,10 @@ test('likeness/consent pending with Trust', () => {
 
 test('export logs by filename + size + sha256', () => {
   const logs = spec.canonical_source.export_logs;
-  assert.deepEqual(logs.map((l) => l.filename), ['Brian_Boxing.glb.log', 'Brian_Situps.glb.log']);
+  assert.deepEqual(
+    logs.map((l) => l.filename),
+    ['Brian_Boxing.glb.log', 'Brian_Situps.glb.log']
+  );
   for (const l of logs) {
     assert.equal(l.role, 'export_log');
     assert.ok(Number.isInteger(l.bytes) && l.bytes > 0);
@@ -71,12 +76,20 @@ test('openart PNG is a non-canonical reference render', () => {
   assert.equal(r.ai_generated, true);
   assert.equal(r.turnaround, false);
   assert.match(r.sha256, /^[0-9a-f]{64}$/);
-  const canon = [...spec.canonical_source.assets, ...spec.canonical_source.guides, ...spec.canonical_source.export_logs];
+  const canon = [
+    ...spec.canonical_source.assets,
+    ...spec.canonical_source.guides,
+    ...spec.canonical_source.export_logs,
+  ];
   assert.ok(!canon.some((a) => a.filename.startsWith('openart')));
 });
 
 test('dragon template stays excluded', () => {
-  assert.ok(spec.excluded.some((e) => /gltfpipeline-brian-generate\.glb/.test(e.filename) && /dragon/i.test(e.reason)));
+  assert.ok(
+    spec.excluded.some(
+      (e) => /gltfpipeline-brian-generate\.glb/.test(e.filename) && /dragon/i.test(e.reason)
+    )
+  );
   assert.ok(spec.not_brian.some((x) => /dragon/i.test(x)));
 });
 
@@ -89,4 +102,30 @@ test('provenance: 3ds Max via Autodesk glTF exporter, materials dropped, no rig 
   assert.match(p.material_channels_evidence, /per Idea seed/);
   assert.equal(p.rig_attempted, false);
   assert.match(p.rig_evidence, /per Idea seed/);
+});
+
+test('no personal paths, hosts or emails in README', () => {
+  assert.doesNotMatch(README, LEAK);
+});
+
+test('leak pattern catches known personal-path shapes', () => {
+  for (const bad of [
+    'C:\\Users\\x',
+    '/mnt/c/x',
+    '/home/x',
+    '\\\\server\\share',
+    'DESKTOP-AB12CD',
+    'joseph@local',
+    'a.b@example.com',
+    'OneDrive',
+  ]) {
+    assert.match(bad, LEAK, bad);
+  }
+});
+
+test('local filename aliases tie to the canonical sha256', () => {
+  const by = Object.fromEntries(spec.canonical_source.assets.map((a) => [a.filename, a]));
+  assert.deepEqual(by['Brian_Flexing_001.glb'].aliases, ['Brian_Flexing.glb']);
+  assert.deepEqual(by['Bicycle Crunch.glb'].aliases, ['Brian_BicycleCrunch.glb']);
+  assert.match(spec.canonical_source.alias_rule, /sha256 is canon/);
 });

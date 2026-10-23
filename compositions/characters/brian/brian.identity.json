@@ -27,7 +27,10 @@
         "skins": 0,
         "animations": 0,
         "meshes": 1,
-        "nodes": 2
+        "nodes": 2,
+        "aliases": [
+          "Brian_Flexing.glb"
+        ]
       },
       {
         "role": "pose",
@@ -38,7 +41,8 @@
         "skins": 0,
         "animations": 0,
         "meshes": 1,
-        "nodes": 2
+        "nodes": 2,
+        "aliases": []
       },
       {
         "role": "pose",
@@ -49,7 +53,8 @@
         "skins": 0,
         "animations": 0,
         "meshes": 1,
-        "nodes": 2
+        "nodes": 2,
+        "aliases": []
       },
       {
         "role": "pose",
@@ -60,7 +65,10 @@
         "skins": 0,
         "animations": 0,
         "meshes": 1,
-        "nodes": 2
+        "nodes": 2,
+        "aliases": [
+          "Brian_BicycleCrunch.glb"
+        ]
       }
     ],
     "guides": [
@@ -85,7 +93,8 @@
         "bytes": 16043,
         "sha256": "991997785bc4eb2ce9d76e6178c3cd3794c8715b0c551274cbecc72460d7b6db"
       }
-    ]
+    ],
+    "alias_rule": "sha256 is canon. An alias is another local filename for the same bytes; a file under any name counts as canonical only if its sha256 matches."
   },
   "geometry": {
     "kind": "static_pose_meshes",
