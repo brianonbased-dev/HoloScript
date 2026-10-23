@@ -449,16 +449,13 @@ function buildExternalProbes() {
     probe('external-absorb-health', nodeFetchGetProbe('/health', {}, EXTERNAL_SURFACES.absorb.base))
   );
 
-  // 2. Absorb scan endpoint — POST with API key, expects JSON (shape: heavy payload)
+  // 2. Absorb scan surface - GET /health (no auth). The old key-only POST to
+  //    /api/absorb/scan 401s once #623 requires a session + payer, so the canary
+  //    probes reachability via /health instead. Same name and pass/fail shape.
   probes.push(
     probe(
       'external-absorb-scan',
-      nodeFetchPostProbe(
-        '/api/absorb/scan',
-        { repoUrl: 'https://github.com/holoscript/holoscript', shallow: true },
-        { 'x-absorb-api-key': process.env.ABSORB_API_KEY || '' },
-        EXTERNAL_SURFACES.absorb.base
-      )
+      nodeFetchGetProbe('/health', {}, EXTERNAL_SURFACES.absorb.base)
     )
   );
 
