@@ -9,6 +9,8 @@ export interface McpServerSizing {
   recommendedConsumer: string;
   transport: McpServerTransportHint;
   requestBodyMaxBytes: number;
+  /** Largest MCP tool-result envelope sent inline; bigger results go to a resource_link. */
+  responseMaxBytes: number;
   postgresPoolMax: number;
   oauthRateLimit: number;
   publicAnonRateLimit: number;
@@ -27,6 +29,10 @@ type McpServerSizingProfile = Omit<McpServerSizing, 'profile'>;
 const MIB = 1024 * 1024;
 const MIN_REQUEST_BODY_BYTES = 16 * 1024;
 const MAX_REQUEST_BODY_BYTES = 100 * MIB;
+/** 256 KiB: PLAN mcp-large-response §3. Same for every profile; override per deploy by env. */
+const DEFAULT_RESPONSE_MAX_BYTES = 256 * 1024;
+const MIN_RESPONSE_BYTES = 16 * 1024;
+const MAX_RESPONSE_BYTES = 50 * MIB;
 const MIN_TOOL_TIMEOUT_MS = 1_000;
 const MAX_TOOL_TIMEOUT_MS = 10 * 60_000;
 
@@ -36,6 +42,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'laptop-windows',
     transport: 'stdio',
     requestBodyMaxBytes: 1 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 2,
     oauthRateLimit: 30,
     publicAnonRateLimit: 10,
@@ -51,6 +58,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'laptop-windows',
     transport: 'streamable-http',
     requestBodyMaxBytes: 5 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 5,
     oauthRateLimit: 60,
     publicAnonRateLimit: 20,
@@ -66,6 +74,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'hosted-service',
     transport: 'streamable-http',
     requestBodyMaxBytes: 10 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 10,
     oauthRateLimit: 100,
     publicAnonRateLimit: 30,
@@ -81,6 +90,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'hosted-service',
     transport: 'streamable-http',
     requestBodyMaxBytes: 20 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 20,
     oauthRateLimit: 250,
     publicAnonRateLimit: 90,
@@ -96,6 +106,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'hosted-service',
     transport: 'streamable-http+sse',
     requestBodyMaxBytes: 50 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 40,
     oauthRateLimit: 500,
     publicAnonRateLimit: 180,
@@ -111,6 +122,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'laptop-windows',
     transport: 'streamable-http+sse',
     requestBodyMaxBytes: 10 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 6,
     oauthRateLimit: 120,
     publicAnonRateLimit: 40,
@@ -126,6 +138,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'jetson-orin',
     transport: 'streamable-http',
     requestBodyMaxBytes: 8 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 4,
     oauthRateLimit: 80,
     publicAnonRateLimit: 20,
@@ -141,6 +154,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'vast-linux-gpu',
     transport: 'streamable-http',
     requestBodyMaxBytes: 25 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 16,
     oauthRateLimit: 300,
     publicAnonRateLimit: 90,
@@ -156,6 +170,7 @@ export const MCP_SERVER_SIZING_PROFILES: Record<McpServerSize, McpServerSizingPr
     recommendedConsumer: 'hosted-service',
     transport: 'streamable-http+sse',
     requestBodyMaxBytes: 50 * MIB,
+    responseMaxBytes: DEFAULT_RESPONSE_MAX_BYTES,
     postgresPoolMax: 40,
     oauthRateLimit: 500,
     publicAnonRateLimit: 180,
@@ -208,6 +223,10 @@ export function getMcpServerSizing(env: McpServerSizingInput = process.env): Mcp
       base.requestBodyMaxBytes,
       { min: MIN_REQUEST_BODY_BYTES, max: MAX_REQUEST_BODY_BYTES }
     ),
+    responseMaxBytes: parsePositiveInt(env.MCP_RESPONSE_MAX_BYTES, base.responseMaxBytes, {
+      min: MIN_RESPONSE_BYTES,
+      max: MAX_RESPONSE_BYTES,
+    }),
     postgresPoolMax: parsePositiveInt(
       env.MCP_POSTGRES_POOL_MAX || env.PGPOOL_MAX,
       base.postgresPoolMax,

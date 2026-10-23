@@ -12,15 +12,57 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
 import { handleOracleMcpTool } from '../oracle-mcp-tools';
 
 describe('oracle-mcp-tools', () => {
   const originalEnv = process.env;
 
+  // A research archive of our own. These tests used to read whatever sat in the
+  // machine's ~/.ai-ecosystem/research (or ORACLE_RESEARCH_ROOT): on a laptop with the
+  // full archive one discover call took minutes and the nonsense topic below matched
+  // real files (its "here" is inside "where" and "sphere"); on a bare machine the
+  // known-topic tests would find nothing.
+  let researchRoot = '';
+  beforeAll(() => {
+    researchRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'oracle-research-'));
+    fs.writeFileSync(
+      path.join(researchRoot, '2026-03-29_oracle-collision-compilation-as-gossip.md'),
+      [
+        '# Oracle collision: compilation as gossip',
+        '',
+        '**Finding** Compilation behaves like a gossip protocol: each pass hears a partial view of the',
+        'program and passes on what it learned, so agreement emerges instead of being declared.',
+        '',
+        '**Key insight** A pass that cannot agree with its neighbours should refuse rather than',
+        'guess, the way a gossip node quarantines a rumour it cannot confirm.',
+        '',
+        '- Finding: incremental compilation converges in rounds, like epidemic spread.',
+        '',
+      ].join('\n')
+    );
+    const trust = Array.from(
+      { length: 12 },
+      (_, i) =>
+        `Paragraph ${i + 1}: thermodynamic trust treats every claim as costing energy to keep true; ` +
+        'a receipt is the work done, and an unreceipted claim decays toward zero.'
+    ).join('\n\n');
+    fs.writeFileSync(
+      path.join(researchRoot, '2026-04-02_oracle-thermodynamic-trust.md'),
+      `# Oracle: thermodynamic trust\n\n${trust}\n`
+    );
+  });
+  afterAll(() => {
+    fs.rmSync(researchRoot, { recursive: true, force: true });
+  });
+
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    process.env = { ...originalEnv, HOLOSCRIPT_API_KEY: 'test-key' };
+    process.env = {
+      ...originalEnv,
+      HOLOSCRIPT_API_KEY: 'test-key',
+      ORACLE_RESEARCH_ROOT: researchRoot,
+    };
   });
 
   afterEach(() => {

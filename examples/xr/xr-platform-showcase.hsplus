@@ -168,7 +168,9 @@ composition "XRPlatformShowcase" {
       pupil_dilation: true
     }
 
+    // The local user's own headset tracking: live_self.
     @body_tracking {
+      source: "live_self"
       joints: ["head", "neck", "spine", "hips", "shoulders", "elbows", "wrists", "knees", "ankles"]
       update_rate: 30
       prediction: true
@@ -176,6 +178,7 @@ composition "XRPlatformShowcase" {
     }
 
     @face_tracking {
+      source: "live_self"
       blend_shapes: 52
       expression_detection: true
       lip_tracking: true

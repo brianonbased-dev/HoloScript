@@ -1,6 +1,11 @@
 // HoloScript Pipeline — Knowledge Compression & Promotion
 // The uAA2++ COMPRESS/GROW/EVOLVE cycle as a pipeline
 // Compiles to: Python batch job or Node.js worker
+//
+// Reads the WORKSPACE environment variable, so name it when you run it:
+//   holoscript run knowledge-compressor.hs --allow-env WORKSPACE
+// (or HOLOSCRIPT_PIPELINE_ALLOW_ENV=WORKSPACE). A pipeline that is not allowed to read
+// a variable refuses before making any request.
 
 pipeline "KnowledgeCompressor" {
   schedule: "0 6 * * *"   // daily at 6am

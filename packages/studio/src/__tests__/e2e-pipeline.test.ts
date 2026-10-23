@@ -120,11 +120,14 @@ vi.mock('@holoscript/core', () => ({
     glass: { metalness: 0.1, roughness: 0.05, color: '#aaccff', transparent: true, opacity: 0.3 },
     neon: { emissive: '#00ffff', emissiveIntensity: 2.0, color: '#00ffff' },
   },
-  HoloScriptValidator: class {
-    validate() {
-      return [];
-    }
-  },
+  // The bridge's fallback validate asks validateCanonicalSource (not HoloScriptValidator).
+  validateCanonicalSource: () => ({
+    valid: true,
+    surface: 'holo',
+    validator: 'holo-parser',
+    errors: [],
+    warnings: [],
+  }),
   HoloScriptPlusParser: class {
     parse(source: string) {
       if (source.includes('SYNTAX_ERROR')) {

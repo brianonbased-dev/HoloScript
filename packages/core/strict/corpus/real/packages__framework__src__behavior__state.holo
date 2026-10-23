@@ -1,0 +1,17 @@
+@trait {
+  name: "@state",
+  category: "logic",
+  description: "Framework-layer state machine. machine.initialState is the starting state (default: idle). machine.states is the state list. machine.transitions is the allowed transition list. Port of framework StateTrait.ts (handler name: state).",
+  props: {
+    initial_state: string = "idle",
+    states: array = [],
+    transitions: array = []
+  },
+  events: {
+    on_transition: "state:transition",
+    on_entered: "state:entered",
+    transition: "state.transition",
+    can: "state.can"
+  },
+  behaviors: ["@state_machine", "@workflow", "@negotiation"]
+}

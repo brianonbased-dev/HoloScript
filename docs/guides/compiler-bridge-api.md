@@ -309,7 +309,7 @@ const result = await compileForPlatform(source, 'godot-gdscript');
 When WASM is unavailable (e.g., SSR, older browsers), the bridge automatically falls back to `@holoscript/core` TypeScript implementations:
 
 - `parse()` uses `parseHolo()` from core
-- `validate()` uses `HoloScriptValidator` from core
+- `validate()` uses `validateCanonicalSource` from core (surface `holo`, a blank buffer allowed), the same verdict as `holoscript validate`
 - `compile()` uses `R3FCompiler` or `BabylonCompiler` from core
 - Generator methods return template-based results
 - `format()` returns source unchanged

@@ -54,7 +54,11 @@ function makeReq(
     body?: Record<string, unknown>;
   } = {}
 ): NextRequest {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  // A buyer brings its own HoloMesh key; keyless callers are refused (no-agent.test.ts).
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: 'Bearer buyer-own-key',
+  };
   if (opts.xPayment) headers['X-Payment'] = opts.xPayment;
   const req = new Request('http://localhost/api/holomesh/entry/entry1/purchase', {
     method: 'POST',

@@ -682,6 +682,22 @@ export class CodebaseGraph {
       const actual = normFileIndex.get(base + ext);
       if (actual) return actual;
     }
+    // TypeScript ESM (NodeNext) writes the EMITTED extension: `./x.js` names
+    // `./x.ts`. Without this, every such import was an unresolved dead end and
+    // impact analysis never crossed it.
+    const emitted = /\.(m|c)?js(x)?$/.exec(base);
+    if (emitted) {
+      const stem = base.slice(0, -emitted[0].length);
+      const sourceExts = emitted[1]
+        ? [`.${emitted[1]}ts`]
+        : emitted[2]
+          ? ['.tsx']
+          : ['.ts', '.tsx'];
+      for (const ext of sourceExts) {
+        const actual = normFileIndex.get(stem + ext);
+        if (actual) return actual;
+      }
+    }
     return undefined;
   }
 

@@ -15,9 +15,9 @@
  *   @gladiator, @arena_master, @trainer, @mentor, @apprentice,
  *   @companion, @rival, @boss, @mini_boss, @wanderer, @hermit
  *
- * Physical Affordances (22): @openable, @closeable, @lockable,
- *   @breakable_lock, @pushable, @pullable, @liftable, @carriable,
- *   @mountable, @sittable, @climbable, @swingable, @slideable,
+ * Physical Affordances (22): @openable, @closable, @lockable,
+ *   @breakable_lock, @pushable, @pullable, @liftable, @carryable,
+ *   @mountable, @sittable, @climbable, @swingable, @slidable,
  *   @rollable, @foldable, @extendable, @retractable, @pivotable,
  *   @detachable, @attachable, @stackable, @nestable
  *
@@ -328,7 +328,7 @@ composition "NPCAffordanceSocialGame" {
 
   object "WoodenDoor" {
     @openable { angle: 90, speed: 2.0, auto_close: true, auto_close_delay: 5 }
-    @closeable { sound: "door_close", force: 1.0 }
+    @closable { sound: "door_close", force: 1.0 }
     @lockable { key_id: "iron_key", pick_difficulty: 5, lock_sound: "lock_click" }
     @breakable_lock { force_required: 50, break_sound: "lock_break", repair_cost: 20 }
     @pushable { resistance: 0.3, max_speed: 2.0 }
@@ -342,7 +342,7 @@ composition "NPCAffordanceSocialGame" {
 
   object "HeavyCrate" {
     @liftable { weight: 20, min_strength: 5, two_handed: true }
-    @carriable { carry_position: "front", speed_penalty: 0.5, drop_on_damage: true }
+    @carryable { carry_position: "front", speed_penalty: 0.5, drop_on_damage: true }
     @pushable { resistance: 0.6, max_speed: 1.0, surface_friction: 0.4 }
     @stackable { max_height: 4, snap_grid: 1.0, weight_limit: 100 }
     @nestable { inner_space: [0.8, 0.8, 0.8], accept_types: ["small_item"] }
@@ -380,7 +380,7 @@ composition "NPCAffordanceSocialGame" {
   }
 
   object "SlidingPanel" {
-    @slideable { axis: [1, 0, 0], range: [-2, 2], friction: 0.2, snap_positions: [-2, 0, 2] }
+    @slidable { axis: [1, 0, 0], range: [-2, 2], friction: 0.2, snap_positions: [-2, 0, 2] }
     @rollable { axis: [0, 0, 1], friction: 0.1, max_speed: 5 }
     @foldable { fold_axis: [0, 1, 0], fold_angle: 180, segments: 3 }
 

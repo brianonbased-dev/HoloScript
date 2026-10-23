@@ -13,6 +13,8 @@ import {
   type FounderLinkedRepo,
   type FounderWorkspaceBackfillResult,
 } from '@/lib/workspace/founderWorkspaceBackfill';
+import { isFounderWorkspaceIdentity } from '@/lib/workspace/workspaceIdentity';
+import { findDurableAbsorbProject } from '@/lib/absorb/projectState';
 
 import { corsHeaders } from '../../../_lib/cors';
 
@@ -89,7 +91,8 @@ function getOrchestratorBaseUrl(): string {
 }
 
 function getOrchestratorApiKey(): string {
-  return process.env.HOLOSCRIPT_API_KEY ?? process.env.NEXT_PUBLIC_MCP_API_KEY ?? '';
+  // Server-only key, no browser-visible (NEXT_PUBLIC) fallback.
+  return process.env.HOLOSCRIPT_API_KEY || '';
 }
 
 async function readResponsePayload(response: Response): Promise<unknown> {
@@ -124,7 +127,7 @@ async function syncKnowledgePayload(
       success: false,
       status: 'failed',
       count: 0,
-      errors: ['Missing HOLOSCRIPT_API_KEY or NEXT_PUBLIC_MCP_API_KEY'],
+      errors: ['Missing HOLOSCRIPT_API_KEY'],
     };
   }
 
@@ -214,6 +217,13 @@ export async function POST(request: Request) {
   if (!session?.user) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
+  // P0 2026-10-05: this route writes `<workspaces>/<workspaceId>/founder-backfill.json`
+  // and reads a host directory (rootPath). Any signed-in account could do both,
+  // including into ANOTHER account's workspace directory by naming its id.
+  // It is the founder's backfill, so it is founder-only.
+  if (!isFounderWorkspaceIdentity(session.user)) {
+    return NextResponse.json({ error: 'Founder access required' }, { status: 403 });
+  }
 
   let body: FounderBackfillRequest;
   try {
@@ -223,6 +233,18 @@ export async function POST(request: Request) {
   }
 
   const workspaceId = body.workspaceId ?? 'ai-ecosystem';
+  // One plain directory name under the workspaces root, never a path.
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/.test(workspaceId) || workspaceId.includes('..')) {
+    return NextResponse.json({ error: 'workspaceId must be a plain name' }, { status: 400 });
+  }
+  // Never into a workspace directory registered to another account.
+  const registered = findDurableAbsorbProject({ projectId: workspaceId });
+  if (registered && registered.ownerId !== session.user.id) {
+    return NextResponse.json(
+      { error: 'workspaceId belongs to another workspace' },
+      { status: 409 }
+    );
+  }
   const dryRun = body.dryRun === true;
 
   try {

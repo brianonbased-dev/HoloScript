@@ -8,7 +8,7 @@
  * @version 2.0.0
  */
 
-import { HoloScriptPlusParser, buildKnownTraitSet } from '@holoscript/core';
+import { HoloScriptPlusParser, isKnownTrait } from '@holoscript/core';
 
 // Import rule modules
 import { noDeadCodeRule } from './rules/no-dead-code';
@@ -31,17 +31,8 @@ import type {
 // KNOWN-TRAIT SSOT
 // =============================================================================
 
-/**
- * The known-trait union (SSOT) shared with the parser and LSP via
- * `buildKnownTraitSet()` from @holoscript/core. Built once at module load and
- * consumed by the `valid-trait-syntax` rule below (warning-only). Replaces the
- * former hand-maintained ~120-name `validTraits` array that drifted from the
- * real trait registry and the Native2D / code-graph vocabularies — the source
- * of false-positive "Unknown trait" warnings. Plugin-contributed trait names
- * would be passed via `buildKnownTraitSet([...])` extras (wired separately so
- * core stays plugin-agnostic).
- */
-const VALID_TRAIT_SET: ReadonlySet<string> = buildKnownTraitSet();
+// Known traits: core's one known-trait check (`isKnownTrait`, validation/KnownTraits.ts), the same
+// function behind HS1006 on every surface. Consumed by `valid-trait-syntax` below (warning-only).
 
 // =============================================================================
 // DEFAULT CONFIG
@@ -245,7 +236,7 @@ const BUILT_IN_RULES: Rule[] = [
           if (node.directives) {
             for (const dir of node.directives) {
               if (dir.type === 'trait') {
-                if (!VALID_TRAIT_SET.has(dir.name)) {
+                if (!isKnownTrait(dir.name)) {
                   diagnostics.push({
                     ruleId: 'valid-trait-syntax',
                     message: `Unknown or unsupported trait "@${dir.name}"`,

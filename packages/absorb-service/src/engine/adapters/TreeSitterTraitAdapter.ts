@@ -348,6 +348,14 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
           this.collectClauseImport(node, clauseRule, filePath, out);
           return false; // statement fully handled
         }
+        if (
+          clauseRule.reexports &&
+          node.type === clauseRule.reexports.declNodeType &&
+          node.childForFieldName(clauseRule.reexports.sourceField)
+        ) {
+          this.collectReexport(node, clauseRule.reexports, filePath, out);
+          return false; // `export … from '…'` has no body to descend into
+        }
         if (clauseRule.callImports && node.type === clauseRule.callImports.callNodeType) {
           this.collectCallImport(node, clauseRule.callImports, filePath, out);
           // do not return false — allow generic descent (no other rule claims it)
@@ -608,6 +616,42 @@ export class TreeSitterTraitAdapter implements LanguageAdapter {
           }
         } else if (spec.type === rule.namespaceType) {
           edge.isWildcard = true;
+        }
+      }
+    }
+    out.push(edge);
+  }
+
+  /**
+   * Emit one `isReexport` ImportEdge for `export { a, b as c } from './x'`
+   * (namedImports = pre-alias names) or `export * from './x'` /
+   * `export * as ns from './x'` (isWildcard).
+   */
+  private collectReexport(
+    node: SyntaxNode,
+    rule: NonNullable<ClauseImportRule['reexports']>,
+    filePath: string,
+    out: ImportEdge[]
+  ): void {
+    const source = node.childForFieldName(rule.sourceField);
+    if (!source) return;
+    const edge: ImportEdge = {
+      fromFile: filePath,
+      toModule: stripImportQuotes(source.text),
+      line: node.startPosition.row + 1,
+      namedImports: [],
+      isWildcard: true,
+      isDefault: false,
+      isReexport: true,
+    };
+    for (const child of node.namedChildren) {
+      if (child.type !== rule.clauseType) continue;
+      edge.isWildcard = false;
+      for (const specifier of child.namedChildren) {
+        if (specifier.type === rule.specifierType) {
+          edge.namedImports!.push(
+            getFieldText(specifier, rule.specifierNameField) ?? specifier.text
+          );
         }
       }
     }

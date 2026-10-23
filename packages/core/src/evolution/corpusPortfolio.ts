@@ -52,7 +52,11 @@ export interface EvolveSeed {
 export const CORPUS_PORTFOLIO: readonly EvolveSeed[] = [
   {
     name: 'companion-trait',
-    format: 'holo', // @trait {…} parses via the .holo composition parser
+    // `@trait name { }` is the .hsplus spelling. The .holo parser has no trait-definition
+    // form: until 2026-10-05 it passed this seed only by silently skipping the whole body.
+    // The HSPlus parser reads the body (it warns `Unknown directive @trait`, not an error),
+    // so this gate checks structure; it does not check trait semantics.
+    format: 'hsplus',
     goal: 'Tighten this trait while keeping its name, tags, and the on_attach emit identical.',
     source: [
       '@trait greet_companion {',
@@ -111,7 +115,7 @@ export const CORPUS_PORTFOLIO: readonly EvolveSeed[] = [
   // tests (CORPUS_PORTFOLIO[0]/[1]) stay green. ──
   {
     name: 'timer-trait',
-    format: 'holo',
+    format: 'hsplus', // @trait seed: see companion-trait
     goal: 'Tighten this trait while keeping its name, tags, and the on_attach emit identical.',
     source: [
       '@trait cooldown_timer {',
@@ -126,7 +130,7 @@ export const CORPUS_PORTFOLIO: readonly EvolveSeed[] = [
   },
   {
     name: 'health-trait',
-    format: 'holo',
+    format: 'hsplus', // @trait seed: see companion-trait
     goal: 'Tighten this trait while keeping its name, tags, and the on_attach emit identical.',
     source: [
       '@trait health_pool {',

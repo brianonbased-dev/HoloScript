@@ -4,12 +4,34 @@ import type { Team, TeamMember, TeamRole, RegisteredAgent, TeamPresenceEntry } f
 import { TEAM_ROLE_PERMISSIONS, PRESENCE_TTL_MS, MOBILE_PRESENCE_TTL_MS } from './types';
 import { teamStore, teamPresenceStore, teamMessageStore, reloadTeam } from './state';
 import { resolveRequestingAgent } from './auth-utils';
+import type { KnowledgeSyncOutcome } from './orchestrator-client';
 
 // ── HTTP Response Helpers ─────────────────────────────────────────────────────
 
 export function json(res: http.ServerResponse, status: number, data: any): void {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(data));
+}
+
+/**
+ * For a route that keeps no copy of its own: a knowledge write the orchestrator did not accept is
+ * stored nowhere readable, so the route must not answer as if it were. Sends 503 when the orchestrator
+ * could not be reached (no status) or 502 when it answered and did not accept, naming the outcome
+ * and never its body, and returns true. Returns false, having sent nothing, for an accepted write
+ * (w6ui; claude3's reviews of #319; task xzgt for the routes that still answered success).
+ */
+export function answerUnacceptedWrite(
+  res: http.ServerResponse,
+  outcome: KnowledgeSyncOutcome
+): boolean {
+  if (outcome.accepted) return false;
+  const unreachable = outcome.status === null;
+  json(res, unreachable ? 503 : 502, {
+    success: false,
+    error: unreachable ? 'orchestrator_unreachable' : 'orchestrator_refused',
+    orchestrator: { accepted: false, status: outcome.status, reason: outcome.reason },
+  });
+  return true;
 }
 
 export function parseQuery(url: string): URLSearchParams {

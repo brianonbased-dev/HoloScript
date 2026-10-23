@@ -27,7 +27,11 @@ function stages(text: string): Map<string, { from: string; body: string }> {
 /** Every apk package a stage installs, following `FROM <stage>` back to its parents. */
 function apkPackages(all: Map<string, { from: string; body: string }>, name: string): Set<string> {
   const pkgs = new Set<string>();
-  for (let stage = all.get(name), hops = 0; stage && hops < 10; stage = all.get(stage.from), hops += 1) {
+  for (
+    let stage = all.get(name), hops = 0;
+    stage && hops < 10;
+    stage = all.get(stage.from), hops += 1
+  ) {
     for (const m of stage.body.matchAll(/^RUN apk add(?: --no-cache)? ([^\n&|;]+)/gm)) {
       for (const p of m[1].trim().split(/\s+/)) if (!p.startsWith('-')) pkgs.add(p);
     }
@@ -44,7 +48,16 @@ describe('Studio image carries the programs its server runs', () => {
   });
 
   it('the import route still runs git on the server, which is why the image needs it', () => {
-    const route = readFileSync(resolve(studioRoot, 'src/app/api/workspace/import/route.ts'), 'utf8');
-    expect(route).toContain("execFile('git'");
+    // P0b 2026-10-05: git now runs through the hardened helper lib/git/safeGit
+    // (execFile('git', ...) lives there) instead of inline in the route, but the
+    // server still shells out to git, so the serving image must carry it.
+    const route = readFileSync(
+      resolve(studioRoot, 'src/app/api/workspace/import/route.ts'),
+      'utf8'
+    );
+    expect(route).toContain("from '@/lib/git/safeGit'");
+    const safeGit = readFileSync(resolve(studioRoot, 'src/lib/git/safeGit.ts'), 'utf8');
+    expect(safeGit).toMatch(/execFile\(\s*'git'/);
+    expect(safeGit).toContain("execFileSync('git'");
   });
 });

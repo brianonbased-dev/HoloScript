@@ -2,6 +2,8 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
+import { assertWorkspaceOwner, type WorkspaceOwnerIdentity } from '@/lib/workspace/workspaceOwner';
+
 export function getWorkspacesRoot(): string {
   return path.resolve(
     process.env.HOLOSCRIPT_WORKSPACES_DIR ??
@@ -18,8 +20,17 @@ export function isInsidePath(parent: string, child: string): boolean {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
+/**
+ * Resolve a git workspace path for the CALLER. Containment under the workspaces
+ * root is necessary but not sufficient: the root is shared by every signed-in
+ * account, so the caller must also own the workspace (P0 2026-10-05, see
+ * lib/workspace/workspaceOwner.ts). The owner argument is required so no git
+ * route can resolve a path without saying who is asking. A path that is not
+ * the caller's — missing, ownerless, someone else's — gets one uniform 404.
+ */
 export function resolveWorkspaceGitPath(
-  workspacePath: string
+  workspacePath: string,
+  owner: WorkspaceOwnerIdentity | null | undefined
 ): { ok: true; resolved: string } | { ok: false; error: string; status: number } {
   const root = getWorkspacesRoot();
   const resolved = path.resolve(workspacePath);
@@ -30,14 +41,16 @@ export function resolveWorkspaceGitPath(
       status: 403,
     };
   }
-  if (!fs.existsSync(path.join(resolved, '.git'))) {
+  const owned = assertWorkspaceOwner(owner, workspacePath);
+  if (!owned.ok) return owned;
+  if (!fs.existsSync(path.join(owned.resolved, '.git'))) {
     return {
       ok: false,
       error: 'workspacePath does not contain a git repository',
       status: 400,
     };
   }
-  return { ok: true, resolved };
+  return { ok: true, resolved: owned.resolved };
 }
 
 const GIT_REF_RE = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$/;

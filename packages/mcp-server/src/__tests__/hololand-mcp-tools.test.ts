@@ -76,9 +76,13 @@ describe('hololand-mcp-tools', () => {
     expect(result.holoCode).toEqual(expect.stringContaining('@world_foundation_model'));
     expect(result.holoCode).toEqual(expect.stringContaining('@structured_asset_graph'));
     expect(result.holoCode).toEqual(expect.stringContaining('@collider'));
-    expect(vi.mocked(mcpStartReconstructFromVideo)).toHaveBeenCalledWith('file:///dock.mp4', {
-      ingestVideo: false,
-    });
+    // Third argument since b5d0ad55fd: a tool call is not a trusted caller, so the video
+    // fetch may reach only the public internet.
+    expect(vi.mocked(mcpStartReconstructFromVideo)).toHaveBeenCalledWith(
+      'file:///dock.mp4',
+      { ingestVideo: false },
+      { trustedCaller: false }
+    );
   });
 
   it('generate_world returns a sovereign structured asset graph for image seeds', async () => {

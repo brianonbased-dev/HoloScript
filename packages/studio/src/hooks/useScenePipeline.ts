@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { HoloScriptPlusParser, HoloCompositionParser, SceneIRCompiler } from '@holoscript/core';
+import { isOnlyBlankSourceError } from '@/lib/parser/blankSource';
 import type { PipelineResult, R3FNode } from '@/types';
 
 type ScenePipelineFormatHint = 'auto' | 'holo' | 'hsplus';
@@ -49,6 +50,11 @@ export function useScenePipeline(code: string, options: ScenePipelineOptions = {
       if (useCompositionParser) {
         const parser = new HoloCompositionParser();
         const result = parser.parse(code);
+
+        // A comment-only buffer is an empty scene, not an error (HS1001 since #563).
+        if (isOnlyBlankSourceError(result.errors)) {
+          return { r3fTree: null, errors: [] };
+        }
 
         if (result.errors && result.errors.length > 0) {
           return {

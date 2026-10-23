@@ -6,6 +6,7 @@
 
 import { createProviderManager, type LLMProviderName } from '@holoscript/llm-provider';
 import { parseHolo } from '@holoscript/core';
+import { generateHoloScriptGbnf } from '@holoscript/core/compiler';
 import { enforceVerifiedViewReceipts, isProvenanceComplete } from '@holoscript/core/reconstruction';
 import type { HoloParseResult, HoloParseError } from '@holoscript/core';
 
@@ -313,6 +314,8 @@ interface AIGenerationMetadata {
   source?: 'ai' | 'heuristic';
   provider?: LLMProviderName;
   attemptedProviders?: LLMProviderName[];
+  /** A local server refused the whole-program grammar, so the answer was not held to it. */
+  grammarDropped?: boolean;
 }
 
 // F.112: generation is SOVEREIGN-default. Sovereign serving (Brittney Cloud =
@@ -573,6 +576,34 @@ Fix ONLY these problems and return corrected HoloScript. Grammar reminders:
 Return only code, no prose.`;
 }
 
+let holoProgramGrammar: string | undefined;
+
+/**
+ * The GBNF a provider's decoding is held to, if any. A small local model held to the
+ * whole-program grammar can only emit one `composition "Name" { ... }` that parses, so
+ * `.holo` requests to `local-llm` carry it; llama.cpp applies it on the OpenAI-compatible
+ * path. Cloud and other providers never receive it, and `.hs` / `.hsplus` requests do
+ * not either: the grammar describes `.holo` programs only. A local endpoint that fails
+ * the call with the grammar is asked again without it (see tryGenerateWithAI).
+ */
+function grammarFor(
+  providerName: LLMProviderName,
+  targetFormat: 'hs' | 'hsplus' | 'holo'
+): string | undefined {
+  if (providerName !== 'local-llm' || targetFormat !== 'holo') return undefined;
+  return (holoProgramGrammar ??= generateHoloScriptGbnf());
+}
+
+/**
+ * True when a server refused the grammar itself: HoloServe takes a grammar NAME and answers
+ * 400 to a GBNF body. A 5xx, a timeout or a network error is not that, and the adapter has
+ * already retried those, so they never trigger a second call without the grammar.
+ */
+function refusedTheGrammar(err: unknown): boolean {
+  const status = (err as { statusCode?: unknown } | null)?.statusCode;
+  return status === 400 || status === 422;
+}
+
 async function tryGenerateWithAI(
   prompt: string,
   targetFormat: 'hs' | 'hsplus' | 'holo'
@@ -581,6 +612,7 @@ async function tryGenerateWithAI(
   provider: LLMProviderName;
   attemptedProviders: LLMProviderName[];
   detectedTraits: string[];
+  grammarDropped?: boolean;
 } | null> {
   let manager;
 
@@ -600,6 +632,7 @@ async function tryGenerateWithAI(
     provider: LLMProviderName;
     detectedTraits: string[];
   } | null = null;
+  let grammarDropped = false;
 
   for (const providerName of getAIProviderOrder(manager.getRegisteredProviders())) {
     const provider = manager.getProvider(providerName);
@@ -609,6 +642,7 @@ async function tryGenerateWithAI(
 
     // Local providers (small models) need conservative settings to stay coherent
     const isLocalProvider = providerName === 'bitnet' || providerName === 'local-llm';
+    let grammar = grammarFor(providerName, targetFormat);
     let attemptPrompt = prompt;
 
     for (let attempt = 1; attempt <= MAX_GEN_RETRIES_PER_PROVIDER; attempt++) {
@@ -620,8 +654,25 @@ async function tryGenerateWithAI(
           maxObjects: targetFormat === 'holo' ? (isLocalProvider ? 4 : 8) : 1,
           // Nudge temperature down on retry so the repair stays close to the grammar.
           temperature: (isLocalProvider ? 0.1 : 0.35) * (attempt > 1 ? 0.6 : 1),
+          ...(grammar ? { grammar } : {}),
         });
-      } catch {
+      } catch (err) {
+        // Not every local-llm endpoint takes a GBNF grammar (HoloServe takes a grammar name
+        // and answers 400), so a call the server refused for its grammar is sent once more
+        // without it; the result then says so (grammarDropped).
+        if (grammar && refusedTheGrammar(err)) {
+          if (debugAI) {
+            // The server's message may echo the request, grammar included: keep it short.
+            const message = err instanceof Error ? err.message : String(err);
+            console.debug(
+              `[generators] ${providerName} refused the grammar (${message.slice(0, 160)}); retrying without it`
+            );
+          }
+          grammar = undefined;
+          grammarDropped = true;
+          attempt--;
+          continue;
+        }
         // Provider call failed entirely — abandon this provider, try the next.
         break;
       }
@@ -639,6 +690,7 @@ async function tryGenerateWithAI(
           provider: result.provider,
           attemptedProviders: [...attemptedProviders],
           detectedTraits: result.detectedTraits,
+          ...(grammarDropped ? { grammarDropped } : {}),
         };
       }
 
@@ -669,6 +721,7 @@ async function tryGenerateWithAI(
       provider: lastCandidate.provider,
       attemptedProviders: [...attemptedProviders],
       detectedTraits: lastCandidate.detectedTraits,
+      ...(grammarDropped ? { grammarDropped } : {}),
     };
   }
 
@@ -693,6 +746,7 @@ export async function generateObjectForMCP(
       source: 'ai',
       provider: aiResult.provider,
       attemptedProviders: aiResult.attemptedProviders,
+      ...(aiResult.grammarDropped ? { grammarDropped: true } : {}),
     };
   }
 
@@ -701,6 +755,7 @@ export async function generateObjectForMCP(
     source: 'heuristic',
     provider: aiResult?.provider,
     attemptedProviders: aiResult?.attemptedProviders,
+    ...(aiResult?.grammarDropped ? { grammarDropped: true } : {}),
   };
 }
 
@@ -728,6 +783,7 @@ export async function generateSceneForMCP(
       source: 'ai',
       provider: aiResult.provider,
       attemptedProviders: aiResult.attemptedProviders,
+      ...(aiResult.grammarDropped ? { grammarDropped: true } : {}),
     };
   }
 
@@ -736,6 +792,7 @@ export async function generateSceneForMCP(
     source: 'heuristic',
     provider: aiResult?.provider,
     attemptedProviders: aiResult?.attemptedProviders,
+    ...(aiResult?.grammarDropped ? { grammarDropped: true } : {}),
   };
 
   if (debugAI && aiResult) {

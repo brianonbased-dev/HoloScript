@@ -1,8 +1,9 @@
 @trait {
   name: "@face_tracking",
   category: "anim",
-  description: "Face mesh and expression tracking for avatars. Drives named blend shapes (ARKit / HTC / Meta / generic topology) with configurable smoothing, optional eye-gaze channels, lip-sync phoneme extraction, and head-pose forwarding. Emits expression deltas at the configured update_rate. Used by @avatar_embodiment and voice-driven NPC pipelines. Research: FaceTrackingTrait.ts v2.0.0 blend-shape smoothing + phoneme detection.",
+  description: "source is the tracking input (no default): live_self is the user's own local capture device, verified at runtime against a capture the runtime opened (LocalCapture.ts), else the generic avatar is shown; recording (replayed mocap, imported expression or gait data) and remote_user (someone else's capture) are a likeness and need a @consent_gate grant plus the render_likeness rule's yes, as does a missing source (HS1011). Face mesh and expression tracking for avatars. Drives named blend shapes (ARKit / HTC / Meta / generic topology) with configurable smoothing, optional eye-gaze channels, lip-sync phoneme extraction, and head-pose forwarding. Emits expression deltas at the configured update_rate. Used by @avatar_embodiment and voice-driven NPC pipelines. Research: FaceTrackingTrait.ts v2.0.0 blend-shape smoothing + phoneme detection.",
   props: {
+    source: enum("live_self" | "recording" | "remote_user"),
     blend_shapes: dict<string, number> = {},
     tracking_mode: enum("arkit" | "htc" | "meta" | "generic") = "arkit",
     mirror: boolean = false,

@@ -44,6 +44,14 @@ import {
   type FrameDeclaration,
   type FrameViolationType,
 } from '@holoscript/core';
+import { getMcpServerSizing } from './server-sizing';
+import {
+  capMcpToolResult,
+  isMcpToolEnvelope,
+  resultScope,
+  type ResponseCapInfo,
+  type ToolResultStore,
+} from './tool-result-store';
 
 // ── Envelope / context types ─────────────────────────────────────────────────
 
@@ -138,8 +146,19 @@ export interface ToolCallReceipt {
   readonly errorClass?: string;
   /** The check that denied the call, when denial (not dispatch) produced the error. */
   readonly deniedBy?: string;
+  /**
+   * The check that WOULD have denied the call, when the gate ran in `observe` mode and let it
+   * through. A rollout reads these before switching a transport to `enforce`.
+   */
+  readonly observedDeniedBy?: string;
   /** Structured frame boundary event when frame enforcement denied the call. */
   readonly frameViolation?: FrameViolationReceipt;
+  /** Serialized size of the MCP result envelope the tool produced (envelope results only). */
+  readonly resultBytes?: number;
+  /** True when the result was over the response cap and replaced by a summary + resource_link. */
+  readonly truncated?: boolean;
+  /** sha256 of the full stored payload, when truncated. */
+  readonly resultSha256?: string;
 }
 
 /** Stable receipt payload for a frame boundary denial. */
@@ -296,6 +315,33 @@ export interface ToolCallGateOptions<T> {
   readonly check?: ToolCallCheck;
   /** Maps the dispatch result onto ok|error for the receipt. Default: always ok. */
   readonly classifyResult?: ToolCallResultClassifier<T>;
+  /**
+   * `enforce` (the default): a denial throws and nothing is dispatched. `observe`: a denial is
+   * logged and written to the receipt as `observedDeniedBy` (with its frame violation), and the
+   * call proceeds. For turning the gate on at a transport that never ran it: first see which
+   * callers it would refuse, then enforce.
+   */
+  readonly enforcement?: 'enforce' | 'observe';
+  /**
+   * Response size cap (PLAN: mcp-large-response §3). On by default for MCP
+   * envelope results (`{ content: [...] }`): over `maxBytes` (default
+   * server-sizing `responseMaxBytes`, env MCP_RESPONSE_MAX_BYTES) the result is
+   * stored and replaced by a summary + `resource_link`. `false` turns it off.
+   * Non-envelope results are never touched.
+   */
+  readonly responseCap?: false | { readonly maxBytes?: number; readonly store?: ToolResultStore };
+}
+
+const OBSERVE_WORDS = new Set(['', 'observe', 'off', 'false', '0', 'no', 'disable', 'disabled']);
+
+/**
+ * An `enforcement` value from a switch someone types into a deploy's settings. Trimmed and
+ * lowercased, and anything that is not an "off" word enforces: the switch exists to turn
+ * enforcement on, so "Enforce", "enforce " or "1" must not quietly leave the gate observing
+ * (#463 pre-review). Unset stays observe.
+ */
+export function toolGateEnforcementFrom(raw: string | undefined): 'enforce' | 'observe' {
+  return OBSERVE_WORDS.has((raw ?? '').trim().toLowerCase()) ? 'observe' : 'enforce';
 }
 
 function errorClassOf(error: unknown): string {
@@ -309,7 +355,9 @@ function errorClassOf(error: unknown): string {
  * Gate one tool call: run the check, dispatch, and emit exactly one receipt.
  *
  * Contract (WRAP-WITH-RECEIPTS):
- * - Happy path is behavior-neutral: the dispatch result is returned unchanged.
+ * - Happy path is behavior-neutral: the dispatch result is returned unchanged,
+ *   except that an MCP envelope over the response cap is replaced by a summary +
+ *   resource_link (see `responseCap`); under the cap it is the same object.
  * - A dispatch throw propagates unchanged (the receipt records it first).
  * - A check denial throws `ToolCallGateDeniedError` without dispatching.
  * - Exactly one receipt line is written per call, on every path.
@@ -333,11 +381,20 @@ export async function gateToolCall<T>(
     startedAt: new Date(startedAtMs).toISOString(),
   };
 
+  // Set in observe mode when the check would have refused: carried into the one receipt.
+  let observed: { observedDeniedBy: string; frameViolation?: FrameViolationReceipt } | undefined;
+
   const finishReceipt = (
     status: 'ok' | 'error',
-    extra?: { errorClass?: string; deniedBy?: string; frameViolation?: FrameViolationReceipt }
+    extra?: {
+      errorClass?: string;
+      deniedBy?: string;
+      frameViolation?: FrameViolationReceipt;
+      cap?: ResponseCapInfo;
+    }
   ): void => {
     const endedAtMs = Date.now();
+    const frameViolation = extra?.frameViolation ?? observed?.frameViolation;
     writeToolCallReceipt({
       ...base,
       endedAt: new Date(endedAtMs).toISOString(),
@@ -345,29 +402,57 @@ export async function gateToolCall<T>(
       status,
       ...(extra?.errorClass !== undefined ? { errorClass: extra.errorClass } : {}),
       ...(extra?.deniedBy !== undefined ? { deniedBy: extra.deniedBy } : {}),
-      ...(extra?.frameViolation !== undefined ? { frameViolation: extra.frameViolation } : {}),
+      ...(observed !== undefined ? { observedDeniedBy: observed.observedDeniedBy } : {}),
+      ...(frameViolation !== undefined ? { frameViolation } : {}),
+      ...(extra?.cap !== undefined ? { resultBytes: extra.cap.resultBytes } : {}),
+      ...(extra?.cap?.truncated ? { truncated: true, resultSha256: extra.cap.resultSha256 } : {}),
     });
   };
 
   const decision = await check(envelope, ctx);
   if (!decision.allowed) {
-    finishReceipt('error', {
-      errorClass: 'ToolCallGateDeniedError',
-      deniedBy: decision.check,
-      ...(decision.violation !== undefined ? { frameViolation: decision.violation } : {}),
-    });
-    throw new ToolCallGateDeniedError(envelope.name, decision.check, decision.reason);
+    if (options?.enforcement === 'observe') {
+      observed = {
+        observedDeniedBy: decision.check,
+        ...(decision.violation !== undefined ? { frameViolation: decision.violation } : {}),
+      };
+      console.warn(
+        `[ToolCallGate] observe: would deny "${envelope.name}" for ${ctx.callerId ?? 'an unnamed caller'} ` +
+          `on ${ctx.transport} (check: ${decision.check})${decision.reason ? `: ${decision.reason}` : ''}`
+      );
+    } else {
+      finishReceipt('error', {
+        errorClass: 'ToolCallGateDeniedError',
+        deniedBy: decision.check,
+        ...(decision.violation !== undefined ? { frameViolation: decision.violation } : {}),
+      });
+      throw new ToolCallGateDeniedError(envelope.name, decision.check, decision.reason);
+    }
   }
 
   try {
-    const result = await dispatch(envelope, ctx);
+    let result = await dispatch(envelope, ctx);
     const classification: ToolCallResultClassification = options?.classifyResult
       ? options.classifyResult(result)
       : { ok: true };
+    let cap: ResponseCapInfo | undefined;
+    if (options?.responseCap !== false && isMcpToolEnvelope(result)) {
+      const capped = capMcpToolResult(result, {
+        tool: envelope.name,
+        scope: resultScope(ctx.transport, ctx.callerId),
+        maxBytes: options?.responseCap?.maxBytes ?? getMcpServerSizing().responseMaxBytes,
+        ...(options?.responseCap?.store ? { store: options.responseCap.store } : {}),
+      });
+      result = capped.result as unknown as Awaited<T>;
+      cap = capped.info;
+    }
     if (classification.ok) {
-      finishReceipt('ok');
+      finishReceipt('ok', cap ? { cap } : undefined);
     } else {
-      finishReceipt('error', { errorClass: classification.errorClass ?? 'ToolResultError' });
+      finishReceipt('error', {
+        errorClass: classification.errorClass ?? 'ToolResultError',
+        ...(cap ? { cap } : {}),
+      });
     }
     return result;
   } catch (error) {

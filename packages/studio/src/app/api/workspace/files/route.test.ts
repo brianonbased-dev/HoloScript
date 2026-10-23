@@ -3,9 +3,10 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { registerWorkspaceRows } from '@/lib/workspace/testing/ownedWorkspaceFixture';
 
 vi.mock('next-auth', () => ({
-  getServerSession: vi.fn(async () => ({ user: { name: 'Test User' } })),
+  getServerSession: vi.fn(async () => ({ user: { id: 'user-a', name: 'Test User' } })),
 }));
 
 vi.mock('@/lib/auth', () => ({
@@ -36,6 +37,10 @@ describe('/api/workspace/files route', () => {
     fs.writeFileSync(path.join(repoPath, 'src', 'index.ts'), 'export const ok = true;\n');
     fs.writeFileSync(path.join(repoPath, '.git', 'config'), '[core]\n');
     process.env.HOLOSCRIPT_WORKSPACES_DIR = workspaceRoot;
+    // Owned by the session user, as POST /api/workspace/import records it.
+    registerWorkspaceRows(workspaceRoot, [
+      { id: 'project-1', localPath: repoPath, ownerId: 'user-a' },
+    ]);
   });
 
   afterEach(() => {

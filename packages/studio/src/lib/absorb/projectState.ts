@@ -259,6 +259,24 @@ export function upsertDurableAbsorbProject(
   return project;
 }
 
+/**
+ * Remove one project row, only when `ownerId` is its recorded owner.
+ * Returns the removed row, or null when nothing matched.
+ */
+export function removeDurableAbsorbProject(
+  id: string,
+  ownerId: string | null | undefined
+): DurableAbsorbProject | null {
+  const caller = typeof ownerId === 'string' && ownerId.trim() ? ownerId : null;
+  if (!caller) return null;
+  const state = readState();
+  const index = state.projects.findIndex((p) => p.id === id && p.ownerId === caller);
+  if (index < 0) return null;
+  const [removed] = state.projects.splice(index, 1);
+  writeState(state);
+  return removed;
+}
+
 function resultStringField(result: unknown, key: string): string | null {
   if (!isRecord(result)) return null;
   const value = result[key];

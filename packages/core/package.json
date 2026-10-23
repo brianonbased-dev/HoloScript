@@ -1,6 +1,6 @@
 {
   "name": "@holoscript/core",
-  "version": "8.8.0",
+  "version": "8.10.0",
   "description": "Core parser, AST, type/trait system, compiler infrastructure, and runtime for the HoloScript general-purpose semantic systems language",
   "type": "module",
   "main": "./dist/index.js",
@@ -8,7 +8,8 @@
   "types": "./dist/index.d.ts",
   "sideEffects": [
     "./src/traits/visual/index.ts",
-    "./dist/traits/index.js"
+    "./dist/traits/index.js",
+    "./dist/index.js"
   ],
   "files": [
     "bin",
@@ -155,11 +156,13 @@
     "./traits/trait-registry.json": "./src/traits/trait-registry.json",
     "./tools": {
       "types": "./dist/tools/index.d.ts",
-      "import": "./dist/tools/index.js"
+      "import": "./dist/tools/index.js",
+      "require": "./dist/tools/index.cjs"
     },
     "./constants": {
       "types": "./dist/constants.d.ts",
-      "import": "./dist/constants.js"
+      "import": "./dist/constants.js",
+      "require": "./dist/constants.cjs"
     },
     "./scripting": {
       "types": "./dist/entries/scripting.d.ts",
@@ -274,7 +277,8 @@
     "benchmark:paper10:depth-distribution": "node scripts/run-paper10-depth-distribution.mjs",
     "benchmark:dispatch-policy": "tsx src/compiler/dispatch/DispatchPolicyBenchmark.cli.ts",
     "benchmark:paper6:mecanim-matrix": "node scripts/run-paper6-mecanim-matrix.mjs",
-    "benchmark:critic-loop": "node scripts/run-critic-loop-benchmark.mjs"
+    "benchmark:critic-loop": "node scripts/run-critic-loop-benchmark.mjs",
+    "test:verdict-dist": "node scripts/verdict-890-dist.mjs"
   },
   "keywords": [
     "holoscript",

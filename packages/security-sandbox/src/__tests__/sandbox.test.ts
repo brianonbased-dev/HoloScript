@@ -64,6 +64,18 @@ describe('HoloScriptSandbox', () => {
       expect(result.metadata.validated).toBe(false);
     });
 
+    it('should reject code that is neither a .holo composition nor JavaScript', async () => {
+      // Until #509 the .holo parser skipped tokens it did not know, so this passed the
+      // check and only failed later, inside the VM.
+      const result = await sandbox.executeHoloScript('const = 5 +', { source: 'ai-generated' });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.type).toBe('validation');
+      expect(result.error?.message).toContain('not a .holo composition');
+      expect(result.error?.message).toContain('not JavaScript');
+      expect(result.metadata.validated).toBe(false);
+    });
+
     it('should reject empty code', async () => {
       const result = await sandbox.executeHoloScript('', { source: 'user' });
 

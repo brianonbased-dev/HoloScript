@@ -272,6 +272,13 @@ COPY --from=builder --chown=nextjs:nodejs /app/packages/studio/public ./packages
 # process.cwd()=/app resolves /app/examples.
 COPY --from=manifests --chown=nextjs:nodejs /app/examples ./examples
 
+# Studio surface compositions: /api/surface/[slug] and /api/holomesh/surface
+# read compositions/studio/*.hsplus via fs at runtime (resolveCompositionsDir
+# walks to <cwd>/compositions/studio). Next standalone tracing does not follow
+# fs.readFileSync — same reason examples/ is copied above. Runtime cwd is /app,
+# so this lands at /app/compositions/studio/projects.hsplus etc.
+COPY --from=manifests --chown=nextjs:nodejs /app/compositions ./compositions
+
 # Migrations + runner — copied alongside the standalone output so the runtime
 # can self-heal schema on cold start. The pre-CMD step runs
 # scripts/db-migrate.cjs, which is idempotent against drizzle's

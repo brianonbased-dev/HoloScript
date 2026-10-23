@@ -12,12 +12,10 @@ export const maxDuration = 300;
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { execFile } from 'child_process';
-import { promisify } from 'util';
+import { runGit } from '@/lib/git/safeGit';
 
 import { corsHeaders } from '../../_lib/cors';
 import { resolveWorkspaceGitPath, validateRelativeGitPaths } from '../_shared';
-const execFileAsync = promisify(execFile);
 
 export async function POST(req: NextRequest) {
   const { getServerSession } = await import('next-auth');
@@ -40,7 +38,7 @@ export async function POST(req: NextRequest) {
 
   const { workspacePath, message, files, author } = body;
 
-  const validated = resolveWorkspaceGitPath(workspacePath);
+  const validated = resolveWorkspaceGitPath(workspacePath, session);
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: validated.status });
   }
@@ -71,10 +69,10 @@ export async function POST(req: NextRequest) {
     // Stage files
     // SEC-T13: Insert '--' separator so git never mistakes a path for a flag.
     const addArgs = files?.length ? ['--', ...files] : ['--', '.'];
-    await execFileAsync('git', ['add', ...addArgs], { cwd: resolved, env });
+    await runGit(['add', ...addArgs], { cwd: resolved, env });
 
     // Check if there's anything to commit
-    const { stdout: statusOut } = await execFileAsync('git', ['status', '--porcelain'], {
+    const { stdout: statusOut } = await runGit(['status', '--porcelain'], {
       cwd: resolved,
       env,
     });
@@ -83,13 +81,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Commit
-    const { stdout: commitOut } = await execFileAsync('git', ['commit', '-m', message], {
+    const { stdout: commitOut } = await runGit(['commit', '-m', message], {
       cwd: resolved,
       env,
     });
 
     // Get commit SHA
-    const { stdout: shaOut } = await execFileAsync('git', ['rev-parse', 'HEAD'], {
+    const { stdout: shaOut } = await runGit(['rev-parse', 'HEAD'], {
       cwd: resolved,
       env,
     });

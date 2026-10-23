@@ -97,8 +97,12 @@ export {
   messageContentAsString,
 } from './types';
 
-// Base adapter
-export { BaseLLMAdapter } from './base-adapter';
+// Base adapter, and the prompt it sends when asked to write HoloScript
+export {
+  BaseLLMAdapter,
+  HOLOSCRIPT_SYSTEM_PROMPT,
+  HOLOSCRIPT_EXAMPLE_PROGRAM,
+} from './base-adapter';
 
 // Provider adapters
 export {

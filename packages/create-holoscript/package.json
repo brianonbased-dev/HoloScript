@@ -1,6 +1,6 @@
 {
   "name": "create-holoscript",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "Scaffold programs for the HoloScript general-purpose semantic systems language",
   "type": "module",
   "main": "./dist/index.js",

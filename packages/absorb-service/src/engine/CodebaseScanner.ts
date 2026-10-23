@@ -32,6 +32,7 @@ import { getAdapterForFile, detectLanguage } from './adapters';
 import { extractFileDocComment } from './adapters/BaseAdapter';
 import { isNativeAdapter, type HoloAdapter } from './adapters/HoloAdapter';
 import { WorkerPool } from './workers/WorkerPool';
+import { serverStateDirs } from './absorb-root-policy';
 
 const DEFAULT_EXCLUDE = [
   'node_modules',
@@ -192,6 +193,8 @@ interface ExcludePolicy {
   pathFragments: string[];
   nameFragments: string[];
   includeHidden: boolean;
+  /** This server's own state folders (serverStateDirs): skipped on every walk, includeHidden or not. */
+  stateDirs: string[];
 }
 
 interface CollectedFiles {
@@ -1313,6 +1316,7 @@ export class CodebaseScanner {
       pathFragments: Array.from(new Set(pathFragments)),
       nameFragments: Array.from(new Set(nameFragments)),
       includeHidden: options.includeHidden ?? false,
+      stateDirs: serverStateDirs(),
     };
   }
 
@@ -1329,6 +1333,16 @@ export class CodebaseScanner {
     name: string,
     policy: ExcludePolicy
   ): boolean {
+    // Never the server's own data, cache or key folders (absorb-root-policy, 2026-10-08).
+    const resolved = path.resolve(fullPath);
+    if (
+      policy.stateDirs.some((dir) => {
+        const rel = path.relative(dir, resolved);
+        return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+      })
+    ) {
+      return true;
+    }
     const lowerName = name.toLowerCase();
     if (policy.names.has(lowerName)) return true;
     if (policy.suffixes.some((suffix) => lowerName.endsWith(suffix))) return true;

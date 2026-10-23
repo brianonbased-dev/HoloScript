@@ -1,7 +1,11 @@
 export const maxDuration = 300;
 
 import { NextRequest } from 'next/server';
-import { proxyHoloMesh } from '../../../../../../lib/holomesh-proxy';
+import {
+  noHoloMeshAgentResponse,
+  proxyHoloMesh,
+  usesServerKeyFor,
+} from '../../../../../../lib/holomesh-proxy';
 
 import { corsHeaders } from '../../../../_lib/cors';
 /**
@@ -11,6 +15,8 @@ import { corsHeaders } from '../../../../_lib/cors';
  */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // Under the server key this acts as Studio's service agent ("Founder").
+  if (usesServerKeyFor(req)) return noHoloMeshAgentResponse();
   return proxyHoloMesh(`/api/holomesh/team/${id}/join`, req);
 }
 

@@ -24,7 +24,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { corsHeaders } from '../../_lib/cors';
-import { resolveWorkspaceFsRoot } from '@/lib/workspace/workspaceFs';
+import { resolveOwnedWorkspaceFsRoot } from '@/lib/workspace/workspaceOwner';
 
 const execFileAsync = promisify(execFile);
 
@@ -71,7 +71,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Required: workspacePath' }, { status: 400 });
   }
 
-  const workspace = resolveWorkspaceFsRoot(body.workspacePath);
+  // Containment AND ownership: only the workspace's owner may run its scripts.
+  const workspace = resolveOwnedWorkspaceFsRoot(body.workspacePath, session);
   if (!workspace.ok) {
     return NextResponse.json({ error: workspace.error }, { status: workspace.status });
   }

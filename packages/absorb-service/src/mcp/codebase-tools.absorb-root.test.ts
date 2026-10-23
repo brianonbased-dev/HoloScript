@@ -13,6 +13,7 @@ import {
   setCachePublicationFaultForTests,
   setIsolatedAbsorbWorkerFactoryForTests,
   simulateAbsorbProcessRestartForTests,
+  GRAPH_EXTRACTOR_VERSION,
 } from './codebase-tools';
 import {
   resolveCodebaseCachePaths,
@@ -156,6 +157,7 @@ function writeGraphCache(
     path.join(cacheDir, 'graph-cache.json'),
     JSON.stringify({
       version: 2,
+      extractorVersion: GRAPH_EXTRACTOR_VERSION,
       rootDir,
       timestamp,
       stats: { totalFiles: fileHashCount ?? 12, totalSymbols: 34 },
@@ -181,6 +183,7 @@ function writeGraphCacheWithFileHashes(
     path.join(cacheDir, 'graph-cache.json'),
     JSON.stringify({
       version: 2,
+      extractorVersion: GRAPH_EXTRACTOR_VERSION,
       rootDir,
       timestamp,
       stats: { totalFiles: Object.keys(fileHashes).length, totalSymbols: 34 },

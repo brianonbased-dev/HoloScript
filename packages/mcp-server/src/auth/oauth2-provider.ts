@@ -38,6 +38,11 @@ import {
   TokenStore,
   InMemoryTokenStore,
   DEFAULT_TTL,
+  DEFAULT_MAX_CLIENTS,
+  DEFAULT_CLIENT_IDLE_RETIREMENT_MS,
+  isClientStoreFullError,
+  clientIsApproved,
+  type OAuthClientStatus,
   type TokenStoreTTL,
   type TokenStoreBackend,
   type StoredAccessToken,
@@ -58,8 +63,13 @@ export interface OAuth2ProviderConfig {
   migrationMode: 'strict' | 'permissive';
   /** Legacy API key for backwards compatibility */
   legacyApiKey?: string;
-  /** Max clients. Default: 1000 */
+  /** Max clients before registration must retire an idle one. Default: DEFAULT_MAX_CLIENTS */
   maxClients: number;
+  /**
+   * Minimum time without a token before a client may be retired to make room.
+   * Default: DEFAULT_CLIENT_IDLE_RETIREMENT_MS (30 days).
+   */
+  clientIdleRetirementMs: number;
   /** Require DPoP proof-of-possession. Default: false */
   requireDPoP: boolean;
 }
@@ -103,7 +113,8 @@ export const DEFAULT_PROVIDER_CONFIG: OAuth2ProviderConfig = {
   },
   migrationMode: (process.env.OAUTH_MIGRATION_MODE as 'strict' | 'permissive') || 'permissive',
   legacyApiKey: process.env.HOLOSCRIPT_API_KEY || '',
-  maxClients: 1000,
+  maxClients: DEFAULT_MAX_CLIENTS,
+  clientIdleRetirementMs: DEFAULT_CLIENT_IDLE_RETIREMENT_MS,
   requireDPoP: process.env.OAUTH_REQUIRE_DPOP === 'true',
 };
 
@@ -120,6 +131,10 @@ export const OAUTH2_SCOPES = {
   'tools:execute': 'Execute tools that produce output (compile, render, generate, share)',
   'tasks:read': 'Read A2A task state and history',
   'tasks:write': 'Create, send, and cancel A2A tasks',
+  social:
+    'Public HoloMesh social actions as the agent itself: profile/status, discovery, feed and inbox reads, replies, messages, upvotes, insights (no human data)',
+  'user:private':
+    "The signed-in human's own private data: creator earnings, credit balance, memory and workflow memory. Issued only through authorization_code with a signed-in user; never through client_credentials.",
   admin: 'Full administrative access to all tools and endpoints',
 } as const;
 
@@ -136,7 +151,63 @@ export const OAUTH2_PUBLIC_SCOPES = {
   'tools:execute': OAUTH2_SCOPES['tools:execute'],
   'tasks:read': OAUTH2_SCOPES['tasks:read'],
   'tasks:write': OAUTH2_SCOPES['tasks:write'],
+  social: OAUTH2_SCOPES.social,
+  'user:private': OAUTH2_SCOPES['user:private'],
 } as const;
+
+/**
+ * Scopes a self-registered client may hold with no human in the flow (Muse
+ * Gap 9): HoloMesh is a social network for agents, so registering is open and
+ * these work at once. `social` expands to the internal social:read/social:write
+ * scopes, which security/tool-scopes.ts accepts ONLY on the public social tools
+ * listed there (PUBLIC_SOCIAL_TOOL_SCOPES). Everything else (tools:read reaches
+ * workflow_memory_read; tools:execute reaches credits-costing generation,
+ * execute_workflow, holo_memory_store, create_share_link) needs a human's
+ * consent from a signed-in Studio session (security/studio-consent.ts).
+ */
+export const PUBLIC_SOCIAL_SCOPES: readonly string[] = ['social'];
+
+/**
+ * The scopes a token may carry, given who consented. A self-registered client
+ * without a human's consent keeps public social scopes only; with consent, or
+ * for a pre-provisioned client, the request is unchanged (the client's own
+ * scope list was already checked). Every grant passes through this.
+ */
+export function consentFreeScopes(
+  client: { selfRegistered?: boolean } | undefined,
+  scopes: string[],
+  consent: { userId?: string } | undefined
+): string[] {
+  if (consent?.userId) return scopes;
+  // A user-bound scope never issues without a human, whatever the client.
+  const unbound = scopes.filter((s) => !USER_BOUND_SCOPES.includes(s));
+  if (!client?.selfRegistered) return unbound;
+  return unbound.filter((s) => PUBLIC_SOCIAL_SCOPES.includes(s));
+}
+
+/**
+ * Scopes that name a human's own data (earnings, credits, memory). They issue
+ * ONLY through authorization_code with a signed-in user bound to the code, and
+ * the tools behind them act on that user (token subject), never on an id taken
+ * from the tool's arguments. client_credentials refuses them outright.
+ */
+export const USER_BOUND_SCOPES: readonly string[] = ['user:private'];
+
+/**
+ * The most a client_credentials grant may carry: the public scopes and the
+ * public social scope, never a user-bound or reserved one (Trust & Consent a).
+ */
+export const CLIENT_CREDENTIALS_MAX_SCOPES: readonly string[] = [
+  'tools:read',
+  'tools:execute',
+  'tasks:read',
+  'tasks:write',
+  'social',
+];
+
+/** Refusal shared by both token services for user-bound scopes on client_credentials. */
+export const USER_BOUND_SCOPE_CC_ERROR =
+  'invalid_scope: user:private is issued only through authorization_code to a signed-in user, never through client_credentials';
 
 export const OAUTH2_PUBLIC_SCOPE_NAMES = Object.keys(OAUTH2_PUBLIC_SCOPES);
 
@@ -170,6 +241,8 @@ export const SCOPE_BRIDGE: Record<string, string[]> = {
   'tools:execute': ['tools:write', 'tools:codebase', 'tools:browser'],
   'tasks:read': ['a2a:tasks', 'scenes:read'],
   'tasks:write': ['a2a:tasks', 'scenes:write'],
+  social: ['social:read', 'social:write'],
+  'user:private': ['user:private'],
   admin: ['admin:*', 'tools:admin'],
 };
 
@@ -259,6 +332,304 @@ export function canonicalAgentIdFor(params: {
   return undefined;
 }
 
+// ── Registration across both registries ──────────────────────────────────────
+
+/** Prometheus counter: `/oauth/register` refused a client, labelled by reason. */
+export const CLIENT_REGISTRATION_REFUSED_METRIC = 'oauth_client_registration_refused_total';
+/** Prometheus counter: idle clients retired to make room for a registration. */
+export const CLIENTS_RETIRED_METRIC = 'oauth_clients_retired_total';
+
+/** The slice of the server's metrics registry used here (PrometheusMetricsRegistry fits it). */
+export interface RegistrationMetrics {
+  registerCounter(name: string, help: string): void;
+  incCounter(name: string, labels?: Record<string, string>, value?: number): void;
+}
+
+/**
+ * Why a registration was refused:
+ *   store_full  — durable store at its cap, and no client in it provably idle;
+ *   store_error — durable store failed (e.g. database unreachable);
+ *   memory_full — the in-memory registry in front of it is at its cap.
+ */
+export type ClientRegistrationRefusal = 'store_full' | 'store_error' | 'memory_full';
+
+export type DurableRegistrationOutcome =
+  | { ok: true; clientId: string; clientSecret: string; retiredClientIds: string[] }
+  | {
+      ok: false;
+      reason: ClientRegistrationRefusal;
+      /** Plain-words explanation for the caller. Carries no store internals. */
+      message: string;
+      /** Idle clients retired by this attempt before it still came up short. */
+      retiredClientIds: string[];
+    };
+
+const REFUSAL_MESSAGES: Record<ClientRegistrationRefusal, string> = {
+  store_full:
+    'The server could not register this client: its client store is full and no client in it ' +
+    'has been idle long enough to retire. Nothing was created. Try again later.',
+  store_error:
+    'The server could not register this client: saving it to the durable client store failed. ' +
+    'Nothing was created. Try again later.',
+  memory_full:
+    'The server could not register this client: its in-memory client registry is full. ' +
+    'Nothing was created. Try again later.',
+};
+
+/**
+ * Register one client under one identity in the in-memory registry AND the
+ * durable store, or refuse. It never returns credentials the durable store did
+ * not record.
+ *
+ * `/oauth/register` used to catch the durable store's refusal, log a warning,
+ * and still answer 201 with a client held only in memory, which every deploy
+ * wipes. From 2026-06-28 (store full at 1000) that was every registration: the
+ * caller could not tell, the client died at the next deploy, and the store
+ * stopped recording who had registered (board task_1790545471449_w6yi).
+ *
+ * Now a refusal undoes the in-memory half, logs an error, counts it on
+ * `observe.metrics`, and comes back as `ok: false` for the route to answer 503.
+ * Idle clients the durable store retired to make room are dropped from memory
+ * too, so a retired client fails the same way in every process instead of
+ * working here until the next restart.
+ *
+ * Kept out of http-server.ts so it can be tested without booting a server.
+ */
+export async function registerClientDurably(
+  registries: {
+    memory: {
+      registerClient(params: {
+        clientName: string;
+        redirectUris: string[];
+        scopes: string[];
+        clientType?: 'confidential' | 'public';
+        rateLimit?: number;
+        agentId?: string;
+        registeredUnproven?: boolean;
+        status?: OAuthClientStatus;
+        selfRegistered?: boolean;
+        /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+        noClientCredentials?: boolean;
+      }): { clientId: string; clientSecret: string };
+      revokeClient(clientId: string): boolean;
+    };
+    durable: Pick<OAuth2Provider, 'registerClient'>;
+  },
+  params: {
+    clientName: string;
+    redirectUris: string[];
+    scopes: string[];
+    clientType: 'confidential' | 'public';
+    rateLimit: number;
+    agentId?: string;
+    registeredUnproven?: boolean;
+    /** Review state (Muse Gap 9); omitted = approved. */
+    status?: OAuthClientStatus;
+    selfRegistered?: boolean;
+    /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+    noClientCredentials?: boolean;
+  },
+  observe: { metrics: RegistrationMetrics; logError?: (line: string) => void }
+): Promise<DurableRegistrationOutcome> {
+  const logError = observe.logError ?? ((line: string) => console.error(line));
+
+  const dropRetired = (retiredClientIds: string[]): void => {
+    if (retiredClientIds.length === 0) return;
+    for (const clientId of retiredClientIds) registries.memory.revokeClient(clientId);
+    observe.metrics.registerCounter(
+      CLIENTS_RETIRED_METRIC,
+      'OAuth clients retired to make room: idle past the retirement window with no live token'
+    );
+    observe.metrics.incCounter(CLIENTS_RETIRED_METRIC, {}, retiredClientIds.length);
+  };
+
+  const refuse = (
+    reason: ClientRegistrationRefusal,
+    err: unknown,
+    retiredClientIds: string[] = []
+  ): DurableRegistrationOutcome => {
+    logError(
+      `[auth] OAuth client registration REFUSED (${reason}): ` +
+        `${err instanceof Error ? err.message : String(err)} ` +
+        `No client was created; the caller was answered 503.`
+    );
+    observe.metrics.registerCounter(
+      CLIENT_REGISTRATION_REFUSED_METRIC,
+      'OAuth client registrations refused because the client could not be stored durably'
+    );
+    observe.metrics.incCounter(CLIENT_REGISTRATION_REFUSED_METRIC, { reason });
+    return { ok: false, reason, message: REFUSAL_MESSAGES[reason], retiredClientIds };
+  };
+
+  let minted: { clientId: string; clientSecret: string };
+  try {
+    minted = registries.memory.registerClient(params);
+  } catch (err) {
+    if (isClientStoreFullError(err)) return refuse('memory_full', err);
+    throw err;
+  }
+
+  try {
+    const stored = await registries.durable.registerClient({
+      ...params,
+      // Same identity in both registries, so the durable copy answers to the
+      // credentials the caller will hold.
+      clientId: minted.clientId,
+      clientSecret: minted.clientSecret,
+    });
+    dropRetired(stored.retiredClientIds);
+    return {
+      ok: true,
+      clientId: minted.clientId,
+      clientSecret: minted.clientSecret,
+      retiredClientIds: stored.retiredClientIds,
+    };
+  } catch (err) {
+    // Undo the in-memory half: no credential may exist that the durable store
+    // did not record.
+    registries.memory.revokeClient(minted.clientId);
+    // Clients retired before the failure are gone either way (a full store
+    // after a partial retirement, or an insert that failed after one).
+    const carried = (err as { retiredClientIds?: unknown } | null)?.retiredClientIds;
+    const retired = Array.isArray(carried) ? (carried as string[]) : [];
+    dropRetired(retired);
+    return refuse(isClientStoreFullError(err) ? 'store_full' : 'store_error', err, retired);
+  }
+}
+
+/** How long a sign-in waits for the durable store to record use before going on without it. */
+export const CLIENT_USE_RECORD_TIMEOUT_MS = 2_000;
+
+/**
+ * What prepareClientForUse found:
+ *   recorded   — the durable store recorded the use; the client is in memory;
+ *   unknown    — the durable store holds no such client; any in-memory copy was
+ *                dropped, so the request is refused as an unknown client;
+ *   unrecorded — the store could not answer (down, slow, or keeps no usage
+ *                record); the request goes on with the in-memory copy;
+ *   none       — no client_id was given.
+ */
+export type ClientPreparation = 'recorded' | 'unknown' | 'unrecorded' | 'none';
+
+/**
+ * Get a client ready for an authorize or token request: record the use in the
+ * durable store FIRST, then load the client into the in-memory registry if it
+ * is not there yet.
+ *
+ * Why first: use recorded only after a token is issued left a window in which
+ * a registration could retire a client in the middle of its own sign-in (after
+ * the authorize step, or between the grant and the record). Recorded here, a
+ * retirement racing this request either sees the new last-use time and skips
+ * the client, or has already deleted it, in which case the client is dropped
+ * from memory and the request is refused as unknown. No code or token is issued
+ * to a client the durable store no longer holds.
+ *
+ * Recorded for any request that names the client, before its credentials are
+ * checked. Someone who knows a client_id can therefore keep that client from
+ * being retired. They cannot create a client, sign in as one, or retire one,
+ * and the worst case is a store that stays full and says so (503).
+ *
+ * When the store cannot answer within CLIENT_USE_RECORD_TIMEOUT_MS (database
+ * down or slow; the pool sets no connect timeout), the request goes on with
+ * the in-memory copy, as before this change. A database outage must not
+ * become a sign-in outage.
+ *
+ * Kept out of http-server.ts so it can be tested without booting a server.
+ */
+export async function prepareClientForUse(
+  registries: {
+    memory: {
+      getClient(clientId: string): unknown;
+      importClient(client: {
+        clientId: string;
+        clientSecret: string;
+        clientName: string;
+        redirectUris: string[];
+        scopes: string[];
+        createdAt: number;
+        clientType: 'confidential' | 'public';
+        rateLimit: number;
+        agentId?: string;
+        registeredUnproven?: boolean;
+        status?: OAuthClientStatus;
+        selfRegistered?: boolean;
+        /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+        noClientCredentials?: boolean;
+      }): void;
+      revokeClient(clientId: string): boolean;
+    };
+    durable: Pick<OAuth2Provider, 'noteClientUse' | 'getClient'>;
+  },
+  clientId: string | null | undefined,
+  options: { recordTimeoutMs?: number; logWarn?: (line: string) => void } = {}
+): Promise<ClientPreparation> {
+  if (!clientId) return 'none';
+  const logWarn = options.logWarn ?? ((line: string) => console.warn(line));
+  const timeoutMs = options.recordTimeoutMs ?? CLIENT_USE_RECORD_TIMEOUT_MS;
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = Symbol('timed out');
+  const held = await Promise.race([
+    registries.durable.noteClientUse(clientId),
+    new Promise<typeof timedOut>((resolve) => {
+      timer = setTimeout(() => resolve(timedOut), timeoutMs);
+    }),
+  ]);
+  if (timer) clearTimeout(timer);
+  if (held === timedOut) {
+    logWarn(
+      `[auth] recording use of OAuth client ${clientId} took over ${timeoutMs}ms; ` +
+        `going on without it.`
+    );
+  }
+
+  if (held === false) {
+    // Retired, or never stored. A copy left in memory would still be served
+    // tokens that nothing durable backs, so drop it and let the request fail
+    // as an unknown client.
+    registries.memory.revokeClient(clientId);
+    return 'unknown';
+  }
+
+  if (!registries.memory.getClient(clientId)) {
+    try {
+      const durable = await registries.durable.getClient(clientId);
+      if (durable) {
+        registries.memory.importClient({
+          clientId: durable.clientId,
+          clientSecret: durable.clientSecretHash,
+          clientName: durable.clientName,
+          redirectUris: durable.redirectUris,
+          scopes: durable.scopes,
+          createdAt: durable.createdAt,
+          clientType: durable.clientType,
+          rateLimit: durable.rateLimit,
+          // Carry the agent binding across the deploy that wiped the in-memory
+          // map. Dropping it here refused the client's own agent_id on the very
+          // next token request, with nothing in the response saying the binding
+          // had been forgotten rather than never granted.
+          ...(durable.agentId ? { agentId: durable.agentId } : {}),
+          // Same for an unproven registration: dropped here, a redeploy would
+          // hand the client the full tools:execute it was never meant to hold.
+          ...(durable.registeredUnproven ? { registeredUnproven: true } : {}),
+          // And the review state and origin (Muse Gap 9): a redeploy must not
+          // turn a suspended client back into a working one, or a
+          // self-registered one into a pre-provisioned one.
+          ...(durable.status ? { status: durable.status } : {}),
+          ...(durable.selfRegistered ? { selfRegistered: true } : {}),
+          ...(durable.noClientCredentials ? { noClientCredentials: true } : {}),
+        });
+      }
+    } catch (err) {
+      logWarn(
+        `[auth] durable client hydration failed: ${err instanceof Error ? err.message : err}`
+      );
+    }
+  }
+
+  return held === true ? 'recorded' : 'unrecorded';
+}
+
 // ── Token Introspection Result ───────────────────────────────────────────────
 
 export interface TokenIntrospectionResult {
@@ -268,6 +639,8 @@ export interface TokenIntrospectionResult {
   agentId?: string;
   expiresAt?: number;
   issuedAt?: number;
+  userId?: string;
+  grantId?: string;
 }
 
 // ── Token Response ───────────────────────────────────────────────────────────
@@ -310,10 +683,17 @@ export class OAuth2Provider {
     clientSecret?: string;
     /** Agent binding proved at registration; persisted so it survives a deploy. */
     agentId?: string;
-  }): Promise<{ clientId: string; clientSecret: string }> {
+    /** The registration proved nothing; see StoredClient.registeredUnproven. */
+    registeredUnproven?: boolean;
+    status?: OAuthClientStatus;
+    selfRegistered?: boolean;
+    /** Registered without the client_credentials grant (Trust & Consent A1). Absent = legacy, allowed. */
+    noClientCredentials?: boolean;
+  }): Promise<{ clientId: string; clientSecret: string; retiredClientIds: string[] }> {
     return this.store.registerClient({
       ...params,
       maxClients: this.config.maxClients,
+      clientIdleRetirementMs: this.config.clientIdleRetirementMs,
     });
   }
 
@@ -321,8 +701,18 @@ export class OAuth2Provider {
     return this.store.getClient(clientId);
   }
 
+  /** Record that a client is in use right now. See TokenStore.noteClientUse. */
+  async noteClientUse(clientId: string): Promise<boolean | undefined> {
+    return this.store.noteClientUse(clientId);
+  }
+
   async revokeClient(clientId: string): Promise<boolean> {
     return this.store.revokeClient(clientId);
+  }
+
+  /** Review state change; suspending deletes the client's tokens. See TokenStore.setClientStatus. */
+  async setClientStatus(clientId: string, status: OAuthClientStatus) {
+    return this.store.setClientStatus(clientId, status);
   }
 
   /**
@@ -758,6 +1148,15 @@ export class OAuth2Provider {
         },
       };
     }
+    if (client.noClientCredentials) {
+      return {
+        status: 400,
+        body: {
+          error: 'unauthorized_client',
+          error_description: 'This client did not register the client_credentials grant.',
+        },
+      };
+    }
     if (!this.store.safeCompare(this.store.hashSecret(clientSecret), client.clientSecretHash)) {
       return {
         status: 400,
@@ -765,7 +1164,16 @@ export class OAuth2Provider {
       };
     }
 
-    const scopes = requestedScopes.length > 0 ? requestedScopes : client.scopes;
+    if (requestedScopes.some((s) => USER_BOUND_SCOPES.includes(s))) {
+      return {
+        status: 400,
+        body: { error: 'invalid_scope', error_description: USER_BOUND_SCOPE_CC_ERROR },
+      };
+    }
+    // Never default to a user-bound scope the client merely registered.
+    const scopes = (requestedScopes.length > 0 ? requestedScopes : client.scopes).filter(
+      (s) => !USER_BOUND_SCOPES.includes(s)
+    );
     const invalidScopes = scopes.filter(
       (s) => !client.scopes.includes(s) && !client.scopes.includes('admin')
     );
@@ -954,6 +1362,14 @@ export class OAuth2Provider {
     if (!stored || stored.expiresAt < Date.now()) {
       return { active: false };
     }
+    // Muse Gap 9: a token whose client is pending or suspended is not active,
+    // even before suspension has deleted it. A token with no client row keeps
+    // its old behaviour (some first-party paths mint tokens for ids that are
+    // not registered clients).
+    const client = await this.store.getClient(stored.clientId);
+    if (client && !clientIsApproved(client)) {
+      return { active: false };
+    }
 
     return {
       active: true,
@@ -962,6 +1378,8 @@ export class OAuth2Provider {
       agentId: stored.agentId,
       expiresAt: stored.expiresAt,
       issuedAt: stored.issuedAt,
+      ...(stored.userId ? { userId: stored.userId } : {}),
+      ...(stored.grantId ? { grantId: stored.grantId } : {}),
     };
   }
 

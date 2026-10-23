@@ -16,19 +16,21 @@
  *      without dispatching.
  */
 
-import { describe, it, expect, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeEach, afterAll, vi } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import {
+  founderGateFrameToolCallCheck,
   founderGateX402ToolCallCheck,
   normalizeToolNameForAuthorityRouting,
   FOUNDER_GATE_CHECK_ID,
+  FOUNDER_GATE_FRAME_CHECK_ID,
   FRAME_DECLARATION_CHECK_ID,
   X402_SCOPE_CHECK_ID,
   FOUNDER_GATE_X402_CHECK_ID,
 } from '../tool-call-checks';
-import { gateToolCall, ToolCallGateDeniedError } from '../tool-call-gate';
+import { gateToolCall, toolGateEnforcementFrom, ToolCallGateDeniedError } from '../tool-call-gate';
 import type { ToolCallCheckDecision, ToolCallGateContext } from '../tool-call-gate';
 import {
   registerKnownTools,
@@ -236,4 +238,187 @@ describe('founderGateX402ToolCallCheck', () => {
       tool: 'compile_holoscript',
     });
   });
+});
+
+// task 6fef: POST /mcp and POST /tools/call now run this check through the gate. Until the
+// deployment sets HOLOSCRIPT_STATELESS_TOOL_GATE=enforce they OBSERVE: record and log what they
+// would refuse, and let the call through. These pin both modes with the real check.
+describe('the gate observes, then enforces, as the stateless routes run it', () => {
+  const FRAME = {
+    domain: 'holoscript-language',
+    horizon: '2026-07',
+    capability_tier: 2 as const,
+    trust_tier: 2 as const,
+    allowed_tools: ['parse_hs'],
+    denied_domains: [],
+  };
+  const receiptPath = () => process.env.HOLOSCRIPT_TOOL_CALL_RECEIPT_PATH!;
+  const receipts = () =>
+    fs
+      .readFileSync(receiptPath(), 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+
+  beforeEach(() => {
+    __resetKnownToolsForTest();
+    registerKnownTools(['parse_hs', 'compile_holoscript']);
+    fs.rmSync(receiptPath(), { force: true });
+  });
+
+  async function run(
+    name: string,
+    ctx: ToolCallGateContext,
+    enforcement: 'enforce' | 'observe'
+  ): Promise<{ outcome: string; dispatched: boolean; receipt: Record<string, unknown> }> {
+    let dispatched = false;
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const outcome = await gateToolCall(
+      { name, args: {} },
+      ctx,
+      async () => {
+        dispatched = true;
+        return { ok: true };
+      },
+      { check: founderGateX402ToolCallCheck, enforcement }
+    ).then(
+      () => 'ran',
+      (e: unknown) => (e instanceof ToolCallGateDeniedError ? 'refused' : 'threw')
+    );
+    warn.mockRestore();
+    const all = receipts();
+    expect(all).toHaveLength(1);
+    fs.rmSync(receiptPath(), { force: true });
+    return { outcome, dispatched, receipt: all[0] };
+  }
+
+  it('a tool outside the caller frame: enforce refuses before dispatch; observe runs it and records the refusal', async () => {
+    const ctx = { ...httpCtx(['tools:read', 'tools:write']), frameDeclaration: FRAME };
+
+    const enforced = await run('compile_holoscript', ctx, 'enforce');
+    expect(enforced).toMatchObject({ outcome: 'refused', dispatched: false });
+    expect(enforced.receipt).toMatchObject({
+      status: 'error',
+      deniedBy: FRAME_DECLARATION_CHECK_ID,
+    });
+
+    const observed = await run('compile_holoscript', ctx, 'observe');
+    expect(observed).toMatchObject({ outcome: 'ran', dispatched: true });
+    expect(observed.receipt).toMatchObject({
+      status: 'ok',
+      observedDeniedBy: FRAME_DECLARATION_CHECK_ID,
+      frameViolation: { violationType: 'tool_not_allowed', tool: 'compile_holoscript' },
+    });
+    expect(observed.receipt.deniedBy).toBeUndefined();
+  });
+
+  it('a custody-class tool name: enforce refuses; observe records the founder gate', async () => {
+    const ctx = httpCtx(['admin:*']);
+    const enforced = await run('transfer_custody_authority', ctx, 'enforce');
+    expect(enforced).toMatchObject({ outcome: 'refused', dispatched: false });
+    expect(enforced.receipt.deniedBy).toBe(FOUNDER_GATE_CHECK_ID);
+
+    const observed = await run('transfer_custody_authority', ctx, 'observe');
+    expect(observed).toMatchObject({ outcome: 'ran', dispatched: true });
+    expect(observed.receipt.observedDeniedBy).toBe(FOUNDER_GATE_CHECK_ID);
+  });
+
+  it('a tool inside the frame, and a call with no frame at all, run in both modes with nothing refused', async () => {
+    for (const enforcement of ['enforce', 'observe'] as const) {
+      for (const ctx of [
+        { ...httpCtx(['tools:read', 'tools:write']), frameDeclaration: FRAME },
+        httpCtx(['tools:read', 'tools:write']),
+      ]) {
+        const r = await run('parse_hs', ctx, enforcement);
+        expect(r).toMatchObject({ outcome: 'ran', dispatched: true });
+        expect(r.receipt).toMatchObject({ status: 'ok' });
+        expect(r.receipt.observedDeniedBy).toBeUndefined();
+        expect(r.receipt.deniedBy).toBeUndefined();
+      }
+    }
+  });
+
+  it('observe logs the refusal it did not make, so a rollout can read it from the service log', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    await gateToolCall(
+      { name: 'compile_holoscript', args: {} },
+      { ...httpCtx(['tools:write']), frameDeclaration: FRAME },
+      async () => ({}),
+      { check: founderGateX402ToolCallCheck, enforcement: 'observe' }
+    );
+    const logged = warn.mock.calls.map((c) => String(c[0])).join('\n');
+    expect(logged).toContain(
+      '[ToolCallGate] observe: would deny "compile_holoscript" for agent-test on http (check: frame-declaration)'
+    );
+    warn.mockRestore();
+  });
+});
+
+// #463 pre-review: the stateless routes dispatch through securedToolExecution, whose triple gate
+// already checks scope, answers in its own shape and writes the audit log. Their gate adds the
+// founder and frame refusals only; a scope check there changed the answer and lost the audit row.
+describe('founderGateFrameToolCallCheck: founder and frame, scope left to the triple gate', () => {
+  const FRAME = {
+    domain: 'holoscript-language',
+    horizon: '2026-07',
+    capability_tier: 2 as const,
+    trust_tier: 2 as const,
+    allowed_tools: ['parse_hs'],
+    denied_domains: [],
+  };
+
+  beforeEach(() => {
+    __resetKnownToolsForTest();
+    registerKnownTools(['parse_hs', 'compile_holoscript']);
+  });
+
+  it('a scope shortfall is not its refusal (the full check refuses the same call)', async () => {
+    const readOnly = httpCtx(['tools:read']);
+    const envelope = { name: 'compile_holoscript', args: {} };
+    expect(await founderGateFrameToolCallCheck(envelope, readOnly)).toMatchObject({
+      allowed: true,
+      check: FOUNDER_GATE_FRAME_CHECK_ID,
+    });
+    expect(await founderGateX402ToolCallCheck(envelope, readOnly)).toMatchObject({
+      allowed: false,
+      check: X402_SCOPE_CHECK_ID,
+    });
+  });
+
+  it('refuses a tool outside the caller frame, and a malformed frame', async () => {
+    const outside = await founderGateFrameToolCallCheck(
+      { name: 'compile_holoscript', args: {} },
+      { ...httpCtx(['tools:write']), frameDeclaration: FRAME }
+    );
+    expect(outside).toMatchObject({ allowed: false, check: FRAME_DECLARATION_CHECK_ID });
+    const malformed = await founderGateFrameToolCallCheck(
+      { name: 'parse_hs', args: {} },
+      { ...httpCtx(['tools:write']), frameDeclaration: null }
+    );
+    expect(malformed).toMatchObject({ allowed: false, check: FRAME_DECLARATION_CHECK_ID });
+    const inside = await founderGateFrameToolCallCheck(
+      { name: 'parse_hs', args: {} },
+      { ...httpCtx(['tools:read']), frameDeclaration: FRAME }
+    );
+    expect(inside).toMatchObject({ allowed: true });
+  });
+
+  it('refuses an exact-four tool name', async () => {
+    const decision = await founderGateFrameToolCallCheck(
+      { name: 'transfer_custody_authority', args: {} },
+      httpCtx(['admin:*'])
+    );
+    expect(decision).toMatchObject({ allowed: false, check: FOUNDER_GATE_CHECK_ID });
+  });
+});
+
+describe('toolGateEnforcementFrom: a near-miss of the switch does not leave the gate observing', () => {
+  it.each(['enforce', 'Enforce', ' enforce ', 'ENFORCE', '1', 'true', 'on', 'enforced'])(
+    '%j enforces',
+    (raw) => expect(toolGateEnforcementFrom(raw)).toBe('enforce')
+  );
+  it.each([undefined, '', '  ', 'observe', ' Observe ', 'off', 'false', '0', 'no', 'disabled'])(
+    '%j observes',
+    (raw) => expect(toolGateEnforcementFrom(raw)).toBe('observe')
+  );
 });
