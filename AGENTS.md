@@ -19,15 +19,13 @@ bottlenecks and branch sprawl, not safety.
 - On Windows desktop, prefer `.\scripts\safe-commit.ps1` (uses `git commit --only`
   to avoid the multi-agent index race).
 - Railway auto-deploys on push to `main` — validate locally before pushing.
-- **Fallback only:** if your environment genuinely cannot push direct and forces a
-  PR, it is reaped (squash-merged + branch deleted) by HoloCI's `pr-reaper` on its
-  schedule — do not wait on it, and do not open PRs by choice.
+- **No auto-merge:** `pr-reaper` is a retired no-op. A PR is merged only by Release
+  after the gate pass and a Mapping second-seat CLEAR at the exact head SHA.
 
 **CI is HoloCI, not GitHub Actions.** Validation runs on the vast.ai fleet via the
 mcp-orchestrator queue and reports through free GitHub commit statuses
 (`~/.ai-ecosystem/scripts/holo-ci/`; triggered by the pre-push hook, with
-`reconcile.mjs` as the scheduled floor and `pr-reaper.mjs` as the stray-PR safety
-net). GitHub Actions is billing-locked and unused — do not add `.github/workflows/*`.
+`reconcile.mjs` as the scheduled floor; `pr-reaper.mjs` is a retired no-op). GitHub Actions is billing-locked and unused — do not add `.github/workflows/*`.
 
 ## What This Project Does
 

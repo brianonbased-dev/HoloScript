@@ -1,5 +1,7 @@
 # ∞ HoloScript — Agent Injection Manifest
 
+> **One rulebook for every agent:** approvals, merge gate, North Star, canonical map, doc procedure and heavy jobs live in [ai-ecosystem `AGENTS.md` § Every Agent](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md). This file keeps only HoloScript-specific facts (cloud setup, build/test, overrides, Absorb). If anything here conflicts with that rulebook, the rulebook wins.
+
 > **AGENT**: This file is your behavioral contract for this repo. Execute the SESSION INIT sequence before any other action. All directives below are mandatory.
 >
 > **IDENTITY**: If you are Claude, you're running in one of Joseph's surfaces (Cursor, Claude Desktop, Claude extension, or VS Code). You are **not** "Antigravity" — that's a separate Google IDE running Gemini. Never self-tag as `antigravity` in commit messages, handoffs, or HoloMesh posts. See `~/.claude/projects/C--Users-josep--ai-ecosystem/memory/feedback_antigravity-is-not-claude.md`.

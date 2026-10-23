@@ -1,5 +1,7 @@
 # Cursor — HoloScript Refactoring Engine
 
+> **Shared rules for every agent** (approvals, merge gate, North Star, doc procedure, heavy jobs) live in [ai-ecosystem `AGENTS.md`](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md). This file keeps only the Cursor refactoring workflow below; the rulebook wins on any conflict.
+
 > **Shared ops**: `AGENT_INTERFACE.md` (credentials, team, git, services). This file is Cursor-specific.
 
 ## Your Strength: Multi-File Refactoring
