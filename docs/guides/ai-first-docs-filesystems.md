@@ -1,6 +1,6 @@
 # AI-First Docs and Filesystems
 
-> Status: active | refreshed 2026-05-05
+> Status: active | refreshed 2026-10-23
 > Purpose: Define how HoloScript docs and repository layout should be shaped for agent retrieval, verification, and action.
 > Source of truth: This guide, [NUMBERS.md](../NUMBERS.md), [AGENTS.md](../../AGENTS.md), and [CLAUDE.md](../../CLAUDE.md).
 > Verify: `pnpm docs:roadmap:drift` and `pnpm audit:red-flags`
@@ -68,6 +68,32 @@ Use this shape for active docs that guide future work:
 - Keep status and date visible without requiring prose archaeology.
 - Preserve stable IDs for wisdom, patterns, gotchas, tasks, RFCs, and generated records.
 - Put stale or speculative material in archive paths, not active guide paths.
+
+## Where docs go (cross-repo)
+
+One home per kind. Paths use `<dev-root>` for the dev root and `%USERPROFILE%` for the user home. Statuses: **ruled 2026-10-23 by CoS** = decided (CoS message to Mapping, 2026-10-23); **Hardware-proposed, pending** = not yet ruled; **existing** = already canon elsewhere.
+
+| Kind                           | Home                                                                                      | Status                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------- | -------------------------- |
+| Repo docs (guides, references) | that repo's `docs/`                                                                       | existing                   |
+| Handbooks (founder ops)        | `ai-ecosystem/docs/handbooks/`                                                            | existing                   |
+| Decisions                      | `<dev-root>\decisions\` (`YYYY-MM-DD_<slug>`)                                             | existing                   |
+| Durable research reports       | `<dev-root>\research\` (`-YYYYMMDD` suffix)                                               | existing                   |
+| Run debris (laptop)            | repo `.scratch/` only, per `ai-ecosystem/docs/handbooks/agent-storage-lanes.md`           | existing                   |
+| Cards                          | `%USERPROFILE%\Documents\grok-cards`                                                      | ruled 2026-10-23 by CoS    |
+| Specs                          | `%USERPROFILE%\Documents\holo-specs` (`-YYYYMMDD`); moves into a repo by PR once accepted | ruled 2026-10-23 by CoS    |
+| Idea seeds                     | `<dev-root>\idea-seeds` (`YYYY-MM-DD-<slug>`); Idea bot writes only                       | ruled 2026-10-23 by CoS    |
+| Vision                         | `%USERPROFILE%\Documents\vision` for now; CVO decides final home later                    | ruled 2026-10-23 by CoS    |
+| Jetson receipts                | `/mnt/nvme/holo/receipts/<lane>/YYYYMMDD-<slug>.md\|json`                                 | Hardware-proposed, pending |
+| Jetson scratch                 | `/mnt/nvme/holo/scratch/<lane>/`                                                          | Hardware-proposed, pending |
+
+Rules:
+
+- Names follow `<dev-root>\ai-ecosystem\HOLON.md`; do not invent new lanes. Laptop root lanes are fixed by `<dev-root>\config\laptop-canon-contract.json` (`developmentLayout`).
+- To make a doc discoverable in the holon registry, link it from a generator source (venture file, repo `AGENTS.md`, ai-ecosystem `holorepo.config.json` `taskProducer.sourcePaths`, or a worktree `README.md`/`AGENTS.md`), then regenerate with `ai-ecosystem/scripts/gen-holon-registry.mjs`. Never hand-edit `ai-ecosystem/config/holon-registry.json`; a missing linked file becomes a conflict.
+- Create / move / rename / retire an agent-facing doc: update its row in `ai-ecosystem/AGENT_FILES/catalog.md` in the same PR. Moves and deletes go by PR, never in place.
+
+Work scratch lane: resolved 2026-10-23 (Hardware agreed, CoS OK). No `%USERPROFILE%\.scratch\<lane>` on Work; Hardware follows `ai-ecosystem/docs/handbooks/agent-storage-lanes.md` and writes receipts to the owning repo `.scratch/` (e.g. `ai-ecosystem\.scratch\hardware\`).
 
 ## What Remains After This Plan
 
