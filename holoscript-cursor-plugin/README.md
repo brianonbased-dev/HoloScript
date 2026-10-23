@@ -5,10 +5,10 @@ files in Cursor. It contains no MCP server and runs no code.
 
 ## What's inside
 
-| Component | Path | What it does |
-| --- | --- | --- |
-| Skill | `skills/write-holoscript/SKILL.md` | Guides the agent to write `.holo` scenes with the composition / template / object pattern |
-| Rule | `rules/holoscript.mdc` | HoloScript conventions, offered for `**/*.holo`, `**/*.hs`, `**/*.hsplus` (not always applied) |
+| Component | Path                               | What it does                                                                                   |
+| --------- | ---------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Skill     | `skills/write-holoscript/SKILL.md` | Guides the agent to write `.holo` scenes with the composition / template / object pattern      |
+| Rule      | `rules/holoscript.mdc`             | HoloScript conventions, offered for `**/*.holo`, `**/*.hs`, `**/*.hsplus` (not always applied) |
 
 ## What it claims
 
