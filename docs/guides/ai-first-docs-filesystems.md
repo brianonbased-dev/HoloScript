@@ -73,19 +73,19 @@ Use this shape for active docs that guide future work:
 
 One home per kind. Paths use `<dev-root>` for the dev root and `%USERPROFILE%` for the user home. Statuses: **ruled 2026-10-23 by CoS** = decided (CoS message to Mapping, 2026-10-23); **Hardware-proposed, pending** = not yet ruled; **existing** = already canon elsewhere.
 
-| Kind | Home | Status |
-|---|---|---|
-| Repo docs (guides, references) | that repo's `docs/` | existing |
-| Handbooks (founder ops) | `ai-ecosystem/docs/handbooks/` | existing |
-| Decisions | `<dev-root>\decisions\` (`YYYY-MM-DD_<slug>`) | existing |
-| Durable research reports | `<dev-root>\research\` (`-YYYYMMDD` suffix) | existing |
-| Run debris (laptop) | repo `.scratch/` only, per `ai-ecosystem/docs/handbooks/agent-storage-lanes.md` | existing |
-| Cards | `%USERPROFILE%\Documents\grok-cards` | ruled 2026-10-23 by CoS |
-| Specs | `%USERPROFILE%\Documents\holo-specs` (`-YYYYMMDD`); moves into a repo by PR once accepted | ruled 2026-10-23 by CoS |
-| Idea seeds | `<dev-root>\idea-seeds` (`YYYY-MM-DD-<slug>`); Idea bot writes only | ruled 2026-10-23 by CoS |
-| Vision | `%USERPROFILE%\Documents\vision` for now; CVO decides final home later | ruled 2026-10-23 by CoS |
-| Jetson receipts | `/mnt/nvme/holo/receipts/<lane>/YYYYMMDD-<slug>.md\|json` | Hardware-proposed, pending |
-| Jetson scratch | `/mnt/nvme/holo/scratch/<lane>/` | Hardware-proposed, pending |
+| Kind                           | Home                                                                                      | Status                     |
+| ------------------------------ | ----------------------------------------------------------------------------------------- | -------------------------- |
+| Repo docs (guides, references) | that repo's `docs/`                                                                       | existing                   |
+| Handbooks (founder ops)        | `ai-ecosystem/docs/handbooks/`                                                            | existing                   |
+| Decisions                      | `<dev-root>\decisions\` (`YYYY-MM-DD_<slug>`)                                             | existing                   |
+| Durable research reports       | `<dev-root>\research\` (`-YYYYMMDD` suffix)                                               | existing                   |
+| Run debris (laptop)            | repo `.scratch/` only, per `ai-ecosystem/docs/handbooks/agent-storage-lanes.md`           | existing                   |
+| Cards                          | `%USERPROFILE%\Documents\grok-cards`                                                      | ruled 2026-10-23 by CoS    |
+| Specs                          | `%USERPROFILE%\Documents\holo-specs` (`-YYYYMMDD`); moves into a repo by PR once accepted | ruled 2026-10-23 by CoS    |
+| Idea seeds                     | `<dev-root>\idea-seeds` (`YYYY-MM-DD-<slug>`); Idea bot writes only                       | ruled 2026-10-23 by CoS    |
+| Vision                         | `%USERPROFILE%\Documents\vision` for now; CVO decides final home later                    | ruled 2026-10-23 by CoS    |
+| Jetson receipts                | `/mnt/nvme/holo/receipts/<lane>/YYYYMMDD-<slug>.md\|json`                                 | Hardware-proposed, pending |
+| Jetson scratch                 | `/mnt/nvme/holo/scratch/<lane>/`                                                          | Hardware-proposed, pending |
 
 Rules:
 
