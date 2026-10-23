@@ -6,6 +6,12 @@ Technology people can build with, understand, and keep accountable.
 
 Hololand can hide complexity, but it must never hide meaning.
 
+Anyone can help build powerful realities, but no one is forced to live inside a reality they cannot understand, question, or change.
+
+HoloScript is a contract for executable intent: claims rise only as evidence rises, and "unknown" is a legitimate answer. AI proposes and implements; humans decide.
+
+Humans decide only when there is no reference and no way to figure it out without human input, so agents work from existing evidence first.
+
 **Five commitments.** These are commitments, not shipped features.
 
 1. Nothing silently disappears.
