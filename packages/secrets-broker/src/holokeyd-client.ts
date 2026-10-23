@@ -17,6 +17,11 @@
  *   - ssh to `holokeyctl` (`HOLOKEYD_HOST`), the same path holokeyd-source uses.
  *     Names travel as validated argv / stdin; values travel on stdin only.
  *
+ * Configuration is trusted: whoever controls the env (`HOLOKEYD_SOCKET`,
+ * `HOLOKEYD_ADMIN_SOCKET`, `HOLOKEYD_HOST`, `HOLOKEYD_CLIENT`, `HOLOKEYD_SSH_KEY`)
+ * decides where names are sent and where `put` values go. Socket paths are not
+ * checked for owner or permissions, so set them only from a trusted environment.
+ *
  * Fail closed: `get` returns `undefined` only for SECRET_NOT_FOUND. Every other
  * failure (transport, timeout, malformed or mismatched response, daemon error)
  * throws a {@link HoloKeydError} whose message carries an error CODE only, never a
@@ -42,7 +47,9 @@ export const HOLOKEYD_DEFAULT_SOCKET = '/run/holokeyd/holokeyd.sock';
 export const HOLOKEYD_DEFAULT_ADMIN_SOCKET = '/run/holokeyd/holokeyd-admin.sock';
 
 const NAME_RE = /^[A-Za-z][A-Za-z0-9_.-]{0,127}$/u;
-const HOST_RE = /^(?:[A-Za-z0-9_.-]+@)?[A-Za-z0-9_.:-]+$/u;
+// No leading '-' in the user or the host part: ssh would read it as an option
+// (e.g. '-Fevil.conf' / '-oProxyCommand=...'). The argv also puts '--' before the host.
+const HOST_RE = /^(?:[A-Za-z0-9_.][A-Za-z0-9_.-]*@)?[A-Za-z0-9_.:][A-Za-z0-9_.:-]*$/u;
 const PATH_RE = /^\/[A-Za-z0-9_./-]+$/u;
 const CODE_RE = /^[A-Z][A-Z0-9_]{0,63}$/u;
 const MAX_SECRET_BYTES = 64 * 1024;
@@ -193,14 +200,19 @@ export function createSshTransport(opts: SshTransportOpts): HoloKeydTransport {
   if (!HOST_RE.test(opts.host)) throw new HoloKeydError('INVALID_CONFIG');
   const client = opts.client ?? '/usr/local/bin/holokeyctl';
   if (!PATH_RE.test(client)) throw new HoloKeydError('INVALID_CONFIG');
-  const connectTimeoutS = Number.isFinite(opts.connectTimeoutS) ? Number(opts.connectTimeoutS) : 5;
+  const connectTimeoutS = Number.isFinite(opts.connectTimeoutS)
+    ? Math.min(60, Math.max(1, Math.round(Number(opts.connectTimeoutS))))
+    : 5;
   const run = opts.run ?? defaultSshRun;
   const base = [
     '-o',
     'BatchMode=yes',
     '-o',
     `ConnectTimeout=${connectTimeoutS}`,
+    '-o',
+    'StrictHostKeyChecking=yes',
     ...(opts.identity ? ['-i', opts.identity] : []),
+    '--',
     opts.host,
     client,
   ];
@@ -233,7 +245,11 @@ export function createSshTransport(opts: SshTransportOpts): HoloKeydTransport {
       const m = /holokeyctl: ([A-Z][A-Z0-9_]*)\s*$/mu.exec(r.stderr);
       return { id: req.id, ok: false, error: { code: m ? m[1] : 'VAULT_OPERATION_FAILED' } };
     }
-    if (req.op === 'resolve') return { id: req.id, ok: true, result: { value: r.stdout } };
+    if (req.op === 'resolve') {
+      // holokeyctl ends the value with one newline; strip exactly that one.
+      const value = r.stdout.replace(/\r?\n$/u, '');
+      return { id: req.id, ok: true, result: { value } };
+    }
     try {
       const parsed = JSON.parse(r.stdout.trim()) as { ok?: boolean; result?: unknown };
       if (parsed.ok !== true) throw new Error('not ok');

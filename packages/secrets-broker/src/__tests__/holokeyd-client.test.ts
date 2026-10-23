@@ -301,6 +301,74 @@ describe('ssh transport (fake holokeyctl, no spawn)', () => {
   it('rejects a hostile host', () => {
     expect(() => createSshTransport({ host: 'h; rm -rf /' })).toThrow(HoloKeydError);
   });
+
+  it('rejects hosts that ssh would read as options, and ends options with --', async () => {
+    for (const host of ['-Fevil.conf', '-Eout', '-oProxyCommand=x', '-user@h', 'u@-h']) {
+      expect(() => createSshTransport({ host })).toThrow(HoloKeydError);
+      expect(createHolokeydClient({ env: { HOLOKEYD_HOST: host } })).toBeNull();
+    }
+    const calls: string[][] = [];
+    const c = new HolokeydClient({
+      transport: createSshTransport({
+        host: 'holojetson',
+        run: async (args) => {
+          calls.push([...args]);
+          return {
+            stdout: '{"ok":true,"result":{"present":true}}\n',
+            stderr: '',
+            code: 0,
+            timedOut: false,
+          };
+        },
+      }),
+    });
+    await expect(c.has('X')).resolves.toBe(true);
+    const args = calls[0];
+    expect(args).toContain('StrictHostKeyChecking=yes');
+    expect(args[args.indexOf('holojetson') - 1]).toBe('--');
+  });
+
+  it('clamps connectTimeoutS to 1..60', async () => {
+    const seen: string[] = [];
+    for (const t of [0, -5, 999, 7]) {
+      const c = new HolokeydClient({
+        transport: createSshTransport({
+          host: 'h',
+          connectTimeoutS: t,
+          run: async (args) => {
+            seen.push(String(args[3]));
+            return {
+              stdout: '{"ok":true,"result":{"present":false}}',
+              stderr: '',
+              code: 0,
+              timedOut: false,
+            };
+          },
+        }),
+      });
+      await c.has('X');
+    }
+    expect(seen).toEqual([
+      'ConnectTimeout=1',
+      'ConnectTimeout=1',
+      'ConnectTimeout=60',
+      'ConnectTimeout=7',
+    ]);
+  });
+
+  it('get strips exactly one trailing newline from holokeyctl stdout', async () => {
+    const mk = (stdout: string) =>
+      new HolokeydClient({
+        transport: createSshTransport({
+          host: 'h',
+          run: async () => ({ stdout, stderr: '', code: 0, timedOut: false }),
+        }),
+      });
+    await expect(mk('fake-value\n').get('X')).resolves.toBe('fake-value');
+    await expect(mk('fake-value\r\n').get('X')).resolves.toBe('fake-value');
+    await expect(mk('fake-value\n\n').get('X')).resolves.toBe('fake-value\n');
+    await expect(mk('fake-value').get('X')).resolves.toBe('fake-value');
+  });
 });
 
 describe('createHolokeydClient / source / resolver wiring', () => {
