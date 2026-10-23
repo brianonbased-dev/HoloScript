@@ -4,4 +4,4 @@ globs:
 alwaysApply: true
 ---
 
-Before acting in this repo, read [AGENTS.md](../../AGENTS.md) for HoloScript-specific facts, then the shared rulebook in [ai-ecosystem AGENTS.md § Every Agent](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md#every-agent-claude-cursor-grok-bot-one-rulebook-linked-not-copied) (private repo). In one line: act only on recorded approvals, ask Joseph through Chief of Staff for anything else, and change code only through the PR gate. If this file and the rulebook differ, the rulebook wins.
+Before acting in this repo, read [AGENTS.md](../../AGENTS.md) for HoloScript-specific facts, then the shared rulebook in [ai-ecosystem AGENTS.md § Every Agent](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md#every-agent-claude-cursor-grok-bot-one-rulebook-linked-not-copied) (private repo). In one line: act only on recorded approvals, ask Joseph through Chief of Staff for anything else, and make every change through the PR gate. If this file and the rulebook differ, the rulebook wins.
