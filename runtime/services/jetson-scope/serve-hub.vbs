@@ -26,4 +26,5 @@ If force Then
   WScript.Sleep 1500
 End If
 
+' NOTE: this launches the live runtime checkout's copy, not this tree.
 sh.Run """C:\Program Files\nodejs\node.exe"" ""C:\holo\runtime\services\jetson-scope\jetson-scope.mjs"" serve", 0, False

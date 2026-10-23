@@ -5,7 +5,8 @@
 //
 // Import closure is node: builtins ONLY, so this runs from any tree forever
 // (the exec-root lesson: dependency-free scripts are the ones that survive).
-// All remote access is read-only ssh (BatchMode). TCP port 22 is probed
+// Remote access is ssh (BatchMode), read-only except POST /api/hardware-changed,
+// which writes a hardware-change note to the rig. TCP port 22 is probed
 // separately from ssh so "box is off" and "login broken" stay distinguishable
 // (an ssh failure alone reads identical either way).
 
@@ -79,7 +80,7 @@ function tcpProbe(host, port, timeoutMs = 3000) {
 
 function sshRun(remoteScript, timeoutMs = 20000) {
   return new Promise((resolve) => {
-    const child = spawn('ssh', [...SSH_OPTS, HOST, 'bash', '-s'], {
+    const child = spawn('ssh', [...SSH_OPTS, '--', HOST, 'bash', '-s'], {
       stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true,
     });
     let out = '', err = '';
@@ -509,9 +510,10 @@ function safeRemotePath(p) {
 
 // ---------- universal node ingest (the join surface) ----------
 // Any machine running metal-publisher.mjs POSTs snapshots here. This is the
-// ONLY LAN-facing listener, and it accepts exactly two things: a token-gated
-// snapshot POST, and a GET of the publisher file itself (so a new machine can
-// download it from the hub). The read dashboard stays 127.0.0.1-only.
+// node-ingest listener (8478, METAL_INGEST_HOST or 0.0.0.0), and it accepts exactly
+// two things: a token-gated snapshot POST, and a GET of the publisher file itself (so
+// a new machine can download it from the hub). It is one of TWO LAN-facing listeners;
+// the other is the view-token-gated LAN phone view on 8482. 8477 and 8481 are 127.0.0.1.
 
 const TOKEN_FILE = join(HERE, 'join-token.txt');
 function loadOrCreateToken() {
@@ -607,8 +609,9 @@ function startIngestServer() {
     }
     res.writeHead(404); res.end('not found');
   });
-  server.listen(INGEST_PORT, process.env.METAL_INGEST_HOST || '0.0.0.0', () => {
-    console.log(`metal ingest (LAN join surface): 0.0.0.0:${INGEST_PORT}`);
+  const ingestHost = process.env.METAL_INGEST_HOST || '0.0.0.0';
+  server.listen(INGEST_PORT, ingestHost, () => {
+    console.log(`metal ingest (LAN join surface): ${ingestHost}:${INGEST_PORT}`);
   });
   server.on('error', (e) => { console.error(`ingest listen failed: ${e.code || e}`); });
 }
@@ -747,8 +750,18 @@ const server = createServer(async (req, res) => {
         // of what they do to it -- new thermal pads raise the margin, not the output, so no
         // detector fires -- and without this the tuner honours limits measured on hardware
         // that no longer exists.
+        // Cross-site / DNS-rebinding guard: only a same-origin page on loopback may write.
+        const hostOk = /^(127\.0\.0\.1|localhost):\d+$/i.test(String(req.headers.host || ''));
+        const origin = req.headers.origin;
+        const originOk = origin === undefined || /^http:\/\/(127\.0\.0\.1|localhost):\d+$/i.test(String(origin));
+        if (!hostOk || !originOk) { res.writeHead(403, { 'content-type': 'text/plain' }); res.end('forbidden'); return; }
         let body = '';
-        for await (const chunk of req) body += chunk;
+        let tooBig = false;
+        for await (const chunk of req) {
+          body += chunk;
+          if (body.length > 64 * 1024) { tooBig = true; break; }
+        }
+        if (tooBig) { res.writeHead(413, { 'content-type': 'text/plain' }); res.end('body too large'); return; }
         let kind = '';
         let note = '';
         try {
@@ -796,7 +809,8 @@ const server = createServer(async (req, res) => {
         res.end(JSON.stringify(cachedSpace));
       } else { res.writeHead(404); res.end('not found'); }
     } catch (e) {
-      res.writeHead(500, { 'content-type': 'text/plain' }); res.end(String(e));
+      console.error('dashboard 500:', e);
+      res.writeHead(500, { 'content-type': 'text/plain' }); res.end('internal error');
     }
   });
   server.listen(PORT, '127.0.0.1', () => {
@@ -854,7 +868,8 @@ async function readOnlyDeckHandler(req, res, port) {
       res.end(JSON.stringify({ ok: false, error: 'This button works from the laptop screen — the phone view is read-only.' }));
     } else { res.writeHead(404); res.end('not found'); }
   } catch (e) {
-    res.writeHead(500, { 'content-type': 'text/plain' }); res.end(String(e));
+    console.error('phone lane 500:', e);
+    res.writeHead(500, { 'content-type': 'text/plain' }); res.end('internal error');
   }
 }
 
@@ -878,9 +893,9 @@ function loadOrCreateViewToken() {
 function startLanViewServer() {
   const VIEW_TOKEN = loadOrCreateViewToken();
   const authed = (req, url) => {
-    if (url.searchParams.get('key') === VIEW_TOKEN) return true;
+    if (tokenMatches(url.searchParams.get('key'), VIEW_TOKEN)) return true;
     const cookies = String(req.headers.cookie || '');
-    return cookies.split(';').some((c) => c.trim() === 'metalview=' + VIEW_TOKEN);
+    return cookies.split(';').some((c) => { const t = c.trim(); return t.startsWith('metalview=') && tokenMatches(t.slice('metalview='.length), VIEW_TOKEN); });
   };
   const server = createServer((req, res) => {
     const url = new URL(req.url, `http://127.0.0.1:${LAN_VIEW_PORT}`);
@@ -891,7 +906,7 @@ function startLanViewServer() {
     }
     // A correct ?key= visit plants the cookie so the saved page works keyless
     // afterwards; the token never appears in any served body.
-    if (url.searchParams.get('key') === VIEW_TOKEN) {
+    if (tokenMatches(url.searchParams.get('key'), VIEW_TOKEN)) {
       res.setHeader('set-cookie', 'metalview=' + VIEW_TOKEN + '; HttpOnly; SameSite=Lax; Path=/; Max-Age=31536000');
     }
     readOnlyDeckHandler(req, res, LAN_VIEW_PORT);

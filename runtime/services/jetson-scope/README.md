@@ -18,19 +18,39 @@ per-status arrays).
   docker, arrivals; TCP-22 probed separately from ssh so box-off vs
   login-broken stay distinct). Single-node: `jetson status --json`.
   Also `jetson ls <path>`, `jetson files`, `jetson top`.
-  Both `jetson` and `metal` are on the user PATH via `C:\holo\bin`.
+  Both `jetson` and `metal` are on the user PATH via the `bin` folder of the
+  live runtime checkout (not this tree).
 - **Human face (owner):** the **Metal** icon on the Desktop → local
   dashboard at `http://127.0.0.1:8477`: a Laptop section (gauges, battery,
   C: drive, holoserve + nightly-backup status, busiest processes) and a
   Jetson section (gauges, drives, space list, services, arrivals).
-  Plain language throughout; auto-refreshes every 5s; read-only.
+  Plain language throughout; auto-refreshes every 5s. One button writes:
+  "hardware changed" (see below).
 
 Design constraints (deliberate):
 
 - `jetson-scope.mjs` imports **node: builtins only** — runs from any tree,
   no node_modules, survives forever (the exec-root lesson).
-- All remote access is **read-only ssh** (BatchMode, ConnectTimeout 6s);
-  the dashboard binds **127.0.0.1 only**.
+- Remote access is ssh (BatchMode, ConnectTimeout 6s). It is read-only
+  except for one route: `POST /api/hardware-changed` on 8477 writes a
+  hardware-change note to the rig over ssh.
+- Listeners (two of the four are on the LAN, so keep them LAN-only and
+  never port-forward them):
+
+  | Port | Bind | Purpose |
+  | ---- | ---- | ------- |
+  | 8477 | 127.0.0.1 | laptop dashboard (Origin/Host-checked write route) |
+  | 8478 | `METAL_INGEST_HOST` or 0.0.0.0 | node ingest, join-token gated |
+  | 8481 | 127.0.0.1 | phone dashboard over `adb reverse` (USB) |
+  | 8482 | 0.0.0.0 | LAN phone view, view-token gated |
+
+- Two token files are created next to the script on first run and are
+  git-ignored: the **join token** (8478 ingest) and the **view token**
+  (8482 LAN view). The 8477 page carries the join token, so treat it as
+  local-only.
+- `serve-hub.vbs` (the node path it launches) and the PATH `bin` shims
+  still point at the live runtime checkout, not at this tree. Changes here
+  take effect only once they land there.
 - Miner tracking rides the same join path as any machine: the Jetson
   publisher attaches `~/cgminer-gekko/brain-status.json` as
   `metrics.miner`. The dashboard prefers a fresh publisher snapshot and
