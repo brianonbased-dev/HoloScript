@@ -1,0 +1,11 @@
+# house-signers.txt  (apk.signing_probe_understood, HoloCI E4, BRIDGE)
+#
+# PLACEHOLDER: Release or Hardware fills this in with the HoloQR release key
+# certificate fingerprint(s). Until then the probe reports UNKNOWN
+# (reason=house_signers_empty).
+#
+# FINGERPRINTS ONLY: one SHA-256 of the signer certificate (DER) per line,
+# 64 hex chars, colons optional. NEVER put a private key, keystore, PEM, or
+# certificate body in this file. Any non-fingerprint line makes the probe UNKNOWN.
+#
+# Get it with: apksigner verify --print-certs <apk>   (Signer #1 certificate SHA-256 digest)
