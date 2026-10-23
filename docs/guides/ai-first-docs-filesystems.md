@@ -93,7 +93,7 @@ Rules:
 - To make a doc discoverable in the holon registry, link it from a generator source (venture file, repo `AGENTS.md`, `holorepo.config.json` `taskProducer.sourcePaths`, or a worktree `README.md`/`AGENTS.md`), then regenerate with `scripts/gen-holon-registry.mjs`. Never hand-edit `config/holon-registry.json`; a missing linked file becomes a conflict.
 - Create / move / rename / retire an agent-facing doc: update its row in `ai-ecosystem/AGENT_FILES/catalog.md` in the same PR. Moves and deletes go by PR, never in place.
 
-Open item (Hardware / CoS): Hardware proposed `C:\Users\josep\.scratch\<lane>` for Work. Not ratified: it conflicts with `agent-storage-lanes.md`, where repo `.scratch/` is the only run-debris lane.
+Work scratch lane: resolved 2026-10-23 (Hardware agreed, CoS OK). No `C:\Users\josep\.scratch\<lane>` on Work; Hardware follows `agent-storage-lanes.md` and writes receipts to the owning repo `.scratch/` (e.g. `ai-ecosystem\.scratch\hardware\`).
 ## What Remains After This Plan
 
 - Promote the red-flag audit from report-only to a strict gate after the existing backlog is triaged.
