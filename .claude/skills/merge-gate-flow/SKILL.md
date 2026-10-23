@@ -3,6 +3,7 @@ name: merge-gate-flow
 description: >
   Use when deciding whether, and how, an agent-authored PR may merge, be updated
   from main, or be reverted.
+source: "Canonical source: the Grok Bot skill store (skill merge-gate-flow); keep this body identical to it."
 ---
 
 # Merge Gate Flow

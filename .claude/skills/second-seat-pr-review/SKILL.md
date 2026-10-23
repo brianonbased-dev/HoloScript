@@ -3,6 +3,7 @@ name: second-seat-pr-review
 description: >
   Use when a PR needs an independent, read-only security and correctness verdict
   at one exact commit SHA before it can merge.
+source: "Canonical source: the Grok Bot skill store (skill second-seat-pr-review); keep this body identical to it."
 ---
 
 # Second-Seat PR Review
