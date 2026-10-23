@@ -67,20 +67,26 @@ class Probe(unittest.TestCase):
         with open(self.hs, "w") as f:
             f.write("# test-only house list\n" + ":".join(HOUSE_FP[i:i+2] for i in range(0, 64, 2)) + "\n")
 
-    def run_on(self, data, sdk=None, hs=None, name="t.apk"):
+    def tearDown(self):
+        sp.APKSIGNER_RUNNER = sp._default_runner
+
+    def run_on(self, data, sdk=None, hs=None, name="t.apk", bridge=None):
+        """bridge=None: bridge disabled; else mocked apksigner verdict."""
         p = os.path.join(self.d, name)
         with open(p, "wb") as f:
             f.write(data)
-        v, ev, _ = sp.probe(p, hs or self.hs, sdk, False)
+        if bridge is not None:
+            sp.APKSIGNER_RUNNER = lambda _p: bridge
+        v, ev, _ = sp.probe(p, hs or self.hs, sdk, bridge is not None)
         return v, ev
 
     def test_signed_house_v2_pass(self):
-        v, ev = self.run_on(apk(signing_block([(sp.ID_V2, scheme_value(HOUSE))])))
-        self.assertEqual((v, ev["scheme"], ev["signer_sha256"]), ("PASS", "v2", HOUSE_FP))
+        v, ev = self.run_on(apk(signing_block([(sp.ID_V2, scheme_value(HOUSE))])), bridge="pass")
+        self.assertEqual((v, ev["scheme"], ev["signer_sha256"], ev["apksigner_bridge"]), ("PASS", "v2", HOUSE_FP, "pass"))
 
     def test_signed_house_v1_v2_v3_pass(self):
         b = signing_block([(sp.ID_V2, scheme_value(HOUSE)), (sp.ID_V3, scheme_value(HOUSE))])
-        v, ev = self.run_on(apk(b, v1=pkcs7(HOUSE)))
+        v, ev = self.run_on(apk(b, v1=pkcs7(HOUSE)), bridge="pass")
         self.assertEqual((v, ev["scheme"]), ("PASS", "v1,v2,v3"))
 
     def test_unsigned_fail(self):
@@ -160,10 +166,87 @@ class Probe(unittest.TestCase):
         sp.probe(p, self.hs, None, False)
         self.assertEqual(open(p, "rb").read(), data)
 
+    # ---- B1: PASS requires the apksigner bridge ----
+    def forged(self):
+        # house certificate, garbage signature bytes, no real signing
+        signed_data = lp(b"") + lp(seq(HOUSE)) + b"\x00" * 8
+        signer = lp(signed_data) + lp(seq(b"\xde\xad\xbe\xef" * 8)) + lp(b"garbage-pubkey")
+        return apk(signing_block([(sp.ID_V2, lp(seq(signer)))]))
+
+    def test_forged_sig_no_bridge_not_pass(self):
+        v, ev = self.run_on(self.forged())
+        self.assertNotEqual(v, "PASS")
+        self.assertEqual((v, ev["reason"]), ("UNKNOWN", "signature_unverified"))
+
+    def test_forged_sig_bridge_fail(self):
+        v, ev = self.run_on(self.forged(), bridge="fail")
+        self.assertEqual((v, ev["reason"]), ("FAIL", "apksigner_verify_failed"))
+
+    def test_bridge_absent_unknown(self):
+        v, ev = self.run_on(self.forged(), bridge="absent")
+        self.assertEqual((v, ev["reason"], ev["apksigner_bridge"]), ("UNKNOWN", "signature_unverified", "absent"))
+
+    def test_bridge_error_unknown(self):
+        self.assertEqual(self.run_on(self.forged(), bridge="error")[0], "UNKNOWN")
+
+    def test_bridge_garbage_output_unknown(self):
+        self.assertEqual(self.run_on(self.forged(), bridge="PASS!!")[0], "UNKNOWN")
+
+    def test_bridge_pass(self):
+        self.assertEqual(self.run_on(self.forged(), bridge="pass")[0], "PASS")
+
+    # ---- N1/N2/N3/N7 ----
+    def test_cd_offset_not_cd_start_unknown(self):
+        data = bytearray(apk(signing_block([(sp.ID_V2, scheme_value(HOUSE))])))
+        e = bytes(data).rfind(b"PK\x05\x06")
+        off = struct.unpack_from("<I", data, e + 16)[0]
+        struct.pack_into("<I", data, e + 16, off - 1)
+        self.assertEqual(self.run_on(bytes(data), bridge="pass")[0], "UNKNOWN")
+
+    def test_duplicate_pair_ids_unknown(self):
+        b = signing_block([(sp.ID_V2, scheme_value(HOUSE)), (sp.ID_V2, scheme_value(HOUSE))])
+        v, ev = self.run_on(apk(b), bridge="pass")
+        self.assertEqual((v, ev["reason"]), ("UNKNOWN", "malformed_signing_block"))
+
+    def test_foreign_v1_only_below_30_fail(self):
+        v, ev = self.run_on(apk(v1=pkcs7(FOREIGN)), sdk=28)
+        self.assertEqual((v, ev["reason"]), ("FAIL", "signer_not_in_house_signers"))
+
+    def test_fake_eocd_in_comment_not_pass(self):
+        data = apk(signing_block([(sp.ID_V2, scheme_value(HOUSE))]))
+        fake = b"PK\x05\x06" + b"\x00" * 18
+        cl = len(fake) + 4
+        e = data.rfind(b"PK\x05\x06")
+        data = data[:e + 20] + struct.pack("<H", cl) + fake + b"tail"
+        self.assertIn(self.run_on(data, bridge="pass")[0], ("UNKNOWN", "FAIL"))
+
+    def test_zip64_not_pass(self):
+        data = bytearray(apk(signing_block([(sp.ID_V2, scheme_value(HOUSE))])))
+        e = bytes(data).rfind(b"PK\x05\x06")
+        struct.pack_into("<I", data, e + 16, 0xFFFFFFFF)
+        self.assertIn(self.run_on(bytes(data), bridge="pass")[0], ("UNKNOWN", "FAIL"))
+
+    def test_duplicate_entries_not_pass(self):
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            data = apk(signing_block([(sp.ID_V2, scheme_value(HOUSE))]), extra=[("classes.dex", b"dup")])
+        v, ev = self.run_on(data, bridge="pass")
+        self.assertEqual((v, ev["reason"]), ("UNKNOWN", "walker_duplicate_name"))
+
+    def test_zip_bomb_not_pass(self):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("AndroidManifest.xml", b"\x03\x00")
+            z.writestr("assets/bomb.bin", b"\x00" * (4 << 20))
+        v, ev = self.run_on(buf.getvalue(), bridge="pass")
+        self.assertEqual((v, ev["reason"]), ("UNKNOWN", "walker_zip_bomb"))
+
     def test_cli_exit_codes(self):
         p = os.path.join(self.d, "c.apk")
         open(p, "wb").write(apk(signing_block([(sp.ID_V2, scheme_value(HOUSE))])))
-        self.assertEqual(sp.main([p, "--house-signers", self.hs, "--no-apksigner"]), 0)
+        sp.APKSIGNER_RUNNER = lambda _p: "pass"
+        self.assertEqual(sp.main([p, "--house-signers", self.hs]), 0)
         open(p, "wb").write(apk())
         self.assertEqual(sp.main([p, "--house-signers", self.hs, "--no-apksigner"]), 1)
         open(p, "wb").write(b"junk")

@@ -11,14 +11,14 @@ python scripts/holo-ci/apk/signing_probe.py app-release.apk [--target-sdk 34] [-
 
 | Verdict | When |
 |---|---|
-| PASS | A v2/v3 block is present, the signer cert SHA-256 is in `house-signers.txt`, and any v1 signer matches it |
-| FAIL | Unsigned; v1-only with targetSdk >= 30; signer not in house list; v1 signer differs from v2/v3 |
-| UNKNOWN | Malformed signing block or v1 PKCS#7; v4-only (`<apk>.idsig` present, nothing else); multiple signers or rotation (v3.1, or v2 != v3); house list missing, empty or holding a non-fingerprint line; walker limits hit (nested APK, path traversal, duplicate names, zip bomb); v1-only without `--target-sdk` |
+| PASS | A v2/v3 block is present, the signer cert SHA-256 is in `house-signers.txt`, any v1 signer matches it, **and `apksigner verify` (bridge) passes** |
+| FAIL | Unsigned; v1-only with targetSdk >= 30; signer not in house list (any scheme, any SDK); v1 signer differs from v2/v3; apksigner bridge fails |
+| UNKNOWN | House signer but apksigner absent/skipped/errored (`signature_unverified`); malformed signing block (incl. duplicate pair IDs), bad EOCD/central-directory offset, zip64 or v1 PKCS#7; v4-only (`<apk>.idsig` present, nothing else); multiple signers or rotation (v3.1, or v2 != v3); house list missing, empty or holding a non-fingerprint line; walker limits hit (nested APK, path traversal, duplicate names, zip bomb); v1-only without `--target-sdk` |
 
-**Limit:** v0 checks who signed, not whether the signature is valid (stdlib has no RSA/EC). If `apksigner` is on PATH, `apksigner verify` runs alongside as a labelled bridge and is reported as `apksigner_bridge=pass|fail|error`. It is evidence only and doesn't change the verdict. If it isn't on PATH you get `absent`.
+**Limit:** the stdlib part checks who signed, not whether the signature is valid (stdlib has no RSA/EC). **v0 PASS therefore needs the `apksigner verify` bridge to pass.** Bridge fail gives FAIL; bridge absent, skipped (`--no-apksigner`) or errored gives UNKNOWN `signature_unverified`. A forged signature over a house cert can never PASS.
 
 `house-signers.txt` holds fingerprints only and is a placeholder that Release or Hardware fills in. Never put keys in it.
 
-Tests use synthetic bytes only (no real APKs or keys): `python -m unittest scripts/holo-ci/apk/test_signing_probe.py`
+Tests use synthetic bytes only (no real APKs or keys): `python -m unittest discover -s scripts/holo-ci/apk -p "test_*.py"`
 
 Wiring: Grok Build adds it to HoloCI as non-blocking, following the E1 pattern.

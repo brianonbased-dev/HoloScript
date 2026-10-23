@@ -9,11 +9,13 @@ Observe only. This script never signs, re-signs, or strips signatures and never
 writes to the APK. It reports which signer is present and compares the signer
 certificate SHA-256 against house-signers.txt.
 
-Limit, stated plainly: v0 checks WHO signed (certificate identity), not whether
-the signature is cryptographically valid. stdlib has no RSA/EC verification.
-If `apksigner` is on PATH it is run alongside as a labelled bridge and its
-verdict is reported as evidence only (apksigner_bridge=...); it does not change
-the v0 verdict. If absent it is skipped (apksigner_bridge=absent).
+Limit, stated plainly: the stdlib part checks WHO signed (certificate identity),
+not whether the signature is cryptographically valid (stdlib has no RSA/EC).
+So v0 PASS REQUIRES the labelled `apksigner verify` bridge to pass:
+  house signer + apksigner_bridge=pass  -> PASS
+  house signer + apksigner_bridge=fail  -> FAIL (apksigner_verify_failed)
+  house signer + bridge absent/skipped/error -> UNKNOWN (signature_unverified)
+A forged signature over a house certificate can therefore never PASS.
 
 Output contract: exactly one stdout line
   RESULT apk.signing_probe_understood PASS|FAIL|UNKNOWN key=value ...
@@ -118,8 +120,15 @@ def find_eocd(data: bytes) -> int:
 # ---------- APK Signing Block ----------
 def read_signing_block(data: bytes) -> dict[int, bytes] | None:
     eocd = find_eocd(data)
-    cd_off = struct.unpack_from("<I", data, eocd + 16)[0]
-    if cd_off > eocd:
+    comment_len = struct.unpack_from("<H", data, eocd + 20)[0]
+    if eocd + 22 + comment_len != len(data):
+        raise Unknown("bad_eocd")  # e.g. fake EOCD inside the zip comment
+    n_entries, cd_size, cd_off = struct.unpack_from("<HII", data, eocd + 10)
+    if cd_off == 0xFFFFFFFF or cd_size == 0xFFFFFFFF or n_entries == 0xFFFF:
+        raise Unknown("zip64_unsupported")
+    if cd_off > eocd or cd_off + cd_size != eocd:
+        raise Unknown("bad_cd_offset")
+    if n_entries and data[cd_off:cd_off + 4] != b"PK\x01\x02":
         raise Unknown("bad_cd_offset")
     if cd_off < 32 or data[cd_off - 16:cd_off] != MAGIC:
         return None  # no signing block
@@ -138,6 +147,8 @@ def read_signing_block(data: bytes) -> dict[int, bytes] | None:
         if ln < 4 or p + 8 + ln > end:
             raise Unknown("malformed_signing_block")
         pid = struct.unpack_from("<I", data, p + 8)[0]
+        if pid in pairs:
+            raise Unknown("malformed_signing_block")  # duplicate pair ID
         pairs[pid] = data[p + 12:p + 8 + ln]
         p += 8 + ln
     if p != end:
@@ -228,9 +239,7 @@ def v1_certs(sig: bytes) -> list[bytes]:
 
 
 # ---------- apksigner bridge (evidence only) ----------
-def apksigner_bridge(path: str, enabled: bool) -> str:
-    if not enabled:
-        return "skipped"
+def _default_runner(path: str) -> str:
     exe = shutil.which("apksigner")
     if not exe:
         return "absent"
@@ -241,6 +250,16 @@ def apksigner_bridge(path: str, enabled: bool) -> str:
     return "pass" if r.returncode == 0 else "fail"
 
 
+APKSIGNER_RUNNER = _default_runner  # tests replace this with a mock
+
+
+def apksigner_bridge(path: str, enabled: bool) -> str:
+    if not enabled:
+        return "skipped"
+    v = APKSIGNER_RUNNER(path)
+    return v if v in ("pass", "fail", "absent", "error") else "error"
+
+
 # ---------- probe ----------
 def probe(path: str, signers_path: str, target_sdk: int | None, use_bridge: bool):
     ev: dict[str, str] = {"apk": os.path.basename(path)}
@@ -248,7 +267,7 @@ def probe(path: str, signers_path: str, target_sdk: int | None, use_bridge: bool
 
     def done(verdict, reason, sentence):
         ev["reason"] = reason
-        ev["apksigner_bridge"] = apksigner_bridge(path, use_bridge and verdict != "UNKNOWN_EARLY")
+        ev.setdefault("apksigner_bridge", "not_run")
         return verdict, ev, sentence
 
     try:
@@ -297,6 +316,9 @@ def probe(path: str, signers_path: str, target_sdk: int | None, use_bridge: bool
 
         if not scheme_fps:  # v1 only
             ev["signer_sha256"] = v1_fps[0]
+            if v1_fps[0] not in house:
+                return done("FAIL", "signer_not_in_house_signers",
+                            "Release blocked: this build was signed by a key that isn't ours.")
             if target_sdk is None:
                 raise Unknown("v1_only_target_sdk_unknown")
             if target_sdk >= 30:
@@ -312,13 +334,20 @@ def probe(path: str, signers_path: str, target_sdk: int | None, use_bridge: bool
         if fp not in house:
             return done("FAIL", "signer_not_in_house_signers",
                         "Release blocked: this build was signed by a key that isn't ours.")
-        return done("PASS", "house_signer",
-                    "This build is signed by a house key (identity only; signature validity not checked by v0).")
+        bridge = apksigner_bridge(path, use_bridge)
+        ev["apksigner_bridge"] = bridge
+        if bridge == "fail":
+            return done("FAIL", "apksigner_verify_failed",
+                        "Release blocked: the house-key signature did not verify.")
+        if bridge != "pass":
+            raise Unknown("signature_unverified")
+        return done("PASS", "house_signer_verified",
+                    "This build is signed by a house key and apksigner verified the signature.")
     except Unknown as u:
         ev.setdefault("scheme", "unknown")
         ev.setdefault("signer_sha256", "unknown")
         ev["reason"] = u.reason
-        ev["apksigner_bridge"] = "skipped"
+        ev.setdefault("apksigner_bridge", "not_run")
         return "UNKNOWN", ev, f"Could not check signing ({u.reason}); treated as not proven."
 
 
