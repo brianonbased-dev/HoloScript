@@ -1,0 +1,42 @@
+{
+  "schema": "holoscript.character-identity/v0",
+  "id": "brian",
+  "name": "Brian",
+  "version": "0.1.0",
+  "verified": "2026-10-23",
+  "origin": {
+    "kind": "original_character",
+    "creator": "Joseph Krzywoszyja",
+    "statement": "Brian is Joseph's original character.",
+    "branding_separate_from": ["$BRIAN LLC", "$BRIAN token", "Peridyn"]
+  },
+  "canonical_source": {
+    "location": "creator_private_pictures_folder",
+    "note": "Canonical files live in the creator's private pictures folder. They are identified by filename and sha256 only; no personal path is recorded in this repo.",
+    "assets": [
+      { "role": "pose", "pose": "flexing", "filename": "Brian_Flexing_001.glb", "bytes": 2586716, "sha256": "587ce59f7e164bb355930a6c3a3e9ed3fbd070ad6c7ca9cc0f3f4e11a2a987fe", "skins": 0, "animations": 0, "meshes": 1, "nodes": 2 },
+      { "role": "pose", "pose": "boxing", "filename": "Brian_Boxing.glb", "bytes": 2498632, "sha256": "e5f990c9a6ae3d89f247416436ab33a66decb18b6e72e5b8288fa79f0652730b", "skins": 0, "animations": 0, "meshes": 1, "nodes": 2 },
+      { "role": "pose", "pose": "situps", "filename": "Brian_Situps.glb", "bytes": 2498628, "sha256": "5e6437543aae8081cb1643d45473e92fa103404c66383cf7686fa8274c69fc1e", "skins": 0, "animations": 0, "meshes": 1, "nodes": 2 },
+      { "role": "pose", "pose": "bicycle_crunch", "filename": "Bicycle Crunch.glb", "bytes": 2586684, "sha256": "7278d1c17a60cb2b406101f5e39e2cd11032ff31948fc9462c9072fe7ced4934", "skins": 0, "animations": 0, "meshes": 1, "nodes": 2 }
+    ],
+    "guides": [
+      { "role": "body_map_guide", "filename": "Brian_Body_Map.jpg", "bytes": 72987, "sha256": "72f50864ebf8607920598ade2661e21f8b8968cd9976850d3240d7b6c35cb53a", "use": "guide only (texture/body-region reference for future rigging); not a rig and not a source of truth for geometry" }
+    ]
+  },
+  "geometry": {
+    "kind": "static_pose_meshes",
+    "pose_count": 4,
+    "rig": "unknown",
+    "skins_total": 0,
+    "animations_total": 0,
+    "evidence": "glTF JSON chunk of each canonical file parsed 2026-10-23: 0 skins, 0 animations, 1 mesh, 2 nodes (root node 'Brian_01')."
+  },
+  "likeness_consent": {
+    "status": "pending",
+    "owner": "Trust",
+    "note": "Likeness/consent status is pending review with Trust. Do not treat as cleared."
+  },
+  "not_brian": [
+    "gltfpipeline-brian-generate.glb (20-joint quadruped/winged placeholder skeleton; not a Brian rig)"
+  ]
+}
