@@ -23,6 +23,11 @@
 
 import { createHoloKeyVault, type HoloKeyVault } from './vault-bootstrap';
 import { createHoloKeydSource, type RemoteSecretSource } from './holokeyd-source';
+import {
+  createHolokeydClient,
+  createHolokeydClientSource,
+  HOLOKEYD_SOCKET_ENV,
+} from './holokeyd-client';
 import type { SecretQueryRunner } from './postgres-secret-backend';
 import type { SecretResolveAudit } from './secret-resolver';
 import {
@@ -132,7 +137,10 @@ export function createServiceSecretResolver(
       remote = opts.remoteSource;
     } else {
       try {
-        remote = createHoloKeydSource({ env });
+        // On-device (HOLOKEYD_SOCKET set): talk to holokeyd's unix socket directly.
+        // Otherwise the existing ssh bridge, unchanged. Both OFF unless configured.
+        const client = env[HOLOKEYD_SOCKET_ENV]?.trim() ? createHolokeydClient({ env }) : null;
+        remote = client ? createHolokeydClientSource(client) : createHoloKeydSource({ env });
       } catch {
         remote = null; // never throw — the bridge is optional by construction
       }

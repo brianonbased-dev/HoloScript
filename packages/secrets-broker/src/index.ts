@@ -730,6 +730,28 @@ export {
   type CreateHoloKeydSourceOpts,
 } from './holokeyd-source';
 export {
+  HolokeydClient,
+  HoloKeydError,
+  createHolokeydClient,
+  createHolokeydClientSource,
+  createUnixSocketTransport,
+  createSshTransport,
+  HOLOKEYD_PROTOCOL_VERSION,
+  HOLOKEYD_SOCKET_ENV,
+  HOLOKEYD_ADMIN_SOCKET_ENV,
+  HOLOKEYD_DEFAULT_SOCKET,
+  HOLOKEYD_DEFAULT_ADMIN_SOCKET,
+  HOLOKEYD_TRANSPORT_CODES,
+  type HolokeydClientOpts,
+  type HoloKeydTransport,
+  type HoloKeydRequest,
+  type HoloKeydResponse,
+  type HoloKeydOp,
+  type SshRunner,
+  type SshTransportOpts,
+  type UnixSocketTransportOpts,
+} from './holokeyd-client';
+export {
   resolveServiceIdentity,
   normalizeServiceSecretRef,
   infraSecretRef,
