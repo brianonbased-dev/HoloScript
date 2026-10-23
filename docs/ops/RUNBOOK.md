@@ -191,8 +191,9 @@ NODE_ENV=production
 ### Rollback via git revert
 
 ```bash
+git switch -c revert-<bad-commit-sha> origin/main
 git revert <bad-commit-sha> --no-edit
-git push origin main   # CI auto-deploys
+git push origin HEAD   # open a PR; Railway deploys once it merges through the gate: release-gate/pass plus a distinct second seat
 ```
 
 ---
