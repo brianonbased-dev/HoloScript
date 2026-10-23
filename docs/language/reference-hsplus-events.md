@@ -325,6 +325,7 @@ composition "X" {
 - No dotted suffix after a quoted name: `on "a".b` is not supported. Only `on @namespace.event` reads a dot.
 
 Source: `packages/core/src/parser/HoloScriptPlusParser.ts`, lines 5234-5238 (PR #570). Test: `packages/core/src/parser/__tests__/LogicQuotedEventNames.test.ts`.
+
 ## Event Object Properties
 
 Most events provide:
