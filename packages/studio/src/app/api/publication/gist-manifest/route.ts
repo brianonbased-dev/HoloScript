@@ -7,15 +7,21 @@ import {
 
 export const maxDuration = 30;
 
+/**
+ * The deploy target comes only from server config (HOLOMESH_SCENE_INGEST_URL).
+ * A caller-supplied `holomesh.endpoint` is accepted only when it names that same
+ * URL; anything else is refused, so this route cannot be used to POST (with the
+ * server's HOLOMESH_API_KEY attached) to an arbitrary host (CodeQL js/request-forgery).
+ */
 function resolveHolomeshEndpoint(explicit?: string): string | undefined {
-  if (explicit && explicit.trim().length > 0) return explicit.trim();
-  const fromEnv = process.env.HOLOMESH_SCENE_INGEST_URL;
-  return fromEnv && fromEnv.trim().length > 0 ? fromEnv.trim() : undefined;
+  const fromEnv = process.env.HOLOMESH_SCENE_INGEST_URL?.trim();
+  if (!fromEnv) return undefined;
+  if (explicit && explicit.trim().length > 0 && explicit.trim() !== fromEnv) return undefined;
+  return fromEnv;
 }
 
 async function deployToHolomesh(params: {
   endpoint: string;
-  apiKey?: string;
   room: string;
   title?: string;
   gistId?: string;
@@ -27,13 +33,16 @@ async function deployToHolomesh(params: {
     'Content-Type': 'application/json',
   };
 
-  const token = params.apiKey || process.env.HOLOMESH_API_KEY;
+  // Only the server-configured key is ever sent; a request-body apiKey is ignored.
+  const token = process.env.HOLOMESH_API_KEY;
   if (token && token.trim().length > 0) {
     headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(params.endpoint, {
     method: 'POST',
+    // Never follow redirects: a 3xx must not carry the Bearer token to another host.
+    redirect: 'error',
     headers,
     body: JSON.stringify({
       source: 'studio-gist-publication',
@@ -164,7 +173,6 @@ function normalizeFilm3dAttestation(raw: unknown): Film3dAttestationBinding | un
  *   deployToHolomesh?: boolean;
  *   holomesh?: {
  *     endpoint?: string;
- *     apiKey?: string;
  *     scene?: Record<string, unknown>;
  *     gistId?: string;
  *     gistUrl?: string;
@@ -259,7 +267,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           {
             error:
-              'holomesh.endpoint or HOLOMESH_SCENE_INGEST_URL is required when deployToHolomesh=true',
+              'HOLOMESH_SCENE_INGEST_URL must be configured (and holomesh.endpoint, if given, must match it) when deployToHolomesh=true',
           },
           { status: 400 }
         );
@@ -276,7 +284,6 @@ export async function POST(req: NextRequest) {
       try {
         const deployResult = await deployToHolomesh({
           endpoint,
-          apiKey: typeof holomesh.apiKey === 'string' ? holomesh.apiKey : undefined,
           room,
           title: typeof body.title === 'string' ? body.title : undefined,
           gistId: typeof holomesh.gistId === 'string' ? holomesh.gistId : undefined,
