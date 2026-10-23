@@ -52,3 +52,41 @@ test('likeness/consent pending with Trust', () => {
   assert.equal(spec.likeness_consent.status, 'pending');
   assert.equal(spec.likeness_consent.owner, 'Trust');
 });
+
+test('export logs by filename + size + sha256', () => {
+  const logs = spec.canonical_source.export_logs;
+  assert.deepEqual(logs.map((l) => l.filename), ['Brian_Boxing.glb.log', 'Brian_Situps.glb.log']);
+  for (const l of logs) {
+    assert.equal(l.role, 'export_log');
+    assert.ok(Number.isInteger(l.bytes) && l.bytes > 0);
+    assert.match(l.sha256, /^[0-9a-f]{64}$/);
+  }
+});
+
+test('openart PNG is a non-canonical reference render', () => {
+  const r = spec.non_canonical_references.find((x) => x.filename.startsWith('openart-d2c449cd'));
+  assert.ok(r);
+  assert.equal(r.label, 'reference render, not canon sheet');
+  assert.equal(r.canonical, false);
+  assert.equal(r.ai_generated, true);
+  assert.equal(r.turnaround, false);
+  assert.match(r.sha256, /^[0-9a-f]{64}$/);
+  const canon = [...spec.canonical_source.assets, ...spec.canonical_source.guides, ...spec.canonical_source.export_logs];
+  assert.ok(!canon.some((a) => a.filename.startsWith('openart')));
+});
+
+test('dragon template stays excluded', () => {
+  assert.ok(spec.excluded.some((e) => /gltfpipeline-brian-generate\.glb/.test(e.filename) && /dragon/i.test(e.reason)));
+  assert.ok(spec.not_brian.some((x) => /dragon/i.test(x)));
+});
+
+test('provenance: 3ds Max via Autodesk glTF exporter, materials dropped, no rig attempted', () => {
+  const p = spec.provenance;
+  assert.equal(p.tool, '3ds Max');
+  assert.match(p.exporter, /Autodesk glTF exporter/);
+  assert.match(p.exporter_evidence, /glb\.log/);
+  assert.equal(p.material_channels, 'dropped');
+  assert.match(p.material_channels_evidence, /per Idea seed/);
+  assert.equal(p.rig_attempted, false);
+  assert.match(p.rig_evidence, /per Idea seed/);
+});

@@ -8,19 +8,83 @@
     "kind": "original_character",
     "creator": "Joseph Krzywoszyja",
     "statement": "Brian is Joseph's original character.",
-    "branding_separate_from": ["$BRIAN LLC", "$BRIAN token", "Peridyn"]
+    "branding_separate_from": [
+      "$BRIAN LLC",
+      "$BRIAN token",
+      "Peridyn"
+    ]
   },
   "canonical_source": {
     "location": "creator_private_pictures_folder",
     "note": "Canonical files live in the creator's private pictures folder. They are identified by filename and sha256 only; no personal path is recorded in this repo.",
     "assets": [
-      { "role": "pose", "pose": "flexing", "filename": "Brian_Flexing_001.glb", "bytes": 2586716, "sha256": "587ce59f7e164bb355930a6c3a3e9ed3fbd070ad6c7ca9cc0f3f4e11a2a987fe", "skins": 0, "animations": 0, "meshes": 1, "nodes": 2 },
-      { "role": "pose", "pose": "boxing", "filename": "Brian_Boxing.glb", "bytes": 2498632, "sha256": "e5f990c9a6ae3d89f247416436ab33a66decb18b6e72e5b8288fa79f0652730b", "skins": 0, "animations": 0, "meshes": 1, "nodes": 2 },
-      { "role": "pose", "pose": "situps", "filename": "Brian_Situps.glb", "bytes": 2498628, "sha256": "5e6437543aae8081cb1643d45473e92fa103404c66383cf7686fa8274c69fc1e", "skins": 0, "animations": 0, "meshes": 1, "nodes": 2 },
-      { "role": "pose", "pose": "bicycle_crunch", "filename": "Bicycle Crunch.glb", "bytes": 2586684, "sha256": "7278d1c17a60cb2b406101f5e39e2cd11032ff31948fc9462c9072fe7ced4934", "skins": 0, "animations": 0, "meshes": 1, "nodes": 2 }
+      {
+        "role": "pose",
+        "pose": "flexing",
+        "filename": "Brian_Flexing_001.glb",
+        "bytes": 2586716,
+        "sha256": "587ce59f7e164bb355930a6c3a3e9ed3fbd070ad6c7ca9cc0f3f4e11a2a987fe",
+        "skins": 0,
+        "animations": 0,
+        "meshes": 1,
+        "nodes": 2
+      },
+      {
+        "role": "pose",
+        "pose": "boxing",
+        "filename": "Brian_Boxing.glb",
+        "bytes": 2498632,
+        "sha256": "e5f990c9a6ae3d89f247416436ab33a66decb18b6e72e5b8288fa79f0652730b",
+        "skins": 0,
+        "animations": 0,
+        "meshes": 1,
+        "nodes": 2
+      },
+      {
+        "role": "pose",
+        "pose": "situps",
+        "filename": "Brian_Situps.glb",
+        "bytes": 2498628,
+        "sha256": "5e6437543aae8081cb1643d45473e92fa103404c66383cf7686fa8274c69fc1e",
+        "skins": 0,
+        "animations": 0,
+        "meshes": 1,
+        "nodes": 2
+      },
+      {
+        "role": "pose",
+        "pose": "bicycle_crunch",
+        "filename": "Bicycle Crunch.glb",
+        "bytes": 2586684,
+        "sha256": "7278d1c17a60cb2b406101f5e39e2cd11032ff31948fc9462c9072fe7ced4934",
+        "skins": 0,
+        "animations": 0,
+        "meshes": 1,
+        "nodes": 2
+      }
     ],
     "guides": [
-      { "role": "body_map_guide", "filename": "Brian_Body_Map.jpg", "bytes": 72987, "sha256": "72f50864ebf8607920598ade2661e21f8b8968cd9976850d3240d7b6c35cb53a", "use": "guide only (texture/body-region reference for future rigging); not a rig and not a source of truth for geometry" }
+      {
+        "role": "body_map_guide",
+        "filename": "Brian_Body_Map.jpg",
+        "bytes": 72987,
+        "sha256": "72f50864ebf8607920598ade2661e21f8b8968cd9976850d3240d7b6c35cb53a",
+        "use": "guide only (texture/body-region reference for future rigging); not a rig and not a source of truth for geometry"
+      }
+    ],
+    "export_logs": [
+      {
+        "role": "export_log",
+        "filename": "Brian_Boxing.glb.log",
+        "bytes": 16043,
+        "sha256": "dbd8d51b743e0bdb3862a73a15f244d06318c5adba337271d91a1f5b8de26254"
+      },
+      {
+        "role": "export_log",
+        "filename": "Brian_Situps.glb.log",
+        "bytes": 16043,
+        "sha256": "991997785bc4eb2ce9d76e6178c3cd3794c8715b0c551274cbecc72460d7b6db"
+      }
     ]
   },
   "geometry": {
@@ -37,6 +101,33 @@
     "note": "Likeness/consent status is pending review with Trust. Do not treat as cleared."
   },
   "not_brian": [
-    "gltfpipeline-brian-generate.glb (20-joint quadruped/winged placeholder skeleton; not a Brian rig)"
+    "gltfpipeline-brian-generate.glb (dragon-template skeleton: 20-joint quadruped/winged placeholder with tail and wing joints; explicitly excluded, not a Brian rig)"
+  ],
+  "non_canonical_references": [
+    {
+      "role": "reference_render",
+      "filename": "openart-d2c449cdef724e68bd71444cacd154fd_raw.png",
+      "bytes": 4118454,
+      "sha256": "4cefd412e18cbd5b9d8d0903cd73ae08c5b5c39463dbdb7b77951c8b3ab99247",
+      "label": "reference render, not canon sheet",
+      "canonical": false,
+      "ai_generated": true,
+      "turnaround": false
+    }
+  ],
+  "provenance": {
+    "tool": "3ds Max",
+    "exporter": "Autodesk glTF exporter (Autodesk ATF: ATF::MaxATFProducer -> ATF::GLTFConsumer)",
+    "exporter_evidence": "cited from Brian_Boxing.glb.log and Brian_Situps.glb.log (both name ATF::MaxATFProducer and ATF::GLTFConsumer)",
+    "material_channels": "dropped",
+    "material_channels_evidence": "per Idea seed (the export logs list a WantMaterial option but do not confirm whether materials were dropped)",
+    "rig_attempted": false,
+    "rig_evidence": "per Idea seed (the export logs contain no skin, bone, rig or animation step, consistent with but not proof of no rig attempt)"
+  },
+  "excluded": [
+    {
+      "filename": "gltfpipeline-brian-generate.glb",
+      "reason": "dragon template skeleton; not Brian"
+    }
   ]
 }
