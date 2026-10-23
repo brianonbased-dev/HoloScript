@@ -5,7 +5,7 @@
 
 ## Git Workflow — DIRECT TO MAIN (read this first)
 
-> **Superseded, pending reconciliation (2026-10-23):** every change now goes through a PR gate, local seats included ([ai-ecosystem `AGENTS.md` § Merge gate](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md#merge-gate)). The direct-to-main text below is kept for history only.
+> **Superseded, pending reconciliation (2026-10-23):** every change now goes through a PR gate, local seats included ([ai-ecosystem `AGENTS.md` § Merge gate](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md#merge-gate) (private repo)). The direct-to-main text below is kept for history only.
 
 **Every surface commits straight to `main`. No pull requests. No feature branches.** (F.089)
 This is a single shared-tree, multi-agent repo — PRs and `feat/*` branches create
