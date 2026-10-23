@@ -306,6 +306,26 @@ template "NetworkedObject" {
 }
 ```
 
+## Quoted Event Names in `logic` Blocks
+
+In a `logic` block, `on` takes either a bare name or a quoted string as the event name. Use the quoted form when the name has characters a bare name cannot hold, such as `-`. Studio's settings, projects, and integrations compositions use this form.
+
+```hsplus
+composition "X" {
+  logic {
+    on "save" { }
+    on "stripe-setup" { $a = true }
+    on save { }
+  }
+}
+```
+
+- The stored event name is the string's text, without quotes (`save`, `stripe-setup`).
+- Any string is accepted, including an empty one. The reader does not check it.
+- No dotted suffix after a quoted name: `on "a".b` is not supported. Only `on @namespace.event` reads a dot.
+
+Source: `packages/core/src/parser/HoloScriptPlusParser.ts`, lines 5234-5238 (PR #570). Test: `packages/core/src/parser/__tests__/LogicQuotedEventNames.test.ts`.
+
 ## Event Object Properties
 
 Most events provide:

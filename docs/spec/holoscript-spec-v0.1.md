@@ -730,6 +730,17 @@ A field inside a brace block may carry the same two marks the `.hs` reader store
 }
 ```
 
+Inside a `logic` block, the event name after `on` may be a bare name or a quoted string. The quoted form lets a name carry characters a bare name cannot, such as `-`. Both handlers below are stored, with the event names `save` and `stripe-setup` (`packages/core/src/parser/HoloScriptPlusParser.ts`, lines 5234-5238; test `packages/core/src/parser/__tests__/LogicQuotedEventNames.test.ts`). A bare name, as in `on save { }`, still works.
+
+```hsplus
+composition "X" {
+  logic {
+    on "save" { }
+    on "stripe-setup" { $a = true }
+  }
+}
+```
+
 ### Forms it rejects
 
 `zone`, `spatial`, and `layer` are rejected at any depth in a `.hsplus` file, not only at the top. The reader names the word that was written, reports one error, and stores no node. A `zone` block says `HSP001: "zone" is not part of .hsplus. A zone goes inside a composition in a .holo file, with a quoted name and a brace block.` A `spatial` or `layer` block says `HSP001: "spatial" is not part of .hsplus. Use a composition in a .holo file instead.` (the same sentence, with `"layer"` in place of `"spatial"`). The same zone, with a quoted name and a brace block, stays valid inside a `.holo` composition. A property named `layer`, as in `layer: 2`, is an ordinary property.
@@ -789,6 +800,8 @@ These are bugs and disagreements measured on this checkout. This spec records th
 5. **Version numbers still disagree with each other**, as in the table at the top. `CHANGELOG.md` has no `8.8.0` heading. This spec does not bump any of them.
 
 6. **Godot has no golden-output file** in `packages/core/src/compiler/__tests__/golden-output/golden.test.ts` (that file names Unity, WebGPU, URDF, SDF, and WASM). Godot is covered by its own compiler tests and by `ExportTargets.e2e.test.ts`. That is a test gap, not a license to drop the target.
+
+7. **A quoted event name after `on` is not checked.** The reader takes any string there, including the empty string `on "" { }`; it does not test the text. A dotted suffix after a quoted name, as in `on "a".b`, is not supported: only the `@namespace.event` form reads a dot (`HoloScriptPlusParser.ts`, lines 5227-5233). These are measured from the parser source, not from a test.
 
 ## Traits
 
