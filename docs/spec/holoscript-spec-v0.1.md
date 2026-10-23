@@ -1,3 +1,13 @@
+Inside a `logic` block, the event name after `on` may be a bare name or a quoted string. The quoted form lets a name carry characters a bare name cannot, such as `-`. Both handlers below are stored, with the event names `save` and `stripe-setup` (`packages/core/src/parser/HoloScriptPlusParser.ts`, lines 5234-5238; test `packages/core/src/parser/__tests__/LogicQuotedEventNames.test.ts`). A bare name, as in `on save { }`, still works.
+
+```hsplus
+composition "X" {
+  logic {
+    on "save" { }
+    on "stripe-setup" { $a = true }
+  }
+}
+```
 # HoloScript Language Spec 0.1.0
 
 **HoloScript Language Spec 0.1.0.**
@@ -790,6 +800,7 @@ These are bugs and disagreements measured on this checkout. This spec records th
 
 6. **Godot has no golden-output file** in `packages/core/src/compiler/__tests__/golden-output/golden.test.ts` (that file names Unity, WebGPU, URDF, SDF, and WASM). Godot is covered by its own compiler tests and by `ExportTargets.e2e.test.ts`. That is a test gap, not a license to drop the target.
 
+7. **A quoted event name after `on` is not checked.** The reader takes any string there, including the empty string `on "" { }`; it does not test the text. A dotted suffix after a quoted name, as in `on "a".b`, is not supported: only the `@namespace.event` form reads a dot (`HoloScriptPlusParser.ts`, lines 5227-5233). These are measured from the parser source, not from a test.
 ## Traits
 
 The one name list this spec treats as canonical is **`VR_TRAITS`** in `packages/core/src/traits/constants/index.ts` (the array starts at line 209).
