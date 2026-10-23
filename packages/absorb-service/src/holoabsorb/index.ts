@@ -22,6 +22,7 @@ export type HoloAbsorbCapabilityId =
   | 'transport-authority'
   | 'self-improvement'
   | 'service-host'
+  | 'paper-ingest'
   | 'evidence';
 
 export interface HoloAbsorbCapability {
@@ -259,6 +260,24 @@ const CAPABILITIES: readonly HoloAbsorbCapability[] = [
       'services/absorb-service/package.json',
       'packages/absorb-service/src/mcp/absorb-tools.ts',
       'packages/absorb-service/src/credits/index.ts',
+    ],
+  },
+  {
+    id: 'paper-ingest',
+    name: 'HoloAbsorb Paper Ingest and Claim Links',
+    canonicalOwner: 'packages/absorb-service/src/engine/paper',
+    responsibility:
+      'Markdown/LaTeX paper adapters, LEDGER claim nodes linked to code symbols and sha256-pinned receipts, claim mismatch reporting, and replayable answers with a chained keyword->graph->embed->llm binding. Local only.',
+    entrypoints: ['@holoscript/absorb-service/engine', '@holoscript/absorb-service/mcp'],
+    toolNames: ['holo_claim_links', 'holo_replay_answer'],
+    evidencePaths: [
+      'packages/absorb-service/src/engine/adapters/PaperAdapter.ts',
+      'packages/absorb-service/src/engine/paper/claimIngest.ts',
+      'packages/absorb-service/src/engine/paper/cascadeReplay.ts',
+      'packages/absorb-service/src/engine/AnswerProvenance.ts',
+      'packages/absorb-service/src/mcp/claim-link-tools.ts',
+      'packages/absorb-service/scripts/ingest-papers.mjs',
+      'packages/absorb-service/scripts/gen-claim-ledger.mjs',
     ],
   },
   {

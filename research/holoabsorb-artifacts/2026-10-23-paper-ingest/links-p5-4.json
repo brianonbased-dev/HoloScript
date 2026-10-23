@@ -1,0 +1,47 @@
+{
+  "command": "node packages/absorb-service/scripts/claim-links.mjs claim:p5:4 --receipt-dir /tmp/lr",
+  "gitCommit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5",
+  "machine": "holojetson",
+  "startedAt": "2026-10-23T22:16:06.253Z",
+  "finishedAt": "2026-10-23T22:16:06.302Z",
+  "result": {
+    "query": {
+      "claimId": "claim:p5:4"
+    },
+    "claims": [
+      {
+        "claimId": "claim:p5:4",
+        "claim": "Paired 95% bootstrap intervals include zero",
+        "status": "partial",
+        "handStatus": "Partial",
+        "receipts": [
+          {
+            "path": "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json",
+            "sha256": "eab063a990068acfb1d43e44ee729c1eb46ff6dc435627f35a808844c100192c",
+            "commit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5",
+            "edge": "supports"
+          }
+        ],
+        "codeSymbols": [],
+        "locations": [
+          {
+            "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+            "line": 36
+          },
+          {
+            "path": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+            "line": 119
+          }
+        ],
+        "mismatch": [
+          {
+            "field": "bootstrap",
+            "expected": true,
+            "actual": false,
+            "receipt": "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json"
+          }
+        ]
+      }
+    ]
+  }
+}

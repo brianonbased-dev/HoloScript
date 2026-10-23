@@ -1,0 +1,13 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - `__dirname` (vitest.config.ts:10:35). Use `import.meta.dirname` instead
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+
+ RUN  v4.1.11 /mnt/nvme/holo/grokbuild/wt-a19/packages/absorb-service
+
+ ✓ src/engine/__tests__/CascadeBinding.test.ts (9 tests) 62ms
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  15:16:04
+   Duration  674ms (transform 236ms, setup 0ms, import 308ms, tests 62ms, environment 0ms)
+

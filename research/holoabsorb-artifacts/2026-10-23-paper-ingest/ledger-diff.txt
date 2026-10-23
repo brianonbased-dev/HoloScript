@@ -1,0 +1,30 @@
+{
+  "command": "node packages/absorb-service/scripts/gen-claim-ledger.mjs --check ../ai-ecosystem/research/paper-5-data/LEDGER.md --receipt-dir /tmp/lr",
+  "gitCommit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5",
+  "machine": "holojetson",
+  "startedAt": "2026-10-23T22:16:06.418Z",
+  "finishedAt": "2026-10-23T22:16:06.471Z",
+  "result": {
+    "ledger": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+    "diffCount": 1,
+    "unexplainedCount": 0,
+    "diffs": [
+      {
+        "row": 9,
+        "column": "Status",
+        "hand": "Not yet checked",
+        "graph": "Not yet",
+        "explanation": "hand row is \"not yet checked\"; graph reports what the receipts show",
+        "explained": true
+      }
+    ],
+    "heldByHand": [
+      {
+        "row": 8,
+        "hand": "Partial (conclusion not confirmed)",
+        "graph": "Proven",
+        "explanation": "hand qualifier: hand status is stricter than the receipts; hand wins"
+      }
+    ]
+  }
+}

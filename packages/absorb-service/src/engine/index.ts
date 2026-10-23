@@ -51,6 +51,31 @@ export {
 // ./adapters) with the desired LanguageTrait for direct extraction.
 export { TreeSitterTraitAdapter } from './adapters/TreeSitterTraitAdapter';
 export { HoloAdapter, isNativeAdapter } from './adapters/HoloAdapter';
+export { PaperAdapter } from './adapters/PaperAdapter';
+export { PaperTexAdapter } from './adapters/PaperTexAdapter';
+// A19 paper ingest + claim links + replay/cascade binding
+export {
+  parseMarkdownStructure,
+  parseTexStructure,
+  parseClaimLedger,
+  diffLedgerCells,
+  rewriteLedgerCells,
+  ingestPaperClaims,
+  queryClaimLinks,
+  paperIdFromPath,
+  runCascade,
+  replayAnswer,
+  CASCADE_LAYERS,
+} from './paper';
+export {
+  canonicalJson,
+  computeEvidenceHash,
+  computeGraphSnapshotHash,
+  verifyCascadeChain,
+  CascadeBinder,
+  buildReplayEnvelope,
+} from './AnswerProvenance';
+export type { ReplayEnvelope, CascadeLayerRecord, CascadeVerification } from './AnswerProvenance';
 export type { HoloParseTree } from './adapters/HoloAdapter';
 
 // Scanner + Graph

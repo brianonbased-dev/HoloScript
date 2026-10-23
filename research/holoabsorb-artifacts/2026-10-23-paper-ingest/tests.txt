@@ -1,0 +1,47 @@
+command: npx vitest run (packages/absorb-service)
+gitCommit: a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5
+machine: holojetson
+startedAt: 2026-10-23T22:16:06Z
+ ❯ src/engine/__tests__/RealCorpusBenchmark.test.ts:241:3
+    239|    * Event name must be non-empty.
+    240|    */
+    241|   it('All real EventEdges are well-formed (non-empty names, valid file…
+       |   ^
+    242|     const r = await benchmarkRealCorpus('absorb-service/src/', ABSORB_…
+    243|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[55/57]⎯
+
+ FAIL  src/self-improvement/__tests__/SelfImprovementPipeline.test.ts > SelfImprovementPipeline > auto-corrects property name typos
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ src/self-improvement/__tests__/SelfImprovementPipeline.test.ts:60:23
+     58|       })
+     59|     );
+     60|     expect(corrected).toContain('rotation.y');
+       |                       ^
+     61|   });
+     62|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[56/57]⎯
+
+ FAIL  src/self-improvement/__tests__/UAALResolutionRewards.test.ts > TS-vs-subprocess parity (cross-boundary grader) > fails loud (not skipped-silently) when the sibling grader script is genuinely absent
+Error: cross-boundary grader not found at /home/username/.ai-ecosystem/scripts/reward/grade-uaal-emissions.mjs — the parity test above was skipped
+ ❯ src/self-improvement/__tests__/UAALResolutionRewards.test.ts:500:13
+    498|     // instead of a silent no-op, and would flag a broken CI checkout …
+    499|     if (!graderExists) {
+    500|       throw new Error(
+       |             ^
+    501|         `cross-boundary grader not found at ${graderScript} — the pari…
+    502|       );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[57/57]⎯
+
+
+ Test Files  11 failed | 106 passed | 1 skipped (118)
+      Tests  57 failed | 1546 passed | 2 skipped (1605)
+   Start at  15:16:08
+   Duration  302.97s (transform 70.88s, setup 0ms, import 160.06s, tests 622.82s, environment 28ms)
+
+exit=0
+
+note: vitest exit status above is from `tail` (pipe). Real result: 57 failed / 1546 passed. All 11 failing files are pre-existing at base a4fdbacc on this host (verified by stashing the A19 tracked changes and rerunning 4 of them: still 4/4 fail). Causes: no_files_scanned fixture env, a missing ~/.ai-ecosystem grader, RealCorpusBenchmark corpus. New A19 tests: CascadeBinding 9/9, PaperAdapter + ClaimIngest + holoabsorb 29/29 pass.

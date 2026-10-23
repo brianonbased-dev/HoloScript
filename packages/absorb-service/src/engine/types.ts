@@ -34,6 +34,8 @@ export type SupportedLanguage =
   | 'kotlin'
   | 'ruby'
   | 'holoscript'
+  | 'markdown'
+  | 'latex'
   | 'plaintext';
 
 // =============================================================================
@@ -54,7 +56,11 @@ export type ExternalSymbolType =
   | 'type_alias'
   | 'module'
   | 'namespace'
-  | 'package';
+  | 'package'
+  /** Document section (Markdown heading / LaTeX \section) — PaperAdapter */
+  | 'section'
+  /** Paper claim node (claim ledger / \claim) — ClaimNetworkGraph */
+  | 'claim';
 
 /** Union of HoloScript-native and external symbol types */
 export type ExtendedSymbolType = SymbolType | ExternalSymbolType;

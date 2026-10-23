@@ -1,0 +1,654 @@
+{
+  "command": "node packages/absorb-service/scripts/ingest-papers.mjs --paper research/paper-5-graphrag-forge.tex --ledger ../ai-ecosystem/research/paper-5-data/LEDGER.md --out research/holoabsorb-artifacts/2026-10-23-paper-ingest/ingest-p5.json --receipt-dir /tmp/lr",
+  "gitCommit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5",
+  "machine": "holojetson",
+  "startedAt": "2026-10-23T22:16:06.085Z",
+  "finishedAt": "2026-10-23T22:16:06.139Z",
+  "result": {
+    "paper": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+    "ledger": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+    "claimRowsLive": 9,
+    "claimIds": [
+      "claim:p5:1",
+      "claim:p5:2",
+      "claim:p5:3",
+      "claim:p5:4",
+      "claim:p5:5",
+      "claim:p5:6",
+      "claim:p5:7",
+      "claim:p5:8",
+      "claim:p5:9"
+    ],
+    "allClaimsPresent": true,
+    "missing": [],
+    "nodeCount": 29,
+    "edgeCount": 20,
+    "edgesByKind": {
+      "sourced-from": 14,
+      "discharged-by": 4,
+      "supports": 1,
+      "implemented-by": 1
+    },
+    "generated": [
+      {
+        "row": 1,
+        "provenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json`",
+        "status": "Proven"
+      },
+      {
+        "row": 2,
+        "provenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json`",
+        "status": "Proven"
+      },
+      {
+        "row": 3,
+        "provenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json`",
+        "status": "Proven"
+      },
+      {
+        "row": 4,
+        "provenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json` (mismatch: bootstrap=false)",
+        "status": "Partial"
+      },
+      {
+        "row": 5,
+        "provenBy": "`HoloScript/packages/absorb-service/src/mcp/codebase-tools.ts`",
+        "status": "Partial"
+      },
+      {
+        "row": 6,
+        "provenBy": "none found",
+        "status": "Not yet"
+      },
+      {
+        "row": 7,
+        "provenBy": "none found",
+        "status": "Not yet"
+      },
+      {
+        "row": 8,
+        "provenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json`",
+        "status": "Proven"
+      },
+      {
+        "row": 9,
+        "provenBy": "none found",
+        "status": "Not yet"
+      }
+    ]
+  },
+  "graph": {
+    "nodes": [
+      {
+        "id": "ledger:p5",
+        "kind": "source",
+        "label": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+        "metadata": {
+          "role": "ledger",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "sha256": "c80b373cf7df5dcc8f256b3d11fa45eb50b213c30ede7cdad99af4453cc1d4b7"
+        }
+      },
+      {
+        "id": "paper:p5",
+        "kind": "source",
+        "label": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+        "metadata": {
+          "role": "paper",
+          "path": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+          "sha256": "4e52cd3b27de7c099958878546ee7d5ba505f0a435304388e19c72d92fd783a6",
+          "sections": 48
+        }
+      },
+      {
+        "id": "claim:p5:1",
+        "kind": "claim",
+        "label": "Envelope build under 0.01 ms median (100 trials)",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 1,
+          "handStatus": "Proven (\"30 queries\" not checked)",
+          "handProvenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json` (100 trials, median 0.004 ms)",
+          "ledgerLine": 33,
+          "generatedStatus": "Proven",
+          "generatedProvenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json`",
+          "mismatch": [],
+          "receipts": [
+            "HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json"
+          ],
+          "code": [],
+          "missingEvidence": 0
+        },
+        "proofStatus": "proven"
+      },
+      {
+        "id": "loc:p5:ledger:L33",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 33
+        }
+      },
+      {
+        "id": "loc:p5:tex:L117",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+          "line": 117,
+          "section": null
+        }
+      },
+      {
+        "id": "receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json",
+        "kind": "source",
+        "label": "HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json",
+        "metadata": {
+          "role": "receipt",
+          "path": "HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json",
+          "sha256": "0e9fcacc0634c873b7885f4978daca388ff5fbc6c8d90c3fb0972a6019468405",
+          "commit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5"
+        }
+      },
+      {
+        "id": "claim:p5:2",
+        "kind": "claim",
+        "label": "54 queries, 160 labels; Graph RAG 0.193/0.459 vs keyword 0.196/0.449",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 2,
+          "handStatus": "Proven",
+          "handProvenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json`",
+          "ledgerLine": 34,
+          "generatedStatus": "Proven",
+          "generatedProvenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json`",
+          "mismatch": [],
+          "receipts": [
+            "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json"
+          ],
+          "code": [],
+          "missingEvidence": 0
+        },
+        "proofStatus": "proven"
+      },
+      {
+        "id": "loc:p5:ledger:L34",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 34
+        }
+      },
+      {
+        "id": "loc:p5:tex:L230",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+          "line": 230,
+          "section": "novelty"
+        }
+      },
+      {
+        "id": "receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json",
+        "kind": "source",
+        "label": "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json",
+        "metadata": {
+          "role": "receipt",
+          "path": "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json",
+          "sha256": "eab063a990068acfb1d43e44ee729c1eb46ff6dc435627f35a808844c100192c",
+          "commit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5"
+        }
+      },
+      {
+        "id": "claim:p5:3",
+        "kind": "claim",
+        "label": "Best on impact questions (0.244/0.644)",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 3,
+          "handStatus": "Proven (keyword 0.211/0.419 not found)",
+          "handProvenBy": "same file",
+          "ledgerLine": 35,
+          "generatedStatus": "Proven",
+          "generatedProvenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json`",
+          "mismatch": [],
+          "receipts": [
+            "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json"
+          ],
+          "code": [],
+          "missingEvidence": 0
+        },
+        "proofStatus": "proven"
+      },
+      {
+        "id": "loc:p5:ledger:L35",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 35
+        }
+      },
+      {
+        "id": "loc:p5:tex:L120",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+          "line": 120,
+          "section": null
+        }
+      },
+      {
+        "id": "claim:p5:4",
+        "kind": "claim",
+        "label": "Paired 95% bootstrap intervals include zero",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 4,
+          "handStatus": "Partial",
+          "handProvenBy": "same file: interval fields present, but `\"bootstrap\": false`",
+          "ledgerLine": 36,
+          "generatedStatus": "Partial",
+          "generatedProvenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json` (mismatch: bootstrap=false)",
+          "mismatch": [
+            {
+              "field": "bootstrap",
+              "expected": true,
+              "actual": false,
+              "receipt": "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json"
+            }
+          ],
+          "receipts": [
+            "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json"
+          ],
+          "code": [],
+          "missingEvidence": 0
+        },
+        "proofStatus": "labeled"
+      },
+      {
+        "id": "loc:p5:ledger:L36",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 36
+        }
+      },
+      {
+        "id": "loc:p5:tex:L119",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+          "line": 119,
+          "section": null
+        }
+      },
+      {
+        "id": "claim:p5:5",
+        "kind": "claim",
+        "label": "Answer tied to graph snapshot + commit fingerprint",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 5,
+          "handStatus": "Partial",
+          "handProvenBy": "`HoloScript/packages/absorb-service/src/mcp/codebase-tools.ts` (pins `gitCommitHash`, checks against current commit)",
+          "ledgerLine": 37,
+          "generatedStatus": "Partial",
+          "generatedProvenBy": "`HoloScript/packages/absorb-service/src/mcp/codebase-tools.ts`",
+          "mismatch": [],
+          "receipts": [],
+          "code": [
+            "HoloScript/packages/absorb-service/src/mcp/codebase-tools.ts"
+          ],
+          "missingEvidence": 1
+        },
+        "proofStatus": "labeled"
+      },
+      {
+        "id": "loc:p5:ledger:L37",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 37
+        }
+      },
+      {
+        "id": "code:codebase-tools.ts__1pma8x6",
+        "kind": "source",
+        "label": "HoloScript/packages/absorb-service/src/mcp/codebase-tools.ts",
+        "metadata": {
+          "role": "code-symbol",
+          "path": "HoloScript/packages/absorb-service/src/mcp/codebase-tools.ts",
+          "symbolObjectId": "codebase-tools.ts__1pma8x6",
+          "sha256": "d5e703908f0f55d46a70a6ca23ecc2e11c324aaf400547a53957e51b6dd10933",
+          "commit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5"
+        }
+      },
+      {
+        "id": "claim:p5:6",
+        "kind": "claim",
+        "label": "Verifier can replay the answer at that commit",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 6,
+          "handStatus": "Not yet",
+          "handProvenBy": "none found",
+          "ledgerLine": 38,
+          "generatedStatus": "Not yet",
+          "generatedProvenBy": "none found",
+          "mismatch": [],
+          "receipts": [],
+          "code": [],
+          "missingEvidence": 1
+        },
+        "proofStatus": "unverified"
+      },
+      {
+        "id": "loc:p5:ledger:L38",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 38
+        }
+      },
+      {
+        "id": "claim:p5:7",
+        "kind": "claim",
+        "label": "Binding carries across the cascade",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 7,
+          "handStatus": "Not yet",
+          "handProvenBy": "none found",
+          "ledgerLine": 39,
+          "generatedStatus": "Not yet",
+          "generatedProvenBy": "none found",
+          "mismatch": [],
+          "receipts": [],
+          "code": [],
+          "missingEvidence": 1
+        },
+        "proofStatus": "unverified"
+      },
+      {
+        "id": "loc:p5:ledger:L39",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 39
+        }
+      },
+      {
+        "id": "claim:p5:8",
+        "kind": "claim",
+        "label": "Qwen3-4B pilot: no gain from a visual graph",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 8,
+          "handStatus": "Partial (conclusion not confirmed)",
+          "handProvenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json`",
+          "ledgerLine": 40,
+          "generatedStatus": "Proven",
+          "generatedProvenBy": "`HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json`",
+          "mismatch": [],
+          "receipts": [
+            "HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json"
+          ],
+          "code": [],
+          "missingEvidence": 0
+        },
+        "proofStatus": "proven"
+      },
+      {
+        "id": "loc:p5:ledger:L40",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 40
+        }
+      },
+      {
+        "id": "receipt:HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json",
+        "kind": "source",
+        "label": "HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json",
+        "metadata": {
+          "role": "receipt",
+          "path": "HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json",
+          "sha256": "b8c088197a82490f4052e107912fc994b051663a06fa2ec148f86268acfbaa1e",
+          "commit": "a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5"
+        }
+      },
+      {
+        "id": "claim:p5:9",
+        "kind": "claim",
+        "label": "Production service with 26 MCP tools",
+        "claimKind": "paper-claim",
+        "ownerId": "p5",
+        "metadata": {
+          "row": 9,
+          "handStatus": "Not yet checked",
+          "handProvenBy": "not counted",
+          "ledgerLine": 41,
+          "generatedStatus": "Not yet",
+          "generatedProvenBy": "none found",
+          "mismatch": [],
+          "receipts": [],
+          "code": [],
+          "missingEvidence": 0
+        },
+        "proofStatus": "unverified"
+      },
+      {
+        "id": "loc:p5:ledger:L41",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-data/LEDGER.md",
+          "line": 41
+        }
+      },
+      {
+        "id": "loc:p5:tex:L165",
+        "kind": "source",
+        "metadata": {
+          "role": "location",
+          "path": "ai-ecosystem/research/paper-5-graphrag-forge.tex",
+          "line": 165,
+          "section": "introduction"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "claim:p5:1:sourced-from:loc:p5:ledger:L33:0",
+        "from": "claim:p5:1",
+        "to": "loc:p5:ledger:L33",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:1:sourced-from:loc:p5:tex:L117:1",
+        "from": "claim:p5:1",
+        "to": "loc:p5:tex:L117",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "tex-number-match"
+        }
+      },
+      {
+        "id": "claim:p5:1:discharged-by:receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json:2",
+        "from": "claim:p5:1",
+        "to": "receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-post-visual-rebenchmark/paper-5-timing.json",
+        "kind": "discharged-by"
+      },
+      {
+        "id": "claim:p5:2:sourced-from:loc:p5:ledger:L34:3",
+        "from": "claim:p5:2",
+        "to": "loc:p5:ledger:L34",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:2:sourced-from:loc:p5:tex:L230:4",
+        "from": "claim:p5:2",
+        "to": "loc:p5:tex:L230",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "tex-number-match"
+        }
+      },
+      {
+        "id": "claim:p5:2:discharged-by:receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json:5",
+        "from": "claim:p5:2",
+        "to": "receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json",
+        "kind": "discharged-by"
+      },
+      {
+        "id": "claim:p5:3:sourced-from:loc:p5:ledger:L35:6",
+        "from": "claim:p5:3",
+        "to": "loc:p5:ledger:L35",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:3:sourced-from:loc:p5:tex:L120:7",
+        "from": "claim:p5:3",
+        "to": "loc:p5:tex:L120",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "tex-number-match"
+        }
+      },
+      {
+        "id": "claim:p5:3:discharged-by:receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json:8",
+        "from": "claim:p5:3",
+        "to": "receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json",
+        "kind": "discharged-by"
+      },
+      {
+        "id": "claim:p5:4:sourced-from:loc:p5:ledger:L36:9",
+        "from": "claim:p5:4",
+        "to": "loc:p5:ledger:L36",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:4:sourced-from:loc:p5:tex:L119:10",
+        "from": "claim:p5:4",
+        "to": "loc:p5:tex:L119",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "tex-number-match"
+        }
+      },
+      {
+        "id": "claim:p5:4:supports:receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json:11",
+        "from": "claim:p5:4",
+        "to": "receipt:HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json",
+        "kind": "supports",
+        "metadata": {
+          "mismatch": [
+            {
+              "field": "bootstrap",
+              "expected": true,
+              "actual": false,
+              "receipt": "HoloScript/research/holoabsorb-artifacts/2026-07-26-paper5-source-audited-v1/holoabsorb-rebenchmark.json"
+            }
+          ]
+        }
+      },
+      {
+        "id": "claim:p5:5:sourced-from:loc:p5:ledger:L37:12",
+        "from": "claim:p5:5",
+        "to": "loc:p5:ledger:L37",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:5:implemented-by:code:codebase-tools.ts__1pma8x6:13",
+        "from": "claim:p5:5",
+        "to": "code:codebase-tools.ts__1pma8x6",
+        "kind": "implemented-by"
+      },
+      {
+        "id": "claim:p5:6:sourced-from:loc:p5:ledger:L38:14",
+        "from": "claim:p5:6",
+        "to": "loc:p5:ledger:L38",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:7:sourced-from:loc:p5:ledger:L39:15",
+        "from": "claim:p5:7",
+        "to": "loc:p5:ledger:L39",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:8:sourced-from:loc:p5:ledger:L40:16",
+        "from": "claim:p5:8",
+        "to": "loc:p5:ledger:L40",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:8:discharged-by:receipt:HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json:17",
+        "from": "claim:p5:8",
+        "to": "receipt:HoloScript/research/holoabsorb-artifacts/2026-07-27-paper5-visual-agent-followup-v3-qwen3-4b/result.json",
+        "kind": "discharged-by"
+      },
+      {
+        "id": "claim:p5:9:sourced-from:loc:p5:ledger:L41:18",
+        "from": "claim:p5:9",
+        "to": "loc:p5:ledger:L41",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "ledger-row"
+        }
+      },
+      {
+        "id": "claim:p5:9:sourced-from:loc:p5:tex:L165:19",
+        "from": "claim:p5:9",
+        "to": "loc:p5:tex:L165",
+        "kind": "sourced-from",
+        "metadata": {
+          "via": "tex-number-match"
+        }
+      }
+    ]
+  }
+}

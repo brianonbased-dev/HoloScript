@@ -40,6 +40,7 @@ export {
   handleGraphRagTool,
 } from './graph-rag-tools';
 export { oracleTools, handleOracleTool } from './oracle-tools';
+export { claimLinkTools, handleClaimLinkTool } from './claim-link-tools';
 export {
   knowledgeExtractionTools,
   handleKnowledgeExtractionTool,

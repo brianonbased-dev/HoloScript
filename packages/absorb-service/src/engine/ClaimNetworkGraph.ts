@@ -31,7 +31,9 @@ export type ClaimGraphEdgeKind =
   | 'sourced-from'
   | 'in-frame'
   | 'located-in'
-  | 'fits-claim';
+  | 'fits-claim'
+  /** Paper claim -> code symbol (SymbolObjectId) that implements it (A19). */
+  | 'implemented-by';
 
 export interface ClaimGraphNode {
   id: string;

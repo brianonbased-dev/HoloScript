@@ -9,7 +9,7 @@
   "description": "Generated language ingestion registry for Absorb. Edit SupportedLanguage, adapter registrations, or @language_adapter .holo declarations, then run scripts/check-language-registry.mjs --write.",
   "statuses": {
     "implemented": "Has a registered adapter; tree-sitter grammars must be installed package deps.",
-    "native": "Parsed by the HoloScript-native adapter rather than tree-sitter.",
+    "native": "Parsed by a native adapter (isNativeAdapter) rather than tree-sitter.",
     "declared": "Present in SupportedLanguage but no adapter is registered yet.",
     "fallback": "Plain text path for unrecognized extensions."
   },
@@ -187,6 +187,26 @@
         ".hs"
       ],
       "notes": "Generated from HoloAdapter.ts."
+    },
+    {
+      "id": "markdown",
+      "status": "native",
+      "adapter": "PaperAdapter",
+      "grammarPackage": "@holoscript/absorb-service",
+      "extensions": [
+        ".md"
+      ],
+      "notes": "Generated from PaperAdapter.ts."
+    },
+    {
+      "id": "latex",
+      "status": "native",
+      "adapter": "PaperTexAdapter",
+      "grammarPackage": "@holoscript/absorb-service",
+      "extensions": [
+        ".tex"
+      ],
+      "notes": "Generated from PaperTexAdapter.ts."
     },
     {
       "id": "plaintext",
