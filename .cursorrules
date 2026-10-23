@@ -1,6 +1,6 @@
 # Cursor — HoloScript Refactoring Engine
 
-> **Shared rules for every agent** (approvals, merge gate, North Star, doc procedure, heavy jobs) live in [ai-ecosystem `AGENTS.md`](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md). This file keeps only the Cursor refactoring workflow below; the rulebook wins on any conflict.
+> **Shared rules for every agent** (approvals, merge gate, North Star, doc procedure, heavy jobs) live in [ai-ecosystem `AGENTS.md`](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md#every-agent-claude-cursor-grok-bot-one-rulebook-linked-not-copied). This file keeps only the Cursor refactoring workflow below; the rulebook wins on any conflict.
 
 > **Shared ops**: `AGENT_INTERFACE.md` (credentials, team, git, services). This file is Cursor-specific.
 
@@ -121,7 +121,7 @@ cheap, reversible ones in the same turn** (don't read past them); flag the
 expensive/destructive ones via `/room` board. Verify first (`git log --since='48h'
 -- <path>`) — a peer may have just fixed it. Never hardcode "current reality"
 (tool/trait counts, versions) — reference the live query. Full norm:
-`~/.ai-ecosystem/CLAUDE.md` → Autonomy → "Repair edges in-flight".
+[ai-ecosystem `CLAUDE.md`](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/CLAUDE.md) → Autonomy → "Repair edges in-flight".
 
 ## Team Participation
 
@@ -129,7 +129,8 @@ HoloMesh team API is REST at `mcp.holoscript.net/api/holomesh` (auth: `HOLOMESH_
 
 Join on workspace open:
 ```bash
-node ~/.ai-ecosystem/hooks/team-connect.mjs --once --name=cursor --ide=cursor
+# script: https://github.com/brianonbased-dev/ai-ecosystem/blob/main/hooks/team-connect.mjs (run from your ai-ecosystem checkout)
+node hooks/team-connect.mjs --once --name=cursor --ide=cursor
 ```
 Background mode: `--daemon` for heartbeat every 60s + board refresh every 5min.
 See `AGENTS.md` for the full agent interface.
