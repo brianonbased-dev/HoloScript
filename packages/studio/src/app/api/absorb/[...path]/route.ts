@@ -3,19 +3,16 @@ export const maxDuration = 300;
 /**
  * Catch-all proxy for /api/absorb/* -> absorb.holoscript.net
  *
- * Keeps the ABSORB_API_KEY server-side. Forwards all methods and the body.
- *
- * Every call needs a signed-in Studio session; with none it answers 401 and
- * forwards nothing (Mapping, #654: an anonymous POST here used to reach
- * upstream /api/absorb/scan with the service key alone). The session's own
- * credential is always forwarded. Requests that can spend credits (anything
- * other than GET/HEAD) carry ONLY the user's credential, never the service key,
- * so absorb charges that user or refuses. Reads keep the service key plus the
- * user's credential in X-User-Authorization.
+ * Forwards GET/POST/PUT/DELETE and the request body using ONLY the signed-in
+ * user's own credential, resolved server-side from the Studio session (cookie
+ * or JWT), as #654 does. It never attaches the server's ABSORB_API_KEY: doing so let an
+ * anonymous POST to /api/absorb/absorb/scan run an uncharged scan upstream.
+ * Scan paths are refused outright; paid scans go through
+ * /api/absorb/projects/{id}/absorb, which checks the session and charges the user.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
+import { ABSORB_BASE } from '@/lib/services/absorb-client';
 import { getGitHubToken } from '@/app/api/github/_shared';
 
 import { corsHeaders } from '../../_lib/cors';
@@ -29,13 +26,38 @@ function upstreamApiPath(segments: string[]): string {
   return `/api/${path}`;
 }
 
-/** GET/HEAD are reads; every other method may start paid work upstream. */
-export function isPaidCapable(method: string): boolean {
-  const m = method.toUpperCase();
-  return m !== 'GET' && m !== 'HEAD';
+function isRefusedPath(segments: string[]): boolean {
+  return segments.some((raw) => {
+    // Decode until stable so %2573can (double-encoded) is caught too.
+    let seg = raw;
+    for (let i = 0; i < 5; i++) {
+      let next: string;
+      try {
+        next = decodeURIComponent(seg);
+      } catch {
+        return true;
+      }
+      if (next === seg) break;
+      seg = next;
+    }
+    if (seg.includes('%')) return true;
+    const s = seg.trim().toLowerCase();
+    return s === '..' || s === '.' || s.includes('/') || s.includes('\\') || s.includes('scan');
+  });
 }
 
 async function proxyToAbsorb(req: NextRequest, segments: string[]) {
+  if (isRefusedPath(segments)) {
+    return NextResponse.json(
+      {
+        error: 'Scans are not available through this proxy',
+        hint: 'Start a scan with POST /api/absorb/projects/{id}/absorb',
+      },
+      { status: 403 }
+    );
+  }
+
+  // Forward only the session user's own credential. Never the server's ABSORB_API_KEY.
   const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
   if (!userToken) {
     return NextResponse.json(
@@ -43,6 +65,7 @@ async function proxyToAbsorb(req: NextRequest, segments: string[]) {
       { status: 401 }
     );
   }
+  const userAuth = `Bearer ${userToken}`;
 
   const targetUrl = `${ABSORB_BASE}${upstreamApiPath(segments)}${req.nextUrl.search}`;
 
@@ -50,13 +73,8 @@ async function proxyToAbsorb(req: NextRequest, segments: string[]) {
     'Content-Type': 'application/json',
   };
 
-  if (isPaidCapable(req.method) || !ABSORB_API_KEY) {
-    // No service-key fallback: absorb sees only the user and charges or refuses them.
-    headers['Authorization'] = `Bearer ${userToken}`;
-  } else {
-    headers['Authorization'] = `Bearer ${ABSORB_API_KEY}`;
-    headers['X-User-Authorization'] = `Bearer ${userToken}`;
-  }
+  headers['Authorization'] = userAuth;
+  headers['X-User-Authorization'] = userAuth;
 
   const fetchOptions: RequestInit = {
     method: req.method,
