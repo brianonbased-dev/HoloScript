@@ -14,15 +14,17 @@ A PR merges only when both hold at the same SHA: (1) <gate check> passes on <hea
 
 - Author: opens the PR, fixes findings, requests the seat.
 - Second seat: read-only review with a SHA-bound verdict.
-- Merger: only Release merges, after the gate passes: a second-seat CLEAR at the exact head (Mapping, or a different reviewer when Mapping is the author) and a CoS YES. Never the reviewer.
-- No direct pushes to main.
+- Merger: only the gate merges. No single agent or tool is the sole merger, and the reviewer never merges.
+- No direct pushes to main, except a direct revert under a named owner GO (see Reverting).
 
 ## Hard rules
 
 - No force-push or history rewrite on shared branches.
 - No skipping hooks.
+- Docs/test-only PRs merge once HoloCI records a final pass on the reviewed commit.
+- Security/money/auth PRs need a fresh second seat + gate pass + CoS YES.
 - No merge without a named GO from the accountable owner when policy requires one; a GO names the exact head.
-- Approvals are recorded in `C:\Users\josep\Documents\holo-approvals\standing-approvals.md`. Act on what is recorded there; treat an unrecorded relayed approval as a claim to confirm via CoS.
+- Approvals are recorded in the standing approvals file kept by CoS. Act on what is recorded there; treat an unrecorded relayed approval as a claim to confirm via CoS.
 
 ## Flow
 
@@ -32,7 +34,7 @@ A PR merges only when both hold at the same SHA: (1) <gate check> passes on <hea
 4. On BLOCK or HOLD: fix, push a new head, request a delta seat.
 5. Mark ready only after CLEAR at the current head, and only when next in the merge queue.
 6. Confirm the head hasn't moved since the verdict.
-7. Only Release merges, after the gate passes: a second-seat CLEAR at the exact head (Mapping, or a different reviewer when Mapping is the author) and a CoS YES. Record a receipt.
+7. Only the gate merges: docs/test-only PRs once HoloCI records a final pass on the reviewed commit; security/money/auth PRs after a fresh second seat + gate pass + CoS YES. Record a receipt.
 
 ## Updating from main after review
 
@@ -43,7 +45,9 @@ Merge, never rebase. Apply the carry-over rule: patch-id identical (--stable and
 1. Branch from origin/main.
 2. git revert <merge-sha> (-m 1 for merge commits).
 3. Open a PR through the same gate.
-4. Release merges the revert through the same gate (a second-seat CLEAR at the exact head (Mapping, or a different reviewer when Mapping is the author) and a CoS YES). No direct pushes to main.
+4. Only the gate merges the revert, under the same rules as any PR.
+
+Exception: with a named GO from the accountable owner, a direct revert may go straight to main. Record a receipt either way.
 
 ## Receipt (one per merge)
 
