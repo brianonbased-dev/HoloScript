@@ -97,7 +97,7 @@ describe('orchestrator attestation v1: account UUID, method + path binding, sing
     await authMiddleware(r, out, next);
     expect(next).toHaveBeenCalledTimes(1);
     // Single biller (CoS 2026-10-24): auth only marks the request; the route sets
-    // X-Absorb-Billed-Account + X-Absorb-Credit-Cost on a 2xx and does not charge.
+    // X-Absorb-Billed-Account + X-Absorb-Credit-Cost (informational) on a 2xx; absorb charges the UUID.
     expect(r.orchestratorBilled).toBe(true);
     expect(out.headers[ABSORB_BILLED_HEADER]).toBeUndefined();
     expect(r.userId).toBe(USER);

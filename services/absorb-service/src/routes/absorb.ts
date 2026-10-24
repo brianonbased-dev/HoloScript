@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
-import { isOrchestratorBilled, orchestratorPrice, setOrchestratorCost, userUuid } from '../middleware/auth.js';
+import { isOrchestratorBilled, setOrchestratorCost, userUuid } from '../middleware/auth.js';
 import { cloneRepo, CloneRefusal, normalizeRepoUrl, resolveCommitSha } from '../lib/absorb/clone-from-url.js';
 import {
   CLAIM_HEARTBEAT_MS,
@@ -168,9 +168,10 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
   // held, not returned, until the claim says whether this import is done; a
   // new import is still refused (402) before the claim is kept and before any
   // clone. The cost: an owing account's request now runs one ls-remote.
-  // An orchestrator-billed call (v1) is not charged here and has no absorb check.
+  // A v1 orchestrator call is gated and charged here like any user call
+  // (CoS 2026-10-24 05:39: absorb is the only biller).
   let unpaidRefusal: ScanOutcome | null = null;
-  if (!isOrchestratorBilled(req)) {
+  {
     const creditsModule = await loadCredits();
     const { requireCredits, isCreditError } = (creditsModule as any).default || creditsModule;
     const pre = await requireCredits(account, body.shallow ? 'absorb_shallow' : 'absorb_deep');
@@ -568,11 +569,7 @@ async function scanAndChargeNow(
   const opType = shallow ? 'absorb_shallow' : 'absorb_deep';
   // A rehydrate (#617 H1) re-runs an import that was already paid: no check, no debit.
   let creditCheck: any = null;
-  const upstream = isOrchestratorBilled(req);
-  if (!rehydrate && upstream) {
-    // Billed by the orchestrator: no absorb balance check and no debit here.
-    creditCheck = { costCents: orchestratorPrice(creditsModule, opType) };
-  } else if (!rehydrate) {
+  if (!rehydrate) {
     creditCheck = await requireCredits(scanUserId, opType);
     if (isCreditError(creditCheck)) {
       return paidStartRefusal(creditCheck as Record<string, unknown>);
@@ -669,11 +666,6 @@ async function scanAndChargeNow(
         message: 'Another request took over this import. This one was not charged.',
       },
     };
-    if (upstream) {
-      // The orchestrator debits this amount from the X-Absorb-Credit-Cost header.
-      chargedCents = creditCheck.costCents;
-      cacheOwnerId = userId;
-    } else {
     let debit;
     try {
       debit = await deductCredits(
@@ -702,7 +694,6 @@ async function scanAndChargeNow(
     chargedCents = creditCheck.costCents;
     cacheOwnerId = userId;
     balanceAfterCents = typeof debit.balanceCents === 'number' ? debit.balanceCents : null;
-    }
   }
 
   graphStore.set(graphId, {
@@ -757,11 +748,8 @@ router.post('/query', async (req: Request, res: Response) => {
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
-    const upstream = isOrchestratorBilled(req);
     // @ts-ignore - Automatic remediation for TS18046
-    const creditCheck = upstream
-      ? { costCents: orchestratorPrice(creditsModule, 'query_with_llm') }
-      : await (requireCredits as any)(userId, 'query_with_llm');
+    const creditCheck = await (requireCredits as any)(userId, 'query_with_llm');
     
     // @ts-ignore - Automatic remediation for TS18046
     if (isCreditError(creditCheck)) {
@@ -810,8 +798,7 @@ router.post('/query', async (req: Request, res: Response) => {
     // Same rule as /scan, including while this query is priced at 0.
     // A charge that comes back empty did not happen, so the answer is
     // not delivered and no cost is reported.
-    // Orchestrator-billed (v1): no debit here; the cost goes back in a header.
-    const debit = upstream ? {} : await deductCredits(
+    const debit = await deductCredits(
       userId,
       creditCheck.costCents,
       `Semantic codebase query: ${body.query.substring(0, 32)}...`,
@@ -822,7 +809,8 @@ router.post('/query', async (req: Request, res: Response) => {
       return;
     }
 
-    if (upstream) setOrchestratorCost(res, creditCheck.costCents);
+    // Informational only: what absorb just charged (absorb is the only biller).
+    if (isOrchestratorBilled(req)) setOrchestratorCost(res, creditCheck.costCents);
     res.json({
       query: body.query,
       results: results.map((r: any) => ({

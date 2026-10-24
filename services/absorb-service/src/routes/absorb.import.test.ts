@@ -988,40 +988,72 @@ describe('/scan repoUrl import: Treasurer 2026-10-24, an owing account keeps wha
   });
 });
 
-describe('/scan repoUrl import: exactly one biller for orchestrator v1 calls (CoS 2026-10-24)', () => {
+describe('/scan repoUrl import: absorb is the only biller, v1 included (CoS final 2026-10-24 05:39)', () => {
   const V1 = { orchestratorBilled: true };
-  it('absorb does not charge a v1 call and returns its price in X-Absorb-Credit-Cost; a replay answers 0', async () => {
+  it('a v1 call is charged once in absorb to the signed account; the cost header is informational; a replay answers 0', async () => {
     const r = await call(IMPORT, V1);
     expect(r._status).toBe(200);
-    expect(h.debits).toHaveLength(0); // absorb side: no charge
+    expect(h.debits).toHaveLength(1);
+    expect(h.debits[0]).toMatchObject({ userId: USER, cents: 10 });
     expect(r._headers['X-Absorb-Billed-Account']).toBe('v1');
-    expect(r._headers['X-Absorb-Credit-Cost']).toBe('10'); // absorb's price, the orchestrator debits it
+    expect(r._headers['X-Absorb-Credit-Cost']).toBe('10'); // what absorb charged
     const again = await call(IMPORT, V1);
-    expect(again._status).toBe(200);
     expect(again._json?.replayed).toBe(true);
     expect(again._headers['X-Absorb-Credit-Cost']).toBe('0');
-    expect(h.debits).toHaveLength(0);
-    expect(h.balance).toBe(1000);
+    expect(h.debits).toHaveLength(1);
+    expect(h.balance).toBe(990);
   });
 
-  it('a v1 call has no absorb balance gate (the orchestrator bills) and a non-2xx carries no cost header', async () => {
-    h.balance = -50;
+  it('a v1 call has the same pre-call gate: a broke account is 402 before any clone, nothing charged, no cost header', async () => {
+    h.balance = 5;
+    const r = await call(IMPORT, V1);
+    expect(r._status).toBe(402);
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+    expect(r._headers['X-Absorb-Credit-Cost']).toBeUndefined();
+  });
+
+  it('HOLD fix: an unpaid v1 import is never marked paid, so it cannot rehydrate free; the retry is charged', async () => {
+    h.beforeDebit = () => {
+      throw new Error('ledger unavailable'); // the charge never happens
+    };
+    const failed = await call(IMPORT, V1);
+    expect(failed._status).toBe(500);
+    expect(failed._headers['X-Absorb-Credit-Cost']).toBeUndefined();
+    expect(h.debits).toHaveLength(0);
+    h.beforeDebit = null;
+    dropGraphs(); // restart: a "done" import would rehydrate free here
+    const retry = await call(IMPORT, V1);
+    expect(retry._status).toBe(200);
+    expect(retry._json?.rehydrated).toBeUndefined();
+    expect(retry._json?.replayed).toBeUndefined();
+    expect(h.debits).toHaveLength(1);
+    expect(retry._headers['X-Absorb-Credit-Cost']).toBe('10');
+  });
+
+  it('a paid v1 import rehydrates free after a restart (it was charged in absorb)', async () => {
+    const first = await call(IMPORT, V1);
+    expect(h.debits).toHaveLength(1);
+    dropGraphs();
+    const again = await call(IMPORT, V1);
+    expect(again._json?.rehydrated).toBe(true);
+    expect(again._json?.graphId).toBe(first._json?.graphId);
+    expect(again._headers['X-Absorb-Credit-Cost']).toBe('0');
+    expect(h.debits).toHaveLength(1);
+  });
+
+  it('a non-2xx v1 call carries no cost header', async () => {
     const { CloneRefusal } = await import('../lib/absorb/clone-from-url.js');
     h.cloneError = new CloneRefusal('clone_failed', 'github down');
     const fail = await call(IMPORT, V1);
     expect(fail._status).toBe(502);
     expect(fail._headers['X-Absorb-Credit-Cost']).toBeUndefined();
     expect(fail._headers['X-Absorb-Billed-Account']).toBeUndefined();
-    h.cloneError = null;
-    const ok = await call(IMPORT, V1);
-    expect(ok._status).toBe(200);
-    expect(ok._headers['X-Absorb-Credit-Cost']).toBe('10');
     expect(h.debits).toHaveLength(0);
   });
 
-  it('a non-orchestrator call still charges absorb-side and sets no cost header', async () => {
+  it('a non-orchestrator call is charged and sets no cost header', async () => {
     const r = await call(IMPORT);
-    expect(r._status).toBe(200);
     expect(h.debits).toHaveLength(1);
     expect(r._headers['X-Absorb-Credit-Cost']).toBeUndefined();
   });

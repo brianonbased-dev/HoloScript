@@ -156,6 +156,8 @@ interface RouteLayer {
 }
 
 interface MockRes {
+  _headers?: Record<string, string>;
+  setHeader?(k: string, v: string): MockRes;
   _status: number;
   _json: Record<string, unknown> | null;
   status(code: number): MockRes;
@@ -192,6 +194,11 @@ function mockRes(): MockRes {
   const res: MockRes = {
     _status: 200,
     _json: null,
+    _headers: {},
+    setHeader(k: string, v: string) {
+      res._headers![k] = v;
+      return res;
+    },
     status(code) {
       res._status = code;
       return res;
@@ -453,5 +460,42 @@ describe('POST /query when the charge comes back empty', () => {
     expect(ledger.state.debited).toBe(0);
     expect(ledger.state.balance).toBe(0);
     expect(ledger.state.wentNegative).toBe(false);
+  });
+});
+
+describe('every v1 2xx sets X-Absorb-Credit-Cost (absorb is the only biller; header informational)', () => {
+  it('/scan of a path and /query, called as v1: charged in absorb, header present on each 2xx', async () => {
+    ledger.state.balance = SHALLOW_CENTS;
+    ledger.state.debited = 0;
+    ledger.state.forceEmptyDebit = false;
+    const s = mockRes();
+    await scan(
+      { body: { path: '/repo/v1-path', shallow: true }, authenticated: true, userId: USER, orchestratorBilled: true } as unknown as Request,
+      s as unknown as Response
+    );
+    expect(s._status).toBe(200);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+    expect(s._headers!['X-Absorb-Billed-Account']).toBe('v1');
+    expect(s._headers!['X-Absorb-Credit-Cost']).toBe(String(SHALLOW_CENTS));
+    const q = mockRes();
+    await query(
+      { body: { graphId: s._json?.graphId, query: 'main', maxResults: 1 }, authenticated: true, userId: USER, orchestratorBilled: true } as unknown as Request,
+      q as unknown as Response
+    );
+    expect(q._status).toBe(200);
+    expect(ledger.requireCredits).toHaveBeenCalledWith(USER, 'query_with_llm');
+    expect(q._headers!['X-Absorb-Credit-Cost']).toBe('0');
+  });
+
+  it('moltbook semantic dedup charges in absorb and sets the header on its v1 2xx (source check)', async () => {
+    const fsm = await import('fs');
+    const src = fsm.readFileSync(new URL('./moltbook.ts', import.meta.url), 'utf8');
+    const i = src.indexOf("'semantic_dedup')");
+    const j = src.indexOf('isDuplicate,', i);
+    const k = src.indexOf('if (isOrchestratorBilled(req)) setOrchestratorCost(res, creditCheck.costCents);', i);
+    expect(src.slice(i, j)).toContain('await deductCredits(');
+    expect(k).toBeGreaterThan(i);
+    expect(k).toBeLessThan(j);
+    expect(src).not.toContain('orchestratorPrice');
   });
 });
