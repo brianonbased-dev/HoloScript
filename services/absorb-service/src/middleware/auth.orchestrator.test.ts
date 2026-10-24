@@ -17,6 +17,7 @@ import {
   authMiddleware,
   orchestratorSigMessage,
   verifyOrchestratorSig,
+  verifyLegacyOrchestratorSig,
   ABSORB_BILLED_HEADER,
   type AuthenticatedRequest,
 } from './auth.js';
@@ -95,7 +96,10 @@ describe('orchestrator attestation v1: account UUID, method + path binding, sing
     const out = res();
     await authMiddleware(r, out, next);
     expect(next).toHaveBeenCalledTimes(1);
-    expect(out.headers[ABSORB_BILLED_HEADER]).toBe('v1');
+    // Single biller (CoS 2026-10-24): auth only marks the request; the route sets
+    // X-Absorb-Billed-Account + X-Absorb-Credit-Cost on a 2xx and does not charge.
+    expect(r.orchestratorBilled).toBe(true);
+    expect(out.headers[ABSORB_BILLED_HEADER]).toBeUndefined();
     expect(r.userId).toBe(USER);
     expect(r.orchestratorGated).toBeUndefined();
     expect(r.tier).toBe('pro');
@@ -221,6 +225,7 @@ describe('orchestrator attestation v1: account UUID, method + path binding, sing
       expect(r.tier).toBeUndefined();
       expect(r.orchestratorGated).toBeUndefined();
       expect(out.headers[ABSORB_BILLED_HEADER]).toBeUndefined();
+      expect(r.orchestratorBilled).toBeUndefined();
       expect(mockGetOrCreateAccount).not.toHaveBeenCalled();
     });
 
@@ -240,8 +245,21 @@ describe('orchestrator attestation v1: account UUID, method + path binding, sing
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('with the transition flag off, the legacy format is refused with 401', async () => {
-      process.env.ABSORB_ACCEPT_LEGACY_ORCHESTRATOR_SIG = 'false';
+    it('N1: a legacy sig re-spelled (uppercase / trailing non-hex) is refused, so it cannot dodge the replay store', async () => {
+      const sig = legacySig();
+      await authMiddleware(req(legacyHeaders(sig)), res(), next);
+      for (const variant of [sig.toUpperCase(), sig + 'zz', sig + 'g', sig.slice(0, 63) + 'G']) {
+        const out = res();
+        await authMiddleware(req(legacyHeaders(variant)), out, next);
+        expect(out.statusCode).toBe(401);
+      }
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(verifyLegacyOrchestratorSig('key-1', 'agent', sig.toUpperCase())).toBe(false);
+      expect(verifyLegacyOrchestratorSig('key-1', 'agent', sig + 'x')).toBe(false);
+      expect(verifyLegacyOrchestratorSig('key-1', 'agent', sig)).toBe(true);
+    });
+
+    it('with the transition flag off, the legacy format is refused with 401', async () => {      process.env.ABSORB_ACCEPT_LEGACY_ORCHESTRATOR_SIG = 'false';
       const out = res();
       await authMiddleware(req(legacyHeaders(legacySig())), out, next);
       expect(out.statusCode).toBe(401);
@@ -256,8 +274,20 @@ describe('orchestrator attestation v1: account UUID, method + path binding, sing
     });
   });
 
-  it('verifyOrchestratorSig accepts the current and previous window only', () => {
-    const now = 1_800_000_000_000;
+  it('N1: a v1 sig must be exactly 64 lowercase hex: uppercase and trailing non-hex are refused', async () => {
+    const n = freshNonce();
+    const sig = sign({ user: USER, nonce: n });
+    for (const variant of [sig.toUpperCase(), sig + 'zz', sig + '!', sig.slice(0, 63) + 'Z', sig.slice(0, 62)]) {
+      const out = res();
+      await authMiddleware(req(attested(USER, n, variant)), out, next);
+      expect(out.statusCode).toBe(401);
+      expect(verifyOrchestratorSig('POST', SCAN, 'key-1', 'agent', USER, n, variant)).toBe(false);
+    }
+    expect(next).not.toHaveBeenCalled();
+    expect(verifyOrchestratorSig('POST', SCAN, 'key-1', 'agent', USER, n, sig)).toBe(true);
+  });
+
+  it('verifyOrchestratorSig accepts the current and previous window only', () => {    const now = 1_800_000_000_000;
     const n = 'nonce-fixed-0123456789';
     const at = (t: number) => sign({ user: USER, nonce: n, at: t });
     expect(verifyOrchestratorSig('POST', SCAN, 'key-1', 'agent', USER, n, at(now), now)).toBe(true);

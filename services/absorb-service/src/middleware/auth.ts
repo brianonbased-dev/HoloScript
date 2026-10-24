@@ -22,6 +22,12 @@ export interface AuthenticatedRequest extends Request {
    */
   orchestratorGated?: boolean;
   /**
+   * Set ONLY by a verified v1 orchestrator attestation (CoS 2026-10-24, exactly one
+   * biller). Absorb does not charge this request; it returns the price in
+   * X-Absorb-Credit-Cost and the orchestrator debits the end user that amount.
+   */
+  orchestratorBilled?: boolean;
+  /**
    * Delegated access grant (an outside agent/app acting for this user).
    * Set ONLY by server-side token resolution, never from headers or body.
    * The per-(user, app) rate limit takes its app id and cap from here.
@@ -38,6 +44,13 @@ export function rateLimitInputs(req: AuthenticatedRequest, userId: string, userL
     appLimit: req.grant?.hourlyLimit,
   };
 }
+
+/**
+ * Canonical HMAC-SHA256 hex: exactly 64 lowercase hex chars. Buffer.from(x, 'hex')
+ * silently drops trailing non-hex and folds case, so without this a replayed sig
+ * could be re-spelled (uppercase / junk suffix) to dodge the nonce store.
+ */
+export const SIG_HEX_RE = /^[0-9a-f]{64}$/;
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -143,6 +156,7 @@ export function verifyOrchestratorSig(
 ): boolean {
   const secret = process.env.ORCHESTRATOR_SECRET;
   if (!secret || !method || !path || !apiKeyId || !tier || !sig) return false;
+  if (!SIG_HEX_RE.test(sig)) return false;
   if (!accountUuid || !UUID_RE.test(accountUuid)) return false;
   if (!nonce || !NONCE_RE.test(nonce)) return false;
   const window = Math.floor(now / 30_000);
@@ -237,6 +251,7 @@ export function acceptLegacyOrchestratorSig(): boolean {
 export function verifyLegacyOrchestratorSig(apiKeyId: string, tier: string, sig: string, now: number = Date.now()): boolean {
   const secret = process.env.ORCHESTRATOR_SECRET;
   if (!secret || !apiKeyId || !tier || !sig) return false;
+  if (!SIG_HEX_RE.test(sig)) return false;
   const window = Math.floor(now / 30_000);
   for (const w of [window, window - 1]) {
     const expected = createHmac('sha256', secret).update(`${apiKeyId}:${tier}:${w}`).digest('hex');
@@ -250,11 +265,36 @@ export function verifyLegacyOrchestratorSig(apiKeyId: string, tier: string, sig:
 }
 
 /**
- * Response header telling the orchestrator that absorb verified a v1
- * attestation and bills the attested account itself. The orchestrator skips its
- * own billing only when it sent v1 AND sees this header (exactly one charge).
+ * Exactly one biller (CoS ruling 2026-10-24): for a verified v1 orchestrator
+ * call absorb charges NOTHING itself. On a 2xx it returns
+ *   X-Absorb-Billed-Account: v1
+ *   X-Absorb-Credit-Cost: <credits, integer >= 0>
+ * and the orchestrator debits the end user exactly that amount (0 means 0;
+ * a replay or cached result answers 0). Prices stay absorb's (OPERATION_COSTS);
+ * the orchestrator never decides one. A 409 replay or any non-2xx carries no
+ * cost header and nothing is charged on either side.
  */
 export const ABSORB_BILLED_HEADER = 'X-Absorb-Billed-Account';
+export const ABSORB_CREDIT_COST_HEADER = 'X-Absorb-Credit-Cost';
+
+export function isOrchestratorBilled(req: Request): boolean {
+  return (req as AuthenticatedRequest).orchestratorBilled === true;
+}
+
+/** Hand the price to the orchestrator (call only on a 2xx). */
+export function setOrchestratorCost(res: Response, cents: unknown): void {
+  const n = typeof cents === 'number' && Number.isFinite(cents) && cents > 0 ? Math.round(cents) : 0;
+  res.setHeader(ABSORB_BILLED_HEADER, 'v1');
+  res.setHeader(ABSORB_CREDIT_COST_HEADER, String(n));
+}
+
+/** Absorb's own list price for an operation, without a balance check. Fails closed. */
+export function orchestratorPrice(creditsModule: unknown, op: string): number {
+  const m = ((creditsModule as any)?.default ?? creditsModule) as any;
+  const p = m?.OPERATION_COSTS?.[op]?.baseCostCents;
+  if (typeof p !== 'number' || !Number.isFinite(p) || p < 0) throw new Error(`No price for operation ${op}`);
+  return p;
+}
 
 /**
  * Path 1.5: MCPMe orchestrator attestation.
@@ -290,7 +330,7 @@ async function handleOrchestratorAttestation(
       if (!verifyLegacyOrchestratorSig(orchKey, orchTier, orchSigLegacy)) {
         return refuse(401, 'orchestrator_attestation_invalid', 'Orchestrator attestation signature is invalid or expired.');
       }
-      if (!consumeOrchestratorNonce(orchKey, `legacy:${orchSigLegacy}`)) {
+      if (!SIG_HEX_RE.test(orchSigLegacy) || !consumeOrchestratorNonce(orchKey, `legacy:${orchSigLegacy}`)) {
         return refuse(409, 'orchestrator_attestation_replayed', 'Orchestrator attestation was already used.');
       }
       authReq.authenticated = true;
@@ -324,7 +364,7 @@ async function handleOrchestratorAttestation(
   authReq.authenticated = true;
   authReq.userId = orchUser.toLowerCase();
   authReq.tier = tier;
-  res.setHeader(ABSORB_BILLED_HEADER, 'v1');
+  authReq.orchestratorBilled = true;
   next();
   return true;
 }
