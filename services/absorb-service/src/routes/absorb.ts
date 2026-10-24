@@ -80,9 +80,16 @@ function importClaimStore(): ImportClaimStore {
   );
 }
 
+/** Test seam: forget saved graphs only, as a restart does (claims survive). */
+export function __dropGraphsForTests(): void {
+  graphStore.clear();
+}
+
 /** Test seam: forget remembered imports and saved scans. */
 export function __resetImportsForTests(): void {
   graphStore.clear();
+  scanSlots.clear();
+  parallelScanCap = ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT;
   memoryClaims.clear();
   importsInFlight.clear();
 }
@@ -137,8 +144,10 @@ const replayed = (o: ScanOutcome): ScanOutcome => ({
 async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcome> {
   const account = userUuid(req);
   // No account: nobody could be charged, so a URL import is refused before
-  // any clone (Mapping N2, #617). A URL scan is never free.
-  if (!account) {
+  // any clone (Mapping N2, #617). A URL scan is never free. Checked before
+  // ls-remote and the clone (#617 N3): an unauthenticated caller makes absorb
+  // do no outbound git work at all.
+  if (!(req as AuthenticatedRequest).authenticated || !account) {
     return {
       status: 401,
       json: {
@@ -146,6 +155,18 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
         message: 'A repository import is charged to a signed-in account. Sign in and retry.',
       },
     };
+  }
+  // Credits first (Treasurer, #617): a balance that cannot cover the scan is
+  // refused (402) before the claim, the ls-remote and the clone, so a broke
+  // account never makes absorb do outbound git work. The charge itself still
+  // happens after the scan, under the claim.
+  {
+    const creditsModule = await loadCredits();
+    const { requireCredits, isCreditError } = (creditsModule as any).default || creditsModule;
+    const pre = await requireCredits(account, body.shallow ? 'absorb_shallow' : 'absorb_deep');
+    if (isCreditError(pre)) return paidStartRefusal(pre as Record<string, unknown>);
+    const capped = owedCapRefusal(pre as Record<string, unknown>);
+    if (capped) return capped;
   }
   // One charge per user + repo + commit SHA (CoS/Treasurer, #617): the claim
   // key is derived from the commit the branch points at, not from the
@@ -155,12 +176,14 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
   let commitSha: string;
   try {
     repoUrl = normalizeRepoUrl(body.repoUrl);
-    commitSha = await resolveCommitSha(body.repoUrl, body.branch);
+    // The normalized URL (#617 F5): ls-remote sees the same repo the key names.
+    commitSha = await resolveCommitSha(repoUrl, body.branch);
   } catch (err) {
     if (err instanceof CloneRefusal) return cloneRefusalOutcome(err);
     throw err;
   }
-  const importId = commitImportId(repoUrl, commitSha);
+  // Keyed on the scan options too (#617 H1): shallow and deep are separate imports.
+  const importId = commitImportId(repoUrl, commitSha, { shallow: body.shallow, languages: body.languages });
   const keyed: ScanBody = { ...body, repoUrl, importId, commitSha, clientImportId: body.importId };
   const key = `${account}:${importId}`;
 
@@ -216,7 +239,7 @@ async function claimAndScan(
       },
     };
   }
-  if (claim.kind === 'done') return replayed(claim.outcome);
+  if (claim.kind === 'done') return replayOrRehydrate(req, body, claim.outcome);
   if (claim.kind === 'charged') {
     return {
       status: 409,
@@ -281,6 +304,23 @@ async function claimAndScan(
     clearInterval(heartbeat);
   }
 }
+/**
+ * A finished import replays its first result (#617 H1). The graph itself lives
+ * in this instance's memory (graphStore), so after a restart, or on another
+ * instance, the stored graphId points at nothing. Then the import is scanned
+ * again under the SAME graphId and the existing claim, with no credit check
+ * and no debit: it was paid for once. The claim row is not touched.
+ */
+async function replayOrRehydrate(req: Request, body: ScanBody, outcome: ScanOutcome): Promise<ScanOutcome> {
+  const graphId = outcome.json?.graphId;
+  if (outcome.status !== 200 || typeof graphId !== 'string' || graphStore.has(graphId)) {
+    return replayed(outcome);
+  }
+  const fresh = await scanFromUrl(req, body, undefined, undefined, graphId);
+  if (fresh.status !== 200) return fresh; // nothing charged; the paid claim stays done
+  return { status: 200, json: { ...replayed(fresh).json, rehydrated: true } };
+}
+
 function cloneRefusalOutcome(err: CloneRefusal): ScanOutcome {
   const status =
     err.code === 'repo_url_not_allowed' || err.code === 'branch_not_allowed'
@@ -298,7 +338,8 @@ async function scanFromUrl(
   req: Request,
   body: ScanBody,
   beforeCharge?: () => Promise<boolean>,
-  chargeGuard?: (tx: unknown) => Promise<boolean>
+  chargeGuard?: (tx: unknown) => Promise<boolean>,
+  rehydrateGraphId?: string
 ): Promise<ScanOutcome> {
   let repo;
   try {
@@ -312,7 +353,7 @@ async function scanFromUrl(
   try {
     // The clone dir is ours (made just now under absorb's clone root), so the
     // caller-path root check does not apply. The URL is the cache identity.
-    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}${body.commitSha ? `@${body.commitSha}` : ''}`, beforeCharge, chargeGuard);
+    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}${body.commitSha ? `@${body.commitSha}` : ''}`, beforeCharge, chargeGuard, rehydrateGraphId);
   } finally {
     await repo.cleanup();
   }
@@ -330,15 +371,135 @@ async function scanPath(req: Request, body: ScanBody): Promise<ScanOutcome> {
   return scanAndCharge(req, body, scanRoot, scanRoot);
 }
 
+/**
+ * Overdraft cap (#617 N4). requireCredits only looks at the balance, and the
+ * settle allows overdraft, so N parallel scans by one account could each pass
+ * the check before any debit and leave the account N-1 prices short.
+ *
+ * At most ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT charged scans per account run
+ * at once on this instance; the next one waits for a slot, and its balance
+ * check then runs after the earlier debits have landed. requireCredits refuses
+ * (402) any balance that cannot cover the price, which includes one that is
+ * already negative. So the most one account can owe is
+ * (cap - 1) x one scan price per absorb instance. With the default 1 the scans
+ * are serialized and the overdraft from parallel scans is zero per instance.
+ * A rehydrate (#617 H1, no charge) takes no slot.
+ *
+ * PENDING TREASURER: the number is Treasurer's to set. Default 1 (serialized).
+ */
+export const ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT = 1; // provisional pending Joseph (CoS no-schema fallback, #617)
+
+/**
+ * Ceiling on what an account may owe, in credits (1 credit = 1 cent):
+ * 100 = $1.00. PROVISIONAL PENDING JOSEPH (CoS ruling, #617). On the
+ * no-schema fallback it is held by two rules, not by a reservation ledger:
+ * one paid scan in flight per account, and no new paid start while any
+ * balance is owed. So the most an account can owe is one scan's price,
+ * which is at most this ceiling.
+ */
+export const MAX_BALANCE_OWED_CREDITS = 100; // provisional pending Joseph
+
+/**
+ * Enforces MAX_BALANCE_OWED_CREDITS at a paid start (#617 F2): 402 when the
+ * price would push the amount owed past the cap. Reads the balance the credit
+ * check saw (balanceCents) and the price (costCents).
+ */
+export function owedCapRefusal(check: Record<string, unknown>): ScanOutcome | null {
+  const bal = typeof check.balanceCents === 'number' ? check.balanceCents : null;
+  const price = typeof check.costCents === 'number' ? check.costCents : 0;
+  if (bal === null) return null;
+  const owedAfter = Math.max(0, price - bal);
+  if (owedAfter <= MAX_BALANCE_OWED_CREDITS) return null;
+  return {
+    status: 402,
+    json: {
+      error: 'balance_owed_cap',
+      required: price,
+      balance: bal,
+      maxBalanceOwedCredits: MAX_BALANCE_OWED_CREDITS,
+      message: 'This scan would leave the account owing more than the allowed balance. Add credits first.',
+    },
+  };
+}
+
+/** 402 for a paid start: a balance is owed, or the balance does not cover the scan. */
+function paidStartRefusal(check: Record<string, unknown>): ScanOutcome {
+  const bal = typeof check.balance === 'number' ? check.balance : null;
+  if (bal !== null && bal < 0) {
+    return {
+      status: 402,
+      json: {
+        ...check,
+        error: 'balance_owed',
+        balanceOwedCents: -bal,
+        message: 'This account owes a balance. Add credits before starting another paid scan.',
+      },
+    };
+  }
+  return { status: 402, json: check };
+}
+let parallelScanCap = ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT;
+/** Test seam: run with another cap. */
+export function __setParallelScanCapForTests(n: number): void {
+  parallelScanCap = n;
+}
+
+const scanSlots = new Map<string, { running: number; waiting: Array<() => void> }>();
+
+async function takeScanSlot(uid: string): Promise<() => void> {
+  let s = scanSlots.get(uid);
+  if (!s) scanSlots.set(uid, (s = { running: 0, waiting: [] }));
+  const slots = s;
+  if (slots.running >= Math.max(1, parallelScanCap)) {
+    await new Promise<void>((resolve) => slots.waiting.push(resolve));
+  } else {
+    slots.running += 1;
+  }
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    const next = slots.waiting.shift();
+    if (next) next(); // the slot passes straight to the next waiter
+    else {
+      slots.running -= 1;
+      if (slots.running === 0) scanSlots.delete(uid);
+    }
+  };
+}
+
 async function scanAndCharge(
   req: Request,
   body: ScanBody,
   rootDir: string,
   cacheKey: string,
   beforeCharge?: () => Promise<boolean>,
-  chargeGuard?: (tx: unknown) => Promise<boolean>
+  chargeGuard?: (tx: unknown) => Promise<boolean>,
+  rehydrateGraphId?: string
+): Promise<ScanOutcome> {
+  const uid = userUuid(req);
+  if (!uid || rehydrateGraphId) {
+    return scanAndChargeNow(req, body, rootDir, cacheKey, beforeCharge, chargeGuard, rehydrateGraphId);
+  }
+  const release = await takeScanSlot(uid);
+  try {
+    return await scanAndChargeNow(req, body, rootDir, cacheKey, beforeCharge, chargeGuard);
+  } finally {
+    release();
+  }
+}
+
+async function scanAndChargeNow(
+  req: Request,
+  body: ScanBody,
+  rootDir: string,
+  cacheKey: string,
+  beforeCharge?: () => Promise<boolean>,
+  chargeGuard?: (tx: unknown) => Promise<boolean>,
+  rehydrateGraphId?: string
 ): Promise<ScanOutcome> {
   const shallow = body.shallow;
+  const rehydrate = typeof rehydrateGraphId === 'string';
   // NO FREE PATHS (#617 N2, CoS/Treasurer): every scan, folder or URL, with
   // or without a projectId, is charged to the signed-in account. No account
   // (unauthenticated, or an id that is not a user uuid) is refused before
@@ -360,7 +521,7 @@ async function scanAndCharge(
   const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
   const now = new Date();
   const callerId = userUuid(req);
-  if (callerId) {
+  if (callerId && !rehydrate) {
     for (const [id, entry] of graphStore.entries()) {
       if (entry.ownerId === callerId && entry.path === cacheKey && entry.shallow === shallow) {
         if (now.getTime() - entry.createdAt.getTime() < CACHE_TTL_MS) {
@@ -389,11 +550,15 @@ async function scanAndCharge(
   const { requireCredits, isCreditError, deductCredits, CHARGE_GUARD_REFUSED } =
     (creditsModule as any).default || creditsModule;
   const opType = shallow ? 'absorb_shallow' : 'absorb_deep';
-  // @ts-ignore - Automatic remediation for TS18046
-  const creditCheck = await requireCredits(scanUserId, opType);
-  // @ts-ignore - Automatic remediation for TS18046
-  if (isCreditError(creditCheck)) {
-    return { status: 402, json: creditCheck as Record<string, unknown> };
+  // A rehydrate (#617 H1) re-runs an import that was already paid: no check, no debit.
+  let creditCheck: any = null;
+  if (!rehydrate) {
+    creditCheck = await requireCredits(scanUserId, opType);
+    if (isCreditError(creditCheck)) {
+      return paidStartRefusal(creditCheck as Record<string, unknown>);
+    }
+    const capped = owedCapRefusal(creditCheck as Record<string, unknown>);
+    if (capped) return capped;
   }
 
   // Lazy import to avoid loading heavy modules at startup
@@ -412,7 +577,7 @@ async function scanAndCharge(
   const graph = new CodebaseGraph();
   graph.buildFromScanResult(scanResult);
 
-  const graphId = uuidv4();
+  const graphId = rehydrateGraphId ?? uuidv4();
 
   // Build in-degree map for topological intelligence
   const inDegree: Record<string, number> = {};
@@ -431,25 +596,13 @@ async function scanAndCharge(
     .map((f: any) => f.path)
     .sort((a: string, b: string) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
 
-  // Deduct credits if authenticated.
-  //
-  // Two faults lived here until 2026-09-21. The userId fell back to the
-  // literal 'anonymous', which entry-lookup.ts defines as the id every
-  // UNAUTHENTICATED caller carries — so an authenticated caller with no id
-  // spent from, and was billed against, the bucket that belongs to nobody.
-  // And the charge is gated on body.projectId while the response below
-  // reported `cost: 10` or `cost: 50` unconditionally, so a scan with no
-  // projectId told the client it had been billed when nothing was taken.
+  // Charge the signed-in account (scanUserId, a user uuid, checked above).
+  // Every scan is charged; there is no projectId gate and no free path, and
+  // the cost reported below is the amount actually debited.
   let chargedCents = 0;
   // Set only after the charge lands, so a refused scan is not saved
   // for a free replay, and an unpaid scan is not saved under an account.
   let cacheOwnerId: string | null = null;
-  // userUuid(), not a truthiness test. middleware/auth.ts sets
-  // userId = `orchestrator:${key}` for an orchestrator caller: authenticated,
-  // truthy, and not a uuid. It would flow into requireCredits -> checkBalance
-  // -> getOrCreateAccount, which queries a uuid column and throws, 500-ing an
-  // orchestrator scan. This guard is new in this change and chose the weaker
-  // predicate when the right one was already imported.
   // Built BEFORE the charge (Mapping H1), so nothing that can throw runs
   // between the debit and the delivered result.
   const topology = {
@@ -460,12 +613,11 @@ async function scanAndCharge(
     durationMs: scanResult.stats.durationMs ?? 0,
   };
 
-  // A URL import (repoUrl) is charged to the signed-in user whatever projectId
-  // says (Mapping N2, #617): gating it on projectId let a URL scan run free.
-  // A server-folder scan keeps main's rule (charged only with a projectId);
-  // this PR makes no pricing change for folder scans.
   let balanceAfterCents: number | null = null;
-  {
+  if (rehydrate) {
+    // Already charged once for this import (its claim is done); not again.
+    cacheOwnerId = scanUserId;
+  } else {
     const userId = scanUserId;
 
     // requireCredits only looks. Two scans can both be told the balance

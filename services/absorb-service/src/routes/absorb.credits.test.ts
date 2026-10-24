@@ -224,7 +224,38 @@ beforeEach(() => {
 });
 
 describe('POST /scan when two scans share a balance that covers one', () => {
-  it('both passed the reserve check before starting: both finish, both are charged, the account is left owing', async () => {
+  it('N4 default cap (1, pending Treasurer): the second parallel scan waits, then is refused (402); nothing owed', async () => {
+    const mod = await import('./absorb.js');
+    expect(mod.ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT).toBe(1);
+    ledger.state.balance = SHALLOW_CENTS;
+    const first = mockRes();
+    const second = mockRes();
+    await Promise.all([
+      scan(scanReq('/repo/n4-one'), first as unknown as Response),
+      scan(scanReq('/repo/n4-two'), second as unknown as Response),
+    ]);
+    expect([first._status, second._status].sort()).toEqual([200, 402]);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+    expect(ledger.state.balance).toBe(0);
+  });
+
+  it('N4 cap holds at N: with cap 3, four parallel scans owe at most (3 - 1) prices', async () => {
+    const mod = await import('./absorb.js');
+    mod.__setParallelScanCapForTests(3);
+    try {
+      ledger.state.balance = SHALLOW_CENTS;
+      const rs = [mockRes(), mockRes(), mockRes(), mockRes()];
+      await Promise.all(rs.map((r, i) => scan(scanReq('/repo/cap-' + i), r as unknown as Response)));
+      expect(ledger.state.balance).toBeGreaterThanOrEqual(-2 * SHALLOW_CENTS);
+      expect(rs.filter((r) => r._status === 402).length).toBeGreaterThanOrEqual(1);
+    } finally {
+      mod.__setParallelScanCapForTests(mod.ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT);
+    }
+  });
+
+  it('with cap 2 (Treasurer may raise it), both passed the reserve check before starting: both finish, both are charged, the account is left owing', async () => {
+    const mod = await import('./absorb.js');
+    mod.__setParallelScanCapForTests(2);
     ledger.state.balance = SHALLOW_CENTS;
 
     // Both scans pass the balance check before either charge lands. A scan
@@ -264,6 +295,7 @@ describe('POST /scan when two scans share a balance that covers one', () => {
     expect(ledger.state.balance).toBe(-SHALLOW_CENTS);
     const owed = responses.map((r) => r._json?.balanceOwedCents).filter((v) => v !== undefined);
     expect(owed).toEqual([SHALLOW_CENTS]);
+    mod.__setParallelScanCapForTests(mod.ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT);
   });
 
   it('a balance too short before the start is refused (402) and the scan never runs', async () => {
