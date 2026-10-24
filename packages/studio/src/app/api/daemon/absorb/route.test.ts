@@ -1,203 +1,169 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { callMcpToolMock, getGitHubTokenMock } = vi.hoisted(() => ({
-  callMcpToolMock: vi.fn(),
-  getGitHubTokenMock: vi.fn(async () => 'user-token' as string | null),
+const m = vi.hoisted(() => ({
+  session: { user: { id: 'user-a' } } as { user: { id: string } } | null,
+  ghToken: 'gh-user-token' as string | null,
 }));
 
+vi.mock('next-auth', () => ({ getServerSession: vi.fn(async () => m.session) }));
+vi.mock('@/lib/auth', () => ({ authOptions: {} }));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: vi.fn(async () => m.ghToken) }));
 vi.mock('@/lib/services/absorb-client', () => ({
-  callMcpTool: callMcpToolMock,
-  mcpClearlyDidNotRun: (r: { ok: boolean; failure?: string }) =>
-    !r.ok && (r.failure === 'refused' || r.failure === 'http_4xx'),
-  MCP_SERVER_URL: 'https://mcp.test',
   ABSORB_BASE: 'https://absorb.test',
+  ABSORB_API_KEY: 'service-key',
 }));
 
-vi.mock('@/app/api/github/_shared', () => ({
-  getGitHubToken: getGitHubTokenMock,
-}));
+import { POST } from './route';
+import { upsertDurableAbsorbProject } from '@/lib/absorb/projectState';
 
-import { GET, POST } from './route';
+const WS = 'ws-11111111-2222-4333-8444-555555555555';
+const IMPORT_ID = 'imp-0001-aaaa';
 
-describe('/api/daemon/absorb route', () => {
+function post(body: unknown): NextRequest {
+  return new NextRequest('http://localhost/api/daemon/absorb', {
+    method: 'POST',
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+describe('/api/daemon/absorb: owner-checked, sends repoUrl (never a path) to absorb /scan', () => {
   let tempRoot: string;
-  let savedWorkspaceRoot: string | undefined;
-  let savedStateFile: string | undefined;
+  let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
-    callMcpToolMock.mockReset();
-    getGitHubTokenMock.mockClear();
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
-    savedStateFile = process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'daemon-absorb-test-'));
     process.env.HOLOSCRIPT_WORKSPACES_DIR = tempRoot;
     delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
+    m.session = { user: { id: 'user-a' } };
+    m.ghToken = 'gh-user-token';
+    upsertDurableAbsorbProject({
+      id: WS,
+      name: 'tiny',
+      ownerId: 'user-a',
+      sourceType: 'github',
+      sourceUrl: 'https://github.com/owner/tiny.git',
+      localPath: `/data/workspaces/${WS}/tiny`,
+      metadata: { branch: 'main' },
+    });
+    fetchMock = vi.fn(async () => new Response('{"graphId":"g1","stats":{"totalFiles":1},"cost":10}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
   });
-
   afterEach(() => {
-    if (savedWorkspaceRoot === undefined) {
-      delete process.env.HOLOSCRIPT_WORKSPACES_DIR;
-    } else {
-      process.env.HOLOSCRIPT_WORKSPACES_DIR = savedWorkspaceRoot;
-    }
-    if (savedStateFile === undefined) {
-      delete process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
-    } else {
-      process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE = savedStateFile;
-    }
+    vi.unstubAllGlobals();
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
-  it('GET returns static guidance payload', async () => {
-    const req = new NextRequest('http://localhost/api/daemon/absorb');
-    const res = await GET(req);
+  it('sends {repoUrl, branch, importId, projectId, shallow} and no path', async () => {
+    const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID, depth: 'shallow' }));
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.cached).toBe(false);
-    expect(body.hint).toMatch(/POST instead/i);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('https://absorb.test/api/absorb/scan');
+    const sent = JSON.parse(init.body as string);
+    expect(sent).toEqual({
+      repoUrl: 'https://github.com/owner/tiny.git',
+      branch: 'main',
+      importId: IMPORT_ID,
+      projectId: WS,
+      shallow: true,
+    });
+    expect(sent.path).toBeUndefined();
+    const h = init.headers as Record<string, string>;
+    // #658: only the user's own credential, never the service key.
+    expect(h.Authorization).toBe('Bearer gh-user-token');
+    expect(h['X-User-Authorization']).toBeUndefined();
+    expect(JSON.stringify(h)).not.toContain('service-key');
   });
 
-  it('POST returns MCP result when tool call succeeds', async () => {
-    callMcpToolMock.mockResolvedValue({ ok: true, data: { jobId: 'job-mcp', status: 'queued' } });
-
-    const req = new NextRequest('http://localhost/api/daemon/absorb', {
-      method: 'POST',
-      body: JSON.stringify({ projectId: 'proj-1', depth: 'deep', tier: 'high' }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.jobId).toBe('job-mcp');
-    const state = JSON.parse(
-      fs.readFileSync(path.join(tempRoot, '.absorb-projects.json'), 'utf-8')
-    ) as {
-      projects: Array<{ id: string; absorbJobs: Array<{ jobId: string; source: string }> }>;
-    };
-    expect(state.projects[0].id).toBe('proj-1');
-    expect(state.projects[0].absorbJobs[0]).toMatchObject({
-      jobId: 'job-mcp',
-      source: 'mcp',
-    });
-
-    expect(callMcpToolMock).toHaveBeenCalledWith('absorb_run_absorb', {
-      projectId: 'proj-1',
-      depth: 'deep',
-      tier: 'high',
-    }, 'Bearer user-token');
+  it("someone else's workspace: 404, nothing sent", async () => {
+    m.session = { user: { id: 'user-b' } };
+    const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(res.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('POST falls back to absorb /scan when MCP was refused (never ran)', async () => {
-    callMcpToolMock.mockResolvedValue({ ok: false, data: null, failure: 'refused' });
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ jobId: 'job-http', status: 'running' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    );
-    vi.stubGlobal('fetch', fetchMock);
-
-    const req = new NextRequest('http://localhost/api/daemon/absorb', {
-      method: 'POST',
-      body: JSON.stringify({ projectPath: '/tmp/repo', depth: 'medium', tier: 'medium' }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const res = await POST(req);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.jobId).toBe('job-http');
-
-    expect(getGitHubTokenMock).toHaveBeenCalled();
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://absorb.test/api/absorb/scan');
-    const fetchInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    const headers = (fetchInit.headers ?? {}) as Record<string, string>;
-    expect(headers.Authorization).toBe('Bearer user-token');
+  it('not signed in: 401, nothing sent', async () => {
+    m.session = null;
+    const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(res.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('POST returns 502 when MCP and HTTP fallback both fail', async () => {
-    callMcpToolMock.mockResolvedValue({ ok: false, data: null, failure: 'refused' });
-    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
-
-    const req = new NextRequest('http://localhost/api/daemon/absorb', {
-      method: 'POST',
-      body: JSON.stringify({ projectId: 'proj-fail', projectPath: '/tmp/fail' }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const res = await POST(req);
-    expect(res.status).toBe(502);
-    const body = await res.json();
-    expect(body.error).toMatch(/Absorb could not run/i);
-  });
-
-  it('POST logs the real MCP and HTTP failure reasons server-side and returns only a short reason', async () => {
-    const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
-    callMcpToolMock.mockResolvedValue({
-      ok: false,
-      data: null,
-      error: 'MCP absorb_run_absorb request failed: fetch failed',
-      failure: 'refused',
-    });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue(new Response('upstream down', { status: 503 }))
-    );
-
-    const req = new NextRequest('http://localhost/api/daemon/absorb', {
-      method: 'POST',
-      body: JSON.stringify({ projectId: 'proj-loud', projectPath: '/tmp/loud' }),
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const res = await POST(req);
-    expect(res.status).toBe(502);
-    const body = await res.json();
-    // Client: short reason, no upstream text.
-    expect(body.reason).toBe('absorb_upstream_failed');
-    expect(body.detail).toBeUndefined();
-    expect(JSON.stringify(body)).not.toContain('upstream down');
-    expect(JSON.stringify(body)).not.toContain('fetch failed');
-    // Server log: the full reasons.
-    expect(
-      consoleErr.mock.calls.some((c) =>
-        String(c[0]).includes(
-          'MCP: MCP absorb_run_absorb request failed: fetch failed; HTTP 503: upstream down'
-        )
-      )
-    ).toBe(true);
-    consoleErr.mockRestore();
-  });
-
-  it('POST refuses a JSON body that is not an object (null) with 400, not a 500', async () => {
-    const req = new NextRequest('http://localhost/api/daemon/absorb', {
-      method: 'POST',
-      body: 'null',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const res = await POST(req);
+  it('a raw path instead of a workspace id is refused', async () => {
+    const res = await POST(post({ workspaceId: '/etc', projectPath: '/etc', importId: IMPORT_ID }));
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe('JSON body must be an object');
-    expect(callMcpToolMock).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('POST refuses a malformed JSON body with the parse error', async () => {
-    const req = new NextRequest('http://localhost/api/daemon/absorb', {
-      method: 'POST',
-      body: 'not json',
-      headers: { 'Content-Type': 'application/json' },
-    });
-    const res = await POST(req);
+  it('missing importId: the server mints one (or uses its pending one); a malformed one is refused', async () => {
+    const res = await POST(post({ workspaceId: WS }));
+    expect(res.status).toBe(200);
+    const sent = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string);
+    expect(sent.importId).toMatch(/^imp-[0-9a-f-]{36}$/);
+    const bad = await POST(post({ workspaceId: WS, importId: 'x' }));
+    expect(bad.status).toBe(400);
+  });
+
+  it('absorb timeout (504), oversize (413) and no credits (402) pass through with a clear message', async () => {
+    // With absorb's own codes: a bare 504/413 is a proxy's, outcome unknown (Mapping H1).
+    const own: Record<number, string> = { 504: 'clone_timeout', 413: 'clone_too_large', 402: 'x' };
+    for (const status of [504, 413, 402]) {
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: own[status] }), { status }));
+      const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+      expect(res.status).toBe(status);
+      expect((await res.json()).reason).toBe('absorb_refused');
+    }
+  });
+
+  it('absorb 5xx or a network error: 502, one attempt, upstream text not returned', async () => {
+    fetchMock.mockResolvedValueOnce(new Response('internal detail', { status: 500 }));
+    const a = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(a.status).toBe(502);
+    expect(JSON.stringify(await a.json())).not.toContain('internal detail');
+    fetchMock.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    const b = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(b.status).toBe(502);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('bad JSON: 400', async () => {
+    const res = await POST(post('{"x":'));
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toMatch(/^Invalid JSON body: /);
-    expect(callMcpToolMock).not.toHaveBeenCalled();
+  });
+
+  it('no GitHub token: 401, nothing sent (the service key never goes alone; Treasurer A)', async () => {
+    m.ghToken = null;
+    const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(res.status).toBe(401);
+    expect((await res.json()).reason).toBe('absorb_no_user_credential');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('the absorb call has a timeout; a cut call is "outcome unknown" (502), not a refusal', async () => {
+    const res0 = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(res0.status).toBe(200);
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+    fetchMock.mockRejectedValueOnce(new DOMException('The operation timed out.', 'TimeoutError'));
+    const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+    expect(res.status).toBe(502);
+    expect((await res.json()).reason).toBe('absorb_outcome_unknown');
+  });
+
+  it("absorb's 409 is passed through with its own code and message (Treasurer, #617)", async () => {
+    for (const code of ['import_in_progress', 'import_already_charged', 'import_claim_lost', 'import_id_reused']) {
+      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: code, message: 'x' }), { status: 409 }));
+      const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
+      expect(res.status).toBe(409);
+      const body = await res.json();
+      expect(body.reason).toBe(code);
+      expect(body.error).not.toContain('did not answer');
+    }
   });
 });

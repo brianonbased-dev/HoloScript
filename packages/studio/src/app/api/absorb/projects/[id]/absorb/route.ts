@@ -1,11 +1,15 @@
-
 export const maxDuration = 300;
 
 import * as path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { getGitHubToken } from '@/app/api/github/_shared';
 import { ABSORB_BASE } from '@/lib/services/absorb-client';
-import { findDurableAbsorbProject, recordAbsorbJob } from '@/lib/absorb/projectState';
+import {
+  findDurableAbsorbProject,
+  isAbsorbStateLockTimeout,
+  recordAbsorbJob,
+} from '@/lib/absorb/projectState';
+import { withAbsorbStateLock503 } from '@/lib/absorb/stateLockResponse';
 
 import { corsHeaders } from '../../../../_lib/cors';
 
@@ -20,7 +24,10 @@ import { corsHeaders } from '../../../../_lib/cors';
  * have (404). It now calls absorb-service's own POST /api/absorb/scan once,
  * directly. One request, one possible charge, no retry on another path.
  */
-export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+async function postProjectAbsorb(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
   const { id: projectId } = await params;
 
   // An empty body means "defaults"; a malformed one is refused with the parse
@@ -64,10 +71,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     scanBody.languages = body.languages as string[];
   }
 
-  // A scan is paid: absorb must charge the caller's own credential. Without it
-  // there is no payer, so refuse here (no service-key fallback, #616 / #654).
-  // It is the signed-in user's own credential, resolved server-side from the session
-  // (cookie or JWT), never from a client header and never the service key.
+  // The user's own credential, never Studio's key alone (same rule as
+  // daemon/absorb): without it absorb has no payer, so refuse here.
   const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
   if (!userToken) {
     return NextResponse.json(
@@ -89,15 +94,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
     if (res.ok) {
       const data = await res.json();
-      recordAbsorbJob({
-        projectId,
-        projectPath: scanPath,
-        source: 'http',
-        depth: body.depth,
-        tier: body.tier,
-        request: body,
-        result: data,
-      });
+      // H2 (#617): absorb may have charged. A state-lock timeout here must not
+      // become an error that invites a re-charge: answer 200 with the result
+      // and recordPending, and log. This route has no importId, so absorb
+      // cannot dedupe a client retry; see the PR body.
+      try {
+        recordAbsorbJob({
+          projectId,
+          projectPath: scanPath,
+          source: 'http',
+          depth: body.depth,
+          tier: body.tier,
+          request: body,
+          result: data,
+        });
+      } catch (err) {
+        if (!isAbsorbStateLockTimeout(err)) throw err;
+        console.error(
+          `[API absorb/projects/[id]/absorb] scan succeeded for ${projectId} but the job record failed: state lock timeout`
+        );
+        return NextResponse.json({ ...data, recordPending: true });
+      }
       return NextResponse.json(data);
     }
     const text = await res.text().catch((err: unknown) => `(body unreadable: ${String(err)})`);
@@ -106,6 +123,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // allowed, 400 bad request). Anything else is an upstream failure.
     if (res.status === 400 || res.status === 402 || res.status === 403) status = res.status;
   } catch (err) {
+    // A state-lock timeout is not an absorb failure: the route answers 503.
+    if (isAbsorbStateLockTimeout(err)) throw err;
     failure = `absorb /scan threw: ${err instanceof Error ? err.message : String(err)}`;
   }
   console.error(`[API absorb/projects/[id]/absorb] absorb failed for ${projectId}: ${failure}`);
@@ -145,12 +164,17 @@ function resolveScanPath(projectId: string): string | null {
 }
 
 /**
- * A scan is paid: only the caller's own credential is sent, never the service
- * key, so the key alone never reaches /scan (closes #616's fallback, as #654).
+ * A scan is paid: absorb must charge the signed-in user or refuse. Only the
+ * user's own token is sent, never the service key, so there is no path where
+ * the key alone (or the key standing in for a missing user) reaches /scan
+ * (Mapping, #654 closing #616's fallback).
  */
 function scanAuth(userToken: string): Record<string, string> {
   return { Authorization: `Bearer ${userToken}` };
 }
+
+/** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
+export const POST = withAbsorbStateLock503(postProjectAbsorb);
 
 export function OPTIONS(request: Request) {
   return new Response(null, {

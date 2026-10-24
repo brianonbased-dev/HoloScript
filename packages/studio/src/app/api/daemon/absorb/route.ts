@@ -1,21 +1,88 @@
 export const maxDuration = 300;
 
+/**
+ * The absorb call is cut before maxDuration, so Studio answers instead of the
+ * platform killing the request. A cut call has an UNKNOWN outcome (absorb may
+ * still finish and charge): it answers 502 absorb_outcome_unknown, and the
+ * client keeps the workspace and retries with the SAME importId, which
+ * replays a finished import at cost 0 (Treasurer, #617).
+ */
+export const ABSORB_FETCH_TIMEOUT_MS = 280_000;
+
+import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { ABSORB_BASE } from '@/lib/services/absorb-client';
+import {
+  findDurableAbsorbProject,
+  recordAbsorbJob,
+  claimPendingAbsorbImportId,
+  clearPendingAbsorbImportId,
+  isAbsorbStateLockTimeout,
+  type DurableAbsorbProject,
+} from '@/lib/absorb/projectState';
+import { withAbsorbStateLock503 } from '@/lib/absorb/stateLockResponse';
+import { callerUserId } from '@/lib/workspace/workspaceOwner';
 import { getGitHubToken } from '@/app/api/github/_shared';
-import { callMcpTool, mcpClearlyDidNotRun, ABSORB_BASE } from '@/lib/services/absorb-client';
-import { recordAbsorbJob } from '@/lib/absorb/projectState';
 
 import { corsHeaders } from '../../_lib/cors';
-export async function GET(_req: NextRequest) {
+
+/**
+ * The pending importId lives on the SERVER, in the workspace's own row
+ * (metadata.pendingImportId in Studio's absorb project state file, on the
+ * workspaces volume), so it survives a reload, a new tab and a new device
+ * (Mapping N1, #617). Written before the absorb call, cleared on success or
+ * a definitive refusal. No database table or column.
+ */
+export function pendingImportIdOf(project: DurableAbsorbProject): string | null {
+  const v = project.metadata.pendingImportId;
+  return typeof v === 'string' && IMPORT_ID_RE.test(v) ? v : null;
+}
+
+const IMPORT_ID_RE = /^[A-Za-z0-9-]{8,100}$/;
+
+/**
+ * Statuses after which absorb has definitely not charged: the pending id is
+ * cleared. 413 and 504 count only with absorb's OWN code in the body
+ * (clone_too_large, clone_timeout); a gateway or proxy 413/504 (HTML or empty
+ * body) is an unknown outcome and keeps the id (Mapping H1, #617). absorb's
+ * /scan never answers 404 for a URL import, so a 404 always keeps it.
+ */
+const DEFINITIVE_REFUSALS = new Set([400, 401, 402, 403]);
+const ABSORB_OWN_CODE: Record<number, string> = { 413: 'clone_too_large', 504: 'clone_timeout' };
+
+export async function GET(req: NextRequest) {
+  const workspaceId = req.nextUrl?.searchParams.get('workspaceId');
+  if (workspaceId) {
+    const session = await getServerSession(authOptions);
+    const ownerId = callerUserId(session);
+    if (!session?.user || !ownerId) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    const project = findDurableAbsorbProject({ projectId: workspaceId });
+    if (!project || project.ownerId !== ownerId) {
+      return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+    }
+    return NextResponse.json({ workspaceId, pendingImportId: pendingImportIdOf(project) });
+  }
   return NextResponse.json({
     cached: false,
-    hint: 'Absorb API proxy bypassed. POST instead to use MCP tools.',
+    hint: 'POST { workspaceId, importId?, depth } to absorb an imported workspace. GET ?workspaceId= returns its pending importId.',
   });
 }
 
-export async function POST(req: NextRequest) {
-  // An empty body means "defaults"; a malformed one is refused with the parse
-  // error instead of silently running with defaults.
+/**
+ * Absorb an imported workspace.
+ *
+ * absorb-service cannot see Studio's clone (separate Railway volumes), so
+ * Studio no longer sends a local path. After checking that the caller owns
+ * the workspace, it sends the workspace's GitHub URL and branch, and absorb
+ * clones the repo itself under its own guards (clone-from-url.ts). One POST,
+ * no MCP hop and no fallback: the importId makes a retry free, not a second
+ * charge.
+ */
+async function postAbsorb(req: NextRequest): Promise<Response> {
   let body: Record<string, unknown> = {};
   const rawBody = await req.text();
   if (rawBody.trim() !== '') {
@@ -24,7 +91,6 @@ export async function POST(req: NextRequest) {
       parsed = JSON.parse(rawBody);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error('[API daemon/absorb] parsing request body failed:', message);
       return NextResponse.json({ error: `Invalid JSON body: ${message}` }, { status: 400 });
     }
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
@@ -33,8 +99,58 @@ export async function POST(req: NextRequest) {
     body = parsed as Record<string, unknown>;
   }
 
+  const session = await getServerSession(authOptions);
+  const ownerId = callerUserId(session);
+  if (!session?.user || !ownerId) {
+    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  const workspaceId = typeof body.workspaceId === 'string' ? body.workspaceId : '';
+  if (!/^ws-[0-9a-f-]{36}$/.test(workspaceId)) {
+    return NextResponse.json({ error: 'workspaceId must be a workspace id' }, { status: 400 });
+  }
+  const clientImportId = typeof body.importId === 'string' ? body.importId : null;
+  if (clientImportId !== null && !IMPORT_ID_RE.test(clientImportId)) {
+    return NextResponse.json(
+      { error: 'importId must be 8-100 letters, digits or dashes' },
+      { status: 400 }
+    );
+  }
+
+  // Owner check: the same rule as DELETE /api/workspace/import.
+  const project = findDurableAbsorbProject({ projectId: workspaceId });
+  if (!project || project.ownerId !== ownerId) {
+    return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+  }
+  if (!project.sourceUrl) {
+    return NextResponse.json({ error: 'Workspace has no repository URL' }, { status: 409 });
+  }
+  const branch = typeof project.metadata.branch === 'string' ? project.metadata.branch : undefined;
+  // The server's pending importId wins over whatever this client sends: a
+  // reloaded page, another tab or another device retries the SAME import, so
+  // absorb replays it instead of charging again (Mapping N1).
+  // Saved BEFORE any await, first writer wins under the state file's lock
+  // (Mapping N1): two first attempts from two devices get ONE importId.
+  const importId = claimPendingAbsorbImportId(
+    workspaceId,
+    ownerId,
+    clientImportId ?? `imp-${randomUUID()}`
+  );
+  if (!importId) {
+    return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+  }
+
+  const scanBody = {
+    repoUrl: project.sourceUrl,
+    ...(branch ? { branch } : {}),
+    importId,
+    projectId: workspaceId,
+    shallow: body.depth === 'shallow',
+  };
+
   // A scan is paid: only the signed-in user's own credential (from the session,
-  // cookie or JWT) is sent, never the service key. No user: 401, nothing sent.
+  // cookie or JWT) is sent, never the service key (#658). No user: 401, nothing
+  // sent, so absorb never sees a scan without a payer (Treasurer, #617).
   const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
   if (!userToken) {
     return NextResponse.json(
@@ -45,143 +161,136 @@ export async function POST(req: NextRequest) {
       { status: 401 }
     );
   }
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...scanAuth(userToken) };
 
-  const mcpResult = await callMcpTool(
-    'absorb_run_absorb',
-    {
-      projectId: body.projectPath || body.projectId || 'local',
-      depth: body.depth ?? 'medium',
-      tier: body.tier ?? 'medium',
-    },
-    `Bearer ${userToken}`
-  );
-
-  if (mcpResult.ok && mcpResult.data) {
-    recordAbsorbJob({
-      projectId: typeof body.projectId === 'string' ? body.projectId : undefined,
-      projectPath: typeof body.projectPath === 'string' ? body.projectPath : undefined,
-      source: 'mcp',
-      depth: body.depth,
-      tier: body.tier,
-      request: body,
-      result: mcpResult.data,
+  let failure: string;
+  let status = 502;
+  let reason = 'absorb_upstream_failed';
+  try {
+    const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(scanBody),
+      signal: AbortSignal.timeout(ABSORB_FETCH_TIMEOUT_MS),
     });
-    return NextResponse.json(mcpResult.data);
-  }
-
-  const failures: string[] = [`MCP: ${mcpResult.error ?? 'absorb_run_absorb returned no result'}`];
-  // Fall back to absorb's own /scan ONLY when the MCP tool clearly did not run
-  // (connection refused, or a 4xx before the tool ran). After a timeout, a 5xx
-  // or a JSON-RPC error the tool may have run and charged; a second paid path
-  // could bill the same import twice, so report the failure instead.
-  const scanBody = mcpClearlyDidNotRun(mcpResult) ? scanRequestFrom(body) : null;
-  if (!scanBody) {
-    failures.push(
-      mcpClearlyDidNotRun(mcpResult)
-        ? 'HTTP fallback skipped: no projectPath to scan'
-        : `HTTP fallback skipped: MCP may have run (${mcpResult.failure ?? 'unknown'})`
-    );
-  }
-  if (scanBody) {
-    try {
-      const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...absorbFallbackAuth(userToken),
-        },
-        // Only the fields /scan reads, never the raw client body.
-        body: JSON.stringify(scanBody),
-      });
-      if (res.ok) {
-        const data = await res.json();
+    if (res.ok) {
+      const data = await res.json();
+      // H2 (#617): absorb has charged. Record the job and compare-and-clear
+      // the pending id in ONE locked write. If the lock times out, nothing was
+      // written: the id stays pending, so a retry replays at cost 0, and the
+      // caller still gets the result (200), never a 503 that invites a
+      // re-charge.
+      try {
         recordAbsorbJob({
-          projectId: typeof body.projectId === 'string' ? body.projectId : undefined,
-          projectPath: typeof body.projectPath === 'string' ? body.projectPath : undefined,
+          projectId: workspaceId,
           source: 'http',
           depth: body.depth,
-          tier: body.tier,
-          request: body,
+          request: { workspaceId, importId, depth: body.depth },
           result: data,
+          clearPendingImportId: { ownerId, importId },
         });
-        return NextResponse.json(data);
+      } catch (err) {
+        if (!isAbsorbStateLockTimeout(err)) throw err;
+        console.error(
+          `[API daemon/absorb] absorb succeeded for ${workspaceId} (importId ${importId}) but the job record failed: state lock timeout; pending importId kept`
+        );
+        return NextResponse.json({ ...data, importId, recordPending: true });
       }
-      const text = await res.text().catch((err: unknown) => `(body unreadable: ${String(err)})`);
-      failures.push(`HTTP ${res.status}: ${text.slice(0, 300)}`);
-    } catch (err) {
-      failures.push(`HTTP fallback threw: ${err instanceof Error ? err.message : String(err)}`);
+      return NextResponse.json({ ...data, importId });
     }
+    const text = await res.text().catch((err: unknown) => `(body unreadable: ${String(err)})`);
+    failure = `absorb /scan HTTP ${res.status}: ${text.slice(0, 300)}`;
+    let ownCode: unknown;
+    try {
+      ownCode = (JSON.parse(text) as { error?: unknown }).error;
+    } catch {
+      ownCode = undefined;
+    }
+    const fromAbsorb = !(res.status in ABSORB_OWN_CODE) || ownCode === ABSORB_OWN_CODE[res.status];
+    if ([400, 402, 403, 409, 413, 504].includes(res.status) && fromAbsorb) {
+      status = res.status;
+      reason = 'absorb_refused';
+    } else if (res.status in ABSORB_OWN_CODE || res.status === 404) {
+      // A proxy's 404/413/504: absorb may still have run. Unknown, not a refusal.
+      reason = 'absorb_outcome_unknown';
+    }
+    if (res.status === 409) {
+      // Pass absorb's own 409 code through (import_in_progress,
+      // import_already_charged, import_claim_lost, import_id_reused).
+      let code: unknown;
+      try {
+        code = (JSON.parse(text) as { error?: unknown }).error;
+      } catch {
+        code = undefined;
+      }
+      reason = typeof code === 'string' && /^import_[a-z_]+$/.test(code) ? code : 'import_conflict';
+    }
+    // Definitive: nothing was charged under this id (or it names another
+    // repo), so the next attempt starts a new import. Anything else keeps it.
+    if (
+      DEFINITIVE_REFUSALS.has(res.status) ||
+      (res.status in ABSORB_OWN_CODE && fromAbsorb) ||
+      reason === 'import_id_reused'
+    ) {
+      clearPendingAbsorbImportId(workspaceId, ownerId, importId);
+    }
+  } catch (err) {
+    // A state-lock timeout is not an absorb failure: the route answers 503.
+    if (isAbsorbStateLockTimeout(err)) throw err;
+    failure = `absorb /scan threw: ${err instanceof Error ? err.message : String(err)}`;
+    const name = (err as { name?: unknown } | null)?.name;
+    if (name === 'TimeoutError' || name === 'AbortError') reason = 'absorb_outcome_unknown';
   }
-  const failure = failures.join('; ');
-  console.error(`[API daemon/absorb] absorb failed: ${failure}`);
+  console.error(`[API daemon/absorb] absorb failed for ${workspaceId}: ${failure}`);
+  recordAbsorbJob({
+    projectId: workspaceId,
+    source: 'http',
+    depth: body.depth,
+    request: { workspaceId, importId, depth: body.depth },
+    result: null,
+    error: failure,
+  });
 
-  if (typeof body.projectId === 'string' || typeof body.projectPath === 'string') {
-    recordAbsorbJob({
-      projectId: typeof body.projectId === 'string' ? body.projectId : undefined,
-      projectPath: typeof body.projectPath === 'string' ? body.projectPath : undefined,
-      source: 'http',
-      depth: body.depth,
-      tier: body.tier,
-      request: body,
-      result: null,
-      error: failure,
-    });
-  }
-
-  // The upstream text stays in the server log and the job record; the
-  // client gets a short reason, never raw upstream bodies.
-  const toolRanAndFailed = mcpResult.failure === 'tool_error' && !scanBody;
-  return NextResponse.json(
-    toolRanAndFailed
-      ? {
-          error: 'Absorb ran but reported an error. Details are in the server log.',
-          reason: 'absorb_tool_error',
-        }
-      : {
-          error:
-            'Absorb could not run: the absorb service did not answer. Details are in the server log.',
-          reason: 'absorb_upstream_failed',
-        },
-    { status: 502 }
-  );
-}
-
-/**
- * The absorb /scan request built from what the MCP path sends
- * (projectPath -> path, depth -> shallow), plus optional languages and
- * projectId. Nothing else from the client body is forwarded. Null when there
- * is no path to scan.
- */
-function scanRequestFrom(body: Record<string, unknown>): {
-  path: string;
-  shallow: boolean;
-  languages?: string[];
-  projectId?: string;
-} | null {
-  const path = typeof body.projectPath === 'string' ? body.projectPath.trim() : '';
-  if (!path) return null;
-  const scan: { path: string; shallow: boolean; languages?: string[]; projectId?: string } = {
-    path,
-    shallow: body.depth === 'shallow',
+  const message: Record<number, string> = {
+    400: 'Absorb refused this repository URL or branch.',
+    402: 'Not enough credits to absorb this repository.',
+    403: 'Absorb refused this request.',
+    413: 'This repository is too large to absorb.',
+    504: 'Cloning this repository took too long.',
   };
-  if (Array.isArray(body.languages) && body.languages.every((l) => typeof l === 'string')) {
-    scan.languages = body.languages as string[];
-  }
-  if (typeof body.projectId === 'string' && body.projectId !== '') scan.projectId = body.projectId;
-  return scan;
+  const conflict: Record<string, string> = {
+    import_in_progress:
+      'This import is still running. Retry shortly to get its result; you will not be charged twice.',
+    import_already_charged:
+      'This import was already charged but its result was not recorded. You will not be charged again.',
+    import_claim_lost: 'Another request took over this import. This one was not charged.',
+    import_id_reused: 'This import id belongs to a different repository or branch.',
+    import_conflict: 'This import conflicts with another one. You were not charged twice.',
+  };
+  const error =
+    status === 409
+      ? (conflict[reason] ?? conflict.import_conflict)
+      : reason === 'absorb_outcome_unknown'
+        ? 'Absorb is taking longer than expected. Retry to get the result; you will not be charged twice.'
+        : (message[status] ??
+          'Absorb could not run: the absorb service did not answer. Details are in the server log.');
+  return NextResponse.json({ error, reason, importId }, { status });
 }
 
+/** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
+export const POST = withAbsorbStateLock503(postAbsorb);
+
 /**
- * Browser callers sign in with a session cookie; their own credential is
- * resolved server-side from the session. Never the service key (#658).
+ * A scan is paid: only the caller's own credential is sent, never the service
+ * key, so the key alone never reaches /scan (#616 / #654 / #658).
  */
-function absorbFallbackAuth(userToken: string): Record<string, string> {
+function scanAuth(userToken: string): Record<string, string> {
   return { Authorization: `Bearer ${userToken}` };
 }
 
 export function OPTIONS(request: Request) {
   return new Response(null, {
     status: 204,
-    headers: corsHeaders(request, { methods: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' }),
+    headers: corsHeaders(request, { methods: 'GET, POST, OPTIONS' }),
   });
 }
