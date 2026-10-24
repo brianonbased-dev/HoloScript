@@ -57,7 +57,7 @@ export function resolveMcpCaller(req: Request | undefined): McpCaller {
     // v1 (#653): userId is the verified account uuid, so it is the owner.
     return { kind: 'orchestrator', ownerId: authReq.userId ?? null, serverKeysAllowed: true };
   }
-  if (authReq.authKind === 'orchestrator' && authReq.orchestratorGated) {
+  if (authReq.authKind === 'orchestrator') {
     // userId here is "orchestrator:<key id>", derived from a key, so it is not an owner:
     // calls are request-scoped.
     return { kind: 'orchestrator', ownerId: null, serverKeysAllowed: true };

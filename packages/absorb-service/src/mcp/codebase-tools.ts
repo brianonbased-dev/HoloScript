@@ -7137,8 +7137,52 @@ function callerScopedRefusal(name: string, hint: string): Record<string, unknown
   return { error: 'no_caller_graph', status: 403, callerScoped: true, tool: name, hint };
 }
 
-/** Test-only: register a minimal live job with an owner. */
-export function registerAbsorbJobForTests(jobId: string, ownerId: string | null): void {
+/**
+ * H3: a remote caller owns only a job its own call created. If the call coalesced onto (or
+ * was refused by) a job that already existed, that job keeps its owner and the caller gets
+ * 409 unless it already owns it, learning nothing about it (no jobId, rootDir or status).
+ */
+function workspaceBusyForCaller(): Record<string, unknown> {
+  // 409, never the other job's id, root or status. The existing job keeps its owner.
+  return {
+    error: 'absorb_workspace_busy',
+    status: 409,
+    callerScoped: true,
+    retryable: true,
+    tool: 'holo_absorb_repo',
+    hint: 'Another absorb job is already active for this workspace. Retry later.',
+  };
+}
+
+function scopeAbsorbRepoResultForCaller(
+  out: unknown,
+  existingJobIds: Set<string>,
+  ctx: CodebaseToolCallerContext
+): unknown {
+  if (!out || typeof out !== 'object') return out;
+  const rec = out as Record<string, unknown>;
+  const ids = [rec.jobId, rec.activeJobId].filter((v): v is string => typeof v === 'string');
+  if (ids.length === 0 && rec.coalesced !== true && rec.externalWriter !== true) return out;
+  for (const id of ids) {
+    const job = absorbJobs.get(id);
+    const createdByThisCall = !existingJobIds.has(id) && !!job && job.ownerId == null;
+    if (createdByThisCall && rec.coalesced !== true && rec.externalWriter !== true) {
+      job!.ownerId = ctx.ownerId;
+      continue;
+    }
+    const ownedByCaller = !!job && !!ctx.ownerId && job.ownerId === ctx.ownerId;
+    if (!ownedByCaller) {
+      return workspaceBusyForCaller();
+    }
+  }
+  if (ids.length === 0) {
+    return workspaceBusyForCaller();
+  }
+  return out;
+}
+
+/** Test-only: register a minimal live job with an owner (optionally holding rootDir's writer slot). */
+export function registerAbsorbJobForTests(jobId: string, ownerId: string | null, rootDir?: string): void {
   createAbsorbJob(
     process.cwd(),
     {} as AbsorbMemoryBudgetLimits,
@@ -7152,6 +7196,10 @@ export function registerAbsorbJobForTests(jobId: string, ownerId: string | null)
   if (job) {
     job.status = 'scanning' as AbsorbJob['status'];
     job.ownerId = ownerId;
+    if (rootDir) {
+      job.rootDir = rootDir;
+      job.writerKey = buildAbsorbWriterKey([rootDir]);
+    }
   }
 }
 
@@ -7175,11 +7223,9 @@ export async function handleCodebaseTool(
     }
     if (name === 'holo_cancel_absorb') return handleCancelAbsorb(args, ctx);
     if (name === 'holo_absorb_repo') {
+      const existingJobIds = new Set(absorbJobs.keys());
       const out = await handleAbsorbWithPageExtract(args);
-      const jobId = (out as { jobId?: unknown } | null)?.jobId;
-      const job = typeof jobId === 'string' ? absorbJobs.get(jobId) : undefined;
-      if (job) job.ownerId = ctx.ownerId;
-      return out;
+      return scopeAbsorbRepoResultForCaller(out, existingJobIds, ctx);
     }
   }
   // cacheAutoLoaded guard prevents repeated disk I/O within a session;
