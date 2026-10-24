@@ -16,6 +16,7 @@ import {
   cloneRepo,
   normalizeBranch,
   normalizeRepoUrl,
+  pinToCommit,
 } from './clone-from-url.js';
 
 type Behaviour = { exitCode?: number; stderr?: string; neverExits?: boolean; delayMs?: number };
@@ -200,5 +201,56 @@ describe('resource caps and cleanup', () => {
     expect((await fsp.readdir(repo.dir))).toContain('README.md');
     await repo.cleanup();
     expect(await leftovers()).toEqual([]);
+  });
+});
+
+describe('pin the clone to the charged commit (#617)', () => {
+  const A = 'a'.repeat(40);
+  const B = 'b'.repeat(40);
+  /** Scripted git: rev-parse answers from heads[], fetch/checkout succeed unless failOn matches. */
+  function scriptedGit(heads: string[], failOn?: string) {
+    const seen: string[][] = [];
+    const impl = vi.fn((_cmd: string, args: string[]) => {
+      const child = new EventEmitter() as unknown as ChildProcess & EventEmitter;
+      (child as unknown as { stdout: EventEmitter }).stdout = new EventEmitter();
+      (child as unknown as { stderr: EventEmitter }).stderr = new EventEmitter();
+      (child as unknown as { kill: () => boolean }).kill = () => true;
+      const sub = args.filter((x, i) => args[i - 1] !== '-c' && x !== '-c');
+      seen.push(sub);
+      setTimeout(() => {
+        if (sub[0] === 'rev-parse') {
+          (child as unknown as { stdout: EventEmitter }).stdout.emit('data', Buffer.from((heads.shift() ?? '') + '\n'));
+        }
+        child.emit('close', failOn && sub[0] === failOn ? 128 : 0);
+      }, 1);
+      return child;
+    });
+    return { impl, seen };
+  }
+
+  it('HEAD already at the SHA: nothing is fetched', async () => {
+    const g = scriptedGit([A]);
+    await pinToCommit(g.impl as never, root, root, A, 5_000);
+    expect(g.seen.map((x) => x[0])).toEqual(['rev-parse']);
+  });
+
+  it('branch moved: fetches the SHA, checks it out detached, verifies HEAD', async () => {
+    const g = scriptedGit([B, A]);
+    await pinToCommit(g.impl as never, root, root, A, 5_000);
+    expect(g.seen.map((x) => x[0])).toEqual(['rev-parse', 'fetch', 'checkout', 'rev-parse']);
+    expect(g.seen[1]).toContain(A);
+    expect(g.seen[2]).toEqual(['checkout', '--quiet', '--detach', A]);
+  });
+
+  it('HEAD still not the SHA after checkout: clone_commit_mismatch', async () => {
+    const g = scriptedGit([B, B]);
+    await expect(pinToCommit(g.impl as never, root, root, A, 5_000)).rejects.toMatchObject({
+      code: 'clone_commit_mismatch',
+    });
+  });
+
+  it('the SHA cannot be fetched: refused, never scanned', async () => {
+    const g = scriptedGit([B], 'fetch');
+    await expect(pinToCommit(g.impl as never, root, root, A, 5_000)).rejects.toBeInstanceOf(CloneRefusal);
   });
 });

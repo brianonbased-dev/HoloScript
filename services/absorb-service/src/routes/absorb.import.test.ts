@@ -4,8 +4,8 @@
  * guards); the ledger stands in the same way absorb.credits.test.ts does.
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CLAIM_HEARTBEAT_MS, PENDING_STALE_MS } from '../lib/absorb/importClaims.js';
-import { CLONE_TIMEOUT_MS } from '../lib/absorb/clone-from-url.js';
+import { CLAIM_HEARTBEAT_MS, PENDING_STALE_MS, commitImportId } from '../lib/absorb/importClaims.js';
+import { CLONE_TIMEOUT_MS, normalizeRepoUrl } from '../lib/absorb/clone-from-url.js';
 import type { Request, Response } from 'express';
 
 const h = vi.hoisted(() => ({
@@ -26,6 +26,9 @@ const h = vi.hoisted(() => ({
   // Runs at the start of deductCredits, after the route's own confirm (CoS: a
   // stall between the holder check and the debit).
   beforeDebit: null as null | (() => void),
+  // The commit each repo URL resolves to (git ls-remote stand-in).
+  shas: new Map<string, string>(),
+  resolves: 0,
 }));
 
 vi.mock('@holoscript/absorb-service/credits', () => {
@@ -55,7 +58,7 @@ vi.mock('@holoscript/absorb-service/credits', () => {
         };
         if (!(await opts.guard(tx))) throw Object.assign(new Error('guard refused'), { code: 'charge_guard_refused' });
       }
-      if (h.balance < cents) return null;
+      if (h.balance < cents && !(opts as { allowOverdraft?: boolean } | undefined)?.allowOverdraft) return null;
       h.balance -= cents;
       h.debits.push({ userId, cents, meta });
       h.order.push('debit');
@@ -93,6 +96,11 @@ vi.mock('../lib/absorb/clone-from-url.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/absorb/clone-from-url.js')>();
   return {
     ...actual,
+    resolveCommitSha: vi.fn(async (url: unknown) => {
+      const u = actual.normalizeRepoUrl(url);
+      h.resolves += 1;
+      return h.shas.get(u) ?? 'a'.repeat(40);
+    }),
     cloneRepo: vi.fn(async (url: unknown) => {
       actual.normalizeRepoUrl(url); // the real allowlist still runs
       h.clones += 1;
@@ -128,6 +136,8 @@ beforeEach(async () => {
   h.order = [];
   h.throwAfterDebit = false;
   h.beforeDebit = null;
+  h.shas = new Map();
+  h.resolves = 0;
   reset();
   vi.spyOn(console, 'error').mockImplementation(() => {});
   const { CloneRefusal } = await import('../lib/absorb/clone-from-url.js');
@@ -162,13 +172,18 @@ const IMPORT = {
   shallow: true,
 };
 
+/** The server-side claim key for IMPORT: user + repo + commit (#617). */
+const KEY_ID = commitImportId(normalizeRepoUrl('https://github.com/owner/tiny'), 'a'.repeat(40));
+
 describe('/scan repoUrl import', () => {
   it('scans the clone, charges once, and cleans the clone up', async () => {
     const r = await call(IMPORT);
     expect(r._status).toBe(200);
     expect(r._json?.cost).toBe(10);
     expect(h.debits).toHaveLength(1);
-    expect(h.debits[0].meta.importId).toBe('imp-0001-aaaa');
+    expect(h.debits[0].meta.importId).toBe(KEY_ID);
+    expect(h.debits[0].meta.clientImportId).toBe('imp-0001-aaaa');
+    expect(h.debits[0].meta.commitSha).toBe('a'.repeat(40));
     expect(h.cleanups).toBe(1);
   });
 
@@ -351,7 +366,7 @@ describe('/scan repoUrl import across instances (shared database)', () => {
     expect(again._json?.graphId).toBe(first._json?.graphId);
     expect(h.debits).toHaveLength(1);
     expect(h.clones).toBe(1);
-    expect(shared.rows.get(`${USER}:${IMPORT.importId}`)?.status).toBe('done');
+    expect(shared.rows.get(`${USER}:${KEY_ID}`)?.status).toBe('done');
   }, 30_000);
 
   it('the claim is taken before the charge', async () => {
@@ -407,7 +422,7 @@ describe('/scan repoUrl import across instances (shared database)', () => {
 });
 
 describe('/scan repoUrl import: stale takeover, late writes, reused importIds (Mapping, #617)', () => {
-  const key = `${USER}:${IMPORT.importId}`;
+  const key = `${USER}:${KEY_ID}`;
 
   it('a takeover after the charge does not charge again', async () => {
     // Instance A charges, then fails to record "done": the claim stays pending.
@@ -452,31 +467,48 @@ describe('/scan repoUrl import: stale takeover, late writes, reused importIds (M
     expect(shared.rows.get(key)).toEqual(newRow); // A's late writes changed nothing
   }, 30_000);
 
-  it('a reused importId with another branch or URL is refused (409) and charges nothing', async () => {
+  it('the claim is keyed on the commit: a reused client importId for another repo is a separate import, another branch at the same commit replays', async () => {
     h.db = sharedDb().db;
     const a = await newInstance();
     expect((await callOn(a, IMPORT))._status).toBe(200);
-    const otherBranch = await callOn(a, { ...IMPORT, branch: 'dev' });
-    expect(otherBranch._status).toBe(409);
-    expect(otherBranch._json?.error).toBe('import_id_reused');
+    const sameCommit = await callOn(a, { ...IMPORT, branch: 'dev' });
+    expect(sameCommit._status).toBe(200);
+    expect(sameCommit._json?.replayed).toBe(true);
+    expect(sameCommit._json?.costCents).toBe(0);
+    h.shas.set(normalizeRepoUrl('https://github.com/owner/other'), 'b'.repeat(40));
     const otherRepo = await callOn(a, { ...IMPORT, repoUrl: 'https://github.com/owner/other' });
-    expect(otherRepo._status).toBe(409);
-    expect(otherRepo._json?.error).toBe('import_id_reused');
-    expect(h.debits).toHaveLength(1);
-    expect(h.clones).toBe(1);
+    expect(otherRepo._status).toBe(200);
+    expect(otherRepo._json?.costCents).toBe(10);
+    expect(h.debits).toHaveLength(2);
+    expect(h.clones).toBe(2);
   }, 30_000);
 
-  it('the same refusal holds with no database (in-memory claims)', async () => {
+  it('the same commit key holds with no database (in-memory claims)', async () => {
     expect((await call(IMPORT))._status).toBe(200);
     const r = await call({ ...IMPORT, branch: 'dev' });
-    expect(r._status).toBe(409);
-    expect(r._json?.error).toBe('import_id_reused');
+    expect(r._status).toBe(200);
+    expect(r._json?.replayed).toBe(true);
     expect(h.debits).toHaveLength(1);
+  });
+
+  it('the clone is pinned to the resolved SHA; a pin mismatch is 502 and charges nothing', async () => {
+    const mod = await import('../lib/absorb/clone-from-url.js');
+    const cloneMock = mod.cloneRepo as unknown as { mock: { calls: unknown[][] } };
+    const before = cloneMock.mock.calls.length;
+    expect((await call(IMPORT))._status).toBe(200);
+    expect(cloneMock.mock.calls[before][2]).toEqual({ expectedSha: 'a'.repeat(40) });
+
+    h.shas.set(normalizeRepoUrl('https://github.com/owner/tiny'), 'c'.repeat(40));
+    h.cloneError = new mod.CloneRefusal('clone_commit_mismatch', 'clone is at aaaa, expected cccc');
+    const r = await call({ ...IMPORT, importId: 'imp-pin-mismatch' });
+    expect(r._status).toBe(502);
+    expect(r._json?.error).toBe('clone_commit_mismatch');
+    expect(h.debits).toHaveLength(1); // only the first, pinned scan
   });
 });
 
 describe('/scan repoUrl import: exception after the charge (Mapping H1, #617)', () => {
-  const key = `${USER}:${IMPORT.importId}`;
+  const key = `${USER}:${KEY_ID}`;
 
   it('an exception after the debit keeps the claim; the retry is not charged again (409)', async () => {
     const shared = sharedDb();
@@ -510,7 +542,7 @@ describe('/scan repoUrl import: exception after the charge (Mapping H1, #617)', 
   }, 30_000);
 });
 describe('/scan repoUrl import: heartbeat while cloning and scanning (Mapping, #617)', () => {
-  const key = `${USER}:${IMPORT.importId}`;
+  const key = `${USER}:${KEY_ID}`;
   const ticks = async (n: number) => {
     for (let i = 0; i < n; i++) await vi.advanceTimersByTimeAsync(60_000);
   };
@@ -552,7 +584,7 @@ describe('/scan repoUrl import: heartbeat while cloning and scanning (Mapping, #
     // A died mid-import: its pending claim stopped refreshing.
     shared.rows.set(key, {
       status: 'pending', outcome: null, claimedAt: Date.now(), holder: 'dead-holder',
-      repoUrl: IMPORT.repoUrl, branch: IMPORT.branch,
+      repoUrl: normalizeRepoUrl(IMPORT.repoUrl), branch: null, // commit-keyed claim (#617)
     });
     await ticks(16);
     const taken = await callOn(b, IMPORT);
@@ -568,9 +600,9 @@ describe('/scan repoUrl import: heartbeat while cloning and scanning (Mapping, #
     const b = await newInstance();
     shared.rows.set(key, {
       status: 'pending', outcome: null, claimedAt: Date.now(), holder: 'dead-holder',
-      repoUrl: IMPORT.repoUrl, branch: IMPORT.branch,
+      repoUrl: normalizeRepoUrl(IMPORT.repoUrl), branch: null, // commit-keyed claim (#617)
     });
-    h.debits.push({ userId: USER, cents: 10, meta: { graphId: 'g-dead', shallow: true, importId: IMPORT.importId } });
+    h.debits.push({ userId: USER, cents: 10, meta: { graphId: 'g-dead', shallow: true, importId: KEY_ID } });
     await ticks(16);
     const taken = await callOn(b, IMPORT);
     expect(taken._status).toBe(409);
@@ -584,7 +616,7 @@ describe('/scan repoUrl import: heartbeat while cloning and scanning (Mapping, #
   });
 });
 describe('/scan repoUrl import: holder check and debit in one transaction (CoS, #617)', () => {
-  const key = `${USER}:${IMPORT.importId}`;
+  const key = `${USER}:${KEY_ID}`;
 
   it('the holder is replaced between its confirm and the debit: it does not charge, one debit total', async () => {
     const shared = sharedDb();
@@ -596,7 +628,7 @@ describe('/scan repoUrl import: holder check and debit in one transaction (CoS, 
       h.beforeDebit = null;
       const row = shared.rows.get(key)!;
       row.holder = 'holder-b';
-      h.debits.push({ userId: USER, cents: 10, meta: { graphId: 'g-b', shallow: true, importId: IMPORT.importId } });
+      h.debits.push({ userId: USER, cents: 10, meta: { graphId: 'g-b', shallow: true, importId: KEY_ID } });
     };
     const late = await callOn(a, IMPORT);
     expect(late._status).toBe(409);
@@ -692,6 +724,49 @@ describe('/scan repoUrl import: never free (Mapping N2)', () => {
       expect(res._status).toBe(401);
       expect(res._json?.error).toBe('account_required');
     }
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+});
+
+/**
+ * CoS/Treasurer (#617): a reload after a 502 makes a new workspace, so the
+ * client sends a NEW importId for the same repo and commit. The server keys
+ * the import on user + repo + commit SHA and returns the first import.
+ */
+describe('/scan repoUrl import: idempotent on user + repo + commit SHA', () => {
+  it('a repeat request for the same commit with a new client importId returns the same import and charges once', async () => {
+    h.db = sharedDb().db;
+    const a = await newInstance();
+    const b = await newInstance();
+    const first = await callOn(a, IMPORT);
+    expect(first._status).toBe(200);
+    expect(first._json?.costCents).toBe(10);
+    const afterReload = await callOn(b, { ...IMPORT, importId: 'imp-reload-after-502' });
+    expect(afterReload._status).toBe(200);
+    expect(afterReload._json?.graphId).toBe(first._json?.graphId);
+    expect(afterReload._json?.replayed).toBe(true);
+    expect(afterReload._json?.costCents).toBe(0);
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(1);
+  }, 30_000);
+
+  it('a new commit on the same repo is a new import and is charged', async () => {
+    expect((await call(IMPORT))._status).toBe(200);
+    h.shas.set(normalizeRepoUrl('https://github.com/owner/tiny'), 'c'.repeat(40));
+    const next = await call({ ...IMPORT, importId: 'imp-0002-bbbb' });
+    expect(next._status).toBe(200);
+    expect(next._json?.costCents).toBe(10);
+    expect(h.debits).toHaveLength(2);
+  });
+
+  it('the commit cannot be resolved: refused before any claim, clone or charge', async () => {
+    const mod = await import('../lib/absorb/clone-from-url.js');
+    (mod.resolveCommitSha as unknown as { mockRejectedValueOnce: (e: unknown) => void }).mockRejectedValueOnce(
+      new mod.CloneRefusal('clone_failed', 'branch not found on the remote')
+    );
+    const r = await call(IMPORT);
+    expect(r._status).toBe(502);
     expect(h.clones).toBe(0);
     expect(h.debits).toHaveLength(0);
   });

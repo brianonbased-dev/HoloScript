@@ -4,10 +4,11 @@ import { z } from 'zod';
 import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
 import { userUuid } from '../middleware/auth.js';
-import { cloneRepo, CloneRefusal } from '../lib/absorb/clone-from-url.js';
+import { cloneRepo, CloneRefusal, normalizeRepoUrl, resolveCommitSha } from '../lib/absorb/clone-from-url.js';
 import {
   CLAIM_HEARTBEAT_MS,
   MemoryImportClaimStore,
+  commitImportId,
   PostgresImportClaimStore,
   RefusingImportClaimStore,
   databaseRequiredRefusal,
@@ -57,7 +58,7 @@ const ScanRequestSchema = z
     path: ['importId'],
   });
 
-type ScanBody = z.infer<typeof ScanRequestSchema>;
+type ScanBody = z.infer<typeof ScanRequestSchema> & { commitSha?: string; clientImportId?: string };
 type ScanOutcome = { status: number; json: Record<string, unknown> };
 
 // URL imports running on THIS instance, per (account, importId): two requests
@@ -146,14 +147,26 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
       },
     };
   }
-  const importId = body.importId as string; // required with repoUrl (schema)
-  // The repo and branch are part of the in-process key, so a reused importId
-  // for another repo never shares this run; the claim refuses it (409).
-  const key = `${account}:${importId}:${body.repoUrl}#${body.branch ?? ''}`;
+  // One charge per user + repo + commit SHA (CoS/Treasurer, #617): the claim
+  // key is derived from the commit the branch points at, not from the
+  // client's importId. A reload after a 502 sends a new importId for the same
+  // commit and gets the first import back instead of a second charge.
+  let repoUrl: string;
+  let commitSha: string;
+  try {
+    repoUrl = normalizeRepoUrl(body.repoUrl);
+    commitSha = await resolveCommitSha(body.repoUrl, body.branch);
+  } catch (err) {
+    if (err instanceof CloneRefusal) return cloneRefusalOutcome(err);
+    throw err;
+  }
+  const importId = commitImportId(repoUrl, commitSha);
+  const keyed: ScanBody = { ...body, repoUrl, importId, commitSha, clientImportId: body.importId };
+  const key = `${account}:${importId}`;
 
   const running = importsInFlight.get(key);
   if (running) return replayed(await running);
-  const p = claimAndScan(req, body, account, importId);
+  const p = claimAndScan(req, keyed, account, importId);
   importsInFlight.set(key, p);
   try {
     return await p;
@@ -177,9 +190,11 @@ async function claimAndScan(
   const store = importClaimStore();
   let claim;
   try {
+    // A commit-keyed claim: the key already names repo + commit, so the
+    // branch name used to reach that commit is not part of its identity.
     claim = await store.claim(account, importId, {
       repoUrl: body.repoUrl as string,
-      branch: body.branch ?? null,
+      branch: body.commitSha ? null : (body.branch ?? null),
     });
   } catch (err) {
     // Fail closed: without the claim a retry elsewhere could be charged again.
@@ -266,6 +281,19 @@ async function claimAndScan(
     clearInterval(heartbeat);
   }
 }
+function cloneRefusalOutcome(err: CloneRefusal): ScanOutcome {
+  const status =
+    err.code === 'repo_url_not_allowed' || err.code === 'branch_not_allowed'
+      ? 400
+      : err.code === 'clone_too_large'
+        ? 413
+        : err.code === 'clone_timeout'
+          ? 504
+          : 502;
+  console.error(`[absorb/scan] clone refused (${err.code}): ${err.message}`);
+  return { status, json: { error: err.code, message: err.message } };
+}
+
 async function scanFromUrl(
   req: Request,
   body: ScanBody,
@@ -274,26 +302,17 @@ async function scanFromUrl(
 ): Promise<ScanOutcome> {
   let repo;
   try {
-    repo = await cloneRepo(body.repoUrl, body.branch);
+    // Pinned to the SHA the charge is keyed on (#617): a branch that moved
+    // since ls-remote cannot change what is scanned for this charge.
+    repo = await cloneRepo(body.repoUrl, body.branch, body.commitSha ? { expectedSha: body.commitSha } : {});
   } catch (err) {
-    if (err instanceof CloneRefusal) {
-      const status =
-        err.code === 'repo_url_not_allowed' || err.code === 'branch_not_allowed'
-          ? 400
-          : err.code === 'clone_too_large'
-            ? 413
-            : err.code === 'clone_timeout'
-              ? 504
-              : 502;
-      console.error(`[absorb/scan] clone refused (${err.code}): ${err.message}`);
-      return { status, json: { error: err.code, message: err.message } };
-    }
+    if (err instanceof CloneRefusal) return cloneRefusalOutcome(err);
     throw err;
   }
   try {
     // The clone dir is ours (made just now under absorb's clone root), so the
     // caller-path root check does not apply. The URL is the cache identity.
-    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}`, beforeCharge, chargeGuard);
+    return await scanAndCharge(req, body, repo.dir, `${body.repoUrl}#${body.branch ?? ''}${body.commitSha ? `@${body.commitSha}` : ''}`, beforeCharge, chargeGuard);
   } finally {
     await repo.cleanup();
   }
@@ -320,6 +339,17 @@ async function scanAndCharge(
   chargeGuard?: (tx: unknown) => Promise<boolean>
 ): Promise<ScanOutcome> {
   const shallow = body.shallow;
+  // NO FREE PATHS (#617 N2, CoS/Treasurer): every scan, folder or URL, with
+  // or without a projectId, is charged to the signed-in account. No account
+  // (unauthenticated, or an id that is not a user uuid) is refused before
+  // the scan starts. There is no fallback to a server or project key.
+  const scanUserId = userUuid(req);
+  if (!(req as AuthenticatedRequest).authenticated || !scanUserId) {
+    return {
+      status: 401,
+      json: { error: 'account_required', message: 'A scan is charged to a signed-in account. Sign in and retry.' },
+    };
+  }
   // A saved scan is reused only for the account that paid for it.
   // The id is the same one the charge uses (a user uuid). Matching on
   // the folder alone handed that scan to anyone, free, for 5 minutes,
@@ -349,6 +379,21 @@ async function scanAndCharge(
         }
       }
     }
+  }
+
+  // Reserve before the scan: a balance that cannot cover the price is refused
+  // (402) before any work runs. The settle after the scan always lands
+  // (allowOverdraft): a scan that was allowed to start finishes, and if the
+  // balance dropped meanwhile (a concurrent scan) the account is left owing.
+  const creditsModule = await loadCredits();
+  const { requireCredits, isCreditError, deductCredits, CHARGE_GUARD_REFUSED } =
+    (creditsModule as any).default || creditsModule;
+  const opType = shallow ? 'absorb_shallow' : 'absorb_deep';
+  // @ts-ignore - Automatic remediation for TS18046
+  const creditCheck = await requireCredits(scanUserId, opType);
+  // @ts-ignore - Automatic remediation for TS18046
+  if (isCreditError(creditCheck)) {
+    return { status: 402, json: creditCheck as Record<string, unknown> };
   }
 
   // Lazy import to avoid loading heavy modules at startup
@@ -405,7 +450,6 @@ async function scanAndCharge(
   // -> getOrCreateAccount, which queries a uuid column and throws, 500-ing an
   // orchestrator scan. This guard is new in this change and chose the weaker
   // predicate when the right one was already imported.
-  const scanUserId = userUuid(req);
   // Built BEFORE the charge (Mapping H1), so nothing that can throw runs
   // between the debit and the delivered result.
   const topology = {
@@ -420,20 +464,10 @@ async function scanAndCharge(
   // says (Mapping N2, #617): gating it on projectId let a URL scan run free.
   // A server-folder scan keeps main's rule (charged only with a projectId);
   // this PR makes no pricing change for folder scans.
-  if ((req as AuthenticatedRequest).authenticated && scanUserId && (body.repoUrl || body.projectId)) {
-    const creditsModule = await loadCredits();
-    const { requireCredits, isCreditError, deductCredits, CHARGE_GUARD_REFUSED } =
-      (creditsModule as any).default || creditsModule;
+  let balanceAfterCents: number | null = null;
+  {
     const userId = scanUserId;
-    const opType = shallow ? 'absorb_shallow' : 'absorb_deep';
-    
-    // @ts-ignore - Automatic remediation for TS18046
-    const creditCheck = await requireCredits(userId, opType);
-    // @ts-ignore - Automatic remediation for TS18046
-    if (isCreditError(creditCheck)) {
-      return { status: 402, json: creditCheck as Record<string, unknown> };
-    }
-    
+
     // requireCredits only looks. Two scans can both be told the balance
     // covers them before either charge lands. deductCredits is the charge:
     // it returns empty when the balance is no longer enough, and it does
@@ -469,8 +503,14 @@ async function scanAndCharge(
         userId,
         creditCheck.costCents,
         `Codebase scan: ${cacheKey}`,
-        { graphId, shallow, importId: body.importId ?? null },
-        chargeGuard ? { guard: chargeGuard } : undefined
+        {
+          graphId,
+          shallow,
+          importId: body.importId ?? null,
+          ...(body.commitSha ? { commitSha: body.commitSha, clientImportId: body.clientImportId ?? null } : {}),
+          ...(body.projectId ? { projectId: body.projectId } : {}),
+        },
+        chargeGuard ? { guard: chargeGuard, allowOverdraft: true } : { allowOverdraft: true }
       );
     } catch (err) {
       // The guard ran in the debit's transaction and found the claim gone:
@@ -484,6 +524,7 @@ async function scanAndCharge(
     }
     chargedCents = creditCheck.costCents;
     cacheOwnerId = userId;
+    balanceAfterCents = typeof debit.balanceCents === 'number' ? debit.balanceCents : null;
   }
 
   graphStore.set(graphId, {
@@ -509,6 +550,9 @@ async function scanAndCharge(
     costCents: chargedCents,
     cached: false,
     topology,
+    // The scan was allowed to start and finished; the settle left the account
+    // short (a concurrent spend). The amount is owed, never forgiven.
+    ...(balanceAfterCents !== null && balanceAfterCents < 0 ? { balanceOwedCents: -balanceAfterCents } : {}),
     },
   };
 

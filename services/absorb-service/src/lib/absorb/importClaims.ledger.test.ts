@@ -80,7 +80,7 @@ describe('CHARGED_SQL matches the row the real deductCredits writes (Mapping, #6
   it('routes/absorb.ts still charges with importId at the top level of the metadata', async () => {
     const { readFileSync } = await import('node:fs');
     const src = readFileSync(new URL('../../routes/absorb.ts', import.meta.url), 'utf8');
-    expect(src).toMatch(/\{ graphId, shallow, importId: body\.importId \?\? null \}/);
+    expect(src).toMatch(/graphId,\s+shallow,\s+importId: body\.importId \?\? null,/);
   });
 });
 describe('deductCredits opts.guard: the guard and the debit share one transaction (CoS, #617)', () => {

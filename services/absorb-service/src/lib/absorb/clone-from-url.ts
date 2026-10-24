@@ -31,7 +31,8 @@ export class CloneRefusal extends Error {
       | 'branch_not_allowed'
       | 'clone_timeout'
       | 'clone_too_large'
-      | 'clone_failed',
+      | 'clone_failed'
+      | 'clone_commit_mismatch',
     message: string
   ) {
     super(message);
@@ -167,6 +168,13 @@ export interface CloneOptions {
   root?: string;
   spawnImpl?: (cmd: string, args: string[], opts: SpawnOptions) => ChildProcess;
   sizeOf?: (dir: string) => Promise<number>;
+  /**
+   * Pin the clone to this commit (#617): the SHA the charge is keyed on. After
+   * the clone, HEAD must be exactly this commit (fetched by SHA if the branch
+   * moved since ls-remote), otherwise the clone is refused (502) and nothing
+   * is scanned or charged.
+   */
+  expectedSha?: string;
 }
 
 export interface ClonedRepo {
@@ -240,9 +248,140 @@ export async function cloneRepo(
     if ((await sizeOf(work)) > maxBytes) {
       throw new CloneRefusal('clone_too_large', `repo is larger than ${maxBytes} bytes`);
     }
+    if (opts.expectedSha) {
+      await pinToCommit(spawnImpl, dest, work, opts.expectedSha.toLowerCase(), timeoutMs);
+    }
     return { dir: dest, cleanup };
   } catch (err) {
     await cleanup();
     throw err;
+  }
+}
+
+export const RESOLVE_TIMEOUT_MS = 15_000;
+
+export function lsRemoteArgs(url: string, branch?: string): string[] {
+  const args: string[] = [];
+  for (const c of CLONE_GIT_CONFIG) args.push('-c', c);
+  args.push('ls-remote', '--quiet', '--', url, branch ? `refs/heads/${branch}` : 'HEAD');
+  return args;
+}
+
+/**
+ * The commit url@branch points at now (git ls-remote, same allowlist, config
+ * and env as the clone). /scan keys its once-per-import claim on it (#617).
+ */
+export async function resolveCommitSha(
+  rawUrl: unknown,
+  rawBranch: unknown,
+  opts: { timeoutMs?: number; spawnImpl?: CloneOptions['spawnImpl'] } = {}
+): Promise<string> {
+  const url = normalizeRepoUrl(rawUrl);
+  const branch = normalizeBranch(rawBranch);
+  const spawnImpl = opts.spawnImpl ?? spawn;
+  const timeoutMs = opts.timeoutMs ?? RESOLVE_TIMEOUT_MS;
+  const home = os.tmpdir();
+  return await new Promise<string>((resolve, reject) => {
+    const child = spawnImpl('git', lsRemoteArgs(url, branch), {
+      cwd: home,
+      env: cloneEnv(home),
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let out = '';
+    let err = '';
+    let done = false;
+    const finish = (e: Error | null, sha?: string) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (e) {
+        child.kill('SIGKILL');
+        reject(e);
+      } else resolve(sha as string);
+    };
+    const timer = setTimeout(
+      () => finish(new CloneRefusal('clone_timeout', `resolving the commit took longer than ${timeoutMs} ms`)),
+      timeoutMs
+    );
+    child.stdout?.on('data', (d: Buffer) => {
+      if (out.length < 4000) out += d.toString();
+    });
+    child.stderr?.on('data', (d: Buffer) => {
+      if (err.length < 2000) err += d.toString();
+    });
+    child.on('error', (e) => finish(new CloneRefusal('clone_failed', `git did not start: ${e.message}`)));
+    child.on('close', (code) => {
+      if (code !== 0) return finish(new CloneRefusal('clone_failed', `git ls-remote exited ${code}: ${err.slice(0, 300)}`));
+      const sha = out.split('\n')[0]?.split('\t')[0]?.trim() ?? '';
+      if (!/^[0-9a-f]{40}([0-9a-f]{24})?$/i.test(sha)) {
+        return finish(new CloneRefusal('clone_failed', 'branch not found on the remote'));
+      }
+      finish(null, sha.toLowerCase());
+    });
+  });
+}
+
+/** Run one git command in dir with the clone's hardened config and env; resolves stdout. */
+function runGit(
+  spawnImpl: NonNullable<CloneOptions['spawnImpl']>,
+  args: string[],
+  dir: string,
+  home: string,
+  timeoutMs: number
+): Promise<string> {
+  const full: string[] = [];
+  for (const c of CLONE_GIT_CONFIG) full.push('-c', c);
+  full.push(...args);
+  return new Promise<string>((resolve, reject) => {
+    const child = spawnImpl('git', full, { cwd: dir, env: cloneEnv(home), stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '';
+    let err = '';
+    let done = false;
+    const finish = (e?: Error) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (e) {
+        child.kill('SIGKILL');
+        reject(e);
+      } else resolve(out);
+    };
+    const timer = setTimeout(
+      () => finish(new CloneRefusal('clone_timeout', `git ${args[0]} took longer than ${timeoutMs} ms`)),
+      timeoutMs
+    );
+    child.stdout?.on('data', (d: Buffer) => {
+      if (out.length < 4000) out += d.toString();
+    });
+    child.stderr?.on('data', (d: Buffer) => {
+      if (err.length < 2000) err += d.toString();
+    });
+    child.on('error', (e) => finish(new CloneRefusal('clone_failed', `git did not start: ${e.message}`)));
+    child.on('close', (code) => {
+      if (code === 0) finish();
+      else finish(new CloneRefusal('clone_failed', `git ${args[0]} exited ${code}: ${err.slice(0, 300)}`));
+    });
+  });
+}
+
+/**
+ * Make the clone's HEAD exactly expectedSha (#617). The shallow clone took the
+ * branch tip; if the branch moved after ls-remote, fetch that commit by SHA and
+ * check it out detached. Any mismatch is a clone_commit_mismatch (502).
+ */
+export async function pinToCommit(
+  spawnImpl: NonNullable<CloneOptions['spawnImpl']>,
+  dest: string,
+  home: string,
+  expectedSha: string,
+  timeoutMs: number
+): Promise<void> {
+  const head = async () => (await runGit(spawnImpl, ['rev-parse', 'HEAD'], dest, home, timeoutMs)).trim().toLowerCase();
+  if ((await head()) === expectedSha) return;
+  await runGit(spawnImpl, ['fetch', '--depth', '1', '--no-tags', '--quiet', 'origin', expectedSha], dest, home, timeoutMs);
+  await runGit(spawnImpl, ['checkout', '--quiet', '--detach', expectedSha], dest, home, timeoutMs);
+  const now = await head();
+  if (now !== expectedSha) {
+    throw new CloneRefusal('clone_commit_mismatch', `clone is at ${now.slice(0, 12)}, expected ${expectedSha.slice(0, 12)}`);
   }
 }

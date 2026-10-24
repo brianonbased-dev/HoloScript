@@ -30,9 +30,23 @@
  * With no database configured (local dev) the same contract runs in memory
  * for this process only (no ledger, so guard 1 is the confirm step only).
  */
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { SqlQuery } from '../../middleware/rateLimiter.js';
+
+/**
+ * The claim key for a URL import (CoS/Treasurer, #617): one per user + repo +
+ * commit SHA, whatever importId the client sent. A reload after a 502 makes a
+ * new workspace and a new client importId; the same commit still maps to the
+ * same key, so the existing UNIQUE (user_id, import_id) index on
+ * absorb_import_claims (migration 0003) returns the first import instead of
+ * charging again. No new index is needed: import_id is a pure function of
+ * (repo, sha) and user_id is the other indexed column.
+ */
+export function commitImportId(repoUrl: string, commitSha: string): string {
+  const h = createHash('sha256').update(`${repoUrl}\n${commitSha.toLowerCase()}`).digest('hex');
+  return `commit-${h.slice(0, 48)}`;
+}
 
 export type ScanOutcome = { status: number; json: Record<string, unknown> };
 export interface ImportRef {

@@ -174,6 +174,13 @@ export interface DeductOptions {
    * debit, that this request still holds its import claim.
    */
   guard?: (tx: DbClient) => Promise<boolean>;
+  /**
+   * Settle a charge for work that already ran (#617 N2): the caller checked
+   * the balance before starting, and the debit lands even if the balance has
+   * since dropped below the price, leaving a negative balance (owed) instead
+   * of handing out the finished work free. Still null with no account row.
+   */
+  allowOverdraft?: boolean;
 }
 
 /**
@@ -195,15 +202,18 @@ export async function deductCredits(
     // A guarded charge must be atomic with its guard. Without a transaction it
     // fails closed (not charged) rather than charging unguarded.
     if (typeof db.transaction !== 'function') {
-      throw new ChargeGuardRefused('The database client exposes no transaction(); a guarded charge was not made.');
+      throw new ChargeGuardRefused(
+        'The database client exposes no transaction(); a guarded charge was not made.'
+      );
     }
     return await db.transaction(async (tx: DbClient) => {
       if (!(await guard(tx))) throw new ChargeGuardRefused();
-      return debitOn(tx, userId, amountCents, description, metadata);
+      return debitOn(tx, userId, amountCents, description, metadata, opts.allowOverdraft === true);
     });
   }
-  if (db) return debitOn(db, userId, amountCents, description, metadata);
-  return debitOn(null, userId, amountCents, description, metadata);
+  if (db)
+    return debitOn(db, userId, amountCents, description, metadata, opts.allowOverdraft === true);
+  return debitOn(null, userId, amountCents, description, metadata, false);
 }
 
 async function debitOn(
@@ -211,7 +221,8 @@ async function debitOn(
   userId: string,
   amountCents: number,
   description: string,
-  metadata: Record<string, unknown>
+  metadata: Record<string, unknown>,
+  allowOverdraft = false
 ): Promise<{ balanceCents: number } | null> {
   if (!db) {
     console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
@@ -227,7 +238,9 @@ async function debitOn(
       updatedAt: new Date(),
     })
     .where(
-      sql`${creditAccounts.userId} = ${userId} AND ${creditAccounts.balanceCents} >= ${amountCents}`
+      allowOverdraft
+        ? sql`${creditAccounts.userId} = ${userId}`
+        : sql`${creditAccounts.userId} = ${userId} AND ${creditAccounts.balanceCents} >= ${amountCents}`
     )
     .returning({ balanceCents: creditAccounts.balanceCents });
 
