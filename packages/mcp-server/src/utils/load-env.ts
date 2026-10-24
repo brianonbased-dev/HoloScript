@@ -11,8 +11,15 @@
  *   2. <monorepo-root>/.env              (HoloScript/.env)
  *   3. ~/.ai-ecosystem/.env              (ecosystem fallback — same as loadLocalEnv())
  *
+ * OPT-IN ONLY. Nothing is read unless HOLOMESH_DOTENV=1. A clean process env
+ * used to pick up ~/.ai-ecosystem/.env silently (a sandbox start copied real keys
+ * into keys.json that way), so the default is now: read no .env at all.
+ *
  * Skipped when:
- *   - HOLOMESH_NO_DOTENV=1              (test isolation)
+ *   - HOLOMESH_DOTENV is not '1'        (default: no dotenv)
+ *   - HOLOMESH_NO_DOTENV=1              (test isolation; wins over HOLOMESH_DOTENV)
+ *   - HOLOMESH_SANDBOX=1                (sandbox board; refused even when opted in)
+ *   - MCP_BIND_HOST is loopback         (localhost bind; refused even when opted in)
  *   - Running on Railway                (managed env — no local files)
  *
  * Shadow denylist (never auto-inject — let OS keyring / shell auth own these):
@@ -26,6 +33,7 @@
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { homedir } from 'os';
+import { isLoopbackAddress } from '../http-bind-host';
 import { hydrateFromHoloKeydSync } from '@holoscript/secrets-broker';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -65,11 +73,14 @@ const MESH_RUNTIME_REFRESH_KEYS = new Set([
 const MCP_SERVER_DIR = resolve(__dirname, '..', '..');
 const MONOREPO_ROOT = resolve(__dirname, '..', '..', '..', '..');
 
-const ENV_CANDIDATES: string[] = [
-  resolve(MCP_SERVER_DIR, '.env'),
-  resolve(MONOREPO_ROOT, '.env'),
-  resolve(homedir(), '.ai-ecosystem', '.env'),
-];
+/** Resolved per call so homedir() reflects the current HOME/USERPROFILE. */
+function envCandidates(): string[] {
+  return [
+    resolve(MCP_SERVER_DIR, '.env'),
+    resolve(MONOREPO_ROOT, '.env'),
+    resolve(homedir(), '.ai-ecosystem', '.env'),
+  ];
+}
 
 // ── Parser ────────────────────────────────────────────────────────────────────
 
@@ -108,7 +119,7 @@ export interface LoadMcpEnvResult {
   /** Env vars in the file that were skipped (shadow denylist). */
   denied: string[];
   /** Why loading was skipped, if applicable. */
-  skipped?: 'HOLOMESH_NO_DOTENV' | 'railway';
+  skipped?: 'HOLOMESH_NO_DOTENV' | 'not-opted-in' | 'sandbox' | 'loopback-bind' | 'railway';
 }
 
 /**
@@ -125,11 +136,20 @@ export function loadMcpEnv(
   if (process.env.HOLOMESH_NO_DOTENV === '1') {
     return { loadedFrom: null, injected: [], denied: [], skipped: 'HOLOMESH_NO_DOTENV' };
   }
+  if (process.env.HOLOMESH_DOTENV !== '1') {
+    return { loadedFrom: null, injected: [], denied: [], skipped: 'not-opted-in' };
+  }
+  if (process.env.HOLOMESH_SANDBOX === '1') {
+    return { loadedFrom: null, injected: [], denied: [], skipped: 'sandbox' };
+  }
+  if (isLoopbackAddress(process.env.MCP_BIND_HOST)) {
+    return { loadedFrom: null, injected: [], denied: [], skipped: 'loopback-bind' };
+  }
   if (IS_RAILWAY) {
     return { loadedFrom: null, injected: [], denied: [], skipped: 'railway' };
   }
 
-  const candidates = options.envPaths ?? ENV_CANDIDATES;
+  const candidates = options.envPaths ?? envCandidates();
   const injected: string[] = [];
   const denied: string[] = [];
   let loadedFrom: string | null = null;
