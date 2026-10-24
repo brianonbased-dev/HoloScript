@@ -8,10 +8,12 @@ export {
   getOrCreateAccount,
   checkBalance,
   deductCredits,
+  ChargeGuardRefused,
+  CHARGE_GUARD_REFUSED,
   addCredits,
   getUsageHistory,
 } from './creditService.js';
-export type { CreditAccount, CreditTransaction, BalanceCheck } from './creditService.js';
+export type { CreditAccount, CreditTransaction, BalanceCheck, DeductOptions } from './creditService.js';
 export { MeteredLLMProvider } from './meteredLLMProvider.js';
 export { requireCredits, isCreditError } from './requireCredits.js';
 export type { CreditGateResult, CreditError } from './requireCredits.js';

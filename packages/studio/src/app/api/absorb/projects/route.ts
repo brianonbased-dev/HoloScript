@@ -16,7 +16,9 @@ import {
   type DurableAbsorbProject,
   listDurableAbsorbProjects,
   upsertDurableAbsorbProject,
+  isAbsorbStateLockTimeout,
 } from '@/lib/absorb/projectState';
+import { withAbsorbStateLock503 } from '@/lib/absorb/stateLockResponse';
 
 import { corsHeaders } from '../../_lib/cors';
 
@@ -130,7 +132,7 @@ export async function GET(req: NextRequest) {
   });
 }
 
-export async function POST(req: NextRequest) {
+async function postProject(req: NextRequest): Promise<Response> {
   const userAuth = req.headers.get('authorization');
   const ownerId = await signedInOwnerId();
   const body = await req.text();
@@ -190,10 +192,14 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     );
-  } catch {
+  } catch (err) {
+    if (isAbsorbStateLockTimeout(err)) throw err;
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 }
+
+/** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
+export const POST = withAbsorbStateLock503(postProject);
 
 export function OPTIONS(request: Request) {
   return new Response(null, {
