@@ -171,18 +171,22 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
         const userToken = userAuthHeader.startsWith('Bearer ')
           ? userAuthHeader.slice(7)
           : userAuthHeader;
+        // Mapping #654 N1: a forwarded user credential that cannot be resolved
+        // must not silently degrade to an anonymous service call (fail closed).
+        let identity: Awaited<ReturnType<typeof resolveGitHubToken>>;
         try {
-          const identity = await resolveGitHubToken(userToken);
-          if (identity) {
-            authReq.userId = identity.userId;
-            authReq.githubUsername = identity.githubUsername;
-            authReq.isAdmin = identity.isAdmin;
-          }
+          identity = await resolveGitHubToken(userToken);
         } catch {
-          // Token resolution failure is non-fatal for service-key auth.
-          // The request proceeds without a userId — user-scoped routes return
-          // empty data, which is safer than a hard 500.
+          res.status(503).json({ error: 'User identity resolver unavailable' });
+          return;
         }
+        if (!identity) {
+          res.status(401).json({ error: 'Invalid X-User-Authorization token' });
+          return;
+        }
+        authReq.userId = identity.userId;
+        authReq.githubUsername = identity.githubUsername;
+        authReq.isAdmin = identity.isAdmin;
       }
 
       return next();
