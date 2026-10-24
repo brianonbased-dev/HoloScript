@@ -82,6 +82,17 @@ export interface MaterialTextureMaps {
   emissiveMap?: TextureRef;
 }
 
+/** DECODED RGBA8 texture pixels (row 0 = top, i.e. glTF/image orientation where v=0 is the
+ *  top row). Pure data: the caller decodes PNG/JPEG; the GPU backend only uploads + samples. */
+export interface DecodedTexture {
+  width: number;
+  height: number;
+  /** width*height*4 bytes, RGBA8, row-major, tightly packed. */
+  data: Uint8Array<ArrayBuffer>;
+  /** Sampler filter (default 'linear'); address mode is always repeat (glTF default). */
+  filter?: 'nearest' | 'linear';
+}
+
 /** Pure-data material (no GPUBindGroup) — the GPU backend resolves this to a pipeline+bind group. */
 export interface MaterialSpec {
   color: number; // packed 0xRRGGBB
@@ -95,6 +106,12 @@ export interface MaterialSpec {
   normalMap?: TextureRef;
   metalRoughMap?: TextureRef;
   emissiveMap?: TextureRef;
+  /** Decoded glTF baseColorTexture, sampled at TEXCOORD_0 by renderCharacter (lambert groups).
+   *  Omitted = the flat-colour path, byte-for-byte unchanged. */
+  baseColorTexture?: DecodedTexture;
+  /** glTF baseColorFactor (RGBA, 0..1). When set it REPLACES color/opacity in the uniform and
+   *  multiplies the sampled texel (glTF semantics). */
+  baseColorFactor?: [number, number, number, number];
 }
 
 /** Pure-data draw specification. NO GPU resources — see module header. */

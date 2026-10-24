@@ -165,6 +165,22 @@ fn fs_lambert(in : VSOut) -> @location(0) vec4<f32> {
   return vec4<f32>((mat.color.rgb * lit + reflection * 0.08) * frame.envParams.x, mat.color.a);
 }
 
+// Textured lambert: identical lighting to fs_lambert, base colour = Material.color x baseColor
+// texel at TEXCOORD_0. Bound at @group(2) ONLY by pipelines that use this entry point, so
+// every other entry point / pipeline layout is unchanged.
+@group(2) @binding(0) var baseColorTex : texture_2d<f32>;
+@group(2) @binding(1) var baseColorSampler : sampler;
+
+@fragment
+fn fs_lambert_textured(in : VSOut) -> @location(0) vec4<f32> {
+  let n = normalize(in.wN);
+  let v = normalize(frame.cameraPos.xyz - in.wP);
+  let lit = vec3<f32>(0.35) + environmentDiffuse(n, true) * 0.65;
+  let reflection = directionalReflectionProbe(reflect(-v, n), 0.78);
+  let base = mat.color * textureSample(baseColorTex, baseColorSampler, in.uv);
+  return vec4<f32>((base.rgb * lit + reflection * 0.08) * frame.envParams.x, base.a);
+}
+
 fn fresnel(cosT : f32, f0 : f32) -> f32 {
   return f0 + (1.0 - f0) * pow(saturate(1.0 - cosT), 5.0);
 }

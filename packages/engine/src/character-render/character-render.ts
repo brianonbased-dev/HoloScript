@@ -23,6 +23,7 @@ import type {
   CharacterDrawSpec,
   CharacterMaterialRole,
   CharacterMaterialSpec,
+  DecodedTexture,
   MaterialGroup,
   ShadingModel,
 } from '../native-render/draw-spec';
@@ -41,6 +42,74 @@ const TEX_COPY_SRC = 0x01;
 const MAP_READ = 0x0001;
 const SHADER_VERTEX = 0x1;
 const SHADER_FRAGMENT = 0x2;
+const TEX_TEXTURE_BINDING = 0x04;
+const TEX_COPY_DST = 0x02;
+
+/** Bind group index of the baseColor texture + sampler (textured lambert pipelines only). */
+export const CHARACTER_TEXTURE_BIND_GROUP = 2;
+
+function isTexturedMaterial(m: CharacterMaterialSpec): boolean {
+  return m.shadingModel === 'lambert' && !!m.baseColorTexture;
+}
+
+function validateTexture(t: DecodedTexture): void {
+  if (
+    !Number.isInteger(t.width) ||
+    !Number.isInteger(t.height) ||
+    t.width < 1 ||
+    t.height < 1 ||
+    t.data.byteLength !== t.width * t.height * 4
+  )
+    throw new Error(
+      `baseColorTexture: expected ${t.width}x${t.height}x4 = ${t.width * t.height * 4} bytes, got ${t.data.byteLength}`
+    );
+}
+
+export interface CharacterTextureBindingReceipt {
+  schemaVersion: 'holoscript.character-texture-bindings.v1';
+  texturedGroupCount: number;
+  groups: Array<{
+    drawOrdinal: number;
+    textured: boolean;
+    fragmentEntry: string;
+    textureSize?: [number, number];
+    filter?: 'nearest' | 'linear';
+    baseColorFactor?: [number, number, number, number];
+    bindings?: Array<{ group: number; binding: number; kind: 'texture_2d<f32>' | 'sampler' }>;
+  }>;
+}
+
+/** Pure-data description of the texture bindings renderCharacter will create per draw. */
+export function deriveCharacterTextureBindingReceipt(
+  spec: CharacterDrawSpec
+): CharacterTextureBindingReceipt {
+  const groups = orderedMaterialGroups(spec).map((g, drawOrdinal) => {
+    const m = g.material;
+    if (!isTexturedMaterial(m))
+      return { drawOrdinal, textured: false, fragmentEntry: FRAG_ENTRY[m.shadingModel] };
+    const t = m.baseColorTexture!;
+    validateTexture(t);
+    return {
+      drawOrdinal,
+      textured: true,
+      fragmentEntry: 'fs_lambert_textured',
+      textureSize: [t.width, t.height] as [number, number],
+      filter: t.filter ?? 'linear',
+      ...(m.baseColorFactor
+        ? { baseColorFactor: [...m.baseColorFactor] as [number, number, number, number] }
+        : {}),
+      bindings: [
+        { group: CHARACTER_TEXTURE_BIND_GROUP, binding: 0, kind: 'texture_2d<f32>' as const },
+        { group: CHARACTER_TEXTURE_BIND_GROUP, binding: 1, kind: 'sampler' as const },
+      ],
+    };
+  });
+  return {
+    schemaVersion: 'holoscript.character-texture-bindings.v1',
+    texturedGroupCount: groups.filter((g) => g.textured).length,
+    groups,
+  };
+}
 
 /** WGSL fragment entry point per shading model (all live in skin-skinning.wgsl). */
 const FRAG_ENTRY: Record<ShadingModel, string> = {
@@ -640,6 +709,24 @@ export async function renderCharacter(
     entries: [{ binding: 0, visibility: SHADER_FRAGMENT, buffer: { type: 'uniform' } }],
   });
   const pipelineLayout = device.createPipelineLayout({ bindGroupLayouts: [frameBGL, matBGL] });
+  // Textured lambert only: extra @group(2) baseColor texture + sampler. Untextured pipelines
+  // keep the two-group layout above, unchanged.
+  let texBGL: GPUBindGroupLayout | null = null;
+  let texPipelineLayout: GPUPipelineLayout | null = null;
+  const texturedLayout = (): GPUPipelineLayout => {
+    if (!texPipelineLayout) {
+      texBGL = device.createBindGroupLayout({
+        entries: [
+          { binding: 0, visibility: SHADER_FRAGMENT, texture: { sampleType: 'float' } },
+          { binding: 1, visibility: SHADER_FRAGMENT, sampler: { type: 'filtering' } },
+        ],
+      });
+      texPipelineLayout = device.createPipelineLayout({
+        bindGroupLayouts: [frameBGL, matBGL, texBGL],
+      });
+    }
+    return texPipelineLayout;
+  };
 
   const VERTEX_BUFFERS: GPUVertexBufferLayout[] = [
     { arrayStride: 12, attributes: [{ shaderLocation: 0, offset: 0, format: 'float32x3' }] },
@@ -658,20 +745,21 @@ export async function renderCharacter(
     transparent: boolean
   ): GPURenderPipeline => {
     const model = material.shadingModel;
+    const textured = isTexturedMaterial(material);
     const alphaToCoverageEnabled =
       sampleCount > 1 &&
       !transparent &&
       material.shadingModel === 'marschner-hair' &&
       material.coverageProfile === 'alpha-to-coverage-v1';
-    const key = `${model}:${transparent ? 1 : 0}:${sampleCount}:${alphaToCoverageEnabled ? 1 : 0}`;
+    const key = `${model}:${transparent ? 1 : 0}:${sampleCount}:${alphaToCoverageEnabled ? 1 : 0}${textured ? ':tex' : ''}`;
     let p = pipelineCache.get(key);
     if (!p) {
       p = device.createRenderPipeline({
-        layout: pipelineLayout,
+        layout: textured ? texturedLayout() : pipelineLayout,
         vertex: { module, entryPoint: 'vs', buffers: VERTEX_BUFFERS },
         fragment: {
           module,
-          entryPoint: FRAG_ENTRY[model],
+          entryPoint: textured ? 'fs_lambert_textured' : FRAG_ENTRY[model],
           targets: [
             {
               format,
@@ -857,9 +945,12 @@ export async function renderCharacter(
   pass.setBindGroup(0, frameBindGroup);
 
   const matBufs: GPUBuffer[] = [];
+  const texResources: GPUTexture[] = [];
   for (const g of ordered) {
     const pipe = getPipeline(g.material, !!g.transparent);
     const matData = packCharacterMaterial(g.material);
+    const textured = isTexturedMaterial(g.material);
+    if (textured && g.material.baseColorFactor) matData.set(g.material.baseColorFactor, 0);
     const matBuf = device.createBuffer({
       size: matData.byteLength,
       usage: BUF_UNIFORM | BUF_COPY_DST,
@@ -874,6 +965,40 @@ export async function renderCharacter(
         entries: [{ binding: 0, resource: { buffer: matBuf } }],
       })
     );
+    if (textured) {
+      const t = g.material.baseColorTexture!;
+      validateTexture(t);
+      const gpuTex = device.createTexture({
+        size: [t.width, t.height],
+        format: 'rgba8unorm',
+        usage: TEX_TEXTURE_BINDING | TEX_COPY_DST,
+      });
+      device.queue.writeTexture(
+        { texture: gpuTex },
+        t.data,
+        { bytesPerRow: t.width * 4, rowsPerImage: t.height },
+        { width: t.width, height: t.height, depthOrArrayLayers: 1 }
+      );
+      texResources.push(gpuTex);
+      const filter = t.filter ?? 'linear';
+      const sampler = device.createSampler({
+        magFilter: filter,
+        minFilter: filter,
+        addressModeU: 'repeat',
+        addressModeV: 'repeat',
+      });
+      texturedLayout();
+      pass.setBindGroup(
+        CHARACTER_TEXTURE_BIND_GROUP,
+        device.createBindGroup({
+          layout: texBGL!,
+          entries: [
+            { binding: 0, resource: gpuTex.createView() },
+            { binding: 1, resource: sampler },
+          ],
+        })
+      );
+    }
     pass.drawIndexed(g.indexCount, 1, g.indexStart);
   }
   pass.end();
@@ -911,6 +1036,7 @@ export async function renderCharacter(
   frameBuf.destroy();
   jointBuf.destroy();
   for (const b of matBufs) b.destroy();
+  for (const t of texResources) t.destroy();
 
   return { width: size, height: size, data };
 }
