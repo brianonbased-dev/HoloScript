@@ -12,6 +12,7 @@ import {
   setKnowledgeExtractionGraph,
   getActiveGraph,
   knowledgeExtractionTools,
+  MAX_KNOWLEDGE_GRAPHS,
 } from '../knowledge-extraction-tools';
 
 // =============================================================================
@@ -115,6 +116,46 @@ describe('knowledge-extraction-tools', () => {
         await handleKnowledgeExtractionTool('absorb_extract_knowledge', { workspaceId: 'ws-b' })
       );
       expect(other.error).toContain('No codebase graph loaded');
+    });
+
+    it("an unowned page extract cannot overwrite the victim workspace's graph", async () => {
+      const victim = ownGraph();
+      setKnowledgeExtractionGraph(victim, 'victim-ws');
+
+      const attacker = parseResponse(
+        await handleKnowledgeExtractionTool('absorb_extract_knowledge', {
+          markdown: '# Attacker Page\n\nattacker body text planted into the victim workspace',
+          url: 'https://attacker.example/page',
+          workspaceId: 'victim-ws',
+        })
+      );
+      // The caller still gets extraction over its own page...
+      expect(attacker.success).toBe(true);
+      expect(attacker.pageExtract.url).toBe('https://attacker.example/page');
+      // ...but the victim's stored graph is untouched.
+      expect(getActiveGraph('victim-ws')).toBe(victim);
+    });
+
+    it('an owned page extract lands only under that owner', async () => {
+      await handleKnowledgeExtractionTool(
+        'absorb_extract_knowledge',
+        { markdown: '# Owned\n\nowned body text for owner one', workspaceId: 'ws-o' },
+        { ownerId: 'owner-1' }
+      );
+      expect(getActiveGraph('ws-o', 'owner-1')).not.toBeNull();
+      expect(getActiveGraph('ws-o')).toBeNull();
+      expect(getActiveGraph('ws-o', 'owner-2')).toBeNull();
+    });
+
+    it('holds at most MAX_KNOWLEDGE_GRAPHS graphs, dropping the least recently used', () => {
+      const g = ownGraph();
+      setKnowledgeExtractionGraph(g, 'lru-0');
+      for (let i = 1; i < MAX_KNOWLEDGE_GRAPHS; i++) setKnowledgeExtractionGraph(g, `lru-${i}`);
+      expect(getActiveGraph('lru-0')).toBe(g); // touch: lru-0 is now most recent
+      setKnowledgeExtractionGraph(g, 'lru-new');
+      expect(getActiveGraph('lru-1')).toBeNull(); // least recent evicted
+      expect(getActiveGraph('lru-0')).toBe(g);
+      expect(getActiveGraph('lru-new')).toBe(g);
     });
 
     it('keys by owner when the owner is known', () => {
