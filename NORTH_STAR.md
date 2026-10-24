@@ -12,6 +12,13 @@ HoloScript is a contract for executable intent: claims rise only as evidence ris
 
 Humans decide only when there is no reference and no way to figure it out without human input, so agents work from existing evidence first.
 
+> Every agent can have a face its human chose, and the face never lies about the agent: it shows what the agent is allowed to do, and the human can change it, revoke it, or take it anywhere.
+
+- An agent's body is not its identity. Identity is its per-human, revocable grant plus its record. The avatar is a swappable face of that grant.
+- An avatar never shows abilities, emotions or status the agent doesn't have.
+- The Hololand mascot is the house's labeled avatar. It gets no exception to the consent or overclaim rules.
+- A face or voice that resembles a real person needs a checked consent grant. Without one, it falls back to a generic avatar.
+
 **Five commitments.** These are commitments, not shipped features.
 
 1. Nothing silently disappears.
