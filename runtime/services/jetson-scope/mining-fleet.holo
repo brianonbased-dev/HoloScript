@@ -1,0 +1,404 @@
+/**
+ * The mining fleet as one authored source.
+ *
+ * Eight miners on solo.ckpool.org under one address. Until now they were watched by a
+ * Python supervisor with hand-picked thresholds ("a chip under 60% of fair share is weak",
+ * "wait 420 seconds before believing a number") and drawn by a separate hand-written HTML
+ * dashboard. Two hand-written surfaces over one fleet, each free to drift from the other
+ * and from the hardware.
+ *
+ * This is the fleet described ONCE. The physical telemetry is bound to appearance, so the
+ * same source is the monitor, the panel, and the room you can stand in.
+ *
+ * WHY THIS IS NOT A PRETTIER DASHBOARD
+ *
+ * Every threshold in the Python version is a guess that has already been wrong twice
+ * tonight: a missing per-chip counter read as a dead chip, and a five-minute rolling
+ * average read at half convergence and called a collapse. Both failures share a cause —
+ * a shape was crushed into a scalar, then compared against a number somebody invented.
+ *
+ * Each BM1397/BM1362 publishes sixteen counters recording where its winning nonces land.
+ * That distribution is flat on a healthy chip and skews before errors ever appear. It is a
+ * SHAPE. Bound to a ring of sixteen bars around each miner, a skew is seen rather than
+ * classified — no cutoff to choose, and nothing to be wrong about. Nonce counts are also
+ * exact integers, not decayed averages, so the settle-window problem does not exist here.
+ *
+ * That is the trade: stop asking the machine to decide whether a chip is failing, and put
+ * the evidence where a person recognises it in one glance.
+ *
+ * WHAT IS DELIBERATELY ABSENT
+ *
+ * No sync_property anywhere carries voltage outward. Frequency is actuated; core voltage
+ * is not, on any of the eight. Too much voltage is what physically kills these chips, so
+ * that dial stays with the owner. Its absence here is the enforcement.
+ */
+
+composition "Mining Fleet" {
+  environment {
+    skybox: "dark"
+    ambient_light: 0.25
+    shadows: true
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Terminus R909 — six chips, the one worth watching per-chip
+  // ───────────────────────────────────────────────────────────────────────────
+
+  object "R909" {
+    @iot_sensor {
+      device_id: "GS-XXXXXXXX"
+      protocol: "http"
+      topic: "jetson/cgminer/GS-XXXXXXXX"
+    }
+
+    @digital_twin {
+      physical_id: "GS-XXXXXXXX"
+      sync_properties: [
+        { physical_key: "dev_MHS 5m", virtual_property: "emissiveIntensity", direction: "in" },
+        { physical_key: "dev_Temperature", virtual_property: "color", direction: "in" },
+        { physical_key: "dev_Device Hardware%", virtual_property: "roughness", direction: "in" },
+        { physical_key: "Frequency", virtual_property: "label", direction: "in" },
+        { physical_key: "gekko-r909-freq", virtual_property: "commandedFrequency", direction: "out" }
+      ]
+      update_mode: "polling"
+      poll_interval: 60000
+    }
+
+    geometry: "box"
+    position: [0, 1.2, 0]
+    scale: [1.4, 0.5, 0.5]
+    color: "#4a9eda"
+    emissive: "#4a9eda"
+    emissiveIntensity: 1.0
+    label: "R909 · 675 MHz"
+  }
+
+  // The nonce-landing distribution, one bar per counter. Flat means healthy. This is the
+  // early-warning surface: the shape distorts before a single hardware error is recorded.
+    object "R909_Chip0" {
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "Chip0Nonces", virtual_property: "scale", direction: "in" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "cylinder"
+      position: [-0.75, 1.9, 0]
+      scale: [0.08, 0.5, 0.08]
+      color: "#7fd4a0"
+      emissive: "#7fd4a0"
+      emissiveIntensity: 0.6
+      label: "chip 0"
+    }
+
+    object "R909_Chip1" {
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "Chip1Nonces", virtual_property: "scale", direction: "in" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "cylinder"
+      position: [-0.45, 1.9, 0]
+      scale: [0.08, 0.5, 0.08]
+      color: "#7fd4a0"
+      emissive: "#7fd4a0"
+      emissiveIntensity: 0.6
+      label: "chip 1"
+    }
+
+    object "R909_Chip2" {
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "Chip2Nonces", virtual_property: "scale", direction: "in" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "cylinder"
+      position: [-0.15, 1.9, 0]
+      scale: [0.08, 0.5, 0.08]
+      color: "#7fd4a0"
+      emissive: "#7fd4a0"
+      emissiveIntensity: 0.6
+      label: "chip 2"
+    }
+
+    object "R909_Chip3" {
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "Chip3Nonces", virtual_property: "scale", direction: "in" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "cylinder"
+      position: [0.15, 1.9, 0]
+      scale: [0.08, 0.5, 0.08]
+      color: "#7fd4a0"
+      emissive: "#7fd4a0"
+      emissiveIntensity: 0.6
+      label: "chip 3"
+    }
+
+    object "R909_Chip4" {
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "Chip4Nonces", virtual_property: "scale", direction: "in" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "cylinder"
+      position: [0.45, 1.9, 0]
+      scale: [0.08, 0.5, 0.08]
+      color: "#7fd4a0"
+      emissive: "#7fd4a0"
+      emissiveIntensity: 0.6
+      label: "chip 4"
+    }
+
+    object "R909_Chip5" {
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "Chip5Nonces", virtual_property: "scale", direction: "in" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "cylinder"
+      position: [0.75, 1.9, 0]
+      scale: [0.08, 0.5, 0.08]
+      color: "#7fd4a0"
+      emissive: "#7fd4a0"
+      emissiveIntensity: 0.6
+      label: "chip 5"
+    }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // The USB row — two Compac F, two Compac A1, as they sit on the hub
+  // ───────────────────────────────────────────────────────────────────────────
+
+    object "CompacF_0074" {
+      @iot_sensor {
+        device_id: "GS-XXXXXXXX"
+        protocol: "http"
+        topic: "jetson/cgminer/GS-XXXXXXXX"
+      }
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "dev_MHS 5m", virtual_property: "emissiveIntensity", direction: "in" },
+          { physical_key: "dev_Temperature", virtual_property: "color", direction: "in" },
+          { physical_key: "gekko-compacf-freq", virtual_property: "commandedFrequency", direction: "out" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "box"
+      position: [-1.8, 0.5, 1.5]
+      scale: [0.35, 0.25, 0.9]
+      color: "#4a9eda"
+      emissive: "#4a9eda"
+      emissiveIntensity: 0.4
+      label: "Compac F · 500 MHz"
+    }
+
+    object "CompacF_0072" {
+      @iot_sensor {
+        device_id: "GS-XXXXXXXX"
+        protocol: "http"
+        topic: "jetson/cgminer/GS-XXXXXXXX"
+      }
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "dev_MHS 5m", virtual_property: "emissiveIntensity", direction: "in" },
+          { physical_key: "dev_Temperature", virtual_property: "color", direction: "in" },
+          { physical_key: "gekko-compacf-freq", virtual_property: "commandedFrequency", direction: "out" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "box"
+      position: [-0.6, 0.5, 1.5]
+      scale: [0.35, 0.25, 0.9]
+      color: "#4a9eda"
+      emissive: "#4a9eda"
+      emissiveIntensity: 0.4
+      label: "Compac F · 500 MHz"
+    }
+
+    // The A1 pair is on the bench for resolder (owner 2026-09-07). They stay
+    // in this source so they are not forgotten; they are not hashing until
+    // the joints are redone. They report Chips=2 but publish only one aggregate
+    // counter, so no nonce ring here even when they return.
+    object "CompacA1_0616" {
+      @iot_sensor {
+        device_id: "GS-XXXXXXXX"
+        protocol: "http"
+        topic: "jetson/cgminer/GS-XXXXXXXX"
+      }
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "dev_MHS 5m", virtual_property: "emissiveIntensity", direction: "in" },
+          { physical_key: "dev_Temperature", virtual_property: "color", direction: "in" },
+          { physical_key: "gekko-compaca1-freq", virtual_property: "commandedFrequency", direction: "out" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "box"
+      position: [0.6, 0.5, 1.5]
+      scale: [0.35, 0.25, 0.9]
+      color: "#4a9eda"
+      emissive: "#4a9eda"
+      emissiveIntensity: 0.4
+      label: "Compac A1 · 325 MHz"
+    }
+
+    object "CompacA1_0561" {
+      @iot_sensor {
+        device_id: "GS-XXXXXXXX"
+        protocol: "http"
+        topic: "jetson/cgminer/GS-XXXXXXXX"
+      }
+      @digital_twin {
+        physical_id: "GS-XXXXXXXX"
+        sync_properties: [
+          { physical_key: "dev_MHS 5m", virtual_property: "emissiveIntensity", direction: "in" },
+          { physical_key: "dev_Temperature", virtual_property: "color", direction: "in" },
+          { physical_key: "gekko-compaca1-freq", virtual_property: "commandedFrequency", direction: "out" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "box"
+      position: [1.8, 0.5, 1.5]
+      scale: [0.35, 0.25, 0.9]
+      color: "#4a9eda"
+      emissive: "#4a9eda"
+      emissiveIntensity: 0.4
+      label: "Compac A1 · 325 MHz"
+    }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // The three Bitaxes — standalone, own network address, own firmware
+  // ───────────────────────────────────────────────────────────────────────────
+
+    object "Bitaxe_239" {
+      @iot_sensor {
+        device_id: "bitaxe1"
+        protocol: "http"
+        topic: "http://axe-1.local/api/system/info"
+      }
+      @digital_twin {
+        physical_id: "axe-1.local"
+        sync_properties: [
+          { physical_key: "hashRate_10m", virtual_property: "emissiveIntensity", direction: "in" },
+          { physical_key: "temp", virtual_property: "color", direction: "in" },
+          { physical_key: "errorPercentage", virtual_property: "roughness", direction: "in" },
+          { physical_key: "frequency", virtual_property: "commandedFrequency", direction: "out" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "box"
+      position: [-1.5, 0.6, -1.8]
+      scale: [0.7, 0.7, 0.7]
+      color: "#d99a4a"
+      emissive: "#d99a4a"
+      emissiveIntensity: 0.9
+      label: "Bitaxe 1 · 515 MHz"
+    }
+
+    object "Bitaxe_247" {
+      @iot_sensor {
+        device_id: "bitaxe2"
+        protocol: "http"
+        topic: "http://axe-2.local/api/system/info"
+      }
+      @digital_twin {
+        physical_id: "axe-2.local"
+        sync_properties: [
+          { physical_key: "hashRate_10m", virtual_property: "emissiveIntensity", direction: "in" },
+          { physical_key: "temp", virtual_property: "color", direction: "in" },
+          { physical_key: "errorPercentage", virtual_property: "roughness", direction: "in" },
+          { physical_key: "frequency", virtual_property: "commandedFrequency", direction: "out" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "box"
+      position: [0, 0.6, -1.8]
+      scale: [0.7, 0.7, 0.7]
+      color: "#d99a4a"
+      emissive: "#d99a4a"
+      emissiveIntensity: 0.9
+      label: "Bitaxe 2 · 565 MHz"
+    }
+
+    object "Bitaxe_39" {
+      @iot_sensor {
+        device_id: "bitaxe3"
+        protocol: "http"
+        topic: "http://axe-3.local/api/system/info"
+      }
+      @digital_twin {
+        physical_id: "axe-3.local"
+        sync_properties: [
+          { physical_key: "hashRate_10m", virtual_property: "emissiveIntensity", direction: "in" },
+          { physical_key: "temp", virtual_property: "color", direction: "in" },
+          { physical_key: "errorPercentage", virtual_property: "roughness", direction: "in" },
+          { physical_key: "frequency", virtual_property: "commandedFrequency", direction: "out" }
+        ]
+        update_mode: "polling"
+        poll_interval: 60000
+      }
+      geometry: "box"
+      position: [1.5, 0.6, -1.8]
+      scale: [0.7, 0.7, 0.7]
+      color: "#d99a4a"
+      emissive: "#d99a4a"
+      emissiveIntensity: 0.9
+      label: "Bitaxe 3 · 515 MHz"
+    }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // The bench, and the one number that decides whether any of this paid
+  // ───────────────────────────────────────────────────────────────────────────
+
+  object "Bench" {
+    @static
+    @collidable
+    geometry: "box"
+    position: [0, 0.1, 0]
+    scale: [6, 0.2, 6]
+    color: "#22262b"
+    metalness: 0.7
+    roughness: 0.35
+  }
+
+  object "FleetTotal" {
+    geometry: "plane"
+    position: [0, 3.2, -2.5]
+    scale: [4, 0.6, 0.1]
+    color: "#ffffff"
+    label: "6.38 TH/s · solo · one address"
+  }
+
+  logic {
+    on_player_enter() {
+      audio.play("fan-hum.mp3")
+    }
+  }
+}

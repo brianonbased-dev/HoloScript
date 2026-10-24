@@ -1,0 +1,20 @@
+{
+  "jetsonAddr": "jetson.local",
+  "knownAxes": [
+    "axe-1.local",
+    "axe-2.local",
+    "axe-3.local"
+  ],
+  "adbPath": "adb",
+  "studioUrl": "https://studio.example.com",
+  "meshEnvPath": "~/.ai-ecosystem/.env",
+  "ownerName": "the owner",
+  "sovereignDeviceConfig": "",
+  "serials": {
+    "r909": "GS-XXXXXXXX",
+    "compac-f-1": "GS-XXXXXXXX",
+    "compac-f-2": "GS-XXXXXXXX",
+    "compac-a1-1": "GS-XXXXXXXX",
+    "compac-a1-2": "GS-XXXXXXXX"
+  }
+}

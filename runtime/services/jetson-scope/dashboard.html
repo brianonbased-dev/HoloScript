@@ -1,0 +1,1914 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Our Metal</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0e1622">
+<meta name="color-scheme" content="dark">
+<style>
+  
+  :root {
+    /* Night/steel/chain parity (Big Shoulders Display + Figtree + JetBrains Mono). */
+    --night: #0e1622;
+    --panel: #152235;
+    --panel-2: #1b2b42;
+    --rail: #2a3a52;
+    --rail-2: #3a4d69;
+    --steel: #e8eef7;
+    --muted: #9fb0c6;
+    --faint: #7d8fa8;
+    --chain: #f5c542;
+    --up: #22a88e;
+    --down: #ef5a47;
+    --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+    --body: Figtree, "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+    color-scheme: dark;
+
+    /* Legacy dashboard aliases → night stack (no invent of new chrome). */
+    --bg: var(--night);
+    --bg-2: var(--panel);
+    --elev: var(--panel-2);
+    --card: var(--panel);
+    --card-2: var(--panel-2);
+    --line: var(--rail);
+    --line-2: var(--rail-2);
+    --ink: var(--steel);
+    --copper: var(--chain);
+    --copper-2: #ffd666;
+    --moss: var(--up);
+    --moss-bg: #123a31;
+    --ember: var(--down);
+    --ember-bg: #3a1a17;
+    --warn: var(--chain);
+    --warn-bg: #2c2514;
+    --steel-bg: #12181e;
+    --mast: 72px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: var(--stick, 160px); }
+  #main { scroll-margin-top: var(--stick, 160px); }
+  html, body { min-height: 100%; }
+  body {
+    background:
+      radial-gradient(900px 420px at 6% -8%, rgba(245,197,66,.08), transparent 55%),
+      radial-gradient(700px 380px at 100% 0%, rgba(34,168,142,.06), transparent 50%),
+      var(--night);
+    color: var(--ink);
+    font: 15.5px/1.5 var(--body);
+    padding: 0 0 56px;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    opacity: .22;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.7  0 0 0 0 0.55  0 0 0 0 0.3  0 0 0 .45 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .skip {
+    position: absolute; left: 12px; top: -40px; z-index: 80;
+    background: var(--copper); color: #1a1208; font-weight: 700;
+    padding: 8px 12px; border-radius: 6px;
+  }
+  .skip:focus { top: 12px; }
+  .shell { position: relative; z-index: 1; }
+  .topstick {
+    position: sticky; top: 0; z-index: 40;
+    background: var(--bg);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(14px) saturate(1.1);
+    border-bottom: 1px solid var(--line);
+  }
+  .mast {
+    display: grid;
+    grid-template-columns: minmax(190px, auto) minmax(0, 1fr) auto;
+    align-items: center; gap: 14px;
+    padding: 10px 28px 8px;
+    min-height: var(--mast);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; min-width: 220px; }
+  .mark { width: 36px; height: 36px; flex: none; }
+  h1 {
+    font-family: var(--display);
+    font-size: 22px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; line-height: 1.1;
+  }
+  .sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; letter-spacing: .02em; }
+  .jump {
+    display: flex; flex-wrap: wrap; gap: 2px;
+    justify-content: flex-end;
+  }
+  .jump a {
+    color: var(--muted); text-decoration: none;
+    font-family: var(--display); font-size: 12px; letter-spacing: .12em;
+    text-transform: uppercase; padding: 7px 11px; border-radius: 999px;
+    border: 1px solid transparent;
+  }
+  .jump a:hover { color: var(--ink); background: var(--elev); }
+  .jump a.now {
+    color: var(--copper-2); border-color: var(--line-2);
+    background: color-mix(in srgb, var(--copper) 12%, transparent);
+  }
+  .mast-meta { display: flex; align-items: center; gap: 12px; }
+  #clock {
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    letter-spacing: .04em; white-space: nowrap;
+  }
+  .studio {
+    background: var(--copper); color: #1a1208; font-weight: 700;
+    font-family: var(--display); letter-spacing: .08em; text-transform: uppercase;
+    font-size: 12px; padding: 9px 14px; border-radius: 8px;
+    text-decoration: none; white-space: nowrap;
+  }
+  .studio:hover { background: var(--copper-2); }
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 8px; padding: 0 28px 12px;
+  }
+  .chip {
+    display: flex; flex-direction: column; gap: 2px;
+    background: var(--elev); border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 12px; text-decoration: none; color: inherit;
+    min-height: 58px;
+  }
+  .chip:hover { border-color: var(--line-2); }
+  .chip-k {
+    font-family: var(--display); font-size: 10px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  .chip strong {
+    font-family: var(--mono); font-size: 15px; font-weight: 600;
+    color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .chip[data-state="on"] { border-color: color-mix(in srgb, var(--moss) 35%, var(--line)); }
+  .chip[data-state="wait"] { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); }
+  .chip[data-state="warn"] { border-color: color-mix(in srgb, var(--warn) 55%, var(--line)); }
+  .chip[data-state="off"] { border-color: color-mix(in srgb, var(--ember) 40%, var(--line)); }
+  .chip.rented { border-top: 2px solid var(--steel); }
+  .chip.team { border-top: 2px solid var(--moss); }
+  .chip.owned { border-top: 2px solid var(--copper); }
+  .banners { padding: 0 28px; }
+  .banner {
+    margin: 10px 0 0; padding: 12px 16px; border-radius: 10px;
+    background: var(--ember-bg); color: #ffb3a8; display: none; font-size: 15px;
+    border: 1px solid color-mix(in srgb, var(--ember) 40%, transparent);
+  }
+  .hint {
+    margin: 12px 28px 0; color: var(--muted); font-size: 13.5px;
+  }
+  .hint b { color: var(--ink); font-weight: 650; }
+  main { padding: 8px 28px 24px; }
+  .node {
+    margin-top: 28px; padding: 4px 0 8px 18px;
+    border-left: 3px solid var(--copper);
+    scroll-margin-top: var(--stick, 160px);
+  }
+  .node.rented { border-left-color: var(--steel); }
+  .node.team { border-left-color: var(--moss); }
+  .kicker {
+    font-family: var(--display); font-size: 10.5px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--copper); margin-bottom: 4px;
+  }
+  .node.rented .kicker { color: var(--steel); }
+  .node.team .kicker { color: var(--moss); }
+  .node > h2 {
+    font-family: var(--display); font-size: 20px; font-weight: 600;
+    color: var(--ink); letter-spacing: .04em;
+    display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px; border-radius: 999px;
+    font-family: var(--display); font-weight: 600; font-size: 11px;
+    letter-spacing: .1em; text-transform: uppercase; margin-left: 6px;
+    vertical-align: middle;
+  }
+  .pill.wait { background: var(--warn-bg); color: var(--warn); }
+  .pill.wait::before,
+  .pill.on::before,
+  .pill.off::before,
+  .pill.warn::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor;
+  }
+  .pill.wait::before { animation: pulse 1.4s ease-in-out infinite; }
+  .pill.count {
+    background: color-mix(in srgb, var(--copper) 16%, var(--elev));
+    color: var(--copper-2);
+  }
+  .pill.count::before { display: none; }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.warn::before { background: currentColor; }
+  .pill.on { background: var(--moss-bg); color: var(--moss); }
+  .pill.off { background: var(--ember-bg); color: var(--ember); }
+  @keyframes pulse { 50% { opacity: .35; } }
+  .grid {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    margin-top: 14px; align-items: start;
+  }
+  .grid.split { grid-template-columns: 2fr 1fr; }
+  .card {
+    background: linear-gradient(180deg, var(--card-2), var(--card));
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px 16px;
+    box-shadow: inset 0 1px 0 rgba(243,237,217,.04);
+    min-width: 0; overflow: visible;
+  }
+  .card h3 {
+    font-family: var(--display); font-size: 11px; font-weight: 600;
+    color: var(--muted); text-transform: uppercase; letter-spacing: .14em;
+    margin-bottom: 8px;
+    white-space: normal; overflow-wrap: anywhere; line-height: 1.25;
+  }
+  .big {
+    font-family: var(--mono); font-size: clamp(18px, 2.2vw, 26px); font-weight: 600;
+    letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+    min-height: 1.15em; line-height: 1.2;
+    white-space: normal; overflow-wrap: anywhere; word-break: break-word;
+  }
+  body:not(.live) .big {
+    color: transparent;
+    background: linear-gradient(90deg, var(--line), var(--line-2), var(--line));
+    background-size: 200% 100%;
+    animation: sheen 1.2s linear infinite;
+    border-radius: 4px;
+  }
+  @keyframes sheen { to { background-position: -200% 0; } }
+  .cap { color: var(--muted); font-size: 13px; margin-top: 5px; min-height: 18px; }
+  .gauge-foot { display: grid; grid-template-columns: 1fr 88px; gap: 10px; align-items: end; margin-top: 10px; }
+  .bar { height: 7px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar > i {
+    display: block; height: 100%; width: 0;
+    background: var(--copper); border-radius: 99px;
+    transition: width .5s ease;
+  }
+  .bar.good > i { background: var(--moss); }
+  .bar.warn > i { background: var(--warn); }
+  .bar.bad > i { background: var(--ember); }
+  .spark { width: 88px; height: 28px; display: block; opacity: .9; }
+  .wide { grid-column: 1 / -1; }
+  ul.plain { list-style: none; }
+  ul.plain li {
+    padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14.5px;
+    display: flex; justify-content: space-between; gap: 12px; align-items: baseline;
+  }
+  ul.plain li:last-child { border-bottom: 0; }
+  .dot { color: var(--moss); margin-right: 8px; }
+  .dot.bad { color: var(--ember); }
+  .r { color: var(--muted); white-space: nowrap; font-size: 13px; font-family: var(--mono); }
+  button {
+    background: var(--card-2); color: var(--ink); border: 1px solid var(--line-2);
+    border-radius: 8px; padding: 8px 14px; font-size: 14px; cursor: pointer;
+    font-family: var(--body);
+  }
+  button:hover { border-color: var(--copper); color: var(--copper-2); }
+  button:focus-visible, a:focus-visible, select:focus-visible {
+    outline: 2px solid var(--copper); outline-offset: 2px;
+  }
+  .ghost { font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+    font-family: var(--display); padding: 5px 10px; }
+  .foot {
+    position: sticky; bottom: 0; z-index: 30;
+    color: var(--muted); font-size: 12.5px;
+    padding: 10px 28px; margin: 0;
+    background: color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+  }
+  .hwbtn {
+    background: var(--elev); color: var(--ink);
+    border: 1px solid var(--line-2); border-radius: 8px;
+    padding: 10px 14px; font-size: 14px; cursor: pointer;
+  }
+  .hwbtn:hover { border-color: var(--copper); background: color-mix(in srgb, var(--copper) 10%, var(--elev)); }
+  .hwbtn:disabled { opacity: .5; cursor: default; }
+  .picks { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .picks label {
+    flex: 1 1 150px; display: flex; flex-direction: column; gap: 4px;
+    font-family: var(--display); font-size: 11px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+    min-width: 0;
+  }
+  .pick {
+    width: 100%; background: var(--elev); color: var(--ink);
+    border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px;
+    font: 13px var(--body);
+    min-width: 0;
+  }
+  .empty { color: var(--muted); }
+  .caveats { display: none; margin-top: 12px; padding: 10px 12px; border-radius: 8px;
+    background: var(--ember-bg); border: 1px solid color-mix(in srgb, var(--ember) 35%, transparent); }
+  .caveats h4 {
+    font-family: var(--display); font-size: 11px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ember); margin-bottom: 6px;
+  }
+  .caveats li { color: #ffb3a8; border-bottom-color: color-mix(in srgb, var(--ember) 25%, transparent); }
+  #cmpChart {
+    width: 100%; height: 230px; background: #100e0b;
+    border-radius: 8px; border: 1px solid var(--line);
+  }
+  #joinCmd {
+    background: #100e0b; border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px; font-size: 12.5px; overflow-x: auto;
+    color: #ddd4bc; font-family: var(--mono); line-height: 1.55;
+  }
+  .join-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+  #mnList {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 8px;
+  }
+  #mnList li {
+    background: var(--elev); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; flex-direction: column; align-items: flex-start; gap: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  #mnList .r { white-space: normal; }
+  .chip-row {
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 8px; margin-top: 10px;
+  }
+  @media (max-width: 720px) {
+    .chip-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .chip-cell {
+    background: var(--elev); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 6px; text-align: center;
+  }
+  .chip-cell .lab { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+  .chip-cell .n { font-family: var(--display); font-size: 18px; color: var(--ink); margin: 4px 0 2px; }
+  .chip-cell .sub { font-size: 11px; color: var(--muted); }
+  .chip-cell .cbar { height: 7px; background: var(--line); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+  .chip-cell .cbar i { display: block; height: 100%; width: 0; background: var(--moss); }
+  .chip-cell.lag { border-color: color-mix(in srgb, var(--ember) 50%, var(--line)); }
+  .chip-cell.lag .n { color: var(--ember); }
+  .chip-cell.lag .cbar i { background: var(--ember); }
+  .chip-cell.warn .cbar i { background: var(--warn); }
+  .chip-cell.warn .n { color: var(--warn); }
+  #poolState { font-family: var(--display); letter-spacing: .03em; }
+  .h3-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  @media (max-width: 1100px) {
+    .strip { grid-template-columns: repeat(3, 1fr); }
+    .mast { grid-template-columns: minmax(160px, auto) 1fr; }
+    .jump { justify-content: flex-start; grid-column: 1 / -1; }
+    .mast-meta { grid-column: 2; justify-self: end; }
+    html { scroll-padding-top: var(--stick, 260px); }
+    .node, #main { scroll-margin-top: var(--stick, 260px); }
+  }
+  @media (max-width: 720px) {
+    .mast, main, .banners, .hint, .foot, .strip { padding-left: 14px; padding-right: 14px; }
+    body { overflow-x: clip; }
+    /* A phone has no room for a masthead+tiles sticky block that swallows half
+       the viewport (and moves the section chips under a mid-scroll thumb): let
+       the header scroll away; only the thin reading-time footer stays pinned. */
+    .topstick { position: static; }
+    html { scroll-padding-top: 8px; }
+    .node, #main { scroll-margin-top: 8px; }
+    .mast { grid-template-columns: auto 1fr; gap: 10px; }
+    .mark { width: 30px; height: 30px; }
+    h1 { font-size: 17px; white-space: nowrap; }
+    .sub { font-size: 11px; }
+    /* The phone's own status bar is a clock; ours only widened the row until
+       Open Studio fell off the right edge. */
+    #clock { display: none; }
+    .studio { padding: 8px 10px; font-size: 11px; }
+    .mast-meta { grid-column: 1 / -1; justify-self: end; }
+    /* One thumb-scrollable row of section chips instead of a two-line wrap
+       whose second line shifts as the page scrolls. */
+    /* min-width: 0 lets this grid item shrink below its scroll content — without
+       it the chips row widens its track and the whole page lays out oversized. */
+    .jump { grid-column: 1 / -1; min-width: 0; flex-wrap: nowrap; overflow-x: auto;
+            justify-content: flex-start; -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; }
+    .jump::-webkit-scrollbar { display: none; }
+    .jump a { flex: none; padding: 9px 13px; }
+    .strip { grid-template-columns: 1fr 1fr; }
+    .big { font-size: 22px; }
+    .gauge-foot { grid-template-columns: 1fr; }
+    .spark { width: 100%; }
+    .brand { min-width: 0; }
+    .grid { grid-template-columns: 1fr; }
+    .grid.split { grid-template-columns: 1fr; }
+    /* Long mono ids were squeezing task titles into one-word slivers: give the
+       title the full row and let the id wrap underneath it. */
+    ul.plain li { flex-wrap: wrap; }
+    ul.plain li .r { flex-basis: 100%; white-space: normal; overflow-wrap: anywhere; font-size: 12px; }
+    /* The node/miner list has its own flex rules that outrank the ones above and
+       let long stat lines escape the card: plain stacked blocks on a phone. */
+    #mnList li { display: block; }
+    #mnList li .r { display: block; width: 100%; margin-top: 4px; white-space: normal; overflow-wrap: anywhere; }
+    .foot { padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .bar > i, body:not(.live) .big { transition: none; animation: none; }
+    .pill.wait::before { animation: none; }
+  }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to readings</a>
+<div class="shell">
+  <div class="topstick">
+    <header class="mast">
+      <div class="brand">
+        <svg class="mark" viewBox="0 0 36 36" aria-hidden="true">
+          <rect width="36" height="36" rx="8" fill="#1a1611" stroke="#c9893a" stroke-width="1.25"/>
+          <rect x="7" y="21" width="5" height="9" rx="1" fill="#7aab62"/>
+          <rect x="15.5" y="14" width="5" height="16" rx="1" fill="#c9893a"/>
+          <rect x="24" y="8" width="5" height="22" rx="1" fill="#d4b56a"/>
+        </svg>
+        <div>
+          <h1>Our Metal</h1>
+          <div class="sub">everything we own, live</div>
+        </div>
+      </div>
+      <nav class="jump" aria-label="Jump to a section">
+        <a href="#laptop">Laptop</a>
+        <a href="#jetson">Jetson</a>
+        <a href="#miners">Miners</a>
+        <a href="#cloud">Cloud</a>
+        <a href="#mesh">Team</a>
+        <a href="#joined">Joined</a>
+        <a href="#built">Built</a>
+      </nav>
+      <div class="mast-meta">
+        <span id="clock"></span>
+        <a class="studio" href="/studio" target="_blank" rel="noopener">Open Studio</a>
+      </div>
+    </header>
+    <div class="strip" aria-label="At a glance">
+      <a class="chip owned" href="#laptop" data-state="wait"><span class="chip-k">Laptop</span><strong id="sLap">checking</strong></a>
+      <a class="chip owned" href="#jetson" data-state="wait"><span class="chip-k">Jetson</span><strong id="sJet">checking</strong></a>
+      <a class="chip owned" href="#miners" data-state="wait"><span class="chip-k">Miners</span><strong id="sMine">checking</strong></a>
+      <a class="chip rented" href="#cloud" data-state="wait"><span class="chip-k">Cloud burn</span><strong id="sCloud">checking</strong></a>
+      <a class="chip team" href="#mesh" data-state="wait"><span class="chip-k">Team open</span><strong id="sMesh">checking</strong></a>
+    </div>
+  </div>
+
+  <p class="hint">This page is the shop floor — it only shows what’s running. Building holograms, maps, and worlds happens in <b>Studio</b>.</p>
+  <div class="banners">
+    <div class="banner" id="banner" role="status"></div>
+    <div class="banner" id="blockAlarm" role="status" style="background:#162314; color:#b6e39a; font-weight:700; font-size:17px; border-color:#2e4a28;"></div>
+  </div>
+
+  <main id="main">
+  <section class="node" id="laptop">
+    <div class="kicker" id="lapKicker">Owned · this desk</div>
+    <h2>Laptop — XPS 17 <span id="lapSelf">(this machine)</span> <span id="lapPill" class="pill wait">checking…</span></h2>
+    <div class="grid">
+      <div class="card"><h3>Processor</h3><div class="big" id="lCpu">–</div><div class="cap" id="lCpuCap"></div><div class="gauge-foot"><div class="bar" id="lCpuBar"><i></i></div><canvas class="spark" data-bar="lCpuBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Graphics card (RTX 3060)</h3><div class="big" id="lGpu">–</div><div class="cap" id="lGpuCap"></div><div class="gauge-foot"><div class="bar" id="lGpuBar"><i></i></div><canvas class="spark" data-bar="lGpuBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Memory</h3><div class="big" id="lRam">–</div><div class="cap" id="lRamCap"></div><div class="gauge-foot"><div class="bar" id="lRamBar"><i></i></div><canvas class="spark" data-bar="lRamBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Battery</h3><div class="big" id="lBat">–</div><div class="cap" id="lBatCap"></div><div class="gauge-foot"><div class="bar" id="lBatBar"><i></i></div><canvas class="spark" data-bar="lBatBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Main drive (C:)</h3><div class="big" id="lC">–</div><div class="cap" id="lCCap"></div><div class="gauge-foot"><div class="bar" id="lCBar"><i></i></div><canvas class="spark" data-bar="lCBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+    </div>
+    <div class="grid split">
+      <div class="card"><h3>Laptop services</h3><ul class="plain" id="lSvc"></ul></div>
+      <div class="card"><h3>Working hardest right now</h3><ul class="plain" id="lTop"></ul></div>
+    </div>
+  </section>
+
+  <section class="node" id="jetson">
+    <div class="kicker">Owned · the little box</div>
+    <h2>Jetson — the little box <span id="jetPill" class="pill wait">checking…</span></h2>
+    <div class="grid">
+      <div class="card"><h3>Processor</h3><div class="big" id="cpu">–</div><div class="cap" id="cpuCap"></div><div class="gauge-foot"><div class="bar" id="cpuBar"><i></i></div><canvas class="spark" data-bar="cpuBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Graphics / AI chip</h3><div class="big" id="gpu">–</div><div class="cap" id="gpuCap"></div><div class="gauge-foot"><div class="bar" id="gpuBar"><i></i></div><canvas class="spark" data-bar="gpuBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Memory</h3><div class="big" id="ram">–</div><div class="cap" id="ramCap"></div><div class="gauge-foot"><div class="bar" id="ramBar"><i></i></div><canvas class="spark" data-bar="ramBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Temperature</h3><div class="big" id="temp">–</div><div class="cap" id="tempCap"></div><div class="gauge-foot"><div class="bar" id="tempBar"><i></i></div><canvas class="spark" data-bar="tempBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Power draw</h3><div class="big" id="power">–</div><div class="cap" id="powerCap"></div><div class="gauge-foot"><div class="bar" id="powerBar"><i></i></div><canvas class="spark" data-bar="powerBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+    </div>
+    <div class="grid">
+      <div class="card"><h3>Big drive (NVMe)</h3><div class="big" id="d0">–</div><div class="cap" id="d0Cap"></div><div class="gauge-foot"><div class="bar" id="d0Bar"><i></i></div><canvas class="spark" data-bar="d0Bar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>System card (SD)</h3><div class="big" id="d1">–</div><div class="cap" id="d1Cap"></div><div class="gauge-foot"><div class="bar" id="d1Bar"><i></i></div><canvas class="spark" data-bar="d1Bar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card wide"><h3 class="h3-row">What takes the space <button type="button" id="reSpace" class="ghost">re-measure</button></h3><ul class="plain" id="space"><li>measuring…</li></ul></div>
+    </div>
+    <div class="grid split">
+      <div class="card"><h3>What's running</h3><ul class="plain" id="services"></ul></div>
+      <div class="card"><h3>Working hardest right now</h3><ul class="plain" id="top"></ul></div>
+      <div class="card wide"><h3>Recently sent from the laptop</h3><ul class="plain" id="arrivals"></ul></div>
+    </div>
+  </section>
+
+  <section class="node" id="miners">
+    <div class="kicker">Owned · hashing</div>
+    <h2>Bitcoin miners <span id="mnHeadPill" class="pill wait">checking…</span></h2>
+    <div class="grid">
+      <div class="card"><h3>Bitcoin miners — total speed</h3><div class="big" id="mnSpeed">–</div><div class="cap" id="mnSpeedCap"></div><div class="gauge-foot"><div class="bar" id="mnSpeedBar"><i></i></div><canvas class="spark" data-bar="mnSpeedBar" width="176" height="56" aria-hidden="true"></canvas></div></div>
+      <div class="card"><h3>Miners healthy</h3><div class="big" id="mnHealth">–</div><div class="cap" id="mnHealthCap"></div></div>
+      <div class="card"><h3>Work the pool accepted</h3><div class="big" id="mnShares">–</div><div class="cap" id="mnSharesCap"></div></div>
+      <div class="card"><h3>Closest we have come</h3><div class="big" id="mnClose">–</div><div class="cap" id="mnCloseCap"></div></div>
+      <div class="card" id="r909ErrCard"><h3>R909 — hardware errors</h3><div class="big" id="r909Err">–</div><div class="cap" id="r909ErrCap">the count that actually ticks when a chip misreads work</div></div>
+      <div class="card" id="r909ShareCard"><h3>R909 — last good share</h3><div class="big" id="r909Share">–</div><div class="cap" id="r909ShareCap">how long since this stick last landed work</div></div>
+      <div class="card wide" id="r909ChipsCard"><h3>R909 — six chips</h3>
+        <div class="cap" id="r909ChipCap">Each bar is that chip versus a healthy chip. A short bar is falling behind — that shows up before the error count jumps. This stick has no temperature reading of its own.</div>
+        <div class="chip-row" id="r909Chips"></div>
+      </div>
+      <div class="card wide"><h3>Is our work reaching the pool?</h3>
+        <div class="big" id="poolState" style="font-size:22px">checking…</div>
+        <div class="cap" id="poolCap"></div>
+        <div class="caveats" id="poolCaveats"><h4>Needs a look</h4><ul class="plain" id="poolCaveatList"></ul></div>
+        <ul class="plain" id="poolWorkers"></ul></div>
+      <div class="card wide" id="billCard"><h3>Ticket bill: what our tickets cost vs what they were worth</h3>
+        <div class="cap" id="billCap">working out today's bill… (it refreshes hourly)</div>
+        <ul class="plain" id="billRows"></ul>
+        <div class="cap" id="billCheck"></div></div>
+      <div class="card wide"><h3>What the tuner is doing</h3>
+        <div id="mnDoing" style="font-size:16px; line-height:1.5; color:var(--ink)">–</div>
+        <ul class="plain" id="mnHolds"></ul></div>
+      <div class="card wide" id="hwChangePanel"><h3>I changed something on the miners</h3>
+        <div class="cap">The rig cannot feel most of what you do to it. New thermal pads don't make a
+        chip faster &mdash; they let it be pushed harder before it errors, and nothing shows up until
+        something tries. Tell it what you did and it will re-test instead of trusting limits it
+        measured on the old hardware.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin:12px 0">
+          <button type="button" class="hwbtn" data-kind="cooling">I improved the cooling</button>
+          <button type="button" class="hwbtn" data-kind="voltage">I changed a voltage</button>
+          <button type="button" class="hwbtn" data-kind="power">I improved the power</button>
+          <button type="button" class="hwbtn" data-kind="wiring">I moved or replugged things</button>
+        </div>
+        <div class="cap" id="hwChangeSaid" style="min-height:1.2em"></div>
+      </div>
+      <div class="card wide" id="cmpPanel"><h3>Compare any two measurements</h3>
+        <div class="cap" id="cmpCap">loading recorded history…</div>
+        <div class="picks">
+          <label>Green miner
+            <select class="pick" id="cmpSrcA"></select>
+          </label>
+          <label>Green measurement
+            <select class="pick" id="cmpFldA"></select>
+          </label>
+          <label>Copper miner
+            <select class="pick" id="cmpSrcB"></select>
+          </label>
+          <label>Copper measurement
+            <select class="pick" id="cmpFldB"></select>
+          </label>
+        </div>
+        <svg id="cmpChart" viewBox="0 0 800 260" preserveAspectRatio="none"></svg>
+        <div class="cap" id="cmpVerdict" style="margin-top:10px"></div>
+      </div>
+      <div class="card wide"><h3>What the record shows</h3><div class="cap" id="mnPatCap">gathering history…</div><ul class="plain" id="mnPatList"><li>gathering history…</li></ul></div>
+      <div class="card wide"><h3>Each miner</h3><div class="cap" id="mnPlain" style="margin-bottom:8px"></div><ul class="plain" id="mnList"><li>checking…</li></ul></div>
+    </div>
+  </section>
+
+  <section class="node rented" id="cloud">
+    <div class="kicker">Rented · paid by the hour</div>
+    <h2>Cloud fleet — rented by the hour <span id="cloudPill" class="pill wait">checking…</span></h2>
+    <div class="grid">
+      <div class="card"><h3>Rented right now</h3><div class="big" id="cN">–</div><div class="cap" id="cNCap"></div></div>
+      <div class="card"><h3>Burn rate</h3><div class="big" id="cBurn">–</div><div class="cap" id="cBurnCap"></div></div>
+      <div class="card"><h3>Fleet wallet</h3><div class="big" id="cWallet">–</div><div class="cap" id="cWalletCap"></div></div>
+    </div>
+    <div class="grid">
+      <div class="card wide"><h3>Rented machines</h3><ul class="plain" id="cRows"><li>checking…</li></ul></div>
+    </div>
+  </section>
+
+  <section class="node team" id="mesh">
+    <div class="kicker">Team</div>
+    <h2>HoloMesh — the team layer <span id="meshPill" class="pill wait">checking…</span></h2>
+    <div class="grid">
+      <div class="card"><h3>Open tasks</h3><div class="big" id="mOpen">–</div><div class="cap">waiting for an agent</div></div>
+      <div class="card"><h3>Being worked</h3><div class="big" id="mClaimed">–</div><div class="cap">claimed right now</div></div>
+      <div class="card"><h3>Blocked</h3><div class="big" id="mBlocked">–</div><div class="cap" id="mBlockedCap"></div></div>
+      <div class="card"><h3>Finished</h3><div class="big" id="mDone">–</div><div class="cap">done so far</div></div>
+      <div class="card wide"><h3>In progress now</h3><ul class="plain" id="mTitles"><li>checking…</li></ul></div>
+    </div>
+  </section>
+
+  <section class="node" id="joined">
+    <div class="kicker">Owned · extra machines</div>
+    <h2>Machines that joined <span class="pill count" id="nodeCount">0</span></h2>
+    <div class="grid" id="nodeCards"><div class="card wide"><div class="cap">No extra machines yet. Any computer can join — see the card below.</div></div></div>
+    <div class="grid">
+      <div class="card wide"><h3>Add a machine (any computer with Node 18+)</h3>
+        <div class="join-row">
+          <div class="cap">Run these two lines on the new machine. It downloads the publisher from this hub and starts reporting. Nothing on this page needs to change — it just appears above.</div>
+          <button type="button" id="copyJoin">Copy the two lines</button>
+        </div>
+        <pre id="joinCmd">waiting for hub info…</pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="node team" id="built">
+    <div class="kicker">What exists</div>
+    <h2>What we've built — for humans and machines</h2>
+    <div class="grid">
+      <div class="card wide"><ul class="plain" id="builtRows"><li>checking…</li></ul></div>
+    </div>
+  </section>
+  </main>
+
+  <div class="foot" id="foot">waiting for first reading…</div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+  function num(v) {
+    if (v == null || v === '') return null;
+    const x = Number(v);
+    return Number.isFinite(x) ? x : null;
+  }
+  function dash(ids) {
+    (ids || []).forEach((id) => { const e = $(id); if (e) e.textContent = '—'; });
+  }
+  const NICE = [
+    [/holo-inference-proxy.*/, 'AI answering service (LLM proxy)'],
+    [/holokeyd.*/, 'Key vault (TPM-backed)'],
+    [/holoscript-agent.*/, 'HoloScript edge agent'],
+    [/holoscript-mcp-anchor.*/, 'Tool anchor (MCP, port 7411)'],
+    [/holoshell-surface.*/, 'HoloShell surface'],
+    [/jetson-orin-llamacpp.*/, 'Local model runner (llama.cpp)'],
+    [/docker\.service/, 'Container engine (Docker)'],
+    [/containerd.*/, 'Container runtime'],
+    [/ollama.*/, 'Ollama model runner'],
+  ];
+  function nice(name) { for (const [re, label] of NICE) if (re.test(name)) return label; return name.replace('.service',''); }
+  const SPARKS = {};
+  function sparkPush(barId, pct) {
+    try {
+      const canvas = document.querySelector('canvas[data-bar="' + barId + '"]');
+      if (!canvas) return;
+      if (!SPARKS[barId]) SPARKS[barId] = [Number(pct) || 0];
+      SPARKS[barId].push(Number(pct) || 0);
+      if (SPARKS[barId].length > 36) SPARKS[barId].shift();
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const w = canvas.width, h = canvas.height, pts = SPARKS[barId];
+      ctx.clearRect(0, 0, w, h);
+      if (pts.length < 2) return;
+      const bar = $(barId);
+      const col = bar && bar.classList.contains('bad') ? '#d46a4a'
+        : bar && bar.classList.contains('warn') ? '#e6c25a' : '#7aab62';
+      ctx.beginPath();
+      pts.forEach((v, i) => {
+        const x = (i / (pts.length - 1)) * w;
+        const y = h - 3 - (Math.min(100, Math.max(0, v)) / 100) * (h - 6);
+        i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.strokeStyle = col;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } catch { /* a sparkle must never stop the 5-second poll */ }
+  }
+  function setBar(id, pct, warnAt, badAt) {
+    const el = $(id);
+    if (!el || !el.firstElementChild) return;
+    const n = Number(pct);
+    if (!Number.isFinite(n)) return;
+    el.className = 'bar ' + (n >= badAt ? 'bad' : n >= warnAt ? 'warn' : 'good');
+    el.firstElementChild.style.width = Math.min(100, Math.max(0, n)) + '%';
+    sparkPush(id, n);
+  }
+  function gb(b) { return (b / 1e9).toFixed(0); }
+  function pill(id, on, label, force) {
+    const e = $(id); if (!e) return;
+    let kind = force || (on ? 'on' : (/checking|waiting|starting/i.test(String(label)) ? 'wait' : 'off'));
+    e.className = 'pill ' + kind;
+    e.textContent = label;
+  }
+  function paintStrip() {
+    const set = (id, v) => { const e = $(id); if (e) e.textContent = v || '—'; };
+    set('sLap', $('lapPill') && $('lapPill').textContent);
+    set('sJet', $('jetPill') && $('jetPill').textContent);
+    set('sMine', $('mnSpeed') && $('mnSpeed').textContent);
+    set('sCloud', $('cBurn') && $('cBurn').textContent);
+    const open = $('mOpen') && $('mOpen').textContent;
+    set('sMesh', !open || open === '–' || open === '-' ? '…' : open + ' open');
+    const map = [['.chip[href="#laptop"]', 'lapPill'], ['.chip[href="#jetson"]', 'jetPill'],
+                 ['.chip[href="#miners"]', 'mnHeadPill'], ['.chip[href="#cloud"]', 'cloudPill'],
+                 ['.chip[href="#mesh"]', 'meshPill']];
+    map.forEach(([sel, id]) => {
+      const chip = document.querySelector(sel), p = $(id);
+      if (!chip || !p) return;
+      chip.dataset.state = p.classList.contains('on') ? 'on'
+        : p.classList.contains('wait') ? 'wait'
+        : p.classList.contains('warn') ? 'warn' : 'off';
+    });
+  }
+  function tickClock() {
+    const e = $('clock');
+    if (e) e.textContent = new Date().toLocaleTimeString();
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  let timer = null;
+
+  let lastGoodLap = null, lastGoodLapAt = 0;
+  const SOFT_PROBE_MS = 45000;
+  function paintLaptop(lap) {
+    const incoming = lap;
+    if (incoming && incoming.ok) {
+      lastGoodLap = incoming;
+      lastGoodLapAt = Date.now();
+      lap = incoming;
+      pill('lapPill', true, 'online');
+    } else {
+      const soft = lastGoodLap && (Date.now() - lastGoodLapAt) < SOFT_PROBE_MS;
+      if (soft) {
+        pill('lapPill', false, 'checking again…');
+        lap = lastGoodLap; // last-good only — no invented numbers
+      } else {
+        pill('lapPill', false, 'probe failed');
+        dash(['lCpu', 'lGpu', 'lRam', 'lBat', 'lC']);
+        return;
+      }
+    }
+    const cpu = num(lap.cpuPct);
+    if (cpu == null) {
+      $('lCpu').textContent = 'not reported';
+      $('lCpuCap').textContent = 'Windows did not give a reading this cycle';
+    } else {
+      $('lCpu').textContent = cpu + '% busy';
+      $('lCpuCap').textContent = 'up since ' + (lap.bootTime || '?');
+      setBar('lCpuBar', cpu, 70, 90);
+    }
+    if (lap.gpu) {
+      const util = num(lap.gpu.utilPct);
+      const pw = num(lap.gpu.powerW);
+      const used = num(lap.gpu.memUsedMB);
+      const tot = num(lap.gpu.memTotalMB);
+      $('lGpu').textContent = util == null ? 'awake' : util + '% busy';
+      const bits = [];
+      if (lap.gpu.tempC != null) bits.push(lap.gpu.tempC + ' °C');
+      if (pw != null) bits.push(pw.toFixed(0) + ' W');
+      if (used != null && tot != null) bits.push('video memory ' + (used / 1024).toFixed(1) + ' of ' + (tot / 1024).toFixed(0) + ' GB');
+      $('lGpuCap').textContent = bits.join(', ') || 'card answered, some fields missing';
+      if (util != null) setBar('lGpuBar', util, 75, 95);
+    } else {
+      $('lGpu').textContent = 'asleep';
+      $('lGpuCap').textContent = 'not answering right now';
+      setBar('lGpuBar', 0, 75, 95);
+    }
+    const ramUsed = num(lap.ramUsedGB), ramTot = num(lap.ramTotalGB);
+    if (ramUsed != null && ramTot && ramTot > 0) {
+      const rpct = Math.round(100 * ramUsed / ramTot);
+      $('lRam').textContent = ramUsed + ' of ' + ramTot + ' GB';
+      $('lRamCap').textContent = rpct >= 90 ? 'nearly full' : rpct >= 75 ? 'getting full' : 'comfortable';
+      setBar('lRamBar', rpct, 75, 90);
+    } else {
+      $('lRam').textContent = 'not reported';
+      $('lRamCap').textContent = '';
+    }
+    if (lap.batteryPct != null) {
+      $('lBat').textContent = lap.batteryPct + '%';
+      $('lBatCap').textContent = lap.onAC ? 'plugged in' : 'on battery';
+      const bat = $('lBatBar');
+      if (bat && bat.firstElementChild) {
+        bat.className = 'bar ' + (lap.batteryPct < 20 && !lap.onAC ? 'bad' : 'good');
+        bat.firstElementChild.style.width = Math.min(100, Math.max(0, lap.batteryPct)) + '%';
+        sparkPush('lBatBar', lap.batteryPct);
+      }
+    } else {
+      $('lBat').textContent = 'none';
+      $('lBatCap').textContent = 'no battery on this machine';
+    }
+    const cSize = num(lap.cSizeGB), cFree = num(lap.cFreeGB);
+    if (cSize && cSize > 0 && cFree != null) {
+      const cpct = Math.round(100 * (cSize - cFree) / cSize);
+      $('lC').textContent = (cSize - cFree) + ' of ' + cSize + ' GB';
+      $('lCCap').textContent = cFree + ' GB free' + (lap.dSizeGB ? ' — SD card: ' + lap.dFreeGB + ' GB free of ' + lap.dSizeGB : '');
+      setBar('lCBar', cpct, 80, 92);
+    } else {
+      $('lC').textContent = 'not reported';
+      $('lCCap').textContent = '';
+    }
+
+    const okServe = lap.holoserve && lap.holoserve.indexOf('down') !== 0;
+    const bres = lap.backup ? lap.backup.result : null;
+    $('lSvc').innerHTML =
+      '<li><span><span class="dot' + (okServe ? '' : ' bad') + '">●</span>Local AI server (holoserve): ' + esc(okServe ? lap.holoserve : 'not running') + '</span></li>' +
+      '<li><span><span class="dot' + (bres === 0 ? '' : ' bad') + '">●</span>Nightly cloud backup: ' + esc(lap.backup ? (bres === 0 ? 'ran clean at ' + lap.backup.lastRun : 'PROBLEM (code ' + bres + ') at ' + lap.backup.lastRun) : 'not set up') + '</span></li>';
+    $('lTop').innerHTML = (lap.top || []).map(p => '<li><span>' + esc(p.name) + '</span><span class="r">' + esc(p.pct) + '%</span></li>').join('') || '<li>quiet</li>';
+  }
+
+  function paintJetson(st) {
+    if (!st || !st.reachable) {
+      pill('jetPill', false, 'offline');
+      const b = $('banner'); b.style.display = 'block';
+      b.textContent = (st && st.plain) || 'The Jetson is not answering.';
+      dash(['cpu', 'gpu', 'ram', 'temp', 'power', 'd0', 'd1']);
+      return;
+    }
+    pill('jetPill', true, 'online');
+    $('banner').style.display = 'none';
+    const t = st.telemetry || {};
+    const cores = t.cores || [];
+    if (t.cpuAvgPct != null) { $('cpu').textContent = t.cpuAvgPct + '% busy';
+      $('cpuCap').textContent = cores.length + ' cores at ' + Math.round((cores[0] && cores[0].mhz || 0)/100)/10 + ' GHz'; setBar('cpuBar', t.cpuAvgPct, 70, 90); }
+    if (t.gpuPct != null) { $('gpu').textContent = t.gpuPct + '% busy';
+      $('gpuCap').textContent = t.gpuPct === 0 ? 'idle — no AI job right now' : 'running AI work'; setBar('gpuBar', t.gpuPct, 75, 95); }
+    if (t.ramUsedMB != null) { const u = t.ramUsedMB/1024, tot = t.ramTotalMB/1024, pct = tot ? Math.round(100*u/tot) : 0;
+      $('ram').textContent = u.toFixed(1) + ' of ' + tot.toFixed(1) + ' GB';
+      $('ramCap').textContent = pct >= 90 ? 'nearly full' : pct >= 75 ? 'getting full' : 'comfortable'; setBar('ramBar', pct, 75, 90); }
+    if (t.tjTempC != null) { $('temp').textContent = Math.round(t.tjTempC) + ' °C';
+      $('tempCap').textContent = t.tjTempC < 70 ? 'comfortable — it protects itself above 90' : t.tjTempC < 85 ? 'warm but fine' : 'hot — it will slow itself down';
+      setBar('tempBar', (t.tjTempC/95)*100, 74, 89); }
+    if (t.powerW != null) { $('power').textContent = t.powerW + ' W';
+      $('powerCap').textContent = t.powerW < 12 ? 'light load (bulb-level)' : t.powerW < 20 ? 'working' : 'working hard'; setBar('powerBar', (t.powerW/25)*100, 60, 85); }
+    const disks = st.disks || [];
+    const nvme = disks.find(d => String(d.mount || '').includes('nvme') || d.mount === '/mnt/nvme');
+    const sys = disks.find(d => d.mount === '/');
+    if (nvme) { const pct = Math.round(100*nvme.usedB/nvme.sizeB);
+      $('d0').textContent = gb(nvme.usedB) + ' of ' + gb(nvme.sizeB) + ' GB';
+      $('d0Cap').textContent = gb(nvme.availB) + ' GB free'; setBar('d0Bar', pct, 80, 92); }
+    if (sys) { const pct = Math.round(100*sys.usedB/sys.sizeB);
+      $('d1').textContent = gb(sys.usedB) + ' of ' + gb(sys.sizeB) + ' GB';
+      $('d1Cap').textContent = gb(sys.availB) + ' GB free'; setBar('d1Bar', pct, 80, 92); }
+    $('services').innerHTML = (st.services || []).map(s => '<li><span><span class="dot">●</span>' + esc(nice(s)) + '</span></li>').join('')
+      + ((st.docker || []).length ? '<li><span><span class="dot">●</span>Containers: ' + esc((st.docker || []).join(', ')) + '</span></li>' : '');
+    $('top').innerHTML = (st.top || []).slice(0,5).map(p => {
+      const pct = num(p.cpuPct);
+      return '<li><span>' + esc(p.name) + '</span><span class="r">' + (pct == null ? '—' : pct.toFixed(0) + '%') + '</span></li>';
+    }).join('') || '<li>quiet</li>';
+    const arr = [...(st.arrivals || []).map(l => l + '  — archive'), ...(st.datasets || []).map(l => l + '  — training data')];
+    $('arrivals').innerHTML = arr.length ? arr.map(a => '<li><span>' + esc(a) + '</span></li>').join('') : '<li>nothing yet</li>';
+  }
+
+  // Prefer the Jetson's pushed snapshot (the same join path any machine uses)
+  // when it is fresh. SSH remains the fallback if the publisher is quiet.
+  function pickMiner(st) {
+    // Canonical picture from the hub: known wifi boxes probed from this laptop.
+    if (st.miner) return st.miner;
+    const pub = (st.nodes || []).find((n) => !n.stale && n.snap && n.snap.metrics && n.snap.metrics.miner);
+    if (pub) return pub.snap.metrics.miner;
+    return (st.jetson && st.jetson.miner) || null;
+  }
+
+  // The R909 reports no chip temperature, so "is it still hashing" IS the heat alarm:
+  // a cooked board, a dead fan or a pulled plug all stop the work, and that shows here.
+  // Rated stock speeds (GH/s) so a weak unit shows up beside a healthy one.
+  // ---- Compare any two measurements ---------------------------------------------
+  // Two dropdowns and two lines, after the pattern in the Bitaxe firmware. The addition
+  // is the verdict underneath: two jittery lines on one axis always look related, so the
+  // correlation is stated rather than left to the eye.
+  let CMP = null;
+  const cmpEl = id => document.getElementById(id);
+
+  function cmpPearson(xs, ys) {
+    const pairs = [];
+    for (let i = 0; i < xs.length; i++) {
+      if (xs[i] != null && ys[i] != null) pairs.push([xs[i], ys[i]]);
+    }
+    if (pairs.length < 8) return null;
+    const n = pairs.length;
+    const mx = pairs.reduce((s, p) => s + p[0], 0) / n;
+    const my = pairs.reduce((s, p) => s + p[1], 0) / n;
+    let sxy = 0, sxx = 0, syy = 0;
+    for (const [a, b] of pairs) { sxy += (a - mx) * (b - my); sxx += (a - mx) ** 2; syy += (b - my) ** 2; }
+    if (sxx <= 1e-9 || syy <= 1e-9) return { r: null, n, flat: true };
+    return { r: sxy / Math.sqrt(sxx * syy), n, flat: false };
+  }
+
+  function cmpClock(ts) {
+    return new Date(Number(ts) * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+  function cmpWindowLabel(t) {
+    if (!t || !t.length) return 'no recorded history yet';
+    if (t.length === 1) return '1 reading at ' + cmpClock(t[0]);
+    const first = t[0], last = t[t.length - 1];
+    const spanMin = Math.round((last - first) / 60);
+    const every = Math.round((last - first) / Math.max(1, t.length - 1));
+    const ageSec = Math.round(Date.now() / 1000 - last);
+    const age = ageSec < 90 ? 'newest just now'
+      : ageSec < 5400 ? 'newest ' + Math.round(ageSec / 60) + ' min ago'
+      : 'newest ' + (ageSec / 3600).toFixed(1) + ' hours ago';
+    return t.length + ' readings from ' + cmpClock(first) + ' to ' + cmpClock(last)
+      + ' (' + spanMin + ' min, about every ' + every + 's) · ' + age;
+  }
+  function cmpFmt(field, n) {
+    if (!Number.isFinite(n)) return '—';
+    if (/MHS/i.test(field) && Math.abs(n) >= 1000) return (n / 1e6).toFixed(2) + ' TH/s';
+    if (/hashRate/i.test(field) && Math.abs(n) >= 100) {
+      return n >= 1000 ? (n / 1000).toFixed(2) + ' TH/s' : Math.round(n) + ' GH/s';
+    }
+    if (Math.abs(n) >= 1000) return Math.round(n).toLocaleString();
+    return String(Math.round(n * 1000) / 1000);
+  }
+  function cmpElapsed(source) {
+    const s = (CMP && CMP.sources && CMP.sources[source]) || {};
+    return s.Elapsed || s['dev_Device Elapsed'] || null;
+  }
+  function cmpWarmupCount(source, series) {
+    const elapsed = cmpElapsed(source);
+    if (elapsed) {
+      let n = 0;
+      for (let i = 0; i < series.length; i++) {
+        if (series[i] != null && elapsed[i] != null && Number(elapsed[i]) < 180) n++;
+      }
+      return n;
+    }
+    const live = series.filter((v) => v != null).map(Number);
+    if (live.length < 10) return 0;
+    const sorted = live.slice().sort((a, b) => a - b);
+    const med = sorted[Math.floor(sorted.length / 2)];
+    let n = 0;
+    for (let i = 1; i < series.length; i++) {
+      if (series[i - 1] == null && series[i] != null && Number(series[i]) < med * 0.45) n++;
+    }
+    return n;
+  }
+  function cmpPath(series, times, x0, w, y0, h) {
+    const vals = series.filter(v => v != null);
+    if (vals.length < 2) return '';
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    const span = (hi - lo) || 1;
+    const t0 = times[0], tSpan = (times[times.length - 1] - t0) || 1;
+    let d = '', pen = false;
+    series.forEach((v, i) => {
+      if (v == null) { pen = false; return; }
+      const x = x0 + w * ((times[i] - t0) / tSpan);
+      const y = y0 + h - ((v - lo) / span) * h;
+      d += (pen ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1) + ' ';
+      pen = true;
+    });
+    return d;
+  }
+
+  function cmpFields(source) {
+    const s = (CMP && CMP.sources && CMP.sources[source]) || {};
+    const weight = (k) => {
+      if (/MHS 5m|hashRate_10m/.test(k)) return 0;
+      if (/MHS|hashRate/.test(k)) return 1;
+      if (/Hardware Errors/.test(k)) return 1.5;
+      if (/Hardware%|errorPercentage/.test(k)) return 2;
+      if (/Chip\dNonces/.test(k)) return 2.2;
+      if (/^temp$|Temperature|tempC/i.test(k)) return 3;
+      if (/Freq|frequency/.test(k)) return 4;
+      if (/power/i.test(k)) return 5;
+      return 10;
+    };
+    return Object.keys(s).sort((a, b) => weight(a) - weight(b) || a.localeCompare(b));
+  }
+
+  const CMP_STORE = 'our-metal-cmp';
+  const CMP_ANALOGS = [
+    /MHS 5m|hashRate_10m/,
+    /MHS 1m|hashRate_1m/,
+    /MHS av|hashRate$|^hashRate$/,
+    /Hardware Errors/,
+    /Hardware%|errorPercentage/,
+    /Chip\dNonces/,
+    /Temperature|^temp$|tempC/i,
+    /Frequency|^freq$|actualFrequency/i,
+    /^power$|Power/,
+    /Accepted|sharesAccepted/,
+  ];
+  function cmpBestField(options, keep, role) {
+    if (!options.length) return '';
+    if (keep && options.includes(keep)) return keep;
+    if (keep) {
+      for (let i = 0; i < CMP_ANALOGS.length; i++) {
+        if (CMP_ANALOGS[i].test(keep)) {
+          const hit = options.find((o) => CMP_ANALOGS[i].test(o));
+          if (hit) return hit;
+        }
+      }
+    }
+    if (role === 'a') return options.find((f) => /MHS 5m|hashRate_10m/.test(f)) || options[0];
+    if (role === 'b') return options.find((f) => /Hardware Errors|Hardware%|errorPercentage|Temperature|^temp$/.test(f)) || options[1] || options[0];
+    return options[0];
+  }
+  function cmpSameList(sel, options) {
+    if (!sel || sel.options.length !== options.length) return false;
+    for (let i = 0; i < options.length; i++) {
+      if (sel.options[i].value !== options[i]) return false;
+    }
+    return true;
+  }
+  function cmpFill(sel, options, keep, role) {
+    if (!sel) return;
+    const choice = cmpBestField(options, keep, role);
+    if (!cmpSameList(sel, options)) {
+      sel.innerHTML = options.map((o) => '<option value="' + esc(o) + '">' + esc(o) + '</option>').join('');
+    }
+    if (choice) sel.value = choice;
+  }
+  function cmpPick() {
+    return {
+      sa: (cmpEl('cmpSrcA') || {}).value || '',
+      fa: (cmpEl('cmpFldA') || {}).value || '',
+      sb: (cmpEl('cmpSrcB') || {}).value || '',
+      fb: (cmpEl('cmpFldB') || {}).value || '',
+    };
+  }
+  function cmpSave() {
+    try { localStorage.setItem(CMP_STORE, JSON.stringify(cmpPick())); } catch { /* private mode */ }
+  }
+  function cmpRestore() {
+    try { return JSON.parse(localStorage.getItem(CMP_STORE) || 'null'); } catch { return null; }
+  }
+  function cmpDefaultSrc(sources) {
+    return sources.find((s) => /R909/.test(s)) || sources[0];
+  }
+  function cmpHydrate(sources, prefer) {
+    const p = prefer || {};
+    const sa = sources.includes(p.sa) ? p.sa : cmpDefaultSrc(sources);
+    const sb = sources.includes(p.sb) ? p.sb : cmpDefaultSrc(sources);
+    cmpFill(cmpEl('cmpSrcA'), sources, sa);
+    cmpFill(cmpEl('cmpSrcB'), sources, sb);
+    cmpFill(cmpEl('cmpFldA'), cmpFields(sa), p.fa, 'a');
+    cmpFill(cmpEl('cmpFldB'), cmpFields(sb), p.fb, 'b');
+  }
+  function cmpSourcesChanged(sources) {
+    const el = cmpEl('cmpSrcA');
+    if (!el || !el.options.length) return true;
+    if (el.options.length !== sources.length) return true;
+    for (let i = 0; i < sources.length; i++) {
+      if (el.options[i].value !== sources[i]) return true;
+    }
+    return false;
+  }
+
+  function cmpDraw() {
+    if (!CMP || typeof CMP !== 'object') return;
+    const capEl = cmpEl('cmpCap');
+    if (!CMP.t || !CMP.t.length) {
+      if (capEl) capEl.textContent = CMP.note || 'no recorded history yet';
+      return;
+    }
+    const saEl = cmpEl('cmpSrcA'), faEl = cmpEl('cmpFldA');
+    const sbEl = cmpEl('cmpSrcB'), fbEl = cmpEl('cmpFldB');
+    const svg = cmpEl('cmpChart'), verdictEl = cmpEl('cmpVerdict');
+    if (!saEl || !faEl || !sbEl || !fbEl || !svg) return;
+    const sa = saEl.value, fa = faEl.value, sb = sbEl.value, fb = fbEl.value;
+    [saEl, faEl, sbEl, fbEl].forEach((e) => { if (e) e.title = e.value; });
+    const A = ((CMP.sources && CMP.sources[sa] || {})[fa]) || [];
+    const B = ((CMP.sources && CMP.sources[sb] || {})[fb]) || [];
+    if (capEl) capEl.textContent = cmpWindowLabel(CMP.t);
+    const aLive = A.filter(v => v != null), bLive = B.filter(v => v != null);
+    const times = CMP.t;
+    const x0 = 8, w = 784, y0 = 12, h = 210;
+    const grid = [0, 0.25, 0.5, 0.75, 1].map(f =>
+      '<line x1="' + x0 + '" y1="' + (y0 + h * f) + '" x2="' + (x0 + w) + '" y2="' + (y0 + h * f) +
+      '" stroke="#2d261c" stroke-width="1"/>').join('');
+    const t0 = times[0], t1 = times[times.length - 1];
+    const labels = [0, 0.5, 1].map((f) => {
+      const x = x0 + w * f;
+      const ts = t0 + (t1 - t0) * f;
+      return '<line x1="' + x + '" y1="' + (y0 + h) + '" x2="' + x + '" y2="' + (y0 + h + 6) +
+        '" stroke="#43392c"/><text x="' + x + '" y="252" fill="#9a907c" font-size="11" text-anchor="middle">' +
+        esc(cmpClock(ts)) + '</text>';
+    }).join('');
+    svg.innerHTML = grid
+      + (aLive.length >= 2 ? '<path d="' + cmpPath(A, times, x0, w, y0, h) + '" fill="none" stroke="#7aab62" stroke-width="2"/>' : '')
+      + (bLive.length >= 2 ? '<path d="' + cmpPath(B, times, x0, w, y0, h) + '" fill="none" stroke="#c9893a" stroke-width="2"/>' : '')
+      + labels;
+    if (!aLive.length && !bLive.length) {
+      if (verdictEl) verdictEl.textContent = 'neither measurement has numbers in this window — pick two others';
+      return;
+    }
+    if (aLive.length < 2 || bLive.length < 2) {
+      const missing = aLive.length < 2 ? fa : fb;
+      const which = aLive.length < 2 ? 'green' : 'copper';
+      if (verdictEl) verdictEl.textContent = which + ' (' + missing + ') has no numbers here. The other line is still drawn — pick a different measurement for that side.';
+      return;
+    }
+
+    // Two guards, both learned the hard way on this rig.
+    //  1. A metric that moves 0.02% of its own size is flat; a chart auto-scales it into a
+    //     dramatic-looking line anyway (Bitaxe Free Heap does exactly this).
+    //  2. If BOTH series drift with time, they will correlate with each other whether or not
+    //     they are related at all. Free Heap falling while the brain clocked a miner up
+    //     produced r = -0.64 that way, and vanished once frequency was held fixed.
+    const idx = A.map((_, i) => i);
+    const trendA = cmpPearson(idx, A), trendB = cmpPearson(idx, B);
+    const flatness = arr => {
+      const v = arr.filter(x => x != null);
+      if (!v.length) return null;
+      const mean = v.reduce((a, b) => a + b, 0) / v.length;
+      if (!mean) return null;
+      return Math.abs(100 * (Math.max(...v) - Math.min(...v)) / mean);
+    };
+    const fA = flatness(A), fB = flatness(B);
+    const stat = cmpPearson(A, B);
+    const lo = a => { const v = a.filter(x => x != null); return v.length ? Math.min(...v) : 0; };
+    const hi = a => { const v = a.filter(x => x != null); return v.length ? Math.max(...v) : 0; };
+    const warmA = cmpWarmupCount(sa, A), warmB = cmpWarmupCount(sb, B);
+    let verdict;
+    if (!stat) verdict = 'not enough overlapping readings yet.';
+    else if (stat.flat) verdict = 'one of these never changes over this window, so there is nothing to compare.';
+    else {
+      const r = stat.r, m = Math.abs(r);
+      const dir = r > 0 ? 'together' : 'in opposite directions';
+      verdict = m >= 0.7 ? 'These move ' + dir + ' closely (r = ' + r.toFixed(2) + '). A real relationship.'
+        : m >= 0.4 ? 'These are related, loosely (r = ' + r.toFixed(2) + '). Worth a look.'
+        : m >= 0.2 ? 'Barely related (r = ' + r.toFixed(2) + '). Probably not worth chasing.'
+        : 'No relationship (r = ' + r.toFixed(2) + '). Both are just noisy; they are not affecting each other.';
+      verdict += ' Based on ' + stat.n + ' paired readings.';
+      const barelyMoves = [];
+      if (fA != null && fA < 1) barelyMoves.push(fa + ' (' + fA.toFixed(3) + '%)');
+      if (fB != null && fB < 1) barelyMoves.push(fb + ' (' + fB.toFixed(3) + '%)');
+      if (barelyMoves.length) {
+        verdict += ' ⚠ Careful: ' + barelyMoves.join(' and ') +
+          ' barely change at all across this window — the chart stretches that tiny ' +
+          'wobble to fill the height, which makes noise look like a pattern.';
+      }
+      if (trendA && trendB && trendA.r != null && trendB.r != null &&
+          Math.abs(trendA.r) > 0.6 && Math.abs(trendB.r) > 0.6 && m >= 0.4) {
+        verdict += ' ⚠ Both of these also drift steadily over time on their own (r = ' +
+          trendA.r.toFixed(2) + ' and ' + trendB.r.toFixed(2) + ' against the clock). Two things ' +
+          'that each drift will correlate whether or not they affect each other, so this ' +
+          'reading is not evidence of a link by itself.';
+      }
+    }
+    verdict += ' Each line is stretched to fill the height — they do not share a scale, so a small change can look as tall as a big one.';
+    const warmN = Math.max(warmA, warmB);
+    if (warmN >= 3) {
+      verdict += ' ⚠ ' + warmN + ' points were taken less than 3 minutes after a restart or a missed reading. '
+        + 'Valleys right after a gap are the 5-minute average still filling in, not the board running slow.';
+    }
+    if (verdictEl) verdictEl.innerHTML =
+      '<span style="color:#7aab62">\u25CF</span> ' + esc(fa) + ' &nbsp;' + cmpFmt(fa, lo(A)) + ' to ' + cmpFmt(fa, hi(A)) +
+      ' &nbsp;&nbsp; <span style="color:#c9893a">\u25CF</span> ' + esc(fb) + ' &nbsp;' + cmpFmt(fb, lo(B)) + ' to ' + cmpFmt(fb, hi(B)) +
+      '<br>' + esc(verdict);
+  }
+
+  async function cmpLoad() {
+    const cap = cmpEl('cmpCap');
+    let next;
+    try {
+      const r = await fetch('/api/metrics');
+      next = await r.json();
+    } catch {
+      if (CMP && CMP.t && CMP.t.length) { cmpDraw(); return; }
+      if (cap) cap.textContent = 'could not read the recorded history';
+      return;
+    }
+    if (!next || typeof next !== 'object') {
+      if (CMP && CMP.t && CMP.t.length) { cmpDraw(); return; }
+      if (cap) cap.textContent = 'could not read the recorded history';
+      return;
+    }
+    CMP = next;
+    if (!Array.isArray(CMP.t)) CMP.t = [];
+    const sources = Object.keys(CMP.sources || {}).sort();
+    if (!sources.length) {
+      if (cap) cap.textContent = CMP.note || 'no history recorded yet';
+      return;
+    }
+    const srcA = cmpEl('cmpSrcA');
+    if (!srcA || !srcA.options.length) {
+      cmpHydrate(sources, cmpRestore());
+    } else if (cmpSourcesChanged(sources)) {
+      cmpHydrate(sources, cmpPick());
+    } else {
+      const fa = cmpFields(srcA.value), fb = cmpFields(cmpEl('cmpSrcB').value);
+      if (!cmpSameList(cmpEl('cmpFldA'), fa)) cmpFill(cmpEl('cmpFldA'), fa, cmpEl('cmpFldA').value, 'a');
+      if (!cmpSameList(cmpEl('cmpFldB'), fb)) cmpFill(cmpEl('cmpFldB'), fb, cmpEl('cmpFldB').value, 'b');
+    }
+    cmpDraw();
+  }
+
+  function cmpOnSrcChange(id) {
+    const fld = id === 'cmpSrcA' ? 'cmpFldA' : 'cmpFldB';
+    const role = id === 'cmpSrcA' ? 'a' : 'b';
+    const src = cmpEl(id) && cmpEl(id).value;
+    cmpFill(cmpEl(fld), cmpFields(src), cmpEl(fld) && cmpEl(fld).value, role);
+    cmpSave();
+    cmpDraw();
+  }
+  function cmpOnFldChange() {
+    cmpSave();
+    cmpDraw();
+  }
+  ['cmpSrcA', 'cmpSrcB'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', () => cmpOnSrcChange(id));
+    el.addEventListener('input', () => cmpOnSrcChange(id));
+  });
+  ['cmpFldA', 'cmpFldB'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('change', cmpOnFldChange);
+    el.addEventListener('input', cmpOnFldChange);
+  });
+  cmpLoad();
+  setInterval(cmpLoad, 120000);
+
+  // ---- "I changed something on the miners" --------------------------------------
+  // Reports a physical change the rig has no way to sense. Echoes back what the RIG said it
+  // would do, not a confirmation this page made up.
+  document.querySelectorAll('.hwbtn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const kind = btn.dataset.kind;
+      const out = document.getElementById('hwChangeSaid');
+      if (!out) return;
+      const all = document.querySelectorAll('.hwbtn');
+      all.forEach((b) => (b.disabled = true));
+      out.textContent = 'telling the rig\u2026';
+      try {
+        const r = await fetch('/api/hardware-changed', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ kind }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.ok) {
+          out.innerHTML = '<span style="color:#7aab62">\u2713</span> Told it. ' + esc(j.effect || 'The rig will re-test.') +
+            ' New records will appear in the log below over the next few hours, with what the change bought.';
+        } else {
+          // Never claim success on a failure. This is the exact shape the rig spent the week
+          // removing: a green tick over something that did not happen.
+          out.innerHTML = '<span style="color:#ff6b6b">\u2717</span> Not recorded \u2014 ' +
+            esc(j.error || (r.status === 500 ? 'the helper hit an error' : 'the rig did not accept it')) +
+            '. Nothing was changed.';
+        }
+      } catch (e) {
+        out.innerHTML = '<span style="color:#ff6b6b">\u2717</span> Could not reach the rig. Nothing was changed.';
+      }
+      setTimeout(() => all.forEach((b) => (b.disabled = false)), 3000);
+    });
+  });
+
+  const MINER_SPEC = { 'R909': 1500, 'Terminus R909': 1500, 'Compac F': 250, 'Compac A1': 300, 'Compac A2': 300, 'Bitaxe': 700 };
+  const EXPECTED_USB = /*@EXPECTED_USB*/[]; // served by jetson-scope from its local config
+  function houseSoloNag(p) {
+    const s = String(p);
+    return /no backup pool/.test(s) || /same address as the main one/.test(s);
+  }
+  function pickPool(mn, hub) {
+    if (mn && mn.pool && mn.pool.ok) return mn.pool;
+    if (hub && hub.ok) return hub;
+    return (mn && mn.pool) || hub || null;
+  }
+  function paintR909(d) {
+    const errEl = $('r909Err');
+    const capEl = $('r909ErrCap');
+    const shareEl = $('r909Share');
+    const shareCap = $('r909ShareCap');
+    const chipsEl = $('r909Chips');
+    const chipCap = $('r909ChipCap');
+    if (!errEl) return;
+    if (!d) {
+      errEl.textContent = 'not seen';
+      capEl.textContent = 'the six-chip stick is not on the bus right now';
+      if (shareEl) shareEl.textContent = '—';
+      if (shareCap) shareCap.textContent = '';
+      if (chipsEl) chipsEl.innerHTML = '';
+      if (chipCap) chipCap.textContent = 'waiting for the R909 to report';
+      return;
+    }
+    const n = d.hw_errors;
+    errEl.textContent = n == null ? 'waiting…' : Number(n).toLocaleString();
+    const bits = [];
+    if (d.hw_pct != null) bits.push((Number(d.hw_pct) || 0).toFixed(4) + '% of work');
+    if (d.hw_per_hour != null) bits.push(d.hw_per_hour + ' per hour at this uptime');
+    if (d.rejected != null) bits.push(Number(d.rejected) + ' rejected by the pool');
+    capEl.textContent = n == null
+      ? 'next Jetson heartbeat will carry the count'
+      : (bits.join(' · ') || 'count since this miner process started');
+    const age = d.last_share_age_s;
+    if (shareEl) {
+      shareEl.textContent = age == null ? '—'
+        : age < 90 ? Math.round(age) + 's'
+        : age < 5400 ? Math.round(age / 60) + ' min'
+        : (age / 3600).toFixed(1) + ' h';
+      shareEl.style.color = (age != null && age > 600) ? 'var(--ember)' : '';
+    }
+    if (shareCap) {
+      shareCap.textContent = age == null ? 'no last-share time in this heartbeat'
+        : age > 600 ? 'quiet too long — this stick may have dropped off'
+        : 'still landing work';
+    }
+    const chips = d.chips_detail || [];
+    if (!chipsEl) return;
+    if (!chips.length) {
+      chipsEl.innerHTML = '';
+      if (chipCap) chipCap.textContent = 'chip split arrives on the next Jetson heartbeat';
+      return;
+    }
+    let lag = 0;
+    chipsEl.innerHTML = chips.map((c) => {
+      const pct = Number(c.pct);
+      const known = Number.isFinite(pct);
+      if (known && pct < 50) lag += 1;
+      const cls = !known ? '' : pct < 50 ? 'lag' : pct < 80 ? 'warn' : '';
+      const width = known ? Math.max(3, Math.min(100, pct)) : 0;
+      const label = known ? Math.round(pct) + '%' : '—';
+      const dups = Number(c.dups) || 0;
+      return '<div class="chip-cell ' + cls + '"><div class="lab">chip ' + esc(c.i) + '</div>'
+        + '<div class="n">' + esc(label) + '</div>'
+        + '<div class="sub">' + Number(c.nonces || 0).toLocaleString() + ' nonces'
+        + (dups ? ' · ' + dups + ' dups' : '') + '</div>'
+        + '<div class="cbar"><i style="width:' + width + '%"></i></div></div>';
+    }).join('');
+    if (chipCap) {
+      chipCap.textContent = lag
+        ? lag + ' of ' + chips.length + ' chips are well behind a healthy chip. That shows up before the error count jumps. This stick has no temperature reading of its own.'
+        : 'Each bar is that chip versus a healthy chip. Even bars mean the six are sharing the work. This stick has no temperature reading of its own.';
+    }
+  }
+
+  function paintMiner(mn, pool) {
+    pool = pickPool(mn, pool);
+    // Everything here comes from the brain's status file: it already drops the
+    // ghost entries cgminer keeps for unplugged miners, uses an average that has
+    // actually converged, and polls the Bitaxes over the network.
+    const devs = (mn && mn.devices) || [];
+    const axes = Object.entries((mn && mn.bitaxes) || {});
+    const usbTh = num(mn && mn.usb_th) || 0;
+    let axeGhLive = 0;
+    for (const [, b] of axes) {
+      if (!b.missing) axeGhLive += Number(b.gh) || 0;
+    }
+    const axeTh = Math.round(axeGhLive) / 1000;
+    const th = Math.round((usbTh * 1000 + axeGhLive)) / 1000;
+    const svcUp = !!mn && mn.service === 'active';
+    const hashing = th > 0.05;
+    const running = hashing;
+    const elapsed = num((mn && mn.summary && (mn.summary.elapsed || mn.summary.Elapsed)) || (mn && mn.elapsed));
+    const starting = svcUp && !hashing && elapsed != null && elapsed > 0 && elapsed < 90;
+
+    const bar = $('mnSpeedBar');
+    if (bar && bar.firstElementChild) {
+      bar.className = 'bar ' + (th >= 3 ? 'good' : (th > 0.05 || starting) ? 'warn' : 'bad');
+      bar.firstElementChild.style.width = Math.min(100, (th / 6) * 100) + '%';
+      sparkPush('mnSpeedBar', Math.min(100, (th / 6) * 100));
+    }
+
+    $('mnSpeed').textContent = running ? th.toFixed(2) + ' TH/s' : starting ? 'starting…' : 'stopped';
+    $('mnSpeedCap').textContent = starting ? 'just restarted — about a minute to reach full speed'
+      : !running ? 'not mining right now'
+      : usbTh.toFixed(2) + ' on the Jetson + ' + axeTh.toFixed(2) + ' from Bitaxes';
+
+    const rows = [];
+    for (const d of devs) {
+      const spec = MINER_SPEC[d.model] || 0;
+      const gh = Number(d.gh_now || 0);
+      const hwPct = Number(d.hw_pct || 0);
+      const errN = d.hw_errors;
+      const extra = [
+        d.freq ? Math.round(Number(d.freq)) + ' MHz' : '',
+        errN != null ? Number(errN).toLocaleString() + ' hardware errors' : (hwPct ? hwPct.toFixed(4) + '% errors' : ''),
+        d.last_share_age_s != null ? (d.last_share_age_s < 90
+          ? Math.round(d.last_share_age_s) + 's since share'
+          : Math.round(d.last_share_age_s / 60) + ' min since share') : '',
+      ].filter(Boolean).join(' · ');
+      rows.push({ name: d.model + (d.serial ? ' · ' + d.serial : ''), gh,
+                  pct: spec ? Math.round((gh / spec) * 100) : null,
+                  ok: d.status === 'Alive' && hwPct < 1, extra });
+    }
+    const seenSerial = new Set(devs.map((d) => String(d.serial || '')));
+    let missingUsb = !devs.length ? []
+      : (Array.isArray(mn && mn.missing_usb) && mn.missing_usb.length
+        ? mn.missing_usb
+        : EXPECTED_USB.filter((e) => !seenSerial.has(e.serial)));
+    missingUsb = missingUsb.map((e) => {
+      const known = EXPECTED_USB.find((k) => k.serial === e.serial);
+      return known ? { ...known, ...e, hold: e.hold || known.hold } : e;
+    });
+    for (const e of missingUsb) {
+      const bench = e.hold === 'resolder';
+      rows.push({
+        name: e.model + ' · ' + (e.label && e.serial === e.label ? e.label : e.serial),
+        gh: 0, pct: null, ok: false, bench,
+        extra: bench
+          ? 'damaged — on the bench for resolder'
+          : 'not plugged in — the Jetson cannot see this stick',
+      });
+    }
+    paintR909(devs.find((d) => d.model === 'R909' || EXPECTED_USB.some((e) => e.model === 'R909' && d.serial && (String(d.serial).indexOf(e.serial) >= 0 || e.serial.indexOf(String(d.serial)) >= 0))) || null);
+    for (const [ip, b] of axes) {
+      const missing = !!b.missing;
+      const reported = Number(b.gh) || 0;
+      const last = Number(b.last_gh) || (missing ? reported : 0);
+      const gh = missing ? 0 : reported;
+      const leftover = Number(b.gh_1m || b.gh_10m || 0);
+      const extra = [
+        b.temp ? b.temp + '°C' : '',
+        !missing && gh < 1 && leftover > 50 ? 'chip idle — its own page still shows an old average' : '',
+        missing ? 'not answering on wifi' + (last > 0 ? ' · last seen ' + Math.round(last) + ' GH/s' : '') : '',
+      ].filter(Boolean).join(' · ');
+      rows.push({ name: 'Bitaxe .' + ip.split('.').pop(), gh: missing ? last : gh,
+                  pct: Math.round(((missing ? last : gh) / MINER_SPEC.Bitaxe) * 100),
+                  ok: !missing && gh > 50, extra });
+    }
+
+    const liveRows = rows.filter((r) => !r.bench);
+    const benchN = rows.filter((r) => r.bench).length;
+    const good = liveRows.filter((r) => r.ok).length;
+    const none = !liveRows.length;
+    if ($('mnHeadPill')) {
+      const mnKind = starting ? 'wait' : none ? 'wait' : !running ? 'off' : (good === liveRows.length ? 'on' : 'warn');
+      pill('mnHeadPill', mnKind === 'on',
+        starting ? 'starting' : none ? 'none seen' : !running ? 'stopped' : (good + ' of ' + liveRows.length), mnKind);
+    }
+    $('mnHealth').textContent = starting ? 'starting' : none ? 'none detected' : !running ? 'STOPPED' : good + ' of ' + liveRows.length;
+    $('mnHealthCap').textContent = starting ? 'warming up — this clears on its own'
+      : none ? 'the hub has not seen a USB stick or a Bitaxe yet'
+      : !running ? 'nothing is mining — check the fans and the plugs'
+      : good === liveRows.length
+        ? (benchN ? 'all hashing · ' + benchN + ' Compac A1s on the bench for resolder' : 'all of them working')
+        : (liveRows.length - good) + ' need a look';
+
+    const sum = (mn && mn.summary) || {};
+    // cgminer's "Found Blocks" covers the USB sticks ONLY. The Bitaxes are a separate
+    // fleet on solo.ckpool.org with their own blockFound flag, and until 2026-08-26
+    // nothing here read it — so roughly half the rig's hashrate could have won a block
+    // and this page would have gone on showing a share count.
+    const axeList = Object.values((mn && mn.bitaxes) || {});
+    const axeBlocks = axeList.reduce((n, b) => n + (Number(b.block_found) || 0), 0);
+    const blocks = Number(sum.blocks || 0) + axeBlocks;
+    $('mnShares').textContent = blocks > 0 ? blocks + ' BLOCK FOUND' : Number(sum.accepted || 0).toLocaleString();
+    $('mnSharesCap').textContent = blocks > 0 ? 'check your wallet.'
+      : !running ? '' : Number(sum.rejected || 0) + ' rejected — an outside pool checks every one';
+    const alarm = $('blockAlarm');
+    if (blocks > 0) {
+      const who = axeBlocks > 0 ? (blocks > axeBlocks ? 'the rig' : 'a Bitaxe') : 'a USB miner';
+      alarm.style.display = 'block';
+      alarm.textContent = '🎉 ' + who + ' FOUND A BLOCK. Check the wallet.';
+      document.title = 'BLOCK FOUND — Our Metal';
+    } else {
+      alarm.style.display = 'none';
+      document.title = 'Our Metal';
+    }
+
+    // How close have we actually come? bestDiff is the luckiest share ever found; the
+    // network difficulty is what a share has to beat to BE a block. The ratio is the
+    // honest answer, and it is a number rather than a feeling.
+    // The POOL's bestever, not the miners'. A Bitaxe keeps bestDiff in flash across pool
+    // and address changes, so it can describe work submitted to another account entirely --
+    // ours claimed 941M locally while ckpool's record for that same worker was 104M. The
+    // local figure is used only when the pool cannot be reached, and the caption says which.
+    const poolBest = Number(pool && pool.ok && pool.bestever) || 0;
+    const localBest = Math.max(0, ...axeList.map(b => Number(b.best_diff) || 0));
+    const bestDiff = poolBest || localBest;
+    const bestFrom = poolBest ? 'the pool record'
+                              : 'the miners themselves — the pool has not confirmed it';
+    const netDiff  = Math.max(0, ...axeList.map(b => Number(b.net_diff) || 0));
+    if (bestDiff > 0 && netDiff > 0) {
+      const oneIn = netDiff / bestDiff;
+      $('mnClose').textContent = '1 / ' + Math.round(oneIn).toLocaleString();
+      // Network hashrate from difficulty: diff x 2^32 per 600s block target.
+      const netHs = netDiff * 4294967296 / 600;
+      const ourHs = th * 1e12;
+      let rate = '';
+      if (netHs > 0 && ourHs > 0) {
+        // A block lands somewhere on the network every 600s. Our share of the hashrate is
+        // ourHs/netHs, so our own expected interval is 600 x netHs / ourHs seconds.
+        const years = (600 * netHs / ourHs) / (86400 * 365.25);
+        rate = years >= 1000 ? '  ·  at this speed a block is a once-in-' +
+                 Math.round(years / 1000) + ',000-year chance — solo mining is a lottery ticket'
+             : '  ·  about one block every ' + Math.round(years) + ' years at this speed';
+      }
+      $('mnCloseCap').textContent = 'the luckiest share we have ever found was this fraction '
+        + 'of a whole block, according to ' + bestFrom + rate;
+    } else {
+      $('mnClose').textContent = '–';
+      $('mnCloseCap').textContent = '';
+    }
+
+    // Findings over the recorded window, not the current instant. These come from the
+    // brain's arithmetic over its own telemetry log, so every line is checkable against
+    // the miner's own screen.
+    const pat = (mn && mn.patterns) || {};
+    const finds = pat.findings || [];
+    // "looking back over 254 minutes · 240 readings" reads identically whether that
+    // window ended a minute ago or three hours ago. Say when, and say plainly when the
+    // answer is stale, because a stale finding and a fresh one look the same otherwise.
+    const patWhen = (pat.data_at_iso || '').replace('T', ' ');
+    const patAge = Number(pat.data_age_s);
+    const ageTxt = !Number.isFinite(patAge) ? ''
+      : patAge < 90 ? 'just now'
+      : patAge < 5400 ? Math.round(patAge / 60) + ' min ago'
+      : (patAge / 3600).toFixed(1) + ' hours ago';
+    $('mnPatCap').innerHTML = pat.rows
+      ? 'looking back over ' + (pat.window_min || 0) + ' minutes · ' + pat.rows + ' readings'
+        + (patWhen ? ' · newest reading ' + esc(patWhen) + (ageTxt ? ' (' + ageTxt + ')' : '') : '')
+        + (pat.fresh === false && pat.stale_reason
+             ? '<br><span style="color:#e56a5a">⚠ OUT OF DATE — ' + esc(pat.stale_reason) + '</span>'
+             : '')
+      : esc(pat.note || 'gathering history…');
+    $('mnPatList').style.opacity = pat.fresh === false ? '0.45' : '1';
+    let patRows = finds.map(f =>
+      '<li><span>' + esc(f.claim) + '</span><span class="r">' + esc(f.confidence) + '</span></li>').join('');
+    if (pat.recommend) {
+      patRows += '<li><span><b>What I would do:</b> '
+        + esc(String(pat.recommend.action).replace(/_/g, ' ')) + ' on ' + esc(pat.recommend.device)
+        + '</span><span class="r">' + esc(pat.recommend.why) + '</span></li>';
+    }
+    if (pat.absent && pat.absent.length) {
+      patRows += '<li><span>Not counted — these stopped reporting: ' + esc(pat.absent.join(', '))
+        + '</span><span class="r">gone</span></li>';
+    }
+    $('mnPatList').innerHTML = patRows
+      || '<li>nothing stands out — every miner is doing what its settings say it should</li>';
+
+    // The tuner's own status line was collected and never displayed, so "nothing is
+    // happening" and "something is being held back" looked identical from this page.
+    $('mnDoing').textContent = (mn && mn.action) || 'nothing to do right now';
+    const holds = (mn && mn.axe_holds) || {};
+    const queued = (mn && mn.axe_untested) || {};
+    const allowed = (mn && mn.axe_allow) || {};
+    const holdRows = Object.keys(holds).sort().map(ip => {
+      const extra = queued[ip] ? 'keeping the ' + queued[ip] + ' MHz you set, waiting its turn'
+                  : holds[ip];
+      const ok = allowed[ip] ? ' · proven at ' + allowed[ip] + ' MHz' : '';
+      return '<li><span>' + esc(ip) + '</span><span class="r">' + esc(extra + ok) + '</span></li>';
+    }).join('');
+    $('mnHolds').innerHTML = holdRows;
+
+    // Local hashrate proves the chips are busy. It proves NOTHING about whether the shares
+    // are landing — a dead pool and a healthy rig look identical from this machine.
+    const fmtAge = s => s == null ? 'unknown'
+      : s < 90 ? Math.round(s) + 's ago'
+      : s < 5400 ? Math.round(s / 60) + ' min ago'
+      : (s / 3600).toFixed(1) + ' hours ago';
+    if (!pool || !pool.ok) {
+      $('poolState').textContent = 'UNKNOWN — could not ask the pool';
+      $('poolState').style.color = '#e5b94d';
+      $('poolCap').textContent = pool && pool.error
+        ? 'the check itself failed (' + pool.error + '). That is not the same as "fine".'
+        : 'no answer yet';
+      $('poolWorkers').innerHTML = '';
+      const cave = $('poolCaveats');
+      if (cave) cave.style.display = 'none';
+    } else {
+      const problems = (pool.problems || []).filter((p) => !houseSoloNag(p));
+      // 'landing' is three-valued on purpose: true, false, or unknown. Unknown must never
+      // be painted as yes. If the hub forgot to set landing, infer from lastshare age.
+      const land = pool.landing === true || pool.landing === false
+        ? pool.landing
+        : (pool.lastshare_age_s != null ? pool.lastshare_age_s <= 600 : undefined);
+      $('poolState').textContent = land === false ? 'NO — work is not reaching the pool'
+        : land === true ? 'yes — the pool is crediting every miner'
+        : 'UNKNOWN — could not confirm';
+      $('poolState').style.color = land === false ? '#e56a5a'
+        : land === true ? '#7aab62' : '#d4a054';
+      $('poolCap').textContent = 'credited ' + String(pool.hashrate1hr || '?')
+        + ' over the last hour · last accepted share ' + fmtAge(pool.lastshare_age_s)
+        + ' · best share this account has ever made: ' + Number(pool.bestever || 0).toLocaleString()
+        + (pool.address ? ' · paying ' + String(pool.address).slice(0, 10) + '…'
+                          + String(pool.address).slice(-6) : '');
+      const workerRows = (pool.workers || []).map(w => {
+        // Trust the check's own verdict when it has one. Deciding "retired" from a decaying
+        // hashrate average here is how a 5.7-day-silent worker became a permanent alarm.
+        const retired = w.retired != null ? w.retired
+          : (parseFloat(String(w.hashrate1d || '0')) || 0) === 0;
+        const dead = !retired && w.lastshare_age_s != null && w.lastshare_age_s > 600;
+        return '<li><span><span class="dot' + (dead ? ' bad' : '') + '"'
+          + (retired ? ' style="color:#566072"' : '') + '>●</span>' + esc(w.name) + '</span>'
+          + '<span class="r">' + esc(String(w.hashrate1hr || '0')) + ' · last share '
+          + esc(fmtAge(w.lastshare_age_s)) + (retired ? ' · retired, from an older setup' : '')
+          + '</span></li>';
+      }).join('');
+      $('poolWorkers').innerHTML = workerRows;
+      const cave = $('poolCaveats'), list = $('poolCaveatList');
+      if (cave && list) {
+        if (problems.length) {
+          cave.style.display = 'block';
+          list.innerHTML = problems.map(p =>
+            '<li><span>' + esc(p) + '</span><span class="r">needs a decision</span></li>').join('');
+        } else {
+          cave.style.display = 'none';
+          list.innerHTML = '';
+        }
+      }
+    }
+
+    $('mnPlain').textContent = (mn && mn.plain) || '';
+    $('mnList').innerHTML = rows.length ? rows
+      .slice().sort((a, b) => b.gh - a.gh)
+      .map(r => {
+        const speed = r.gh >= 1000 ? (r.gh / 1000).toFixed(2) + ' TH/s' : Math.round(r.gh) + ' GH/s';
+        const verdict = r.pct === null ? '' : r.pct >= 95 ? 'full speed'
+          : r.pct >= 80 ? 'slightly under' : 'only ' + r.pct + '% of rated';
+        const bits = [speed, r.extra, verdict].filter(Boolean).join('  · ');
+        return '<li><span><span class="dot" style="color:' + (r.ok ? '#7aab62' : '#d4a054') + '">●</span>'
+          + esc(r.name) + '</span><span class="r">' + esc(bits) + '</span></li>';
+      }).join('') : '<li>none detected</li>';
+  }
+
+
+
+  // Ticket bill (Paper 46): each machine's hashes, today's cost against their
+  // worth. Green = cheaper than the tickets are worth, red = dearer, grey = no
+  // power reading yet. The last line is the bill's own check.
+  function paintBill(b) {
+    const cap = $('billCap'), rows = $('billRows'), check = $('billCheck');
+    if (!cap || !rows || !check) return;
+    if (!b) { cap.textContent = "working out today's bill… (it refreshes hourly)"; return; }
+    const lines = Array.isArray(b.plain) ? b.plain : [];
+    rows.innerHTML = '';
+    if (!b.ok || !Array.isArray(b.rows)) {
+      cap.textContent = lines[0] || 'The ticket bill is not available right now.';
+      check.textContent = '';
+      return;
+    }
+    cap.textContent = lines[0] || '';
+    const colour = { green: '#7aab62', red: '#d0643c', unknown: '#8a8272' };
+    for (const r of b.rows) {
+      const li = document.createElement('li');
+      const dot = document.createElement('span');
+      dot.textContent = '● ';
+      dot.style.color = colour[r.verdict] || colour.unknown;
+      li.appendChild(dot);
+      li.appendChild(document.createTextNode(r.plain || r.name || ''));
+      rows.appendChild(li);
+    }
+    // Tickets lost to restarts and outages, from the brain's decision ledger: today so far,
+    // then yesterday's full day. Grey: it is a count of loss, not a machine's colour.
+    const waste = [b.waste_today, b.waste_yesterday].map((w) => w && w.plain).filter(Boolean);
+    const wasteLines = waste.length ? waste
+      : lines.filter((l) => l.startsWith('So far today') || l.startsWith('Yesterday ('));
+    for (const l of wasteLines) {
+      const li = document.createElement('li');
+      li.textContent = l;
+      li.style.color = '#8a8272';
+      rows.appendChild(li);
+    }
+    const house = lines.find((l) => l.startsWith('House miners:'));
+    check.textContent = [house, lines[lines.length - 1]].filter(Boolean).join(' ');
+    check.style.color = b.control_ok ? '' : '#d0643c';
+  }
+
+  const CSTATE = {
+    'PRODUCTIVE': 'working, earning its keep',
+    'BOOTING': 'starting up — give it time',
+    'RUNNING?': 'container up, nothing confirmed — needs a look',
+    'UNCONFIRMED': 'not confirmed running — needs a look',
+  };
+  function paintCloud(c) {
+    if (!c) {
+      pill('cloudPill', false, 'checking…');
+      $('cN').textContent = 'checking…';
+      $('cBurn').textContent = 'checking…';
+      $('cWallet').textContent = 'checking…';
+      return;
+    }
+    if (!c.ok) {
+      pill('cloudPill', false, 'unreachable');
+      $('cN').textContent = '—';
+      $('cBurn').textContent = '—';
+      $('cWallet').textContent = '—';
+      $('cNCap').textContent = '';
+      $('cBurnCap').textContent = '';
+      $('cWalletCap').textContent = '';
+      $('cRows').innerHTML = '<li>' + esc(c.plain || 'Could not read rental status.') + '</li>';
+      return;
+    }
+    pill('cloudPill', true, 'online');
+    const rows = c.rows || [];
+    $('cN').textContent = rows.length === 0 ? 'nothing' : rows.length + ' machine' + (rows.length > 1 ? 's' : '');
+    $('cNCap').textContent = rows.length === 0 ? 'no rentals — nothing being paid for' :
+      (c.productive || 0) + ' working, ' + (c.inspect || 0) + ' need a look';
+    const totDph = num(c.totDph);
+    const dayCost = num(c.dayCost);
+    const wallet = num(c.wallet);
+    const runway = num(c.runwayDays);
+    $('cBurn').textContent = totDph == null ? '—' : '$' + totDph.toFixed(2) + '/hr';
+    $('cBurnCap').textContent = rows.length === 0 ? 'zero burn' : (dayCost == null ? '' : 'about $' + dayCost.toFixed(2) + ' per day at this rate');
+    $('cWallet').textContent = wallet == null ? '?' : '$' + wallet.toFixed(2);
+    $('cWalletCap').textContent = runway != null ? 'about ' + runway.toFixed(1) + ' days at current burn' : (rows.length === 0 ? 'not being spent' : '');
+    $('cRows').innerHTML = rows.length === 0
+      ? '<li class="empty">Nothing is being rented. The fleet wallet is sitting still — that is the cheap state.</li>'
+      : rows.map(r => {
+          const dph = num(r.dph);
+          return '<li><span>#' + esc(r.id) + ' — ' + esc(r.gpuName) + (r.label ? ' · ' + esc(r.label) : '') + ' · ' + esc(CSTATE[r.state] || r.state) + (r.owner === 'ORPHAN' ? ' · <b>untracked spend!</b>' : '') + '</span><span class="r">' + (dph == null ? '—' : '$' + dph.toFixed(3) + '/hr') + '</span></li>';
+        }).join('');
+  }
+
+  function paintMesh(m) {
+    if (!m) {
+      pill('meshPill', false, 'checking…');
+      $('mOpen').textContent = '…';
+      $('mClaimed').textContent = '…';
+      $('mBlocked').textContent = '…';
+      $('mDone').textContent = '…';
+      return;
+    }
+    if (!m.ok) {
+      pill('meshPill', false, 'unreachable');
+      dash(['mOpen', 'mClaimed', 'mBlocked', 'mDone']);
+      $('mTitles').innerHTML = '<li>' + esc(m.plain || '') + '</li>';
+      return;
+    }
+    pill('meshPill', true, m.mode ? 'online — ' + m.mode + ' mode' : 'online');
+    $('mOpen').textContent = m.open;
+    $('mClaimed').textContent = m.claimed;
+    $('mBlocked').textContent = m.blocked;
+    $('mBlockedCap').textContent = m.blocked > 0 ? 'needs attention' : 'nothing stuck';
+    $('mDone').textContent = m.doneLog;
+    $('mTitles').innerHTML = (m.titles && m.titles.length)
+      ? m.titles.map(t => '<li><span>' + esc(t.title) + '</span><span class="r">' + esc(t.by) + '</span></li>').join('')
+      : '<li>nothing claimed right now</li>';
+  }
+
+  function paintBuilt(st) {
+    const lap = st.laptop || {}, jet = st.jetson || {};
+    const jetServes = (jet.services || []).some(s => /llamacpp|inference-proxy/.test(s));
+    const rows = [
+      { name: 'HoloServe', desc: 'the local AI brain on this laptop', live: lap.ok && lap.holoserve && lap.holoserve.indexOf('down') !== 0, status: lap.holoserve || 'not running' },
+      { name: 'HoloLlama', desc: 'the model runner on the Jetson', live: jetServes, status: jetServes ? 'running' : 'not running' },
+      { name: 'HoloClaw', desc: 'the watchdog that keeps services alive',
+        live: lap.holoclaw && (lap.holoclaw.result === 0 || lap.holoclaw.result === 267009),
+        status: lap.holoclaw ? (lap.holoclaw.result === 267009 ? 'watching right now' : lap.holoclaw.result === 0 ? 'last check clean at ' + lap.holoclaw.lastRun : 'PROBLEM code ' + lap.holoclaw.result) : 'not set up' },
+      { name: 'Academy', desc: 'train your own agent — your data, your hardware, or rented cloud', live: false, pending: true, status: 'taking shape — on the team board' },
+      { name: 'Papers program', desc: 'research programs turning ideas into proofs', live: (lap.papersCount || 0) > 0, pending: (lap.papersCount || 0) === 0, status: (lap.papersCount || 0) > 0 ? lap.papersCount + ' in flight' : 'tracked on the team board' },
+      { name: 'HoloMesh', desc: 'the team layer — see its own section above', live: st.mesh && st.mesh.ok, status: st.mesh && st.mesh.ok ? 'online' : 'unreachable' },
+      { name: 'Studio', desc: 'build and customize projects — button at the top', live: true, status: 'online' },
+    ];
+    $('builtRows').innerHTML = rows.map(r => {
+      const pending = !r.live && r.pending;
+      const dead = !r.live && !r.pending;
+      return '<li><span><span class="dot' + (dead ? ' bad' : '') + '"'
+        + (pending ? ' style="color:#9a907c"' : '') + '>●</span><b>' + r.name + '</b> — '
+        + r.desc + '</span><span class="r">' + esc(r.status) + '</span></li>';
+    }).join('');
+  }
+
+  function fmtGB(b) {
+    const n = num(b);
+    return n == null ? '?' : (n / 1073741824).toFixed(1);
+  }
+  function paintNodes(nodes, joinInfo) {
+    $('nodeCount').textContent = (nodes || []).length;
+    if (joinInfo && joinInfo.lanIp) {
+      const hub = 'http://' + joinInfo.lanIp + ':' + joinInfo.ingestPort;
+      $('joinCmd').textContent =
+        'curl -s ' + hub + '/publisher.mjs -o metal-publisher.mjs\n' +
+        'node metal-publisher.mjs --hub ' + hub + ' --token ' + joinInfo.token + '\n\n' +
+        '(Windows PowerShell: iwr -useb ' + hub + '/publisher.mjs -OutFile metal-publisher.mjs)';
+    } else if (joinInfo) {
+      $('joinCmd').textContent = 'Hub address not ready — this laptop has no LAN IP I can advertise yet.';
+    }
+    if (!nodes || !nodes.length) return;
+    $('nodeCards').innerHTML = nodes.map(n => {
+      const snap = n.snap || {};
+      const m = snap.metrics || {}, nd = snap.node || {};
+      const ramPct = m.ramTotalB ? Math.round(100 * m.ramUsedB / m.ramTotalB) : null;
+      const disk = (m.disks || [])[0];
+      const bits = [];
+      if (m.cpuPct != null) bits.push('CPU ' + m.cpuPct + '% of ' + m.cores + ' cores');
+      if (ramPct != null) bits.push('memory ' + fmtGB(m.ramUsedB) + ' of ' + fmtGB(m.ramTotalB) + ' GB');
+      if (disk) bits.push('disk ' + fmtGB(disk.freeB) + ' GB free');
+      if (m.gpu && m.gpu.utilPct != null) bits.push((m.gpu.name || 'GPU') + ' ' + m.gpu.utilPct + '%' + (m.gpu.tempC ? ' at ' + Math.round(m.gpu.tempC) + '°C' : ''));
+      if (m.battery && m.battery.pct != null) bits.push('battery ' + m.battery.pct + '%' + (m.battery.onAC ? ' plugged in' : ''));
+      if (m.miner && m.miner.total_th != null) bits.push('miners ' + Number(m.miner.total_th).toFixed(2) + ' TH/s');
+      if (m.axiom) bits.push((m.axiom.name || 'brain') + ' ' + (m.axiom.status || '') + (m.axiom.role ? ' · ' + m.axiom.role : '') + (m.axiom.model ? ' · ' + String(m.axiom.model).replace(/\.gguf$/, '') : '') + (m.axiom.ctx ? ' · remembers ' + m.axiom.ctx + ' words at once' : ''));
+      // When the phone itself is reading this page, its own card should say so.
+      const selfMark = (window.__viewerSurface === 'phone-usb' && nd.platform === 'android')
+        ? ' <span class="pill on">this phone</span>' : '';
+      return '<div class="card"><h3>' + esc(nd.name || n.name || 'machine') + ' <span style="color:#566072; text-transform:none; letter-spacing:0;">' + esc((nd.platform || '?') + '/' + (nd.arch || '?')) + '</span>' + selfMark + '</h3>' +
+        '<div class="big" style="font-size:20px;">' + (n.stale ? 'quiet' : 'reporting') + '</div>' +
+        '<div class="cap">' + (n.stale ? 'last heard ' + esc(n.ageS) + 's ago' : esc(bits.join(' · '))) + '</div>' +
+        (m.cpuPct != null && !n.stale ? '<div class="bar ' + (m.cpuPct >= 90 ? 'bad' : m.cpuPct >= 70 ? 'warn' : 'good') + '"><i style="width:' + Number(m.cpuPct) + '%"></i></div>' : '') +
+        '</div>';
+    }).join('');
+  }
+
+  async function tick() {
+    let st;
+    try { st = await (await fetch('/api/state')).json(); }
+    catch {
+      pill('lapPill', false, '?'); pill('jetPill', false, '?');
+      const b = $('banner'); b.style.display = 'block';
+      b.textContent = 'The dashboard helper on the laptop stopped answering. Close this tab and click the Metal icon again.';
+      document.body.classList.add('live');
+      return schedule(15000);
+    }
+    try {
+      // The page reaches more hands than the desk's (phone over the cable, any
+      // house device over Wi-Fi). Only claim "this machine" when the desk
+      // itself is the one asking; the serving door tells us who that is.
+      const viewer = (st.viewer && st.viewer.surface) || 'laptop';
+      window.__viewerSurface = viewer;
+      $('lapSelf').textContent = viewer === 'laptop' ? '(this machine)' : '';
+      $('lapKicker').textContent = viewer === 'laptop' ? 'Owned · this desk' : 'Owned · at the desk';
+      paintLaptop(st.laptop);
+      paintJetson(st.jetson);
+      paintMiner(pickMiner(st), st.pool);
+      paintBill(st.bill);
+      paintCloud(st.cloud);
+      paintMesh(st.mesh);
+      paintNodes(st.nodes, st.joinInfo);
+      paintBuilt(st);
+      paintStrip();
+      measureStick();
+      spyJump();
+      // A hash followed before first paint lands wrong because sections grow as
+      // data arrives; re-anchor once, now that heights are real.
+      if (!tick.anchored && location.hash) {
+        tick.anchored = true;
+        const anchorTarget = document.querySelector(location.hash);
+        if (anchorTarget) requestAnimationFrame(() => anchorTarget.scrollIntoView());
+      }
+      if (st.space && st.space.ok) {
+        $('space').innerHTML = (st.space.rows || []).slice().sort((a,b) => b.bytes - a.bytes).map(r =>
+          '<li><span>' + esc(r.path) + '</span><span class="r">' + (Number(r.bytes)/1e9).toFixed(1) + ' GB</span></li>').join('');
+      }
+      $('foot').textContent = 'last checked ' + new Date().toLocaleTimeString() + ' — updates every 5 seconds — read-only view, it cannot change anything';
+    } catch (err) {
+      console.error(err);
+    } finally {
+      document.body.classList.add('live');
+    }
+    schedule(st.jetson && st.jetson.reachable ? 5000 : 15000);
+  }
+  function schedule(ms) { clearTimeout(timer); timer = setTimeout(tick, ms); }
+  $('reSpace').onclick = async () => { $('space').innerHTML = '<li>measuring… (can take a minute)</li>'; try { await fetch('/api/space'); } catch {} tick(); };
+  function copyText(text) {
+    return (async () => {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          return;
+        }
+      } catch { /* fall through to execCommand */ }
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      try {
+        if (!document.execCommand('copy')) throw new Error('copy failed');
+      } finally {
+        document.body.removeChild(ta);
+      }
+    })();
+  }
+  function highlightJoin() {
+    const pre = $('joinCmd');
+    if (!pre) return;
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      if (!sel) return;
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch { /* highlight is a fallback, not the job */ }
+  }
+  const copyJoin = $('copyJoin');
+  if (copyJoin) {
+    copyJoin.onclick = async () => {
+      const text = $('joinCmd') && $('joinCmd').textContent;
+      if (!text || /waiting for hub/i.test(text) || /Hub address not ready/i.test(text) || !/metal-publisher/.test(text)) {
+        copyJoin.textContent = 'Hub address not ready';
+        setTimeout(() => { copyJoin.textContent = 'Copy the two lines'; }, 2000);
+        return;
+      }
+      try {
+        await copyText(text);
+        copyJoin.textContent = 'Copied';
+        setTimeout(() => { copyJoin.textContent = 'Copy the two lines'; }, 1600);
+      } catch {
+        highlightJoin();
+        copyJoin.textContent = 'Highlighted — press Ctrl+C';
+        setTimeout(() => { copyJoin.textContent = 'Copy the two lines'; }, 2500);
+      }
+    };
+  }
+  const jumpLinks = [...document.querySelectorAll('.jump a')];
+  function measureStick() {
+    const el = document.querySelector('.topstick');
+    if (!el) return;
+    const h = Math.ceil(el.getBoundingClientRect().height);
+    document.documentElement.style.setProperty('--stick', h + 'px');
+  }
+  function spyJump() {
+    const stick = document.querySelector('.topstick');
+    const y = (stick ? stick.getBoundingClientRect().bottom : 0) + 12;
+    let current = 'laptop';
+    document.querySelectorAll('section.node').forEach((s) => {
+      if (s.getBoundingClientRect().top <= y) current = s.id;
+    });
+    jumpLinks.forEach((a) => a.classList.toggle('now', a.getAttribute('href') === '#' + current));
+  }
+  measureStick();
+  if (window.ResizeObserver) {
+    const stickEl = document.querySelector('.topstick');
+    if (stickEl) new ResizeObserver(measureStick).observe(stickEl);
+  }
+  window.addEventListener('resize', measureStick);
+  window.addEventListener('scroll', spyJump, { passive: true });
+  jumpLinks.forEach((a) => a.addEventListener('click', () => {
+    jumpLinks.forEach((x) => x.classList.remove('now'));
+    a.classList.add('now');
+  }));
+  spyJump();
+  tick();
+</script>
+</body>
+</html>
