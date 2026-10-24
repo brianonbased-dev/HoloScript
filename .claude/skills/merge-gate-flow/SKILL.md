@@ -8,7 +8,7 @@ source: 'Canonical source: the Grok Bot skill store (skill merge-gate-flow); kee
 
 # Merge Gate Flow
 
-A PR merges only when both hold at the same SHA: (1) <gate check> passes on <head>; (2) a distinct second seat gives CLEAR (or CLEAR with notes) at <head>. The reviewer is never the author, and reviewers never merge.
+Only the gate merges. Docs/test-only PRs merge once HoloCI records a final pass on the reviewed commit. Security/money/auth PRs need a fresh second seat (CLEAR or CLEAR with notes at <head>) + <gate check> pass on <head> + CoS YES. The reviewer is never the author and never merges.
 
 ## Roles
 
