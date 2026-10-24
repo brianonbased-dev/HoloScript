@@ -165,6 +165,8 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
     const { requireCredits, isCreditError } = (creditsModule as any).default || creditsModule;
     const pre = await requireCredits(account, body.shallow ? 'absorb_shallow' : 'absorb_deep');
     if (isCreditError(pre)) return paidStartRefusal(pre as Record<string, unknown>);
+    const capped = owedCapRefusal(pre as Record<string, unknown>);
+    if (capped) return capped;
   }
   // One charge per user + repo + commit SHA (CoS/Treasurer, #617): the claim
   // key is derived from the commit the branch points at, not from the
@@ -174,7 +176,8 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
   let commitSha: string;
   try {
     repoUrl = normalizeRepoUrl(body.repoUrl);
-    commitSha = await resolveCommitSha(body.repoUrl, body.branch);
+    // The normalized URL (#617 F5): ls-remote sees the same repo the key names.
+    commitSha = await resolveCommitSha(repoUrl, body.branch);
   } catch (err) {
     if (err instanceof CloneRefusal) return cloneRefusalOutcome(err);
     throw err;
@@ -396,6 +399,29 @@ export const ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT = 1; // provisional pending J
  */
 export const MAX_BALANCE_OWED_CREDITS = 100; // provisional pending Joseph
 
+/**
+ * Enforces MAX_BALANCE_OWED_CREDITS at a paid start (#617 F2): 402 when the
+ * price would push the amount owed past the cap. Reads the balance the credit
+ * check saw (balanceCents) and the price (costCents).
+ */
+export function owedCapRefusal(check: Record<string, unknown>): ScanOutcome | null {
+  const bal = typeof check.balanceCents === 'number' ? check.balanceCents : null;
+  const price = typeof check.costCents === 'number' ? check.costCents : 0;
+  if (bal === null) return null;
+  const owedAfter = Math.max(0, price - bal);
+  if (owedAfter <= MAX_BALANCE_OWED_CREDITS) return null;
+  return {
+    status: 402,
+    json: {
+      error: 'balance_owed_cap',
+      required: price,
+      balance: bal,
+      maxBalanceOwedCredits: MAX_BALANCE_OWED_CREDITS,
+      message: 'This scan would leave the account owing more than the allowed balance. Add credits first.',
+    },
+  };
+}
+
 /** 402 for a paid start: a balance is owed, or the balance does not cover the scan. */
 function paidStartRefusal(check: Record<string, unknown>): ScanOutcome {
   const bal = typeof check.balance === 'number' ? check.balance : null;
@@ -531,6 +557,8 @@ async function scanAndChargeNow(
     if (isCreditError(creditCheck)) {
       return paidStartRefusal(creditCheck as Record<string, unknown>);
     }
+    const capped = owedCapRefusal(creditCheck as Record<string, unknown>);
+    if (capped) return capped;
   }
 
   // Lazy import to avoid loading heavy modules at startup
