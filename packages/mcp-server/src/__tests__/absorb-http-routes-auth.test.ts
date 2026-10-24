@@ -149,6 +149,39 @@ describe('absorb HTTP proxy auth boundary', () => {
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
+    it('refuses a service key sent as Basic <base64> (as password or user) with 401, no fetch', async () => {
+      process.env.ABSORB_API_KEY = 'svc-absorb-test';
+      for (const pair of ['x:svc-absorb-test', 'svc-absorb-test:', 'svc-absorb-test']) {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+        const out = makeRes();
+        const b64 = Buffer.from(pair).toString('base64');
+        await handleAbsorbRoute(
+          makeReq('GET', { authorization: `Basic ${b64}` }),
+          out.res,
+          '/api/absorb/knowledge/earnings'
+        );
+        expect(out.status()).toBe(401);
+        expect(out.json()).toMatchObject({ error: 'absorb_service_key_refused' });
+        expect(fetchMock).not.toHaveBeenCalled();
+      }
+    });
+
+    it('refuses a service key sent as Token <key> with 401, no fetch', async () => {
+      process.env.HOLOSCRIPT_API_KEY = 'svc-holo-test';
+      const fetchMock = vi.fn();
+      vi.stubGlobal('fetch', fetchMock);
+      const out = makeRes();
+      await handleAbsorbRoute(
+        makeReq('GET', { authorization: 'Token svc-holo-test' }),
+        out.res,
+        '/api/absorb/knowledge/earnings'
+      );
+      expect(out.status()).toBe(401);
+      expect(out.json()).toMatchObject({ error: 'absorb_service_key_refused' });
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
     it('never falls back to the server key, even with the old opt-in flag set', async () => {
       process.env.ABSORB_API_KEY = 'svc-absorb-test';
       process.env.ABSORB_PROXY_SERVICE_KEY_FALLBACK = 'true';

@@ -43,6 +43,34 @@ function sameSecret(a: string, b: string): boolean {
   return timingSafeEqual(ha, hb);
 }
 
+/**
+ * Every value a caller could be presenting as a secret, whatever the scheme:
+ * the raw header, the credential after any scheme word (Bearer, Token, ...),
+ * and for Basic the decoded user:pass plus the user and the password alone.
+ */
+function presentedSecrets(header: string): string[] {
+  const out = new Set<string>([header.trim()]);
+  const m = /^(\S+)\s+(.+)$/.exec(header.trim());
+  if (m) {
+    const cred = m[2].trim();
+    out.add(cred);
+    if (m[1].toLowerCase() === 'basic') {
+      try {
+        const decoded = Buffer.from(cred, 'base64').toString('utf8');
+        out.add(decoded);
+        const i = decoded.indexOf(':');
+        if (i >= 0) {
+          out.add(decoded.slice(0, i));
+          out.add(decoded.slice(i + 1));
+        }
+      } catch {
+        // not base64: the raw credential is already a candidate
+      }
+    }
+  }
+  return [...out].filter((v) => v.length > 0);
+}
+
 type ProxyAuth = { header: string } | { refused: 'missing' | 'service_key' };
 
 function resolveProxyAuth(req?: http.IncomingMessage): ProxyAuth {
@@ -56,8 +84,9 @@ function resolveProxyAuth(req?: http.IncomingMessage): ProxyAuth {
   }
   if (!header) return { refused: 'missing' };
 
-  const presented = header.replace(/^Bearer\s+/i, '').trim();
-  if (serviceKeys().some((k) => sameSecret(presented, k.trim()))) {
+  const candidates = presentedSecrets(header);
+  const keys = serviceKeys().map((k) => k.trim());
+  if (candidates.some((c) => keys.some((k) => sameSecret(c, k)))) {
     return { refused: 'service_key' };
   }
   return { header };
