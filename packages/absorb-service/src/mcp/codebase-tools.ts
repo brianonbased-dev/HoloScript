@@ -746,6 +746,8 @@ interface AbsorbJob {
   rootDir: string;
   /** Account that started the job over /mcp; null/undefined = local/operator job. */
   ownerId?: string | null;
+  /** Token of the remote call that created this job (set at creation, never from args). */
+  createdByCall?: symbol;
   writerKey?: string;
   writerPolicyHash?: string;
   writerLease?: AbsorbWriterLease;
@@ -7137,13 +7139,20 @@ function callerScopedRefusal(name: string, hint: string): Record<string, unknown
   return { error: 'no_caller_graph', status: 403, callerScoped: true, tool: name, hint };
 }
 
+/** Who a remote holo_absorb_repo call creates its job for. Internal only, never from args. */
+interface AbsorbJobCreator {
+  ownerId: string | null;
+  callToken: symbol;
+}
+
 /**
- * H3: a remote caller owns only a job its own call created. If the call coalesced onto (or
- * was refused by) a job that already existed, that job keeps its owner and the caller gets
- * 409 unless it already owns it, learning nothing about it (no jobId, rootDir or status).
+ * H3: a job keeps its original owner, set when it is created. A remote caller sees a job id
+ * only for the job its own call created, or (for a normal accepted result) a job it already
+ * owns. Anything else, and every busy / accepted:false result about a job it doesn't own,
+ * becomes 409 with nothing about the other job (no jobId, rootDir or status). Nothing is
+ * ever claimed after the fact.
  */
 function workspaceBusyForCaller(): Record<string, unknown> {
-  // 409, never the other job's id, root or status. The existing job keeps its owner.
   return {
     error: 'absorb_workspace_busy',
     status: 409,
@@ -7154,29 +7163,18 @@ function workspaceBusyForCaller(): Record<string, unknown> {
   };
 }
 
-function scopeAbsorbRepoResultForCaller(
-  out: unknown,
-  existingJobIds: Set<string>,
-  ctx: CodebaseToolCallerContext
-): unknown {
+function scopeAbsorbRepoResultForCaller(out: unknown, creator: AbsorbJobCreator): unknown {
   if (!out || typeof out !== 'object') return out;
   const rec = out as Record<string, unknown>;
   const ids = [rec.jobId, rec.activeJobId].filter((v): v is string => typeof v === 'string');
-  if (ids.length === 0 && rec.coalesced !== true && rec.externalWriter !== true) return out;
+  const joinedOrBusy =
+    rec.coalesced === true || rec.externalWriter === true || rec.busy === true || typeof rec.activeJobId === 'string';
+  if (ids.length === 0) return joinedOrBusy ? workspaceBusyForCaller() : out;
   for (const id of ids) {
     const job = absorbJobs.get(id);
-    const createdByThisCall = !existingJobIds.has(id) && !!job && job.ownerId == null;
-    if (createdByThisCall && rec.coalesced !== true && rec.externalWriter !== true) {
-      job!.ownerId = ctx.ownerId;
-      continue;
-    }
-    const ownedByCaller = !!job && !!ctx.ownerId && job.ownerId === ctx.ownerId;
-    if (!ownedByCaller) {
-      return workspaceBusyForCaller();
-    }
-  }
-  if (ids.length === 0) {
-    return workspaceBusyForCaller();
+    if (job && job.createdByCall === creator.callToken) continue;
+    const ownedByCaller = !!job && !!creator.ownerId && job.ownerId === creator.ownerId;
+    if (!ownedByCaller || joinedOrBusy || rec.accepted === false) return workspaceBusyForCaller();
   }
   return out;
 }
@@ -7223,9 +7221,10 @@ export async function handleCodebaseTool(
     }
     if (name === 'holo_cancel_absorb') return handleCancelAbsorb(args, ctx);
     if (name === 'holo_absorb_repo') {
-      const existingJobIds = new Set(absorbJobs.keys());
-      const out = await handleAbsorbWithPageExtract(args);
-      return scopeAbsorbRepoResultForCaller(out, existingJobIds, ctx);
+      // Owner is attached at job creation inside handleAbsorb, not from caller args.
+      const creator: AbsorbJobCreator = { ownerId: ctx.ownerId, callToken: Symbol('absorb-call') };
+      const out = await handleAbsorbWithPageExtract(args, creator);
+      return scopeAbsorbRepoResultForCaller(out, creator);
     }
   }
   // cacheAutoLoaded guard prevents repeated disk I/O within a session;
@@ -8792,15 +8791,18 @@ function scanPolicyArgsProvided(args: Record<string, unknown>): boolean {
   ].some((key) => args[key] !== undefined);
 }
 
-async function handleAbsorbWithPageExtract(args: Record<string, unknown>): Promise<unknown> {
+async function handleAbsorbWithPageExtract(
+  args: Record<string, unknown>,
+  creator?: AbsorbJobCreator
+): Promise<unknown> {
   if (!absorbArgsHavePageExtract(args)) {
-    return handleAbsorb(args);
+    return handleAbsorb(args, creator);
   }
   const folded = await foldObservedPageIntoAbsorbArgs(args);
   if (!folded.ok) {
     return { error: folded.error, message: folded.message };
   }
-  const result = await handleAbsorb(folded.args);
+  const result = await handleAbsorb(folded.args, creator);
   if (!result || typeof result !== 'object' || !folded.pageExtract) return result;
   return {
     ...(result as Record<string, unknown>),
@@ -8808,7 +8810,10 @@ async function handleAbsorbWithPageExtract(args: Record<string, unknown>): Promi
   };
 }
 
-async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
+async function handleAbsorb(
+  args: Record<string, unknown>,
+  creator?: AbsorbJobCreator
+): Promise<unknown> {
   const mod = (await loadCodebaseModule()) as CodebaseModule;
 
   const receiptRaw = args.localCodebaseSnapshotReceipt ?? args.snapshotReceipt;
@@ -9073,6 +9078,14 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     writerLease,
     requestedJobId
   );
+  if (creator) {
+    // Same tick as creation: no window where the new job is ownerless for a remote call.
+    const created = absorbJobs.get(jobId);
+    if (created) {
+      created.ownerId = creator.ownerId;
+      created.createdByCall = creator.callToken;
+    }
+  }
   try {
     enforceAbsorbPreflightResourceGuard(jobId);
   } catch (error) {

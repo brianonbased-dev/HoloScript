@@ -51,4 +51,19 @@ describe('holo_absorb_repo: two owners, same root', () => {
     expect(forB).toMatchObject({ status: 403 });
     await handleCodebaseTool('holo_cancel_absorb', { jobId: out.jobId });
   });
+  it('late registration race (Mapping 09:13): an ownerless job created after B starts is never claimed by B', async () => {
+    const pending = handleCodebaseTool('holo_absorb_repo', { rootDir: root }, B) as Promise<any>;
+    registerAbsorbJobForTests('absorb-late-a', null, root);
+    const out = await pending;
+    expectBusyNoLeak(out, 'absorb-late-a');
+    expect(await handleCodebaseTool('holo_cancel_absorb', { jobId: 'absorb-late-a' }, B)).toMatchObject({ status: 403 });
+    expect(await handleCodebaseTool('holo_get_absorb_status', { jobId: 'absorb-late-a' }, B)).toMatchObject({ status: 403 });
+  });
+
+  it('a caller-supplied owner field in args is ignored (owner comes only from ctx)', async () => {
+    const out = (await handleCodebaseTool('holo_absorb_repo', { rootDir: root, ownerId: A.ownerId, __ownerId: A.ownerId }, B)) as any;
+    expect(typeof out.jobId).toBe('string');
+    expect(await handleCodebaseTool('holo_get_absorb_status', { jobId: out.jobId }, A)).toMatchObject({ status: 403 });
+    await handleCodebaseTool('holo_cancel_absorb', { jobId: out.jobId });
+  });
 });
