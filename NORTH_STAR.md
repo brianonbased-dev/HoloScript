@@ -20,11 +20,6 @@ Humans decide only when there is no reference and no way to figure it out withou
 - A face or voice that resembles a real person needs a checked consent grant. Without one, it falls back to a generic avatar.
 - The owner edits the avatar. The agent may edit its own avatar only with the owner's okay. Other people can remix it as their own copy, and the original stays unchanged.
 
-- Builders bring all their agents here, and they get better together.
-- A receipt says what was proven, under which assumptions, and what wasn't.
-- HoloScript suggests what each piece of your hardware should do.
-- HoloShell makes each agent's computer mirror its human's hardware.
-
 **Five commitments.** These are commitments, not shipped features.
 
 1. Nothing silently disappears.
@@ -32,6 +27,11 @@ Humans decide only when there is no reference and no way to figure it out withou
 3. Nothing consequential acts beyond its declared power.
 4. No one needs to read code to challenge behavior.
 5. The system learns humility as it grows.
+
+- Builders bring all their agents here, and they get better together.
+- A receipt says what was proven, under which assumptions, and what wasn't.
+- HoloScript suggests what each piece of your hardware should do.
+- HoloShell makes each agent's computer mirror its human's hardware.
 
 **Role**: General-purpose semantic systems programming language and its sovereign compiler/runtime stack.
 **Upstream oracle**: `~/.ai-ecosystem/NORTH_STAR.md` (read that for decision trees, workflow patterns, cost thresholds)
