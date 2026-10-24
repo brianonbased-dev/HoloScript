@@ -235,9 +235,10 @@ function refuseTierUnavailable(res: Response): void {
  * header X-MCPMe-Orchestrator-Sig) from an orchestrator that predates v1, so the
  * two services can deploy in either order. Such a call is ACCOUNT-UNKNOWN: it is
  * authenticated but carries no userId and no tier, so every paid or user-scoped
- * route refuses it exactly as it refuses any caller without a user UUID. The old
- * orchestrator bills its own wallet for it, so it is still charged once. Each
- * legacy signature is single-use (replay -> 409).
+ * route refuses it exactly as it refuses any caller without a user UUID. It is a
+ * system call with no user: $0 is charged and it is logged. Each legacy
+ * signature is single-use (replay -> 409), and one sent alongside a v1 call is
+ * consumed there too, so it cannot be replayed as a no-user call.
  * REMOVE once the v1 orchestrator companion is deployed everywhere: delete this
  * flag and verifyLegacyOrchestratorSig, and the legacy branch below.
  * Set ABSORB_ACCEPT_LEGACY_ORCHESTRATOR_SIG=false to switch it off early.
@@ -351,6 +352,11 @@ async function handleOrchestratorAttestation(
   }
   if (!consumeOrchestratorNonce(orchKey, orchNonce)) {
     return refuse(409, 'orchestrator_attestation_replayed', 'Orchestrator attestation was already used.');
+  }
+  // A legacy sig sent alongside v1 is spent here too, so it cannot be replayed
+  // later as a no-user legacy call.
+  if (orchSigLegacy && SIG_HEX_RE.test(orchSigLegacy)) {
+    consumeOrchestratorNonce(orchKey, `legacy:${orchSigLegacy}`);
   }
   const tier = await resolveUserTier(orchUser.toLowerCase());
   if (!tier) {

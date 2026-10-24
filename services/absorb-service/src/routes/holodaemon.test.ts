@@ -196,7 +196,7 @@ describe.each(['quick', 'balanced', 'deep', undefined] as Array<string | undefin
           COST[run],
           `HoloDaemon cycle (${run})`,
           {
-            jobId: 'job-1',
+            // charged before the job starts (a failed charge starts none), so no jobId yet
             profile: run,
           }
         );
@@ -242,5 +242,17 @@ describe('POST /api/holodaemon start as v1 (absorb is the only biller)', () => {
     expect(mocks.deductCredits).toHaveBeenCalledTimes(1);
     expect(headers['X-Absorb-Billed-Account']).toBe('v1');
     expect(headers['X-Absorb-Credit-Cost']).toBe(String(COST.quick));
+  });
+});
+
+describe('POST /api/holodaemon start when the charge does not land (Mapping 07:43)', () => {
+  beforeEach(() => vi.clearAllMocks());
+  it('answers 402 and starts no job: no paid work delivered free', async () => {
+    mocks.deductCredits.mockResolvedValueOnce(null as never);
+    const res = mockRes();
+    await handle(startReq('balanced', USER), res as unknown as Response);
+    expect(res._status).toBe(402);
+    expect(mocks.deductCredits).toHaveBeenCalledTimes(1);
+    expect(mocks.createDaemonJob).not.toHaveBeenCalled();
   });
 });
