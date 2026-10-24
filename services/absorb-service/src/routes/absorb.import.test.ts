@@ -907,4 +907,39 @@ describe('/scan repoUrl import: CoS no-schema fallback (#617 N4)', () => {
     expect(h.debits).toHaveLength(1);
     expect(Math.max(0, -h.balance)).toBeLessThanOrEqual(MAX_BALANCE_OWED_CREDITS);
   });
+  it('F2: a paid start whose price would push the amount owed past MAX_BALANCE_OWED_CREDITS is 402 before any clone', async () => {
+    const credits = (await import('@holoscript/absorb-service/credits')) as unknown as {
+      requireCredits: { mockImplementationOnce: (f: (u: string) => Promise<unknown>) => void };
+    };
+    // The gate passed, but the price is 101 over the balance it saw.
+    credits.requireCredits.mockImplementationOnce(async (userId: string) => ({
+      userId, costCents: 111, operationType: 'absorb_shallow', balanceCents: 10,
+    }));
+    const r = await call(IMPORT);
+    expect(r._status).toBe(402);
+    expect(r._json?.error).toBe('balance_owed_cap');
+    expect(h.resolves).toBe(0);
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+  it('F2: owedCapRefusal allows owing exactly the cap and refuses one credit more', async () => {
+    const { owedCapRefusal, MAX_BALANCE_OWED_CREDITS } = await import('./absorb.js');
+    expect(owedCapRefusal({ costCents: 10, balanceCents: 10 })).toBeNull();
+    expect(owedCapRefusal({ costCents: MAX_BALANCE_OWED_CREDITS, balanceCents: 0 })).toBeNull();
+    expect(owedCapRefusal({ costCents: MAX_BALANCE_OWED_CREDITS + 1, balanceCents: 0 })?.status).toBe(402);
+  });
+  it('F5: ls-remote gets the normalized URL, not the raw one', async () => {
+    const mod = await import('../lib/absorb/clone-from-url.js');
+    const r = await call({ ...IMPORT, repoUrl: 'https://GitHub.com/Owner/Tiny.GIT/' });
+    expect(r._status).toBe(200);
+    expect(mod.resolveCommitSha).toHaveBeenLastCalledWith('https://github.com/owner/tiny.git', 'main');
+  });
+  it('F1: .GIT and .Git variants are one import, charged once', async () => {
+    await call(IMPORT);
+    const a = await call({ ...IMPORT, repoUrl: 'https://github.com/owner/Tiny.GIT', importId: 'imp-git-0001' });
+    const b = await call({ ...IMPORT, repoUrl: 'https://github.com/owner/tiny.Git', importId: 'imp-git-0002' });
+    expect(a._json?.replayed).toBe(true);
+    expect(b._json?.replayed).toBe(true);
+    expect(h.debits).toHaveLength(1);
+  });
 });

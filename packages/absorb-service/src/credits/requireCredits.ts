@@ -17,6 +17,8 @@ export interface CreditGateResult {
   userId: string;
   costCents: number;
   operationType: OperationType;
+  /** Balance seen by the check, in cents (absent on the orchestrator path). */
+  balanceCents?: number;
   /** True when billing was handled upstream by the MCPMe orchestrator. */
   orchestratorBilled?: boolean;
 }
@@ -78,6 +80,7 @@ export async function requireCredits(
     userId,
     costCents: cost.baseCostCents,
     operationType,
+    balanceCents: balance.balanceCents,
   };
 }
 

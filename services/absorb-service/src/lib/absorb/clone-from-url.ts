@@ -40,7 +40,9 @@ export class CloneRefusal extends Error {
   }
 }
 
-const OWNER_REPO = /^\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]{1,100}?)(?:\.git)?\/?$/;
+// Case-insensitive (#617 F1): a .GIT or .Git suffix is the same suffix, so
+// Repo.GIT maps to repo.git, not repo.git.git (a second key, a second charge).
+const OWNER_REPO = /^\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]{1,100}?)(?:\.git)?\/?$/i;
 
 /** The canonical https://github.com/owner/repo.git, or a CloneRefusal. */
 export function normalizeRepoUrl(raw: unknown): string {

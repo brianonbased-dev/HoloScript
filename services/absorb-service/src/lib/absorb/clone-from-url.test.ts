@@ -89,6 +89,12 @@ describe('URL allowlist (nothing is spawned for a refused URL)', () => {
     expect(normalizeRepoUrl('https://github.com/owner/repo.git')).toBe('https://github.com/owner/repo.git');
   });
 
+  it('F1: a .GIT or .Git suffix is stripped like .git (one key, not repo.git.git)', () => {
+    expect(normalizeRepoUrl('https://github.com/Owner/Repo.GIT')).toBe('https://github.com/owner/repo.git');
+    expect(normalizeRepoUrl('https://github.com/owner/repo.Git')).toBe('https://github.com/owner/repo.git');
+    expect(normalizeRepoUrl('https://github.com/owner/repo.GIT/')).toBe('https://github.com/owner/repo.git');
+  });
+
   it('a branch that looks like an option or a path escape is refused', () => {
     for (const b of ['--upload-pack=x', '../x', 'a..b', '/abs', 'x y']) {
       expect(() => normalizeBranch(b)).toThrow(CloneRefusal);
