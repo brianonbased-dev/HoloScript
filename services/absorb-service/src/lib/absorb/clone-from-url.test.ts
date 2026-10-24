@@ -8,6 +8,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChildProcess } from 'child_process';
+import { commitImportId } from './importClaims.js';
 
 import {
   CloneRefusal,
@@ -293,5 +294,26 @@ describe('Mapping hold fixes (#617 N1, N2)', () => {
       })
     ).rejects.toMatchObject({ code: 'clone_too_large' });
     expect(await leftovers()).toEqual([]);
+  });
+});
+
+describe('repo URL variants map to one import key (Treasurer, #617 N1)', () => {
+  const variants = [
+    'https://github.com/owner/tiny',
+    'https://github.com/Owner/Tiny',
+    'https://github.com/OWNER/TINY.git',
+    'https://github.com/owner/tiny.git',
+    'https://github.com/owner/tiny/',
+    'https://github.com/Owner/Tiny.git/',
+    'https://GitHub.com/owner/TINY/',
+  ];
+  it('the real normalizer gives one canonical URL for case, .git and trailing-slash variants', () => {
+    const out = new Set(variants.map((v) => normalizeRepoUrl(v)));
+    expect([...out]).toEqual(['https://github.com/owner/tiny.git']);
+  });
+  it('the importClaims hash of every normalized variant is identical', () => {
+    const sha = 'A'.repeat(40);
+    const ids = new Set(variants.map((v) => commitImportId(normalizeRepoUrl(v), sha, { shallow: true })));
+    expect(ids.size).toBe(1);
   });
 });

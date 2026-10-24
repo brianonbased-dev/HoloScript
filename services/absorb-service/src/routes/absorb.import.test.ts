@@ -34,7 +34,7 @@ const h = vi.hoisted(() => ({
 vi.mock('@holoscript/absorb-service/credits', () => {
   const api = {
     requireCredits: vi.fn(async (userId: string) =>
-      h.balance >= 10 ? { userId, costCents: 10, operationType: 'absorb_shallow' } : { error: 'Insufficient credits', status: 402 }
+      h.balance >= 10 ? { userId, costCents: 10, operationType: 'absorb_shallow' } : { error: 'Insufficient credits', status: 402, balance: h.balance }
     ),
     deductCredits: vi.fn(async (
       userId: string,
@@ -851,5 +851,60 @@ describe('/scan repoUrl import: Mapping hold fixes (#617 H1, N3, N4)', () => {
     expect([a._status, b._status].sort()).toEqual([200, 402]);
     expect(h.debits).toHaveLength(1);
     expect(h.balance).toBe(0);
+  });
+});
+
+describe('/scan repoUrl import: credits before the claim and clone (Treasurer, #617)', () => {
+  it('a broke account gets 402 before start: no ls-remote, no claim, no clone, no debit', async () => {
+    h.balance = 0;
+    const r = await call(IMPORT);
+    expect(r._status).toBe(402);
+    expect(h.resolves).toBe(0);
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+  it('returns balanceOwedCents when the settle leaves the account owing', async () => {
+    h.balance = 10;
+    h.beforeDebit = () => {
+      h.balance = 3; // a concurrent charge landed after the start check
+    };
+    const r = await call(IMPORT);
+    expect(r._status).toBe(200);
+    expect(r._json?.balanceOwedCents).toBe(7);
+  });
+  it('omits balanceOwedCents when nothing is owed', async () => {
+    const r = await call(IMPORT);
+    expect(r._status).toBe(200);
+    expect(r._json?.balanceOwedCents).toBeUndefined();
+  });
+});
+
+describe('/scan repoUrl import: CoS no-schema fallback (#617 N4)', () => {
+  it('refuses a new paid start with 402 balance_owed while any balance is owed: no clone', async () => {
+    h.balance = -7;
+    const r = await call(IMPORT);
+    expect(r._status).toBe(402);
+    expect(r._json?.error).toBe('balance_owed');
+    expect(r._json?.balanceOwedCents).toBe(7);
+    expect(h.clones).toBe(0);
+    expect(h.resolves).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+  it('one paid scan in flight per account: parallel starts on a small balance keep the amount owed within MAX_BALANCE_OWED_CREDITS', async () => {
+    const { MAX_BALANCE_OWED_CREDITS, ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT } = await import('./absorb.js');
+    expect(MAX_BALANCE_OWED_CREDITS).toBe(100);
+    expect(ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT).toBe(1);
+    h.balance = 10;
+    const repos = ['p1', 'p2', 'p3', 'p4', 'p5'].map((n, i) => ({
+      ...IMPORT,
+      repoUrl: 'https://github.com/owner/' + n,
+      importId: 'imp-par-' + i + '-aaaa',
+    }));
+    const rs = await Promise.all(repos.map((b) => call(b)));
+    const ok = rs.filter((r) => r._status === 200).length;
+    expect(ok).toBe(1); // exactly the starts the balance covers
+    expect(rs.filter((r) => r._status === 402)).toHaveLength(4);
+    expect(h.debits).toHaveLength(1);
+    expect(Math.max(0, -h.balance)).toBeLessThanOrEqual(MAX_BALANCE_OWED_CREDITS);
   });
 });

@@ -156,6 +156,16 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
       },
     };
   }
+  // Credits first (Treasurer, #617): a balance that cannot cover the scan is
+  // refused (402) before the claim, the ls-remote and the clone, so a broke
+  // account never makes absorb do outbound git work. The charge itself still
+  // happens after the scan, under the claim.
+  {
+    const creditsModule = await loadCredits();
+    const { requireCredits, isCreditError } = (creditsModule as any).default || creditsModule;
+    const pre = await requireCredits(account, body.shallow ? 'absorb_shallow' : 'absorb_deep');
+    if (isCreditError(pre)) return paidStartRefusal(pre as Record<string, unknown>);
+  }
   // One charge per user + repo + commit SHA (CoS/Treasurer, #617): the claim
   // key is derived from the commit the branch points at, not from the
   // client's importId. A reload after a 502 sends a new importId for the same
@@ -374,7 +384,34 @@ async function scanPath(req: Request, body: ScanBody): Promise<ScanOutcome> {
  *
  * PENDING TREASURER: the number is Treasurer's to set. Default 1 (serialized).
  */
-export const ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT = 1; // pending Treasurer
+export const ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT = 1; // provisional pending Joseph (CoS no-schema fallback, #617)
+
+/**
+ * Ceiling on what an account may owe, in credits (1 credit = 1 cent):
+ * 100 = $1.00. PROVISIONAL PENDING JOSEPH (CoS ruling, #617). On the
+ * no-schema fallback it is held by two rules, not by a reservation ledger:
+ * one paid scan in flight per account, and no new paid start while any
+ * balance is owed. So the most an account can owe is one scan's price,
+ * which is at most this ceiling.
+ */
+export const MAX_BALANCE_OWED_CREDITS = 100; // provisional pending Joseph
+
+/** 402 for a paid start: a balance is owed, or the balance does not cover the scan. */
+function paidStartRefusal(check: Record<string, unknown>): ScanOutcome {
+  const bal = typeof check.balance === 'number' ? check.balance : null;
+  if (bal !== null && bal < 0) {
+    return {
+      status: 402,
+      json: {
+        ...check,
+        error: 'balance_owed',
+        balanceOwedCents: -bal,
+        message: 'This account owes a balance. Add credits before starting another paid scan.',
+      },
+    };
+  }
+  return { status: 402, json: check };
+}
 let parallelScanCap = ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT;
 /** Test seam: run with another cap. */
 export function __setParallelScanCapForTests(n: number): void {
@@ -492,7 +529,7 @@ async function scanAndChargeNow(
   if (!rehydrate) {
     creditCheck = await requireCredits(scanUserId, opType);
     if (isCreditError(creditCheck)) {
-      return { status: 402, json: creditCheck as Record<string, unknown> };
+      return paidStartRefusal(creditCheck as Record<string, unknown>);
     }
   }
 
@@ -531,25 +568,13 @@ async function scanAndChargeNow(
     .map((f: any) => f.path)
     .sort((a: string, b: string) => (inDegree[a] ?? 0) - (inDegree[b] ?? 0));
 
-  // Deduct credits if authenticated.
-  //
-  // Two faults lived here until 2026-09-21. The userId fell back to the
-  // literal 'anonymous', which entry-lookup.ts defines as the id every
-  // UNAUTHENTICATED caller carries — so an authenticated caller with no id
-  // spent from, and was billed against, the bucket that belongs to nobody.
-  // And the charge is gated on body.projectId while the response below
-  // reported `cost: 10` or `cost: 50` unconditionally, so a scan with no
-  // projectId told the client it had been billed when nothing was taken.
+  // Charge the signed-in account (scanUserId, a user uuid, checked above).
+  // Every scan is charged; there is no projectId gate and no free path, and
+  // the cost reported below is the amount actually debited.
   let chargedCents = 0;
   // Set only after the charge lands, so a refused scan is not saved
   // for a free replay, and an unpaid scan is not saved under an account.
   let cacheOwnerId: string | null = null;
-  // userUuid(), not a truthiness test. middleware/auth.ts sets
-  // userId = `orchestrator:${key}` for an orchestrator caller: authenticated,
-  // truthy, and not a uuid. It would flow into requireCredits -> checkBalance
-  // -> getOrCreateAccount, which queries a uuid column and throws, 500-ing an
-  // orchestrator scan. This guard is new in this change and chose the weaker
-  // predicate when the right one was already imported.
   // Built BEFORE the charge (Mapping H1), so nothing that can throw runs
   // between the debit and the delivered result.
   const topology = {
