@@ -265,14 +265,14 @@ export function verifyLegacyOrchestratorSig(apiKeyId: string, tier: string, sig:
 }
 
 /**
- * Exactly one biller (CoS ruling 2026-10-24): for a verified v1 orchestrator
- * call absorb charges NOTHING itself. On a 2xx it returns
+ * Exactly one biller (CoS final, 2026-10-24 05:39): ABSORB. A verified v1
+ * orchestrator call is gated (balance, owed cap, in-flight limit) and charged
+ * to the signed account UUID in absorb, like any user call. The orchestrator
+ * never debits an absorb call. On a v1 2xx absorb also returns, for
+ * information only (the orchestrator may log it, never bill from it):
  *   X-Absorb-Billed-Account: v1
- *   X-Absorb-Credit-Cost: <credits, integer >= 0>
- * and the orchestrator debits the end user exactly that amount (0 means 0;
- * a replay or cached result answers 0). Prices stay absorb's (OPERATION_COSTS);
- * the orchestrator never decides one. A 409 replay or any non-2xx carries no
- * cost header and nothing is charged on either side.
+ *   X-Absorb-Credit-Cost: <credits absorb just charged, integer >= 0>
+ * (0 for a replay or cached result). A non-2xx carries no cost header.
  */
 export const ABSORB_BILLED_HEADER = 'X-Absorb-Billed-Account';
 export const ABSORB_CREDIT_COST_HEADER = 'X-Absorb-Credit-Cost';
@@ -288,13 +288,6 @@ export function setOrchestratorCost(res: Response, cents: unknown): void {
   res.setHeader(ABSORB_CREDIT_COST_HEADER, String(n));
 }
 
-/** Absorb's own list price for an operation, without a balance check. Fails closed. */
-export function orchestratorPrice(creditsModule: unknown, op: string): number {
-  const m = ((creditsModule as any)?.default ?? creditsModule) as any;
-  const p = m?.OPERATION_COSTS?.[op]?.baseCostCents;
-  if (typeof p !== 'number' || !Number.isFinite(p) || p < 0) throw new Error(`No price for operation ${op}`);
-  return p;
-}
 
 /**
  * Path 1.5: MCPMe orchestrator attestation.
@@ -333,6 +326,9 @@ async function handleOrchestratorAttestation(
       if (!SIG_HEX_RE.test(orchSigLegacy) || !consumeOrchestratorNonce(orchKey, `legacy:${orchSigLegacy}`)) {
         return refuse(409, 'orchestrator_attestation_replayed', 'Orchestrator attestation was already used.');
       }
+      // A system call with no user: nobody is charged ($0), and it is logged.
+      // Every paid or user-scoped route refuses it (no user UUID).
+      console.warn('[auth] legacy orchestrator system call, no user account: $0 charged', { path: requestPath(req) });
       authReq.authenticated = true;
       return next(), true;
     }

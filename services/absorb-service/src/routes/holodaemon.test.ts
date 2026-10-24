@@ -229,3 +229,18 @@ describe('POST /api/holodaemon start with too few credits', () => {
     expect(mocks.deductCredits).not.toHaveBeenCalled();
   });
 });
+
+describe('POST /api/holodaemon start as v1 (absorb is the only biller)', () => {
+  beforeEach(() => vi.clearAllMocks());
+  it('charges the signed account in absorb and sets the informational cost header', async () => {
+    mocks.requireCredits.mockResolvedValueOnce({ costCents: COST.quick });
+    const headers: Record<string, string> = {};
+    const res = Object.assign(mockRes(), { setHeader: (k: string, v: string) => void (headers[k] = v) });
+    await handle({ ...startReq('quick', USER), orchestratorBilled: true } as unknown as Request, res as unknown as Response);
+    expect(res._status).toBe(201);
+    expect(mocks.requireCredits).toHaveBeenCalledWith(USER, OP.quick);
+    expect(mocks.deductCredits).toHaveBeenCalledTimes(1);
+    expect(headers['X-Absorb-Billed-Account']).toBe('v1');
+    expect(headers['X-Absorb-Credit-Cost']).toBe(String(COST.quick));
+  });
+});
