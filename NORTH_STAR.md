@@ -28,6 +28,11 @@ Humans decide only when there is no reference and no way to figure it out withou
 4. No one needs to read code to challenge behavior.
 5. The system learns humility as it grows.
 
+- Builders bring all their agents here, and they get better together.
+- A receipt says what was proven, under which assumptions, and what wasn't.
+- HoloScript suggests what each piece of your hardware should do.
+- HoloShell makes each agent's computer mirror its human's hardware.
+
 **Role**: General-purpose semantic systems programming language and its sovereign compiler/runtime stack.
 **Upstream oracle**: `~/.ai-ecosystem/NORTH_STAR.md` (read that for decision trees, workflow patterns, cost thresholds)
 **No local STRATEGY.md or SYSTEM_MAP.md**: ratified-directions and system-map content live upstream at `~/.ai-ecosystem/STRATEGY.md` and `~/.ai-ecosystem/SYSTEM_MAP.md` — cross-repo citations naming those files unqualified mean the ai-ecosystem repo, not this one.
