@@ -43,8 +43,25 @@ import type { SqlQuery } from '../../middleware/rateLimiter.js';
  * charging again. No new index is needed: import_id is a pure function of
  * (repo, sha) and user_id is the other indexed column.
  */
-export function commitImportId(repoUrl: string, commitSha: string): string {
-  const h = createHash('sha256').update(`${repoUrl}\n${commitSha.toLowerCase()}`).digest('hex');
+export interface ScanScope {
+  shallow?: boolean;
+  languages?: readonly string[];
+}
+
+/**
+ * The scan options are part of the key (#617 H1): a shallow scan of a commit
+ * is a different product from a deep one, so a finished shallow import must
+ * not answer (and block) a deep import of the same commit.
+ */
+export function scopeKey(scope: ScanScope = {}): string {
+  const langs = [...new Set((scope.languages ?? []).map((l) => l.toLowerCase()))].sort().join(',');
+  return `shallow=${scope.shallow === true}|languages=${langs}`;
+}
+
+export function commitImportId(repoUrl: string, commitSha: string, scope: ScanScope = {}): string {
+  const h = createHash('sha256')
+    .update(`${repoUrl}\n${commitSha.toLowerCase()}\n${scopeKey(scope)}`)
+    .digest('hex');
   return `commit-${h.slice(0, 48)}`;
 }
 
