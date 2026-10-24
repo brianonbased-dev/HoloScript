@@ -2,8 +2,8 @@ export const maxDuration = 300;
 
 import * as path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
-import { forwardAuthHeaders } from '@/lib/api-auth';
-import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
+import { getGitHubToken } from '@/app/api/github/_shared';
+import { ABSORB_BASE } from '@/lib/services/absorb-client';
 import {
   findDurableAbsorbProject,
   isAbsorbStateLockTimeout,
@@ -71,12 +71,25 @@ async function postProjectAbsorb(
     scanBody.languages = body.languages as string[];
   }
 
+  // The user's own credential, never Studio's key alone (same rule as
+  // daemon/absorb): without it absorb has no payer, so refuse here.
+  const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
+  if (!userToken) {
+    return NextResponse.json(
+      {
+        error: 'Absorb needs your own credential; sign in again.',
+        reason: 'absorb_no_user_credential',
+      },
+      { status: 401 }
+    );
+  }
+
   let failure: string;
   let status = 502;
   try {
     const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...scanAuth(req) },
+      headers: { 'Content-Type': 'application/json', ...scanAuth(userToken) },
       body: JSON.stringify(scanBody),
     });
     if (res.ok) {
@@ -150,11 +163,14 @@ function resolveScanPath(projectId: string): string | null {
   return path.isAbsolute(projectId) ? projectId : null;
 }
 
-/** The caller's own credential when it sent one, else Studio's service key. */
-function scanAuth(req: NextRequest): Record<string, string> {
-  const forwarded = forwardAuthHeaders(req);
-  if (forwarded.Authorization) return forwarded;
-  return ABSORB_API_KEY ? { Authorization: `Bearer ${ABSORB_API_KEY}` } : {};
+/**
+ * A scan is paid: absorb must charge the signed-in user or refuse. Only the
+ * user's own token is sent, never the service key, so there is no path where
+ * the key alone (or the key standing in for a missing user) reaches /scan
+ * (Mapping, #654 closing #616's fallback).
+ */
+function scanAuth(userToken: string): Record<string, string> {
+  return { Authorization: `Bearer ${userToken}` };
 }
 
 /** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
