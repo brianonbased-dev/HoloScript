@@ -39,7 +39,7 @@ Design constraints (deliberate):
 
   | Port | Bind | Purpose |
   | ---- | ---- | ------- |
-  | 8477 | 127.0.0.1 | laptop dashboard (Origin/Host-checked write route) |
+  | 8477 | 127.0.0.1 | laptop dashboard; every route requires a loopback Host (403 otherwise, DNS-rebinding guard), the write route also a loopback or absent Origin |
   | 8478 | `METAL_INGEST_HOST` or 0.0.0.0 | node ingest, join-token gated |
   | 8481 | 127.0.0.1 | phone dashboard over `adb reverse` (USB) |
   | 8482 | 0.0.0.0 | LAN phone view, view-token gated |

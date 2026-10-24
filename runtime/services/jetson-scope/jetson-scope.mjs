@@ -722,9 +722,16 @@ function noteView(pathname, door) {
   } catch { /* a page must still open when the log cannot be written */ }
 }
 
-function startServer() {
-const server = createServer(async (req, res) => {
+// DNS-rebinding guard for every 8477 route: a rebinding page reaches 127.0.0.1
+// under its own Host name, so only a loopback Host header is served (403 otherwise).
+// /api/state carries joinInfo.token, so the static routes are gated the same way.
+export function loopbackHostOk(host) {
+  return /^(127\.0\.0\.1|localhost):\d+$/i.test(String(host || ''));
+}
+
+export async function dashboardHandler(req, res) {
     try {
+      if (!loopbackHostOk(req.headers.host)) { res.writeHead(403, { 'content-type': 'text/plain' }); res.end('forbidden'); return; }
       const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
       if (url.pathname === '/') {
         noteView('/', 'desktop');
@@ -751,7 +758,8 @@ const server = createServer(async (req, res) => {
         // detector fires -- and without this the tuner honours limits measured on hardware
         // that no longer exists.
         // Cross-site / DNS-rebinding guard: only a same-origin page on loopback may write.
-        const hostOk = /^(127\.0\.0\.1|localhost):\d+$/i.test(String(req.headers.host || ''));
+        // Host is already loopback-checked above; the write route also requires a loopback Origin.
+        const hostOk = loopbackHostOk(req.headers.host);
         const origin = req.headers.origin;
         const originOk = origin === undefined || /^http:\/\/(127\.0\.0\.1|localhost):\d+$/i.test(String(origin));
         if (!hostOk || !originOk) { res.writeHead(403, { 'content-type': 'text/plain' }); res.end('forbidden'); return; }
@@ -812,7 +820,10 @@ const server = createServer(async (req, res) => {
       console.error('dashboard 500:', e);
       res.writeHead(500, { 'content-type': 'text/plain' }); res.end('internal error');
     }
-  });
+}
+
+function startServer() {
+  const server = createServer(dashboardHandler);
   server.listen(PORT, '127.0.0.1', () => {
     console.log(`jetson-scope dashboard: http://127.0.0.1:${PORT}`);
     getSpace().then((s) => { cachedSpace = s; spaceAt = Date.now(); }).catch(() => {});
