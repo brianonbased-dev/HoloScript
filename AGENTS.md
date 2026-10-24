@@ -5,6 +5,8 @@
 
 ## Git Workflow — DIRECT TO MAIN (read this first)
 
+> **Superseded, pending reconciliation (2026-10-23):** every change now goes through a PR gate, local seats included ([ai-ecosystem `AGENTS.md` § Merge gate](https://github.com/brianonbased-dev/ai-ecosystem/blob/main/AGENTS.md#merge-gate) (private repo)). The direct-to-main text below is kept for history only.
+
 **Every surface commits straight to `main`. No pull requests. No feature branches.** (F.089)
 This is a single shared-tree, multi-agent repo — PRs and `feat/*` branches create
 bottlenecks and branch sprawl, not safety.
@@ -19,9 +21,9 @@ bottlenecks and branch sprawl, not safety.
 - On Windows desktop, prefer `.\scripts\safe-commit.ps1` (uses `git commit --only`
   to avoid the multi-agent index race).
 - Railway auto-deploys on push to `main` — validate locally before pushing.
-- **Fallback only:** if your environment genuinely cannot push direct and forces a
+- **Superseded (2026-10-23):** `pr-reaper` is a retired no-op (ai-ecosystem `scripts/holo-ci/pr-reaper.mjs`); nothing auto-merges. Only the gate merges. Historical text: ~~**Fallback only:** if your environment genuinely cannot push direct and forces a
   PR, it is reaped (squash-merged + branch deleted) by HoloCI's `pr-reaper` on its
-  schedule — do not wait on it, and do not open PRs by choice.
+  schedule — do not wait on it, and do not open PRs by choice.~~
 
 **CI is HoloCI, not GitHub Actions.** Validation runs on the vast.ai fleet via the
 mcp-orchestrator queue and reports through free GitHub commit statuses
