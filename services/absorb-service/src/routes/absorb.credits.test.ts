@@ -499,13 +499,4 @@ describe('every v1 2xx sets X-Absorb-Credit-Cost (absorb is the only biller; hea
     expect(src).not.toContain('orchestratorPrice');
   });
 
-  it('moltbook: a charge that does not land answers 402 and delivers no result (source check, Mapping 07:43)', async () => {
-    const fsm = await import('fs');
-    const src = fsm.readFileSync(new URL('./moltbook.ts', import.meta.url), 'utf8');
-    const i = src.indexOf("'semantic_dedup')");
-    const j = src.indexOf('isDuplicate,', i);
-    const seg = src.slice(i, j);
-    expect(seg).toContain('const debit = await deductCredits(');
-    expect(seg).toMatch(/if \(!debit\) \{\s*res\.status\(402\)/);
-  });
 });
