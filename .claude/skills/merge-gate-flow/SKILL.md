@@ -14,8 +14,8 @@ Only the gate merges. Docs/test-only PRs merge once HoloCI records a final pass 
 
 - Author: opens the PR, fixes findings, requests the seat.
 - Second seat: read-only review with a SHA-bound verdict.
-- Merger: only the gate merges. No single agent or tool is the sole merger, and the reviewer never merges.
-- No direct pushes to main, except a direct revert under a named owner GO (see Reverting).
+- Merger: only the gate merges, and the reviewer never merges.
+- No direct pushes to main.
 
 ## Hard rules
 
@@ -45,9 +45,7 @@ Merge, never rebase. Apply the carry-over rule: patch-id identical (--stable and
 1. Branch from origin/main.
 2. git revert <merge-sha> (-m 1 for merge commits).
 3. Open a PR through the same gate.
-4. Only the gate merges the revert, under the same rules as any PR.
-
-Exception: with a named GO from the accountable owner, a direct revert may go straight to main. Record a receipt either way.
+4. Only the gate merges the revert, under the same rules as any PR. Record a receipt.
 
 ## Receipt (one per merge)
 
