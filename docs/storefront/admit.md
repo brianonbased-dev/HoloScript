@@ -4,7 +4,7 @@
 language compilers because Quest compile and `scanner.holo` live in
 HoloScript. The worlds store is HoloLand. The vehicle is `.ai-ecosystem`.
 
-Mall: `C:/holo-dev/ai-ecosystem/docs/handbooks/holon-storefront.md`.
+Mall: `docs/handbooks/holon-storefront.md` in ai-ecosystem.
 
 ---
 

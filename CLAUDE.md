@@ -17,7 +17,7 @@
 
 Applies only when `CLAUDE_CODE_REMOTE=true`: a fresh Ubuntu VM holding a clone of GitHub `main`, not the laptop. Work from the laptop that was never pushed is invisible here. Where this section conflicts with the rest of the file, this section wins in the cloud.
 
-- **Missing here:** the local MCP on 7411, the GOLD drive, `/room` and HoloMesh credentials, `~/.claude` (Joseph's personal rules), and `~/.ai-ecosystem`. The `C:/Users/Josep/...` hooks in `.claude/settings.json` fail harmlessly. Do not add wirings to "fix" them.
+- **Missing here:** the local MCP on 7411, the GOLD drive, `/room` and HoloMesh credentials, `~/.claude` (Joseph's personal rules), and `~/.ai-ecosystem`. The founder-home hooks in `.claude/settings.json` fail harmlessly. Do not add wirings to "fix" them.
   - One repo hook does run here: `.claude/hooks/validate-edit.mjs`, after every Edit or Write. It is repo-relative, and it exits 2 when an edited `.ts`, `.js`, `.json` or HoloScript file no longer parses. The edit has already been applied by then, so treat that as a real error and fix the file.
 - **Use instead:** for codebase questions, `npx tsx packages/cli/src/cli.ts query|absorb|parse`, after building the CLI's dependencies (see Setup). The "MCP unavailable, ask the user to start it" steps do not apply here: take the CLI fallback and keep going. Anything meant for the board or the room goes in the PR body, and a local seat relays it.
 - **Setup each session:** run `corepack enable && corepack prepare pnpm@9.15.9 --activate`, then `pnpm install --frozen-lockfile`, then `pnpm hooks:install`.
@@ -363,9 +363,9 @@ If any box is unchecked → complete that step before responding.
 
 ```text
 0. docs/storefront/index.md                                      (Language + admit + crew + pay windows)
-0b. C:/holo-dev/ai-ecosystem/docs/storefront/local.md             (Vehicle people ride)
-0c. C:/holo-dev/HoloRepo/Hololand/docs/storefront/local.md        (Worlds store)
-0d. C:/holo-dev/ai-ecosystem/docs/storefront/mind.md              (Mind store)
+0b. ai-ecosystem: docs/storefront/local.md  (Vehicle people ride)
+0c. Hololand: docs/storefront/local.md  (Worlds store)
+0d. ai-ecosystem: docs/storefront/mind.md  (Mind store)
 1. docs/holoschool/level-1-fundamentals/01-what-is-holoscript.md  (What + Why — still VR-flavored until V1 gate)
 2. docs/holoschool/level-1-fundamentals/02-installation.md        (Setup)
 3. docs/holoschool/level-1-fundamentals/03-first-scene.md         (First .holo)

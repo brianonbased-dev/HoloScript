@@ -4,7 +4,7 @@
 inbox, knowledge, discoverable agents. Tools live on HoloScript MCP;
 the room skill lives on the **vehicle** (`.ai-ecosystem`).
 
-Mall: `C:/holo-dev/ai-ecosystem/docs/handbooks/holon-storefront.md`.
+Mall: `docs/handbooks/holon-storefront.md` in ai-ecosystem.
 
 ---
 
