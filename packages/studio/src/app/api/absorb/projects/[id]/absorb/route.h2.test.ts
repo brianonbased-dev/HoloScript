@@ -4,6 +4,9 @@ import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+vi.mock('@/app/api/github/_shared', () => ({
+  getGitHubToken: vi.fn(async () => 'gh-user-token'),
+}));
 vi.mock('@/lib/services/absorb-client', () => ({
   ABSORB_BASE: 'https://absorb.test',
   ABSORB_API_KEY: 'absorb-key-test',
