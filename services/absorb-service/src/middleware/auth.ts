@@ -146,6 +146,17 @@ async function resolveUserTier(userId: string): Promise<string> {
   }
 }
 
+/** Constant-time, length-safe service key compare. */
+function serviceKeyMatches(token: string, apiKey: string): boolean {
+  const a = Buffer.from(token, 'utf8');
+  const b = Buffer.from(apiKey, 'utf8');
+  if (a.length !== b.length) {
+    timingSafeEqual(b, b);
+    return false;
+  }
+  return timingSafeEqual(a, b);
+}
+
 export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
   const authReq = req as AuthenticatedRequest;
 
@@ -165,7 +176,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     // X-User-Authorization.  Resolve that secondary token so user-scoped routes
     // (projects, moltbook agents, credits) can return data for the actual caller
     // instead of always seeing userUuid(req) === null.
-    if (apiKey && token === apiKey) {
+    if (apiKey && serviceKeyMatches(token, apiKey)) {
       authReq.authenticated = true;
       authReq.authKind = 'service';
 

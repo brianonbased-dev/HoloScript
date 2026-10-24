@@ -82,17 +82,31 @@ describe('absorb /mcp paid tools by caller', () => {
     const call = await callToolAs({});
     const out = await call('holo_absorb_repo');
     expect(JSON.parse(out.content[0].text)).toMatchObject({ status: 403 });
+    // holo_absorb_manifest stays refused too (403 for anon).
+    const m = await call('holo_absorb_manifest');
+    expect(m.isError).toBe(true);
+    expect(JSON.parse(m.content[0].text)).toMatchObject({ status: 403, error: 'forbidden' });
     expect(mocks.handleCodebaseTool).not.toHaveBeenCalled();
   });
 
-  it('admits paid tools for the service key and a verified orchestrator call', async () => {
+  it('admits paid tools for the service key (operator, no caller context)', async () => {
     await (await callToolAs(SERVICE))('holo_absorb_repo');
-    await (await callToolAs(ORCHESTRATOR))('holo_absorb_repo');
-    expect(mocks.handleCodebaseTool).toHaveBeenCalledTimes(2);
-    // Bare service key: trusted operator, legacy state (no caller context).
+    expect(mocks.handleCodebaseTool).toHaveBeenCalledTimes(1);
     expect(mocks.handleCodebaseTool.mock.calls[0][2]).toBeUndefined();
-    // Orchestrator: server keys allowed, but its key id is never an owner.
-    expect(mocks.handleCodebaseTool.mock.calls[1][2]).toEqual({ ownerId: null, serverKeysAllowed: true });
+  });
+
+  it('fails closed: a verified orchestrator (v1) call to a paid tool gets 402 v1_billing_not_wired (no /mcp billing by uuid yet)', async () => {
+    const V1 = { authenticated: true, authKind: 'orchestrator', orchestratorBilled: true, userId: '3f2b8c1e-9a4d-4e7b-8c2a-1d5e6f7a8b9c' };
+    for (const who of [ORCHESTRATOR, V1]) {
+      const call = await callToolAs(who);
+      for (const name of ['holo_absorb_repo', 'holo_absorb_manifest', 'holo_detect_drift', 'absorb_run_absorb']) {
+        const out = await call(name);
+        expect(out.isError).toBe(true);
+        expect(JSON.parse(out.content[0].text)).toMatchObject({ status: 402, error: 'v1_billing_not_wired' });
+      }
+    }
+    expect(mocks.handleCodebaseTool).not.toHaveBeenCalled();
+    expect(mocks.handleAbsorbServiceTool).not.toHaveBeenCalled();
   });
 
   it('passes the resolved account (never a key) to holo_ask_codebase, with server keys only for the service', async () => {

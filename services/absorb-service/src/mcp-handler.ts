@@ -52,10 +52,14 @@ export function resolveMcpCaller(req: Request | undefined): McpCaller {
     // The service key may forward the end user (X-User-Authorization); their account owns state.
     return { kind: 'service', ownerId: authReq.userId ?? null, serverKeysAllowed: true };
   }
+  const orchestratorBilled = (authReq as { orchestratorBilled?: boolean }).orchestratorBilled === true;
+  if (orchestratorBilled) {
+    // v1 (#653): userId is the verified account uuid, so it is the owner.
+    return { kind: 'orchestrator', ownerId: authReq.userId ?? null, serverKeysAllowed: true };
+  }
   if (authReq.authKind === 'orchestrator' && authReq.orchestratorGated) {
-    // userId here is "orchestrator:<key id>", derived from a key, so it is not an owner. The
-    // v1 account uuid arrives with the sole-biller path (#653); until then calls are
-    // request-scoped.
+    // userId here is "orchestrator:<key id>", derived from a key, so it is not an owner:
+    // calls are request-scoped.
     return { kind: 'orchestrator', ownerId: null, serverKeysAllowed: true };
   }
   return { kind: 'user', ownerId: authReq.userId ?? null, serverKeysAllowed: false };
@@ -78,21 +82,28 @@ export function isPaidMcpTool(name: string): boolean {
 /**
  * Refusal for a paid tool, or null when the caller may run it.
  *
- * Only the service key and verified v1 orchestrator calls are admitted. Those bill through
- * the sole-biller path by account uuid (#653); billing hook: that path, not this handler,
- * charges the call, so nothing is metered here. Billing GitHub-token callers over /mcp is
- * a later card; until then they are refused (402), anonymous callers 403.
+ * Only the service key is admitted. /mcp does not bill by account uuid yet, so orchestrator
+ * calls (v1 included) fail closed with 402 v1_billing_not_wired until it does; GitHub-token
+ * callers get 402 payment_required and anonymous callers 403.
  */
 export function paidToolRefusal(name: string, caller: McpCaller): Record<string, unknown> | null {
   if (!isPaidMcpTool(name)) return null;
-  if (caller.kind === 'service' || caller.kind === 'orchestrator') return null;
+  if (caller.kind === 'service') return null;
+  if (caller.kind === 'orchestrator') {
+    return {
+      error: 'v1_billing_not_wired',
+      status: 402,
+      tool: name,
+      message: `${name} is a paid tool. /mcp does not bill orchestrator calls by account uuid yet, so they are refused.`,
+    };
+  }
   const status = caller.kind === 'user' ? 402 : 403;
   return {
     error: status === 402 ? 'payment_required' : 'forbidden',
     status,
     tool: name,
     message:
-      `${name} is a paid tool. Over /mcp it is available to the service key and verified orchestrator calls only; ` +
+      `${name} is a paid tool. Over /mcp it is available to the service key only; ` +
       'paid access for GitHub-token callers is not available yet.',
   };
 }
