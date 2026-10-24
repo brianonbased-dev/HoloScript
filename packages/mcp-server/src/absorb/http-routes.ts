@@ -8,11 +8,12 @@
  */
 
 import type http from 'http';
+import { createHash, timingSafeEqual } from 'crypto';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8' };
 const ABSORB_URL = process.env.ABSORB_SERVICE_URL || 'https://absorb.holoscript.net';
-const ABSORB_KEY = process.env.ABSORB_API_KEY || process.env.HOLOSCRIPT_API_KEY || '';
-const ALLOW_SERVICE_KEY_FALLBACK = process.env.ABSORB_PROXY_SERVICE_KEY_FALLBACK === 'true';
+// No service-key path: the proxy never lends a server key, and a server key
+// presented by a caller is refused (absorb must see a user/account credential).
 
 // ── Helpers ──
 
@@ -29,24 +30,37 @@ function send(res: http.ServerResponse, status: number, data: unknown): void {
   res.end(JSON.stringify(data));
 }
 
-function resolveProxyAuth(req?: http.IncomingMessage): string | null {
+/** Server-side keys that must never reach absorb through this proxy. Read per call. */
+function serviceKeys(): string[] {
+  return [process.env.ABSORB_API_KEY, process.env.HOLOSCRIPT_API_KEY].filter(
+    (k): k is string => typeof k === 'string' && k.trim().length > 0
+  );
+}
+
+function sameSecret(a: string, b: string): boolean {
+  const ha = createHash('sha256').update(a).digest();
+  const hb = createHash('sha256').update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
+type ProxyAuth = { header: string } | { refused: 'missing' | 'service_key' };
+
+function resolveProxyAuth(req?: http.IncomingMessage): ProxyAuth {
+  let header: string | null = null;
   const incomingAuth = req?.headers.authorization;
-  if (typeof incomingAuth === 'string' && incomingAuth.trim().length > 0) {
-    return incomingAuth;
-  }
-
   const incomingApiKey = req?.headers['x-api-key'];
-  if (typeof incomingApiKey === 'string' && incomingApiKey.trim().length > 0) {
-    return `Bearer ${incomingApiKey.trim()}`;
+  if (typeof incomingAuth === 'string' && incomingAuth.trim().length > 0) {
+    header = incomingAuth.trim();
+  } else if (typeof incomingApiKey === 'string' && incomingApiKey.trim().length > 0) {
+    header = `Bearer ${incomingApiKey.trim()}`;
   }
+  if (!header) return { refused: 'missing' };
 
-  // Opt-in only for trusted internal deployments. Public HTTP callers must not
-  // get an implicit server-side bearer just by omitting credentials.
-  if (ALLOW_SERVICE_KEY_FALLBACK && ABSORB_KEY) {
-    return `Bearer ${ABSORB_KEY}`;
+  const presented = header.replace(/^Bearer\s+/i, '').trim();
+  if (serviceKeys().some((k) => sameSecret(presented, k.trim()))) {
+    return { refused: 'service_key' };
   }
-
-  return null;
+  return { header };
 }
 
 async function proxyToAbsorb(
@@ -55,16 +69,25 @@ async function proxyToAbsorb(
   body?: string,
   req?: http.IncomingMessage
 ): Promise<{ status: number; data: any }> {
-  const authHeader = resolveProxyAuth(req);
-  if (!authHeader) {
-    return {
-      status: 401,
-      data: {
-        error: 'missing_absorb_proxy_auth',
-        message: 'Provide Authorization or x-api-key to proxy absorb-service requests.',
-      },
-    };
+  const auth = resolveProxyAuth(req);
+  if ('refused' in auth) {
+    return auth.refused === 'service_key'
+      ? {
+          status: 401,
+          data: {
+            error: 'absorb_service_key_refused',
+            message: 'Service keys are not accepted here. Send your own user or account credential.',
+          },
+        }
+      : {
+          status: 401,
+          data: {
+            error: 'missing_absorb_proxy_auth',
+            message: 'Provide Authorization or x-api-key to proxy absorb-service requests.',
+          },
+        };
   }
+  const authHeader = auth.header;
   const headers: Record<string, string> = {
     'Content-Type': 'application/json; charset=utf-8',
     Authorization: authHeader,
