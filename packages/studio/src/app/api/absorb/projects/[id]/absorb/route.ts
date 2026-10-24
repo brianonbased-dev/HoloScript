@@ -3,8 +3,8 @@ export const maxDuration = 300;
 
 import * as path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
-import { forwardAuthHeaders } from '@/lib/api-auth';
-import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
+import { getGitHubToken } from '@/app/api/github/_shared';
+import { ABSORB_BASE } from '@/lib/services/absorb-client';
 import { findDurableAbsorbProject, recordAbsorbJob } from '@/lib/absorb/projectState';
 
 import { corsHeaders } from '../../../../_lib/cors';
@@ -64,12 +64,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     scanBody.languages = body.languages as string[];
   }
 
+  // A scan is paid: absorb must charge the caller's own credential. Without it
+  // there is no payer, so refuse here (no service-key fallback, #616 / #654).
+  // It is the signed-in user's own credential, resolved server-side from the session
+  // (cookie or JWT), never from a client header and never the service key.
+  const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
+  if (!userToken) {
+    return NextResponse.json(
+      {
+        error: 'Absorb needs your own credential; sign in again.',
+        reason: 'absorb_no_user_credential',
+      },
+      { status: 401 }
+    );
+  }
+
   let failure: string;
   let status = 502;
   try {
     const res = await fetch(`${ABSORB_BASE}/api/absorb/scan`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...scanAuth(req) },
+      headers: { 'Content-Type': 'application/json', ...scanAuth(userToken) },
       body: JSON.stringify(scanBody),
     });
     if (res.ok) {
@@ -129,11 +144,12 @@ function resolveScanPath(projectId: string): string | null {
   return path.isAbsolute(projectId) ? projectId : null;
 }
 
-/** The caller's own credential when it sent one, else Studio's service key. */
-function scanAuth(req: NextRequest): Record<string, string> {
-  const forwarded = forwardAuthHeaders(req);
-  if (forwarded.Authorization) return forwarded;
-  return ABSORB_API_KEY ? { Authorization: `Bearer ${ABSORB_API_KEY}` } : {};
+/**
+ * A scan is paid: only the caller's own credential is sent, never the service
+ * key, so the key alone never reaches /scan (closes #616's fallback, as #654).
+ */
+function scanAuth(userToken: string): Record<string, string> {
+  return { Authorization: `Bearer ${userToken}` };
 }
 
 export function OPTIONS(request: Request) {

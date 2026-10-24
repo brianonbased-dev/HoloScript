@@ -15,6 +15,7 @@ vi.mock('@/lib/services/absorb-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/services/absorb-client')>()),
   callMcpTool: callMcpToolMock,
 }));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => 'user-token' }));
 vi.mock('@/lib/absorb/projectState', () => ({ recordAbsorbJob: recordAbsorbJobMock }));
 
 import { POST } from './route';

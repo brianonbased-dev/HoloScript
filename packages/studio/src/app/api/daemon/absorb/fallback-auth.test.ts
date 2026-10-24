@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { callMcpToolMock } = vi.hoisted(() => ({ callMcpToolMock: vi.fn() }));
+const { callMcpToolMock, auth } = vi.hoisted(() => ({
+  callMcpToolMock: vi.fn(),
+  auth: { userToken: 'gh-session-token' as string | null },
+}));
+vi.mock('@/app/api/github/_shared', () => ({ getGitHubToken: async () => auth.userToken }));
 vi.mock('@/lib/services/absorb-client', async (importOriginal) => ({
   mcpClearlyDidNotRun: (await importOriginal<typeof import('@/lib/services/absorb-client')>())
     .mcpClearlyDidNotRun,
@@ -25,6 +29,8 @@ describe('/api/daemon/absorb HTTP fallback auth', () => {
   let seenAuth: string | null;
   beforeEach(() => {
     seenAuth = null;
+    callMcpToolMock.mockReset();
+    auth.userToken = 'gh-session-token';
     vi.spyOn(console, 'error').mockImplementation(() => {});
     callMcpToolMock.mockResolvedValue({
       ok: false,
@@ -45,15 +51,25 @@ describe('/api/daemon/absorb HTTP fallback auth', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
-  it('cookie-session browser call (no Authorization) uses the service key and succeeds', async () => {
+  it('cookie-session browser call: the session user\'s own token is sent, never the service key', async () => {
     const res = await POST(post());
-    expect(seenAuth).toBe('Bearer service-key');
+    expect(callMcpToolMock.mock.calls[0][2]).toBe('Bearer gh-session-token');
+    expect(seenAuth).toBe('Bearer gh-session-token');
     expect(res.status).toBe(200);
   });
 
-  it('twin: a caller bearer is forwarded as-is, not replaced by the service key', async () => {
-    const res = await POST(post({ Authorization: 'Bearer user-token' }));
-    expect(seenAuth).toBe('Bearer user-token');
-    expect(res.status).toBe(200);
+  it('no signed-in user: 401, nothing sent to MCP or absorb, even with a client bearer', async () => {
+    auth.userToken = null;
+    const res = await POST(post({ Authorization: 'Bearer service-key' }));
+    expect(res.status).toBe(401);
+    expect((await res.json()).reason).toBe('absorb_no_user_credential');
+    expect(callMcpToolMock).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it('a client-sent Authorization is ignored; only the session token is used', async () => {
+    await POST(post({ Authorization: 'Bearer service-key' }));
+    expect(seenAuth).toBe('Bearer gh-session-token');
+    expect(JSON.stringify(callMcpToolMock.mock.calls)).not.toContain('service-key');
   });
 });

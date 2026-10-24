@@ -1,13 +1,8 @@
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from 'next/server';
-import { forwardAuthHeaders } from '@/lib/api-auth';
-import {
-  callMcpTool,
-  mcpClearlyDidNotRun,
-  ABSORB_BASE,
-  ABSORB_API_KEY,
-} from '@/lib/services/absorb-client';
+import { getGitHubToken } from '@/app/api/github/_shared';
+import { callMcpTool, mcpClearlyDidNotRun, ABSORB_BASE } from '@/lib/services/absorb-client';
 import { recordAbsorbJob } from '@/lib/absorb/projectState';
 
 import { corsHeaders } from '../../_lib/cors';
@@ -38,11 +33,28 @@ export async function POST(req: NextRequest) {
     body = parsed as Record<string, unknown>;
   }
 
-  const mcpResult = await callMcpTool('absorb_run_absorb', {
-    projectId: body.projectPath || body.projectId || 'local',
-    depth: body.depth ?? 'medium',
-    tier: body.tier ?? 'medium',
-  });
+  // A scan is paid: only the signed-in user's own credential (from the session,
+  // cookie or JWT) is sent, never the service key. No user: 401, nothing sent.
+  const userToken = await getGitHubToken(req, { userOnly: true }).catch(() => null);
+  if (!userToken) {
+    return NextResponse.json(
+      {
+        error: 'Absorb needs your own credential; sign in again.',
+        reason: 'absorb_no_user_credential',
+      },
+      { status: 401 }
+    );
+  }
+
+  const mcpResult = await callMcpTool(
+    'absorb_run_absorb',
+    {
+      projectId: body.projectPath || body.projectId || 'local',
+      depth: body.depth ?? 'medium',
+      tier: body.tier ?? 'medium',
+    },
+    `Bearer ${userToken}`
+  );
 
   if (mcpResult.ok && mcpResult.data) {
     recordAbsorbJob({
@@ -76,7 +88,7 @@ export async function POST(req: NextRequest) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...absorbFallbackAuth(req),
+          ...absorbFallbackAuth(userToken),
         },
         // Only the fields /scan reads, never the raw client body.
         body: JSON.stringify(scanBody),
@@ -160,15 +172,11 @@ function scanRequestFrom(body: Record<string, unknown>): {
 }
 
 /**
- * Browser callers sign in with a session cookie, so they carry no
- * Authorization header and the absorb REST API answered 401. Forward the
- * caller's own bearer when there is one; otherwise use the same service key
- * the MCP path already uses.
+ * Browser callers sign in with a session cookie; their own credential is
+ * resolved server-side from the session. Never the service key (#658).
  */
-function absorbFallbackAuth(req: NextRequest): Record<string, string> {
-  const forwarded = forwardAuthHeaders(req);
-  if (forwarded.Authorization) return forwarded;
-  return ABSORB_API_KEY ? { Authorization: `Bearer ${ABSORB_API_KEY}` } : {};
+function absorbFallbackAuth(userToken: string): Record<string, string> {
+  return { Authorization: `Bearer ${userToken}` };
 }
 
 export function OPTIONS(request: Request) {
