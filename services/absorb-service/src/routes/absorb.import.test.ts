@@ -708,6 +708,7 @@ describe('/scan repoUrl import: never free (Mapping N2)', () => {
   it('a URL scan with no account is refused (401) before any clone, never run free', async () => {
     for (const who of [
       { authenticated: false },
+      { authenticated: true }, // account-unknown (legacy orchestrator attestation)
       { authenticated: true, userId: 'orchestrator:key' },
     ]) {
       const res = {
