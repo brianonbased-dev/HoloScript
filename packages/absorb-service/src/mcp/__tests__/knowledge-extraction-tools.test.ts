@@ -10,6 +10,7 @@ import type { ScannedFile } from '../../engine/types';
 import {
   handleKnowledgeExtractionTool,
   setKnowledgeExtractionGraph,
+  getActiveGraph,
   knowledgeExtractionTools,
 } from '../knowledge-extraction-tools';
 
@@ -75,6 +76,55 @@ describe('knowledge-extraction-tools', () => {
     });
   });
 
+  describe('graph per workspace (cross-tenant fix)', () => {
+    const ownGraph = () =>
+      buildGraph([
+        makeFile({ path: 'src/secret-a.ts', loc: 150 }),
+        makeFile({ path: 'src/secret-b.ts', loc: 120 }),
+      ]);
+
+    it("never returns another workspace's graph", async () => {
+      setKnowledgeExtractionGraph(ownGraph(), 'ws-a');
+
+      const other = parseResponse(
+        await handleKnowledgeExtractionTool('absorb_extract_knowledge', { workspaceId: 'ws-b' })
+      );
+      expect(other.success).toBeUndefined();
+      expect(other.error).toContain('No codebase graph loaded');
+      expect(JSON.stringify(other)).not.toContain('secret-a');
+
+      const none = parseResponse(await handleKnowledgeExtractionTool('absorb_extract_knowledge', {}));
+      expect(none.error).toContain('No codebase graph loaded');
+    });
+
+    it("returns the workspace's own graph", async () => {
+      setKnowledgeExtractionGraph(ownGraph(), 'ws-a');
+      const own = parseResponse(
+        await handleKnowledgeExtractionTool('absorb_extract_knowledge', { workspaceId: 'ws-a' })
+      );
+      expect(own.success).toBe(true);
+    });
+
+    it('a page extract for one workspace is not visible to another', async () => {
+      await handleKnowledgeExtractionTool('absorb_extract_knowledge', {
+        markdown: '# Private Page\n\nprivate body text for workspace a only',
+        url: 'https://private.example/a',
+        workspaceId: 'ws-a',
+      });
+      const other = parseResponse(
+        await handleKnowledgeExtractionTool('absorb_extract_knowledge', { workspaceId: 'ws-b' })
+      );
+      expect(other.error).toContain('No codebase graph loaded');
+    });
+
+    it('keys by owner when the owner is known', () => {
+      const g = ownGraph();
+      setKnowledgeExtractionGraph(g, 'ws-a', 'owner-1');
+      expect(getActiveGraph('ws-a', 'owner-1')).toBe(g);
+      expect(getActiveGraph('ws-a', 'owner-2')).toBeNull();
+      expect(getActiveGraph('ws-a')).toBeNull();
+    });
+  });
   describe('handleKnowledgeExtractionTool', () => {
     it('returns error when no graph is loaded', async () => {
       const result = await handleKnowledgeExtractionTool('absorb_extract_knowledge', {});
@@ -170,7 +220,7 @@ describe('knowledge-extraction-tools', () => {
         makeFile({ path: 'src/a.ts', loc: 100 }),
         makeFile({ path: 'src/b.ts', loc: 200 }),
       ]);
-      setKnowledgeExtractionGraph(graph);
+      setKnowledgeExtractionGraph(graph, 'test-ws');
 
       const result = await handleKnowledgeExtractionTool('absorb_extract_knowledge', {
         minConfidence: 0.9,
