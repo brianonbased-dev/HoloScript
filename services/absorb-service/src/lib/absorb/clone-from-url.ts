@@ -40,7 +40,9 @@ export class CloneRefusal extends Error {
   }
 }
 
-const OWNER_REPO = /^\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]{1,100}?)(?:\.git)?\/?$/;
+// Case-insensitive (#617 F1): a .GIT or .Git suffix is the same suffix, so
+// Repo.GIT maps to repo.git, not repo.git.git (a second key, a second charge).
+const OWNER_REPO = /^\/([A-Za-z0-9](?:[A-Za-z0-9-]{0,38}))\/([A-Za-z0-9._-]{1,100}?)(?:\.git)?\/?$/i;
 
 /** The canonical https://github.com/owner/repo.git, or a CloneRefusal. */
 export function normalizeRepoUrl(raw: unknown): string {
@@ -69,7 +71,9 @@ export function normalizeRepoUrl(raw: unknown): string {
   if (!m || m[2] === '.' || m[2] === '..') {
     throw new CloneRefusal('repo_url_not_allowed', 'repoUrl must be https://github.com/<owner>/<repo>');
   }
-  return `https://github.com/${m[1]}/${m[2]}.git`;
+  // Lowercased (#617 N1): GitHub owner and repo names are case-insensitive, so
+  // Owner/Repo and owner/repo are one repo and must map to one import id.
+  return `https://github.com/${m[1].toLowerCase()}/${m[2].toLowerCase()}.git`;
 }
 
 /** A plain branch name, or undefined for the default branch. */
@@ -244,12 +248,14 @@ export async function cloneRepo(
         else finish(new CloneRefusal('clone_failed', `git clone exited ${code}: ${stderr.slice(0, 300)}`));
       });
     });
-    // A clone that finished between two polls is still measured.
-    if ((await sizeOf(work)) > maxBytes) {
-      throw new CloneRefusal('clone_too_large', `repo is larger than ${maxBytes} bytes`);
-    }
     if (opts.expectedSha) {
       await pinToCommit(spawnImpl, dest, work, opts.expectedSha.toLowerCase(), timeoutMs);
+    }
+    // Measured after the pin (#617 N2): a fetch-by-SHA adds objects, so the cap
+    // applies to the tree that is actually scanned. Also catches a clone that
+    // finished between two polls.
+    if ((await sizeOf(work)) > maxBytes) {
+      throw new CloneRefusal('clone_too_large', `repo is larger than ${maxBytes} bytes`);
     }
     return { dir: dest, cleanup };
   } catch (err) {

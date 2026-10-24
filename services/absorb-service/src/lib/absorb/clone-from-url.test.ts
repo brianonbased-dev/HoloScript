@@ -8,6 +8,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChildProcess } from 'child_process';
+import { commitImportId } from './importClaims.js';
 
 import {
   CloneRefusal,
@@ -86,6 +87,12 @@ describe('URL allowlist (nothing is spawned for a refused URL)', () => {
   it('a plain github.com repo normalizes to the canonical https .git URL', () => {
     expect(normalizeRepoUrl('https://GitHub.com/owner/repo')).toBe('https://github.com/owner/repo.git');
     expect(normalizeRepoUrl('https://github.com/owner/repo.git')).toBe('https://github.com/owner/repo.git');
+  });
+
+  it('F1: a .GIT or .Git suffix is stripped like .git (one key, not repo.git.git)', () => {
+    expect(normalizeRepoUrl('https://github.com/Owner/Repo.GIT')).toBe('https://github.com/owner/repo.git');
+    expect(normalizeRepoUrl('https://github.com/owner/repo.Git')).toBe('https://github.com/owner/repo.git');
+    expect(normalizeRepoUrl('https://github.com/owner/repo.GIT/')).toBe('https://github.com/owner/repo.git');
   });
 
   it('a branch that looks like an option or a path escape is refused', () => {
@@ -252,5 +259,67 @@ describe('pin the clone to the charged commit (#617)', () => {
   it('the SHA cannot be fetched: refused, never scanned', async () => {
     const g = scriptedGit([B], 'fetch');
     await expect(pinToCommit(g.impl as never, root, root, A, 5_000)).rejects.toBeInstanceOf(CloneRefusal);
+  });
+});
+
+describe('Mapping hold fixes (#617 N1, N2)', () => {
+  it('N1: owner and repo differing only in case normalize to the same URL (same import id)', () => {
+    expect(normalizeRepoUrl('https://github.com/Owner/Repo')).toBe('https://github.com/owner/repo.git');
+    expect(normalizeRepoUrl('https://github.com/OWNER/repo.git')).toBe(normalizeRepoUrl('https://github.com/owner/REPO'));
+  });
+
+  it('N2: the size cap is applied after pinning, to the tree that is scanned', async () => {
+    const A = 'a'.repeat(40);
+    const B = 'b'.repeat(40);
+    const heads = [B, A];
+    let pinned = false;
+    const impl = vi.fn((_cmd: string, args: string[]) => {
+      const child = new EventEmitter() as unknown as ChildProcess & EventEmitter;
+      (child as unknown as { stdout: EventEmitter }).stdout = new EventEmitter();
+      (child as unknown as { stderr: EventEmitter }).stderr = new EventEmitter();
+      (child as unknown as { kill: () => boolean }).kill = () => true;
+      const sub = args.filter((x, i) => args[i - 1] !== '-c' && x !== '-c');
+      setTimeout(async () => {
+        if (sub[0] === 'clone') await fsp.mkdir(args[args.length - 1], { recursive: true });
+        if (sub[0] === 'checkout') pinned = true;
+        if (sub[0] === 'rev-parse') {
+          (child as unknown as { stdout: EventEmitter }).stdout.emit('data', Buffer.from((heads.shift() ?? '') + '\n'));
+        }
+        child.emit('close', 0);
+      }, 1);
+      return child;
+    });
+    await expect(
+      cloneRepo('https://github.com/a/b', 'main', {
+        root,
+        spawnImpl: impl as never,
+        maxBytes: 10,
+        expectedSha: A,
+        // Small before the pin; the fetched commit makes it too large.
+        sizeOf: async () => (pinned ? 11 : 1),
+      })
+    ).rejects.toMatchObject({ code: 'clone_too_large' });
+    expect(await leftovers()).toEqual([]);
+  });
+});
+
+describe('repo URL variants map to one import key (Treasurer, #617 N1)', () => {
+  const variants = [
+    'https://github.com/owner/tiny',
+    'https://github.com/Owner/Tiny',
+    'https://github.com/OWNER/TINY.git',
+    'https://github.com/owner/tiny.git',
+    'https://github.com/owner/tiny/',
+    'https://github.com/Owner/Tiny.git/',
+    'https://GitHub.com/owner/TINY/',
+  ];
+  it('the real normalizer gives one canonical URL for case, .git and trailing-slash variants', () => {
+    const out = new Set(variants.map((v) => normalizeRepoUrl(v)));
+    expect([...out]).toEqual(['https://github.com/owner/tiny.git']);
+  });
+  it('the importClaims hash of every normalized variant is identical', () => {
+    const sha = 'A'.repeat(40);
+    const ids = new Set(variants.map((v) => commitImportId(normalizeRepoUrl(v), sha, { shallow: true })));
+    expect(ids.size).toBe(1);
   });
 });

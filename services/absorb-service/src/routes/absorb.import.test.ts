@@ -34,7 +34,7 @@ const h = vi.hoisted(() => ({
 vi.mock('@holoscript/absorb-service/credits', () => {
   const api = {
     requireCredits: vi.fn(async (userId: string) =>
-      h.balance >= 10 ? { userId, costCents: 10, operationType: 'absorb_shallow' } : { error: 'Insufficient credits', status: 402 }
+      h.balance >= 10 ? { userId, costCents: 10, operationType: 'absorb_shallow' } : { error: 'Insufficient credits', status: 402, balance: h.balance }
     ),
     deductCredits: vi.fn(async (
       userId: string,
@@ -115,10 +115,12 @@ const USER = '11111111-2222-4333-8444-555555555555';
 type Handler = (req: Request, res: Response) => Promise<unknown>;
 let scan: Handler;
 let reset: () => void;
+let dropGraphs: () => void;
 
 beforeAll(async () => {
   const mod = await import('./absorb.js');
   reset = mod.__resetImportsForTests;
+  dropGraphs = mod.__dropGraphsForTests;
   const stack = (mod.absorbRouter as unknown as { stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: Handler }> } }> }).stack;
   const route = stack.find((l) => l.route?.path === '/scan' && l.route.methods.post)!.route!;
   scan = route.stack[route.stack.length - 1].handle;
@@ -173,7 +175,7 @@ const IMPORT = {
 };
 
 /** The server-side claim key for IMPORT: user + repo + commit (#617). */
-const KEY_ID = commitImportId(normalizeRepoUrl('https://github.com/owner/tiny'), 'a'.repeat(40));
+const KEY_ID = commitImportId(normalizeRepoUrl('https://github.com/owner/tiny'), 'a'.repeat(40), { shallow: true });
 
 describe('/scan repoUrl import', () => {
   it('scans the clone, charges once, and cleans the clone up', async () => {
@@ -365,7 +367,7 @@ describe('/scan repoUrl import across instances (shared database)', () => {
     expect(again._json?.replayed).toBe(true);
     expect(again._json?.graphId).toBe(first._json?.graphId);
     expect(h.debits).toHaveLength(1);
-    expect(h.clones).toBe(1);
+    expect(h.clones).toBe(2); // the other instance has no graph in memory: rescanned free (#617 H1), never a dead graphId
     expect(shared.rows.get(`${USER}:${KEY_ID}`)?.status).toBe('done');
   }, 30_000);
 
@@ -392,7 +394,7 @@ describe('/scan repoUrl import across instances (shared database)', () => {
     const after = await callOn(b, IMPORT);
     expect(after._json?.replayed).toBe(true);
     expect(h.debits).toHaveLength(1);
-    expect(h.clones).toBe(1);
+    expect(h.clones).toBe(2); // the other instance has no graph in memory: rescanned free (#617 H1), never a dead graphId
   }, 30_000);
 
   it('a failed import on one instance releases its claim; a retry on another is charged once', async () => {
@@ -748,7 +750,7 @@ describe('/scan repoUrl import: idempotent on user + repo + commit SHA', () => {
     expect(afterReload._json?.replayed).toBe(true);
     expect(afterReload._json?.costCents).toBe(0);
     expect(h.debits).toHaveLength(1);
-    expect(h.clones).toBe(1);
+    expect(h.clones).toBe(2); // the other instance has no graph in memory: rescanned free (#617 H1), never a dead graphId
   }, 30_000);
 
   it('a new commit on the same repo is a new import and is charged', async () => {
@@ -769,5 +771,175 @@ describe('/scan repoUrl import: idempotent on user + repo + commit SHA', () => {
     expect(r._status).toBe(502);
     expect(h.clones).toBe(0);
     expect(h.debits).toHaveLength(0);
+  });
+});
+
+describe('/scan repoUrl import: Mapping hold fixes (#617 H1, N3, N4)', () => {
+  it('H1: after a restart the replayed graphId is rescanned under the same id, free, with no new debit', async () => {
+    const first = await call(IMPORT);
+    expect(first._status).toBe(200);
+    expect(h.debits).toHaveLength(1);
+    dropGraphs(); // a restart: claims survive, in-memory graphs do not
+    const again = await call(IMPORT);
+    expect(again._status).toBe(200);
+    expect(again._json?.graphId).toBe(first._json?.graphId);
+    expect(again._json?.cost).toBe(0);
+    expect(again._json?.replayed).toBe(true);
+    expect(again._json?.rehydrated).toBe(true);
+    expect(h.debits).toHaveLength(1);
+    expect(h.clones).toBe(2);
+    // The graph is live again: the next replay needs no clone.
+    const third = await call(IMPORT);
+    expect(third._json?.graphId).toBe(first._json?.graphId);
+    expect(third._json?.rehydrated).toBeUndefined();
+    expect(h.clones).toBe(2);
+    expect(h.debits).toHaveLength(1);
+  });
+
+  it('H1: a failed rehydrate charges nothing and the paid import stays replayable', async () => {
+    await call(IMPORT);
+    dropGraphs();
+    const { CloneRefusal } = await import('../lib/absorb/clone-from-url.js');
+    h.cloneError = new CloneRefusal('clone_failed', 'github down');
+    const r = await call(IMPORT);
+    expect(r._status).toBe(502);
+    expect(h.debits).toHaveLength(1);
+    h.cloneError = null;
+    const ok = await call(IMPORT);
+    expect(ok._status).toBe(200);
+    expect(ok._json?.cost).toBe(0);
+    expect(h.debits).toHaveLength(1);
+  });
+
+  it('H1: the scan options are in the key, so a shallow import does not answer or block a deep one', async () => {
+    const shallow = await call(IMPORT);
+    const deep = await call({ ...IMPORT, shallow: false });
+    expect([shallow._status, deep._status]).toEqual([200, 200]);
+    expect(deep._json?.replayed).toBeUndefined();
+    expect(deep._json?.graphId).not.toBe(shallow._json?.graphId);
+    expect(h.debits).toHaveLength(2);
+    expect(h.debits[1].meta.importId).toBe(
+      commitImportId(normalizeRepoUrl('https://github.com/owner/tiny'), 'a'.repeat(40), { shallow: false })
+    );
+  });
+
+  it('N1: the same repo in another letter case is the same import and is charged once', async () => {
+    const first = await call(IMPORT);
+    const upper = await call({ ...IMPORT, repoUrl: 'https://github.com/OWNER/Tiny', importId: 'imp-case-0002' });
+    expect(upper._status).toBe(200);
+    expect(upper._json?.replayed).toBe(true);
+    expect(upper._json?.graphId).toBe(first._json?.graphId);
+    expect(h.debits).toHaveLength(1);
+  });
+
+  it('N3: an unauthenticated caller is refused before ls-remote and the clone', async () => {
+    const res = { _status: 200, _json: null as any, status(c: number) { res._status = c; return res; }, json(d: any) { res._json = d; return res; } };
+    await scan({ body: IMPORT, authenticated: false, userId: USER, headers: {} } as unknown as Request, res as unknown as Response);
+    expect(res._status).toBe(401);
+    expect(h.resolves).toBe(0);
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+
+  it('N4: parallel scans by one account are serialized, so the second is refused (402) instead of overdrawing', async () => {
+    h.balance = 10; // covers exactly one scan
+    h.shas.set(normalizeRepoUrl('https://github.com/owner/other'), 'b'.repeat(40));
+    const [a, b] = await Promise.all([
+      call(IMPORT),
+      call({ ...IMPORT, repoUrl: 'https://github.com/owner/other', importId: 'imp-0002-bbbb' }),
+    ]);
+    expect([a._status, b._status].sort()).toEqual([200, 402]);
+    expect(h.debits).toHaveLength(1);
+    expect(h.balance).toBe(0);
+  });
+});
+
+describe('/scan repoUrl import: credits before the claim and clone (Treasurer, #617)', () => {
+  it('a broke account gets 402 before start: no ls-remote, no claim, no clone, no debit', async () => {
+    h.balance = 0;
+    const r = await call(IMPORT);
+    expect(r._status).toBe(402);
+    expect(h.resolves).toBe(0);
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+  it('returns balanceOwedCents when the settle leaves the account owing', async () => {
+    h.balance = 10;
+    h.beforeDebit = () => {
+      h.balance = 3; // a concurrent charge landed after the start check
+    };
+    const r = await call(IMPORT);
+    expect(r._status).toBe(200);
+    expect(r._json?.balanceOwedCents).toBe(7);
+  });
+  it('omits balanceOwedCents when nothing is owed', async () => {
+    const r = await call(IMPORT);
+    expect(r._status).toBe(200);
+    expect(r._json?.balanceOwedCents).toBeUndefined();
+  });
+});
+
+describe('/scan repoUrl import: CoS no-schema fallback (#617 N4)', () => {
+  it('refuses a new paid start with 402 balance_owed while any balance is owed: no clone', async () => {
+    h.balance = -7;
+    const r = await call(IMPORT);
+    expect(r._status).toBe(402);
+    expect(r._json?.error).toBe('balance_owed');
+    expect(r._json?.balanceOwedCents).toBe(7);
+    expect(h.clones).toBe(0);
+    expect(h.resolves).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+  it('one paid scan in flight per account: parallel starts on a small balance keep the amount owed within MAX_BALANCE_OWED_CREDITS', async () => {
+    const { MAX_BALANCE_OWED_CREDITS, ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT } = await import('./absorb.js');
+    expect(MAX_BALANCE_OWED_CREDITS).toBe(100);
+    expect(ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT).toBe(1);
+    h.balance = 10;
+    const repos = ['p1', 'p2', 'p3', 'p4', 'p5'].map((n, i) => ({
+      ...IMPORT,
+      repoUrl: 'https://github.com/owner/' + n,
+      importId: 'imp-par-' + i + '-aaaa',
+    }));
+    const rs = await Promise.all(repos.map((b) => call(b)));
+    const ok = rs.filter((r) => r._status === 200).length;
+    expect(ok).toBe(1); // exactly the starts the balance covers
+    expect(rs.filter((r) => r._status === 402)).toHaveLength(4);
+    expect(h.debits).toHaveLength(1);
+    expect(Math.max(0, -h.balance)).toBeLessThanOrEqual(MAX_BALANCE_OWED_CREDITS);
+  });
+  it('F2: a paid start whose price would push the amount owed past MAX_BALANCE_OWED_CREDITS is 402 before any clone', async () => {
+    const credits = (await import('@holoscript/absorb-service/credits')) as unknown as {
+      requireCredits: { mockImplementationOnce: (f: (u: string) => Promise<unknown>) => void };
+    };
+    // The gate passed, but the price is 101 over the balance it saw.
+    credits.requireCredits.mockImplementationOnce(async (userId: string) => ({
+      userId, costCents: 111, operationType: 'absorb_shallow', balanceCents: 10,
+    }));
+    const r = await call(IMPORT);
+    expect(r._status).toBe(402);
+    expect(r._json?.error).toBe('balance_owed_cap');
+    expect(h.resolves).toBe(0);
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+  });
+  it('F2: owedCapRefusal allows owing exactly the cap and refuses one credit more', async () => {
+    const { owedCapRefusal, MAX_BALANCE_OWED_CREDITS } = await import('./absorb.js');
+    expect(owedCapRefusal({ costCents: 10, balanceCents: 10 })).toBeNull();
+    expect(owedCapRefusal({ costCents: MAX_BALANCE_OWED_CREDITS, balanceCents: 0 })).toBeNull();
+    expect(owedCapRefusal({ costCents: MAX_BALANCE_OWED_CREDITS + 1, balanceCents: 0 })?.status).toBe(402);
+  });
+  it('F5: ls-remote gets the normalized URL, not the raw one', async () => {
+    const mod = await import('../lib/absorb/clone-from-url.js');
+    const r = await call({ ...IMPORT, repoUrl: 'https://GitHub.com/Owner/Tiny.GIT/' });
+    expect(r._status).toBe(200);
+    expect(mod.resolveCommitSha).toHaveBeenLastCalledWith('https://github.com/owner/tiny.git', 'main');
+  });
+  it('F1: .GIT and .Git variants are one import, charged once', async () => {
+    await call(IMPORT);
+    const a = await call({ ...IMPORT, repoUrl: 'https://github.com/owner/Tiny.GIT', importId: 'imp-git-0001' });
+    const b = await call({ ...IMPORT, repoUrl: 'https://github.com/owner/tiny.Git', importId: 'imp-git-0002' });
+    expect(a._json?.replayed).toBe(true);
+    expect(b._json?.replayed).toBe(true);
+    expect(h.debits).toHaveLength(1);
   });
 });
