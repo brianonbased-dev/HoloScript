@@ -80,8 +80,10 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('https://absorb.test/api/absorb/scan');
     expect(JSON.parse(init.body as string)).toEqual({ path: WS_PATH, shallow: true, projectId: WS_PATH });
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer absorb-key-test');
-    expect((init.headers as Record<string, string>)['X-User-Authorization']).toBe('Bearer gh-user-token');
+    // No service key ever on a paid scan: only the user's own credential.
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer gh-user-token');
+    expect((init.headers as Record<string, string>)['X-User-Authorization']).toBeUndefined();
+    expect(JSON.stringify(init.headers)).not.toContain('absorb-key-test');
   });
 
   it('no user credential: 401 absorb_no_user_credential, nothing sent, no service-key fallback', async () => {

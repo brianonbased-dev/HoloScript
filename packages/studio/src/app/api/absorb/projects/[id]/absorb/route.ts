@@ -3,7 +3,7 @@ export const maxDuration = 300;
 import * as path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { getGitHubToken } from '@/app/api/github/_shared';
-import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
+import { ABSORB_BASE } from '@/lib/services/absorb-client';
 import {
   findDurableAbsorbProject,
   isAbsorbStateLockTimeout,
@@ -164,13 +164,13 @@ function resolveScanPath(projectId: string): string | null {
 }
 
 /**
- * Studio's key identifies the service; the user's own token (X-User-Authorization)
- * identifies the payer. Without the key the user's token goes alone.
+ * A scan is paid: absorb must charge the signed-in user or refuse. Only the
+ * user's own token is sent, never the service key, so there is no path where
+ * the key alone (or the key standing in for a missing user) reaches /scan
+ * (Mapping, #654 closing #616's fallback).
  */
 function scanAuth(userToken: string): Record<string, string> {
-  return ABSORB_API_KEY
-    ? { Authorization: `Bearer ${ABSORB_API_KEY}`, 'X-User-Authorization': `Bearer ${userToken}` }
-    : { Authorization: `Bearer ${userToken}` };
+  return { Authorization: `Bearer ${userToken}` };
 }
 
 /** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
