@@ -18,6 +18,7 @@ Humans decide only when there is no reference and no way to figure it out withou
 - An avatar never shows abilities, emotions or status the agent doesn't have.
 - The Hololand mascot is the house's labeled avatar. It gets no exception to the consent or overclaim rules.
 - A face or voice that resembles a real person needs a checked consent grant. Without one, it falls back to a generic avatar.
+- The owner edits the avatar. The agent may edit its own avatar only with the owner's okay. Other people can remix it as their own copy, and the original stays unchanged.
 
 **Five commitments.** These are commitments, not shipped features.
 
