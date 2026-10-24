@@ -30,6 +30,92 @@ function sessionPrincipal(req: Request): string | null {
   return authReq.userId ?? SERVICE_PRINCIPAL;
 }
 
+/** The verified caller of an MCP request, as the tool layer needs it. */
+export interface McpCaller {
+  kind: 'service' | 'orchestrator' | 'user' | 'anonymous';
+  /**
+   * Resolved account the caller's state is keyed by: the GitHub user account, or (for
+   * orchestrator calls, once #653 forwards it) the v1 account uuid. Never a key or key id.
+   */
+  ownerId: string | null;
+  /** May use the server's own provider keys, hosted models and ABSORB_API_KEY. */
+  serverKeysAllowed: boolean;
+}
+
+/** Resolve who is calling from what authMiddleware verified. Unknown shapes fail closed. */
+export function resolveMcpCaller(req: Request | undefined): McpCaller {
+  const authReq = req as AuthenticatedRequest | undefined;
+  if (!authReq?.authenticated) {
+    return { kind: 'anonymous', ownerId: null, serverKeysAllowed: false };
+  }
+  if (authReq.authKind === 'service') {
+    // The service key may forward the end user (X-User-Authorization); their account owns state.
+    return { kind: 'service', ownerId: authReq.userId ?? null, serverKeysAllowed: true };
+  }
+  const orchestratorBilled = (authReq as { orchestratorBilled?: boolean }).orchestratorBilled === true;
+  if (orchestratorBilled) {
+    // v1 (#653): userId is the verified account uuid, so it is the owner.
+    return { kind: 'orchestrator', ownerId: authReq.userId ?? null, serverKeysAllowed: true };
+  }
+  if (authReq.authKind === 'orchestrator' && authReq.orchestratorGated) {
+    // userId here is "orchestrator:<key id>", derived from a key, so it is not an owner:
+    // calls are request-scoped.
+    return { kind: 'orchestrator', ownerId: null, serverKeysAllowed: true };
+  }
+  return { kind: 'user', ownerId: authReq.userId ?? null, serverKeysAllowed: false };
+}
+
+/**
+ * Tools that spend server compute, hosted models or the operator's Absorb account.
+ * holo_ask_codebase is not listed: it is admitted for everyone and itself refuses the
+ * server's provider keys and hosted models to non-service callers.
+ */
+export function isPaidMcpTool(name: string): boolean {
+  return (
+    name === 'holo_absorb_repo' ||
+    name === 'holo_absorb_manifest' ||
+    name.startsWith('holo_detect_') ||
+    name.startsWith('absorb_')
+  );
+}
+
+/**
+ * Refusal for a paid tool, or null when the caller may run it.
+ *
+ * Only the service key is admitted. /mcp does not bill by account uuid yet, so orchestrator
+ * calls (v1 included) fail closed with 402 v1_billing_not_wired until it does; GitHub-token
+ * callers get 402 payment_required and anonymous callers 403.
+ */
+export function paidToolRefusal(name: string, caller: McpCaller): Record<string, unknown> | null {
+  if (!isPaidMcpTool(name)) return null;
+  if (caller.kind === 'service') return null;
+  if (caller.kind === 'orchestrator') {
+    return {
+      error: 'v1_billing_not_wired',
+      status: 402,
+      tool: name,
+      message: `${name} is a paid tool. /mcp does not bill orchestrator calls by account uuid yet, so they are refused.`,
+    };
+  }
+  const status = caller.kind === 'user' ? 402 : 403;
+  return {
+    error: status === 402 ? 'payment_required' : 'forbidden',
+    status,
+    tool: name,
+    message:
+      `${name} is a paid tool. Over /mcp it is available to the service key only; ` +
+      'paid access for GitHub-token callers is not available yet.',
+  };
+}
+
+/** What a tool handler is told about the caller (undefined = trusted local/service use). */
+function toolCallerContext(caller: McpCaller): { ownerId: string | null; serverKeysAllowed: boolean } | undefined {
+  // The bare service key with no forwarded user is the operator itself: keep the legacy
+  // module-level state it has always used.
+  if (caller.kind === 'service' && !caller.ownerId) return undefined;
+  return { ownerId: caller.ownerId, serverKeysAllowed: caller.serverKeysAllowed };
+}
+
 /**
  * Live tool count registered on the most recent createMcpServer() call.
  * Updated once at first-session setup; reported in /.well-known/mcp so the
@@ -49,13 +135,19 @@ export function getRegisteredToolCount(): number {
   return _lastRegisteredToolCount;
 }
 
-async function createMcpServer(): Promise<McpServer> {
+async function createMcpServer(
+  caller: McpCaller = { kind: 'anonymous', ownerId: null, serverKeysAllowed: false },
+): Promise<McpServer> {
   const server = new McpServer({
     name: 'absorb-service',
     version: SERVICE_VERSION,
   });
 
-  type ToolHandler = (name: string, args: Record<string, unknown>) => Promise<unknown>;
+  type ToolHandler = (
+    name: string,
+    args: Record<string, unknown>,
+    ctx?: { ownerId: string | null; serverKeysAllowed: boolean },
+  ) => Promise<unknown>;
   const registeredTools = new Map<string, { definition: any; handler: ToolHandler }>();
 
   const addToolFamily = (definitions: unknown, handler: unknown) => {
@@ -119,10 +211,19 @@ async function createMcpServer(): Promise<McpServer> {
       };
     }
 
+    const refusal = paidToolRefusal(name, caller);
+    if (refusal) {
+      return {
+        content: [{ type: 'text' as const, text: JSON.stringify(refusal, null, 2) }],
+        isError: true,
+      };
+    }
+
     try {
       const result = await entry.handler(
         name,
         (request.params.arguments ?? {}) as Record<string, unknown>,
+        toolCallerContext(caller),
       );
       return {
         content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }],
@@ -191,7 +292,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
     sessionUserMap.delete(sessionId);
   });
 
-  const server = await createMcpServer();
+  const server = await createMcpServer(resolveMcpCaller(req));
   // connect() starts the transport (SSE headers + endpoint event). The extra
   // transport.start() that followed threw "already started" on every session.
   await server.connect(transport);
@@ -207,7 +308,7 @@ export async function handleMcpSse(req: Request, res: Response): Promise<void> {
  * remaining protocol-compatible with Streamable HTTP clients.
  */
 export async function handleMcpStreamableHttp(req: Request, res: Response): Promise<void> {
-  const server = await createMcpServer();
+  const server = await createMcpServer(resolveMcpCaller(req));
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

@@ -75,6 +75,21 @@ describe('authMiddleware', () => {
     }
   });
 
+  it('N: the service key compare is timing-safe and length-safe (no ===); a near-miss key is refused', async () => {
+    const fsm = await import('fs');
+    const src = fsm.readFileSync(new URL('./auth.ts', import.meta.url), 'utf8');
+    expect(src).not.toContain('token === apiKey');
+    process.env.ABSORB_API_KEY = 'test-key-123';
+    mockResolveGitHubToken.mockResolvedValue(null);
+    for (const bad of ['test-key-12', 'test-key-1234', 'test-key-124', '']) {
+      const req = createMockReq({ path: '/api/absorb/scan', headers: { authorization: `Bearer ${bad}` } });
+      const res = createMockRes();
+      const n = vi.fn();
+      await authMiddleware(req, res, n);
+      expect(req.authKind).not.toBe('service');
+    }
+  });
+
   it('authenticates valid Bearer token (API key)', async () => {
     process.env.ABSORB_API_KEY = 'test-key-123';
     const req = createMockReq({
