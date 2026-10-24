@@ -28,7 +28,8 @@ What it states, and what it does not claim:
 - **Non-canonical reference.** `openart-d2c449cdef724e68bd71444cacd154fd_raw.png`
   is labelled "reference render, not canon sheet": it is AI-generated and has no
   turnaround. It is not part of the canonical set.
-- **Likeness and consent.** Pending with Trust. Not cleared.
+- **Likeness.** Synthetic: original character by Joseph; no real-person source.
+  Ruled by Trust (A33), confirmed 2026-10-23.
 - **Not Brian.** The quadruped/winged placeholder skeleton in
   `gltfpipeline-brian-generate.glb`.
 

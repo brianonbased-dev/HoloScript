@@ -104,10 +104,12 @@
     "animations_total": 0,
     "evidence": "glTF JSON chunk of each canonical file parsed 2026-10-23: 0 skins, 0 animations, 1 mesh, 2 nodes (root node 'Brian_01')."
   },
-  "likeness_consent": {
-    "status": "pending",
-    "owner": "Trust",
-    "note": "Likeness/consent status is pending review with Trust. Do not treat as cleared."
+  "likeness": {
+    "synthetic": true,
+    "provenance": "original character by Joseph; no real-person source",
+    "confirmed": "2026-10-23",
+    "ruled_by": "Trust",
+    "approval": "A33"
   },
   "not_brian": [
     "gltfpipeline-brian-generate.glb (dragon-template skeleton: 20-joint quadruped/winged placeholder with tail and wing joints; explicitly excluded, not a Brian rig)"

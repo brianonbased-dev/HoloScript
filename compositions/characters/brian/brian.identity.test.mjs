@@ -50,9 +50,12 @@ test('body map is a guide', () => {
   assert.match(g.sha256, /^[0-9a-f]{64}$/);
 });
 
-test('likeness/consent pending with Trust', () => {
-  assert.equal(spec.likeness_consent.status, 'pending');
-  assert.equal(spec.likeness_consent.owner, 'Trust');
+test('likeness: synthetic, ruled by Trust (A33)', () => {
+  assert.equal(spec.likeness.synthetic, true);
+  assert.equal(spec.likeness.provenance, 'original character by Joseph; no real-person source');
+  assert.equal(spec.likeness.confirmed, '2026-10-23');
+  assert.equal(spec.likeness.ruled_by, 'Trust');
+  assert.equal(spec.likeness_consent, undefined);
 });
 
 test('export logs by filename + size + sha256', () => {
