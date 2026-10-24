@@ -10,10 +10,18 @@ export const maxDuration = 300;
  * Gap 3: Knowledge extraction UI wiring -- this route ensures the Absorb page's
  * "Extract W/P/G" button works even when absorb.holoscript.net doesn't serve
  * REST endpoints (it only speaks MCP protocol).
+ *
+ * Owner-only (#617 set): the caller must be signed in (401) and must own the
+ * project (404, so ids of other users' projects are not confirmed). Upstream
+ * calls carry only the signed-in user's own credential, resolved server-side
+ * from the session; Studio's service key is never sent, on either path.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { MCP_SERVER_URL, ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
+import { getSession } from '@/lib/api-auth';
+import { getGitHubToken } from '@/app/api/github/_shared';
+import { findDurableAbsorbProject } from '@/lib/absorb/projectState';
+import { MCP_SERVER_URL, ABSORB_BASE } from '@/lib/services/absorb-client';
 
 import { corsHeaders } from '../../../../_lib/cors';
 interface ExtractionRequest {
@@ -27,14 +35,15 @@ interface ExtractionRequest {
  */
 async function callMcpTool(
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  userToken: string
 ): Promise<{ ok: boolean; data: unknown }> {
   try {
     const res = await fetch(`${MCP_SERVER_URL}/mcp`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${ABSORB_API_KEY}`,
+        Authorization: `Bearer ${userToken}`,
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
@@ -71,18 +80,22 @@ async function callMcpTool(
  */
 async function callAbsorbRest(
   projectId: string,
-  body: string
+  body: string,
+  userToken: string
 ): Promise<{ ok: boolean; status: number; data: unknown }> {
   try {
-    const res = await fetch(`${ABSORB_BASE}/api/absorb/projects/${projectId}/knowledge`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${ABSORB_API_KEY}`,
-      },
-      body,
-      signal: AbortSignal.timeout(15000),
-    });
+    const res = await fetch(
+      `${ABSORB_BASE}/api/absorb/projects/${encodeURIComponent(projectId)}/knowledge`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${userToken}`,
+        },
+        body,
+        signal: AbortSignal.timeout(15000),
+      }
+    );
 
     const data = await res.json().catch(() => ({ error: 'Invalid response' }));
     return { ok: res.ok, status: res.status, data };
@@ -91,8 +104,34 @@ async function callAbsorbRest(
   }
 }
 
+/** Studio's signed-in user id, or null. Same reader the projects list uses. */
+async function signedInUserId(): Promise<string | null> {
+  const session = await getSession().catch(() => null);
+  const id = session?.user?.id;
+  return typeof id === 'string' && id.trim() ? id : null;
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id: projectId } = await params;
+
+  const userId = await signedInUserId();
+  const userToken = userId ? await getGitHubToken(req, { userOnly: true }).catch(() => null) : null;
+  if (!userId || !userToken) {
+    return NextResponse.json(
+      { error: 'Sign in to extract knowledge.', reason: 'absorb_no_user_credential' },
+      { status: 401 }
+    );
+  }
+
+  // Only the project's recorded owner may read its knowledge. Unowned or
+  // unknown ids get the same 404, so other users' project ids are not confirmed.
+  const project = findDurableAbsorbProject({ projectId });
+  if (!project || project.ownerId !== userId) {
+    return NextResponse.json(
+      { error: 'Project not found.', reason: 'absorb_project_not_found' },
+      { status: 404 }
+    );
+  }
 
   let body: ExtractionRequest = {};
   try {
@@ -102,19 +141,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   // Strategy 1: Call the absorb_extract_knowledge MCP tool directly
-  const mcpResult = await callMcpTool('absorb_extract_knowledge', {
-    minConfidence: body.minConfidence ?? 0.5,
-    maxPerType: body.maxPerType ?? 20,
-    includeSpeculative: body.includeSpeculative ?? false,
-    workspaceId: projectId,
-  });
+  const mcpResult = await callMcpTool(
+    'absorb_extract_knowledge',
+    {
+      minConfidence: body.minConfidence ?? 0.5,
+      maxPerType: body.maxPerType ?? 20,
+      includeSpeculative: body.includeSpeculative ?? false,
+      workspaceId: projectId,
+    },
+    userToken
+  );
 
   if (mcpResult.ok && mcpResult.data) {
     return NextResponse.json(mcpResult.data);
   }
 
   // Strategy 2: Try the absorb service REST API
-  const restResult = await callAbsorbRest(projectId, JSON.stringify(body));
+  const restResult = await callAbsorbRest(projectId, JSON.stringify(body), userToken);
 
   if (restResult.ok) {
     return NextResponse.json(restResult.data);

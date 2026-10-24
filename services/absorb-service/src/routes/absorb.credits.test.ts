@@ -69,11 +69,19 @@ const ledger = vi.hoisted(() => {
       requireCredits.mockImplementation(requireCreditsImpl);
     },
     requireCredits,
-    deductCredits: vi.fn(async (userId: string, cents: number) => {
+    deductCredits: vi.fn(async (
+      userId: string,
+      cents: number,
+      _d?: string,
+      _m?: Record<string, unknown>,
+      opts?: { allowOverdraft?: boolean }
+    ) => {
       if (state.hold) await state.hold();
       if (state.forceEmptyDebit) return null;
       const balance = readBalance(userId);
-      if (balance < cents) return null;
+      // The real debit's rule: refused when short, unless it settles work
+      // that already ran (allowOverdraft), which leaves the balance owed.
+      if (balance < cents && !opts?.allowOverdraft) return null;
       const next = balance - cents;
       writeBalance(userId, next);
       state.debited += cents;
@@ -148,6 +156,8 @@ interface RouteLayer {
 }
 
 interface MockRes {
+  _headers?: Record<string, string>;
+  setHeader?(k: string, v: string): MockRes;
   _status: number;
   _json: Record<string, unknown> | null;
   status(code: number): MockRes;
@@ -170,8 +180,9 @@ beforeAll(async () => {
   // imports racing each other can miss the mock and fail the scan before the
   // charge, which is not the race this file is about.
   const warmup = mockRes();
+  ledger.state.balance = SHALLOW_CENTS;
   await scan(
-    { body: { path: '/repo/warmup', shallow: true } } as unknown as Request,
+    { body: { path: '/repo/warmup', shallow: true }, authenticated: true, userId: USER } as unknown as Request,
     warmup as unknown as Response
   );
   if (warmup._status !== 200) {
@@ -183,6 +194,11 @@ function mockRes(): MockRes {
   const res: MockRes = {
     _status: 200,
     _json: null,
+    _headers: {},
+    setHeader(k: string, v: string) {
+      res._headers![k] = v;
+      return res;
+    },
     status(code) {
       res._status = code;
       return res;
@@ -215,11 +231,43 @@ beforeEach(() => {
 });
 
 describe('POST /scan when two scans share a balance that covers one', () => {
-  it('two concurrent scans with money for only one: exactly one is delivered and charged', async () => {
+  it('N4 default cap (1, pending Treasurer): the second parallel scan waits, then is refused (402); nothing owed', async () => {
+    const mod = await import('./absorb.js');
+    expect(mod.ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT).toBe(1);
+    ledger.state.balance = SHALLOW_CENTS;
+    const first = mockRes();
+    const second = mockRes();
+    await Promise.all([
+      scan(scanReq('/repo/n4-one'), first as unknown as Response),
+      scan(scanReq('/repo/n4-two'), second as unknown as Response),
+    ]);
+    expect([first._status, second._status].sort()).toEqual([200, 402]);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+    expect(ledger.state.balance).toBe(0);
+  });
+
+  it('N4 cap holds at N: with cap 3, four parallel scans owe at most (3 - 1) prices', async () => {
+    const mod = await import('./absorb.js');
+    mod.__setParallelScanCapForTests(3);
+    try {
+      ledger.state.balance = SHALLOW_CENTS;
+      const rs = [mockRes(), mockRes(), mockRes(), mockRes()];
+      await Promise.all(rs.map((r, i) => scan(scanReq('/repo/cap-' + i), r as unknown as Response)));
+      expect(ledger.state.balance).toBeGreaterThanOrEqual(-2 * SHALLOW_CENTS);
+      expect(rs.filter((r) => r._status === 402).length).toBeGreaterThanOrEqual(1);
+    } finally {
+      mod.__setParallelScanCapForTests(mod.ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT);
+    }
+  });
+
+  it('with cap 2 (Treasurer may raise it), both passed the reserve check before starting: both finish, both are charged, the account is left owing', async () => {
+    const mod = await import('./absorb.js');
+    mod.__setParallelScanCapForTests(2);
     ledger.state.balance = SHALLOW_CENTS;
 
-    // Both scans must pass the balance look before either charge lands.
-    // That is the gap the customer can fall through.
+    // Both scans pass the balance check before either charge lands. A scan
+    // that was allowed to start finishes, and its settle always lands
+    // (CoS/Treasurer, #617): the second leaves a balance owed. Nothing free.
     let arrived = 0;
     let waiting: Array<() => void> = [];
     ledger.state.hold = () =>
@@ -231,8 +279,7 @@ describe('POST /scan when two scans share a balance that covers one', () => {
         };
         arrived += 1;
         if (arrived >= 2) {
-          const rest = waiting.splice(0);
-          for (const release of rest) release();
+          for (const release of waiting.splice(0)) release();
           go();
         } else {
           waiting.push(go);
@@ -245,36 +292,27 @@ describe('POST /scan when two scans share a balance that covers one', () => {
       scan(scanReq('/repo/one'), first as unknown as Response),
       scan(scanReq('/repo/two'), second as unknown as Response),
     ]);
-
     const responses = [first, second];
-    const delivered = responses.filter((res) => res._status === 200);
-    const refused = responses.filter((res) => res._status === 402);
-    const summary = responses.map((res) => ({ status: res._status, body: res._json }));
+    const summary = JSON.stringify(responses.map((r) => ({ status: r._status, body: r._json })));
+    expect(ledger.requireCredits, summary).toHaveBeenCalledTimes(2);
+    expect(ledger.deductCredits, summary).toHaveBeenCalledTimes(2);
+    expect(responses.map((r) => r._status), summary).toEqual([200, 200]);
+    for (const r of responses) expect(r._json).toMatchObject({ cost: SHALLOW_CENTS, cached: false });
+    expect(ledger.state.debited).toBe(2 * SHALLOW_CENTS);
+    expect(ledger.state.balance).toBe(-SHALLOW_CENTS);
+    const owed = responses.map((r) => r._json?.balanceOwedCents).filter((v) => v !== undefined);
+    expect(owed).toEqual([SHALLOW_CENTS]);
+    mod.__setParallelScanCapForTests(mod.ABSORB_MAX_PARALLEL_SCANS_PER_ACCOUNT);
+  });
 
-    // Both scans got past the balance look and into the charge. A refusal
-    // from the look alone would not call the charge, and would miss the bug.
-    expect(ledger.requireCredits, JSON.stringify(summary)).toHaveBeenCalledTimes(2);
-    expect(ledger.deductCredits, JSON.stringify(summary)).toHaveBeenCalledTimes(2);
-    expect(delivered, JSON.stringify(summary)).toHaveLength(1);
-    expect(refused, JSON.stringify(summary)).toHaveLength(1);
-    expect(delivered[0]._json).toMatchObject({
-      cost: SHALLOW_CENTS,
-      cached: false,
-    });
-    expect(typeof delivered[0]._json?.graphId).toBe('string');
-    expect(refused[0]._json).toEqual({ error: 'Not enough credits for this scan.' });
-    expect(refused[0]._json).not.toHaveProperty('cost');
-    expect(refused[0]._json).not.toHaveProperty('graphId');
-
-    const reportedCost = responses.reduce((sum, res) => {
-      const cost = res._json?.cost;
-      return sum + (typeof cost === 'number' ? cost : 0);
-    }, 0);
-    expect(reportedCost).toBe(ledger.state.debited);
-    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
-    expect(ledger.state.balance).toBe(0);
-    expect(ledger.state.wentNegative).toBe(false);
-    expect(ledger.state.balance).toBeGreaterThanOrEqual(0);
+  it('a balance too short before the start is refused (402) and the scan never runs', async () => {
+    ledger.state.balance = SHALLOW_CENTS - 1;
+    const res = mockRes();
+    await scan(scanReq('/repo/short'), res as unknown as Response);
+    expect(res._status).toBe(402);
+    expect(res._json).not.toHaveProperty('graphId');
+    expect(ledger.deductCredits).not.toHaveBeenCalled();
+    expect(ledger.state.debited).toBe(0);
   });
 });
 
@@ -283,13 +321,8 @@ describe('POST /scan saved result is only for the account that paid', () => {
     const path = '/repo/paid-by-a';
     ledger.state.byUser.set(USER, SHALLOW_CENTS);
     ledger.state.byUser.set(USER_B, 0);
-    // B is allowed past the balance look so the empty charge is what
-    // refuses them. The saved scan must not skip that charge.
-    ledger.requireCredits.mockImplementation(async (userId: string, opType: string) => ({
-      userId,
-      costCents: opType === 'absorb_shallow' ? SHALLOW_CENTS : 0,
-      operationType: opType,
-    }));
+    // B cannot cover the price: refused before the scan, and the saved scan
+    // A paid for is not handed over.
 
     const paid = mockRes();
     await scan(scanReq(path, USER), paid as unknown as Response);
@@ -301,10 +334,11 @@ describe('POST /scan saved result is only for the account that paid', () => {
     const refused = mockRes();
     await scan(scanReq(path, USER_B), refused as unknown as Response);
     expect(refused._status).toBe(402);
-    expect(refused._json).toEqual({ error: 'Not enough credits for this scan.' });
+    expect(refused._json).toMatchObject({ error: 'Insufficient credits' });
     expect(refused._json).not.toHaveProperty('cost');
     expect(refused._json).not.toHaveProperty('graphId');
     expect(refused._json).not.toEqual(expect.objectContaining({ graphId: paidGraph }));
+    expect(ledger.deductCredits).toHaveBeenCalledTimes(1);
     expect(ledger.readBalance(USER_B)).toBe(0);
     expect(ledger.state.debited).toBe(SHALLOW_CENTS);
   });
@@ -331,7 +365,7 @@ describe('POST /scan saved result is only for the account that paid', () => {
     expect(ledger.readBalance(USER)).toBe(0);
   });
 
-  it('a caller with no account is not given a scan someone else paid for', async () => {
+  it('a caller with no account is refused (401), not given a scan someone else paid for', async () => {
     const path = '/repo/not-for-strangers';
     ledger.state.byUser.set(USER, SHALLOW_CENTS);
 
@@ -345,16 +379,48 @@ describe('POST /scan saved result is only for the account that paid', () => {
       { body: { path, shallow: true } } as unknown as Request,
       stranger as unknown as Response
     );
-    expect(stranger._status).toBe(200);
-    expect(stranger._json).toMatchObject({ cost: 0, cached: false });
-    expect(stranger._json?.graphId).not.toBe(paidGraph);
+    expect(stranger._status).toBe(401);
+    expect(stranger._json?.error).toBe('account_required');
+    expect(stranger._json?.graphId).toBeUndefined();
+    void paidGraph;
     expect(ledger.deductCredits).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('/scan of a server folder without projectId is charged (NO FREE PATHS, #617 N2)', () => {
+  it('a scan with no projectId charges the signed-in account', async () => {
+    ledger.state.byUser.set(USER, SHALLOW_CENTS);
+    const res = mockRes();
+    await scan(
+      { body: { path: '/repo/folder-no-project', shallow: true }, authenticated: true, userId: USER } as unknown as Request,
+      res as unknown as Response
+    );
+    expect(res._status).toBe(200);
+    expect(res._json?.cost).toBe(SHALLOW_CENTS);
+    expect(ledger.requireCredits).toHaveBeenCalledWith(USER, 'absorb_shallow');
+    expect(ledger.deductCredits).toHaveBeenCalledTimes(1);
+    expect(ledger.deductCredits.mock.calls[0][0]).toBe(USER);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+    expect(ledger.readBalance(USER)).toBe(0);
+  });
+
+  it('no key (unauthenticated, or not a user account) is refused (401) before any scan or charge', async () => {
+    // { authenticated: true } with no userId is the account-unknown legacy orchestrator attestation.
+    for (const who of [{}, { authenticated: false }, { authenticated: true }, { authenticated: true, userId: 'orchestrator:key' }]) {
+      const res = mockRes();
+      await scan({ body: { path: '/repo/no-key', shallow: true }, ...who } as unknown as Request, res as unknown as Response);
+      expect(res._status).toBe(401);
+      expect(res._json?.error).toBe('account_required');
+    }
+    expect(ledger.requireCredits).not.toHaveBeenCalled();
+    expect(ledger.deductCredits).not.toHaveBeenCalled();
   });
 });
 
 describe('POST /query when the charge comes back empty', () => {
   it('a query whose charge comes back empty is refused and reports no cost', async () => {
     const seeded = mockRes();
+    ledger.state.balance = SHALLOW_CENTS;
     await scan(
       {
         body: { path: '/repo/already-scanned', shallow: true },
@@ -366,7 +432,11 @@ describe('POST /query when the charge comes back empty', () => {
     expect(seeded._status).toBe(200);
     const graphId = seeded._json?.graphId;
     expect(typeof graphId).toBe('string');
-    expect(ledger.state.debited).toBe(0);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS); // the scan itself is charged
+    ledger.state.debited = 0;
+    ledger.state.wentNegative = false;
+    ledger.deductCredits.mockClear();
+    ledger.requireCredits.mockClear();
 
     ledger.state.balance = 0;
     ledger.state.forceEmptyDebit = true;
@@ -391,4 +461,42 @@ describe('POST /query when the charge comes back empty', () => {
     expect(ledger.state.balance).toBe(0);
     expect(ledger.state.wentNegative).toBe(false);
   });
+});
+
+describe('every v1 2xx sets X-Absorb-Credit-Cost (absorb is the only biller; header informational)', () => {
+  it('/scan of a path and /query, called as v1: charged in absorb, header present on each 2xx', async () => {
+    ledger.state.balance = SHALLOW_CENTS;
+    ledger.state.debited = 0;
+    ledger.state.forceEmptyDebit = false;
+    const s = mockRes();
+    await scan(
+      { body: { path: '/repo/v1-path', shallow: true }, authenticated: true, userId: USER, orchestratorBilled: true } as unknown as Request,
+      s as unknown as Response
+    );
+    expect(s._status).toBe(200);
+    expect(ledger.state.debited).toBe(SHALLOW_CENTS);
+    expect(s._headers!['X-Absorb-Billed-Account']).toBe('v1');
+    expect(s._headers!['X-Absorb-Credit-Cost']).toBe(String(SHALLOW_CENTS));
+    const q = mockRes();
+    await query(
+      { body: { graphId: s._json?.graphId, query: 'main', maxResults: 1 }, authenticated: true, userId: USER, orchestratorBilled: true } as unknown as Request,
+      q as unknown as Response
+    );
+    expect(q._status).toBe(200);
+    expect(ledger.requireCredits).toHaveBeenCalledWith(USER, 'query_with_llm');
+    expect(q._headers!['X-Absorb-Credit-Cost']).toBe('0');
+  });
+
+  it('moltbook semantic dedup charges in absorb and sets the header on its v1 2xx (source check)', async () => {
+    const fsm = await import('fs');
+    const src = fsm.readFileSync(new URL('./moltbook.ts', import.meta.url), 'utf8');
+    const i = src.indexOf("'semantic_dedup')");
+    const j = src.indexOf('isDuplicate,', i);
+    const k = src.indexOf('if (isOrchestratorBilled(req)) setOrchestratorCost(res, creditCheck.costCents);', i);
+    expect(src.slice(i, j)).toContain('await deductCredits(');
+    expect(k).toBeGreaterThan(i);
+    expect(k).toBeLessThan(j);
+    expect(src).not.toContain('orchestratorPrice');
+  });
+
 });

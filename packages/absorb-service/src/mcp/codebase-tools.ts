@@ -744,6 +744,10 @@ async function createDynamicEmbeddingIndex(
 interface AbsorbJob {
   jobId: string;
   rootDir: string;
+  /** Account that started the job over /mcp; null/undefined = local/operator job. */
+  ownerId?: string | null;
+  /** Token of the remote call that created this job (set at creation, never from args). */
+  createdByCall?: symbol;
   writerKey?: string;
   writerPolicyHash?: string;
   writerLease?: AbsorbWriterLease;
@@ -7118,13 +7122,131 @@ function shouldAutoLoadGraph(name: string, _args: Record<string, unknown>): bool
   return true;
 }
 
+/** Remote caller identity passed by the /mcp handler; undefined = trusted local/service use. */
+export interface CodebaseToolCallerContext {
+  ownerId: string | null;
+  serverKeysAllowed: boolean;
+}
+
+const CALLER_SCOPED_GRAPH_TOOLS = new Set([
+  'holo_query_codebase',
+  'holo_impact_analysis',
+  'holo_resolve_symbol',
+  'holo_graph_status',
+]);
+
+function callerScopedRefusal(name: string, hint: string): Record<string, unknown> {
+  return { error: 'no_caller_graph', status: 403, callerScoped: true, tool: name, hint };
+}
+
+/** Who a remote holo_absorb_repo call creates its job for. Internal only, never from args. */
+interface AbsorbJobCreator {
+  ownerId: string | null;
+  callToken: symbol;
+}
+
+/**
+ * H3: a job keeps its original owner, set when it is created. A remote caller sees a job id
+ * only for the job its own call created, or (for a normal accepted result) a job it already
+ * owns. Anything else, and every busy / accepted:false result about a job it doesn't own,
+ * becomes 409 with nothing about the other job (no jobId, rootDir or status). Nothing is
+ * ever claimed after the fact.
+ */
+function workspaceBusyForCaller(): Record<string, unknown> {
+  return {
+    error: 'absorb_workspace_busy',
+    status: 409,
+    callerScoped: true,
+    retryable: true,
+    tool: 'holo_absorb_repo',
+    hint: 'Another absorb job is already active for this workspace. Retry later.',
+  };
+}
+
+function scopeAbsorbRepoResultForCaller(out: unknown, creator: AbsorbJobCreator): unknown {
+  if (!out || typeof out !== 'object') return out;
+  const rec = out as Record<string, unknown>;
+  const ids = [rec.jobId, rec.activeJobId].filter((v): v is string => typeof v === 'string');
+  const joinedOrBusy =
+    rec.coalesced === true ||
+    rec.externalWriter === true ||
+    rec.busy === true ||
+    typeof rec.activeJobId === 'string';
+  if (ids.length === 0) return joinedOrBusy ? workspaceBusyForCaller() : out;
+  for (const id of ids) {
+    const job = absorbJobs.get(id);
+    if (job && job.createdByCall === creator.callToken) continue;
+    const ownedByCaller = !!job && !!creator.ownerId && job.ownerId === creator.ownerId;
+    if (!ownedByCaller || joinedOrBusy || rec.accepted === false) return workspaceBusyForCaller();
+  }
+  return out;
+}
+
+/** Test-only: register a minimal live job with an owner (optionally holding rootDir's writer slot). */
+export function registerAbsorbJobForTests(
+  jobId: string,
+  ownerId: string | null,
+  rootDir?: string
+): void {
+  createAbsorbJob(
+    process.cwd(),
+    {} as AbsorbMemoryBudgetLimits,
+    {
+      enabled: false,
+      strictResumeToken: false,
+      maxRetries: 0,
+      debounceMs: 0,
+      checkIntervalMs: 0,
+      maxCheckOverheadRatio: 0,
+    },
+    undefined,
+    undefined,
+    undefined,
+    jobId
+  );
+  const job = absorbJobs.get(jobId);
+  if (job) {
+    job.status = 'scanning' as AbsorbJob['status'];
+    job.ownerId = ownerId;
+    if (rootDir) {
+      job.rootDir = rootDir;
+      job.writerKey = buildAbsorbWriterKey([rootDir]);
+    }
+  }
+}
+
 export async function handleCodebaseTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  ctx?: CodebaseToolCallerContext
 ): Promise<unknown | null> {
+  if (ctx) {
+    // Remote callers never see the operator's shared graph slot. There is no per-owner
+    // graph store yet, so graph reads fail closed for them.
+    if (CALLER_SCOPED_GRAPH_TOOLS.has(name)) {
+      return callerScopedRefusal(
+        name,
+        'Graph reads over /mcp are caller-scoped; no graph exists for this caller.'
+      );
+    }
+    if (name === 'holo_get_absorb_status') {
+      const job = absorbJobs.get(args.jobId as string);
+      if (!job || !ctx.ownerId || !job.ownerId || job.ownerId !== ctx.ownerId) {
+        return callerScopedRefusal(name, 'Only the job owner can read its status.');
+      }
+      return handleGetAbsorbStatus(args);
+    }
+    if (name === 'holo_cancel_absorb') return handleCancelAbsorb(args, ctx);
+    if (name === 'holo_absorb_repo') {
+      // Owner is attached at job creation inside handleAbsorb, not from caller args.
+      const creator: AbsorbJobCreator = { ownerId: ctx.ownerId, callToken: Symbol('absorb-call') };
+      const out = await handleAbsorbWithPageExtract(args, creator);
+      return scopeAbsorbRepoResultForCaller(out, creator);
+    }
+  }
   // cacheAutoLoaded guard prevents repeated disk I/O within a session;
   // ensureCachedGraph handles the actual lazy-load logic.
-  if (!cacheAutoLoaded && shouldAutoLoadGraph(name, args)) {
+  if (!ctx && !cacheAutoLoaded && shouldAutoLoadGraph(name, args)) {
     cacheAutoLoaded = true;
     // Structural tools load HoloGraph only. HoloEmbed warming is an explicit
     // semantic-tool concern and must never surprise an exact graph query.
@@ -8686,15 +8808,18 @@ function scanPolicyArgsProvided(args: Record<string, unknown>): boolean {
   ].some((key) => args[key] !== undefined);
 }
 
-async function handleAbsorbWithPageExtract(args: Record<string, unknown>): Promise<unknown> {
+async function handleAbsorbWithPageExtract(
+  args: Record<string, unknown>,
+  creator?: AbsorbJobCreator
+): Promise<unknown> {
   if (!absorbArgsHavePageExtract(args)) {
-    return handleAbsorb(args);
+    return handleAbsorb(args, creator);
   }
   const folded = await foldObservedPageIntoAbsorbArgs(args);
   if (!folded.ok) {
     return { error: folded.error, message: folded.message };
   }
-  const result = await handleAbsorb(folded.args);
+  const result = await handleAbsorb(folded.args, creator);
   if (!result || typeof result !== 'object' || !folded.pageExtract) return result;
   return {
     ...(result as Record<string, unknown>),
@@ -8702,7 +8827,10 @@ async function handleAbsorbWithPageExtract(args: Record<string, unknown>): Promi
   };
 }
 
-async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
+async function handleAbsorb(
+  args: Record<string, unknown>,
+  creator?: AbsorbJobCreator
+): Promise<unknown> {
   const mod = (await loadCodebaseModule()) as CodebaseModule;
 
   const receiptRaw = args.localCodebaseSnapshotReceipt ?? args.snapshotReceipt;
@@ -8967,6 +9095,14 @@ async function handleAbsorb(args: Record<string, unknown>): Promise<unknown> {
     writerLease,
     requestedJobId
   );
+  if (creator) {
+    // Same tick as creation: no window where the new job is ownerless for a remote call.
+    const created = absorbJobs.get(jobId);
+    if (created) {
+      created.ownerId = creator.ownerId;
+      created.createdByCall = creator.callToken;
+    }
+  }
   try {
     enforceAbsorbPreflightResourceGuard(jobId);
   } catch (error) {
@@ -11566,10 +11702,21 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
 
 // ── Absorb Status ────────────────────────────────────────────────────────────
 
-async function handleCancelAbsorb(args: Record<string, unknown>): Promise<unknown> {
+async function handleCancelAbsorb(
+  args: Record<string, unknown>,
+  ctx?: CodebaseToolCallerContext
+): Promise<unknown> {
   const jobId = typeof args.jobId === 'string' ? args.jobId : '';
   if (!jobId) return { error: 'jobId_required', message: 'jobId must be a non-empty string.' };
   const job = absorbJobs.get(jobId);
+  if (ctx && (!job || !ctx.ownerId || !job.ownerId || job.ownerId !== ctx.ownerId)) {
+    return {
+      error: 'forbidden',
+      status: 403,
+      jobId,
+      message: 'Only the job owner or the service key can cancel this job.',
+    };
+  }
   if (!job) {
     const recovered = findAbsorbWriterReceipt(jobId);
     if (recovered) {

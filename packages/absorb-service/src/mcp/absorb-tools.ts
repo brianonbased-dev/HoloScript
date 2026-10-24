@@ -30,9 +30,7 @@ import {
 // =============================================================================
 
 function getStudioUrl(): string {
-  return (
-    process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://holoscript.studio'
-  );
+  return process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://holoscript.studio';
 }
 
 function getDefaultApiKey(): string {
@@ -397,14 +395,49 @@ export const absorbServiceTools: Tool[] = [
 // HANDLER
 // =============================================================================
 
+/** Who is calling over a remote MCP transport. Absent for local or stdio use. */
+export interface AbsorbCallerContext {
+  ownerId?: string | null;
+  /** True only for the service key and verified orchestrator calls. */
+  serverKeysAllowed?: boolean;
+}
+
+/** Tools that call Studio with an API key (everything except the local query and diff). */
+const STUDIO_KEYED_TOOLS = new Set([
+  'absorb_list_projects',
+  'absorb_create_project',
+  'absorb_delete_project',
+  'absorb_check_credits',
+  'absorb_run_absorb',
+  'absorb_run_improve',
+  'absorb_run_query_ai',
+  'absorb_run_render',
+  'absorb_run_pipeline',
+]);
+
 export async function handleAbsorbServiceTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  ctx?: AbsorbCallerContext
 ): Promise<unknown | null> {
+  // The server's ABSORB_API_KEY is never sent to Studio on a remote caller's behalf: that
+  // would spend the operator's account. Such a caller brings its own apiKey or is refused.
+  if (
+    ctx &&
+    ctx.serverKeysAllowed !== true &&
+    STUDIO_KEYED_TOOLS.has(name) &&
+    !(typeof args.apiKey === 'string' && args.apiKey.trim())
+  ) {
+    return {
+      error: `${name} needs your own Absorb apiKey; this server's key is not used for your account.`,
+      refused: true,
+      status: 403,
+    };
+  }
   switch (name) {
     // Free tools (local)
     case 'absorb_query':
-      return handleFreeQuery(args);
+      return handleFreeQuery(args, ctx);
     case 'absorb_diff':
       return handleFreeDiff(args);
     case 'absorb_list_projects':
@@ -439,22 +472,29 @@ export async function handleAbsorbServiceTool(
  * Free semantic search — delegates to the local GraphRAG engine
  * (same as holo_semantic_search but branded under absorb_).
  */
-async function handleFreeQuery(args: Record<string, unknown>): Promise<unknown> {
+async function handleFreeQuery(
+  args: Record<string, unknown>,
+  ctx?: AbsorbCallerContext
+): Promise<unknown> {
   const { handleGraphRagTool, isGraphRAGReady } = await import('./graph-rag-tools');
 
-  if (!isGraphRAGReady()) {
+  if (!ctx && !isGraphRAGReady()) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }
 
-  const result = await handleGraphRagTool('holo_semantic_search', {
-    query: args.query,
-    topK: args.maxResults ?? 10,
-    language: args.language,
-    type: args.type,
-  });
+  const result = await handleGraphRagTool(
+    'holo_semantic_search',
+    {
+      query: args.query,
+      topK: args.maxResults ?? 10,
+      language: args.language,
+      type: args.type,
+    },
+    ctx
+  );
 
   return {
     ...(result as Record<string, unknown>),

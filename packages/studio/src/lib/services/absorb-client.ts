@@ -62,9 +62,15 @@ function classifyThrown(err: unknown): McpFailure {
   return 'network';
 }
 
+/**
+ * `userAuthorization` is the signed-in user's own credential ("Bearer ...").
+ * The service key is never sent here: absorb_run_absorb scans and charges, so
+ * absorb must see the user and charge or refuse them (free-scan hotfix, #658).
+ */
 export async function callMcpTool(
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  userAuthorization?: string
 ): Promise<McpToolResult> {
   try {
     const res = await fetch(`${ABSORB_BASE}/mcp`, {
@@ -74,7 +80,7 @@ export async function callMcpTool(
         // The absorb MCP endpoint is a Streamable HTTP transport: it answers
         // 406 unless the client accepts both JSON and SSE (prod 2026-10-14).
         Accept: 'application/json, text/event-stream',
-        Authorization: `Bearer ${ABSORB_API_KEY}`,
+        ...(userAuthorization ? { Authorization: userAuthorization } : {}),
       },
       body: JSON.stringify({
         jsonrpc: '2.0',

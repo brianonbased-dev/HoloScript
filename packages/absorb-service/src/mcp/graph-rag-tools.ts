@@ -227,6 +227,45 @@ let cachedVisualGraphRootDir: string | null = null;
 let cachedVisualGraphTimestamp = 0;
 
 /**
+ * Who is calling over a remote MCP transport (absorb-service /mcp). Absent for local or
+ * stdio use, which keeps the single module-level cache above.
+ */
+export interface GraphRagCallerContext {
+  /**
+   * The caller's resolved account (GitHub user account or v1 uuid), never a key. With no
+   * owner nothing is cached for or read from any shared slot: the call is request-scoped.
+   */
+  ownerId?: string | null;
+  /** True only for the service key and verified orchestrator calls (server provider keys). */
+  serverKeysAllowed?: boolean;
+}
+
+export interface OwnerGraphRagState {
+  index: SymbolSearchIndex;
+  engine: GraphRAGEngine;
+  rootDir: string | null;
+  timestamp: number;
+}
+
+/** Most owners whose GraphRAG state is held at once; the least recently used is dropped. */
+export const MAX_OWNER_GRAPH_RAG_STATES = 64;
+const graphRagByOwner = new Map<string, OwnerGraphRagState>();
+
+function callerOwner(ctx?: GraphRagCallerContext): string | null {
+  const owner = typeof ctx?.ownerId === 'string' ? ctx.ownerId.trim() : '';
+  return owner || null;
+}
+
+/** The GraphRAG state held for one owner (refreshes its LRU position), or null. */
+export function getOwnerGraphRAGState(ownerId: string): OwnerGraphRagState | null {
+  const state = graphRagByOwner.get(ownerId);
+  if (!state) return null;
+  graphRagByOwner.delete(ownerId);
+  graphRagByOwner.set(ownerId, state);
+  return state;
+}
+
+/**
  * Set the structural graph used by visual selection tools.
  *
  * Visual graph context does not require HoloEmbed. Keeping this state separate
@@ -248,8 +287,25 @@ export function setVisualGraphState(
 export function setGraphRAGState(
   embeddingIndex: SymbolSearchIndex,
   ragEngine: GraphRAGEngine,
-  provenance: { rootDir?: string; timestamp?: number } = {}
+  provenance: { rootDir?: string; timestamp?: number; ownerId?: string | null } = {}
 ): void {
+  const owner = callerOwner({ ownerId: provenance.ownerId });
+  if (owner) {
+    // An owner's graph never lands in the shared slot other callers read.
+    graphRagByOwner.delete(owner);
+    graphRagByOwner.set(owner, {
+      index: embeddingIndex,
+      engine: ragEngine,
+      rootDir: provenance.rootDir ?? null,
+      timestamp: provenance.timestamp ?? Date.now(),
+    });
+    while (graphRagByOwner.size > MAX_OWNER_GRAPH_RAG_STATES) {
+      const oldest = graphRagByOwner.keys().next().value;
+      if (oldest === undefined) break;
+      graphRagByOwner.delete(oldest);
+    }
+    return;
+  }
   cachedEmbeddingIndex = embeddingIndex;
   cachedGraphRAGEngine = ragEngine;
   cachedGraphRAGRootDir = provenance.rootDir ?? null;
@@ -286,18 +342,43 @@ export function resetGraphRAGState(): void {
   cachedVisualGraph = null;
   cachedVisualGraphRootDir = null;
   cachedVisualGraphTimestamp = 0;
+  graphRagByOwner.clear();
 }
 
 export const resetGraphRAGStateForTests = resetGraphRAGState;
 
 export async function handleGraphRagTool(
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  ctx?: GraphRagCallerContext
 ): Promise<unknown | null> {
   const { refuseNestedWorkspaceSliceForSemanticTools } = await import('./codebase-tools');
   const nestedSliceRefuse = await refuseNestedWorkspaceSliceForSemanticTools();
   if (nestedSliceRefuse) {
     return nestedSliceRefuse;
+  }
+
+  if (ctx) {
+    // Remote caller: only that owner's own graph, never the shared slot or a disk hydrate.
+    const owner = callerOwner(ctx);
+    const state = owner ? getOwnerGraphRAGState(owner) : null;
+    if (
+      name !== 'holo_semantic_search' &&
+      name !== 'holo_visual_graph_context' &&
+      name !== 'holo_ask_codebase'
+    ) {
+      return null;
+    }
+    if (!state) {
+      return {
+        error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
+        hint: ABSORB_HOLO_ABSORB_REPO_HINT,
+        callerScoped: true,
+      };
+    }
+    if (name === 'holo_semantic_search') return handleSemanticSearch(args, state.index);
+    if (name === 'holo_visual_graph_context') return handleVisualGraphContext(args, state);
+    return handleAskCodebase(args, state, ctx);
   }
 
   if (name === 'holo_visual_graph_context' && !cachedVisualGraph) {
@@ -637,8 +718,13 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === 'object' ? (value as Record<string, unknown>) : undefined;
 }
 
-async function handleSemanticSearch(args: Record<string, unknown>): Promise<unknown> {
-  const resolvedIndex = await resolveSemanticSearchIndex(args);
+async function handleSemanticSearch(
+  args: Record<string, unknown>,
+  callerIndex?: SymbolSearchIndex
+): Promise<unknown> {
+  const resolvedIndex = callerIndex
+    ? { index: callerIndex, source: 'caller-graph' }
+    : await resolveSemanticSearchIndex(args);
   if ('error' in resolvedIndex) {
     return resolvedIndex;
   }
@@ -866,8 +952,14 @@ function buildVisualFocus(
   return manager.getVisualFocus(undefined, maxNeighbors);
 }
 
-function handleVisualGraphContext(args: Record<string, unknown>): Record<string, unknown> {
-  if (!cachedVisualGraph) {
+function handleVisualGraphContext(
+  args: Record<string, unknown>,
+  callerState?: OwnerGraphRagState
+): Record<string, unknown> {
+  const visualGraph = callerState ? callerState.engine.graph : cachedVisualGraph;
+  const graphRootDir = callerState ? callerState.rootDir : cachedVisualGraphRootDir;
+  const graphTimestamp = callerState ? callerState.timestamp : cachedVisualGraphTimestamp;
+  if (!visualGraph) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
@@ -879,7 +971,7 @@ function handleVisualGraphContext(args: Record<string, unknown>): Record<string,
     typeof args.maxNeighbors === 'number' && Number.isFinite(args.maxNeighbors)
       ? Math.max(0, Math.floor(args.maxNeighbors))
       : 100;
-  const manager = new GraphSelectionManager(cachedVisualGraph);
+  const manager = new GraphSelectionManager(visualGraph);
   for (const nodeId of selectedNodeIds) manager.select(nodeId);
   const context = manager.getSelectionContext();
   const visualFocus = manager.getVisualFocus(undefined, maxNeighbors);
@@ -899,10 +991,10 @@ function handleVisualGraphContext(args: Record<string, unknown>): Record<string,
       selectedEdgeCount: visualFocus.selectedEdgeCount,
     },
     graphState: {
-      rootDir: cachedVisualGraphRootDir,
-      timestamp: cachedVisualGraphTimestamp || null,
-      ageMs: cachedVisualGraphTimestamp ? Date.now() - cachedVisualGraphTimestamp : null,
-      semanticIndexReady: isGraphRAGReady(),
+      rootDir: graphRootDir,
+      timestamp: graphTimestamp || null,
+      ageMs: graphTimestamp ? Date.now() - graphTimestamp : null,
+      semanticIndexReady: callerState ? true : isGraphRAGReady(),
     },
   };
 }
@@ -1006,7 +1098,11 @@ async function buildExtractiveCodebaseAnswer(options: {
   };
 }
 
-async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown> {
+async function handleAskCodebase(
+  args: Record<string, unknown>,
+  callerState?: OwnerGraphRagState,
+  ctx?: GraphRagCallerContext
+): Promise<unknown> {
   // First, before any state or network: a caller-named endpoint is an address this
   // server would call with its own key attached (holoLlamaEndpointArgumentAllowed).
   if (stringArg(args.holoLlamaEndpoint) && !holoLlamaEndpointArgumentAllowed()) {
@@ -1018,12 +1114,18 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         'On a single-user local server the operator can set HOLOLLAMA_ENDPOINT_ARG=allow.',
     };
   }
-  if (!cachedEmbeddingIndex || !cachedGraphRAGEngine) {
+  // A remote caller reads only its own graph (callerState); local use keeps the module cache.
+  const index = callerState ? callerState.index : cachedEmbeddingIndex;
+  const rag = callerState ? callerState.engine : cachedGraphRAGEngine;
+  if (!index || !rag) {
     return {
       error: ABSORB_GRAPH_RAG_ENGINE_ERROR,
       hint: ABSORB_HOLO_ABSORB_REPO_HINT,
     };
   }
+  // The server's provider keys and hosted synthesis are for the service key and verified
+  // orchestrator calls only. Anyone else brings their own key or gets a local answer.
+  const serverKeysAllowed = !ctx || ctx.serverKeysAllowed === true;
 
   const question = args.question as string;
   const topK = (args.topK as number) ?? 20;
@@ -1032,16 +1134,41 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
   const llmProvider = args.llmProvider as LLMProviderName | undefined;
   const llmApiKey = args.llmApiKey as string | undefined;
   const llmModel = args.llmModel as string | undefined;
-  const visualFocus = buildVisualFocus(
-    cachedGraphRAGEngine.graph,
-    readStringArray(args.visualNodeIds)
-  );
+  const visualFocus = buildVisualFocus(rag.graph, readStringArray(args.visualNodeIds));
+  if (!serverKeysAllowed) {
+    const ownKey =
+      llmProvider &&
+      llmProvider !== 'ollama' &&
+      llmProvider !== 'holollama' &&
+      stringArg(llmApiKey);
+    if (!ownKey) {
+      if (llmProvider) {
+        return {
+          error: `${llmProvider} synthesis here needs your own provider key (llmApiKey); this server's keys and hosted models are not available to your account.`,
+          refused: true,
+          status: 403,
+          hint: 'Pass llmProvider with your own llmApiKey, or omit llmProvider for a local (extractive) answer.',
+        };
+      }
+      return buildExtractiveCodebaseAnswer({
+        engine: rag,
+        question,
+        topK,
+        language,
+        type,
+        effectiveProvider: 'none',
+        visualFocus,
+        fallbackReason:
+          'Local answer only: no hosted model or server provider key is used for your account. Pass llmProvider with your own llmApiKey for synthesis.',
+      });
+    }
+  }
   const effectiveProvider = llmProvider ?? (await detectDefaultLLMProvider());
   let holoLlamaReceipt: HoloLlamaSynthesisReceipt | undefined;
 
   try {
     // If a custom LLM provider is specified, create a new engine with that provider
-    let engine = cachedGraphRAGEngine;
+    let engine = rag;
     if (effectiveProvider && effectiveProvider !== 'ollama') {
       try {
         // The adapter classes from @holoscript/llm-provider satisfy the
@@ -1061,7 +1188,10 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
         } else {
           const llmPkg = await import('@holoscript/llm-provider');
           const apiKey =
-            llmApiKey || (await resolveConfigSecret(`${effectiveProvider.toUpperCase()}_API_KEY`));
+            llmApiKey ||
+            (serverKeysAllowed
+              ? await resolveConfigSecret(`${effectiveProvider.toUpperCase()}_API_KEY`)
+              : ''); // unreachable for non-service callers: refused above
 
           switch (effectiveProvider) {
             case 'openrouter':
@@ -1099,8 +1229,8 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
 
         // Create a temporary engine with the custom LLM provider
         const { GraphRAGEngine } = await import('../engine/GraphRAGEngine');
-        const graph = cachedGraphRAGEngine.graph;
-        engine = new GraphRAGEngine(graph, cachedEmbeddingIndex!, {
+        const graph = rag.graph;
+        engine = new GraphRAGEngine(graph, index, {
           llmProvider: llmAdapter,
           llmModel: llmModel,
         });
@@ -1187,7 +1317,8 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
     if (
       err instanceof LLMCreditExhaustedError &&
       effectiveProvider === 'anthropic' &&
-      !llmProvider
+      !llmProvider &&
+      serverKeysAllowed
     ) {
       const fallbackOrder = ['openrouter', 'openai', 'gemini'] as const;
       for (const fb of fallbackOrder) {
@@ -1220,7 +1351,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
               continue;
           }
           const { GraphRAGEngine } = await import('../engine/GraphRAGEngine');
-          const fbEngine = new GraphRAGEngine(cachedGraphRAGEngine.graph, cachedEmbeddingIndex!, {
+          const fbEngine = new GraphRAGEngine(rag.graph, index, {
             llmProvider: fbAdapter,
             llmModel,
           });
@@ -1232,10 +1363,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
           });
 
           // Provenance integrity guard (same as primary path)
-          const fbGuard = validateCitations(
-            fbAnswer.citations as Citation[],
-            cachedGraphRAGEngine.graph
-          );
+          const fbGuard = validateCitations(fbAnswer.citations as Citation[], rag.graph);
           const fbFilteredCitations = fbGuard.passed
             ? fbGuard.resolved.map(({ name, file, line }) => ({ name, file, line }))
             : [];
@@ -1294,7 +1422,7 @@ async function handleAskCodebase(args: Record<string, unknown>): Promise<unknown
     const failureReason = err instanceof Error ? err.message : String(err);
     try {
       return await buildExtractiveCodebaseAnswer({
-        engine: cachedGraphRAGEngine,
+        engine: rag,
         question,
         topK,
         language,

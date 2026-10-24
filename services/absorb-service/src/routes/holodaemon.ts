@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { userUuid } from '../middleware/auth.js';
+import { isOrchestratorBilled, setOrchestratorCost, userUuid } from '../middleware/auth.js';
 
 // Note: These imports will need to be adjusted once the paths are finalized
 import {
@@ -149,7 +149,7 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
     const opType = profile === 'deep' ? 'daemon_deep' : profile === 'quick' ? 'daemon_quick' : 'daemon_balanced';
 
     // @ts-ignore - Automatic remediation for TS18046
-    const creditCheck = await requireCredits(userId, opType);
+    const creditCheck = await (requireCredits as any)(userId, opType);
     // @ts-ignore - Automatic remediation for TS18046
     if (isCreditError(creditCheck)) {
       return res.status(402).json(creditCheck);
@@ -160,6 +160,18 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
     if (running) {
       // @ts-ignore - Automatic remediation for TS2339
       return res.status(409).json({ error: 'A daemon job is already running', activeJobId: running.id });
+    }
+
+    // Charge first: a charge that does not land answers 402 and starts no job,
+    // so no paid work is delivered free (same contract as /query).
+    const debit = await deductCredits(
+      userId,
+      creditCheck.costCents,
+      `HoloDaemon cycle (${profile})`,
+      { profile }
+    );
+    if (!debit) {
+      return res.status(402).json({ error: 'Not enough credits for this daemon run.' });
     }
 
     const job = createDaemonJob({
@@ -176,13 +188,8 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
       userId,
     });
 
-    await deductCredits(
-      userId,
-      creditCheck.costCents,
-      `HoloDaemon cycle (${profile})`,
-      // @ts-ignore - Automatic remediation for TS18046
-      { jobId: job.id, profile }
-    );
+    // Informational only (absorb is the only biller).
+    if (isOrchestratorBilled(req)) setOrchestratorCost(res, creditCheck.costCents);
 
     return res.status(201).json({ job, cost: creditCheck.costCents });
   }
