@@ -398,7 +398,8 @@ describe('/scan of a server folder without projectId is charged (NO FREE PATHS, 
   });
 
   it('no key (unauthenticated, or not a user account) is refused (401) before any scan or charge', async () => {
-    for (const who of [{}, { authenticated: false }, { authenticated: true, userId: 'orchestrator:key' }]) {
+    // { authenticated: true } with no userId is the account-unknown legacy orchestrator attestation.
+    for (const who of [{}, { authenticated: false }, { authenticated: true }, { authenticated: true, userId: 'orchestrator:key' }]) {
       const res = mockRes();
       await scan({ body: { path: '/repo/no-key', shallow: true }, ...who } as unknown as Request, res as unknown as Response);
       expect(res._status).toBe(401);

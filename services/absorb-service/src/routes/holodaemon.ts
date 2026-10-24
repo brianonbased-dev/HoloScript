@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
-import { userUuid } from '../middleware/auth.js';
+import { isOrchestratorBilled, orchestratorPrice, setOrchestratorCost, userUuid } from '../middleware/auth.js';
 
 // Note: These imports will need to be adjusted once the paths are finalized
 import {
@@ -148,8 +148,11 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
     const { requireCredits, isCreditError, deductCredits } = await import('@holoscript/absorb-service/credits');
     const opType = profile === 'deep' ? 'daemon_deep' : profile === 'quick' ? 'daemon_quick' : 'daemon_balanced';
 
+    const upstream = isOrchestratorBilled(req);
     // @ts-ignore - Automatic remediation for TS18046
-    const creditCheck = await requireCredits(userId, opType);
+    const creditCheck = upstream
+      ? { costCents: orchestratorPrice(await import('@holoscript/absorb-service/credits'), opType) }
+      : await (requireCredits as any)(userId, opType);
     // @ts-ignore - Automatic remediation for TS18046
     if (isCreditError(creditCheck)) {
       return res.status(402).json(creditCheck);
@@ -176,7 +179,8 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
       userId,
     });
 
-    await deductCredits(
+    if (upstream) setOrchestratorCost(res, creditCheck.costCents);
+    else await deductCredits(
       userId,
       creditCheck.costCents,
       `HoloDaemon cycle (${profile})`,

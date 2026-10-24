@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
-import { userUuid } from '../middleware/auth.js';
+import { isOrchestratorBilled, orchestratorPrice, setOrchestratorCost, userUuid } from '../middleware/auth.js';
 import { cloneRepo, CloneRefusal, normalizeRepoUrl, resolveCommitSha } from '../lib/absorb/clone-from-url.js';
 import {
   CLAIM_HEARTBEAT_MS,
@@ -128,6 +128,9 @@ router.post('/scan', async (req: Request, res: Response) => {
   }
   try {
     const outcome = body.repoUrl ? await scanFromUrlOnce(req, body) : await scanPath(req, body);
+    if (isOrchestratorBilled(req) && outcome.status >= 200 && outcome.status < 300) {
+      setOrchestratorCost(res, outcome.json?.cost);
+    }
     res.status(outcome.status).json(outcome.json);
   } catch (error: any) {
     console.error('[absorb/scan] Error:', error.message);
@@ -160,13 +163,20 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
   // refused (402) before the claim, the ls-remote and the clone, so a broke
   // account never makes absorb do outbound git work. The charge itself still
   // happens after the scan, under the claim.
-  {
+  // Treasurer 2026-10-24: an account that owes may still get back an import it
+  // already paid for (replay or rehydrate, no new charge). So the refusal is
+  // held, not returned, until the claim says whether this import is done; a
+  // new import is still refused (402) before the claim is kept and before any
+  // clone. The cost: an owing account's request now runs one ls-remote.
+  // An orchestrator-billed call (v1) is not charged here and has no absorb check.
+  let unpaidRefusal: ScanOutcome | null = null;
+  if (!isOrchestratorBilled(req)) {
     const creditsModule = await loadCredits();
     const { requireCredits, isCreditError } = (creditsModule as any).default || creditsModule;
     const pre = await requireCredits(account, body.shallow ? 'absorb_shallow' : 'absorb_deep');
-    if (isCreditError(pre)) return paidStartRefusal(pre as Record<string, unknown>);
-    const capped = owedCapRefusal(pre as Record<string, unknown>);
-    if (capped) return capped;
+    unpaidRefusal = isCreditError(pre)
+      ? paidStartRefusal(pre as Record<string, unknown>)
+      : owedCapRefusal(pre as Record<string, unknown>);
   }
   // One charge per user + repo + commit SHA (CoS/Treasurer, #617): the claim
   // key is derived from the commit the branch points at, not from the
@@ -189,7 +199,7 @@ async function scanFromUrlOnce(req: Request, body: ScanBody): Promise<ScanOutcom
 
   const running = importsInFlight.get(key);
   if (running) return replayed(await running);
-  const p = claimAndScan(req, keyed, account, importId);
+  const p = claimAndScan(req, keyed, account, importId, unpaidRefusal);
   importsInFlight.set(key, p);
   try {
     return await p;
@@ -208,7 +218,8 @@ async function claimAndScan(
   req: Request,
   body: ScanBody,
   account: string,
-  importId: string
+  importId: string,
+  unpaidRefusal: ScanOutcome | null = null
 ): Promise<ScanOutcome> {
   const store = importClaimStore();
   let claim;
@@ -240,6 +251,11 @@ async function claimAndScan(
     };
   }
   if (claim.kind === 'done') return replayOrRehydrate(req, body, claim.outcome);
+  if (unpaidRefusal) {
+    // Not a paid import: give the claim back untouched and refuse (402).
+    if (claim.kind === 'claimed') await store.release(account, importId, claim.holder).catch(() => undefined);
+    return unpaidRefusal;
+  }
   if (claim.kind === 'charged') {
     return {
       status: 409,
@@ -552,7 +568,11 @@ async function scanAndChargeNow(
   const opType = shallow ? 'absorb_shallow' : 'absorb_deep';
   // A rehydrate (#617 H1) re-runs an import that was already paid: no check, no debit.
   let creditCheck: any = null;
-  if (!rehydrate) {
+  const upstream = isOrchestratorBilled(req);
+  if (!rehydrate && upstream) {
+    // Billed by the orchestrator: no absorb balance check and no debit here.
+    creditCheck = { costCents: orchestratorPrice(creditsModule, opType) };
+  } else if (!rehydrate) {
     creditCheck = await requireCredits(scanUserId, opType);
     if (isCreditError(creditCheck)) {
       return paidStartRefusal(creditCheck as Record<string, unknown>);
@@ -649,6 +669,11 @@ async function scanAndChargeNow(
         message: 'Another request took over this import. This one was not charged.',
       },
     };
+    if (upstream) {
+      // The orchestrator debits this amount from the X-Absorb-Credit-Cost header.
+      chargedCents = creditCheck.costCents;
+      cacheOwnerId = userId;
+    } else {
     let debit;
     try {
       debit = await deductCredits(
@@ -677,6 +702,7 @@ async function scanAndChargeNow(
     chargedCents = creditCheck.costCents;
     cacheOwnerId = userId;
     balanceAfterCents = typeof debit.balanceCents === 'number' ? debit.balanceCents : null;
+    }
   }
 
   graphStore.set(graphId, {
@@ -731,8 +757,11 @@ router.post('/query', async (req: Request, res: Response) => {
       res.status(401).json({ error: 'Authentication required' });
       return;
     }
+    const upstream = isOrchestratorBilled(req);
     // @ts-ignore - Automatic remediation for TS18046
-    const creditCheck = await requireCredits(userId, 'query_with_llm');
+    const creditCheck = upstream
+      ? { costCents: orchestratorPrice(creditsModule, 'query_with_llm') }
+      : await (requireCredits as any)(userId, 'query_with_llm');
     
     // @ts-ignore - Automatic remediation for TS18046
     if (isCreditError(creditCheck)) {
@@ -781,7 +810,8 @@ router.post('/query', async (req: Request, res: Response) => {
     // Same rule as /scan, including while this query is priced at 0.
     // A charge that comes back empty did not happen, so the answer is
     // not delivered and no cost is reported.
-    const debit = await deductCredits(
+    // Orchestrator-billed (v1): no debit here; the cost goes back in a header.
+    const debit = upstream ? {} : await deductCredits(
       userId,
       creditCheck.costCents,
       `Semantic codebase query: ${body.query.substring(0, 32)}...`,
@@ -792,6 +822,7 @@ router.post('/query', async (req: Request, res: Response) => {
       return;
     }
 
+    if (upstream) setOrchestratorCost(res, creditCheck.costCents);
     res.json({
       query: body.query,
       results: results.map((r: any) => ({
