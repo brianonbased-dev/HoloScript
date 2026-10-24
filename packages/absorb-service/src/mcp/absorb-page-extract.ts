@@ -57,7 +57,10 @@ export async function foldObservedPageIntoAbsorbArgs(
 
   try {
     const ingested = await ingestObservedPage(pageExtractInput);
-    setKnowledgeExtractionGraph(ingested.graph);
+    setKnowledgeExtractionGraph(
+      ingested.graph,
+      typeof args.workspaceId === 'string' ? args.workspaceId : undefined
+    );
     return {
       ok: true,
       args: {
