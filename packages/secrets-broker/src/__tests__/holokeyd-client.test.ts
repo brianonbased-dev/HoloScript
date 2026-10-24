@@ -14,7 +14,8 @@ import {
   type HoloKeydRequest,
   type HoloKeydTransport,
   type SshRunner,
-} from '../holokeyd-client';
+  createHolokeydRemoteSourceFromEnv,
+} from '../holokeyd';
 import { createServiceSecretResolver } from '../service-secret-resolver';
 
 /** In-memory fake of holokeyd's v1 protocol (no network, no device). */
@@ -435,9 +436,11 @@ describe('createHolokeydClient / source / resolver wiring', () => {
 
   it('resolver builds the socket client from HOLOKEYD_SOCKET and logs no value', async () => {
     const lines: string[] = [];
+    const env = { HOLOKEYD_SOCKET: '/nonexistent/holokeyd.sock', HOLOKEYD_TIMEOUT_MS: '200' };
     const r = createServiceSecretResolver({
-      env: { HOLOKEYD_SOCKET: '/nonexistent/holokeyd.sock', HOLOKEYD_TIMEOUT_MS: '200' },
+      env,
       vault: null,
+      remoteSource: createHolokeydRemoteSourceFromEnv(env),
       log: (m) => lines.push(m),
     });
     await expect(r.resolve('ABSENT_NAME')).resolves.toBeUndefined();
