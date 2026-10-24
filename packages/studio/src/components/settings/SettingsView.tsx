@@ -397,7 +397,9 @@ export function SettingsView() {
               />
               {/* Form inputs overlay — kept in host because HoloSurfaceRenderer
                   renders inputs as readOnly; controlled state lives here */}
-              {composition.state['showContent'] && (
+              {/* showContent is a COMPUTED value in settings.hsplus, not state;
+                  reading it from state kept the form hidden (audit item 3). */}
+              {Boolean(composition.computed['showContent']) && (
                 <div
                   style={{
                     maxWidth: 600,

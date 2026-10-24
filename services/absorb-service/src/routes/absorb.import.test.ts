@@ -67,6 +67,7 @@ vi.mock('@holoscript/absorb-service/credits', () => {
     }),
     isCreditError: (r: Record<string, unknown>) => 'error' in r && 'status' in r,
     CHARGE_GUARD_REFUSED: 'charge_guard_refused',
+    OPERATION_COSTS: { absorb_shallow: { baseCostCents: 10 }, absorb_deep: { baseCostCents: 50 } },
   };
   return { ...api, default: api };
 });
@@ -146,10 +147,15 @@ beforeEach(async () => {
   void CloneRefusal;
 });
 
-async function call(body: Record<string, unknown>) {
+async function call(body: Record<string, unknown>, extra: Record<string, unknown> = {}) {
   const res = {
     _status: 200,
     _json: null as Record<string, unknown> | null,
+    _headers: {} as Record<string, string>,
+    setHeader(k: string, v: string) {
+      res._headers[k] = v;
+      return res;
+    },
     status(c: number) {
       res._status = c;
       return res;
@@ -160,7 +166,7 @@ async function call(body: Record<string, unknown>) {
     },
   };
   await scan(
-    { body, authenticated: true, userId: USER, headers: {} } as unknown as Request,
+    { body, authenticated: true, userId: USER, headers: {}, ...extra } as unknown as Request,
     res as unknown as Response
   );
   return res;
@@ -332,7 +338,7 @@ async function newInstance(): Promise<Handler> {
   return route.stack[route.stack.length - 1].handle;
 }
 
-async function callOn(handler: Handler, body: Record<string, unknown>) {
+async function callOn(handler: Handler, body: Record<string, unknown>, extra: Record<string, unknown> = {}) {
   const res = {
     _status: 200,
     _json: null as Record<string, unknown> | null,
@@ -346,7 +352,7 @@ async function callOn(handler: Handler, body: Record<string, unknown>) {
     },
   };
   await handler(
-    { body, authenticated: true, userId: USER, headers: {} } as unknown as Request,
+    { body, authenticated: true, userId: USER, headers: {}, ...extra } as unknown as Request,
     res as unknown as Response
   );
   return res;
@@ -708,6 +714,7 @@ describe('/scan repoUrl import: never free (Mapping N2)', () => {
   it('a URL scan with no account is refused (401) before any clone, never run free', async () => {
     for (const who of [
       { authenticated: false },
+      { authenticated: true }, // account-unknown (legacy orchestrator attestation)
       { authenticated: true, userId: 'orchestrator:key' },
     ]) {
       const res = {
@@ -859,7 +866,7 @@ describe('/scan repoUrl import: credits before the claim and clone (Treasurer, #
     h.balance = 0;
     const r = await call(IMPORT);
     expect(r._status).toBe(402);
-    expect(h.resolves).toBe(0);
+    expect(h.resolves).toBeLessThanOrEqual(1); // one ls-remote to see if the import is already paid (Treasurer 2026-10-24)
     expect(h.clones).toBe(0);
     expect(h.debits).toHaveLength(0);
   });
@@ -887,7 +894,7 @@ describe('/scan repoUrl import: CoS no-schema fallback (#617 N4)', () => {
     expect(r._json?.error).toBe('balance_owed');
     expect(r._json?.balanceOwedCents).toBe(7);
     expect(h.clones).toBe(0);
-    expect(h.resolves).toBe(0);
+    expect(h.resolves).toBeLessThanOrEqual(1); // claim lookup only (Treasurer 2026-10-24)
     expect(h.debits).toHaveLength(0);
   });
   it('one paid scan in flight per account: parallel starts on a small balance keep the amount owed within MAX_BALANCE_OWED_CREDITS', async () => {
@@ -918,7 +925,8 @@ describe('/scan repoUrl import: CoS no-schema fallback (#617 N4)', () => {
     const r = await call(IMPORT);
     expect(r._status).toBe(402);
     expect(r._json?.error).toBe('balance_owed_cap');
-    expect(h.resolves).toBe(0);
+    // Treasurer 2026-10-24: one ls-remote to find a paid replay first; never a clone.
+    expect(h.resolves).toBeLessThanOrEqual(1);
     expect(h.clones).toBe(0);
     expect(h.debits).toHaveLength(0);
   });
@@ -941,5 +949,112 @@ describe('/scan repoUrl import: CoS no-schema fallback (#617 N4)', () => {
     expect(a._json?.replayed).toBe(true);
     expect(b._json?.replayed).toBe(true);
     expect(h.debits).toHaveLength(1);
+  });
+});
+
+describe('/scan repoUrl import: Treasurer 2026-10-24, an owing account keeps what it paid for', () => {
+  it('an account that owes can rehydrate an import it already paid for, at no new charge (402 balance_owed does not block it)', async () => {
+    const first = await call(IMPORT);
+    expect(first._status).toBe(200);
+    expect(h.debits).toHaveLength(1);
+    h.balance = -7; // now owes 7
+    dropGraphs(); // restart: the graph must be rescanned (rehydrate)
+    const again = await call(IMPORT);
+    expect(again._status).toBe(200);
+    expect(again._json?.rehydrated).toBe(true);
+    expect(again._json?.graphId).toBe(first._json?.graphId);
+    expect(again._json?.cost).toBe(0);
+    expect(h.debits).toHaveLength(1);
+    // And a plain replay (graph live) is also free and allowed.
+    const replay = await call(IMPORT);
+    expect(replay._status).toBe(200);
+    expect(replay._json?.cost).toBe(0);
+    expect(h.debits).toHaveLength(1);
+    expect(h.balance).toBe(-7);
+  });
+
+  it('the same owing account is still refused (402 balance_owed) for a NEW import: no clone, no debit, claim not kept', async () => {
+    h.balance = -7;
+    const r = await call(IMPORT);
+    expect(r._status).toBe(402);
+    expect(r._json?.error).toBe('balance_owed');
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+    h.balance = 1000; // paid up: the claim was released, so the import runs and charges once
+    const ok = await call(IMPORT);
+    expect(ok._status).toBe(200);
+    expect(ok._json?.replayed).toBeUndefined();
+    expect(h.debits).toHaveLength(1);
+  });
+});
+
+describe('/scan repoUrl import: absorb is the only biller, v1 included (CoS final 2026-10-24 05:39)', () => {
+  const V1 = { orchestratorBilled: true };
+  it('a v1 call is charged once in absorb to the signed account; the cost header is informational; a replay answers 0', async () => {
+    const r = await call(IMPORT, V1);
+    expect(r._status).toBe(200);
+    expect(h.debits).toHaveLength(1);
+    expect(h.debits[0]).toMatchObject({ userId: USER, cents: 10 });
+    expect(r._headers['X-Absorb-Billed-Account']).toBe('v1');
+    expect(r._headers['X-Absorb-Credit-Cost']).toBe('10'); // what absorb charged
+    const again = await call(IMPORT, V1);
+    expect(again._json?.replayed).toBe(true);
+    expect(again._headers['X-Absorb-Credit-Cost']).toBe('0');
+    expect(h.debits).toHaveLength(1);
+    expect(h.balance).toBe(990);
+  });
+
+  it('a v1 call has the same pre-call gate: a broke account is 402 before any clone, nothing charged, no cost header', async () => {
+    h.balance = 5;
+    const r = await call(IMPORT, V1);
+    expect(r._status).toBe(402);
+    expect(h.clones).toBe(0);
+    expect(h.debits).toHaveLength(0);
+    expect(r._headers['X-Absorb-Credit-Cost']).toBeUndefined();
+  });
+
+  it('HOLD fix: an unpaid v1 import is never marked paid, so it cannot rehydrate free; the retry is charged', async () => {
+    h.beforeDebit = () => {
+      throw new Error('ledger unavailable'); // the charge never happens
+    };
+    const failed = await call(IMPORT, V1);
+    expect(failed._status).toBe(500);
+    expect(failed._headers['X-Absorb-Credit-Cost']).toBeUndefined();
+    expect(h.debits).toHaveLength(0);
+    h.beforeDebit = null;
+    dropGraphs(); // restart: a "done" import would rehydrate free here
+    const retry = await call(IMPORT, V1);
+    expect(retry._status).toBe(200);
+    expect(retry._json?.rehydrated).toBeUndefined();
+    expect(retry._json?.replayed).toBeUndefined();
+    expect(h.debits).toHaveLength(1);
+    expect(retry._headers['X-Absorb-Credit-Cost']).toBe('10');
+  });
+
+  it('a paid v1 import rehydrates free after a restart (it was charged in absorb)', async () => {
+    const first = await call(IMPORT, V1);
+    expect(h.debits).toHaveLength(1);
+    dropGraphs();
+    const again = await call(IMPORT, V1);
+    expect(again._json?.rehydrated).toBe(true);
+    expect(again._json?.graphId).toBe(first._json?.graphId);
+    expect(again._headers['X-Absorb-Credit-Cost']).toBe('0');
+    expect(h.debits).toHaveLength(1);
+  });
+
+  it('a non-2xx v1 call carries no cost header', async () => {
+    const { CloneRefusal } = await import('../lib/absorb/clone-from-url.js');
+    h.cloneError = new CloneRefusal('clone_failed', 'github down');
+    const fail = await call(IMPORT, V1);
+    expect(fail._status).toBe(502);
+    expect(fail._headers['X-Absorb-Credit-Cost']).toBeUndefined();
+    expect(fail._headers['X-Absorb-Billed-Account']).toBeUndefined();
+    expect(h.debits).toHaveLength(0);
+  });
+
+  it('a non-orchestrator call is charged and sets no cost header', async () => {
+    const r = await call(IMPORT);
+    expect(h.debits).toHaveLength(1);
+    expect(r._headers['X-Absorb-Credit-Cost']).toBeUndefined();
   });
 });
