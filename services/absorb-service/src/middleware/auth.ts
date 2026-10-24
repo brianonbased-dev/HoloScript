@@ -27,6 +27,8 @@ export interface AuthenticatedRequest extends Request {
    * The per-(user, app) rate limit takes its app id and cap from here.
    */
   grant?: { clientId: string; hourlyLimit?: number };
+  /** Which credential admitted the request. Set only by authMiddleware. */
+  authKind?: 'service' | 'orchestrator' | 'github';
 }
 
 /** Rate-limit inputs for a verified caller. App id/cap come from the grant only. */
@@ -165,6 +167,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     // instead of always seeing userUuid(req) === null.
     if (apiKey && token === apiKey) {
       authReq.authenticated = true;
+      authReq.authKind = 'service';
 
       const userAuthHeader = req.headers['x-user-authorization'] as string | undefined;
       if (userAuthHeader) {
@@ -197,6 +200,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     const orchSig = req.headers['x-mcpme-orchestrator-sig'] as string | undefined;
     if (orchKey && orchTier && orchSig && verifyOrchestratorSig(orchKey, orchTier, orchSig)) {
       authReq.authenticated = true;
+      authReq.authKind = 'orchestrator';
       authReq.orchestratorGated = true;
       authReq.userId = `orchestrator:${orchKey}`;
       authReq.tier = orchTier;
@@ -208,6 +212,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       const identity = await resolveGitHubToken(token);
       if (identity) {
         authReq.authenticated = true;
+        authReq.authKind = 'github';
         authReq.userId = identity.userId;
         authReq.isAdmin = identity.isAdmin;
         authReq.githubUsername = identity.githubUsername;
