@@ -107,23 +107,33 @@ export function __setRateLimiterForTests(limiter: RateLimiter | null): void {
 /**
  * Verify an MCPMe orchestrator attestation signature.
  *
- * The orchestrator signs `${apiKeyId}:${tier}:${window}` with a shared secret
- * where window = Math.floor(Date.now() / 30_000) (30-second tick).
- * We allow the current AND the previous window to handle clock skew at boundaries.
+ * The orchestrator signs `${apiKeyId}:${tier}:${accountUuid}:${window}` with a
+ * shared secret, where window = Math.floor(Date.now() / 30_000) (30-second tick)
+ * and accountUuid is the end user's HoloScript account. The UUID is inside the
+ * signature, so a caller cannot swap in another account. The old format without
+ * a UUID is not accepted. We allow the current AND the previous window to handle
+ * clock skew at boundaries.
  */
-function verifyOrchestratorSig(apiKeyId: string, tier: string, sig: string): boolean {
+export function verifyOrchestratorSig(
+  apiKeyId: string,
+  tier: string,
+  accountUuid: string,
+  sig: string,
+  now: number = Date.now()
+): boolean {
   const secret = process.env.ORCHESTRATOR_SECRET;
   if (!secret || !apiKeyId || !tier || !sig) return false;
-  const window = Math.floor(Date.now() / 30_000);
+  if (!accountUuid || !UUID_RE.test(accountUuid)) return false;
+  const window = Math.floor(now / 30_000);
   for (const w of [window, window - 1]) {
-    const message = `${apiKeyId}:${tier}:${w}`;
+    const message = `${apiKeyId}:${tier}:${accountUuid.toLowerCase()}:${w}`;
     const expected = createHmac('sha256', secret).update(message).digest('hex');
     try {
       if (timingSafeEqual(Buffer.from(sig, 'hex'), Buffer.from(expected, 'hex'))) {
         return true;
       }
     } catch {
-      // buffers of different length — invalid sig format
+      // buffers of different length: invalid sig format
     }
   }
   return false;
@@ -188,18 +198,33 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       return next();
     }
 
-    // Path 1.5: MCPMe orchestrator attestation — billing already handled upstream.
-    // When the MCP mesh routes a call to absorb-service, it attaches a HMAC-signed
-    // header proving the request passed MCPMe quota checks. In this case we skip
-    // absorb credits entirely to prevent double billing.
+    // Path 1.5: MCPMe orchestrator attestation for one end user's account.
+    // The orchestrator signs the end user's HoloScript account UUID into the
+    // attestation; absorb verifies it and runs (and charges) the request as
+    // that account. No orchestrator-wide identity and no billing skip: an
+    // attestation without a valid signed UUID is refused with 401.
     const orchKey = req.headers['x-mcpme-orchestrator-key'] as string | undefined;
     const orchTier = req.headers['x-mcpme-orchestrator-tier'] as string | undefined;
     const orchSig = req.headers['x-mcpme-orchestrator-sig'] as string | undefined;
-    if (orchKey && orchTier && orchSig && verifyOrchestratorSig(orchKey, orchTier, orchSig)) {
+    const orchUser = req.headers['x-mcpme-orchestrator-user'] as string | undefined;
+    if (orchKey || orchTier || orchSig || orchUser) {
+      if (!orchUser || !UUID_RE.test(orchUser)) {
+        res.status(401).json({
+          error: 'Orchestrator attestation must carry the end user account UUID.',
+          reason: 'orchestrator_attestation_no_user',
+        });
+        return;
+      }
+      if (!orchKey || !orchTier || !orchSig || !verifyOrchestratorSig(orchKey, orchTier, orchUser, orchSig)) {
+        res.status(401).json({
+          error: 'Orchestrator attestation signature is invalid or expired.',
+          reason: 'orchestrator_attestation_invalid',
+        });
+        return;
+      }
       authReq.authenticated = true;
-      authReq.orchestratorGated = true;
-      authReq.userId = `orchestrator:${orchKey}`;
-      authReq.tier = orchTier;
+      authReq.userId = orchUser.toLowerCase();
+      authReq.tier = await resolveUserTier(authReq.userId);
       return next();
     }
 
