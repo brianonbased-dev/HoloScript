@@ -3,12 +3,15 @@ export const maxDuration = 300;
 /**
  * Catch-all proxy for /api/absorb/* -> absorb.holoscript.net
  *
- * Keeps the ABSORB_API_KEY server-side. Forwards all methods (GET, POST, DELETE)
- * and the request body. Attaches the user's GitHub token if present.
+ * Forwards GET/POST/PUT/DELETE and the request body using ONLY the caller's own
+ * credential. It never attaches the server's ABSORB_API_KEY: doing so let an
+ * anonymous POST to /api/absorb/absorb/scan run an uncharged scan upstream.
+ * Scan paths are refused outright; paid scans go through
+ * /api/projects/{id}/absorb, which checks the session and charges the user.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { ABSORB_BASE, ABSORB_API_KEY } from '@/lib/services/absorb-client';
+import { ABSORB_BASE } from '@/lib/services/absorb-client';
 
 import { corsHeaders } from '../../_lib/cors';
 
@@ -21,22 +24,44 @@ function upstreamApiPath(segments: string[]): string {
   return `/api/${path}`;
 }
 
+function isRefusedPath(segments: string[]): boolean {
+  return segments.some((raw) => {
+    let seg = raw;
+    try {
+      seg = decodeURIComponent(raw);
+    } catch {
+      return true;
+    }
+    const s = seg.trim().toLowerCase();
+    return s === '..' || s === '.' || s.includes('/') || s.includes('\\') || s.includes('scan');
+  });
+}
+
 async function proxyToAbsorb(req: NextRequest, segments: string[]) {
+  if (isRefusedPath(segments)) {
+    return NextResponse.json(
+      {
+        error: 'Scans are not available through this proxy',
+        hint: 'Start a scan with POST /api/projects/{id}/absorb',
+      },
+      { status: 403 }
+    );
+  }
+
+  // Forward only the caller's own credential. Never the server's ABSORB_API_KEY.
+  const userAuth = req.headers.get('authorization');
+  if (!userAuth || !userAuth.trim()) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   const targetUrl = `${ABSORB_BASE}${upstreamApiPath(segments)}${req.nextUrl.search}`;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  if (ABSORB_API_KEY) {
-    headers['Authorization'] = `Bearer ${ABSORB_API_KEY}`;
-  }
-
-  // Forward the user's auth token if present (from the client's absorbFetch)
-  const userAuth = req.headers.get('authorization');
-  if (userAuth) {
-    headers['X-User-Authorization'] = userAuth;
-  }
+  headers['Authorization'] = userAuth;
+  headers['X-User-Authorization'] = userAuth;
 
   const fetchOptions: RequestInit = {
     method: req.method,
