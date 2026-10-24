@@ -25,7 +25,7 @@ import { AgentMiniCard } from '@/components/holomesh/AgentMiniCard';
 import { ReputationBadge } from '@/components/holomesh/ReputationBadge';
 import { MyAgentsTab } from '@/components/agents/MyAgentsTab';
 import { JoinHoloMeshState } from '@/components/holomesh/JoinHoloMeshState';
-import { isNoHoloMeshAgentBody } from '@/lib/holomesh/noAgent';
+import { isNoHoloMeshAgentBody, isNoHoloMeshAgentResponse } from '@/lib/holomesh/noAgent';
 import { LaunchAgentTab } from '@/components/agents/LaunchAgentTab';
 import { AgentAnalyticsTab } from '@/components/agents/AgentAnalyticsTab';
 import { ArrowDownLeft, ArrowUpRight, Gift, Minus, ExternalLink, RefreshCw } from 'lucide-react';
@@ -202,7 +202,8 @@ function AgentMeInner() {
         const earningsData = normalizeEarnings(
           earningsRes.ok ? await earningsRes.json().catch(() => null) : null
         );
-        const dashboardData = await dashRes.json().catch(() => null);
+        // A non-2xx dashboard body (e.g. 404 no_holomesh_agent) is not dashboard data.
+        const dashboardData = dashRes.ok ? await dashRes.json().catch(() => null) : null;
 
         if (!cancelled) {
           if (profileData.success) {
@@ -245,7 +246,11 @@ function AgentMeInner() {
     if (tab !== 'transactions' || txs.length > 0) return;
     setTxLoading(true);
     fetch('/api/holomesh/transactions?limit=50')
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(async (r) => {
+        // No HoloMesh agent: no transactions, not an error.
+        if (await isNoHoloMeshAgentResponse(r)) return { transactions: [] };
+        return r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`));
+      })
       .then((data) => {
         setTxs(data.transactions ?? []);
       })
