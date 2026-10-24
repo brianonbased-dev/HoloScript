@@ -314,12 +314,16 @@ router.post('/semantic-dedup', async (req: Request, res: Response) => {
     // Similarity > 0.85 = Semantic duplicate
     const isDuplicate = results.length > 0 && results[0].score > 0.85;
 
-    await deductCredits(
+    const debit = await deductCredits(
       userId,
       creditCheck.costCents,
       `Semantic deduplication evaluation`,
       { concept: body.concept.substring(0, 32) }
     );
+    if (!debit) {
+      res.status(402).json({ error: 'Not enough credits for this evaluation.' });
+      return;
+    }
     // Informational only (absorb is the only biller).
     if (isOrchestratorBilled(req)) setOrchestratorCost(res, creditCheck.costCents);
 

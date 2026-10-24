@@ -238,6 +238,18 @@ describe('orchestrator attestation v1: account UUID, method + path binding, sing
       expect(next).toHaveBeenCalledTimes(1);
     });
 
+    it('a legacy sig sent alongside a v1 call is consumed: it cannot be replayed as a no-user call', async () => {
+      const nonce = freshNonce();
+      const legacy = legacySig();
+      const h = { ...attested(USER, nonce, sign({ user: USER, nonce })), 'x-mcpme-orchestrator-sig': legacy };
+      await authMiddleware(req(h), res(), next);
+      expect(next).toHaveBeenCalledTimes(1);
+      const out = res();
+      await authMiddleware(req(legacyHeaders(legacy)), out, next);
+      expect(out.statusCode).toBe(409);
+      expect(next).toHaveBeenCalledTimes(1);
+    });
+
     it('a bad legacy signature is refused with 401', async () => {
       const out = res();
       await authMiddleware(req(legacyHeaders('ab'.repeat(32))), out, next);

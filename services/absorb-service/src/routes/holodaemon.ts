@@ -162,6 +162,18 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
       return res.status(409).json({ error: 'A daemon job is already running', activeJobId: running.id });
     }
 
+    // Charge first: a charge that does not land answers 402 and starts no job,
+    // so no paid work is delivered free (same contract as /query).
+    const debit = await deductCredits(
+      userId,
+      creditCheck.costCents,
+      `HoloDaemon cycle (${profile})`,
+      { profile }
+    );
+    if (!debit) {
+      return res.status(402).json({ error: 'Not enough credits for this daemon run.' });
+    }
+
     const job = createDaemonJob({
       projectId: 'holoscript',
       profile,
@@ -178,13 +190,6 @@ holodaemonRouter.post('/', async (req: Request, res: Response) => {
 
     // Informational only (absorb is the only biller).
     if (isOrchestratorBilled(req)) setOrchestratorCost(res, creditCheck.costCents);
-    await deductCredits(
-      userId,
-      creditCheck.costCents,
-      `HoloDaemon cycle (${profile})`,
-      // @ts-ignore - Automatic remediation for TS18046
-      { jobId: job.id, profile }
-    );
 
     return res.status(201).json({ job, cost: creditCheck.costCents });
   }
