@@ -39,7 +39,7 @@ Do not introduce HoloScript as a DSL, scene language, spatial-only language, ass
 shopping for them lives in [`docs/storefront/local.md`](docs/storefront/local.md)
 (purpose before SKU). This repo is the **language store**. **ai-ecosystem is
 the breezeway and the user’s vehicle**
-(`C:/holo-dev/ai-ecosystem/docs/handbooks/holon-storefront.md`) — Joseph’s
+(`docs/handbooks/holon-storefront.md` in ai-ecosystem) — Joseph’s
 instance is private; users ride their own `.ai-ecosystem`. `README.md` is **not**
 the V1 public storefront until
 [`docs/storefront/github-v1-gate.md`](docs/storefront/github-v1-gate.md) is
@@ -77,16 +77,16 @@ release. Canon: [`docs/spec/native-machine-release-ladder.md`](docs/spec/native-
 Before raw grep, raw curl, or long-form code spelunking, check the skill surface. Skills are the front door for HoloScript work because they carry the current workflows, dispatch rules, gotchas, and validation habits.
 
 - Claude Code: invoke the matching skill directly.
-- Codex, Copilot, Cursor, Gemini-Antigravity, Windsurf, Devin: read the relevant `SKILL.md` directly. The ai-ecosystem inventory is `C:/Users/josep/.ai-ecosystem/SKILL_MAP.md`.
+- Codex, Copilot, Cursor, Gemini-Antigravity, Windsurf, Devin: read the relevant `SKILL.md` directly. The ai-ecosystem inventory is `SKILL_MAP.md` in the private ai-ecosystem workspace.
 - If no skill matches, use MCP discovery, Absorb Graph RAG, `NORTH_STAR.md`, and local commands.
 
 Skipping a matching skill is a workflow bug. Common examples: use Absorb or `/codebase` for codebase intelligence, `/compile` for compile-target work, `/frontend` for UI audits, `/critic` for hard review, and `/room` for HoloMesh coordination.
 
-Mechanism-design target: skills should be laid out like a payoff matrix where the right skill is the dominant move. See `C:/Users/josep/.ai-ecosystem/docs/handbooks/skill-routing-game-theory.md`.
+Mechanism-design target: skills should be laid out like a payoff matrix where the right skill is the dominant move. See `docs/handbooks/skill-routing-game-theory.md` in the private ai-ecosystem workspace.
 
-Tracking source map: before trusting board exports, root JSON files, IDE session stores, backup clones, or worktree folders as current state, classify them with `C:/Users/josep/.ai-ecosystem/docs/handbooks/agent-tracking-source-map.md`. Live board, git status, and the knowledge store win.
+Tracking source map: before trusting board exports, root JSON files, IDE session stores, backup clones, or worktree folders as current state, classify them with `docs/handbooks/agent-tracking-source-map.md` in the private ai-ecosystem workspace. Live board, git status, and the knowledge store win.
 
-Explicit-frame architecture: before authoring a `.hsplus` brain that needs to declare its epistemic scope, allowed tools, or temporal horizon, read `C:/Users/josep/.ai-ecosystem/docs/handbooks/explicit-frame-architecture.md`. The `@frame_declaration` trait (`packages/core/src/traits/FrameDeclarationTrait.ts`) is the language primitive; the handbook documents all four pillars and the frame-crossing cost model.
+Explicit-frame architecture: before authoring a `.hsplus` brain that needs to declare its epistemic scope, allowed tools, or temporal horizon, read `docs/handbooks/explicit-frame-architecture.md` in the private ai-ecosystem workspace. The `@frame_declaration` trait (`packages/core/src/traits/FrameDeclarationTrait.ts`) is the language primitive; the handbook documents all four pillars and the frame-crossing cost model.
 
 ## DONE Claim Revalidation
 
@@ -369,7 +369,7 @@ room/skill workflow when blocked.
 
 Use the matching skill before raw tools, but do not duplicate the ecosystem
 skill registry here. The canonical inventory lives in the private ecosystem
-surface (`C:/Users/josep/.ai-ecosystem/SKILL_MAP.md` locally, or the
+surface (`SKILL_MAP.md` in the founder's local workspace, or the
 current harness-provided skills block). Direct-reader agents should read the
 relevant `SKILL.md` from that inventory and then execute the workflow.
 
