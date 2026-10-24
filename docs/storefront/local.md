@@ -2,7 +2,7 @@
 
 This is the HoloScript **language store** — one shop in the mall, not the
 mall. The breezeway **and the user’s vehicle** is
-`C:/holo-dev/ai-ecosystem/docs/handbooks/holon-storefront.md` (Joseph’s
+`docs/handbooks/holon-storefront.md` in ai-ecosystem (Joseph’s
 instance is private git; users ride an `.ai-ecosystem` of their own).
 Sibling stores (Land, Mesh, Gate, AI, Protocol) support this one and must
 not be dumped into `README.md`.
@@ -21,8 +21,8 @@ Worked merchandising: hardware-store menu V.3 (purpose before SKU), V.2
 [`docs/spec/language-identity.md`](../spec/language-identity.md). Thesis
 stays [`NORTH_STAR.md`](../../NORTH_STAR.md). Index of windows in this
 tree: [`index.md`](./index.md). Worlds:
-`C:/holo-dev/HoloRepo/Hololand/docs/storefront/local.md`. Vehicle:
-`C:/holo-dev/ai-ecosystem/docs/storefront/local.md`.
+`docs/storefront/local.md` in Hololand. Vehicle:
+`docs/storefront/local.md` in ai-ecosystem.
 
 ---
 
