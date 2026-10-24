@@ -4,9 +4,9 @@ import * as path from 'path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { callMcpToolMock, forwardAuthHeadersMock } = vi.hoisted(() => ({
+const { callMcpToolMock, getGitHubTokenMock } = vi.hoisted(() => ({
   callMcpToolMock: vi.fn(),
-  forwardAuthHeadersMock: vi.fn(() => ({ Authorization: 'Bearer user-token' })),
+  getGitHubTokenMock: vi.fn(async () => 'user-token' as string | null),
 }));
 
 vi.mock('@/lib/services/absorb-client', () => ({
@@ -17,8 +17,8 @@ vi.mock('@/lib/services/absorb-client', () => ({
   ABSORB_BASE: 'https://absorb.test',
 }));
 
-vi.mock('@/lib/api-auth', () => ({
-  forwardAuthHeaders: forwardAuthHeadersMock,
+vi.mock('@/app/api/github/_shared', () => ({
+  getGitHubToken: getGitHubTokenMock,
 }));
 
 import { GET, POST } from './route';
@@ -32,7 +32,7 @@ describe('/api/daemon/absorb route', () => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     callMcpToolMock.mockReset();
-    forwardAuthHeadersMock.mockClear();
+    getGitHubTokenMock.mockClear();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
     savedStateFile = process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
@@ -92,7 +92,7 @@ describe('/api/daemon/absorb route', () => {
       projectId: 'proj-1',
       depth: 'deep',
       tier: 'high',
-    });
+    }, 'Bearer user-token');
   });
 
   it('POST falls back to absorb /scan when MCP was refused (never ran)', async () => {
@@ -116,7 +116,7 @@ describe('/api/daemon/absorb route', () => {
     const body = await res.json();
     expect(body.jobId).toBe('job-http');
 
-    expect(forwardAuthHeadersMock).toHaveBeenCalled();
+    expect(getGitHubTokenMock).toHaveBeenCalled();
     expect(fetchMock.mock.calls[0]?.[0]).toBe('https://absorb.test/api/absorb/scan');
     const fetchInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const headers = (fetchInit.headers ?? {}) as Record<string, string>;

@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const { auth } = vi.hoisted(() => ({ auth: { userToken: 'user-token' as string | null } }));
+
+// The signed-in user's credential, resolved server-side from the session.
+vi.mock('@/app/api/github/_shared', () => ({
+  getGitHubToken: vi.fn(async () => auth.userToken),
+}));
+
 vi.mock('@/lib/services/absorb-client', () => ({
   ABSORB_BASE: 'https://absorb.test',
   ABSORB_API_KEY: 'absorb-key-test',
@@ -12,6 +19,7 @@ describe('/api/absorb/[...path] route', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+    auth.userToken = 'user-token';
   });
 
   it('GET proxies path+query and forwards auth headers', async () => {
@@ -127,6 +135,7 @@ describe('/api/absorb/[...path] route', () => {
       );
 
     it('refuses an unauthenticated POST to /api/absorb/absorb/scan and forwards nothing', async () => {
+      auth.userToken = null;
       const fetchMock = okUpstream();
       vi.stubGlobal('fetch', fetchMock);
 
@@ -139,7 +148,7 @@ describe('/api/absorb/[...path] route', () => {
 
       expect(res.status).toBe(403);
       const body = await res.json();
-      expect(body.hint).toMatch(/\/api\/projects\/\{id\}\/absorb/);
+      expect(body.hint).toMatch(/\/api\/absorb\/projects\/\{id\}\/absorb/);
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
@@ -147,7 +156,16 @@ describe('/api/absorb/[...path] route', () => {
       const fetchMock = okUpstream();
       vi.stubGlobal('fetch', fetchMock);
 
-      for (const path of [['absorb', 'scan'], ['absorb', 'SCAN'], ['absorb', '%73can'], ['scan']]) {
+      for (const path of [
+        ['absorb', 'scan'],
+        ['absorb', 'SCAN'],
+        ['absorb', '%73can'],
+        ['absorb', '%2573can'],
+        ['scan'],
+        ['projects', '..', '..', 'absorb', 'x'],
+        ['projects', 'a\\..\\b'],
+        ['projects', 'a%2Fb'],
+      ]) {
         const req = new NextRequest(`http://localhost/api/absorb/${path.join('/')}`, {
           method: 'POST',
           body: '{}',
@@ -160,10 +178,44 @@ describe('/api/absorb/[...path] route', () => {
     });
 
     it('refuses any unauthenticated request without forwarding', async () => {
+      auth.userToken = null;
       const fetchMock = okUpstream();
       vi.stubGlobal('fetch', fetchMock);
 
       const req = new NextRequest('http://localhost/api/absorb/projects/abc');
+      const res = await GET(req, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
+      expect(res.status).toBe(401);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('cookie-session caller (AbsorbPanel run): forwards only the session user token', async () => {
+      auth.userToken = 'gh-session-token';
+      const fetchMock = okUpstream();
+      vi.stubGlobal('fetch', fetchMock);
+
+      // AbsorbPanel.tsx sends only the cookie, no Authorization header.
+      const req = new NextRequest('http://localhost/api/absorb/projects/abc/run', {
+        method: 'POST',
+        headers: { cookie: 'next-auth.session-token=sess' },
+      });
+      const res = await POST(req, { params: Promise.resolve({ path: ['projects', 'abc', 'run'] }) });
+
+      expect(res.status).toBe(200);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe('https://absorb.test/api/absorb/projects/abc/run');
+      const headers = (init.headers ?? {}) as Record<string, string>;
+      expect(headers.Authorization).toBe('Bearer gh-session-token');
+      expect(JSON.stringify(headers)).not.toContain('absorb-key-test');
+    });
+
+    it('a client-sent Authorization is not a user: no session gives 401, nothing forwarded', async () => {
+      auth.userToken = null;
+      const fetchMock = okUpstream();
+      vi.stubGlobal('fetch', fetchMock);
+      const req = new NextRequest('http://localhost/api/absorb/projects/abc', {
+        headers: { authorization: 'Bearer absorb-key-test' },
+      });
       const res = await GET(req, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
       expect(res.status).toBe(401);
       expect(fetchMock).not.toHaveBeenCalled();
