@@ -69,7 +69,12 @@ describe('/api/daemon/absorb: server-side pending importId (Mapping N1)', () => 
         throw new DOMException('The operation timed out.', 'TimeoutError');
       }
       return new Response(
-        JSON.stringify({ graphId: 'g1', stats: { totalFiles: 1 }, cost: replay ? 0 : 10, replayed: replay }),
+        JSON.stringify({
+          graphId: 'g1',
+          stats: { totalFiles: 1 },
+          cost: replay ? 0 : 10,
+          replayed: replay,
+        }),
         { status: 200 }
       );
     });

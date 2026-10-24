@@ -1137,7 +1137,10 @@ async function handleAskCodebase(
   const visualFocus = buildVisualFocus(rag.graph, readStringArray(args.visualNodeIds));
   if (!serverKeysAllowed) {
     const ownKey =
-      llmProvider && llmProvider !== 'ollama' && llmProvider !== 'holollama' && stringArg(llmApiKey);
+      llmProvider &&
+      llmProvider !== 'ollama' &&
+      llmProvider !== 'holollama' &&
+      stringArg(llmApiKey);
     if (!ownKey) {
       if (llmProvider) {
         return {
@@ -1360,10 +1363,7 @@ async function handleAskCodebase(
           });
 
           // Provenance integrity guard (same as primary path)
-          const fbGuard = validateCitations(
-            fbAnswer.citations as Citation[],
-            rag.graph
-          );
+          const fbGuard = validateCitations(fbAnswer.citations as Citation[], rag.graph);
           const fbFilteredCitations = fbGuard.passed
             ? fbGuard.resolved.map(({ name, file, line }) => ({ name, file, line }))
             : [];

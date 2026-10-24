@@ -161,7 +161,10 @@ async function postAbsorb(req: NextRequest): Promise<Response> {
       { status: 401 }
     );
   }
-  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...scanAuth(userToken) };
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...scanAuth(userToken),
+  };
 
   let failure: string;
   let status = 502;

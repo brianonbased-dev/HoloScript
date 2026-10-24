@@ -105,7 +105,8 @@ async function proxyToAbsorb(
           status: 401,
           data: {
             error: 'absorb_service_key_refused',
-            message: 'Service keys are not accepted here. Send your own user or account credential.',
+            message:
+              'Service keys are not accepted here. Send your own user or account credential.',
           },
         }
       : {

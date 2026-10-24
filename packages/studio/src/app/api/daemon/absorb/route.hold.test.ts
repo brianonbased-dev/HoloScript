@@ -9,7 +9,9 @@ import { NextRequest } from 'next/server';
  * (first writer wins, before any await) and N2 (compare-and-clear). The
  * stand-in absorb charges once per distinct importId and replays a known one.
  */
-const m = vi.hoisted(() => ({ session: { user: { id: 'user-a' } } as { user: { id: string } } | null }));
+const m = vi.hoisted(() => ({
+  session: { user: { id: 'user-a' } } as { user: { id: string } } | null,
+}));
 
 vi.mock('next-auth', () => ({ getServerSession: async () => m.session }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
@@ -40,8 +42,11 @@ const post = (body: unknown) =>
     headers: { 'Content-Type': 'application/json' },
   });
 const pendingId = async () =>
-  (await (await GET(new NextRequest(`http://localhost/api/daemon/absorb?workspaceId=${WS}`))).json())
-    .pendingImportId as string | null;
+  (
+    await (
+      await GET(new NextRequest(`http://localhost/api/daemon/absorb?workspaceId=${WS}`))
+    ).json()
+  ).pendingImportId as string | null;
 
 describe('/api/daemon/absorb: Mapping HOLD (H1, N1, N2)', () => {
   let tempRoot: string;
@@ -77,9 +82,12 @@ describe('/api/daemon/absorb: Mapping HOLD (H1, N1, N2)', () => {
         nextAnswer = null;
         return a();
       }
-      return new Response(JSON.stringify({ graphId: 'g1', stats: { totalFiles: 1 }, cost: replay ? 0 : 10 }), {
-        status: 200,
-      });
+      return new Response(
+        JSON.stringify({ graphId: 'g1', stats: { totalFiles: 1 }, cost: replay ? 0 : 10 }),
+        {
+          status: 200,
+        }
+      );
     });
   });
   afterEach(() => {
@@ -88,7 +96,8 @@ describe('/api/daemon/absorb: Mapping HOLD (H1, N1, N2)', () => {
   });
 
   it('H1: a proxy 504 with an HTML body keeps the pending id; the retry gives ONE charge', async () => {
-    nextAnswer = () => new Response('<html><body>504 Gateway Time-out</body></html>', { status: 504 });
+    nextAnswer = () =>
+      new Response('<html><body>504 Gateway Time-out</body></html>', { status: 504 });
     const first = await POST(post({ workspaceId: WS, importId: 'imp-proxy-1111' }));
     expect(first.status).toBe(502);
     expect((await first.json()).reason).toBe('absorb_outcome_unknown');

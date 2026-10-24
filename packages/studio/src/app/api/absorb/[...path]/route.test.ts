@@ -99,7 +99,10 @@ describe('/api/absorb/[...path] route', () => {
 
     const auth = { headers: { authorization: 'Bearer user-token' } };
     const getReq = new NextRequest('http://localhost/api/absorb/projects/abc', auth);
-    const deleteReq = new NextRequest('http://localhost/api/absorb/projects/abc', { method: 'DELETE', ...auth });
+    const deleteReq = new NextRequest('http://localhost/api/absorb/projects/abc', {
+      method: 'DELETE',
+      ...auth,
+    });
     await GET(getReq, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
     await DELETE(deleteReq, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
 
@@ -131,7 +134,10 @@ describe('/api/absorb/[...path] route', () => {
   describe('free-scan path: never forwards scan with the service key', () => {
     const okUpstream = () =>
       vi.fn().mockResolvedValue(
-        new Response('{"ok":true}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+        new Response('{"ok":true}', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
       );
 
     it('refuses an unauthenticated POST to /api/absorb/absorb/scan and forwards nothing', async () => {
@@ -198,7 +204,9 @@ describe('/api/absorb/[...path] route', () => {
         method: 'POST',
         headers: { cookie: 'next-auth.session-token=sess' },
       });
-      const res = await POST(req, { params: Promise.resolve({ path: ['projects', 'abc', 'run'] }) });
+      const res = await POST(req, {
+        params: Promise.resolve({ path: ['projects', 'abc', 'run'] }),
+      });
 
       expect(res.status).toBe(200);
       expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -233,7 +241,10 @@ describe('/api/absorb/[...path] route', () => {
       await POST(req, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
-      const headers = ((fetchMock.mock.calls[0][1] as RequestInit).headers ?? {}) as Record<string, string>;
+      const headers = ((fetchMock.mock.calls[0][1] as RequestInit).headers ?? {}) as Record<
+        string,
+        string
+      >;
       expect(headers.Authorization).toBe('Bearer user-token');
       expect(JSON.stringify(headers)).not.toContain('absorb-key-test');
     });

@@ -3,7 +3,13 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/hooks/useGitHubRepos', () => ({
-  useGitHubRepos: () => ({ repos: [], isLoading: false, error: null, search: '', setSearch: vi.fn() }),
+  useGitHubRepos: () => ({
+    repos: [],
+    isLoading: false,
+    error: null,
+    search: '',
+    setSearch: vi.fn(),
+  }),
 }));
 vi.mock('@/hooks/useAbsorbPipelineBridge', () => ({
   useAbsorbPipelineBridge: () => ({}),
@@ -26,23 +32,44 @@ import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
 
 const WS = 'ws-11111111-2222-4333-8444-555555555555';
 const clone = {
-  id: WS, name: 'brian-music-bot', repoUrl: 'https://github.com/joecoolproductions/brian-music-bot.git',
-  branch: 'main', localPath: `/ws/${WS}/brian-music-bot`, status: 'ready', createdAt: '2026-10-14T00:00:00Z',
+  id: WS,
+  name: 'brian-music-bot',
+  repoUrl: 'https://github.com/joecoolproductions/brian-music-bot.git',
+  branch: 'main',
+  localPath: `/ws/${WS}/brian-music-bot`,
+  status: 'ready',
+  createdAt: '2026-10-14T00:00:00Z',
 };
 
 function mockFetch(absorbStatus: number) {
   const calls: Array<{ url: string; method: string }> = [];
-  vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
-    const method = init?.method ?? 'GET';
-    calls.push({ url, method });
-    if (url === '/api/workspace/import' && method === 'POST') return new Response(JSON.stringify(clone), { status: 200 });
-    if (url === '/api/daemon/absorb') {
-      return absorbStatus === 200
-        ? new Response(JSON.stringify({ stats: { totalFiles: 1, totalSymbols: 1, totalLoc: 1 }, hubFiles: [], leafFirstOrder: [], durationMs: 1, absorbedAt: 'now' }), { status: 200 })
-        : new Response(JSON.stringify({ error: 'Absorb could not run: the absorb service did not answer.' }), { status: absorbStatus });
-    }
-    return new Response('{"ok":true}', { status: 200 });
-  }));
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? 'GET';
+      calls.push({ url, method });
+      if (url === '/api/workspace/import' && method === 'POST')
+        return new Response(JSON.stringify(clone), { status: 200 });
+      if (url === '/api/daemon/absorb') {
+        return absorbStatus === 200
+          ? new Response(
+              JSON.stringify({
+                stats: { totalFiles: 1, totalSymbols: 1, totalLoc: 1 },
+                hubFiles: [],
+                leafFirstOrder: [],
+                durationMs: 1,
+                absorbedAt: 'now',
+              }),
+              { status: 200 }
+            )
+          : new Response(
+              JSON.stringify({ error: 'Absorb could not run: the absorb service did not answer.' }),
+              { status: absorbStatus }
+            );
+      }
+      return new Response('{"ok":true}', { status: 200 });
+    })
+  );
   return calls;
 }
 
@@ -79,28 +106,58 @@ describe('useImportRepoWizard failed-import cleanup', () => {
       const calls: Array<{ url: string; method: string }> = [];
       const absorbBodies: Array<Record<string, unknown>> = [];
       let absorbStatus = status;
-      vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
-        const method = init?.method ?? 'GET';
-        calls.push({ url, method });
-        if (url === '/api/workspace/import' && method === 'POST') return new Response(JSON.stringify(clone), { status: 200 });
-        if (url === '/api/daemon/absorb') {
-          absorbBodies.push(JSON.parse(String(init?.body)));
-          return absorbStatus === 200
-            ? new Response(JSON.stringify({ stats: { totalFiles: 1, totalSymbols: 1, totalLoc: 1, filesByLanguage: { ts: 1 }, errors: [] }, hubFiles: [], leafFirstOrder: [], durationMs: 1, absorbedAt: 'now', cost: 0, replayed: true }), { status: 200 })
-            : new Response(JSON.stringify({ error: 'unknown' }), { status: absorbStatus });
-        }
-        return new Response('{"ok":true}', { status: 200 });
-      }));
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string, init?: RequestInit) => {
+          const method = init?.method ?? 'GET';
+          calls.push({ url, method });
+          if (url === '/api/workspace/import' && method === 'POST')
+            return new Response(JSON.stringify(clone), { status: 200 });
+          if (url === '/api/daemon/absorb') {
+            absorbBodies.push(JSON.parse(String(init?.body)));
+            return absorbStatus === 200
+              ? new Response(
+                  JSON.stringify({
+                    stats: {
+                      totalFiles: 1,
+                      totalSymbols: 1,
+                      totalLoc: 1,
+                      filesByLanguage: { ts: 1 },
+                      errors: [],
+                    },
+                    hubFiles: [],
+                    leafFirstOrder: [],
+                    durationMs: 1,
+                    absorbedAt: 'now',
+                    cost: 0,
+                    replayed: true,
+                  }),
+                  { status: 200 }
+                )
+              : new Response(JSON.stringify({ error: 'unknown' }), { status: absorbStatus });
+          }
+          return new Response('{"ok":true}', { status: 200 });
+        })
+      );
       const { result } = renderHook(() => useImportRepoWizard(() => {}));
-      act(() => { result.current.setUseManual(true); result.current.setManualUrl(clone.repoUrl); });
+      act(() => {
+        result.current.setUseManual(true);
+        result.current.setManualUrl(clone.repoUrl);
+      });
       act(() => result.current.retryImport());
       await waitFor(() => expect(result.current.importStatus).toBe('error'));
       expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
-      expect(useWorkspaceStore.getState().workspaces.find((w) => w.id === WS)?.status).toBe('error');
+      expect(useWorkspaceStore.getState().workspaces.find((w) => w.id === WS)?.status).toBe(
+        'error'
+      );
       absorbStatus = 200;
       act(() => result.current.retryImport());
-      await waitFor(() => expect(result.current.importStatus, String(result.current.importError)).toBe('done'));
-      expect(calls.filter((c) => c.url === '/api/workspace/import' && c.method === 'POST')).toHaveLength(1);
+      await waitFor(() =>
+        expect(result.current.importStatus, String(result.current.importError)).toBe('done')
+      );
+      expect(
+        calls.filter((c) => c.url === '/api/workspace/import' && c.method === 'POST')
+      ).toHaveLength(1);
       expect(absorbBodies).toHaveLength(2);
       expect(absorbBodies[1].importId).toBe(absorbBodies[0].importId);
       expect(absorbBodies[0].importId).toBe(`imp-${WS}`);
@@ -112,7 +169,10 @@ describe('useImportRepoWizard failed-import cleanup', () => {
     dnaThrows.on = true;
     const calls = mockFetch(200);
     const { result } = renderHook(() => useImportRepoWizard(() => {}));
-    act(() => { result.current.setUseManual(true); result.current.setManualUrl(clone.repoUrl); });
+    act(() => {
+      result.current.setUseManual(true);
+      result.current.setManualUrl(clone.repoUrl);
+    });
     act(() => result.current.retryImport());
     await waitFor(() => expect(result.current.importStatus).toBe('error'));
     expect(calls.some((c) => c.method === 'DELETE')).toBe(false);
@@ -121,15 +181,23 @@ describe('useImportRepoWizard failed-import cleanup', () => {
 
   it('a 200 with no stats (tool error body) is a failed absorb: clean error, workspace KEPT (may be charged), no crash', async () => {
     const calls: Array<{ url: string; method: string }> = [];
-    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
-      const method = init?.method ?? 'GET';
-      calls.push({ url, method });
-      if (url === '/api/workspace/import' && method === 'POST') return new Response(JSON.stringify(clone), { status: 200 });
-      if (url === '/api/daemon/absorb') return new Response(JSON.stringify({ error: 'No API key provided.' }), { status: 200 });
-      return new Response('{"ok":true}', { status: 200 });
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        calls.push({ url, method });
+        if (url === '/api/workspace/import' && method === 'POST')
+          return new Response(JSON.stringify(clone), { status: 200 });
+        if (url === '/api/daemon/absorb')
+          return new Response(JSON.stringify({ error: 'No API key provided.' }), { status: 200 });
+        return new Response('{"ok":true}', { status: 200 });
+      })
+    );
     const { result } = renderHook(() => useImportRepoWizard(() => {}));
-    act(() => { result.current.setUseManual(true); result.current.setManualUrl(clone.repoUrl); });
+    act(() => {
+      result.current.setUseManual(true);
+      result.current.setManualUrl(clone.repoUrl);
+    });
     act(() => result.current.retryImport());
     await waitFor(() => expect(result.current.importStatus).toBe('error'));
     expect(result.current.importError).toBe('Absorb failed: No API key provided.');
@@ -139,17 +207,31 @@ describe('useImportRepoWizard failed-import cleanup', () => {
 
   it('absorb is asked by workspaceId + importId, never by a local path', async () => {
     const bodies: unknown[] = [];
-    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
-      const method = init?.method ?? 'GET';
-      if (url === '/api/workspace/import' && method === 'POST') return new Response(JSON.stringify(clone), { status: 200 });
-      if (url === '/api/daemon/absorb') {
-        bodies.push(JSON.parse(String(init?.body)));
-        return new Response(JSON.stringify({ stats: { totalFiles: 1, totalSymbols: 1, totalLoc: 1 }, hubFiles: [], leafFirstOrder: [] }), { status: 200 });
-      }
-      return new Response('{"ok":true}', { status: 200 });
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        if (url === '/api/workspace/import' && method === 'POST')
+          return new Response(JSON.stringify(clone), { status: 200 });
+        if (url === '/api/daemon/absorb') {
+          bodies.push(JSON.parse(String(init?.body)));
+          return new Response(
+            JSON.stringify({
+              stats: { totalFiles: 1, totalSymbols: 1, totalLoc: 1 },
+              hubFiles: [],
+              leafFirstOrder: [],
+            }),
+            { status: 200 }
+          );
+        }
+        return new Response('{"ok":true}', { status: 200 });
+      })
+    );
     const { result } = renderHook(() => useImportRepoWizard(() => {}));
-    act(() => { result.current.setUseManual(true); result.current.setManualUrl(clone.repoUrl); });
+    act(() => {
+      result.current.setUseManual(true);
+      result.current.setManualUrl(clone.repoUrl);
+    });
     act(() => result.current.retryImport());
     await waitFor(() => expect(bodies).toHaveLength(1));
     const sent = bodies[0] as Record<string, unknown>;
@@ -159,17 +241,26 @@ describe('useImportRepoWizard failed-import cleanup', () => {
   });
 
   it('a 200 with an empty body: generic clean error, no crash', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
-      const method = init?.method ?? 'GET';
-      if (url === '/api/workspace/import' && method === 'POST') return new Response(JSON.stringify(clone), { status: 200 });
-      if (url === '/api/daemon/absorb') return new Response('{}', { status: 200 });
-      return new Response('{"ok":true}', { status: 200 });
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string, init?: RequestInit) => {
+        const method = init?.method ?? 'GET';
+        if (url === '/api/workspace/import' && method === 'POST')
+          return new Response(JSON.stringify(clone), { status: 200 });
+        if (url === '/api/daemon/absorb') return new Response('{}', { status: 200 });
+        return new Response('{"ok":true}', { status: 200 });
+      })
+    );
     const { result } = renderHook(() => useImportRepoWizard(() => {}));
-    act(() => { result.current.setUseManual(true); result.current.setManualUrl(clone.repoUrl); });
+    act(() => {
+      result.current.setUseManual(true);
+      result.current.setManualUrl(clone.repoUrl);
+    });
     act(() => result.current.retryImport());
     await waitFor(() => expect(result.current.importStatus).toBe('error'));
-    expect(result.current.importError).toBe('Absorb failed: the absorb service returned no results');
+    expect(result.current.importError).toBe(
+      'Absorb failed: the absorb service returned no results'
+    );
   });
 
   it('twin: absorb OK keeps the workspace and sends no DELETE', async () => {

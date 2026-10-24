@@ -43,14 +43,21 @@ describe('/api/daemon/absorb auth (#658)', () => {
     m.ghToken = 'gh-session-token';
     seen = null;
     upsertDurableAbsorbProject({
-      id: WS, name: 'tiny', ownerId: 'user-a', sourceType: 'github',
-      sourceUrl: 'https://github.com/owner/tiny.git', localPath: `/data/workspaces/${WS}/tiny`,
+      id: WS,
+      name: 'tiny',
+      ownerId: 'user-a',
+      sourceType: 'github',
+      sourceUrl: 'https://github.com/owner/tiny.git',
+      localPath: `/data/workspaces/${WS}/tiny`,
       metadata: { branch: 'main' },
     });
-    vi.stubGlobal('fetch', vi.fn(async (_u: string, init: RequestInit) => {
-      seen = init.headers as Record<string, string>;
-      return new Response('{"graphId":"g1","stats":{"totalFiles":1},"cost":10}', { status: 200 });
-    }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_u: string, init: RequestInit) => {
+        seen = init.headers as Record<string, string>;
+        return new Response('{"graphId":"g1","stats":{"totalFiles":1},"cost":10}', { status: 200 });
+      })
+    );
   });
   afterEach(() => {
     vi.unstubAllGlobals();

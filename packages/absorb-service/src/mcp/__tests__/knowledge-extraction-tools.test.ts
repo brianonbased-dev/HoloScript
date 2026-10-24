@@ -94,7 +94,9 @@ describe('knowledge-extraction-tools', () => {
       expect(other.error).toContain('No codebase graph loaded');
       expect(JSON.stringify(other)).not.toContain('secret-a');
 
-      const none = parseResponse(await handleKnowledgeExtractionTool('absorb_extract_knowledge', {}));
+      const none = parseResponse(
+        await handleKnowledgeExtractionTool('absorb_extract_knowledge', {})
+      );
       expect(none.error).toContain('No codebase graph loaded');
     });
 

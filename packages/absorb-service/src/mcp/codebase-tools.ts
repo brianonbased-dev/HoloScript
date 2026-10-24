@@ -7168,7 +7168,10 @@ function scopeAbsorbRepoResultForCaller(out: unknown, creator: AbsorbJobCreator)
   const rec = out as Record<string, unknown>;
   const ids = [rec.jobId, rec.activeJobId].filter((v): v is string => typeof v === 'string');
   const joinedOrBusy =
-    rec.coalesced === true || rec.externalWriter === true || rec.busy === true || typeof rec.activeJobId === 'string';
+    rec.coalesced === true ||
+    rec.externalWriter === true ||
+    rec.busy === true ||
+    typeof rec.activeJobId === 'string';
   if (ids.length === 0) return joinedOrBusy ? workspaceBusyForCaller() : out;
   for (const id of ids) {
     const job = absorbJobs.get(id);
@@ -7180,11 +7183,22 @@ function scopeAbsorbRepoResultForCaller(out: unknown, creator: AbsorbJobCreator)
 }
 
 /** Test-only: register a minimal live job with an owner (optionally holding rootDir's writer slot). */
-export function registerAbsorbJobForTests(jobId: string, ownerId: string | null, rootDir?: string): void {
+export function registerAbsorbJobForTests(
+  jobId: string,
+  ownerId: string | null,
+  rootDir?: string
+): void {
   createAbsorbJob(
     process.cwd(),
     {} as AbsorbMemoryBudgetLimits,
-    { enabled: false, strictResumeToken: false, maxRetries: 0, debounceMs: 0, checkIntervalMs: 0, maxCheckOverheadRatio: 0 },
+    {
+      enabled: false,
+      strictResumeToken: false,
+      maxRetries: 0,
+      debounceMs: 0,
+      checkIntervalMs: 0,
+      maxCheckOverheadRatio: 0,
+    },
     undefined,
     undefined,
     undefined,
@@ -7210,7 +7224,10 @@ export async function handleCodebaseTool(
     // Remote callers never see the operator's shared graph slot. There is no per-owner
     // graph store yet, so graph reads fail closed for them.
     if (CALLER_SCOPED_GRAPH_TOOLS.has(name)) {
-      return callerScopedRefusal(name, 'Graph reads over /mcp are caller-scoped; no graph exists for this caller.');
+      return callerScopedRefusal(
+        name,
+        'Graph reads over /mcp are caller-scoped; no graph exists for this caller.'
+      );
     }
     if (name === 'holo_get_absorb_status') {
       const job = absorbJobs.get(args.jobId as string);
@@ -11693,7 +11710,12 @@ async function handleCancelAbsorb(
   if (!jobId) return { error: 'jobId_required', message: 'jobId must be a non-empty string.' };
   const job = absorbJobs.get(jobId);
   if (ctx && (!job || !ctx.ownerId || !job.ownerId || job.ownerId !== ctx.ownerId)) {
-    return { error: 'forbidden', status: 403, jobId, message: 'Only the job owner or the service key can cancel this job.' };
+    return {
+      error: 'forbidden',
+      status: 403,
+      jobId,
+      message: 'Only the job owner or the service key can cancel this job.',
+    };
   }
   if (!job) {
     const recovered = findAbsorbWriterReceipt(jobId);

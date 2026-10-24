@@ -20,10 +20,14 @@ describe('absorb_* tools never forward the server key for a remote caller', () =
     process.env.ABSORB_API_KEY = 'placeholder-operator-value';
     const fetchSpy = stubFetch();
     for (const tool of ['absorb_list_projects', 'absorb_run_absorb', 'absorb_check_credits']) {
-      const r = (await handleAbsorbServiceTool(tool, { projectId: 'p1' }, {
-        ownerId: 'gh-user-1',
-        serverKeysAllowed: false,
-      })) as { refused?: boolean; status?: number };
+      const r = (await handleAbsorbServiceTool(
+        tool,
+        { projectId: 'p1' },
+        {
+          ownerId: 'gh-user-1',
+          serverKeysAllowed: false,
+        }
+      )) as { refused?: boolean; status?: number };
       expect(r.refused).toBe(true);
       expect(r.status).toBe(403);
     }
@@ -33,10 +37,14 @@ describe('absorb_* tools never forward the server key for a remote caller', () =
   it("forwards the caller's own apiKey, never the server's", async () => {
     process.env.ABSORB_API_KEY = 'placeholder-operator-value';
     const fetchSpy = stubFetch();
-    await handleAbsorbServiceTool('absorb_list_projects', { apiKey: 'callers-own' }, {
-      ownerId: 'gh-user-1',
-      serverKeysAllowed: false,
-    });
+    await handleAbsorbServiceTool(
+      'absorb_list_projects',
+      { apiKey: 'callers-own' },
+      {
+        ownerId: 'gh-user-1',
+        serverKeysAllowed: false,
+      }
+    );
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const init = (fetchSpy.mock.calls[0] as unknown[])[1] as RequestInit;
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer callers-own');

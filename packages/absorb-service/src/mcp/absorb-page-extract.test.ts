@@ -53,13 +53,19 @@ describe('foldObservedPageIntoAbsorbArgs', () => {
   it("an unowned fold cannot overwrite the victim workspace's knowledge graph", async () => {
     const victim = new CodebaseGraph();
     setKnowledgeExtractionGraph(victim, 'victim-ws');
-    const folded = await foldObservedPageIntoAbsorbArgs({ observe: OBSERVE, workspaceId: 'victim-ws' });
+    const folded = await foldObservedPageIntoAbsorbArgs({
+      observe: OBSERVE,
+      workspaceId: 'victim-ws',
+    });
     expect(folded.ok).toBe(true);
     expect(getActiveGraph('victim-ws')).toBe(victim);
   });
 
   it('an owned fold stores the page graph under that owner only', async () => {
-    await foldObservedPageIntoAbsorbArgs({ observe: OBSERVE, workspaceId: 'ws-o' }, { ownerId: 'owner-1' });
+    await foldObservedPageIntoAbsorbArgs(
+      { observe: OBSERVE, workspaceId: 'ws-o' },
+      { ownerId: 'owner-1' }
+    );
     expect(getActiveGraph('ws-o', 'owner-1')).not.toBeNull();
     expect(getActiveGraph('ws-o')).toBeNull();
   });

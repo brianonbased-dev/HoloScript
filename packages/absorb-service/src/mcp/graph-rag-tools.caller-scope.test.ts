@@ -97,7 +97,11 @@ describe('holo_ask_codebase / GraphRAG for remote callers', () => {
     // The owner's graph did not land in the shared slot.
     expect(isGraphRAGReady()).toBe(false);
     for (const ctx of [{ ownerId: 'bob' }, { ownerId: null }, {}]) {
-      const r = (await handleGraphRagTool('holo_semantic_search', { query: 'AbsorbService' }, ctx)) as {
+      const r = (await handleGraphRagTool(
+        'holo_semantic_search',
+        { query: 'AbsorbService' },
+        ctx
+      )) as {
         error?: string;
         results?: unknown[];
       };
@@ -115,7 +119,11 @@ describe('holo_ask_codebase / GraphRAG for remote callers', () => {
   it('a remote call never reads the shared slot', async () => {
     const { index, engine } = fixture();
     setGraphRAGState(index, engine); // operator's shared graph
-    const r = (await handleGraphRagTool('holo_semantic_search', { query: 'AbsorbService' }, USER)) as {
+    const r = (await handleGraphRagTool(
+      'holo_semantic_search',
+      { query: 'AbsorbService' },
+      USER
+    )) as {
       error?: string;
     };
     expect(r.error).toBeDefined();

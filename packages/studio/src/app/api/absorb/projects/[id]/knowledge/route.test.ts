@@ -44,7 +44,8 @@ function mcpOk(payload: unknown): Response {
 
 function authHeaders(fetchMock: ReturnType<typeof vi.fn>): string[] {
   return fetchMock.mock.calls.map(
-    (call) => ((call[1] as RequestInit | undefined)?.headers as Record<string, string>)?.Authorization
+    (call) =>
+      ((call[1] as RequestInit | undefined)?.headers as Record<string, string>)?.Authorization
   );
 }
 

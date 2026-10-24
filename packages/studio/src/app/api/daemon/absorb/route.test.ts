@@ -51,7 +51,10 @@ describe('/api/daemon/absorb: owner-checked, sends repoUrl (never a path) to abs
       localPath: `/data/workspaces/${WS}/tiny`,
       metadata: { branch: 'main' },
     });
-    fetchMock = vi.fn(async () => new Response('{"graphId":"g1","stats":{"totalFiles":1},"cost":10}', { status: 200 }));
+    fetchMock = vi.fn(
+      async () =>
+        new Response('{"graphId":"g1","stats":{"totalFiles":1},"cost":10}', { status: 200 })
+    );
     vi.stubGlobal('fetch', fetchMock);
   });
   afterEach(() => {
@@ -114,7 +117,9 @@ describe('/api/daemon/absorb: owner-checked, sends repoUrl (never a path) to abs
     // With absorb's own codes: a bare 504/413 is a proxy's, outcome unknown (Mapping H1).
     const own: Record<number, string> = { 504: 'clone_timeout', 413: 'clone_too_large', 402: 'x' };
     for (const status of [504, 413, 402]) {
-      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: own[status] }), { status }));
+      fetchMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: own[status] }), { status })
+      );
       const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
       expect(res.status).toBe(status);
       expect((await res.json()).reason).toBe('absorb_refused');
@@ -157,8 +162,15 @@ describe('/api/daemon/absorb: owner-checked, sends repoUrl (never a path) to abs
   });
 
   it("absorb's 409 is passed through with its own code and message (Treasurer, #617)", async () => {
-    for (const code of ['import_in_progress', 'import_already_charged', 'import_claim_lost', 'import_id_reused']) {
-      fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ error: code, message: 'x' }), { status: 409 }));
+    for (const code of [
+      'import_in_progress',
+      'import_already_charged',
+      'import_claim_lost',
+      'import_id_reused',
+    ]) {
+      fetchMock.mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: code, message: 'x' }), { status: 409 })
+      );
       const res = await POST(post({ workspaceId: WS, importId: IMPORT_ID }));
       expect(res.status).toBe(409);
       const body = await res.json();
