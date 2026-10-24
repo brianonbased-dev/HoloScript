@@ -21,7 +21,7 @@ bottlenecks and branch sprawl, not safety.
 - On Windows desktop, prefer `.\scripts\safe-commit.ps1` (uses `git commit --only`
   to avoid the multi-agent index race).
 - Railway auto-deploys on push to `main` — validate locally before pushing.
-- **Superseded (2026-10-23):** `pr-reaper` is a retired no-op (ai-ecosystem `scripts/holo-ci/pr-reaper.mjs`); nothing auto-merges. Only Release merges, after the gate. Historical text: ~~**Fallback only:** if your environment genuinely cannot push direct and forces a
+- **Superseded (2026-10-23):** `pr-reaper` is a retired no-op (ai-ecosystem `scripts/holo-ci/pr-reaper.mjs`); nothing auto-merges. Only the gate merges. Historical text: ~~**Fallback only:** if your environment genuinely cannot push direct and forces a
   PR, it is reaped (squash-merged + branch deleted) by HoloCI's `pr-reaper` on its
   schedule — do not wait on it, and do not open PRs by choice.~~
 
