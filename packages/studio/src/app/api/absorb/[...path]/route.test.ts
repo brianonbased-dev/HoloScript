@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
+const auth = vi.hoisted(() => ({ userToken: 'user-token' as string | null }));
+vi.mock('@/app/api/github/_shared', () => ({
+  getGitHubToken: vi.fn(async () => auth.userToken),
+}));
+
 vi.mock('@/lib/services/absorb-client', () => ({
   ABSORB_BASE: 'https://absorb.test',
   ABSORB_API_KEY: 'absorb-key-test',
@@ -10,6 +15,7 @@ import { DELETE, GET, POST, PUT } from './route';
 
 describe('/api/absorb/[...path] route', () => {
   beforeEach(() => {
+    auth.userToken = 'user-token';
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -115,5 +121,49 @@ describe('/api/absorb/[...path] route', () => {
     expect(body.error).toMatch(/unavailable/i);
     expect(body.message).toContain('ECONNREFUSED');
     expect(body.hint).toMatch(/ABSORB_SERVICE_URL/i);
+  });
+
+  it('an unauthenticated POST to absorb/scan is refused (401) and nothing is forwarded', async () => {
+    auth.userToken = null;
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const req = new NextRequest('http://localhost/api/absorb/absorb/scan', {
+      method: 'POST',
+      body: JSON.stringify({ path: '/repo' }),
+      headers: { 'Content-Type': 'application/json', authorization: 'Bearer forged' },
+    });
+    const res = await POST(req, { params: Promise.resolve({ path: ['absorb', 'scan'] }) });
+    expect(res.status).toBe(401);
+    expect((await res.json()).reason).toBe('absorb_no_user_credential');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('an unauthenticated GET is refused (401) and nothing is forwarded', async () => {
+    auth.userToken = null;
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const res = await GET(new NextRequest('http://localhost/api/absorb/credits/balance'), {
+      params: Promise.resolve({ path: ['credits', 'balance'] }),
+    });
+    expect(res.status).toBe(401);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a signed-in POST to absorb/scan forwards only the user credential, never the service key', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{"ok":true}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const req = new NextRequest('http://localhost/api/absorb/absorb/scan', {
+      method: 'POST',
+      body: JSON.stringify({ path: '/repo' }),
+      headers: { 'Content-Type': 'application/json' },
+    });
+    const res = await POST(req, { params: Promise.resolve({ path: ['absorb', 'scan'] }) });
+    expect(res.status).toBe(200);
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://absorb.test/api/absorb/scan');
+    const headers = init.headers as Record<string, string>;
+    expect(headers.Authorization).toBe('Bearer user-token');
+    expect(headers['X-User-Authorization']).toBeUndefined();
+    expect(JSON.stringify(headers)).not.toContain('absorb-key-test');
   });
 });
