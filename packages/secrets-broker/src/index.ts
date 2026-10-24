@@ -729,6 +729,9 @@ export {
   type RemoteSecretSource,
   type CreateHoloKeydSourceOpts,
 } from './holokeyd-source';
+// The holokeyd client (unix socket + ssh transports) is opt-in via the
+// '@holoscript/secrets-broker/holokeyd' subpath and is NOT in the default entry.
+// (The holokeyd-source exports above are pre-existing on main and unchanged.)
 export {
   resolveServiceIdentity,
   normalizeServiceSecretRef,

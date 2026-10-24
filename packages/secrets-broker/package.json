@@ -24,6 +24,11 @@
       "import": "./dist/repository-identity.js",
       "require": "./dist/repository-identity.cjs"
     },
+    "./holokeyd": {
+      "types": "./dist/holokeyd.d.ts",
+      "import": "./dist/holokeyd.js",
+      "require": "./dist/holokeyd.cjs"
+    },
     "./repository-identity/source": "./src/repository_identity.hsplus"
   },
   "scripts": {
