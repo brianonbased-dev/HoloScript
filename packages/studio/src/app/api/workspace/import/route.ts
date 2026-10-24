@@ -32,9 +32,11 @@ import {
 import {
   findDurableAbsorbProject,
   listDurableAbsorbProjects,
-  removeDurableAbsorbProject,
+  removeUnabsorbedAbsorbProject,
   upsertDurableAbsorbProject,
+  isAbsorbStateLockTimeout,
 } from '@/lib/absorb/projectState';
+import { absorbStateLockedResponse, withAbsorbStateLock503 } from '@/lib/absorb/stateLockResponse';
 import { resolveInsideWorkspace } from '@/lib/workspace/workspaceFs';
 import { assertWorkspaceOwner, callerUserId } from '@/lib/workspace/workspaceOwner';
 import { getGitHubToken } from '@/app/api/github/_shared';
@@ -357,6 +359,7 @@ export async function POST(req: NextRequest) {
       /* ignore cleanup failure */
     }
 
+    if (isAbsorbStateLockTimeout(err)) return absorbStateLockedResponse(err.retryAfterSeconds);
     return NextResponse.json(publicCloneError(err), { status: 500 });
   }
 }
@@ -369,7 +372,7 @@ export async function POST(req: NextRequest) {
  * removes the caller's own workspace, and only one that was never absorbed:
  * a workspace with a successful absorb is refused with 409.
  */
-export async function DELETE(req: NextRequest) {
+async function deleteImport(req: NextRequest): Promise<Response> {
   const session = await getServerSession(authOptions);
   const ownerId = callerUserId(session);
   if (!session?.user || !ownerId) {
@@ -384,8 +387,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
   }
   const absorbed =
-    project.lastAbsorbedAt !== null ||
-    project.absorbJobs.some((job) => job.status !== 'failed');
+    project.lastAbsorbedAt !== null || project.absorbJobs.some((job) => job.status !== 'failed');
   if (absorbed) {
     return NextResponse.json(
       { error: 'Workspace has a completed absorb; it is not a failed import.' },
@@ -398,15 +400,30 @@ export async function DELETE(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'id must be a workspace id' }, { status: 400 });
   }
+  // N10 (#617): re-check "never absorbed" and remove the row in ONE locked
+  // step, before touching files, so an absorb recorded since the check above
+  // is never rolled back.
+  const removal = removeUnabsorbedAbsorbProject(id, ownerId);
+  if (removal === 'missing') {
+    return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
+  }
+  if (removal === 'absorbed') {
+    return NextResponse.json(
+      { error: 'Workspace has a completed absorb; it is not a failed import.' },
+      { status: 409 }
+    );
+  }
   try {
     fs.rmSync(workspaceDir, { recursive: true, force: true });
   } catch (err) {
     console.error('[API workspace/import] rollback rm failed:', err);
     return NextResponse.json({ error: 'Could not remove workspace files' }, { status: 500 });
   }
-  removeDurableAbsorbProject(id, ownerId);
   return NextResponse.json({ ok: true, id, removed: true });
 }
+
+/** A state-file lock timeout answers 503 + Retry-After (Mapping N5, #617). */
+export const DELETE = withAbsorbStateLock503(deleteImport);
 
 function readPaperUnlockState(localPath: string): Record<string, unknown> | null {
   // Must resolve inside the workspace after symlinks: a cloned repo could ship
