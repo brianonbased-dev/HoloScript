@@ -4,8 +4,13 @@ import * as path from 'path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 
-const { callMcpToolMock } = vi.hoisted(() => ({
+const { callMcpToolMock, auth } = vi.hoisted(() => ({
   callMcpToolMock: vi.fn(),
+  auth: { userToken: 'gh-user-token' as string | null },
+}));
+
+vi.mock('@/app/api/github/_shared', () => ({
+  getGitHubToken: vi.fn(async () => auth.userToken),
 }));
 
 vi.mock('@/lib/services/absorb-client', () => ({
@@ -35,6 +40,7 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     callMcpToolMock.mockReset();
+    auth.userToken = 'gh-user-token';
     vi.spyOn(console, 'error').mockImplementation(() => {});
     savedWorkspaceRoot = process.env.HOLOSCRIPT_WORKSPACES_DIR;
     savedStateFile = process.env.HOLOSCRIPT_ABSORB_PROJECTS_STATE_FILE;
@@ -74,17 +80,22 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('https://absorb.test/api/absorb/scan');
     expect(JSON.parse(init.body as string)).toEqual({ path: WS_PATH, shallow: true, projectId: WS_PATH });
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer absorb-key-test');
+    // No service key ever on a paid scan: only the user's own credential.
+    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer gh-user-token');
+    expect((init.headers as Record<string, string>)['X-User-Authorization']).toBeUndefined();
+    expect(JSON.stringify(init.headers)).not.toContain('absorb-key-test');
   });
 
-  it("forwards the caller's own Authorization instead of the service key", async () => {
-    const fetchMock = vi.fn(async () => new Response('{"graphId":"g1"}', { status: 200 }));
+  it('no user credential: 401 absorb_no_user_credential, nothing sent, no service-key fallback', async () => {
+    auth.userToken = null;
+    const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    await POST(post(WS_PATH, '{}', { Authorization: 'Bearer user-key' }), {
+    const res = await POST(post(WS_PATH, '{}', { Authorization: 'Bearer absorb-key-test' }), {
       params: Promise.resolve({ id: WS_PATH }),
     });
-    const init = (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1];
-    expect((init.headers as Record<string, string>).Authorization).toBe('Bearer user-key');
+    expect(res.status).toBe(401);
+    expect(await res.json()).toMatchObject({ reason: 'absorb_no_user_credential' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('an id that is neither a saved project nor a path: 404, nothing sent', async () => {
