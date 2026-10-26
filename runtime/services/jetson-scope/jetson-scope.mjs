@@ -515,14 +515,27 @@ function safeRemotePath(p) {
 // a new machine can download it from the hub). It is one of TWO LAN-facing listeners;
 // the other is the view-token-gated LAN phone view on 8482. 8477 and 8481 are 127.0.0.1.
 
-const TOKEN_FILE = join(HERE, 'join-token.txt');
+// The join token lives in a per-user state dir OUTSIDE the repo, and is only read or
+// created when the server/CLI actually needs it -- importing this module writes nothing.
+// Override with JETSON_SCOPE_STATE_DIR. A legacy join-token.txt beside this file is
+// still honoured (read-only) so machines already joined keep working.
+export function stateDir() {
+  if (process.env.JETSON_SCOPE_STATE_DIR) return process.env.JETSON_SCOPE_STATE_DIR;
+  if (process.platform === 'win32') return join(process.env.LOCALAPPDATA || join(os.homedir(), 'AppData', 'Local'), 'holoscript', 'jetson-scope');
+  return join(process.env.XDG_STATE_HOME || join(os.homedir(), '.local', 'state'), 'holoscript', 'jetson-scope');
+}
+const LEGACY_TOKEN_FILE = join(HERE, 'join-token.txt');
 function loadOrCreateToken() {
-  if (existsSync(TOKEN_FILE)) return readFileSync(TOKEN_FILE, 'utf8').trim();
+  const file = join(stateDir(), 'join-token.txt');
+  if (existsSync(file)) return readFileSync(file, 'utf8').trim();
+  if (existsSync(LEGACY_TOKEN_FILE)) return readFileSync(LEGACY_TOKEN_FILE, 'utf8').trim();
   const t = randomBytes(18).toString('hex');
-  writeFileSync(TOKEN_FILE, t + '\n');
+  mkdirSync(stateDir(), { recursive: true });
+  writeFileSync(file, t + '\n', { mode: 0o600 });
   return t;
 }
-const JOIN_TOKEN = loadOrCreateToken();
+let joinTokenCache = null;
+const joinToken = () => (joinTokenCache ??= loadOrCreateToken());
 
 function lanIp() {
   const found = [];
@@ -591,7 +604,7 @@ function startIngestServer() {
       return;
     }
     if (req.method === 'POST' && req.url === '/api/ingest') {
-      if (!tokenMatches(req.headers['x-metal-token'], JOIN_TOKEN)) { res.writeHead(401); res.end('bad token'); return; }
+      if (!tokenMatches(req.headers['x-metal-token'], joinToken())) { res.writeHead(401); res.end('bad token'); return; }
       let body = '';
       req.on('data', (d) => { body += d; if (body.length > 65536) { req.destroy(); } });
       req.on('end', () => {
@@ -681,7 +694,7 @@ async function buildStateJson() {
     pool,
     // Dollars and machine names only; safe for the phone lanes.
     bill: billCache,
-    joinInfo: { lanIp: lanIp(), ingestPort: INGEST_PORT, token: JOIN_TOKEN },
+    joinInfo: { lanIp: lanIp(), ingestPort: INGEST_PORT, token: joinToken() },
   };
 }
 
@@ -942,8 +955,9 @@ const SHIFT_LOG = join(HERE, 'axiom-shift-log.ndjson');
 // Durable home for the 2026-08-31 phone-worker ledgers. Copied off the Claude
 // session scratchpad on 2026-09-07 so a Temp wipe cannot erase the night-watch
 // cursor. New worker builds should append here (or replace this path in one place).
-const RECEIPTS_DIR = join(HERE, 'axiom-receipts');
-try { mkdirSync(RECEIPTS_DIR, { recursive: true }); } catch { /* already there */ }
+// Kept at its existing durable home (override with JETSON_SCOPE_RECEIPTS_DIR). It is only
+// read here (missing files are reported, not created), so nothing is made on import.
+const RECEIPTS_DIR = process.env.JETSON_SCOPE_RECEIPTS_DIR || join(HERE, 'axiom-receipts');
 
 function shiftCursor() {
   try {

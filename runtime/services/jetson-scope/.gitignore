@@ -7,3 +7,7 @@ view-log.txt
 ride-ledger*
 axiom-endpoints.json
 jetson-scope.local.json
+join-token.txt
+view-token.txt
+axiom-receipts/
+axiom-bench/
