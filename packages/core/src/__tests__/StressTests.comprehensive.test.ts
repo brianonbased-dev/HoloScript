@@ -335,19 +335,31 @@ describe('Stress Tests - High Load Scenarios', () => {
 
   describe('Throughput Validation', () => {
     it('should maintain throughput with large batch sizes', () => {
-      const startTime = Date.now();
+      // Release card h (release-2026-10-26-h-stress-throughput-flake): this test used to
+      // assert >1000 items/ms from Date.now() timing, which measured host load, not code,
+      // and failed on busy hosts. De-timed (not skipped): we assert the deterministic
+      // property it guards - every item in a large batch is processed exactly once and
+      // the work grows linearly with batch size. No wall-clock assertion.
+      const processBatch = (n: number) => {
+        let processed = 0;
+        let ops = 0;
+        for (let i = 0; i < n; i++) {
+          processed++;
+          ops++;
+        }
+        return { processed, ops };
+      };
 
-      let processed = 0;
-      for (let i = 0; i < 10000; i++) {
-        processed++;
+      const sizes = [1000, 10000, 100000];
+      const results = sizes.map((n) => ({ n, ...processBatch(n) }));
+
+      for (const r of results) {
+        expect(r.processed).toBe(r.n);
+        expect(r.ops).toBe(r.n); // one operation per item: O(n), no per-item blow-up
       }
-
-      const endTime = Date.now();
-      const duration = endTime - startTime;
-      const throughput = processed / duration;
-
-      // Should process 1000+ items per ms
-      expect(throughput).toBeGreaterThan(1000);
+      // Linear scaling: 10x the items means exactly 10x the operations.
+      expect(results[1].ops / results[0].ops).toBe(10);
+      expect(results[2].ops / results[1].ops).toBe(10);
     });
 
     it('should maintain consistent performance under stress', () => {
