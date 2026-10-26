@@ -16,7 +16,7 @@ import { connect } from 'node:net';
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'node:fs';
 import { readdirSync, unlinkSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import os from 'node:os';
 
@@ -1490,7 +1490,10 @@ async function ensureServerAndOpen() {
 
 // ---------- main ----------
 
-const [, , cmd = 'status', ...rest] = process.argv;
+// Imported (e.g. by the unit test) rather than run: expose the exports, run no command.
+const IS_MAIN = !!process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const [, , argCmd = 'status', ...rest] = process.argv;
+const cmd = IS_MAIN ? argCmd : '__imported__';
 const wantJson = rest.includes('--json');
 
 if (cmd === 'status') {
@@ -1556,7 +1559,7 @@ if (cmd === 'status') {
 } else if (cmd === 'studio') {
   if (STUDIO_URL) spawnSync('cmd', ['/c', 'start', '', STUDIO_URL], { windowsHide: true }); else console.log('STUDIO_URL not set');
   console.log('opened Studio (production)');
-} else {
+} else if (cmd !== '__imported__') {
   console.log(`jetson / metal — our owned metal, two faces
   metal [--json]           BOTH nodes: laptop + jetson (machine face: --json)
   jetson status [--json]   Jetson snapshot
