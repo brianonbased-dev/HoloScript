@@ -24,23 +24,37 @@ function parseInWorker(src: string, timeoutMs = 2000): Promise<Outcome> {
   const code = `
     const { parentPort, workerData } = require('node:worker_threads');
     import(require('node:url').pathToFileURL(workerData.tsxApi).href).then((api) => api.tsImport(require('node:url').pathToFileURL(workerData.parserPath).href, require('node:url').pathToFileURL(workerData.parserPath).href)).then((m) => {
+      parentPort.postMessage({ ready: true });
       const r = new m.HoloScriptCodeParser().parse(workerData.src);
       parentPort.postMessage({ success: r.success, errors: (r.errors || []).map((e) => ({ line: e.line, message: e.message, suggestion: e.suggestion })) });
     }, (e) => parentPort.postMessage({ crash: String(e && e.stack || e) }));
   `;
   return new Promise((res) => {
     const w = new Worker(code, { eval: true, workerData: { src, parserPath, tsxApi } });
-    const t = setTimeout(() => {
+    // The 2 s budget covers the parse only, not loading the parser source,
+    // so a busy machine does not turn module load time into a false timeout.
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const loadGuard = setTimeout(() => {
       void w.terminate();
-      res({ kind: 'timeout' });
-    }, timeoutMs);
-    w.once('message', (m) => {
+      res({ kind: 'error', message: 'parser did not load within 60 s' });
+    }, 60000);
+    w.on('message', (m) => {
+      if (m.ready) {
+        clearTimeout(loadGuard);
+        t = setTimeout(() => {
+          void w.terminate();
+          res({ kind: 'timeout' });
+        }, timeoutMs);
+        return;
+      }
+      clearTimeout(loadGuard);
       clearTimeout(t);
       void w.terminate();
       res(m.crash ? { kind: 'error', message: m.crash } : { kind: 'done', ...m });
     });
     w.once('error', (e) => {
       clearTimeout(t);
+      clearTimeout(loadGuard);
       res({ kind: 'error', message: String(e) });
     });
   });
@@ -55,7 +69,7 @@ const SNIPPETS = [
 
 describe('HoloScriptCodeParser: environment separators do not hang', () => {
   for (const src of SNIPPETS) {
-    it(`returns within 2 s: ${src}`, { timeout: 20000 }, async () => {
+    it(`returns within 2 s: ${src}`, { timeout: 90000 }, async () => {
       const out = await parseInWorker(src);
       expect(out.kind, JSON.stringify(out)).toBe('done');
       if (out.kind !== 'done') return;
@@ -65,7 +79,7 @@ describe('HoloScriptCodeParser: environment separators do not hang', () => {
     });
   }
 
-  it('keeps reading settings after the stray separator', { timeout: 20000 }, async () => {
+  it('keeps reading settings after the stray separator', { timeout: 90000 }, async () => {
     const out = await parseInWorker('environment {\n  a: 1;\n  b: 2\n}');
     expect(out.kind).toBe('done');
     if (out.kind !== 'done') return;
@@ -75,7 +89,7 @@ describe('HoloScriptCodeParser: environment separators do not hang', () => {
     expect(out.errors[0].suggestion).toBe('Delete the ";" on line 2.');
   });
 
-  it('still parses an environment with no separators cleanly', { timeout: 20000 }, async () => {
+  it('still parses an environment with no separators cleanly', { timeout: 90000 }, async () => {
     const out = await parseInWorker('environment { skybox: "gradient" }');
     expect(out).toMatchObject({ kind: 'done', errors: [] });
   });
