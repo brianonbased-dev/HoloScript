@@ -10,7 +10,7 @@
 // separately from ssh so "box is off" and "login broken" stay distinguishable
 // (an ssh failure alone reads identical either way).
 
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { connect } from 'node:net';
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'node:fs';
@@ -524,6 +524,29 @@ export function stateDir() {
   if (process.platform === 'win32') return join(process.env.LOCALAPPDATA || join(os.homedir(), 'AppData', 'Local'), 'holoscript', 'jetson-scope');
   return join(process.env.XDG_STATE_HOME || join(os.homedir(), '.local', 'state'), 'holoscript', 'jetson-scope');
 }
+// Write a new secret token readable only by its owner. POSIX: mode 0600. win32: icacls
+// strips inheritance and grants only the current user (no SYSTEM/Administrators/other
+// SIDs), run via execFileSync with an argv array (no shell). FAIL CLOSED: if the ACL step
+// fails, the file just created is deleted and we throw, so the token is never used.
+export function writeOwnerOnlyToken(file, token) {
+  writeFileSync(file, token + '\n', { mode: 0o600, flag: 'wx' });
+  if (process.platform !== 'win32') return;
+  try {
+    const u = os.userInfo().username;
+    const who = process.env.USERDOMAIN ? `${process.env.USERDOMAIN}\\${u}` : u;
+    execFileSync('icacls', [file, '/inheritance:r', '/grant:r', `${who}:F`], {
+      windowsHide: true,
+      stdio: 'pipe',
+    });
+  } catch (e) {
+    try {
+      unlinkSync(file); // only the file we just created
+    } catch {
+      /* best effort */
+    }
+    throw new Error('could not set an owner-only ACL on ' + file + ': ' + (e.message || e));
+  }
+}
 const LEGACY_TOKEN_FILE = join(HERE, 'join-token.txt');
 function loadOrCreateToken() {
   const file = join(stateDir(), 'join-token.txt');
@@ -531,7 +554,7 @@ function loadOrCreateToken() {
   if (existsSync(LEGACY_TOKEN_FILE)) return readFileSync(LEGACY_TOKEN_FILE, 'utf8').trim();
   const t = randomBytes(18).toString('hex');
   mkdirSync(stateDir(), { recursive: true });
-  writeFileSync(file, t + '\n', { mode: 0o600 });
+  writeOwnerOnlyToken(file, t);
   return t;
 }
 let joinTokenCache = null;
@@ -910,7 +933,7 @@ const VIEW_TOKEN_FILE = join(HERE, 'view-token.txt');
 function loadOrCreateViewToken() {
   if (existsSync(VIEW_TOKEN_FILE)) return readFileSync(VIEW_TOKEN_FILE, 'utf8').trim();
   const t = randomBytes(18).toString('hex');
-  writeFileSync(VIEW_TOKEN_FILE, t + '\n');
+  writeOwnerOnlyToken(VIEW_TOKEN_FILE, t);
   return t;
 }
 

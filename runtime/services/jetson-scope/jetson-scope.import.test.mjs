@@ -12,7 +12,8 @@ const snap = (d) => readdirSync(d).sort();
 test('importing jetson-scope.mjs creates no files', async () => {
   const cwd = mkdtempSync(join(tmpdir(), 'jscope-cwd-'));
   const state = mkdtempSync(join(tmpdir(), 'jscope-state-'));
-  const oldCwd = process.cwd(), oldState = process.env.JETSON_SCOPE_STATE_DIR;
+  const oldCwd = process.cwd(),
+    oldState = process.env.JETSON_SCOPE_STATE_DIR;
   const before = snap(HERE);
   try {
     process.chdir(cwd);
@@ -23,7 +24,9 @@ test('importing jetson-scope.mjs creates no files', async () => {
     assert.deepEqual(snap(state), [], 'state dir untouched on import');
   } finally {
     process.chdir(oldCwd);
-    if (oldState === undefined) delete process.env.JETSON_SCOPE_STATE_DIR; else process.env.JETSON_SCOPE_STATE_DIR = oldState;
-    rmSync(cwd, { recursive: true, force: true }); rmSync(state, { recursive: true, force: true });
+    if (oldState === undefined) delete process.env.JETSON_SCOPE_STATE_DIR;
+    else process.env.JETSON_SCOPE_STATE_DIR = oldState;
+    rmSync(cwd, { recursive: true, force: true });
+    rmSync(state, { recursive: true, force: true });
   }
 });
