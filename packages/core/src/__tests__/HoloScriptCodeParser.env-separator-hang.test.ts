@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Regression: stray ; or , between environment settings used to hang
  * HoloScriptCodeParser forever (plan hs-parser-hangs-plan-20261026, cause C1).
  *
@@ -89,6 +89,15 @@ describe('HoloScriptCodeParser: environment separators do not hang', () => {
     expect(out.errors[0].suggestion).toBe('Delete the ";" on line 2.');
   });
 
+  it('names the comma when the stray separator is a comma', { timeout: 90000 }, async () => {
+    const out = await parseInWorker('environment {\n  a: 1,\n  b: 2\n}');
+    expect(out.kind).toBe('done');
+    if (out.kind !== 'done') return;
+    expect(out.errors.map((e) => e.message)).toEqual([
+      'Line 2: remove the "," here. Settings inside environment { } do not need a ; or , between them. Put each setting on its own line.',
+    ]);
+    expect(out.errors[0].suggestion).toBe('Delete the "," on line 2.');
+  });
   it('still parses an environment with no separators cleanly', { timeout: 90000 }, async () => {
     const out = await parseInWorker('environment { skybox: "gradient" }');
     expect(out).toMatchObject({ kind: 'done', errors: [] });
