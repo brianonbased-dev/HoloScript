@@ -11,12 +11,15 @@ import {
   aclEntries,
   isOwnerOnly,
   _setIcaclsRunner,
+  TOKEN_RE,
 } from './jetson-scope.mjs';
+import { randomBytes } from 'node:crypto';
 
+const LEGACY = 'ab'.repeat(18); // 36 lowercase hex, like randomBytes(18)
 const win = process.platform === 'win32';
 const winOnly = !win && 'icacls ACLs are win32-only; POSIX uses mode 0600';
 const posixOnly = win && 'mode bits are POSIX-only; win32 uses icacls';
-const ICACLS = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'icacls.exe');
+const ICACLS = 'C:\\Windows\\System32\\icacls.exe';
 const show = (file) => {
   const out = execFileSync(ICACLS, [file], { encoding: 'utf8', windowsHide: true });
   console.log(out);
@@ -91,15 +94,15 @@ test(
   () =>
     withDir((dir) => {
       const file = join(dir, 'join-token.txt');
-      writeFileSync(file, 'legacy-token\n'); // inherits the temp dir's ACEs
+      writeFileSync(file, LEGACY + '\n'); // inherits the temp dir's ACEs
       console.log('before read:');
       show(file);
       assert.equal(isOwnerOnly(file), false, 'starts with inherited ACEs');
-      assert.equal(readOwnerOnlyToken(file), 'legacy-token');
+      assert.equal(readOwnerOnlyToken(file), LEGACY);
       console.log('after read:');
       show(file);
       assertOwnerOnly(file);
-      assert.equal(readFileSync(file, 'utf8'), 'legacy-token\n');
+      assert.equal(readFileSync(file, 'utf8'), LEGACY + '\n');
     })
 );
 
@@ -130,8 +133,8 @@ test('read refuses when the ACL is still not owner-only after reapply', { skip: 
 test('POSIX: a token wider than 0600 is chmodded to 0600 on read', { skip: posixOnly }, () =>
   withDir((dir) => {
     const file = join(dir, 'join-token.txt');
-    writeFileSync(file, 'p\n', { mode: 0o644 });
-    assert.equal(readOwnerOnlyToken(file), 'p');
+    writeFileSync(file, LEGACY + '\n', { mode: 0o644 });
+    assert.equal(readOwnerOnlyToken(file), LEGACY);
     assert.equal(statSync(file).mode & 0o777, 0o600);
   })
 );
@@ -164,8 +167,38 @@ test('read refuses an empty or whitespace-only token file and keeps it', () =>
         writeOwnerOnlyToken(file, 'x', {
           writeToken: (p) => writeFileSync(p, body, { flag: 'r+' }),
         });
-      assert.throws(() => readOwnerOnlyToken(file), /refusing empty token file/);
+      assert.throws(() => readOwnerOnlyToken(file), /refusing empty token file .*repair/);
       assert.ok(existsSync(file));
       assert.equal(readFileSync(file, 'utf8'), body ?? '');
     }
   }));
+
+test('new token: a write failure injected via afterAcl leaves no file and returns no token', () =>
+  withDir((dir) => {
+    const file = join(dir, 'join-token.txt');
+    let got;
+    assert.throws(() => {
+      got = writeOwnerOnlyToken(file, LEGACY, {
+        afterAcl() {
+          throw new Error('injected failure before write');
+        },
+      });
+    }, /could not write token file/);
+    assert.equal(got, undefined);
+    assert.equal(existsSync(file), false);
+  }));
+
+test('read refuses malformed tokens and keeps the file', () =>
+  withDir((dir) => {
+    const bad = ['not-a-token', 'AB'.repeat(18), 'ab'.repeat(17), 'ab'.repeat(19), 'zz'.repeat(18)];
+    bad.forEach((body, i) => {
+      const file = join(dir, 'm' + i + '.txt');
+      writeOwnerOnlyToken(file, body);
+      assert.throws(() => readOwnerOnlyToken(file), /refusing malformed token file .*repair/);
+      assert.equal(readFileSync(file, 'utf8'), body + '\n');
+    });
+  }));
+
+test('generator shape matches the read check', () => {
+  assert.match(randomBytes(18).toString('hex'), TOKEN_RE);
+});

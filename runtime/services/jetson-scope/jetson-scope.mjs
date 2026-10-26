@@ -530,10 +530,11 @@ export function stateDir() {
 // written, so the secret never exists under a wider ACL. FAIL CLOSED on any ACL error.
 // On read, an existing file is checked and re-locked if needed; it is never deleted,
 // rewritten or rotated - if it cannot be made owner-only it is refused.
-const ICACLS = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'icacls.exe');
+const ICACLS = 'C:\\Windows\\System32\\icacls.exe';
 const defaultIcacls = (args) =>
   execFileSync(ICACLS, args, { encoding: 'utf8', windowsHide: true, stdio: 'pipe' });
 let icacls = defaultIcacls;
+export const TOKEN_RE = /^[0-9a-f]{36}$/;
 // Test seam: swap the icacls runner (pass null to restore the real one).
 export function _setIcaclsRunner(fn) {
   icacls = fn || defaultIcacls;
@@ -614,9 +615,11 @@ export function readOwnerOnlyToken(file) {
     }
     if (statSync(file).mode & 0o077) throw new Error(`refusing token file ${file}: mode is wider than 0600`);
   }
-  // An empty token is refused, never deleted or replaced: callers surface this error.
+  // An empty or malformed token is refused, never deleted or replaced: callers surface
+  // this error and the operator repairs the file. Tokens are randomBytes(18) hex = 36 chars.
   const token = readFileSync(file, 'utf8').trim();
-  if (!token) throw new Error(`refusing empty token file ${file}`);
+  if (!token) throw new Error(`refusing empty token file ${file}: repair it (36 lowercase hex chars) or remove it by hand`);
+  if (!TOKEN_RE.test(token)) throw new Error(`refusing malformed token file ${file}: repair it (36 lowercase hex chars) or remove it by hand`);
   return token;
 }
 const LEGACY_TOKEN_FILE = join(HERE, 'join-token.txt');
