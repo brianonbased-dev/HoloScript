@@ -33,7 +33,10 @@ function arg(name, def) {
 }
 
 const target = arg('package');
-const npmVersions = arg('npm', '10.9.2,11.6.2').split(',').map((s) => s.trim()).filter(Boolean);
+const npmVersions = arg('npm', '10.9.2,11.6.2')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 if (!target) {
   console.error(`${TAG} usage: --package <name> [--npm 10.9.2,11.6.2] [--receipt <path>]`);
   process.exit(2);
@@ -105,9 +108,12 @@ console.log(`${TAG} target ${target}; closure (${names.length}): ${names.join(',
 const tarballs = [];
 for (const n of names) {
   const { dir, manifest } = ws.get(n);
-  const r = run('corepack', // --ignore-scripts: packages are pre-built; publish-time prepack probes (e.g. secrets-broker
-  // repository-identity check) are not part of consumer installability.
-  ['pnpm', 'pack', '--ignore-scripts', '--pack-destination', tgzDir], { cwd: dir });
+  const r = run(
+    'corepack', // --ignore-scripts: packages are pre-built; publish-time prepack probes (e.g. secrets-broker
+    // repository-identity check) are not part of consumer installability.
+    ['pnpm', 'pack', '--config.ignore-scripts=true', '--pack-destination', tgzDir],
+    { cwd: dir }
+  );
   if (r.status !== 0) {
     console.error(`${TAG} FAIL: pnpm pack ${n}\n${r.stdout}\n${r.stderr}`);
     process.exit(1);
@@ -135,8 +141,17 @@ for (const v of npmVersions) {
   const ver = run('npx', ['-y', `npm@${v}`, '--version'], { cwd: consumer });
   const install = run(
     'npx',
-    ['-y', `npm@${v}`, 'install', ...tarballs.map((t) => t.file), '--cache', cache,
-      '--no-audit', '--no-fund', '--loglevel=error'],
+    [
+      '-y',
+      `npm@${v}`,
+      'install',
+      ...tarballs.map((t) => t.file),
+      '--cache',
+      cache,
+      '--no-audit',
+      '--no-fund',
+      '--loglevel=error',
+    ],
     { cwd: consumer }
   );
   const res = {
@@ -151,14 +166,20 @@ for (const v of npmVersions) {
       const spec = sub === '.' ? target : `${target}/${sub.replace(/^\.\//, '')}`;
       const imp = run(
         process.execPath,
-        ['--input-type=module', '-e',
-          `import(${JSON.stringify(spec)}).then(()=>process.exit(0),(e)=>{console.error(e?.stack||e);process.exit(1)})`],
+        [
+          '--input-type=module',
+          '-e',
+          `import(${JSON.stringify(spec)}).then(()=>process.exit(0),(e)=>{console.error(e?.stack||e);process.exit(1)})`,
+        ],
         { cwd: consumer, shell: false, timeout: 120000 }
       );
       res.imports.push({
         spec,
         exit: imp.status,
-        error: imp.status === 0 ? undefined : (imp.stderr || '').trim().split('\n').slice(0, 6).join('\n'),
+        error:
+          imp.status === 0
+            ? undefined
+            : (imp.stderr || '').trim().split('\n').slice(0, 6).join('\n'),
       });
     }
   }
@@ -166,10 +187,14 @@ for (const v of npmVersions) {
   res.verdict = pass ? 'PASS' : 'FAIL';
   ok &&= pass;
   results.push(res);
-  console.log(`${TAG} npm ${v} (${res.npmReported}): install exit ${res.installExit}; imports ${
-    res.imports.filter((i) => i.exit === 0).length}/${entries.length} -> ${res.verdict}`);
+  console.log(
+    `${TAG} npm ${v} (${res.npmReported}): install exit ${res.installExit}; imports ${
+      res.imports.filter((i) => i.exit === 0).length
+    }/${entries.length} -> ${res.verdict}`
+  );
   if (res.installExit !== 0) console.log(res.installTail);
-  for (const i of res.imports.filter((x) => x.exit !== 0)) console.log(`  import ${i.spec} FAILED\n${i.error}`);
+  for (const i of res.imports.filter((x) => x.exit !== 0))
+    console.log(`  import ${i.spec} FAILED\n${i.error}`);
 }
 
 const receipt = {
@@ -177,7 +202,12 @@ const receipt = {
   head,
   target: `${target}@${targetManifest.version}`,
   node: process.version,
-  tarballs: tarballs.map(({ name, version, file, sha256: h }) => ({ name, version, file: path.basename(file), sha256: h })),
+  tarballs: tarballs.map(({ name, version, file, sha256: h }) => ({
+    name,
+    version,
+    file: path.basename(file),
+    sha256: h,
+  })),
   exportsChecked: entries,
   results,
   verdict: ok ? 'PASS' : 'FAIL',
@@ -185,7 +215,12 @@ const receipt = {
 };
 const receiptPath = arg(
   'receipt',
-  path.join(ROOT, '.scratch', 'receipts', `consumption-${target.replace(/[@/]/g, '_')}-${head.slice(0, 10)}.json`)
+  path.join(
+    ROOT,
+    '.scratch',
+    'receipts',
+    `consumption-${target.replace(/[@/]/g, '_')}-${head.slice(0, 10)}.json`
+  )
 );
 fs.mkdirSync(path.dirname(receiptPath), { recursive: true });
 fs.writeFileSync(receiptPath, JSON.stringify(receipt, null, 2) + '\n');

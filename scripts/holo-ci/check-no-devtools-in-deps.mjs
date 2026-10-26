@@ -60,14 +60,17 @@ function main() {
     const v = violations.find((x) => x.name === name);
     const still = new Set(v?.deps ?? []);
     const fixed = deps.filter((d) => !still.has(d));
-    if (fixed.length) console.log(`${TAG} note: KNOWN entry fixed, remove it: ${name} -> ${fixed.join(', ')}`);
+    if (fixed.length)
+      console.log(`${TAG} note: KNOWN entry fixed, remove it: ${name} -> ${fixed.join(', ')}`);
   }
   if (fresh.length) {
     console.error(`${TAG} FAIL: dev tooling in runtime "dependencies" (move to devDependencies):`);
     for (const v of fresh) console.error(`  ${v.file} (${v.name}): ${v.deps.join(', ')}`);
     process.exit(1);
   }
-  console.log(`${TAG} OK: no new dev tooling in runtime dependencies (${violations.length} known).`);
+  console.log(
+    `${TAG} OK: no new dev tooling in runtime dependencies (${violations.length} known).`
+  );
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
