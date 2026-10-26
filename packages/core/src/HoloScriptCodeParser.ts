@@ -1754,7 +1754,10 @@ export class HoloScriptCodeParser {
     const body: ASTNode[] = [];
     if (this.check('punctuation', '{')) {
       this.advance();
+      let lastPosition = -1;
       while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        if (this.stepPastIfStuck(lastPosition)) continue;
+        lastPosition = this.position;
         this.skipNewlines();
         const node = this.parseDeclaration();
         if (node) body.push(node);
@@ -1782,7 +1785,10 @@ export class HoloScriptCodeParser {
     const body: ASTNode[] = [];
     if (this.check('punctuation', '{')) {
       this.advance();
+      let lastPosition = -1;
       while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        if (this.stepPastIfStuck(lastPosition)) continue;
+        lastPosition = this.position;
         this.skipNewlines();
         const node = this.parseDeclaration();
         if (node) body.push(node);
@@ -1818,7 +1824,10 @@ export class HoloScriptCodeParser {
     if (this.check('punctuation', '{')) {
       this.advance(); // consume {
 
+      let lastPosition = -1;
       while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        if (this.stepPastIfStuck(lastPosition)) continue;
+        lastPosition = this.position;
         this.skipNewlines();
         if (this.check('punctuation', '}')) break;
 
@@ -1833,6 +1842,23 @@ export class HoloScriptCodeParser {
             };
             settings[`@${directive.type}`] = (dir.args || dir.config || []) as HoloScriptValue;
           }
+          continue;
+        }
+
+        // A ; or , between environment settings is not part of the language.
+        // Say so in plain words, step past it, and keep reading.
+        if (this.check('punctuation', ';') || this.check('punctuation', ',')) {
+          const sep = this.currentToken();
+          const line = sep?.line || 0;
+          this.addError(
+            this.createError(
+              'HS004',
+              `Line ${line}: remove the "${sep?.value}" here. Settings inside environment { } do not need a ; or , between them. Put each setting on its own line.`,
+              sep,
+              `Delete the "${sep?.value}" on line ${line}.`
+            )
+          );
+          this.advance();
           continue;
         }
 
@@ -1903,7 +1929,10 @@ export class HoloScriptCodeParser {
     if (this.check('punctuation', '{')) {
       this.advance(); // consume {
 
+      let lastPosition = -1;
       while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        if (this.stepPastIfStuck(lastPosition)) continue;
+        lastPosition = this.position;
         this.skipNewlines();
         if (this.check('punctuation', '}')) break;
 
@@ -1983,7 +2012,10 @@ export class HoloScriptCodeParser {
 
     if (this.check('punctuation', '{')) {
       this.advance();
+      let lastPosition = -1;
       while (!this.check('punctuation', '}') && this.position < this.tokens.length) {
+        if (this.stepPastIfStuck(lastPosition)) continue;
+        lastPosition = this.position;
         this.skipNewlines();
         if (this.check('punctuation', '}')) break;
 
@@ -3659,6 +3691,26 @@ export class HoloScriptCodeParser {
     }
     this.expect('punctuation', ')');
     return params;
+  }
+
+  /**
+   * No-progress guard for block loops. If a loop pass ended at the same token it
+   * started on, report the token in plain words and step past it so the loop
+   * cannot spin forever. Returns true when it had to step past a token.
+   */
+  private stepPastIfStuck(lastPosition: number): boolean {
+    if (this.position !== lastPosition) return false;
+    const token = this.currentToken();
+    const line = token?.line || 0;
+    this.addError(
+      this.createError(
+        'HS004',
+        `Line ${line}: HoloScript could not read "${token?.value ?? ''}" here, so it skipped it. Check this line for a typo or a stray symbol.`,
+        token
+      )
+    );
+    this.advance();
+    return true;
   }
 
   public expectIdentifier(): string | null {
