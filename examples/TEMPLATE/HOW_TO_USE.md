@@ -25,7 +25,7 @@ cp examples/TEMPLATE/TUTORIAL.md examples/[category]/[your-example-name]/TUTORIA
 
 Open `[your-file].holo` and update the metadata block:
 
-```holoscript
+```hs
 metadata {
   name: "Your Actual Example Name"
   description: "A clear, one-sentence description"
@@ -194,7 +194,7 @@ The template includes:
 
 If your example is desktop-only:
 
-```holoscript
+```hs
 # DELETE or comment out:
 player#vr_player @vr { ... }
 
@@ -209,7 +209,7 @@ camera#main_camera {
 
 For multiplayer examples:
 
-```holoscript
+```hs
 network_manager#multiplayer @photon {
   max_players_per_room: 16
 
@@ -227,7 +227,7 @@ network_manager#multiplayer @photon {
 
 For AR examples:
 
-```holoscript
+```hs
 ar_session#ar_config @mobile {
   plane_detection: "horizontal"
 

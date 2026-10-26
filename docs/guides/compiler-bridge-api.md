@@ -4,7 +4,7 @@ The `CompilerBridge` is the main thread API for interacting with the HoloScript 
 
 ## Architecture
 
-```holoscript
+```hs
 Main Thread (React UI)
     |
     v

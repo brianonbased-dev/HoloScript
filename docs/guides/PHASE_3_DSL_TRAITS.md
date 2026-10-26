@@ -6,7 +6,7 @@ Declarative trait configuration system enabling graphics properties to be specif
 
 Phase 3 introduces trait annotation syntax to HoloScript+, allowing developers to attach graphics configurations to virtual objects declaratively:
 
-```holoscript
+```holo
 composition myObject {
   position: [0, 0, 0]
   @material { type: pbr, metallic: 0.8, roughness: 0.2 }
@@ -53,7 +53,7 @@ createGraphicsTraits(config: GraphicsConfiguration): void
 
 ### @material - PBR Material Configuration
 
-```holoscript
+```hs
 @material {
   type: pbr,
   metallic: 0.8,
@@ -96,7 +96,7 @@ createGraphicsTraits(config: GraphicsConfiguration): void
 
 ### @lighting - Light Source and Illumination
 
-```holoscript
+```hs
 @lighting {
   type: directional,
   intensity: 1.5,
@@ -139,7 +139,7 @@ createGraphicsTraits(config: GraphicsConfiguration): void
 
 ### @rendering - Quality and Performance Settings
 
-```holoscript
+```hs
 @rendering {
   quality: high,
   platform: desktop,
@@ -188,7 +188,7 @@ createGraphicsTraits(config: GraphicsConfiguration): void
 
 ### Basic Material Configuration
 
-```holoscript
+```holo
 composition goldenStatue {
   position: [0, 2, 0]
   scale: 2
@@ -203,7 +203,7 @@ composition goldenStatue {
 
 ### Complete Graphics Setup
 
-```holoscript
+```holo
 composition sciFiCube {
   position: [0, 0, 0]
 
@@ -232,7 +232,7 @@ composition sciFiCube {
 
 ### Mobile-Optimized Scene
 
-```holoscript
+```holo
 composition mobileObject {
   position: [0, 0, 0]
 
@@ -260,7 +260,7 @@ composition mobileObject {
 
 ### VR-Optimized Scene
 
-```holoscript
+```holo
 composition vrObject {
   position: [0, 1.5, -1]
 

@@ -329,7 +329,7 @@ composition "Dispensary" {
 
 Brittney is a polyglot orchestrator. When a client describes their business, she decides which format each piece needs:
 
-```holoscript
+```hs
 
 Client: "I need a dispensary with real-time inventory"
 

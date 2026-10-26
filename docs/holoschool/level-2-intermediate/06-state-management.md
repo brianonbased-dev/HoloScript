@@ -31,7 +31,7 @@ orb door {
 
 For state shared across multiple objects, use `state_store`:
 
-```holoscript
+```hs
 state_store "game" {
   score: 0
   level: 1
@@ -62,7 +62,7 @@ orb score_display {
 
 The `bind` keyword creates a one-way reactive binding:
 
-```holoscript
+```hs
 orb health_bar {
   @ui_panel
   bind: {
@@ -139,7 +139,7 @@ orb score_manager {
 
 Derived values that update automatically:
 
-```holoscript
+```hs
 state_store "player" {
   health: 100
   max_health: 100
@@ -182,7 +182,7 @@ orb save_button {
 
 For multiplayer, mark state as synchronized:
 
-```holoscript
+```hs
 state_store "lobby" {
   @networked
   @owner_only_write    // Only the host can write
@@ -195,7 +195,7 @@ state_store "lobby" {
 
 ## Debugging State
 
-```holoscript
+```hs
 state_store "game" {
   @debug_overlay       // Shows state in VR debug panel
   score: 0
@@ -231,7 +231,7 @@ orb door { @state_machine states: { "closed": {...}, "opening": {...}, "open": {
 
 ### ❌ Bad: Boolean soup
 
-```holoscript
+```hs
 orb door {
   is_closed: true
   is_opening: false

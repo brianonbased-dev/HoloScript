@@ -298,7 +298,7 @@ No migration required. Existing HoloScript code continues to work.
 
 To use new export features:
 
-```holoscript
+```hsplus
 @export_config(
   format: "usdz",
   optimize: true,

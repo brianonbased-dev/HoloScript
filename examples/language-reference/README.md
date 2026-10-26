@@ -94,7 +94,7 @@ For AI agents generating HoloScript code:
 
 **Minimal .hs example:**
 
-```holoscript
+```holo
 object "Cube" {
   geometry: "box"
   color: "red"
@@ -104,7 +104,7 @@ object "Cube" {
 
 **Minimal .hsplus example:**
 
-```holoscript
+```holo
 composition "Scene" {
   template "Interactive" {
     @grabbable
@@ -120,7 +120,7 @@ composition "Scene" {
 
 **Minimal .holo (entity) example:**
 
-```holoscript
+```holo
 composition SimpleScene {
   entity PhysicsObject {
     rigidbody: {
@@ -138,7 +138,7 @@ composition SimpleScene {
 
 **Minimal .holo (object) example:**
 
-```holoscript
+```holo
 composition "Scene" {
   template "Base" {
     @collidable

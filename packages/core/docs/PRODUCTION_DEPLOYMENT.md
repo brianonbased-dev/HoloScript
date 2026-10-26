@@ -173,7 +173,7 @@ Add to `.gitignore`:
 
 Update your production HoloScript files:
 
-```holoscript
+```holo
 scene "ProductionNFTMint" {
   environment: "gallery",
   lighting: "natural"

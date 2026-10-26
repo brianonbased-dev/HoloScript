@@ -76,7 +76,7 @@ build/unity/
 3. Copy your App ID
 4. Update in HoloScript or Unity:
 
-```holoscript
+```hs
 network_manager#multiplayer @photon {
   app_id: "YOUR_PHOTON_APP_ID_HERE"
   region: "us"
@@ -141,7 +141,7 @@ HoloScript supports multiple network backends:
 - Paid for >20 players
 - Requires internet
 
-```holoscript
+```hs
 network_manager @photon {
   app_id: "YOUR_APP_ID"
   max_players_per_room: 16
@@ -161,7 +161,7 @@ network_manager @photon {
 - Requires server setup
 - More configuration
 
-```holoscript
+```hs
 network_manager @mirror {
   transport: "kcp"  // or "telepathy", "websocket"
   max_connections: 16
@@ -180,7 +180,7 @@ network_manager @mirror {
 
 - Unreal-only
 
-```holoscript
+```hs
 network_manager @unreal_replication {
   net_update_frequency: 60
   min_net_update_frequency: 2
@@ -201,7 +201,7 @@ network_manager @unreal_replication {
 - NAT traversal issues
 - Lower player count
 
-```holoscript
+```hs
 network_manager @webrtc {
   signaling_server: "wss://your-signaling.com"
   max_peers: 8
@@ -214,7 +214,7 @@ network_manager @webrtc {
 
 Every player gets a networked VR rig:
 
-```holoscript
+```hs
 player#vr_rig @networked {
   network_id: auto
   ownership: "mine"
@@ -239,7 +239,7 @@ player#vr_rig @networked {
 
 When you grab an object, you request ownership:
 
-```holoscript
+```hs
 on_grab(object) {
   network_request_ownership: object
 
@@ -261,7 +261,7 @@ on_grab(object) {
 
 Call functions on all clients:
 
-```holoscript
+```hs
 // Send to all
 send_rpc_all: "ClearWhiteboard", []
 
@@ -276,7 +276,7 @@ send_rpc_others: "PlaySound", ["notification.wav"]
 
 Sync variables across network:
 
-```holoscript
+```hs
 current_page: 0  // Local value
 
 network_sync {
@@ -293,7 +293,7 @@ on_value_changed {
 
 ### Photon Voice
 
-```holoscript
+```hs
 voice_chat#player_voice @photon_voice {
   codec: "opus"
   sample_rate: 48000
@@ -322,7 +322,7 @@ voice_chat#player_voice @photon_voice {
 
 ### WebRTC Voice (WebXR)
 
-```holoscript
+```hs
 voice_chat @webrtc {
   peer_connection {
     audio: true
@@ -339,7 +339,7 @@ voice_chat @webrtc {
 
 The whiteboard syncs drawing strokes, not the full texture (efficient):
 
-```holoscript
+```hs
 object#whiteboard @drawable {
   drawing_system {
     on_draw(stroke_data) {
@@ -376,7 +376,7 @@ Target: <100 kbps per player (without voice)
 - Only sync when values change significantly
 - Compress vector data (quantize floats)
 
-```holoscript
+```hs
 transform_sync {
   send_rate: 10  // Reduce from 20 for distant players
   interpolation: "lerp"
@@ -391,7 +391,7 @@ transform_sync {
 
 Don't sync objects far from players:
 
-```holoscript
+```hs
 object#distant_object @networked {
   network_culling {
     enabled: true
@@ -404,7 +404,7 @@ object#distant_object @networked {
 
 Photon can cull based on player zones:
 
-```holoscript
+```hs
 network_manager {
   interest_management: "zone"
 
@@ -451,7 +451,7 @@ Only sync objects in player's current zone.
 
 ### Teleportation with Network Sync
 
-```holoscript
+```hs
 on_teleport(target_position) {
   transform.position = target_position
   send_rpc_all: "OnPlayerTeleported", [network_id, target_position]
@@ -460,7 +460,7 @@ on_teleport(target_position) {
 
 ### Custom Matchmaking
 
-```holoscript
+```hs
 network_manager {
   matchmaking {
     custom_properties {
@@ -479,7 +479,7 @@ network_manager {
 
 ### Persistence (Save Room State)
 
-```holoscript
+```hs
 on_master_client_event {
   save_room_state: {
     whiteboard_data: whiteboard.drawing_texture.serialize()

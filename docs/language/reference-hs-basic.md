@@ -19,7 +19,7 @@ The fundamental building block is the `object` keyword:
 
 Live compiler-wasm 3.0.0 form uses an identifier name and traits inside braces:
 
-```holoscript
+```holo
 object Cube { @grabbable geometry: "x" }
 ```
 
@@ -27,7 +27,7 @@ object Cube { @grabbable geometry: "x" }
 
 ### With Position
 
-```holoscript
+```holo
 object "PositionedSphere" {
   geometry: "sphere"
   position: { x: 2, y: 1, z: 0 }
@@ -36,7 +36,7 @@ object "PositionedSphere" {
 
 ### Full Transform
 
-```holoscript
+```holo
 object "FullTransform" {
   geometry: "cylinder"
   position: { x: -2, y: 1, z: 0 }
@@ -49,7 +49,7 @@ object "FullTransform" {
 
 ### Basic Primitives
 
-```holoscript
+```holo
 object "Box" { geometry: "box" }
 object "Sphere" { geometry: "sphere" }
 object "Cylinder" { geometry: "cylinder" }
@@ -61,7 +61,7 @@ object "Capsule" { geometry: "capsule" }
 
 ### Special Geometries
 
-```holoscript
+```holo
 object "Heart" { geometry: "heart" }
 object "Star" { geometry: "star" }
 object "Crystal" { geometry: "crystal" }
@@ -74,7 +74,7 @@ object "Lightning" { geometry: "lightning" }
 
 ### Named Colors
 
-```holoscript
+```holo
 object "RedCube" {
   geometry: "box"
   color: "red"
@@ -83,7 +83,7 @@ object "RedCube" {
 
 ### Hex Colors
 
-```holoscript
+```holo
 object "BlueSphere" {
   geometry: "sphere"
   color: "#0088ff"
@@ -92,7 +92,7 @@ object "BlueSphere" {
 
 ### Preset Colors
 
-```holoscript
+```holo
 object "NeonBox" {
   geometry: "box"
   color: "neon"
@@ -103,7 +103,7 @@ Available presets: `neon`, `hologram`, `energy`, `ice`, `fire`, `forest`, and mo
 
 ## Materials
 
-```holoscript
+```holo
 // Shiny metal
 object "MetalSphere" {
   geometry: "sphere"
@@ -135,7 +135,7 @@ object "GlassBox" {
 
 ### Glow
 
-```holoscript
+```holo
 object "GlowingSphere" {
   geometry: "sphere"
   color: "cyan"
@@ -145,7 +145,7 @@ object "GlowingSphere" {
 
 ### Emissive
 
-```holoscript
+```holo
 object "EmissiveBox" {
   geometry: "box"
   color: "orange"
@@ -156,7 +156,7 @@ object "EmissiveBox" {
 
 ### Transparency
 
-```holoscript
+```holo
 object "TransparentSphere" {
   geometry: "sphere"
   color: "blue"
@@ -166,7 +166,7 @@ object "TransparentSphere" {
 
 ### Wireframe
 
-```holoscript
+```holo
 object "WireframeBox" {
   geometry: "box"
   wireframe: true
@@ -177,7 +177,7 @@ object "WireframeBox" {
 
 ### Box Dimensions
 
-```holoscript
+```holo
 object "CustomBox" {
   geometry: "box"
   width: 2.0
@@ -188,7 +188,7 @@ object "CustomBox" {
 
 ### Sphere Radius
 
-```holoscript
+```holo
 object "LargeSphere" {
   geometry: "sphere"
   radius: 1.5
@@ -197,7 +197,7 @@ object "LargeSphere" {
 
 ### Cylinder Dimensions
 
-```holoscript
+```holo
 object "TallCylinder" {
   geometry: "cylinder"
   radius: 0.5
@@ -209,7 +209,7 @@ object "TallCylinder" {
 
 ### Basic Animation
 
-```holoscript
+```holo
 object "SpinningCube" {
   geometry: "box"
   color: "purple"
@@ -229,7 +229,7 @@ object "SpinningCube" {
 
 ### Custom Animation Speed
 
-```holoscript
+```holo
 // Fast spin (3x speed)
 object "FastSpin" {
   geometry: "sphere"
@@ -247,7 +247,7 @@ object "SlowFloat" {
 
 ## Physics
 
-```holoscript
+```holo
 object "PhysicsBox" {
   geometry: "box"
   physics: true
@@ -265,7 +265,7 @@ object "HeavyBall" {
 
 ## Visibility
 
-```holoscript
+```holo
 object "HiddenObject" {
   geometry: "box"
   visible: false
@@ -274,7 +274,7 @@ object "HiddenObject" {
 
 ## Shadows and Lighting
 
-```holoscript
+```holo
 object "ShadowCaster" {
   geometry: "box"
   castShadow: true
@@ -284,7 +284,7 @@ object "ShadowCaster" {
 
 ## Layering
 
-```holoscript
+```holo
 object "ForegroundObject" {
   geometry: "box"
   layer: 1
@@ -294,7 +294,7 @@ object "ForegroundObject" {
 
 ## Parent-Child Grouping
 
-```holoscript
+```holo
 object "ParentGroup" {
   geometry: "box"
   position: { x: 0, y: 0, z: 0 }
@@ -313,7 +313,7 @@ object "ParentGroup" {
 
 ## Complete Example
 
-```holoscript
+```holo
 object "FullyConfiguredObject" {
   // Identity
   id: "demo-object-001"
@@ -402,7 +402,7 @@ The example below is drawn from `examples/agents/guard-patrol.hs`.
 
 The `execute` statement runs a function or coroutine on an object. The `repeat forever` modifier keeps it running perpetually:
 
-```holoscript
+```hs
 execute guard_captain.patrol() repeat forever
 ```
 
@@ -412,7 +412,7 @@ execute guard_captain.patrol() repeat forever
 
 Inside a function, `yield` suspends execution and returns control to the engine for one frame. This is what makes `.hs` functions cooperative coroutines rather than blocking calls:
 
-```holoscript
+```hs
 function patrol() {
   while (state.time_at_waypoint < state.wait_duration) {
     scan_area(15)
@@ -428,7 +428,7 @@ Without `yield`, a `while` loop would block the entire engine until it finished.
 
 `.hs` functions are full procedural: `const`, `let`, `while`, `if/else`, `return`, and ternary expressions are all available. Functions live inside `object` blocks:
 
-```holoscript
+```holo
 object "guard_captain" {
   function investigate(target) {
     const threat = assess_threat(target)
@@ -452,7 +452,7 @@ State mutations use `state.<field>` references. Arithmetic operators (`+`, `-`, 
 
 Objects declare their agent state in a `state` block. Fields are mutable by functions and event handlers throughout the object's lifetime:
 
-```holoscript
+```holo
 object "guard_captain" {
   state {
     current_waypoint: 0
@@ -468,7 +468,7 @@ object "guard_captain" {
 
 Objects receive events from the engine via `on_<event>` handlers. These interrupt or extend the running coroutine when the engine detects a matching condition:
 
-```holoscript
+```holo
 object "guard_captain" {
   on_detect(entity) {
     if (entity.tag == "intruder" && state.alert_level < 2) {
@@ -492,7 +492,7 @@ object "guard_captain" {
 
 `emit` fires a named event into the scene's event bus. Other objects and systems can listen for it. An optional payload object is attached as the second argument:
 
-```holoscript
+```hs
 emit("alarm_triggered")
 emit("guard_warning", { target: target, message: "Halt! Identify yourself." })
 emit("incident_logged", {
@@ -542,7 +542,7 @@ These functions are available inside any `.hs` object without import:
 
 Any object can carry a `tag` field, which makes it queryable by `find_nearest` and detectable by `scan_area`:
 
-```holoscript
+```holo
 object "waypoint_gate" {
   geometry: "cylinder"
   color: "#ffaa00"
@@ -559,7 +559,7 @@ These blocks appear at the top level of a `.hs` file, outside any object. They c
 
 **Environment:**
 
-```holoscript
+```hs
 environment {
   skybox: "night"
   ambient_light: 0.15
@@ -569,7 +569,7 @@ environment {
 
 **Lights:**
 
-```holoscript
+```hs
 light "MoonLight" {
   type: "directional"
   color: "#8899cc"
@@ -591,7 +591,7 @@ Light types: `directional`, `point`, `spot`, `area`, `ambient`.
 
 **Post-processing:**
 
-```holoscript
+```hs
 post_processing {
   bloom: {
     enabled: true
@@ -609,7 +609,7 @@ post_processing {
 
 A minimal `.hs` agent that patrols between waypoints, detects intruders, and raises an alarm:
 
-```holoscript
+```holo
 object "waypoint_a" {
   geometry: "cylinder"
   position: { x: 0, y: 0.1, z: -10 }

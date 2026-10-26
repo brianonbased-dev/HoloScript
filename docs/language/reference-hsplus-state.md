@@ -6,7 +6,7 @@ Complete reference for state management, actions, computed values, and reactive 
 
 Declare reactive state variables:
 
-```holoscript
+```holo
 composition "Game" {
   state {
     score: 0
@@ -22,7 +22,7 @@ composition "Game" {
 
 Define functions that modify state:
 
-```holoscript
+```holo
 composition "Game" {
   state {
     score: 0
@@ -54,7 +54,7 @@ composition "Game" {
 
 Derive values from state:
 
-```holoscript
+```holo
 composition "Game" {
   state {
     playerHealth: 100
@@ -76,7 +76,7 @@ composition "Game" {
 
 React to state changes:
 
-```holoscript
+```holo
 composition "Game" {
   state {
     playerHealth: 100
@@ -107,7 +107,7 @@ composition "Game" {
 
 Bind UI to state:
 
-```holoscript
+```holo
 composition "Game" {
   state {
     score: 0
@@ -142,7 +142,7 @@ composition "Game" {
 
 Objects can have their own state:
 
-```holoscript
+```holo
 template "Enemy" {
   state {
     health: 50
@@ -171,7 +171,7 @@ template "Enemy" {
 
 ## State Persistence
 
-```holoscript
+```holo
 composition "Game" {
   state {
     score: 0
@@ -190,7 +190,7 @@ composition "Game" {
 
 ## Complete Example
 
-```holoscript
+```holo
 composition "TargetPractice" {
   state {
     score: 0

@@ -241,7 +241,7 @@ To execute the mint:
 
 Create `test-mint.hsplus`:
 
-```holoscript
+```holo
 scene "TestnetMintValidation" {
   environment: "studio",
   lighting: "bright"

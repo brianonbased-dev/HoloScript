@@ -20,7 +20,7 @@ HoloScript's reactive state system and trait composition model map naturally to 
 
 ### 1. Sensor Traits
 
-```holoscript
+```hsplus
 // Define a motion sensor
 sensor#livingRoomMotion {
   type: "motion"
@@ -45,7 +45,7 @@ sensor#livingRoomMotion {
 
 ### 2. Spatial Triggers
 
-```holoscript
+```hsplus
 // Define a spatial zone that triggers automation
 zone#entryway {
   bounds: [[0,0,0], [3,3,2]]
@@ -68,7 +68,7 @@ zone#entryway {
 
 ### 3. Device Digital Twins
 
-```holoscript
+```hsplus
 // Model a smart thermostat as a digital twin
 twin#thermostat {
   model: "nest-learning-3"
@@ -94,7 +94,7 @@ twin#thermostat {
 
 ### MQTT Integration
 
-```holoscript
+```hsplus
 @mqtt_source(
   broker: "mqtt://localhost:1883",
   topic: "sensors/+/data",
@@ -110,7 +110,7 @@ twin#thermostat {
 
 ### Zigbee/Z-Wave Bridge
 
-```holoscript
+```hsplus
 @zigbee_bridge(
   coordinator: "/dev/ttyUSB0",
   network_key: env("ZIGBEE_KEY")
@@ -121,7 +121,7 @@ twin#thermostat {
 
 HoloScript can generate W3C Thing Descriptions automatically:
 
-```holoscript
+```hsplus
 sensor#temperature {
   @wot_thing(
     title: "Living Room Temperature",
@@ -150,7 +150,7 @@ Generated Thing Description:
 
 ## Example: Smart Home Scene
 
-```holoscript
+```holo
 composition SmartHome {
   environment {
     type: "indoor"

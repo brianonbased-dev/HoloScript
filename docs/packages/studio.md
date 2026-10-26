@@ -71,7 +71,7 @@ Shapes Available:
 
 Select object → Click **Traits** panel → Add:
 
-```holoscript
+```hs
 Common Traits:
 ✓ @grabbable    (Make interactive)
 ✓ @physics      (Add physics simulation)

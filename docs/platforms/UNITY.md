@@ -126,7 +126,7 @@ Android: Android
 
 **HoloScript:**
 
-```holoscript
+```hs
 object#cube @physics @interactive {
   type: "cube"
   mass: 1.0
@@ -227,7 +227,7 @@ Install via Package Manager (see Setup above).
 
 HoloScript shader blocks compile to Unity ShaderLab:
 
-```holoscript
+```hs
 shader#hologram {
   properties {
     _Color: color = #00ffff
@@ -238,7 +238,7 @@ shader#hologram {
 
 ### Physics Events
 
-```holoscript
+```hs
 on_collision(other) {
   if (other.tag == "Enemy") {
     take_damage: 10

@@ -13,7 +13,7 @@ The `.hsplus` format adds:
 
 ## Basic Template
 
-```holoscript
+```holo
 composition "MyScene" {
   template "Ball" {
     geometry: "sphere"
@@ -35,7 +35,7 @@ composition "MyScene" {
 
 ### `@grabbable` - VR Grab Interaction
 
-```holoscript
+```holo
 template "GrabbableObject" {
   @grabbable {
     hand: "both"
@@ -53,7 +53,7 @@ template "GrabbableObject" {
 
 ### `@throwable` - Physics Throwing
 
-```holoscript
+```holo
 template "ThrowableBall" {
   @grabbable
   @throwable {
@@ -70,7 +70,7 @@ template "ThrowableBall" {
 
 ### `@collidable` - Collision Detection
 
-```holoscript
+```holo
 template "Wall" {
   @collidable
 
@@ -80,7 +80,7 @@ template "Wall" {
 
 ### `@physics` - Physics Simulation
 
-```holoscript
+```holo
 template "PhysicsObject" {
   @physics {
     mass: 10
@@ -100,7 +100,7 @@ template "PhysicsObject" {
 
 ### `@interactive` - Click/Pointer Events
 
-```holoscript
+```holo
 template "Button" {
   @interactive
 
@@ -110,7 +110,7 @@ template "Button" {
 
 ### `@networked` - Multiplayer Sync
 
-```holoscript
+```holo
 template "SharedObject" {
   @networked {
     sync: "transform"
@@ -128,7 +128,7 @@ template "SharedObject" {
 
 ## Complete Example
 
-```holoscript
+```holo
 composition "VRPlayground" {
   // Environment configuration
   environment {
@@ -209,7 +209,7 @@ composition "VRPlayground" {
 
 Decorators can be combined:
 
-```holoscript
+```holo
 template "CompleteVRObject" {
   @grabbable
   @throwable
@@ -223,7 +223,7 @@ template "CompleteVRObject" {
 
 ## Template Inheritance
 
-```holoscript
+```holo
 template "BaseObject" {
   @collidable
   geometry: "box"
@@ -239,7 +239,7 @@ template "GrabbableBox" extends "BaseObject" {
 
 Objects can override template properties:
 
-```holoscript
+```holo
 template "DefaultBall" {
   geometry: "sphere"
   radius: 0.5
@@ -255,7 +255,7 @@ object "LargeRedBall" using "DefaultBall" {
 
 ## Environment Block
 
-```holoscript
+```holo
 composition "Scene" {
   environment {
     backgroundColor: "#1a1a2e"

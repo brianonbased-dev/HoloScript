@@ -69,7 +69,7 @@ The symbol grounding problem (Harnad 1990) asks: how do symbols in AI connect to
 
 **`.holo` -- Declarative grounding:**
 
-```holoscript
+```hsplus
 object "Ball" {
   @weight(5kg)
   @breakable(threshold: 50N)
@@ -299,7 +299,7 @@ composition alarippu_phrase {
 
 **`.holo` -- Complete annotated composition:**
 
-```holoscript
+```hsplus
 template "Alarippu" {
   @cultural_context(bharatanatyam)
   @raga(nattai)

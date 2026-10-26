@@ -63,7 +63,7 @@ BASE_TESTNET_RPC_URL=https://goerli.base.org
 
 ### 3. Use in HoloScript
 
-```holoscript
+```holo
 object "MyCoin" @zora_coins {
   default_chain: "base",
   collection_id: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
@@ -176,7 +176,7 @@ interface ZoraCoinsConfig {
 
 **Basic Configuration (Mainnet):**
 
-```holoscript
+```holo
 object "GoldCoin" @zora_coins {
   default_chain: "base",
   collection_id: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
@@ -187,7 +187,7 @@ object "GoldCoin" @zora_coins {
 
 **Testnet Configuration:**
 
-```holoscript
+```holo
 object "TestCoin" @zora_coins {
   default_chain: "base-testnet",
   collection_id: "0xTestCollectionAddress",
@@ -202,7 +202,7 @@ object "TestCoin" @zora_coins {
 
 ### Example 1: Simple Collectible Coin
 
-```holoscript
+```holo
 object "RareCoin" @zora_coins {
   default_chain: "base",
   collection_id: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0",
@@ -597,7 +597,7 @@ Current test coverage (60%+ target):
 
 3. **Configure testnet:**
 
-   ```holoscript
+   ```holo
    object "TestCoin" @zora_coins {
      default_chain: "base-testnet",
      collection_id: "0xTestnetCollectionAddress",
@@ -762,7 +762,7 @@ context.emit('zora_mint', {
 
 Configure creator royalties (enforced on compatible marketplaces):
 
-```holoscript
+```holo
 object "ArtCoin" @zora_coins {
   royalty_percentage: 10.0,  // 10% on secondary sales
   creator_wallet: "0xCreatorAddress"

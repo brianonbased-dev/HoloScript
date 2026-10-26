@@ -26,7 +26,7 @@ HoloScript is a general-purpose semantic systems programming language with AI-na
 
 HoloScript supports compiler-visible declarations and **traits** that define program behavior and effects. This example exercises the spatial composition surface:
 
-```holoscript
+```hsplus
 sphere {
   @color(blue)           // Visual trait
   @position(0, 2, 0)    // Spatial trait

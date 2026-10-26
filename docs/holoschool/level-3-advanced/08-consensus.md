@@ -33,7 +33,7 @@ When multiple agents need to agree on shared state:
 
 Add consensus capabilities to agents:
 
-```holoscript
+```holo
 composition "DistributedVoting" {
   template "VotingAgent" {
     @agent {
@@ -253,7 +253,7 @@ consensus.on('partition:healed', () => {
 
 > Historical / not accepted as keywords. compiler-wasm treats `await` and `new` as identifiers; `validate=true` is a lie. This fence is not live HoloScript.
 
-```holoscript
+```holo
 composition "MultiplayerGame" {
   config {
     consensus: {

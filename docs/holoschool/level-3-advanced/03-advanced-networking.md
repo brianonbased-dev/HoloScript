@@ -18,7 +18,7 @@ HoloScript's networking uses a **server-authoritative** model with client-side p
 
 ## The `@networked` Trait
 
-```holoscript
+```hs
 orb player_avatar {
   @networked
   @physics
@@ -32,7 +32,7 @@ By default, `@networked` objects sync `position`, `rotation`, and `scale` at 20H
 
 ## Ownership and Authority
 
-```holoscript
+```hs
 orb player_avatar {
   @networked
   ownership: "local_player"   // "local_player" | "server" | "host" | "any"
@@ -51,7 +51,7 @@ orb player_avatar {
 
 Control exactly which properties are networked:
 
-```holoscript
+```hs
 orb chest {
   @networked
 
@@ -98,7 +98,7 @@ orb weapon {
 
 ## Lag Compensation
 
-```holoscript
+```hs
 orb projectile {
   @networked
   @physics
@@ -138,7 +138,7 @@ orb player_movement {
 
 ## Network Rooms / Sessions
 
-```holoscript
+```holo
 composition "Multiplayer Arena" {
   @networked_room
   max_players: 8
@@ -186,7 +186,7 @@ orb ready_button {
 
 ## Networked Physics
 
-```holoscript
+```hs
 orb physics_object {
   @networked
   @physics
@@ -230,7 +230,7 @@ orb score_manager {
 
 ## Bandwidth Optimization
 
-```holoscript
+```hs
 orb crowd_npc {
   @networked
   ownership: "server"
@@ -253,7 +253,7 @@ orb crowd_npc {
 
 ## Debugging Network Issues
 
-```holoscript
+```hs
 // holoscript.config.ts
 export default {
   network: {

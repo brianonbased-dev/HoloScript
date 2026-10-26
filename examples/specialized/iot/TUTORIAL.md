@@ -23,7 +23,7 @@ device#conveyor_1 @iot_device @actuator {
 
 ### 2. DTDL Interface
 
-```holoscript
+```hs
 @dtdl_interface {
   id: "dtmi:factory:conveyor;1"
   displayName: "Receiving Conveyor Belt"
@@ -35,7 +35,7 @@ device#conveyor_1 @iot_device @actuator {
 
 ### 3. Telemetry (Sensor Data)
 
-```holoscript
+```hs
 telemetry {
   speed: {
     type: "double",
@@ -73,7 +73,7 @@ telemetry {
 
 ### 4. Properties (Device State)
 
-```holoscript
+```hs
 properties {
   motor_status: {
     type: "string",
@@ -157,7 +157,7 @@ commands {
 
 ### 6. Relationships (Device Connections)
 
-```holoscript
+```hs
 device#conveyor_1 {
   relationships {
     feeds_to: "robot_1"  // Conveyor feeds robot
@@ -176,7 +176,7 @@ device#conveyor_1 {
 
 ### 7. Telemetry Simulation
 
-```holoscript
+```hs
 telemetry_simulator {
   interval: 1000  // ms (1 Hz)
 
@@ -284,7 +284,7 @@ maintenance_rule#usage_counter {
 
 ### 9. Cloud Integration
 
-```holoscript
+```hs
 cloud_integration#azure_iot {
   platform: "azure"
 
@@ -321,7 +321,7 @@ cloud_integration#azure_iot {
 
 ### 10. DTDL Export
 
-```holoscript
+```hs
 export#dtdl_export @azure_compatible {
   target: "dtdl"
   output_directory: "./build/dtdl/"

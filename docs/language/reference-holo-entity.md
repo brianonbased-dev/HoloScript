@@ -13,7 +13,7 @@ The `.holo` entity pattern provides:
 
 ## Basic Entity
 
-```holoscript
+```holo
 composition SimpleScene {
   entity Floor {
     mesh: {
@@ -42,7 +42,7 @@ composition SimpleScene {
 
 ### `mesh` - Visual Geometry
 
-```holoscript
+```hs
 entity Sphere {
   mesh: {
     type: "sphere",
@@ -62,7 +62,7 @@ entity Box {
 
 ### `advanced_pbr` - PBR Materials
 
-```holoscript
+```hs
 entity MetallicSphere {
   mesh: {
     type: "sphere",
@@ -81,7 +81,7 @@ entity MetallicSphere {
 
 ### `transform` - Position, Rotation, Scale
 
-```holoscript
+```hs
 entity PositionedObject {
   mesh: {
     type: "box"
@@ -97,7 +97,7 @@ entity PositionedObject {
 
 ### `rigidbody` - Physics Simulation
 
-```holoscript
+```hs
 entity PhysicsBall {
   mesh: {
     type: "sphere",
@@ -120,7 +120,7 @@ entity PhysicsBall {
 
 ### `collider` - Collision Detection
 
-```holoscript
+```hs
 entity Wall {
   mesh: {
     type: "box"
@@ -142,7 +142,7 @@ entity Wall {
 
 ### `grabbable` - VR Interaction
 
-```holoscript
+```hs
 entity VRBall {
   mesh: {
     type: "sphere",
@@ -171,7 +171,7 @@ entity VRBall {
 
 ### `light` - Lighting
 
-```holoscript
+```hs
 entity PointLight {
   light: {
     type: "point",
@@ -190,7 +190,7 @@ entity PointLight {
 
 ## Complete Example
 
-```holoscript
+```holo
 composition VRScene {
   // Floor
   entity Floor {

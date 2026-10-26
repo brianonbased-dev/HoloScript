@@ -20,7 +20,7 @@ HoloScript's reactive state system provides the foundation for digital twins - l
 
 ### 1. Twin Definition
 
-```holoscript
+```hsplus
 // Define a digital twin of a manufacturing machine
 twin#cnc_machine_001 {
   asset_id: "CNC-001"
@@ -61,7 +61,7 @@ twin#cnc_machine_001 {
 
 ### 2. Hierarchical Twins
 
-```holoscript
+```holo
 composition FactoryFloor {
   environment {
     type: "indoor"
@@ -99,7 +99,7 @@ composition FactoryFloor {
 
 ### 3. Historical Data & Replay
 
-```holoscript
+```hsplus
 twin#asset {
   @time_series(
     retention: "30d",
@@ -118,7 +118,7 @@ twin#asset {
 
 ### OPC UA
 
-```holoscript
+```hsplus
 @data_binding(
   protocol: "opcua",
   source: "opc.tcp://server:4840",
@@ -129,7 +129,7 @@ twin#asset {
 
 ### MQTT/Sparkplug B
 
-```holoscript
+```hsplus
 @data_binding(
   protocol: "sparkplug_b",
   broker: "mqtt://broker:1883",
@@ -140,7 +140,7 @@ twin#asset {
 
 ### Azure Digital Twins (DTDL)
 
-```holoscript
+```hsplus
 @dtdl_model(
   id: "dtmi:com:factory:CNCMachine;1",
   extends: "dtmi:com:factory:Machine;1"
@@ -174,7 +174,7 @@ Generated DTDL:
 
 ## Example: Factory Digital Twin
 
-```holoscript
+```holo
 composition SmartFactory {
   environment {
     type: "industrial"
@@ -262,7 +262,7 @@ composition SmartFactory {
 
 ### 3D Heatmaps
 
-```holoscript
+```hsplus
 @heatmap_3d(
   field: "temperature",
   colormap: "thermal",  // or "viridis", "plasma"
@@ -273,7 +273,7 @@ composition SmartFactory {
 
 ### Flow Visualization
 
-```holoscript
+```hsplus
 @flow_visualization(
   source: "sensor.flow_rate",
   particle_count: 1000,
@@ -283,7 +283,7 @@ composition SmartFactory {
 
 ### Time-Lapse Animation
 
-```holoscript
+```hsplus
 @time_lapse(
   field: "state.position",
   trail_length: 100,
@@ -295,7 +295,7 @@ composition SmartFactory {
 
 ### Optimistic Updates
 
-```holoscript
+```hsplus
 @digital_twin(
   sync_mode: "optimistic",
   rollback_on_conflict: true
@@ -304,7 +304,7 @@ composition SmartFactory {
 
 ### Event Sourcing
 
-```holoscript
+```hsplus
 @digital_twin(
   sync_mode: "event_sourced",
   event_store: "kafka://events:9092"
@@ -313,7 +313,7 @@ composition SmartFactory {
 
 ### Batch Updates
 
-```holoscript
+```hsplus
 @digital_twin(
   sync_mode: "batch",
   batch_interval: 5000,  // 5 seconds

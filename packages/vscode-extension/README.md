@@ -53,7 +53,7 @@ Syntax highlighting (`.holo`, `.hs`, `.hsplus`) and the **live preview** panel a
 
 ## Example
 
-```holoscript
+```holo
 composition "Interactive Demo" {
   object "InteractiveBox" @grabbable @throwable @hoverable {
     geometry: "cube"

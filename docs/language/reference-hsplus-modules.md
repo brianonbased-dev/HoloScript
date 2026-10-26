@@ -33,7 +33,7 @@ export default composition "MainGame" {
 
 ### Importing
 
-```holoscript
+```hsplus
 // Import entire module
 import GameUtils from "./utils/game.hsplus";
 
@@ -97,7 +97,7 @@ export template "ProgressBar" {
 
 ## Using Imports
 
-```holoscript
+```holo
 import { Button, ProgressBar } from "./components/ui.hsplus";
 import { GameConfig } from "./config/game.hsplus";
 
@@ -126,7 +126,7 @@ composition "MyGame" {
 
 > Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await import(...)` is not live HoloScript.
 
-```holoscript
+```holo
 composition "LevelLoader" {
   actions {
     async loadLevel(levelName) {
@@ -139,7 +139,7 @@ composition "LevelLoader" {
 
 ## Re-Exporting (Barrel Pattern)
 
-```holoscript
+```hs
 // File: index.hsplus
 export * from "./components/ui.hsplus";
 export * from "./utils/math.hsplus";
@@ -148,7 +148,7 @@ export { GameConfig } from "./config/game.hsplus";
 
 ## Namespace Import
 
-```holoscript
+```holo
 import * as MathUtils from "./utils/math.hsplus";
 
 composition "Example" {

@@ -208,7 +208,7 @@ The existing `WeatherSystem.onChange()` listener wires directly to blackboard up
 
 ## HoloScript Syntax
 
-```holoscript
+```holo
 world MyWorld {
   @weather {
     day_length_seconds: 600
