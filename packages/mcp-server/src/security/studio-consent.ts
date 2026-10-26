@@ -152,3 +152,21 @@ export function verifyStudioGrantsSession(
   const v = verifyStudioConsent(assertion, STUDIO_GRANTS_AUDIENCE, secret, nowMs);
   return v ? v.userId : null;
 }
+/**
+ * Admin client provisioning (POST /oauth/admin/clients): Studio mints this
+ * audience only after its founder check, and marks it with
+ * STUDIO_FOUNDER_MARK. Not a valid client id (colon), single-use.
+ */
+export const STUDIO_ADMIN_CLIENTS_AUDIENCE = 'studio:admin-clients';
+export const STUDIO_FOUNDER_MARK = 'studio:founder';
+
+/** Verify (and consume) an admin-clients assertion. Returns the human admin's user id or null. */
+export function verifyStudioAdminSession(
+  assertion: unknown,
+  secret: string | undefined = process.env.STUDIO_CONSENT_SECRET,
+  nowMs: number = Date.now()
+): string | null {
+  const v = verifyStudioConsent(assertion, STUDIO_ADMIN_CLIENTS_AUDIENCE, secret, nowMs);
+  if (!v || !v.scopes.includes(STUDIO_FOUNDER_MARK)) return null;
+  return v.userId;
+}

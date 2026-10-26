@@ -116,7 +116,8 @@ Ollama Cloud usage:
   warns at startup if --host is non-localhost and no api-key is set.
 
 tool calling (v0.2, opt-in):
-  - requires HOLOSCRIPT_API_KEY (or MCP_API_KEY) in env
+  - uses an admin-provisioned OAuth client: MCP_CLIENT_ID_BRITTNEY / MCP_CLIENT_SECRET_BRITTNEY
+    (default scope tools:read; MCP_CLIENT_SCOPE_BRITTNEY overrides). No shared API key.
   - exposes a curated set of MCP tools to the local model:
     holo_query_codebase, holo_ask_codebase, knowledge_query, holo_parse_to_graph,
     edit_holo, trait_swap (local refusable diff previews)
