@@ -14,7 +14,7 @@ import { spawn, spawnSync, execFileSync } from 'node:child_process';
 import { createServer } from 'node:http';
 import { connect } from 'node:net';
 import { readFileSync, writeFileSync, appendFileSync, existsSync, mkdirSync } from 'node:fs';
-import { readdirSync, unlinkSync } from 'node:fs';
+import { readdirSync, unlinkSync, statSync, chmodSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
@@ -524,34 +524,92 @@ export function stateDir() {
   if (process.platform === 'win32') return join(process.env.LOCALAPPDATA || join(os.homedir(), 'AppData', 'Local'), 'holoscript', 'jetson-scope');
   return join(process.env.XDG_STATE_HOME || join(os.homedir(), '.local', 'state'), 'holoscript', 'jetson-scope');
 }
-// Write a new secret token readable only by its owner. POSIX: mode 0600. win32: icacls
-// strips inheritance and grants only the current user (no SYSTEM/Administrators/other
-// SIDs), run via execFileSync with an argv array (no shell). FAIL CLOSED: if the ACL step
-// fails, the file just created is deleted and we throw, so the token is never used.
-export function writeOwnerOnlyToken(file, token) {
-  writeFileSync(file, token + '\n', { mode: 0o600, flag: 'wx' });
-  if (process.platform !== 'win32') return;
+// Token files are owner-only. win32: icacls (absolute path, argv array, no shell) strips
+// inheritance and grants only the current user - no SYSTEM/Administrators/other SIDs.
+// POSIX: mode 0600. A new token is created EMPTY (exclusive), locked down, and only then
+// written, so the secret never exists under a wider ACL. FAIL CLOSED on any ACL error.
+// On read, an existing file is checked and re-locked if needed; it is never deleted,
+// rewritten or rotated - if it cannot be made owner-only it is refused.
+const ICACLS = join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'icacls.exe');
+const defaultIcacls = (args) =>
+  execFileSync(ICACLS, args, { encoding: 'utf8', windowsHide: true, stdio: 'pipe' });
+let icacls = defaultIcacls;
+// Test seam: swap the icacls runner (pass null to restore the real one).
+export function _setIcaclsRunner(fn) {
+  icacls = fn || defaultIcacls;
+}
+function ownerPrincipal() {
+  const u = os.userInfo().username;
+  return process.env.USERDOMAIN ? `${process.env.USERDOMAIN}\\${u}` : u;
+}
+// The ACEs icacls lists for one file (the path is stripped off the first line).
+export function aclEntries(file) {
+  const out = String(icacls([file]));
+  return out
+    .split(/\r?\n/)
+    .map((l) => (l.startsWith(file) ? l.slice(file.length) : l).trim())
+    .filter((l) => /^[^\s].*:\(/.test(l));
+}
+export function isOwnerOnly(file) {
+  const aces = aclEntries(file);
+  return aces.length === 1 && aces[0].toLowerCase() === (ownerPrincipal() + ':(F)').toLowerCase();
+}
+function applyOwnerOnly(file) {
+  icacls([file, '/inheritance:r', '/grant:r', `${ownerPrincipal()}:F`]);
+}
+// Step 1 of a new token: exclusive EMPTY create, then lock it down. On failure the
+// just-created empty file is removed and we throw.
+export function createEmptyOwnerOnly(file) {
+  writeFileSync(file, '', { mode: 0o600, flag: 'wx' });
   try {
-    const u = os.userInfo().username;
-    const who = process.env.USERDOMAIN ? `${process.env.USERDOMAIN}\\${u}` : u;
-    execFileSync('icacls', [file, '/inheritance:r', '/grant:r', `${who}:F`], {
-      windowsHide: true,
-      stdio: 'pipe',
-    });
+    if (process.platform === 'win32') {
+      applyOwnerOnly(file);
+      if (!isOwnerOnly(file)) throw new Error('ACL is not owner-only after icacls');
+    }
   } catch (e) {
     try {
-      unlinkSync(file); // only the file we just created
+      unlinkSync(file); // only the empty file we just created
     } catch {
       /* best effort */
     }
     throw new Error('could not set an owner-only ACL on ' + file + ': ' + (e.message || e));
   }
 }
+// hooks.afterAcl(file) runs between the locked empty create and the write (test seam).
+export function writeOwnerOnlyToken(file, token, hooks = {}) {
+  createEmptyOwnerOnly(file);
+  if (hooks.afterAcl) hooks.afterAcl(file);
+  writeFileSync(file, token + '\n', { flag: 'r+' });
+}
+// Read an existing token only once it is owner-only (re-locking it if needed).
+export function readOwnerOnlyToken(file) {
+  if (process.platform === 'win32') {
+    let ok = false;
+    try {
+      ok = isOwnerOnly(file);
+      if (!ok) {
+        applyOwnerOnly(file);
+        ok = isOwnerOnly(file);
+      }
+    } catch (e) {
+      throw new Error(`refusing token file ${file}: cannot make it owner-only (${e.message || e})`);
+    }
+    if (!ok) throw new Error(`refusing token file ${file}: its ACL is still not owner-only`);
+  } else {
+    try {
+      if (statSync(file).mode & 0o077) chmodSync(file, 0o600);
+    } catch (e) {
+      throw new Error(`refusing token file ${file}: cannot chmod 0600 (${e.message || e})`);
+    }
+    if (statSync(file).mode & 0o077) throw new Error(`refusing token file ${file}: mode is wider than 0600`);
+  }
+  return readFileSync(file, 'utf8').trim();
+}
 const LEGACY_TOKEN_FILE = join(HERE, 'join-token.txt');
 function loadOrCreateToken() {
   const file = join(stateDir(), 'join-token.txt');
-  if (existsSync(file)) return readFileSync(file, 'utf8').trim();
-  if (existsSync(LEGACY_TOKEN_FILE)) return readFileSync(LEGACY_TOKEN_FILE, 'utf8').trim();
+  if (existsSync(file)) return readOwnerOnlyToken(file);
+  if (existsSync(LEGACY_TOKEN_FILE)) return readOwnerOnlyToken(LEGACY_TOKEN_FILE);
   const t = randomBytes(18).toString('hex');
   mkdirSync(stateDir(), { recursive: true });
   writeOwnerOnlyToken(file, t);
@@ -931,7 +989,7 @@ function startPhoneServer() {
 
 const VIEW_TOKEN_FILE = join(HERE, 'view-token.txt');
 function loadOrCreateViewToken() {
-  if (existsSync(VIEW_TOKEN_FILE)) return readFileSync(VIEW_TOKEN_FILE, 'utf8').trim();
+  if (existsSync(VIEW_TOKEN_FILE)) return readOwnerOnlyToken(VIEW_TOKEN_FILE);
   const t = randomBytes(18).toString('hex');
   writeOwnerOnlyToken(VIEW_TOKEN_FILE, t);
   return t;
