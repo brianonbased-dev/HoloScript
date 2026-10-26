@@ -575,11 +575,22 @@ export function createEmptyOwnerOnly(file) {
     throw new Error('could not set an owner-only ACL on ' + file + ': ' + (e.message || e));
   }
 }
-// hooks.afterAcl(file) runs between the locked empty create and the write (test seam).
+// Test seams: hooks.afterAcl(file) runs between the locked empty create and the write;
+// hooks.writeToken(file, data) replaces the write. If the write fails, the file this call
+// just created is removed and we throw, so no empty token file is left behind.
 export function writeOwnerOnlyToken(file, token, hooks = {}) {
   createEmptyOwnerOnly(file);
-  if (hooks.afterAcl) hooks.afterAcl(file);
-  writeFileSync(file, token + '\n', { flag: 'r+' });
+  try {
+    if (hooks.afterAcl) hooks.afterAcl(file);
+    (hooks.writeToken || ((p, d) => writeFileSync(p, d, { flag: 'r+' })))(file, token + '\n');
+  } catch (e) {
+    try {
+      unlinkSync(file); // only the file this call just created
+    } catch {
+      /* best effort */
+    }
+    throw new Error('could not write token file ' + file + ': ' + (e.message || e));
+  }
 }
 // Read an existing token only once it is owner-only (re-locking it if needed).
 export function readOwnerOnlyToken(file) {
@@ -603,7 +614,10 @@ export function readOwnerOnlyToken(file) {
     }
     if (statSync(file).mode & 0o077) throw new Error(`refusing token file ${file}: mode is wider than 0600`);
   }
-  return readFileSync(file, 'utf8').trim();
+  // An empty token is refused, never deleted or replaced: callers surface this error.
+  const token = readFileSync(file, 'utf8').trim();
+  if (!token) throw new Error(`refusing empty token file ${file}`);
+  return token;
 }
 const LEGACY_TOKEN_FILE = join(HERE, 'join-token.txt');
 function loadOrCreateToken() {

@@ -135,3 +135,37 @@ test('POSIX: a token wider than 0600 is chmodded to 0600 on read', { skip: posix
     assert.equal(statSync(file).mode & 0o777, 0o600);
   })
 );
+
+test('new token: a failed token write leaves no file and returns no token', () =>
+  withDir((dir) => {
+    const file = join(dir, 'join-token.txt');
+    let got;
+    assert.throws(() => {
+      got = writeOwnerOnlyToken(file, 'never', {
+        writeToken() {
+          throw new Error('injected write failure');
+        },
+      });
+    }, /could not write token file/);
+    assert.equal(got, undefined);
+    assert.equal(existsSync(file), false);
+  }));
+
+test('read refuses an empty or whitespace-only token file and keeps it', () =>
+  withDir((dir) => {
+    for (const [name, body] of [
+      ['empty.txt', null],
+      ['blank.txt', ' \n\t\r\n'],
+    ]) {
+      const file = join(dir, name);
+      if (body === null)
+        writeOwnerOnlyToken(file, 'x', { writeToken() {} }); // owner-only, empty
+      else
+        writeOwnerOnlyToken(file, 'x', {
+          writeToken: (p) => writeFileSync(p, body, { flag: 'r+' }),
+        });
+      assert.throws(() => readOwnerOnlyToken(file), /refusing empty token file/);
+      assert.ok(existsSync(file));
+      assert.equal(readFileSync(file, 'utf8'), body ?? '');
+    }
+  }));
