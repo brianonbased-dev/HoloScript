@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { _handleSingleToolLogic } from '../index';
+import { _handleSingleToolLogic, executeSingleTool } from '../index';
 import type { SigningContext } from '../holomesh/identity/signing-middleware';
+import { authorizeToolCall } from '../security/tool-scopes';
 
 const READ_ONLY_SIGNING_CONTEXT: SigningContext = {
   signedRequest: true,
@@ -93,6 +94,147 @@ describe('stateless HTTP batch_tool_call dispatch parity', () => {
     expect(payload.results[0].error).toContain('tools:admin');
   });
 
+  it('admits a tools:codebase batch (sovereign loopback) and still re-checks each inner call', async () => {
+    const codebaseOnly: SigningContext = {
+      ...READ_ONLY_SIGNING_CONTEXT,
+      scopes: ['tools:codebase'],
+    };
+    expect(authorizeToolCall('batch_tool_call', ['tools:codebase']).authorized).toBe(true);
+
+    const response = await _handleSingleToolLogic(
+      'batch_tool_call',
+      {
+        calls: [
+          { name: 'holo_graph_status', args: {} },
+          { name: 'holo_from_scratch_launch', args: { model: 'holorunner-s0' } },
+          { name: 'parse_hs', args: { code: 'composition "C" {}' } },
+        ],
+      },
+      codebaseOnly
+    );
+
+    const payload = parseBatchResponse(response);
+    expect(payload.results[0]).toMatchObject({ name: 'holo_graph_status', ok: true });
+    expect(payload.results[1]).toMatchObject({ name: 'holo_from_scratch_launch', ok: false });
+    expect(payload.results[1].error).toContain('Batch inner tool authorization denied');
+    expect(payload.results[2]).toMatchObject({ name: 'parse_hs', ok: false });
+    expect(payload.results[2].error).toContain('tools:read');
+  }, 60_000);
+
+  // holoscript_batch_execute is the other widened wrapper (tools:read + tools:codebase). It
+  // must be admitted for a codebase-only caller and still re-authorize every inner request.
+  it('admits holoscript_batch_execute for a tools:codebase-only key and re-checks each inner request', async () => {
+    const codebaseOnly: SigningContext = {
+      ...READ_ONLY_SIGNING_CONTEXT,
+      scopes: ['tools:codebase'],
+    };
+    expect(authorizeToolCall('holoscript_batch_execute', ['tools:codebase']).authorized).toBe(true);
+
+    const allowed = (await executeSingleTool(
+      'holoscript_batch_execute',
+      { requests: [{ name: 'holo_graph_status', arguments: {} }] },
+      codebaseOnly
+    )) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(allowed.isError).not.toBe(true);
+    const rows = JSON.parse(allowed.content[0].text) as Array<{ name: string; status: string }>;
+    expect(rows).toEqual([
+      expect.objectContaining({ name: 'holo_graph_status', status: 'success' }),
+    ]);
+
+    const denied = (await executeSingleTool(
+      'holoscript_batch_execute',
+      { requests: [{ name: 'holo_from_scratch_launch', arguments: { model: 'holorunner-s0' } }] },
+      codebaseOnly
+    )) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(denied.isError).toBe(true);
+    expect(denied.content[0].text).toContain('Batch inner tool authorization denied');
+    expect(denied.content[0].text).toContain('tools:admin');
+
+    const readTool = (await executeSingleTool(
+      'holoscript_batch_execute',
+      { requests: [{ name: 'parse_hs', arguments: { code: 'composition "C" {}' } }] },
+      codebaseOnly
+    )) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(readTool.isError).toBe(true);
+    expect(readTool.content[0].text).toContain('tools:read');
+  }, 60_000);
+
+  // A batch inside a batch multiplies the cap (25 x 25 x ...): a tools:codebase-only key must not
+  // be able to fan out that way, through either wrapper.
+  it('refuses a nested batch as an inner call of both wrappers for a tools:codebase-only key', async () => {
+    const codebaseOnly: SigningContext = {
+      ...READ_ONLY_SIGNING_CONTEXT,
+      scopes: ['tools:codebase'],
+    };
+    const inner = {
+      calls: [{ name: 'holo_graph_status', args: {} }],
+      requests: [{ name: 'holo_graph_status', arguments: {} }],
+    };
+
+    const viaCall = parseBatchResponse(
+      await _handleSingleToolLogic(
+        'batch_tool_call',
+        {
+          calls: [
+            { name: 'batch_tool_call', args: inner },
+            { name: 'holoscript_batch_execute', args: inner },
+            { name: 'holo_graph_status', args: {} },
+          ],
+        },
+        codebaseOnly
+      )
+    );
+    expect(viaCall.results[0]).toMatchObject({ name: 'batch_tool_call', ok: false });
+    expect(viaCall.results[0].error).toContain('nested batch and fan-out tools are refused');
+    expect(viaCall.results[1]).toMatchObject({ name: 'holoscript_batch_execute', ok: false });
+    expect(viaCall.results[1].error).toContain('nested batch and fan-out tools are refused');
+    expect(viaCall.results[2]).toMatchObject({ name: 'holo_graph_status', ok: true });
+
+    for (const nestedName of ['batch_tool_call', 'holoscript_batch_execute']) {
+      const viaExecute = (await executeSingleTool(
+        'holoscript_batch_execute',
+        { requests: [{ name: nestedName, arguments: inner }] },
+        codebaseOnly
+      )) as { isError?: boolean; content: Array<{ text: string }> };
+      expect(viaExecute.isError).toBe(true);
+      expect(viaExecute.content[0].text).toContain('nested batch and fan-out tools are refused');
+    }
+  }, 60_000);
+
+  it('refuses a batch over the call cap for both wrappers before any call runs', async () => {
+    const tooMany = Array.from({ length: 26 }, () => ({ name: 'holo_graph_status', args: {} }));
+    const viaCall = (await _handleSingleToolLogic(
+      'batch_tool_call',
+      { calls: tooMany },
+      READ_WRITE_SIGNING_CONTEXT
+    )) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(viaCall.isError).toBe(true);
+    expect(viaCall.content[0].text).toContain('at most 25 calls per batch');
+
+    const viaExecute = (await executeSingleTool(
+      'holoscript_batch_execute',
+      { requests: tooMany.map((c) => ({ name: c.name, arguments: {} })) },
+      READ_WRITE_SIGNING_CONTEXT
+    )) as { isError?: boolean; content: Array<{ text: string }> };
+    expect(viaExecute.isError).toBe(true);
+    expect(viaExecute.content[0].text).toContain('at most 25 calls per batch');
+  });
+  it('runs a flat batch at the call cap through both wrappers', async () => {
+    const codebaseOnly: SigningContext = { ...READ_ONLY_SIGNING_CONTEXT, scopes: ['tools:codebase'] };
+    const atCap = Array.from({ length: 25 }, () => ({ name: 'holo_graph_status', args: {} }));
+    const viaCall = parseBatchResponse(
+      await _handleSingleToolLogic('batch_tool_call', { calls: atCap }, codebaseOnly)
+    );
+    expect(viaCall.summary).toMatchObject({ total: 25, succeeded: 25, failed: 0 });
+
+    const viaExecute = (await executeSingleTool(
+      'holoscript_batch_execute',
+      { requests: atCap.map((c) => ({ name: c.name, arguments: {} })) },
+      codebaseOnly
+    )) as { isError?: boolean; content?: Array<{ text?: string }> };
+    expect(viaExecute.isError).not.toBe(true);
+    expect(viaExecute.content?.[0]?.text ?? '').not.toContain('at most 25 calls per batch');
+  }, 60_000);
   it('preserves an allowed tools:read inner call under a tools:read batch', async () => {
     const code = 'composition "ReadBatch" { object "Cube" { geometry: "cube" } }';
     const response = await _handleSingleToolLogic(

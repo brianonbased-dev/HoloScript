@@ -1756,6 +1756,42 @@ export async function handleToolingDiscoveryTool(
   return null;
 }
 
+/**
+ * Most calls one batch may carry. A batch runs sequentially inside one request, so an
+ * unbounded list lets a single caller (including a tools:codebase-only sovereign
+ * loopback caller) pin the server. 25 is well above the handful of calls a
+ * discovery flow needs.
+ */
+export const MAX_BATCH_CALLS = 25;
+
+/**
+ * Tools that run OTHER tools on the caller's behalf. They are refused as the inner call of a
+ * batch: a batch of 25 batches of 25 is 625 calls, and 25^depth after that, so a caller holding
+ * only tools:codebase could fan out without bound. One level of batching is the whole feature.
+ */
+export const BATCH_FANOUT_TOOLS: ReadonlySet<string> = new Set([
+  'batch_tool_call',
+  'holoscript_batch_execute',
+  'execute_workflow',
+  'get_tool_health',
+]);
+
+export function assertNotNestedBatch(toolName: string, batchName: string): void {
+  if (BATCH_FANOUT_TOOLS.has(toolName)) {
+    throw new Error(
+      `${batchName} cannot run ${toolName} as an inner call: nested batch and fan-out tools are refused. Call ${toolName} directly.`
+    );
+  }
+}
+
+export function assertBatchWithinCap(count: number, toolName: string): void {
+  if (count > MAX_BATCH_CALLS) {
+    throw new Error(
+      `${toolName} accepts at most ${MAX_BATCH_CALLS} calls per batch; received ${count}. Split it into several batches.`
+    );
+  }
+}
+
 export async function handleBatchToolCall(
   args: Record<string, unknown>,
   dispatch: (name: string, args: Record<string, unknown>) => Promise<unknown>
@@ -1764,6 +1800,7 @@ export async function handleBatchToolCall(
   summary: { total: number; succeeded: number; failed: number; stoppedEarly: boolean };
 }> {
   const calls = Array.isArray(args.calls) ? args.calls : [];
+  assertBatchWithinCap(calls.length, 'batch_tool_call');
   const stopOnError = args.stopOnError === true;
 
   const results: Array<{
@@ -1793,8 +1830,14 @@ export async function handleBatchToolCall(
       continue;
     }
 
-    if (name === 'batch_tool_call') {
-      results.push({ index: i, name, ok: false, error: 'Nested batch_tool_call is not allowed' });
+    if (BATCH_FANOUT_TOOLS.has(name)) {
+      let refusal = 'Nested batch is not allowed';
+      try {
+        assertNotNestedBatch(name, 'batch_tool_call');
+      } catch (error) {
+        refusal = error instanceof Error ? error.message : refusal;
+      }
+      results.push({ index: i, name, ok: false, error: refusal });
       if (stopOnError) {
         stoppedEarly = true;
         break;
