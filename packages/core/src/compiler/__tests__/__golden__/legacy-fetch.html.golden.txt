@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LegacyFetchProbe</title>
+    <style>
+      /* HoloScript Native2D — minimal Tailwind-compatible utility CSS (no CDN dependency) */
+      *, *::before, *::after { box-sizing: border-box; }
+      body { margin: 0; padding: 0; background-color: #050510; color: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+      /* --- Typography --- */
+      .text-5xl { font-size: 3rem; line-height: 1; }
+      .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+      .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+      .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+      .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+      .text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+      .text-xs { font-size: 0.75rem; line-height: 1rem; }
+      .font-bold { font-weight: 700; }
+      .font-semibold { font-weight: 600; }
+      .font-medium { font-weight: 500; }
+      .tracking-tight { letter-spacing: -0.025em; }
+      /* --- Colors --- */
+      .text-white { color: #fff; }
+      .text-black { color: #000; }
+      .text-gray-300 { color: #d1d5db; }
+      .text-gray-400 { color: #9ca3af; }
+      .text-gray-500 { color: #6b7280; }
+      .text-gray-600 { color: #4b5563; }
+      .text-green-400 { color: #4ade80; }
+      .text-yellow-400 { color: #facc15; }
+      .text-red-400 { color: #f87171; }
+      .text-studio-text { color: #f8fafc; }
+      .text-studio-muted { color: #94a3b8; }
+      .text-\[15px\] { font-size: 15px; line-height: 1.2; }
+      .text-\[9px\] { font-size: 9px; line-height: 1.2; }
+      /* --- Backgrounds --- */
+      .bg-white { background-color: #fff; }
+      .bg-gray-800 { background-color: #1f2937; }
+      .bg-gray-900 { background-color: #111827; }
+      .bg-gray-950 { background-color: #030712; }
+      .bg-blue-600 { background-color: #2563eb; }
+      .bg-blue-700 { background-color: #1d4ed8; }
+      .bg-indigo-600 { background-color: #4f46e5; }
+      .bg-indigo-500 { background-color: #6366f1; }
+      .bg-studio-surface { background-color: #0f172a; }
+      /* --- Hover states --- */
+      .hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+      .hover\:bg-gray-800:hover { background-color: #1f2937; }
+      .hover\:bg-indigo-500:hover { background-color: #6366f1; }
+      .hover\:text-white:hover { color: #fff; }
+      /* --- Spacing --- */
+      .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+      .px-4 { padding-left: 1rem; padding-right: 1rem; }
+      .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+      .px-8 { padding-left: 2rem; padding-right: 2rem; }
+      .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+      .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+      .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+      .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+      .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+      .py-16 { padding-top: 4rem; padding-bottom: 4rem; }
+      .p-2 { padding: 0.5rem; }
+      .p-3 { padding: 0.75rem; }
+      .p-4 { padding: 1rem; }
+      .p-6 { padding: 1.5rem; }
+      .p-8 { padding: 2rem; }
+      .mt-2 { margin-top: 0.5rem; }
+      .mt-4 { margin-top: 1rem; }
+      .mt-6 { margin-top: 1.5rem; }
+      .mt-8 { margin-top: 2rem; }
+      .mb-2 { margin-bottom: 0.5rem; }
+      .mb-4 { margin-bottom: 1rem; }
+      .mb-6 { margin-bottom: 1.5rem; }
+      .gap-2 { gap: 0.5rem; }
+      .gap-4 { gap: 1rem; }
+      .gap-6 { gap: 1.5rem; }
+      .gap-8 { gap: 2rem; }
+      .space-y-2 > * + * { margin-top: 0.5rem; }
+      .space-y-4 > * + * { margin-top: 1rem; }
+      /* --- Borders & Radius --- */
+      .border { border-width: 1px; border-style: solid; }
+      .border-gray-600 { border-color: #4b5563; }
+      .border-gray-700 { border-color: #374151; }
+      .border-gray-800 { border-color: #1f2937; }
+      .border-studio-border { border-color: #334155; }
+      .rounded { border-radius: 0.25rem; }
+      .rounded-lg { border-radius: 0.5rem; }
+      .rounded-xl { border-radius: 0.75rem; }
+      .rounded-2xl { border-radius: 1rem; }
+      .rounded-full { border-radius: 9999px; }
+      /* --- Shadows --- */
+      .shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
+      .shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); }
+      .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); }
+      .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); }
+      /* --- Layout --- */
+      .flex { display: flex; }
+      .inline-flex { display: inline-flex; }
+      .grid { display: grid; }
+      .block { display: block; }
+      .hidden { display: none; }
+      .items-center { align-items: center; }
+      .items-start { align-items: flex-start; }
+      .justify-center { justify-content: center; }
+      .justify-between { justify-content: space-between; }
+      .flex-col { flex-direction: column; }
+      .flex-wrap { flex-wrap: wrap; }
+      .flex-1 { flex: 1 1 0%; }
+      .w-full { width: 100%; }
+      .h-full { height: 100%; }
+      .w-auto { width: auto; }
+      .max-w-sm { max-width: 24rem; }
+      .max-w-md { max-width: 28rem; }
+      .max-w-lg { max-width: 32rem; }
+      .max-w-xl { max-width: 36rem; }
+      .max-w-2xl { max-width: 42rem; }
+      .max-w-3xl { max-width: 48rem; }
+      .max-w-4xl { max-width: 56rem; }
+      .max-w-5xl { max-width: 64rem; }
+      .max-w-6xl { max-width: 72rem; }
+      .max-w-7xl { max-width: 80rem; }
+      .mx-auto { margin-left: auto; margin-right: auto; }
+      .text-center { text-align: center; }
+      .text-left { text-align: left; }
+      .text-right { text-align: right; }
+      .relative { position: relative; }
+      .absolute { position: absolute; }
+      .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .tabular-nums { font-variant-numeric: tabular-nums; }
+      /* --- Interaction --- */
+      .cursor-pointer { cursor: pointer; }
+      .select-none { user-select: none; }
+      .transition-all { transition: all 0.15s ease; }
+      .transition { transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
+      .outline-none { outline: none; }
+      /* Focus ring for inputs */
+      .focus\:ring-2:focus { box-shadow: 0 0 0 2px rgba(99,102,241,0.5); }
+      .focus\:ring-indigo-500:focus { box-shadow: 0 0 0 2px #6366f1; }
+      /* --- Opacity --- */
+      .opacity-50 { opacity: 0.5; }
+      .opacity-75 { opacity: 0.75; }
+      /* --- Overflow --- */
+      .overflow-hidden { overflow: hidden; }
+      .overflow-auto { overflow: auto; }
+      .overflow-y-auto { overflow-y: auto; }
+      /* --- Custom HoloScript trait animations --- */
+      .glow-btn:hover { box-shadow: 0 0 15px rgba(255,255,255,0.5); }
+      .lift-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+      .lift-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.2); }
+      [data-holo-template] { display: none; }
+    </style>
+</head>
+<body>
+    <div id="holoscript-native-root">
+      <div data-holo-fetch="/api/x" data-holo-into="items" data-holo-method="GET">
+      
+      <div data-holo-template>
+      
+      <span class="text-sm text-gray-500" data-holo-bind-state="it" data-holo-bind-fallback="" data-holo-bind-path="name" data-holo-static-class="text-sm text-gray-500">
+      
+      
+    </span>
+    </div>
+<div data-holo-fetch="/api/y" data-holo-into="posted" data-holo-method="POST">
+      
+      
+    </div>
+    </div>
+    </div>
+    <script>
+      function navigate(path) { window.location.href = path; }
+      function submitNewsletter(e) { e.preventDefault(); alert('Subscribed!'); }
+    </script>
+    <script>
+      /* HoloScript Native2D — hydration-free live list-binding runtime (@fetch).
+         For each [data-holo-fetch] container: fetch the endpoint, then clone the
+         [data-holo-template] child per item and interpolate {{field}} (dotted paths
+         supported) into text + attributes. Plain DOM — no framework, no hydration. */
+      (function () {
+        function getPath(o, p) { return p.split('.').reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+        /* {{field|host}} shows only the host a URL really goes to, read by the browser's URL
+           parser (task eajf): a look-alike name shows in full, and a look-alike letter shows
+           in its xn-- form. An unknown filter leaves the value as it is. */
+        function applyFilter(v, f) {
+          if (f === 'host') { try { return new URL(String(v)).host; } catch (e) { return ''; } }
+          return v;
+        }
+        function interp(s, item) { return s.replace(/{{([^}]+)}}/g, function (_, k) { var parts = k.split('|'); var v = getPath(item, parts[0].trim()); if (parts.length > 1) v = applyFilter(v, parts[1].trim()); return v == null ? '' : String(v); }); }
+        /* Fetched values are data, never code (task 3m36): an event-handler attribute or srcdoc
+           keeps the template's own text, and a link or source keeps a filled value only when the
+           browser's URL parser reads it as http, https or mailto with no user name or password
+           (a user part puts the real host after the at-sign, where a glance misses it). A value
+           without its own scheme (a path, or a //host or backslash form) is kept only when it
+           resolves to this page's own site. */
+        var URL_ATTRS = { href: 1, src: 1, action: 1, formaction: 1, poster: 1 };
+        function safeUrl(v) {
+          var own = null, u = null;
+          try { own = new URL(v); } catch (e) { own = null; }
+          try { u = own || new URL(v, location.href); } catch (e) { return ''; }
+          if (u.username || u.password) return '';
+          if (!/^(https?|mailto):$/.test(u.protocol)) return '';
+          if (!own && u.origin !== location.origin) return '';
+          return v;
+        }
+        function fill(node, item) {
+          if (node.attributes) {
+            for (var i = 0; i < node.attributes.length; i++) {
+              var a = node.attributes[i], n = a.name.toLowerCase();
+              if (a.value.indexOf('{{') < 0 || n.indexOf('on') === 0 || n === 'srcdoc') continue;
+              var v = interp(a.value, item);
+              a.value = URL_ATTRS[n] ? safeUrl(v) : v;
+            }
+          }
+          (node.childNodes || []).forEach(function (c) {
+            if (c.nodeType === 3) { if (c.nodeValue.indexOf('{{') >= 0) c.nodeValue = interp(c.nodeValue, item); }
+            else if (c.nodeType === 1) fill(c, item);
+          });
+        }
+        function render(el) {
+          var url = el.getAttribute('data-holo-fetch'); var method = el.getAttribute('data-holo-method') || 'GET';
+          var tpl = el.querySelector('[data-holo-template]'); if (!tpl) return;
+          fetch(url, { method: method }).then(function (r) { return r.json(); }).then(function (d) {
+            var items = (d && (d.items || d.actions)) || (Array.isArray(d) ? d : []);
+            items.forEach(function (item) {
+              var n = tpl.cloneNode(true); n.removeAttribute('data-holo-template'); n.style.display = '';
+              fill(n, item); el.appendChild(n);
+            });
+            var into = el.getAttribute('data-holo-into');
+            if (into) { document.querySelectorAll('[data-holo-count-for="' + into + '"]').forEach(function (c) { c.textContent = String(items.length); }); }
+          }).catch(function (e) { console.error('[holo-fetch]', url, e); });
+        }
+        function boot() { document.querySelectorAll('[data-holo-fetch]').forEach(render); }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+      })();
+    </script>
+    <script>
+      /* HoloScript Native2D bind runtime. Applies @bind text and threshold tiers
+         to static HTML without React hydration. Tests and host shells can call
+         window.__holoApplyNativeBindings({ snap: { fps: 60 } }). */
+      (function () {
+        function getPath(o, p) { return p.split('.').filter(Boolean).reduce(function (a, k) { return a == null ? a : a[k]; }, o); }
+        function formatValue(el, value) {
+          var hasPrecision = el.hasAttribute('data-holo-bind-precision');
+          var hasPrefix = el.hasAttribute('data-holo-bind-prefix');
+          var hasSuffix = el.hasAttribute('data-holo-bind-suffix');
+          if (value == null) value = (hasPrecision || hasPrefix || hasSuffix) ? 0 : (el.getAttribute('data-holo-bind-fallback') || '');
+          var text;
+          if (hasPrecision) {
+            var precision = Number(el.getAttribute('data-holo-bind-precision') || '0');
+            var numeric = Number(value);
+            text = (Number.isFinite(numeric) ? numeric : 0).toFixed(precision);
+          } else {
+            text = String(value);
+          }
+          return (el.getAttribute('data-holo-bind-prefix') || '') + text + (el.getAttribute('data-holo-bind-suffix') || '');
+        }
+        function tierClass(el, value) {
+          var raw = el.getAttribute('data-holo-bind-tiers');
+          if (!raw) return '';
+          var tiers;
+          try { tiers = JSON.parse(raw); } catch (_) { return ''; }
+          var numeric = Number(value == null ? 0 : value);
+          if (!Number.isFinite(numeric)) numeric = 0;
+          for (var i = 0; i < tiers.length; i++) {
+            var t = tiers[i] || {};
+            var bounded = false;
+            var ok = true;
+            if (typeof t.gte === 'number') { bounded = true; ok = ok && numeric >= t.gte; }
+            if (typeof t.gt === 'number') { bounded = true; ok = ok && numeric > t.gt; }
+            if (typeof t.lte === 'number') { bounded = true; ok = ok && numeric <= t.lte; }
+            if (typeof t.lt === 'number') { bounded = true; ok = ok && numeric < t.lt; }
+            if (!bounded || ok) return t.className || '';
+          }
+          return '';
+        }
+        function applyBinding(el, data) {
+          var state = el.getAttribute('data-holo-bind-state') || '';
+          var path = el.getAttribute('data-holo-bind-path') || '';
+          var value = getPath(data || {}, state + (path ? '.' + path : ''));
+          el.textContent = formatValue(el, value);
+          var base = el.getAttribute('data-holo-static-class') || '';
+          var tier = tierClass(el, value);
+          el.className = [base, tier].filter(Boolean).join(' ');
+        }
+        function applyAll(data) {
+          document.querySelectorAll('[data-holo-bind-state]').forEach(function (el) { applyBinding(el, data || {}); });
+        }
+        window.__holoApplyNativeBindings = applyAll;
+        window.addEventListener('holo:native-bind', function (event) { applyAll((event && event.detail) || {}); });
+        function boot() { applyAll(window.__holoNativeState || {}); }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+      })();
+    </script>
+</body>
+</html>

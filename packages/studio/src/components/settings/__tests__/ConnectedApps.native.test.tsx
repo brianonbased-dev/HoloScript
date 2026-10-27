@@ -81,7 +81,7 @@ describe('ConnectedApps (native)', () => {
     await waitFor(() => expect(screen.queryByText('Helper Bot')).toBeNull());
     expect(confirmMock).toHaveBeenCalledTimes(1);
     expect(deletes()[0]?.[0]).toBe('/api/oauth/grants?id=grant_1');
-    expect(screen.getByText('No connected apps.')).toBeTruthy();
+    expect(await screen.findByText('No connected apps.')).toBeTruthy();
   });
 
   it('MUST NOT revoke when the confirm is declined', async () => {
@@ -130,5 +130,19 @@ describe('ConnectedApps (native)', () => {
     await act(async () => release(new Response(null, { status: 204 })));
     expect(errors).not.toHaveBeenCalled();
     errors.mockRestore();
+  });
+
+  it('while one revoke is pending only that row says Revoking...', async () => {
+    let release: (r: Response) => void = () => {};
+    fetchMock.mockImplementation((_u: string, init?: RequestInit) =>
+      init?.method === 'DELETE'
+        ? new Promise<Response>((res) => (release = res))
+        : Promise.resolve(grants([grant, { ...grant, id: 'grant_2', client_name: 'Other Bot' }]))
+    );
+    render(<ConnectedAppsComponent />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Revoke Helper Bot' }));
+    await waitFor(() => expect(screen.getAllByText('Revoking...')).toHaveLength(1));
+    expect(screen.getAllByText('Revoke')).toHaveLength(1);
+    await act(async () => release(new Response(null, { status: 204 })));
   });
 });

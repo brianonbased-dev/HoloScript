@@ -6,8 +6,8 @@ composition "ConnectedApps" {
     @layout { flex: "column", gap: "8px" }
     @theme { className: "mx-auto mt-6 max-w-[700px] rounded-xl bg-[#1a1a2e] p-6 text-[#e0e0e0]", attributes: '{"data-testid":"connected-apps"}' }
     @fetch { endpoint: "/api/oauth/grants", into: "apps", select: "grants", cache: "no-store", status: "appsStatus", error: "appsError", error_text: "Couldn't load your connected apps. Try again?" }
-    @mutation { name: "revoke", method: "DELETE", endpoint: "/api/oauth/grants?id={id}", ok_status: [204, 404], pending: "revokingId", error: "appsError", error_text: "Couldn't revoke that app. Try again?", confirm: "Revoke this app's access? It will need your permission again to connect.", on_ok: { remove: "apps", remove_where: "id" } }
-    @computed { name: "rows", expr: "connectedAppRows(apps)", from: "@/lib/oauth/connectedAppRows", uses: "connectedAppRows" }
+    @mutation { name: "revoke", method: "DELETE", endpoint: "/api/oauth/grants?id={id}", ok_status: [204, 404], pending: "revokingId", error: "appsError", error_text: "Couldn't revoke that app. Try again?", confirm: "Revoke this app's access? It will need your permission again to connect.", on_ok: { remove: { from: "apps", where: "id" } } }
+    @computed { name: "rows", expr: "connectedAppRows(apps, revokingId)", from: "@/lib/oauth/connectedAppRows", uses: "connectedAppRows" }
 
     object "Header" {
       @layout { flex: "row", gap: "12px" }
@@ -106,14 +106,10 @@ composition "ConnectedApps" {
           @button { type: "button" }
           @action { call: "revoke", args: { id: "row.id" } }
           @theme { className: "shrink-0 cursor-pointer rounded-md border border-[#ff6b6b] bg-transparent px-3 py-1.5 text-[#ff6b6b] disabled:cursor-default disabled:opacity-50" }
-          object "RevokeIdle" {
-            @when { state: "revokingId", not_eq: { ref: "row.id" } }
-            @text { variant: "caption", content: "Revoke" }
-            @theme { attributes: '{"aria-hidden":"true"}' }
-          }
-          object "RevokeBusy" {
-            @when { state: "revokingId", eq: { ref: "row.id" } }
-            @text { variant: "caption", content: "Revoking..." }
+          object "RevokeLabel" {
+            @text { variant: "caption" }
+            @bind { state: "row", path: "revokeLabel", fallback: "Revoke" }
+            @projects { node: "row.revokeLabel" }
             @theme { attributes: '{"aria-hidden":"true"}' }
           }
           object "RevokeName" {
