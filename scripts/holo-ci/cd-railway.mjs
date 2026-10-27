@@ -40,7 +40,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 import {
   isRailwayReference,
@@ -326,6 +326,64 @@ function assertRailwayignoreSane() {
   }
 }
 
+/** Studio replica ship gate. Desktop sign-in remembers redeemed codes per instance, so the
+ *  studio service must run exactly ONE replica. The studio package owns the check
+ *  (`desktop-signin:replicas:check:ship` = the replica check with --require-env, which fails
+ *  closed when STUDIO_NUM_REPLICAS is unset, blank, 0, above 1 or non-numeric).
+ *
+ *  Fails closed: if the :ship script is absent from packages/studio/package.json (it lands with
+ *  the desktop sign-in work), a spawn error, or any non-zero exit REFUSES the deploy.
+ *
+ *  LIMITS (see the PR body): this checks the DEPLOYER's environment, not Railway's applied
+ *  state, and it cannot stop Railway auto-deploy or a manual `railway up` run outside this script.
+ *
+ *  `spawn` and `repoRoot` are injectable for tests. Returns true when the gate ran and passed,
+ *  false when studio is not targeted (gate skipped). */
+export const STUDIO_SHIP_GATE_SCRIPT = 'desktop-signin:replicas:check:ship';
+export function assertStudioReplicaShipGate(
+  targets,
+  { spawn = spawnSync, repoRoot = REPO_ROOT } = {}
+) {
+  if (!(targets ?? []).some((s) => s?.name === 'studio')) return false;
+
+  const pkgPath = join(repoRoot, 'packages', 'studio', 'package.json');
+  let hasShipScript = false;
+  try {
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    hasShipScript = typeof pkg?.scripts?.[STUDIO_SHIP_GATE_SCRIPT] === 'string';
+  } catch {
+    hasShipScript = false;
+  }
+  if (!hasShipScript) {
+    throw new Error(
+      `REFUSING DEPLOY: packages/studio/package.json has no "${STUDIO_SHIP_GATE_SCRIPT}" script ` +
+        `(or it could not be read), so the studio replica ship gate cannot run. That script ships with ` +
+        `the desktop sign-in work; deploy studio only from a tree that includes it.`
+    );
+  }
+
+  const r = spawn('pnpm', ['--filter', '@holoscript/studio', 'run', STUDIO_SHIP_GATE_SCRIPT], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    env: process.env,
+    shell: false,
+  });
+  if (!r || r.error) {
+    throw new Error(
+      `REFUSING DEPLOY: could not run the studio replica ship gate (pnpm spawn error: ` +
+        `${r?.error?.message ?? 'no result'}). Install pnpm and retry.`
+    );
+  }
+  if (r.status !== 0) {
+    throw new Error(
+      `REFUSING DEPLOY: studio replica ship gate failed (exit ${r.status ?? `signal ${r.signal}`}). ` +
+        `STUDIO_NUM_REPLICAS must be set to exactly 1 in the deployer's environment.`
+    );
+  }
+  console.log('OK studio replica ship gate passed (STUDIO_NUM_REPLICAS = 1).');
+  return true;
+}
+
 function deploy(svc) {
   console.log(`\n→ railway up: ${svc.name} (${svc.id})`);
   const r = runRailway(['up', '--ci', '--service', svc.id, '--environment', ENV_ID], {
@@ -530,6 +588,8 @@ async function main() {
   );
 
   if (!live) {
+    // Dry-run is gated too: a plan that includes studio must not look deployable when the ship gate fails.
+    assertStudioReplicaShipGate(targets);
     console.log('\n[dry-run] would deploy via `railway up`:');
     for (const s of targets)
       console.log(
@@ -548,12 +608,18 @@ async function main() {
     throw new Error('Cannot deploy: railway CLI missing. Install with `npm i -g @railway/cli`.');
   }
 
+  // Studio must run exactly one replica (desktop sign-in state is per instance).
+  assertStudioReplicaShipGate(targets);
+
   let ok = true;
   for (const s of targets) ok = deploy(s) && ok;
   process.exitCode = ok ? 0 : 1;
 }
 
-main().catch((e) => {
-  console.error(e.message || e);
-  process.exitCode = 1;
-});
+// Run only when executed directly, so tests can import assertStudioReplicaShipGate.
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((e) => {
+    console.error(e.message || e);
+    process.exitCode = 1;
+  });
+}
