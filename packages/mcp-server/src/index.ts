@@ -93,6 +93,7 @@ import { memoryTools, handleMemoryTool } from './memory-tools';
 import {
   handleBatchToolCall,
   assertBatchWithinCap,
+  assertNotNestedBatch,
   setToolHealthDispatcher,
   registerHolonTools,
 } from './tooling-discovery-tools';
@@ -307,6 +308,7 @@ export async function executeSingleTool(
       assertBatchWithinCap(requests.length, 'holoscript_batch_execute');
       const results: unknown[] = [];
       for (const req of requests) {
+        assertNotNestedBatch(String(req.name || ''), 'holoscript_batch_execute');
         assertBatchInnerToolAuthorized(String(req.name || ''), signingCtx, req.arguments || {});
         const res = await executeSingleTool(
           String(req.name || ''),

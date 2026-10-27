@@ -5,6 +5,7 @@ import {
   suggestToolsForGoal,
   detectMealKit,
   handleBatchToolCall,
+  BATCH_FANOUT_TOOLS,
   MAX_BATCH_CALLS,
   buildToolHealthReport,
   handleToolingDiscoveryTool,
@@ -577,6 +578,37 @@ describe('tooling discovery and batch dispatch', () => {
 
     const atCap = await handleBatchToolCall({ calls: calls(MAX_BATCH_CALLS) }, dispatch);
     expect(atCap.summary).toMatchObject({ total: MAX_BATCH_CALLS, succeeded: MAX_BATCH_CALLS });
+  });
+
+  it('refuses a batch or fan-out tool as an inner call without dispatching it', async () => {
+    const dispatched: string[] = [];
+    const dispatch = async (name: string) => {
+      dispatched.push(name);
+      return { ok: true };
+    };
+    const nested = [...BATCH_FANOUT_TOOLS];
+    expect(nested).toEqual(
+      expect.arrayContaining(['batch_tool_call', 'holoscript_batch_execute'])
+    );
+
+    const result = await handleBatchToolCall(
+      {
+        calls: [
+          ...nested.map((name) => ({ name, args: { calls: [{ name: 'parse_hs', args: {} }] } })),
+          { name: 'parse_hs', args: {} },
+        ],
+      },
+      dispatch
+    );
+
+    // Only the plain tool reached dispatch; every batch/fan-out tool was refused in place.
+    expect(dispatched).toEqual(['parse_hs']);
+    for (let i = 0; i < nested.length; i++) {
+      expect(result.results[i]).toMatchObject({ name: nested[i], ok: false });
+      expect(result.results[i].error).toContain('cannot run');
+      expect(result.results[i].error).toContain('refused');
+    }
+    expect(result.results[nested.length]).toMatchObject({ name: 'parse_hs', ok: true });
   });
 });
 
