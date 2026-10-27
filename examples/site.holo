@@ -21,7 +21,7 @@ composition "HoloScriptLanding" {
         object "QuickStart" @link(href: "/guides/quick-start", content: "Quick Start") @tailwind("hover:text-cyan-400 transition-colors no-underline")
         object "Examples" @link(href: "/examples", content: "Examples") @tailwind("hover:text-cyan-400 transition-colors no-underline")
         object "Traits" @link(href: "/traits", content: "Traits") @tailwind("hover:text-cyan-400 transition-colors no-underline")
-        object "Studio" @link(href: "https://studio.holoscript.net", content: "Studio") @tailwind("text-purple-400 hover:text-purple-300 bg-purple-500/10 px-3 py-1.5 rounded-md transition-colors no-underline")
+        object "Studio" @link(href: "https://holoscript.studio", content: "Studio") @tailwind("text-purple-400 hover:text-purple-300 bg-purple-500/10 px-3 py-1.5 rounded-md transition-colors no-underline")
         object "GitHub" @link(href: "https://github.com/brianonbased-dev/HoloScript", content: "GitHub") @tailwind("hover:text-cyan-400 transition-colors no-underline")
       }
     }
@@ -48,7 +48,7 @@ composition "HoloScriptLanding" {
       object "Subhead" @text(variant: "body", content: "Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds with AI, sell them on an open marketplace, and deploy autonomous agents — all from one platform. No engine lock-in. No code required. Open source and free forever.") @tailwind("max-w-3xl mx-auto text-lg lg:text-xl text-gray-400 mb-10 leading-relaxed")
 
       object "HeroButtons" @panel(tag: "div") @tailwind("flex flex-col sm:flex-row items-center justify-center gap-4") {
-        object "BtnStudio" @link(href: "https://studio.holoscript.net", content: "Try Studio") @tailwind("w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)] no-underline text-center")
+        object "BtnStudio" @link(href: "https://holoscript.studio", content: "Try Studio") @tailwind("w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)] no-underline text-center")
         object "BtnStart" @link(href: "/guides/quick-start", content: "Get Started Free") @tailwind("w-full sm:w-auto px-8 py-3.5 rounded-lg bg-white/5 border border-white/10 text-white font-bold text-lg hover:bg-white/10 transition-colors no-underline text-center")
         object "BtnGitHub" @link(href: "https://github.com/brianonbased-dev/HoloScript", content: "View on GitHub") @tailwind("w-full sm:w-auto px-8 py-3.5 rounded-lg bg-black/50 border border-white/10 text-gray-300 font-bold text-lg hover:text-white transition-colors no-underline text-center")
       }
@@ -110,7 +110,7 @@ composition "HoloScriptLanding" {
     object "StudioHeader" @panel(tag: "div") @tailwind("max-w-7xl mx-auto px-6 relative z-10 text-center mb-16") {
       object "T1" @text(variant: "h2", content: "No Code? No Problem.") @tailwind("text-4xl md:text-5xl font-bold mb-6 text-white")
       object "D1" @text(variant: "body", content: "HoloScript Studio lets you build 3D scenes just by describing them. Type what you want, see it in real-time. No install, no setup, no coding required.") @tailwind("text-xl text-gray-400 max-w-3xl mx-auto")
-      object "BtnStudio" @link(href: "https://studio.holoscript.net", content: "Open Studio →") @tailwind("mt-8 inline-block px-8 py-3 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors font-medium no-underline")
+      object "BtnStudio" @link(href: "https://holoscript.studio", content: "Open Studio →") @tailwind("mt-8 inline-block px-8 py-3 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors font-medium no-underline")
     }
 
     object "StudioImageContainer" @panel(tag: "div") @tailwind("max-w-5xl mx-auto px-6 mb-24 relative z-10") {
