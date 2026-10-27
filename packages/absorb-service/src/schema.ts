@@ -22,6 +22,7 @@ import {
   uniqueIndex,
   boolean,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // =============================================================================
 // CREDIT SYSTEM
@@ -37,6 +38,18 @@ export const creditAccounts = pgTable('credit_accounts', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
 });
+
+/**
+ * Ledger row types. 'reserve' and 'release' are NEW and WAIT FOR JOSEPH'S YES
+ * (#617 follow-up; Treasurer's reservation design). Nothing writes them yet.
+ *   reserve: the estimated cost of a paid scan, held before the clone, keyed
+ *            on metadata.importKey (one open reserve per import key).
+ *   release: a credit row that returns a reserve when the scan fails or the
+ *            reserve goes stale (15 minutes).
+ * On settle a reserve converts to 'usage'.
+ */
+export const CREDIT_TX_TYPES = ['purchase', 'usage', 'bonus', 'refund', 'reserve', 'release'] as const;
+export type CreditTxType = (typeof CREDIT_TX_TYPES)[number];
 
 export const creditTransactions = pgTable(
   'credit_transactions',
@@ -63,6 +76,11 @@ export const creditTransactions = pgTable(
     // Postgres permits many NULLs in a unique index, so transactions with no
     // Stripe session (grants, refunds, spend) are unaffected.
     uniqueIndex('idx_credit_tx_stripe_session').on(t.stripeSessionId),
+    // One reserve row per import key (WAITS FOR JOSEPH'S YES, migration 0004).
+    // The service boots with drizzle-kit push, so merging this applies it.
+    uniqueIndex('idx_credit_tx_reserve_import_key')
+      .on(sql`(${t.metadata} ->> 'importKey')`)
+      .where(sql`${t.type} = 'reserve'`),
   ]
 );
 
