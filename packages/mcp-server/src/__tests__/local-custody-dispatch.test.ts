@@ -294,14 +294,12 @@ describe('local custody at dispatch (real /mcp)', () => {
       expect(r.text).toContain(ROOT_REFUSED);
     });
 
-    it('A5 has codebase tools only: batch_tool_call is refused at Gate 2 before any child runs', async () => {
+    it('A5 has codebase tools only: batch_tool_call is admitted at Gate 2 and the inner call is still refused by the absorb root allowlist', async () => {
       const r = await callTool('batch_tool_call', {
         calls: [{ name: 'holo_absorb_repo', args: { rootDir: OUTSIDE } }],
       });
-      expect(r.text).toMatch(
-        /Security gate 2 denied: Insufficient scope\. Required one of: \[tools:read\]/
-      );
-      expect(r.text).not.toContain(ROOT_REFUSED);
+      expect(r.text).not.toContain('Security gate 2 denied');
+      expect(r.text).toContain(ROOT_REFUSED);
     });
   });
 

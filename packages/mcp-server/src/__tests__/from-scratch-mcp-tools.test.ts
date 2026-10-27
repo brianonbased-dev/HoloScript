@@ -150,7 +150,7 @@ describe('from-scratch MCP tools', () => {
     expect(getToolRiskLevel('holo_from_scratch_launch')).toBe('critical');
     expect(authorizeToolCall('holo_from_scratch_launch', ['tools:read']).authorized).toBe(false);
     expect(authorizeToolCall('holo_from_scratch_launch', ['tools:admin']).authorized).toBe(true);
-    expect(getToolScopes('batch_tool_call')).toEqual(['tools:read']);
+    expect(getToolScopes('batch_tool_call')).toEqual(['tools:read', 'tools:codebase']);
     expect(getToolRiskLevel('batch_tool_call')).toBe('medium');
   });
 
