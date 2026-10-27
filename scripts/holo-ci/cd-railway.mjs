@@ -40,8 +40,9 @@
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import {
   isRailwayReference,
   isRailwaySealedValue,
@@ -340,9 +341,79 @@ function assertRailwayignoreSane() {
  *  `spawn` and `repoRoot` are injectable for tests. Returns true when the gate ran and passed,
  *  false when studio is not targeted (gate skipped). */
 export const STUDIO_SHIP_GATE_SCRIPT = 'desktop-signin:replicas:check:ship';
+
+/** True when `p` names a pnpm JS entry (pnpm.cjs / pnpm.js / pnpm.mjs), never a .cmd/.ps1/.exe shim. */
+function isPnpmJsEntry(p) {
+  if (typeof p !== 'string' || !p.trim()) return false;
+  const ext = extname(p).toLowerCase();
+  return ['.cjs', '.js', '.mjs'].includes(ext) && /^pnpm\./i.test(basename(p));
+}
+
+/** Corepack's cache root (where it unpacks pnpm), mirroring corepack's own defaults. */
+function corepackHome(env, platform, home) {
+  if (env.COREPACK_HOME) return env.COREPACK_HOME;
+  if (platform === 'win32') {
+    return join(env.LOCALAPPDATA || join(home, 'AppData', 'Local'), 'node', 'corepack');
+  }
+  if (platform === 'darwin') return join(home, 'Library', 'Caches', 'node', 'corepack');
+  return join(env.XDG_CACHE_HOME || join(home, '.cache'), 'node', 'corepack');
+}
+
+/** Resolve pnpm's JS entry so it can be run as `process.execPath <entry> ...` (no .cmd shim, no
+ *  shell). Order: (1) npm_execpath when it is a pnpm .cjs/.js/.mjs file that exists (set when this
+ *  runs under `pnpm run`); (2) corepack's cache for the exact version pinned by the repo's
+ *  package.json "packageManager" (pnpm@x.y.z). Anything else REFUSES with a clear message; there is
+ *  no PATH lookup and no guessing at an unpinned version. Returns { entry, source }.
+ *  `env`, `platform`, `home`, `exists` and `readText` are injectable for tests. */
+export function resolvePnpmEntry({
+  env = process.env,
+  repoRoot = REPO_ROOT,
+  platform = process.platform,
+  home = homedir(),
+  exists = existsSync,
+  readText = (p) => readFileSync(p, 'utf8'),
+} = {}) {
+  const why = [];
+
+  const viaNpm = env.npm_execpath;
+  if (viaNpm) {
+    if (!isPnpmJsEntry(viaNpm)) {
+      why.push(`npm_execpath (${viaNpm}) is not a pnpm .cjs/.js file`);
+    } else if (!exists(viaNpm)) {
+      why.push(`npm_execpath (${viaNpm}) does not exist`);
+    } else {
+      return { entry: viaNpm, source: 'npm_execpath' };
+    }
+  } else {
+    why.push('npm_execpath is not set');
+  }
+
+  let version = null;
+  try {
+    const pm = JSON.parse(readText(join(repoRoot, 'package.json')))?.packageManager;
+    const m = typeof pm === 'string' ? /^pnpm@(\d+\.\d+\.\d+)(?:[+-].*)?$/.exec(pm) : null;
+    version = m ? m[1] : null;
+  } catch {
+    version = null;
+  }
+  if (!version) {
+    why.push('package.json has no readable "packageManager": "pnpm@x.y.z" pin for corepack');
+  } else {
+    const entry = join(corepackHome(env, platform, home), 'v1', 'pnpm', version, 'bin', 'pnpm.cjs');
+    if (exists(entry)) return { entry, source: `corepack pnpm@${version}` };
+    why.push(`corepack has no pnpm@${version} at ${entry}`);
+  }
+
+  throw new Error(
+    `REFUSING DEPLOY: cannot locate pnpm's JS entry to run the studio replica ship gate without a ` +
+      `shell (${why.join('; ')}). Run this under \`pnpm run\`, or install the pinned pnpm with ` +
+      `\`corepack prepare pnpm@${version ?? '<version>'} --activate\` and retry.`
+  );
+}
+
 export function assertStudioReplicaShipGate(
   targets,
-  { spawn = spawnSync, repoRoot = REPO_ROOT } = {}
+  { spawn = spawnSync, repoRoot = REPO_ROOT, resolveEntry = resolvePnpmEntry } = {}
 ) {
   if (!(targets ?? []).some((s) => s?.name === 'studio')) return false;
 
@@ -362,16 +433,23 @@ export function assertStudioReplicaShipGate(
     );
   }
 
-  const r = spawn('pnpm', ['--filter', '@holoscript/studio', 'run', STUDIO_SHIP_GATE_SCRIPT], {
-    cwd: repoRoot,
-    stdio: 'inherit',
-    env: process.env,
-    shell: false,
-  });
+  // Run pnpm's JS entry under this node: spawning the pnpm .cmd shim needs a shell on Windows
+  // (EINVAL since the CVE-2024-27980 fix), and shell:true is exactly what this script avoids.
+  const { entry } = resolveEntry({ repoRoot });
+  const r = spawn(
+    process.execPath,
+    [entry, '--filter', '@holoscript/studio', 'run', STUDIO_SHIP_GATE_SCRIPT],
+    {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: process.env,
+      shell: false,
+    }
+  );
   if (!r || r.error) {
     throw new Error(
       `REFUSING DEPLOY: could not run the studio replica ship gate (pnpm spawn error: ` +
-        `${r?.error?.message ?? 'no result'}). Install pnpm and retry.`
+        `${r?.error?.message ?? 'no result'}).`
     );
   }
   if (r.status !== 0) {
