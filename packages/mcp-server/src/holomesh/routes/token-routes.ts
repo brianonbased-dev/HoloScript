@@ -33,6 +33,19 @@ import {
 // ── Stripe webhook secret verification ────────────────────────────────────
 
 /**
+ * Constant-time string compare that never throws. crypto.timingSafeEqual
+ * throws a RangeError when the buffers differ in length, so an attacker who
+ * sends a short or long `v1=` would otherwise turn a 401 into a rejected
+ * handler (no response, and an unhandled rejection in http-server.ts).
+ * Lengths are compared on UTF-8 bytes, not string length.
+ */
+function constantTimeEqual(presented: string, expected: string): boolean {
+  const a = Buffer.from(presented, 'utf8');
+  const b = Buffer.from(expected, 'utf8');
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+/**
  * Verify a Stripe webhook signature using the shared secret.
  * In production, this uses Stripe's official `stripe.webhooks.constructEvent()`.
  * This implementation provides the same security guarantee using Node crypto.
@@ -78,7 +91,7 @@ function verifyStripeSignature(
   for (const sigPart of signatureParts) {
     const signature = sigPart.slice(3); // Remove 'v1='
     const expectedSig = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
-    if (crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSig))) {
+    if (constantTimeEqual(signature, expectedSig)) {
       valid = true;
       break;
     }
