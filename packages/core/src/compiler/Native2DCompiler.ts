@@ -2429,15 +2429,8 @@ export default ${safeName}Component;${contractExport}
     const statusSlot = !when.path && this._statusSlots.has(String(when.state));
     const isRef = (v: unknown): v is { ref: string } =>
       !!v && typeof v === 'object' && typeof (v as { ref?: unknown }).ref === 'string';
-    const operand = (v: unknown, label: string, allowRef = true): string => {
-      if (isRef(v)) {
-        if (!allowRef) {
-          throw new Error(
-            `Native2DCompiler ${label}: not_eq takes a plain word or number, not a { ref }. Compare to a literal, or use eq: { ref: "..." }.`
-          );
-        }
-        return this.buildRefExpr(v.ref, label);
-      }
+    const operand = (v: unknown, label: string): string => {
+      if (isRef(v)) return this.buildRefExpr(v.ref, label);
       if (typeof v === 'number') {
         if (statusSlot) {
           throw new Error(
@@ -2455,7 +2448,7 @@ export default ${safeName}Component;${contractExport}
       return JSON.stringify(lit);
     };
     if (statusSlot && when.eq !== undefined && !isRef(when.eq)) operand(when.eq, '@when eq');
-    if (when.not_eq !== undefined) conditions.push(`(${baseExpr}) !== ${operand(when.not_eq, '@when not_eq', false)}`);
+    if (when.not_eq !== undefined) conditions.push(`(${baseExpr}) !== ${operand(when.not_eq, '@when not_eq')}`);
     if (when.present !== undefined) {
       if (typeof when.present !== 'boolean') {
         throw new Error('Native2DCompiler @when: present must be true or false. Write present: true or present: false.');

@@ -23,8 +23,6 @@ export interface ConnectedAppRow {
   datesText: string;
   /** Leading space on purpose: read after "Revoke" so the button's name is "Revoke <app>". */
   revokeName: string;
-  /** Per row: the button text, so the fragment needs no "not equal" comparison. */
-  revokeLabel: string;
 }
 
 const fmt = (iso: unknown) => {
@@ -34,7 +32,7 @@ const fmt = (iso: unknown) => {
     : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 };
 
-export function connectedAppRows(apps: unknown, revokingId?: unknown): ConnectedAppRow[] {
+export function connectedAppRows(apps: unknown): ConnectedAppRow[] {
   if (!Array.isArray(apps)) return [];
   return apps.map((raw) => {
     const a = (raw ?? {}) as Record<string, unknown>;
@@ -51,7 +49,6 @@ export function connectedAppRows(apps: unknown, revokingId?: unknown): Connected
       scopes: scopes.map((s) => SCOPE_TEXT[s] ?? `Permission: ${s}`),
       datesText: `Approved ${fmt(a.created_at)} \u00b7 Last used ${fmt(a.last_used_at)}`,
       revokeName: `Revoke ${clientName ?? clientId}`,
-      revokeLabel: revokingId != null && revokingId === String(a.id ?? '') ? 'Revoking...' : 'Revoke',
     };
   });
 }

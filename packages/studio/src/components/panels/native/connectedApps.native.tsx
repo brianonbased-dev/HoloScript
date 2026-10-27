@@ -70,12 +70,12 @@ export function ConnectedAppsComponent() {
       if (mountedRef.current) setRevokingId(null);
     }
   };
-  const rows = connectedAppRows(apps, revokingId);
+  const rows = connectedAppRows(apps);
 
   return (
     <div
       className="holoscript-2d-root w-full h-full"
-      data-holo-view-contract="d9e70c432a50892bee5b328eb1b8a8946979c3fc319e9af15cc623993c8f15bc"
+      data-holo-view-contract="680c4149e727ffc8639ed56b79e8704367991c62f77108ee199263a0359093ed"
     >
       <div
         style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
@@ -173,13 +173,16 @@ export function ConnectedAppsComponent() {
                   disabled={revokingId != null && revokingId === row?.id}
                   type="button"
                 >
-                  <span
-                    data-holo-projects="row.revokeLabel"
-                    className="text-sm text-gray-500"
-                    aria-hidden="true"
-                  >
-                    {row?.revokeLabel ?? 'Revoke'}
-                  </span>
+                  {revokingId !== row?.id && (
+                    <span className="text-sm text-gray-500" aria-hidden="true">
+                      {`Revoke`}
+                    </span>
+                  )}
+                  {revokingId === row?.id && (
+                    <span className="text-sm text-gray-500" aria-hidden="true">
+                      {`Revoking...`}
+                    </span>
+                  )}
                   <span
                     data-holo-projects="row.revokeName"
                     className="text-sm text-gray-500 sr-only"
@@ -211,7 +214,6 @@ export const holoViewContract = {
     { element: 'Dates', node: 'row.datesText', identity: true },
     { element: 'Lookalike', node: 'row.lookalikeText', identity: true },
     { element: 'Name', node: 'row.name', identity: true },
-    { element: 'RevokeLabel', node: 'row.revokeLabel', identity: true },
     { element: 'RevokeName', node: 'row.revokeName', identity: true },
     { element: 'Row', node: 'rows', identity: false },
     { element: 'Scope', node: 'row.scopes', identity: false },
@@ -219,5 +221,5 @@ export const holoViewContract = {
     { element: 'Unverified', node: 'row.unverifiedText', identity: true },
   ],
   stateRoots: ['apps', 'appsError', 'appsStatus', 'revokingId', 'row', 'rows', 's'],
-  contractHash: 'd9e70c432a50892bee5b328eb1b8a8946979c3fc319e9af15cc623993c8f15bc',
+  contractHash: '680c4149e727ffc8639ed56b79e8704367991c62f77108ee199263a0359093ed',
 } as const;

@@ -206,8 +206,13 @@ describe('Native2D data binding (spec r3)', () => {
       expect(w({ state: 'revokingId', not_eq: 3 })).toContain('(revokingId) !== 3');
       expect(w({ state: 'revokingId', eq: 3 })).toContain('(revokingId) === 3');
     });
-    it('MUST FAIL: not_eq with a { ref } (only eq takes a ref)', () => {
-      expect(() => w({ state: 'revokingId', not_eq: { ref: 'apps.length' } })).toThrow(/not_eq takes a plain word or number/);
+    // Spec Amendment 1 (2026-10-27, sha 81125ED2...AFC4): not_eq accepts { ref } exactly as eq does.
+    // Approvals entry pending (Mapping). Own commit so it can be dropped with these tests.
+    it('not_eq { ref } to a declared name compiles', () => {
+      expect(w({ state: 'revokingId', not_eq: { ref: 'apps.length' } })).toContain('(revokingId) !== apps?.length');
+    });
+    it('MUST FAIL: not_eq { ref } to an undeclared name is VIEW-UNGROUNDED', () => {
+      expect(() => w({ state: 'revokingId', not_eq: { ref: 'ghost.id' } })).toThrow(/VIEW-UNGROUNDED/);
     });
     it('MUST FAIL: eq{ref} to an undeclared name is VIEW-UNGROUNDED', () => {
       expect(() => w({ state: 'appsStatus', eq: { ref: 'ghost.id' } })).toThrow(/VIEW-UNGROUNDED/);
