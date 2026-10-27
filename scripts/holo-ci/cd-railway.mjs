@@ -40,8 +40,9 @@
 
 import { spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { homedir } from 'node:os';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import { basename, dirname, extname, join, resolve } from 'node:path';
 import {
   isRailwayReference,
   isRailwaySealedValue,
@@ -326,6 +327,141 @@ function assertRailwayignoreSane() {
   }
 }
 
+/** Studio replica ship gate. Desktop sign-in remembers redeemed codes per instance, so the
+ *  studio service must run exactly ONE replica. The studio package owns the check
+ *  (`desktop-signin:replicas:check:ship` = the replica check with --require-env, which fails
+ *  closed when STUDIO_NUM_REPLICAS is unset, blank, 0, above 1 or non-numeric).
+ *
+ *  Fails closed: if the :ship script is absent from packages/studio/package.json (it lands with
+ *  the desktop sign-in work), a spawn error, or any non-zero exit REFUSES the deploy.
+ *
+ *  LIMITS (see the PR body): this checks the DEPLOYER's environment, not Railway's applied
+ *  state, and it cannot stop Railway auto-deploy or a manual `railway up` run outside this script.
+ *
+ *  `spawn` and `repoRoot` are injectable for tests. Returns true when the gate ran and passed,
+ *  false when studio is not targeted (gate skipped). */
+export const STUDIO_SHIP_GATE_SCRIPT = 'desktop-signin:replicas:check:ship';
+
+/** True when `p` names a pnpm JS entry (pnpm.cjs / pnpm.js / pnpm.mjs), never a .cmd/.ps1/.exe shim. */
+function isPnpmJsEntry(p) {
+  if (typeof p !== 'string' || !p.trim()) return false;
+  const ext = extname(p).toLowerCase();
+  return ['.cjs', '.js', '.mjs'].includes(ext) && /^pnpm\./i.test(basename(p));
+}
+
+/** Corepack's cache root (where it unpacks pnpm), mirroring corepack's own defaults. */
+function corepackHome(env, platform, home) {
+  if (env.COREPACK_HOME) return env.COREPACK_HOME;
+  if (platform === 'win32') {
+    return join(env.LOCALAPPDATA || join(home, 'AppData', 'Local'), 'node', 'corepack');
+  }
+  if (platform === 'darwin') return join(home, 'Library', 'Caches', 'node', 'corepack');
+  return join(env.XDG_CACHE_HOME || join(home, '.cache'), 'node', 'corepack');
+}
+
+/** Resolve pnpm's JS entry so it can be run as `process.execPath <entry> ...` (no .cmd shim, no
+ *  shell). Order: (1) npm_execpath when it is a pnpm .cjs/.js/.mjs file that exists (set when this
+ *  runs under `pnpm run`); (2) corepack's cache for the exact version pinned by the repo's
+ *  package.json "packageManager" (pnpm@x.y.z). Anything else REFUSES with a clear message; there is
+ *  no PATH lookup and no guessing at an unpinned version. Returns { entry, source }.
+ *  `env`, `platform`, `home`, `exists` and `readText` are injectable for tests. */
+export function resolvePnpmEntry({
+  env = process.env,
+  repoRoot = REPO_ROOT,
+  platform = process.platform,
+  home = homedir(),
+  exists = existsSync,
+  readText = (p) => readFileSync(p, 'utf8'),
+} = {}) {
+  const why = [];
+
+  const viaNpm = env.npm_execpath;
+  if (viaNpm) {
+    if (!isPnpmJsEntry(viaNpm)) {
+      why.push(`npm_execpath (${viaNpm}) is not a pnpm .cjs/.js file`);
+    } else if (!exists(viaNpm)) {
+      why.push(`npm_execpath (${viaNpm}) does not exist`);
+    } else {
+      return { entry: viaNpm, source: 'npm_execpath' };
+    }
+  } else {
+    why.push('npm_execpath is not set');
+  }
+
+  let version = null;
+  try {
+    const pm = JSON.parse(readText(join(repoRoot, 'package.json')))?.packageManager;
+    const m = typeof pm === 'string' ? /^pnpm@(\d+\.\d+\.\d+)(?:[+-].*)?$/.exec(pm) : null;
+    version = m ? m[1] : null;
+  } catch {
+    version = null;
+  }
+  if (!version) {
+    why.push('package.json has no readable "packageManager": "pnpm@x.y.z" pin for corepack');
+  } else {
+    const entry = join(corepackHome(env, platform, home), 'v1', 'pnpm', version, 'bin', 'pnpm.cjs');
+    if (exists(entry)) return { entry, source: `corepack pnpm@${version}` };
+    why.push(`corepack has no pnpm@${version} at ${entry}`);
+  }
+
+  throw new Error(
+    `REFUSING DEPLOY: cannot locate pnpm's JS entry to run the studio replica ship gate without a ` +
+      `shell (${why.join('; ')}). Run this under \`pnpm run\`, or install the pinned pnpm with ` +
+      `\`corepack prepare pnpm@${version ?? '<version>'} --activate\` and retry.`
+  );
+}
+
+export function assertStudioReplicaShipGate(
+  targets,
+  { spawn = spawnSync, repoRoot = REPO_ROOT, resolveEntry = resolvePnpmEntry } = {}
+) {
+  if (!(targets ?? []).some((s) => s?.name === 'studio')) return false;
+
+  const pkgPath = join(repoRoot, 'packages', 'studio', 'package.json');
+  let hasShipScript = false;
+  try {
+    const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+    hasShipScript = typeof pkg?.scripts?.[STUDIO_SHIP_GATE_SCRIPT] === 'string';
+  } catch {
+    hasShipScript = false;
+  }
+  if (!hasShipScript) {
+    throw new Error(
+      `REFUSING DEPLOY: packages/studio/package.json has no "${STUDIO_SHIP_GATE_SCRIPT}" script ` +
+        `(or it could not be read), so the studio replica ship gate cannot run. That script ships with ` +
+        `the desktop sign-in work; deploy studio only from a tree that includes it.`
+    );
+  }
+
+  // Run pnpm's JS entry under this node: spawning the pnpm .cmd shim needs a shell on Windows
+  // (EINVAL since the CVE-2024-27980 fix), and shell:true is exactly what this script avoids.
+  const { entry } = resolveEntry({ repoRoot });
+  const r = spawn(
+    process.execPath,
+    [entry, '--filter', '@holoscript/studio', 'run', STUDIO_SHIP_GATE_SCRIPT],
+    {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: process.env,
+      shell: false,
+    }
+  );
+  if (!r || r.error) {
+    throw new Error(
+      `REFUSING DEPLOY: could not run the studio replica ship gate (pnpm spawn error: ` +
+        `${r?.error?.message ?? 'no result'}).`
+    );
+  }
+  if (r.status !== 0) {
+    throw new Error(
+      `REFUSING DEPLOY: studio replica ship gate failed (exit ${r.status ?? `signal ${r.signal}`}). ` +
+        `STUDIO_NUM_REPLICAS must be set to exactly 1 in the deployer's environment.`
+    );
+  }
+  console.log('OK studio replica ship gate passed (STUDIO_NUM_REPLICAS = 1).');
+  return true;
+}
+
 function deploy(svc) {
   console.log(`\n→ railway up: ${svc.name} (${svc.id})`);
   const r = runRailway(['up', '--ci', '--service', svc.id, '--environment', ENV_ID], {
@@ -530,6 +666,8 @@ async function main() {
   );
 
   if (!live) {
+    // Dry-run is gated too: a plan that includes studio must not look deployable when the ship gate fails.
+    assertStudioReplicaShipGate(targets);
     console.log('\n[dry-run] would deploy via `railway up`:');
     for (const s of targets)
       console.log(
@@ -548,12 +686,18 @@ async function main() {
     throw new Error('Cannot deploy: railway CLI missing. Install with `npm i -g @railway/cli`.');
   }
 
+  // Studio must run exactly one replica (desktop sign-in state is per instance).
+  assertStudioReplicaShipGate(targets);
+
   let ok = true;
   for (const s of targets) ok = deploy(s) && ok;
   process.exitCode = ok ? 0 : 1;
 }
 
-main().catch((e) => {
-  console.error(e.message || e);
-  process.exitCode = 1;
-});
+// Run only when executed directly, so tests can import assertStudioReplicaShipGate.
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((e) => {
+    console.error(e.message || e);
+    process.exitCode = 1;
+  });
+}
