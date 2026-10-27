@@ -53,6 +53,7 @@ P0 stays docs only.
 - Step 0: provenance (identity spec, #643). Done: Trust ruled Brian synthetic (A33).
 - Step 1: import Brian's .glb only behind the sha256 gate, with fallback and refusal tests for other .glb files (#646).
 - Step 2: make Brian a customizable .holo character via A35's optional agent/unknowns fields on `@avatar_embodiment`, with no grammar change.
+**Gap: Brian step 1 is not done. #646 only records a sha256 per GLB in a manifest; it has no sha256 import gate and no refusal tests for other .glb files. P0 uses fixture Brian_Flexing_001.glb until that lands.**
 Fixture note: #646 was OPEN (not merged) when this was written, and as read it adds an import report and turntable under scripts/brian/ that records sha256 per GLB in a manifest; it does not itself contain a sha256 gate or refusal tests. Until a gate lands, conformance cases that need a Brian .glb reference a fixture .glb (Brian_Flexing_001.glb: 0 skins, 0 animations, 1 mesh) and say so in the receipt. Today Brian reads "static mesh x4 poses, no skeleton = unknown rig".
 
 ## 5. Honesty contract: rig: unknown (never fake a rig)
