@@ -2379,6 +2379,50 @@ describe('holo_absorb_repo root validation', () => {
     }
   }, 60_000);
 
+  it('refuses even a content-proven cache once it is older than the 7-day backstop', async () => {
+    resetCodebaseToolStateForTests();
+    const repoDir = makeTinyGitRepo('holoscript-backstop-repo-');
+    process.env.HOLOSCRIPT_CACHE_DIR = fs.mkdtempSync(
+      path.join(os.tmpdir(), 'holoscript-backstop-cache-')
+    );
+    process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+    process.env.ABSORB_AUTO_BACKGROUND = '0';
+    process.env.ABSORB_REQUIRE_ISOLATION = '0';
+    process.env.ABSORB_MIN_SYSTEM_FREE_MB = '64';
+
+    const absorbed = (await handleCodebaseTool('holo_absorb_repo', {
+      rootDir: repoDir,
+      outputFormat: 'graph',
+      force: true,
+    })) as Record<string, unknown>;
+    expect(absorbed, JSON.stringify(absorbed, null, 2)).not.toHaveProperty('error');
+
+    type Status = {
+      graphUnavailableReceipt?: GraphUnavailableReceipt;
+      diskCache?: {
+        authoritative?: boolean;
+        olderThanMaxAgeButProvenCurrent?: boolean;
+        ageMs?: number;
+      };
+    };
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      // HEAD and worktree fingerprint still match, but the cache is 8 days old.
+      vi.setSystemTime(Date.now() + 8 * 24 * 60 * 60 * 1000);
+      resetCodebaseToolStateForTests();
+      process.env.HOLOSCRIPT_WORKSPACE_ROOT = repoDir;
+      const old = (await handleCodebaseTool('holo_graph_status', {
+        forceRefresh: true,
+      })) as Status;
+      expect(old.diskCache?.ageMs).toBeGreaterThan(7 * 24 * 60 * 60 * 1000);
+      expect(old.diskCache?.authoritative).toBe(false);
+      expect(old.diskCache?.olderThanMaxAgeButProvenCurrent).toBe(false);
+      expect(old.graphUnavailableReceipt?.reason).toBe('cache_stale');
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 60_000);
+
   it('does not emit a graph unavailable receipt for a fresh disk cache matching cwd', async () => {
     resetCodebaseToolStateForTests();
     const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), 'holoscript-fresh-graph-cache-'));
@@ -6127,7 +6171,7 @@ describe('holo_absorb_repo root validation', () => {
       graphUnavailableReceipt?: GraphUnavailableReceipt;
     };
 
-    expect(result.error).toContain('not the workspace being asked about');
+    expect(result.error).toContain('built for a different folder than');
     expect(result.graphUnavailableReceipt).toMatchObject({
       kind: 'GraphUnavailableReceipt',
       reason: 'cache_root_mismatch',

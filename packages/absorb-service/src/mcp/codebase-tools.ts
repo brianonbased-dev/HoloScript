@@ -28,11 +28,7 @@ import {
   resetGraphRAGStateForTests,
   setGraphRAGState,
 } from './graph-rag-tools';
-import {
-  ABSORB_CODEBASE_LOAD_ERROR,
-  ABSORB_HOLO_ABSORB_REPO_HINT,
-  describeGraphUnavailable,
-} from './graph-rag-prerequisite';
+import { ABSORB_HOLO_ABSORB_REPO_HINT, describeGraphUnavailable } from './graph-rag-prerequisite';
 import { absorbRootRefusal } from '../engine/absorb-root-policy';
 import {
   buildGraphRAGEmbeddingPolicyReceipt,
@@ -2515,6 +2511,12 @@ function requiresIsolatedLargeBackground(decision: AbsorbAutoBackgroundDecision)
 // =============================================================================
 
 const CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+// Backstop for content-proven freshness: matching HEAD + worktree fingerprint over
+// an exact, complete file set outranks the 24h age limit, but only up to this
+// age. Past it the cache is refused again even when the fingerprint still matches
+// (a fingerprint can miss changes outside the scan policy, and a graph this old
+// should be rebuilt on purpose).
+const CACHE_CONTENT_PROOF_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // The main HoloScript checkout crossed 10k absorbable files in 2026. A 10k
 // default therefore produced a cache that was fresh by age and HEAD but could
 // never be authoritative by coverage. Keep the scan bounded for laptop/edge
@@ -6745,6 +6747,7 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     // over an exact, complete file set means the graph describes the bytes on
     // disk however long ago it was built (see handleGraphStatus).
     const contentProvenCurrent = Boolean(
+      (ageMs === undefined || ageMs < CACHE_CONTENT_PROOF_MAX_AGE_MS) &&
       memoryRootDirs.length === 1 &&
       memoryGitCommitHash &&
       currentGitCommitHash === memoryGitCommitHash &&
@@ -6921,6 +6924,7 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       // and dirty-worktree fingerprint still match, over an exact and complete
       // file set, describes the current code no matter when it was built.
       const contentProvenCurrent = Boolean(
+        ageMs < CACHE_CONTENT_PROOF_MAX_AGE_MS &&
         cacheMatchesCwd &&
         (envelope.rootDirs ?? [envelope.rootDir]).length === 1 &&
         envelope.gitCommitHash &&
@@ -11189,12 +11193,14 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
   // complete file set, the graph provably describes the bytes on disk, so its
   // age is no reason to refuse it. Without that proof, age still decides.
   const activeContentProvenCurrent =
+    (activeAgeMs === undefined || activeAgeMs < CACHE_CONTENT_PROOF_MAX_AGE_MS) &&
     cacheMatchesCwd &&
     activeRootDirs.length <= 1 &&
     activeWorktreeFingerprintMatches &&
     activeCoverageComplete &&
     activeCoverage.exactFileSetChecked === true;
   const diskContentProvenCurrent =
+    (cacheAgeMs === undefined || cacheAgeMs < CACHE_CONTENT_PROOF_MAX_AGE_MS) &&
     diskCacheMatchesCwd &&
     activeRootDirs.length <= 1 &&
     diskWorktreeFingerprintMatches &&

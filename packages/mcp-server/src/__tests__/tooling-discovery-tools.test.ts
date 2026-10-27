@@ -5,6 +5,7 @@ import {
   suggestToolsForGoal,
   detectMealKit,
   handleBatchToolCall,
+  MAX_BATCH_CALLS,
   buildToolHealthReport,
   handleToolingDiscoveryTool,
   synthesizeCanaryArgs,
@@ -559,6 +560,23 @@ describe('tooling discovery and batch dispatch', () => {
       'validate_holoscript',
       'compile_holoscript',
     ]);
+  });
+
+  it('rejects a batch over the call cap before running any call, and accepts one at the cap', async () => {
+    const dispatched: string[] = [];
+    const dispatch = async (name: string) => {
+      dispatched.push(name);
+      return { ok: true };
+    };
+    const calls = (n: number) => Array.from({ length: n }, () => ({ name: 'parse_hs', args: {} }));
+
+    await expect(
+      handleBatchToolCall({ calls: calls(MAX_BATCH_CALLS + 1) }, dispatch)
+    ).rejects.toThrow(/at most 25 calls per batch; received 26/);
+    expect(dispatched).toEqual([]);
+
+    const atCap = await handleBatchToolCall({ calls: calls(MAX_BATCH_CALLS) }, dispatch);
+    expect(atCap.summary).toMatchObject({ total: MAX_BATCH_CALLS, succeeded: MAX_BATCH_CALLS });
   });
 });
 

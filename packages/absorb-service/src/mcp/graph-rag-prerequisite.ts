@@ -30,7 +30,7 @@ export function describeGraphUnavailable(receipt?: {
     case 'cache_incomplete':
       return `A codebase graph exists on disk${where} but covers only part of the checkout, so it was not used. Call holo_absorb_repo with force:false to fill the gaps.`;
     case 'cache_root_mismatch':
-      return `The codebase graph on disk covers ${receipt.requestedPath ?? 'another folder'}, not the workspace being asked about, so it was not used. Call holo_absorb_repo with rootDir set to the repository you mean.`;
+      return `The codebase graph on disk was built for a different folder than ${receipt.requestedPath ?? 'the workspace being asked about'}, so it was not used. Call holo_absorb_repo with rootDir set to the repository you mean.`;
     case 'rootDir_unavailable':
       return `The requested folder${where} is not visible to this server's filesystem. Use the server on the same machine as the code, or pass sourceFiles to holo_absorb_repo.`;
     default:

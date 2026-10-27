@@ -1756,6 +1756,22 @@ export async function handleToolingDiscoveryTool(
   return null;
 }
 
+/**
+ * Most calls one batch may carry. A batch runs sequentially inside one request, so an
+ * unbounded list lets a single caller (including a tools:codebase-only sovereign
+ * loopback caller) pin the server. 25 is well above the handful of calls a
+ * discovery flow needs.
+ */
+export const MAX_BATCH_CALLS = 25;
+
+export function assertBatchWithinCap(count: number, toolName: string): void {
+  if (count > MAX_BATCH_CALLS) {
+    throw new Error(
+      `${toolName} accepts at most ${MAX_BATCH_CALLS} calls per batch; received ${count}. Split it into several batches.`
+    );
+  }
+}
+
 export async function handleBatchToolCall(
   args: Record<string, unknown>,
   dispatch: (name: string, args: Record<string, unknown>) => Promise<unknown>
@@ -1764,6 +1780,7 @@ export async function handleBatchToolCall(
   summary: { total: number; succeeded: number; failed: number; stoppedEarly: boolean };
 }> {
   const calls = Array.isArray(args.calls) ? args.calls : [];
+  assertBatchWithinCap(calls.length, 'batch_tool_call');
   const stopOnError = args.stopOnError === true;
 
   const results: Array<{
