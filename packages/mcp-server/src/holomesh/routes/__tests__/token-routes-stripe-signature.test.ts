@@ -111,14 +111,24 @@ async function post(header: (t: number, good: string) => string): Promise<Captur
   const body = JSON.stringify(EVENT);
   const t = Math.floor(Date.now() / 1000);
   const res = mockRes();
-  await handleTokenRoutes(mockReq(body, { 'stripe-signature': header(t, sig(t, body)) }), res, PATH, 'POST', PATH);
+  await handleTokenRoutes(
+    mockReq(body, { 'stripe-signature': header(t, sig(t, body)) }),
+    res,
+    PATH,
+    'POST',
+    PATH
+  );
   return res;
 }
 
 beforeEach(() => {
   vi.stubEnv('STRIPE_WEBHOOK_SECRET', TEST_SECRET);
   processStripePayment.mockReset();
-  processStripePayment.mockReturnValue({ entry: { id: 'le_1' }, balanceBefore: 0, balanceAfter: 10 });
+  processStripePayment.mockReturnValue({
+    entry: { id: 'le_1' },
+    balanceBefore: 0,
+    balanceAfter: 10,
+  });
 });
 
 afterEach(() => {
@@ -134,7 +144,9 @@ describe('stripe-webhook signature compare', () => {
   });
 
   it('answers 401 for a tampered signature of the same length', async () => {
-    const res = await post((t, good) => `t=${t},v1=${(good[0] === '0' ? '1' : '0') + good.slice(1)}`);
+    const res = await post(
+      (t, good) => `t=${t},v1=${(good[0] === '0' ? '1' : '0') + good.slice(1)}`
+    );
     expect(res._status).toBe(401);
     expect(res._body).toMatchObject({ error: 'invalid_signature', reason: 'signature_mismatch' });
     expect(processStripePayment).not.toHaveBeenCalled();

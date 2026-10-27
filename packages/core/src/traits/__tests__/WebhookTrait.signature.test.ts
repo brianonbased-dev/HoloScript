@@ -38,10 +38,15 @@ function incoming(payload: Record<string, unknown>): { verified: unknown; status
   const node: Record<string, unknown> = { id: 'n1' };
   const ctx = { emit: (type: string, data: unknown) => emitted.push([type, data]) };
   webhookHandler.onAttach!(node as never, config, ctx as never);
-  webhookHandler.onEvent!(node as never, config, ctx as never, {
-    type: 'webhook:incoming',
-    payload,
-  } as never);
+  webhookHandler.onEvent!(
+    node as never,
+    config,
+    ctx as never,
+    {
+      type: 'webhook:incoming',
+      payload,
+    } as never
+  );
   const received = emitted.find(([t]) => t === 'webhook:received');
   const state = node.__webhookState as { history: Array<{ status: number }> };
   return { verified: received?.[1]?.verified, status: state.history.at(-1)?.status };
@@ -110,10 +115,15 @@ describe('WebhookTrait inbound signature', () => {
     const ctx = { emit: (type: string, data: unknown) => emitted.push([type, data]) };
     const open = { ...config, secret: '' };
     webhookHandler.onAttach!(node as never, open, ctx as never);
-    webhookHandler.onEvent!(node as never, open, ctx as never, {
-      type: 'webhook:incoming',
-      payload: { body: BODY },
-    } as never);
+    webhookHandler.onEvent!(
+      node as never,
+      open,
+      ctx as never,
+      {
+        type: 'webhook:incoming',
+        payload: { body: BODY },
+      } as never
+    );
     expect(emitted.find(([t]) => t === 'webhook:received')?.[1]?.verified).toBe(true);
   });
 });
