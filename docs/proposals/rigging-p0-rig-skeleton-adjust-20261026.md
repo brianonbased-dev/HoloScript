@@ -3,7 +3,7 @@
 Status: DRAFT, docs only. Nothing in this document is implemented. No code, no grammar change, no handler.
 Date: 2026-10-26 (America/Phoenix, MST). Author: Avatar and Rigging; rulings by Chief Linguist.
 Approval: A30 (2026-10-23 3:13 PM MST, Joseph): "Yes: add @rig, @skin_weights, @ik, @animation.retarget and the @skeleton adjust". Staged P0-P7 as gated draft PRs after A20 and Brian steps 0-2.
-Design source (local, not in repo): Documents\holo-specs\native-rigging-design-20261023.md (Chief Linguist). Accepted plan (local, not in repo): C:\holo-dev\vision\specs\rigging-p0-plan-20261026.md. Reviewers without this laptop cannot open either file.
+Design source: local source, not in repo (Chief Linguist native rigging design doc, dated 2026-10-23). Accepted plan: local source, not in repo (the rigging P0 plan, dated 2026-10-26). Reviewers without the author's machine cannot open either.
 Base: origin/main a4fdbacc4e0789d4612b7ebd6f1c4e4f4145d6e5. The code line numbers cited below were re-verified against that commit (see section 3a and the receipt).
 
 ## 0. What Joseph has approved and what is still a PROPOSAL
@@ -94,11 +94,11 @@ Code line anchors re-verified at a4fdbacc (the cited line holds the cited symbol
 - Step 2: make Brian a customizable .holo character via A35's optional agent/unknowns fields on `@avatar_embodiment`, with no grammar change.
 **Gap: Brian step 1 is not done. #646 only records a sha256 per GLB in a manifest; it has no sha256 import gate and no refusal tests for other .glb files. P0 uses fixture Brian_Flexing_001.glb until that lands.**
 Fixture note: #646 (head bd55b08a639b5041ee10181566214a60e9984041, branch feat/brian-import-turntable, draft, OPEN, confirmed with gh on 2026-10-26) adds an import report and turntable under scripts/brian/ that records sha256 per GLB in a manifest; as read it does not itself contain a sha256 gate or refusal tests. Until a gate lands, conformance cases that need a Brian .glb reference a fixture .glb and say so in the receipt.
-Fixture facts (measured): there are 4 canonical Brian .glb files, each a single frozen pose. Each file has 1 mesh (named Brian_01), 2 nodes, no skins and no animations. So "4 static pose meshes" means 4 files with 1 mesh each, not 4 meshes in one file. How I know: I read the GLB JSON chunk of Brian_Flexing_001.glb, Brian_Boxing.glb and Brian_Situps.glb on the Work laptop (read-only) and found meshes=1, nodes=2, no `skins` key and no `animations` key in each. The fourth file, Bicycle Crunch.glb, was not found in the Pictures folder, so its count is taken from the identity spec ("static x4", one pose mesh each) and is unverified. Today Brian reads "static mesh x4 poses, no skeleton = unknown rig".
+Fixture facts (measured): there are 4 canonical Brian .glb files, each a single frozen pose. Each file has 1 mesh (named Brian_01), 2 nodes, no skins and no animations. So "4 static pose meshes" means 4 files with 1 mesh each, not 4 meshes in one file. How I know: I read the GLB JSON chunk of Brian_Flexing_001.glb, Brian_Boxing.glb and Brian_Situps.glb on the Work laptop (read-only) and found meshes=1, nodes=2, no `skins` key and no `animations` key in each. The fourth file, Bicycle Crunch.glb, was not found locally, so its count is taken from the identity spec ("static x4", one pose mesh each) and is unverified. Today Brian reads "static mesh x4 poses, no skeleton = unknown rig".
 
 ### 4a. Brian_Flexing_001.glb is NOT in the repo: BLOCKER for conformance work
 - Not in this repo at a4fdbacc (git ls-files finds no Brian .glb).
-- Local source: C:\Users\josep\OneDrive\Pictures\Brian_Flexing_001.glb (local, not in repo), 2586716 bytes, modified 2026-01-18.
+- Local source: local source, not in repo (no path given), 2586716 bytes, modified 2026-01-18.
 - sha256: 587ce59f7e164bb355930a6c3a3e9ed3fbd070ad6c7ca9cc0f3f4e11a2a987fe (computed locally; it matches the sha256 in the identity spec brian.identity.json on branch docs/brian-identity-spec, commit 98288a389, which is NOT merged to origin/main at the time of writing).
 - Source and provenance: the identity spec says the file is Joseph's original character, synthetic (A33), exported from 3ds Max with the Autodesk glTF exporter. That exporter claim comes from the export logs of Brian_Boxing.glb and Brian_Situps.glb only; Brian_Flexing_001.glb has no log and its own glTF asset block carries no generator or copyright field, so its exporter is unverified.
 - License: none found. No LICENSE file or license field accompanies the file. The creator is Joseph, but a license for committing it to a public repo is not stated and needs Joseph's decision. Per ruling 14 this goes to CoS as Joseph's call; it blocks only conformance work, not this document.
@@ -128,7 +128,7 @@ P0 gates for this slice: T1, T2, T3, T8. T4-T7 belong to P3/P4 but share the sam
 
 ## 7. Conformance cases (spec only; written failing in P1)
 - rig-checks module: input (mesh, skeleton, weights, optional ground-truth JSON); output a JSON receipt with metrics, thresholds, pass/fail/unknown, input hashes and commit SHA.
-- Negative fixtures: dragon.glb (studio/public/models) must return unknown; a mesh with no UVs returns unknown for texture checks while weight checks still run; with the confidence method undefined, every rig returns unknown.
+- Negative fixtures: dragon.glb (packages/studio/public/models/dragon.glb) must return unknown; a mesh with no UVs returns unknown for texture checks while weight checks still run; with the confidence method undefined, every rig returns unknown.
 - Adjust: nested length in range scales only that bone; length 3 is a compile error; `bend` or `place` is a compile error (out of P0); unknown bone gives a plain error; adjust on an unknown rig gives unknown with its reason; adjust on a VRM skin only with known rig confidence; `LeftUpperArm` normalizes to `leftUpperArm` with a warning. A parse test for the nested block comes first, because parser acceptance is unverified. If ruling 13 is approved: `arm` scales upper and lower arm on both sides, `left_arm` and `right_arm` one side each.
 - bind_pose: 't-pose' and 'a-pose' accepted (same strings as @auto_rig); omitted means 't-pose'; any other value (including t_pose and a_pose with underscores) is a compile error with a plain message.
 - `load_humanoid_avatar` returns UNKNOWN.
@@ -139,7 +139,7 @@ P0 gates for this slice: T1, T2, T3, T8. T4-T7 belong to P3/P4 but share the sam
 ## 8. Dependencies
 | Dep | Status |
 |---|---|
-| A20 | standing-approvals.md L85-86 (local, not in repo): the parser rejects parameter defaults in .holo logic functions with a clear error (option A); draft PR via the merge gate. |
+| A20 | lines 85-86 of the standing approvals file (local source, not in repo): the parser rejects parameter defaults in .holo logic functions with a clear error (option A); draft PR via the merge gate. |
 | Brian step 0 | provenance / identity spec #643; A33 (synthetic). The identity spec is not on origin/main yet. |
 | Brian step 1 | #646, head bd55b08a639b5041ee10181566214a60e9984041 (draft, OPEN); sha256 gate and refusal tests per the working definition are not in it as read. |
 | Brian step 2 | A35 optional agent/unknowns fields on @avatar_embodiment (feat/avatar-embodiment-agent-unknowns). |
