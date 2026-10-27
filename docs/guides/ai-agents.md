@@ -289,7 +289,7 @@ AI: I see two issues:
 
 ### Performance Suggestions
 
-```hs
+```text
 
 AI: Your scene has 500 physics objects. Consider:
 

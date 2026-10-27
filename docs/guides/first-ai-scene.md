@@ -225,7 +225,7 @@ Walk around the campfire - notice how the light affects nearby objects dynamical
 
 Want to add an AI character? Ask Brittney:
 
-```hs
+```text
 
 Add a friendly forest ranger NPC near the campfire.
 They should greet visitors and tell them about the forest.

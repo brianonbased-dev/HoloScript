@@ -45,7 +45,7 @@ composition "HoloScriptLanding" {
 
       object "Headline" @text(variant: "h1", content: "Create with AI. Own what you build. Ship everywhere.") @tailwind("text-5xl lg:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-purple-500 to-pink-500 max-w-5xl mx-auto leading-tight") {}
       
-      object "Subhead" @text(variant: "body", content: "Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds with AI, sell them on an open marketplace, and deploy autonomous agents â€” all from one platform. No engine lock-in. No code required. Open source and free forever.") @tailwind("max-w-3xl mx-auto text-lg lg:text-xl text-gray-400 mb-10 leading-relaxed") {}
+      object "Subhead" @text(variant: "body", content: "Imagine it. Build it. Own it. HoloScript lets anyone create interactive 3D worlds with AI, sell them on an open marketplace, and deploy autonomous agents — all from one platform. No engine lock-in. No code required. Open source and free forever.") @tailwind("max-w-3xl mx-auto text-lg lg:text-xl text-gray-400 mb-10 leading-relaxed") {}
 
       object "HeroButtons" @panel(tag: "div") @tailwind("flex flex-col sm:flex-row items-center justify-center gap-4") {
         object "BtnStudio" @link(href: "https://holoscript.studio", content: "Try Studio") @tailwind("w-full sm:w-auto px-8 py-3.5 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-bold text-lg hover:scale-105 transition-transform shadow-[0_0_30px_rgba(0,255,255,0.3)] no-underline text-center") {}
@@ -71,7 +71,7 @@ composition "HoloScriptLanding" {
           }
           object "P2" @panel(tag: "div") @tailwind("bg-red-500/5 border border-red-500/10 p-6 rounded-xl") {
             object "T2" @text(variant: "h3", content: "Too Much Boilerplate") @tailwind("text-xl font-bold text-red-400 mb-2") {}
-            object "D2" @text(variant: "body", content: "Creating a simple 3D scene requires 200+ lines of setup code. Scene graphs, materials, renderers, cameras â€” endless configuration before you see results.") @tailwind("text-gray-400 m-0") {}
+            object "D2" @text(variant: "body", content: "Creating a simple 3D scene requires 200+ lines of setup code. Scene graphs, materials, renderers, cameras — endless configuration before you see results.") @tailwind("text-gray-400 m-0") {}
           }
           object "P3" @panel(tag: "div") @tailwind("bg-red-500/5 border border-red-500/10 p-6 rounded-xl") {
             object "T3" @text(variant: "h3", content: "Platform Lock-in") @tailwind("text-xl font-bold text-red-400 mb-2") {}
@@ -110,7 +110,7 @@ composition "HoloScriptLanding" {
     object "StudioHeader" @panel(tag: "div") @tailwind("max-w-7xl mx-auto px-6 relative z-10 text-center mb-16") {
       object "T1" @text(variant: "h2", content: "No Code? No Problem.") @tailwind("text-4xl md:text-5xl font-bold mb-6 text-white") {}
       object "D1" @text(variant: "body", content: "HoloScript Studio lets you build 3D scenes just by describing them. Type what you want, see it in real-time. No install, no setup, no coding required.") @tailwind("text-xl text-gray-400 max-w-3xl mx-auto") {}
-      object "BtnStudio" @link(href: "https://holoscript.studio", content: "Open Studio â†’") @tailwind("mt-8 inline-block px-8 py-3 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors font-medium no-underline") {}
+      object "BtnStudio" @link(href: "https://holoscript.studio", content: "Open Studio →") @tailwind("mt-8 inline-block px-8 py-3 rounded-lg bg-purple-600/20 text-purple-400 border border-purple-500/30 hover:bg-purple-600/30 transition-colors font-medium no-underline") {}
     }
 
     object "StudioImageContainer" @panel(tag: "div") @tailwind("max-w-5xl mx-auto px-6 mb-24 relative z-10") {
@@ -124,12 +124,12 @@ composition "HoloScriptLanding" {
   object "MoreThanLanguage" @panel(tag: "section") @tailwind("py-12 bg-[#080812]") {
     object "Container" @panel(tag: "div") @tailwind("max-w-4xl mx-auto px-6 text-center") {
       object "T" @text(variant: "h2", content: "More Than a Language") @tailwind("text-3xl font-bold mb-4 text-white") {}
-      object "D" @text(variant: "body", content: "HoloScript is a 6-layer open platform. holoscript absorb reveals 99 module communities, 68K symbols, and 298K call edges â€” in the core package alone.") @tailwind("text-gray-400 text-lg mb-8") {}
+      object "D" @text(variant: "body", content: "HoloScript is a 6-layer open platform. holoscript absorb reveals 99 module communities, 68K symbols, and 298K call edges — in the core package alone.") @tailwind("text-gray-400 text-lg mb-8") {}
       
       object "Console" @panel(tag: "div") @tailwind("bg-[#0c0c16] border border-white/10 p-4 rounded-lg font-mono text-left max-w-md mx-auto text-sm") {
          object "Line1" @text(variant: "body", content: "$ holoscript absorb") @tailwind("text-green-400 m-0") {}
          object "Line2" @text(variant: "body", content: "Analyzing workspace...") @tailwind("text-gray-500 m-0") {}
-         object "Line3" @text(variant: "body", content: "âœ“ Graph compiled successfully") @tailwind("text-cyan-400 m-0 mt-2") {}
+         object "Line3" @text(variant: "body", content: "✓ Graph compiled successfully") @tailwind("text-cyan-400 m-0 mt-2") {}
       }
     }
   }
@@ -171,6 +171,6 @@ composition "HoloScriptLanding" {
   object "FooterCTA" @panel(tag: "footer") @tailwind("py-12 bg-[#050505] border-t border-white/10 text-center") {
      object "T" @text(variant: "h2", content: "Ready to Build Your First VR World?") @tailwind("text-3xl font-bold mb-8 text-white") {}
      object "Btn" @link(href: "/guides/quick-start", content: "Get Started") @tailwind("inline-block px-8 py-3 rounded-lg bg-cyan-500 text-black font-bold text-lg hover:bg-cyan-400 transition-colors shadow-[0_0_20px_rgba(0,255,255,0.2)] no-underline") {}
-     object "Copy" @text(variant: "body", content: "Â© 2026 HoloScript Foundation. Open Source (MIT).") @tailwind("mt-12 text-gray-500 text-sm") {}
+     object "Copy" @text(variant: "body", content: "© 2026 HoloScript Foundation. Open Source (MIT).") @tailwind("mt-12 text-gray-500 text-sm") {}
   }
 }
