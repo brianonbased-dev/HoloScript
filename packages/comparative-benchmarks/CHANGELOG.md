@@ -1,5 +1,12 @@
 # @holoscript/comparative-benchmarks
 
+## 1.2.8
+
+### Patch Changes
+
+- Updated dependencies [0ed29dc]
+  - @holoscript/core@8.10.1
+
 ## 1.2.7
 
 ### Patch Changes

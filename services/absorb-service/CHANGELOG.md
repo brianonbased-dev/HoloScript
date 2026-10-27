@@ -1,5 +1,12 @@
 # @holoscript/absorb-service-host
 
+## 6.1.8
+
+### Patch Changes
+
+- Updated dependencies [0ed29dc]
+  - @holoscript/core@8.10.1
+
 ## 6.1.7
 
 ### Patch Changes
