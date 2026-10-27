@@ -15,17 +15,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('brainwave:state_change', (payload) => {
-              if (payload.focus > 0.9) {
-                log('State: High Focus. Dimmimg ambient lights.');
-                emit('light:set_intensity', { intensity: 0.2 });
-              } else if (payload.stress > 0.7) {
-                log('State: High Stress. Switching to calming blue.');
-                emit('light:set_color', { color: '#0000ff' });
-              }
-            });
-          "
+          "source": "\n            on('brainwave:state_change', (payload) => {\n              if (payload.focus > 0.9) {\n                log('State: High Focus. Dimmimg ambient lights.');\n                emit('light:set_intensity', { intensity: 0.2 });\n              } else if (payload.stress > 0.7) {\n                log('State: High Stress. Switching to calming blue.');\n                emit('light:set_color', { color: '#0000ff' });\n              }\n            });\n          "
         }
       ]
     }

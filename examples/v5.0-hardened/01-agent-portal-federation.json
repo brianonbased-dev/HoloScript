@@ -35,39 +35,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('portal:connected', (payload) => {
-              log('Successfully joined the Sovereign Agent Federation.');
-              emit('portal:broadcast', {
-                messageType: 'announcement',
-                data: { text: 'Node 01 is now online.' }
-              });
-            });
-
-            on('portal:message_in', (msg) => {
-              log(`Incoming message from ${msg.from.sceneId}:${msg.from.agentId}: ${msg.type}`);
-              if (msg.type === 'discovery_query') {
-                emit('portal:send', {
-                  to: msg.from,
-                  messageType: 'discovery_response',
-                  data: { capabilities: ['federation_member', 'deep_search'] }
-                });
-              }
-            });
-
-            on('portal:scene_discovered', (scene) => {
-              log(`New scene discovered: ${scene.name} (${scene.sceneId})`);
-              // Trigger migration of a worker agent if a specific capability is found
-              if (scene.capabilities.includes('heavy_compute')) {
-                log('Found heavy compute node. Migrating worker...');
-                emit('portal:migrate_out', {
-                  agentId: 'worker_01',
-                  targetScene: scene.sceneId,
-                  memory: { task: 'parallel_processing' }
-                });
-              }
-            });
-          "
+          "source": "\n            on('portal:connected', (payload) => {\n              log('Successfully joined the Sovereign Agent Federation.');\n              emit('portal:broadcast', {\n                messageType: 'announcement',\n                data: { text: 'Node 01 is now online.' }\n              });\n            });\n\n            on('portal:message_in', (msg) => {\n              log(`Incoming message from ${msg.from.sceneId}:${msg.from.agentId}: ${msg.type}`);\n              if (msg.type === 'discovery_query') {\n                emit('portal:send', {\n                  to: msg.from,\n                  messageType: 'discovery_response',\n                  data: { capabilities: ['federation_member', 'deep_search'] }\n                });\n              }\n            });\n\n            on('portal:scene_discovered', (scene) => {\n              log(`New scene discovered: ${scene.name} (${scene.sceneId})`);\n              // Trigger migration of a worker agent if a specific capability is found\n              if (scene.capabilities.includes('heavy_compute')) {\n                log('Found heavy compute node. Migrating worker...');\n                emit('portal:migrate_out', {\n                  agentId: 'worker_01',\n                  targetScene: scene.sceneId,\n                  memory: { task: 'parallel_processing' }\n                });\n              }\n            });\n          "
         }
       ]
     },

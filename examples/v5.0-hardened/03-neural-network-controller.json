@@ -7,13 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('neural:inference_request', (input) => {
-              const output = simulateNeuralWeights(input);
-              emit('neural:inference_result', { output });
-            });
-            function simulateNeuralWeights(input) { return input.map(i => i * 0.5); }
-          "
+          "source": "\n            on('neural:inference_request', (input) => {\n              const output = simulateNeuralWeights(input);\n              emit('neural:inference_result', { output });\n            });\n            function simulateNeuralWeights(input) { return input.map(i => i * 0.5); }\n          "
         }
       ]
     }

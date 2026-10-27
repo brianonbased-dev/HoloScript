@@ -7,15 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            let votes = { yes: 0, no: 0 };
-            on('portal:message_in', (msg) => {
-              if (msg.type === 'vote') {
-                votes[msg.data.choice]++;
-                log(`Vote recorded: ${msg.data.choice}. Total: Y:${votes.yes} N:${votes.no}`);
-              }
-            });
-          "
+          "source": "\n            let votes = { yes: 0, no: 0 };\n            on('portal:message_in', (msg) => {\n              if (msg.type === 'vote') {\n                votes[msg.data.choice]++;\n                log(`Vote recorded: ${msg.data.choice}. Total: Y:${votes.yes} N:${votes.no}`);\n              }\n            });\n          "
         }
       ]
     }

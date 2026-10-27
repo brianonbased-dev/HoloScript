@@ -7,15 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('economy:transaction_completed', (tx) => {
-              emit('secret:store', { 
-                secretId: `audit_${Date.now()}`, 
-                value: JSON.stringify(tx),
-                deletionNonce: 'SYSTEM_AUDIT_KEY'
-              });
-            });
-          "
+          "source": "\n            on('economy:transaction_completed', (tx) => {\n              emit('secret:store', { \n                secretId: `audit_${Date.now()}`, \n                value: JSON.stringify(tx),\n                deletionNonce: 'SYSTEM_AUDIT_KEY'\n              });\n            });\n          "
         }
       ]
     }

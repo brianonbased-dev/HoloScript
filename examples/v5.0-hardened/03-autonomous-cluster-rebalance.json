@@ -7,12 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('portal:utilization_high', (payload) => {
-              log(`Node capacity reached. Rebalancing agents to node ${payload.targetNode}`);
-              emit('portal:migrate', { agentId: 'heavy_agent_1', target: payload.targetNode });
-            });
-          "
+          "source": "\n            on('portal:utilization_high', (payload) => {\n              log(`Node capacity reached. Rebalancing agents to node ${payload.targetNode}`);\n              emit('portal:migrate', { agentId: 'heavy_agent_1', target: payload.targetNode });\n            });\n          "
         }
       ]
     }

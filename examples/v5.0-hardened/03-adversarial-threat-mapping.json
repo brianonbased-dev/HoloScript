@@ -7,12 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('attack:risk_propagation', (payload) => {
-              log(`CRITICAL: Risk propagation detected from ${payload.fromNode} to ${payload.toNode}. Impact: ${payload.impact}`);
-              emit('security:alert', { level: 'high', path: payload.path });
-            });
-          "
+          "source": "\n            on('attack:risk_propagation', (payload) => {\n              log(`CRITICAL: Risk propagation detected from ${payload.fromNode} to ${payload.toNode}. Impact: ${payload.impact}`);\n              emit('security:alert', { level: 'high', path: payload.path });\n            });\n          "
         }
       ]
     }

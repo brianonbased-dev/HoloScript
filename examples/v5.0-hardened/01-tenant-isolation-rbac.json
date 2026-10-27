@@ -38,41 +38,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            const ROLE_PERMISSIONS = {
-              'admin': ['read', 'write', 'delete', 'rotate'],
-              'operator': ['read', 'write'],
-              'auditor': ['read']
-            };
-
-            on('zk:verify', (payload) => {
-              // Verify tenant membership proof
-              if (payload.success) {
-                log(`Tenant membership verified for ${payload.subjectId}`);
-                emit('rbac:tenant_authorized', { tenantId: payload.tenantId });
-              }
-            });
-
-            on('secret:access_request', (request) => {
-              const userRole = request.metadata.role;
-              const action = request.action;
-
-              if (ROLE_PERMISSIONS[userRole]?.includes(action)) {
-                log(`RBAC: Action '${action}' authorized for role '${userRole}'`);
-                emit('secret:retrieve', {
-                  key: request.key,
-                  nonce: request.nonce
-                });
-              } else {
-                warn(`RBAC: Unauthorized access attempt by role '${userRole}' for action '${action}'`);
-                emit('rbac:denied', { reason: 'insufficient_permissions' });
-              }
-            });
-
-            on('secret:rotated', (event) => {
-              log(`Security Lifecycle: Secret ${event.key} rotated successfully.`);
-            });
-          "
+          "source": "\n            const ROLE_PERMISSIONS = {\n              'admin': ['read', 'write', 'delete', 'rotate'],\n              'operator': ['read', 'write'],\n              'auditor': ['read']\n            };\n\n            on('zk:verify', (payload) => {\n              // Verify tenant membership proof\n              if (payload.success) {\n                log(`Tenant membership verified for ${payload.subjectId}`);\n                emit('rbac:tenant_authorized', { tenantId: payload.tenantId });\n              }\n            });\n\n            on('secret:access_request', (request) => {\n              const userRole = request.metadata.role;\n              const action = request.action;\n\n              if (ROLE_PERMISSIONS[userRole]?.includes(action)) {\n                log(`RBAC: Action '${action}' authorized for role '${userRole}'`);\n                emit('secret:retrieve', {\n                  key: request.key,\n                  nonce: request.nonce\n                });\n              } else {\n                warn(`RBAC: Unauthorized access attempt by role '${userRole}' for action '${action}'`);\n                emit('rbac:denied', { reason: 'insufficient_permissions' });\n              }\n            });\n\n            on('secret:rotated', (event) => {\n              log(`Security Lifecycle: Secret ${event.key} rotated successfully.`);\n            });\n          "
         }
       ]
     },

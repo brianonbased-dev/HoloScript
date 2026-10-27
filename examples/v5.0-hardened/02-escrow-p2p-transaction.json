@@ -18,24 +18,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('economy:transaction_request', (payload) => {
-              if (payload.amount > 0) {
-                log(`Escrow: Holding ${payload.amount} BRIAN for ${payload.toId}`);
-                emit('economy:transfer', { 
-                  from: payload.fromId, 
-                  to: 'escrow_vault', 
-                  amount: payload.amount,
-                  metadata: { originalTarget: payload.toId }
-                });
-              }
-            });
-
-            on('escrow:release', (payload) => {
-               log(`Escrow: Releasing funds to ${payload.targetId}`);
-               emit('economy:transfer', { from: 'escrow_vault', to: payload.targetId, amount: payload.amount });
-            });
-          "
+          "source": "\n            on('economy:transaction_request', (payload) => {\n              if (payload.amount > 0) {\n                log(`Escrow: Holding ${payload.amount} BRIAN for ${payload.toId}`);\n                emit('economy:transfer', { \n                  from: payload.fromId, \n                  to: 'escrow_vault', \n                  amount: payload.amount,\n                  metadata: { originalTarget: payload.toId }\n                });\n              }\n            });\n\n            on('escrow:release', (payload) => {\n               log(`Escrow: Releasing funds to ${payload.targetId}`);\n               emit('economy:transfer', { from: 'escrow_vault', to: payload.targetId, amount: payload.amount });\n            });\n          "
         }
       ]
     }

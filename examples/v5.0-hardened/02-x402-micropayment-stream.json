@@ -7,13 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('update', (delta) => {
-              // Stream 0.01 BRIAN per second
-              const amount = delta * 0.01;
-              emit('economy:transfer', { to: 'service_provider', amount: amount, type: 'x402_stream' });
-            });
-          "
+          "source": "\n            on('update', (delta) => {\n              // Stream 0.01 BRIAN per second\n              const amount = delta * 0.01;\n              emit('economy:transfer', { to: 'service_provider', amount: amount, type: 'x402_stream' });\n            });\n          "
         }
       ]
     }

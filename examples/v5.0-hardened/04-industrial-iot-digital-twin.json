@@ -7,12 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('iot:telemetry', (data) => {
-              log(`Syncing state from physical sensor: ${data.sensorId}`);
-              emit('state:update', { value: data.temp });
-            });
-          "
+          "source": "\n            on('iot:telemetry', (data) => {\n              log(`Syncing state from physical sensor: ${data.sensorId}`);\n              emit('state:update', { value: data.temp });\n            });\n          "
         }
       ]
     }

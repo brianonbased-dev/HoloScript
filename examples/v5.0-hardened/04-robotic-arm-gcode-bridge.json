@@ -7,13 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('physical:move', (position) => {
-              const gcode = `G1 X${position.x} Y${position.y} Z${position.z}`;
-              log(`Manifesting physical motion: ${gcode}`);
-              emit('gcode:send', { code: gcode });
-            });
-          "
+          "source": "\n            on('physical:move', (position) => {\n              const gcode = `G1 X${position.x} Y${position.y} Z${position.z}`;\n              log(`Manifesting physical motion: ${gcode}`);\n              emit('gcode:send', { code: gcode });\n            });\n          "
         }
       ]
     }

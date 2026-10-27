@@ -16,17 +16,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('bounty:post', (payload) => {
-              log(`Bounty Posted: ${payload.title} (${payload.reward} BRIAN)`);
-              emit('portal:broadcast', { type: 'bounty_available', data: payload });
-            });
-
-            on('bounty:claim', (payload) => {
-              log(`Bounty ${payload.id} claimed by ${payload.agentId}`);
-              emit('economy:reserve', { amount: payload.reward, target: payload.agentId });
-            });
-          "
+          "source": "\n            on('bounty:post', (payload) => {\n              log(`Bounty Posted: ${payload.title} (${payload.reward} BRIAN)`);\n              emit('portal:broadcast', { type: 'bounty_available', data: payload });\n            });\n\n            on('bounty:claim', (payload) => {\n              log(`Bounty ${payload.id} claimed by ${payload.agentId}`);\n              emit('economy:reserve', { amount: payload.reward, target: payload.agentId });\n            });\n          "
         }
       ]
     }

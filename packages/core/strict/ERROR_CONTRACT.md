@@ -202,9 +202,10 @@ be compiled this way later.
   layer fix.
 - **Real files that still fail.** Running every tracked `.holo` through core
   and this layer, the only files core accepts and strict refuses (outside this
-  folder's invalid corpus) are JSON-shaped documents (most do not even parse as JSON) saved with a `.holo` extension
+  folder's invalid corpus) were JSON-shaped documents (most did not even parse as JSON) saved with a `.holo` extension
   (`examples/v5.0-hardened/`, some of `examples/v6/`,
-  `packages/studio/holoscript-editor.holo`). Core accepts them as an empty
+  `packages/studio/holoscript-editor.holo`); the ones under `examples/v5.0-hardened/` and
+  `examples/v6/` are now named `.json`. Core accepts such a file as an empty
   composition; `HS1004` is right and core is wrong.
 - **Traits nothing declares get a warning only.** Many real files use traits
   that no vocabulary above declares (`@interactable`, `@reactive`,
