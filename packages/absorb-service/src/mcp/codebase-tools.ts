@@ -6746,13 +6746,13 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
     // disk however long ago it was built (see handleGraphStatus).
     const contentProvenCurrent = Boolean(
       memoryRootDirs.length === 1 &&
-        memoryGitCommitHash &&
-        currentGitCommitHash === memoryGitCommitHash &&
-        memoryGraph.worktreeFingerprint &&
-        currentWorktreeFingerprint === memoryGraph.worktreeFingerprint &&
-        coverage &&
-        coverage.exactFileSetChecked === true &&
-        graphCoverageIsComplete(coverage)
+      memoryGitCommitHash &&
+      currentGitCommitHash === memoryGitCommitHash &&
+      memoryGraph.worktreeFingerprint &&
+      currentWorktreeFingerprint === memoryGraph.worktreeFingerprint &&
+      coverage &&
+      coverage.exactFileSetChecked === true &&
+      graphCoverageIsComplete(coverage)
     );
     const freshByAge = ageMs === undefined || ageMs < CACHE_MAX_AGE_MS || contentProvenCurrent;
     const localCodebaseSnapshot = buildLocalCodebaseSnapshotAuthority({
@@ -6922,14 +6922,14 @@ async function ensureCachedGraph(options: { warmGraphRAG?: boolean } = {}): Prom
       // file set, describes the current code no matter when it was built.
       const contentProvenCurrent = Boolean(
         cacheMatchesCwd &&
-          (envelope.rootDirs ?? [envelope.rootDir]).length === 1 &&
-          envelope.gitCommitHash &&
-          currentGitCommitHash === envelope.gitCommitHash &&
+        (envelope.rootDirs ?? [envelope.rootDir]).length === 1 &&
+        envelope.gitCommitHash &&
+        currentGitCommitHash === envelope.gitCommitHash &&
+        envelope.worktreeFingerprint &&
+        buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ===
           envelope.worktreeFingerprint &&
-          buildGitWorktreeFingerprint(envelope.rootDir, envelope.scanPolicy) ===
-            envelope.worktreeFingerprint &&
-          coverageComplete &&
-          coverage.exactFileSetChecked === true
+        coverageComplete &&
+        coverage.exactFileSetChecked === true
       );
       const freshByAge = ageMs < CACHE_MAX_AGE_MS || contentProvenCurrent;
       const cwdFileHashFreshness =
@@ -11642,8 +11642,8 @@ async function computeGraphStatus(currentCwd: string): Promise<GraphStatusSnapsh
                       ? !diskCacheYoungerThanMaxAge
                         ? `Cache is ${formatCacheAge(cacheAgeMs)} old, but HEAD and the worktree fingerprint still match it over the exact file set, so it describes the current code; structural tools can auto-load it.`
                         : diskSemanticIndexHydratable
-                        ? 'HoloGraph cache and HoloEmbed disk index are fresh; structural and semantic tools can auto-load without re-scanning.'
-                        : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
+                          ? 'HoloGraph cache and HoloEmbed disk index are fresh; structural and semantic tools can auto-load without re-scanning.'
+                          : 'HoloGraph cache is fresh; structural query tools can auto-load it without re-scanning. Semantic tools still require a ready HoloEmbed index.'
                       : 'Cache is older than 24h — call holo_absorb_repo to refresh.',
         }
       : {

@@ -95,7 +95,10 @@ describe('stateless HTTP batch_tool_call dispatch parity', () => {
   });
 
   it('admits a tools:codebase batch (sovereign loopback) and still re-checks each inner call', async () => {
-    const codebaseOnly: SigningContext = { ...READ_ONLY_SIGNING_CONTEXT, scopes: ['tools:codebase'] };
+    const codebaseOnly: SigningContext = {
+      ...READ_ONLY_SIGNING_CONTEXT,
+      scopes: ['tools:codebase'],
+    };
     expect(authorizeToolCall('batch_tool_call', ['tools:codebase']).authorized).toBe(true);
 
     const response = await _handleSingleToolLogic(

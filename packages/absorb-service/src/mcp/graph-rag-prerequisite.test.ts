@@ -26,7 +26,9 @@ describe('graph-rag-prerequisite', () => {
     expect(stale).not.toContain('No codebase graph');
 
     expect(describeGraphUnavailable({ reason: 'cache_incomplete' })).toContain('only part');
-    expect(describeGraphUnavailable({ reason: 'cache_root_mismatch' })).toContain('not the workspace');
+    expect(describeGraphUnavailable({ reason: 'cache_root_mismatch' })).toContain(
+      'not the workspace'
+    );
     expect(describeGraphUnavailable({ reason: 'cache_missing' })).toBe(ABSORB_CODEBASE_LOAD_ERROR);
     expect(describeGraphUnavailable(undefined)).toBe(ABSORB_CODEBASE_LOAD_ERROR);
   });
