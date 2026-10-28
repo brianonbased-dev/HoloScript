@@ -42,6 +42,7 @@ import { resolveServiceSecret, migrateEnvKeys } from './holokey-resolver';
 import { createRailwayPostgresPoolOptions } from './postgres-pool-options';
 import { getMcpServerSizing } from './server-sizing';
 import { handlePartnerRegistryValidateRoute } from './partner-registry-route';
+import { authenticateOrReject } from './security/authenticate-or-reject';
 import { tools } from './tools';
 import { handleTool } from './handlers';
 import { getCompilerWasmBuildIdentity } from './parserBuildIdentity';
@@ -3470,7 +3471,7 @@ const httpServer = http.createServer(async (req, res) => {
       return;
     }
 
-    const auth = await authenticateRequest(req);
+    const auth = await authenticateOrReject(authenticateRequest, req);
     if (!auth.active) {
       auditLog.logAuthEvent({
         event: 'auth_failure',
@@ -4122,7 +4123,7 @@ const httpServer = http.createServer(async (req, res) => {
 
   // POST /mcp — Stateless JSON-RPC HTTP transport (Railway CDN friendly)
   if (url === '/mcp' && req.method === 'POST') {
-    let auth = await authenticateRequest(req);
+    let auth: TokenIntrospection = await authenticateOrReject(authenticateRequest, req);
 
     try {
       const rawBody = (await parseJsonBody(req)) as Record<string, unknown>;
