@@ -1,7 +1,7 @@
 /**
  * holoscript.net's front door sends /getting-started and /docs elsewhere until
  * the site serves them itself. Those redirects are TEMPORARY, so they must stay
- * 302s: a 301 would be cached by browsers and crawlers long after removal.
+ * 307 (temporary): a 301/308 would be cached by browsers and crawlers long after removal.
  */
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -13,15 +13,18 @@ import { describe, expect, it } from 'vitest';
 const serviceRoot = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
 const nextConfig = require(join(serviceRoot, 'next.config.js'));
+const { FRONT_DOOR_REDIRECTS } = require(join(serviceRoot, 'front-door-redirects.js'));
 const README = 'https://github.com/brianonbased-dev/HoloScript#readme';
 
 describe('front-door redirects', () => {
-  it('are all temporary (302), never permanent', async () => {
+  it('are all 307 (temporary), never permanent', async () => {
     const redirects = await nextConfig.redirects();
+    expect(redirects).toEqual(FRONT_DOOR_REDIRECTS);
     expect(redirects.length).toBeGreaterThan(0);
     for (const r of redirects) {
       expect(r.permanent).toBe(false);
       expect(r.statusCode).toBeUndefined();
+      expect('statusCode' in r).toBe(false);
     }
   });
 
@@ -30,8 +33,17 @@ describe('front-door redirects', () => {
       (await nextConfig.redirects()).map((r: { source: string; destination: string }) => [r.source, r.destination]),
     );
     expect(bySource['/getting-started']).toBe('https://holoscript.studio/install');
-    expect(bySource['/docs']).toBe(README);
     expect(bySource['/docs/:path*']).toBe(README);
+  });
+
+  it('serve bare /docs via /docs/:path* (no separate entry needed)', async () => {
+    const sources = (await nextConfig.redirects()).map((r: { source: string }) => r.source);
+    expect(sources).not.toContain('/docs');
+    const p = require('next/dist/compiled/path-to-regexp');
+    const re = p.pathToRegexp('/docs/:path*', []);
+    expect(re.test('/docs')).toBe(true);
+    expect(re.test('/docs/a/b')).toBe(true);
+    expect(re.test('/docsx')).toBe(false);
   });
 
   it('point "Read the docs" at the README in both the .holo source and the generated page', () => {

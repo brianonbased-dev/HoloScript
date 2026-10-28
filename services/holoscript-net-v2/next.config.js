@@ -1,12 +1,7 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
-const README_URL = 'https://github.com/brianonbased-dev/HoloScript#readme';
-const FRONT_DOOR_REDIRECTS = [
-  { source: '/getting-started', destination: 'https://holoscript.studio/install', permanent: false },
-  { source: '/docs', destination: README_URL, permanent: false },
-  { source: '/docs/:path*', destination: README_URL, permanent: false },
-];
+const { FRONT_DOOR_REDIRECTS } = require('./front-door-redirects');
 
 const nextConfig = {
   reactStrictMode: true,
@@ -22,9 +17,7 @@ const nextConfig = {
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin).
   ...(process.platform !== 'win32' && { output: 'standalone' }),
   transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
-  // TEMPORARY front-door redirects (Growth & Compliance decision). These are
-  // 302s on purpose (permanent: false) so browsers and crawlers do not cache
-  // them; remove once holoscript.net serves its own getting-started and docs.
+  // TEMPORARY 307 (temporary) front-door redirects; see front-door-redirects.js.
   async redirects() {
     return FRONT_DOOR_REDIRECTS;
   },
@@ -34,4 +27,3 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
-module.exports.FRONT_DOOR_REDIRECTS = FRONT_DOOR_REDIRECTS;
