@@ -3789,8 +3789,17 @@ export class HoloCompositionParser {
     );
   }
 
+  /**
+   * `from` is the import keyword (FROM token) but is also an ordinary key in config objects,
+   * e.g. `on_ok: { remove: { from: "apps", where: "id" } }`. It only counts as a key when a
+   * colon follows, so `import x from "y"` is untouched.
+   */
+  private isFromKey(): boolean {
+    return this.check('FROM') && this.peek(1).type === 'COLON';
+  }
+
   private isPropertyAssignmentStart(): boolean {
-    if (!this.isPropertyName()) return false;
+    if (!this.isPropertyName() && !this.isFromKey()) return false;
     let index = this.pos + 1;
     if (this.tokens[index]?.type === 'QUESTION') index++;
 
@@ -3804,7 +3813,9 @@ export class HoloCompositionParser {
 
   private parsePropertyKey(): string {
     const parts: string[] = [];
-    parts.push(this.isPropertyName() ? this.advance().value : this.expectIdentifier());
+    parts.push(
+      this.isPropertyName() || this.isFromKey() ? this.advance().value : this.expectIdentifier()
+    );
 
     while (this.match('DOT')) {
       if (!this.isPropertyName()) {
