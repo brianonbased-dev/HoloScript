@@ -63,7 +63,7 @@ composition "HoloscriptNet" {
         }
 
         object "DocsCta" {
-          @link { href: "https://github.com/brianonbased-dev/HoloScript", content: "Read the docs" }
+          @link { href: "https://github.com/brianonbased-dev/HoloScript#readme", content: "Read the docs" }
           @theme { className: "px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" }
         }
       }
