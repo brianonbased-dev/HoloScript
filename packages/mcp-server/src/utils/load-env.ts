@@ -111,6 +111,20 @@ function parseEnvContent(content: string): Array<{ key: string; value: string }>
 
 // ── Loader ────────────────────────────────────────────────────────────────────
 
+export type EnvLoadRefusal = 'HOLOMESH_NO_DOTENV' | 'not-opted-in' | 'sandbox' | 'loopback-bind';
+
+/**
+ * Shared policy for anything that injects secrets into process.env
+ * (.env files and vault hydration). Returns why loading is refused, or null.
+ */
+function envLoadRefusal(): EnvLoadRefusal | null {
+  if (process.env.HOLOMESH_NO_DOTENV === '1') return 'HOLOMESH_NO_DOTENV';
+  if (process.env.HOLOMESH_DOTENV !== '1') return 'not-opted-in';
+  if (process.env.HOLOMESH_SANDBOX === '1') return 'sandbox';
+  if (isLoopbackAddress(process.env.MCP_BIND_HOST)) return 'loopback-bind';
+  return null;
+}
+
 export interface LoadMcpEnvResult {
   /** Absolute path of the .env file that was loaded, or null if none found. */
   loadedFrom: string | null;
@@ -119,7 +133,7 @@ export interface LoadMcpEnvResult {
   /** Env vars in the file that were skipped (shadow denylist). */
   denied: string[];
   /** Why loading was skipped, if applicable. */
-  skipped?: 'HOLOMESH_NO_DOTENV' | 'not-opted-in' | 'sandbox' | 'loopback-bind' | 'railway';
+  skipped?: EnvLoadRefusal | 'railway';
 }
 
 /**
@@ -133,17 +147,9 @@ export interface LoadMcpEnvResult {
 export function loadMcpEnv(
   options: { envPaths?: string[]; silent?: boolean } = {}
 ): LoadMcpEnvResult {
-  if (process.env.HOLOMESH_NO_DOTENV === '1') {
-    return { loadedFrom: null, injected: [], denied: [], skipped: 'HOLOMESH_NO_DOTENV' };
-  }
-  if (process.env.HOLOMESH_DOTENV !== '1') {
-    return { loadedFrom: null, injected: [], denied: [], skipped: 'not-opted-in' };
-  }
-  if (process.env.HOLOMESH_SANDBOX === '1') {
-    return { loadedFrom: null, injected: [], denied: [], skipped: 'sandbox' };
-  }
-  if (isLoopbackAddress(process.env.MCP_BIND_HOST)) {
-    return { loadedFrom: null, injected: [], denied: [], skipped: 'loopback-bind' };
+  const refused = envLoadRefusal();
+  if (refused) {
+    return { loadedFrom: null, injected: [], denied: [], skipped: refused };
   }
   if (IS_RAILWAY) {
     return { loadedFrom: null, injected: [], denied: [], skipped: 'railway' };
@@ -232,14 +238,20 @@ const HOLOKEYD_HYDRATE_DEFAULT = [
   'GEMINI_API_KEY',
 ];
 
-export function hydrateFromVault(): { hydrated: string[]; missing: string[] } {
+export function hydrateFromVault(): {
+  hydrated: string[];
+  missing: string[];
+  skipped?: EnvLoadRefusal;
+} {
   // Deliberately NOT gated on IS_RAILWAY. The local `.env` defines RAILWAY_ENVIRONMENT
   // and RAILWAY_PROJECT_ID, so any laptop shell that exports it makes every process
   // believe it is deployed — and a Railway-gated bridge would then silently never run
   // on the one machine that needs it. The real gate is HOLOKEYD_HOST, which a cloud
-  // deploy does not set, so this already costs nothing there. HOLOMESH_NO_DOTENV stays
-  // honored so tests never reach for the network.
-  if (process.env.HOLOMESH_NO_DOTENV === '1') return { hydrated: [], missing: [] };
+  // deploy does not set, so this already costs nothing there. Otherwise it follows the
+  // same policy as .env loading: opt-in, refused for sandbox and loopback binds, and
+  // HOLOMESH_NO_DOTENV wins (so tests never reach for the network).
+  const refused = envLoadRefusal();
+  if (refused) return { hydrated: [], missing: [], skipped: refused };
   const extra = (process.env.HOLOKEYD_HYDRATE ?? '')
     .split(',')
     .map((s) => s.trim())
