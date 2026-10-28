@@ -69,9 +69,11 @@ npx -y npm@11 install @holoscript/cli@8.9.0
 npx -y npm@11 exec -p @holoscript/cli@8.9.0 -- hs --version
 ```
 
+The first command installs into the current folder.
+
 Or upgrade npm first with `npm i -g npm@11`, then run `npm install @holoscript/cli@8.9.0` as usual.
 
-**Known issue:** on npm 9 and 10 (bundled with Node 20 and 22), `npm install @holoscript/cli` and `npx -p @holoscript/cli hs` fail with `Cannot read properties of null (reading 'edgesOut')`. The cause is that `@holoscript/absorb-service@6.1.5` lists dev tools (vitest) as runtime dependencies. This is fixed in source by [#667](https://github.com/brianonbased-dev/HoloScript/pull/667); a patched release will follow.
+**Known issue:** on npm 9 and 10 (bundled with Node 18 to 22), `npm install @holoscript/cli` and `npx -p @holoscript/cli hs` fail with `Cannot read properties of null (reading 'edgesOut')`. The cause is that `@holoscript/absorb-service@6.1.5` lists dev tools (vitest) as runtime dependencies. This is fixed in source by [#667](https://github.com/brianonbased-dev/HoloScript/pull/667); a patched release is pending.
 
 Full reference: [docs/PUBLIC_ACCESS.md](docs/PUBLIC_ACCESS.md).
 
