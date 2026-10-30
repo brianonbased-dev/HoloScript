@@ -177,17 +177,28 @@ export const webhookHandler: TraitHandler<WebhookConfig> = {
         state.totalReceived++;
         let verified = true;
 
-        // HMAC signature validation
-        if (config.secret && payload.signature) {
-          try {
-            const crypto = require('crypto');
-            const expected = crypto
-              .createHmac(config.hmac_algorithm, config.secret)
-              .update(JSON.stringify(payload.body ?? ''))
-              .digest('hex');
-            verified = payload.signature === expected;
-          } catch {
-            verified = false;
+        // HMAC signature validation. With a secret configured, a missing,
+        // non-string or non-matching signature is unverified (fail closed).
+        // The compare is constant-time: both sides are compared as UTF-8 bytes
+        // (no lenient hex decode, which would ignore trailing non-hex junk),
+        // and unequal lengths return false before timingSafeEqual, which
+        // throws on a length mismatch.
+        if (config.secret) {
+          verified = false;
+          const presented: unknown = payload.signature;
+          if (typeof presented === 'string' && presented.length > 0) {
+            try {
+              const crypto = require('crypto');
+              const expected: string = crypto
+                .createHmac(config.hmac_algorithm, config.secret)
+                .update(JSON.stringify(payload.body ?? ''))
+                .digest('hex');
+              const a = Buffer.from(presented, 'utf8');
+              const b = Buffer.from(expected, 'utf8');
+              verified = a.length === b.length && crypto.timingSafeEqual(a, b);
+            } catch {
+              verified = false;
+            }
           }
         }
 
