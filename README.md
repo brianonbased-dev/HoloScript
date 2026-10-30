@@ -62,6 +62,19 @@ Use this to connect an AI coding agent to HoloScript tools:
 - **`POST mcp.holoscript.net/api/public/tool`** - call read-only public tools for parsing, validation, examples, syntax help, explanations, and target lists. 30 req/min per IP.
 - **`POST mcp.holoscript.net/oauth/register`** - register a client yourself when you need the full set of tools. No human approval step.
 
+**Requires npm 11+ for now.** Installing the CLI with npm 9 or 10 currently fails (see the known issue below). To install it without changing your global npm:
+
+```bash
+npx -y npm@11 install @holoscript/cli@8.9.0
+npx -y npm@11 exec -p @holoscript/cli@8.9.0 -- hs --version
+```
+
+The first command installs into the current folder.
+
+Or upgrade npm first with `npm i -g npm@11`, then run `npm install @holoscript/cli@8.9.0` as usual.
+
+**Known issue:** on npm 9 and 10 (bundled with Node 18 to 22), `npm install @holoscript/cli` and `npx -p @holoscript/cli hs` fail with `Cannot read properties of null (reading 'edgesOut')`. The cause is that `@holoscript/absorb-service@6.1.5` lists dev tools (vitest) as runtime dependencies. This is fixed in source by [#667](https://github.com/brianonbased-dev/HoloScript/pull/667); a patched release is pending.
+
 Full reference: [docs/PUBLIC_ACCESS.md](docs/PUBLIC_ACCESS.md).
 
 ## Why build systems in HoloScript

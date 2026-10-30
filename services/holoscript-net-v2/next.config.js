@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
+const { FRONT_DOOR_REDIRECTS } = require('./front-door-redirects');
+
 const nextConfig = {
   reactStrictMode: true,
   // Repo root is two levels up (services/holoscript-net-v2 → repo). Pin it so
@@ -15,6 +17,10 @@ const nextConfig = {
   // Standalone output for Railway/Docker (skip on Windows — symlinks need admin).
   ...(process.platform !== 'win32' && { output: 'standalone' }),
   transpilePackages: ['three', '@react-three/fiber', '@react-three/drei'],
+  // TEMPORARY 307 (temporary) front-door redirects; see front-door-redirects.js.
+  async redirects() {
+    return FRONT_DOOR_REDIRECTS;
+  },
   async rewrites() {
     return [{ source: '/health', destination: '/api/health' }];
   },

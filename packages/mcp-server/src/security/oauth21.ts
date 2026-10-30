@@ -15,7 +15,8 @@
  * migration period (OAUTH_MIGRATION_MODE=permissive).
  */
 
-import { randomUUID, createHash, createHmac, timingSafeEqual } from 'crypto';
+import { randomUUID, createHash, createHmac } from 'crypto';
+import { constantTimeEqual } from './constant-time';
 import {
   agentIdBindingAllowed,
   canonicalAgentIdFor,
@@ -296,8 +297,7 @@ function verifyS256Challenge(verifier: string, challenge: string): boolean {
 }
 
 function safeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+  return constantTimeEqual(a, b);
 }
 
 // ── Cleanup Timer ────────────────────────────────────────────────────────────
