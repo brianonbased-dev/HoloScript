@@ -112,6 +112,18 @@ export class Native2DCompiler extends CompilerBase {
    * re-derives `verified` from the ARTIFACT instead of trusting the compiler that stamped it.
    */
   private _liveProofBindings: LiveProofBinding[] = [];
+  /** @fetch on the guarded load path (status/error/params/refresh; data-binding spec r3). */
+  private _dataFetches: Array<Record<string, any>> = [];
+  /** @mutation declarations by name, pre-scanned so @action{call} can be checked mid-traversal. */
+  private _mutations = new Map<string, Record<string, any>>();
+  /** Named arg keys each @action{call} passes, per mutation name. */
+  private _mutationCallArgs = new Map<string, Set<string>>();
+  /** State names that are @fetch status slots: @when literals against them are vocabulary-checked. */
+  private _statusSlots = new Set<string>();
+  /** Explicit useState generics for slots the data-binding path declares. */
+  private _stateGenerics = new Map<string, string>();
+  private static readonly FETCH_STATUS = new Set(['loading', 'error', 'empty', 'ready']);
+  private static readonly HTTP_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 
   /**
    * 2D data-value provenance vocabulary, ordered by TRUST (highest → lowest),
@@ -147,6 +159,11 @@ export class Native2DCompiler extends CompilerBase {
     this._fetchCalls = [];
     this._hookCalls = [];
     this._computedBindings = [];
+    this._dataFetches = [];
+    this._mutations = new Map();
+    this._mutationCallArgs = new Map();
+    this._statusSlots = new Set();
+    this._stateGenerics = new Map();
     this._options = options || {};
     // Honest mode: composition-level `@honest` trait turns on the no-unsourced-pixel gate.
     this._honestMode = (
@@ -199,7 +216,9 @@ export class Native2DCompiler extends CompilerBase {
           if (t?.name === 'fetch') {
             const into = (t.config as { into?: unknown } | undefined)?.into;
             this._projectionRoots.add(typeof into === 'string' && into ? into : 'data');
+            this.prescanDataFetch((t.config ?? {}) as Record<string, any>);
           }
+          if (t?.name === 'mutation') this.registerMutation((t.config ?? {}) as Record<string, any>);
           if (t?.name === 'each') {
             const as = (t.config as { as?: unknown } | undefined)?.as;
             this._projectionRoots.add(typeof as === 'string' && as ? as : 'item');
@@ -237,7 +256,9 @@ export class Native2DCompiler extends CompilerBase {
     const imports: string[] = [];
     const reactImports = new Set<string>();
     if (this._stateFields.size > 0) reactImports.add('useState');
-    if (this._fetchCalls.length > 0) reactImports.add('useEffect');
+    if (this._fetchCalls.length > 0 || this._dataFetches.length > 0 || this._mutations.size > 0)
+      reactImports.add('useEffect');
+    if (this._mutations.size > 0) reactImports.add('useRef');
     imports.push(
       reactImports.size > 0
         ? `import React, { ${[...reactImports].join(', ')} } from 'react';`
@@ -275,9 +296,11 @@ export class Native2DCompiler extends CompilerBase {
       const capitalKey = key.charAt(0).toUpperCase() + key.slice(1);
       const initValue = JSON.stringify(value);
       const isFetchedRecord = initValue === 'null' && this._fetchCalls.some((f) => f.name === key);
-      const stateGeneric = isFetchedRecord
-        ? '<Record<string, string | number | null | undefined> | null>'
-        : '';
+      const stateGeneric = this._stateGenerics.has(key)
+        ? this._stateGenerics.get(key)
+        : isFetchedRecord
+          ? '<Record<string, string | number | null | undefined> | null>'
+          : '';
       stateHooks.push(
         `  const [${key}, set${capitalKey}] = useState${stateGeneric}(${initValue === undefined ? 'null' : initValue});`
       );
@@ -292,6 +315,17 @@ export class Native2DCompiler extends CompilerBase {
       .then(set${f.name.charAt(0).toUpperCase() + f.name.slice(1)})
       .catch(console.error);
   }, []);`);
+    }
+    for (const f of this._dataFetches) fetchEffects.push(this.buildDataFetchEffect(f));
+    if (this._mutations.size > 0) {
+      fetchEffects.push(`  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);`);
+      for (const m of this._mutations.values()) fetchEffects.push(this.buildMutationFn(m));
     }
 
     // Build hook bindings: `const { snap } = useProfiler();` at the top of the component
@@ -375,7 +409,8 @@ export default ${safeName}Component;${contractExport}
       const name = traits.fetch.into || 'data';
       const endpoint = traits.fetch.endpoint || '/api/data';
       const method = traits.fetch.method || 'GET';
-      this._fetchCalls.push({ name, endpoint, method });
+      if (this.isDataFetch(traits.fetch)) this._dataFetches.push({ ...traits.fetch, into: name });
+      else this._fetchCalls.push({ name, endpoint, method });
       if (!this._stateFields.has(name)) {
         this._stateFields.set(name, null);
       }
@@ -568,7 +603,14 @@ export default ${safeName}Component;${contractExport}
     // @event{on, handler} — declarative event with a raw handler expression (injection-safe:
     //   only identifier + dot-path characters are accepted; arbitrary JS is rejected).
     // Legacy: @button{onClick} / @form{onSubmit} string-sniff kept for backward compat.
-    if (traits.action) {
+    if (
+      traits.action &&
+      (traits.action.call !== undefined ||
+        traits.action.set !== undefined ||
+        traits.action.remove !== undefined)
+    ) {
+      props += this.buildStateAction(traits.action);
+    } else if (traits.action) {
       const on = String(traits.action.on || 'click').toLowerCase();
       const emit = String(traits.action.emit || '');
       const rawArgs: unknown[] = Array.isArray(traits.action.args) ? traits.action.args : [];
@@ -2384,7 +2426,38 @@ export default ${safeName}Component;${contractExport}
     if (typeof when.gt === 'number') conditions.push(`${numRef} > ${when.gt}`);
     if (typeof when.lte === 'number') conditions.push(`${numRef} <= ${when.lte}`);
     if (typeof when.lt === 'number') conditions.push(`${numRef} < ${when.lt}`);
-    if (when.eq !== undefined) {
+    const statusSlot = !when.path && this._statusSlots.has(String(when.state));
+    const isRef = (v: unknown): v is { ref: string } =>
+      !!v && typeof v === 'object' && typeof (v as { ref?: unknown }).ref === 'string';
+    const operand = (v: unknown, label: string): string => {
+      if (isRef(v)) return this.buildRefExpr(v.ref, label);
+      if (typeof v === 'number') {
+        if (statusSlot) {
+          throw new Error(
+            `Native2DCompiler ${label}: "${when.state}" holds a word, not a number, so ${v} can never match. Compare it to one of loading, error, empty or ready, e.g. eq: "ready".`
+          );
+        }
+        return String(v);
+      }
+      const lit = this.assertSafeLiteral(String(v), label);
+      if (statusSlot && !Native2DCompiler.FETCH_STATUS.has(lit)) {
+        throw new Error(
+          `Native2DCompiler ${label}: "${lit}" is not a fetch status (loading | error | empty | ready). Use one of those four words, e.g. eq: "ready".`
+        );
+      }
+      return JSON.stringify(lit);
+    };
+    if (statusSlot && when.eq !== undefined && !isRef(when.eq)) operand(when.eq, '@when eq');
+    if (when.not_eq !== undefined) conditions.push(`(${baseExpr}) !== ${operand(when.not_eq, '@when not_eq')}`);
+    if (when.present !== undefined) {
+      if (typeof when.present !== 'boolean') {
+        throw new Error('Native2DCompiler @when: present must be true or false. Write present: true or present: false.');
+      }
+      conditions.push(when.present ? `(${baseExpr}) != null` : `(${baseExpr}) == null`);
+    }
+    if (isRef(when.eq)) {
+      conditions.push(`(${baseExpr}) === ${operand(when.eq, '@when eq')}`);
+    } else if (when.eq !== undefined) {
       if (typeof when.eq === 'number') {
         conditions.push(`(${baseExpr}) === ${when.eq}`);
       } else {
@@ -2451,6 +2524,425 @@ export default ${safeName}Component;${contractExport}
       ? `(${baseExpr} ?? 0).toFixed(${bind.precision})`
       : `(${baseExpr} ?? ${JSON.stringify(bind.fallback ?? 0)})`;
     return `{\`${prefix}\${${valueExpr}}${suffix}\`}`;
+  }
+
+  // ── Data binding (studio-panel-data-binding-proposal r3) ───────────────────────────────
+
+  private assertIdent(v: unknown, label: string): string {
+    const s = String(v ?? '');
+    if (!/^[A-Za-z_$][\w$]*$/.test(s)) {
+      throw new Error(
+        `Native2DCompiler ${label}: invalid name ${JSON.stringify(s)}. Use letters, digits, _ or $, starting with a letter.`
+      );
+    }
+    return s;
+  }
+
+  private setterOf(name: string): string {
+    return `set${name.charAt(0).toUpperCase()}${name.slice(1)}`;
+  }
+
+  /** A `root.path` reference to a declared name (state, fetch slot, loop var, computed, hook). */
+  private buildRefExpr(ref: string, label: string): string {
+    const safe = this.assertSafeDotPath(String(ref), label);
+    const [root, ...rest] = safe.split('.');
+    if (!this._projectionRoots.has(root) && !this._stateFields.has(root)) {
+      throw new Error(
+        `Native2DCompiler ${label}: VIEW-UNGROUNDED — "${safe}" does not name a declared value. Declare it in state { }, as a @fetch/@mutation slot, or use an @each loop name.`
+      );
+    }
+    return rest.length ? this.buildStatePathExpr(root, rest.join('.'), label) : root;
+  }
+
+  /** Spec r3: a @fetch takes the guarded load path only when it declares `status`; without it the output is the legacy one, byte for byte. */
+  private isDataFetch(cfg: Record<string, any>): boolean {
+    return cfg.status !== undefined;
+  }
+
+  private declareSlot(name: string, init: unknown, generic: string): void {
+    this._projectionRoots.add(name);
+    if (!this._stateFields.has(name)) this._stateFields.set(name, init as never);
+    if (!this._stateGenerics.has(name)) this._stateGenerics.set(name, generic);
+  }
+
+  private prescanDataFetch(cfg: Record<string, any>): void {
+    if (!this.isDataFetch(cfg)) return;
+    const into = this.assertIdent(cfg.into ?? 'data', '@fetch into');
+    this._stateGenerics.set(into, '<any>');
+    if (cfg.status !== undefined) {
+      const st = this.assertIdent(cfg.status, '@fetch status');
+      this._statusSlots.add(st);
+      this.declareSlot(st, 'loading', "<'loading' | 'error' | 'empty' | 'ready'>");
+    }
+    if (cfg.error !== undefined) {
+      this.declareSlot(this.assertIdent(cfg.error, '@fetch error'), null, '<string | null>');
+    }
+    if (cfg.refresh !== undefined) {
+      const every = (cfg.refresh as { every_ms?: unknown } | null)?.every_ms;
+      if (typeof every !== 'number' || !Number.isInteger(every) || every < 5000) {
+        throw new Error(
+          `Native2DCompiler @fetch: refresh.every_ms must be an integer >= 5000, got ${JSON.stringify(every)}. Write refresh: { every_ms: 5000 } or a larger number.`
+        );
+      }
+    }
+  }
+
+  /** Literal URL text between placeholders: no characters that could escape the template. */
+  private endpointText(text: string, label: string): string {
+    if (/[`\\${}]/.test(text)) {
+      throw new Error(
+        `Native2DCompiler ${label}: unsafe characters in ${JSON.stringify(text)}. Keep the endpoint to plain URL text and {name} placeholders.`
+      );
+    }
+    return text;
+  }
+
+  /** `/a?id={id}` -> a template literal with every placeholder encodeURIComponent'd. */
+  private buildEndpointTemplate(raw: string, label: string, resolve: (ph: string) => string): string {
+    if (!raw) throw new Error(`Native2DCompiler ${label}: endpoint is required. Add endpoint: "/api/...".`);
+    const re = /\{([^{}]*)\}/g;
+    let out = '';
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(raw))) {
+      out += this.endpointText(raw.slice(last, m.index), label);
+      const ph = this.assertIdent(m[1], `${label} placeholder`);
+      out += `\${encodeURIComponent(String(${resolve(ph)} ?? ''))}`;
+      last = re.lastIndex;
+    }
+    out += this.endpointText(raw.slice(last), label);
+    return '`' + out + '`';
+  }
+
+  private placeholdersOf(raw: string): string[] {
+    return [...String(raw).matchAll(/\{([A-Za-z_$][\w$]*)\}/g)].map((m) => m[1]);
+  }
+
+  private registerMutation(cfg: Record<string, any>): void {
+    const name = this.assertIdent(cfg.name, '@mutation name');
+    if (this._mutations.has(name)) {
+      throw new Error(`Native2DCompiler @mutation: duplicate "${name}". Give each @mutation its own name.`);
+    }
+    if (cfg.method === undefined) {
+      throw new Error(`Native2DCompiler @mutation "${name}": method is required. Add method: "POST" (or GET, PUT, PATCH, DELETE).`);
+    }
+    const method = String(cfg.method).toUpperCase();
+    if (!Native2DCompiler.HTTP_METHODS.has(method)) {
+      throw new Error(
+        `Native2DCompiler @mutation "${name}": unsupported method ${JSON.stringify(cfg.method)}. Use GET, POST, PUT, PATCH or DELETE.`
+      );
+    }
+    if (typeof cfg.endpoint !== 'string' || !cfg.endpoint) {
+      throw new Error(`Native2DCompiler @mutation "${name}": endpoint is required. Add endpoint: "/api/...".`);
+    }
+    if (cfg.on_error !== undefined) {
+      throw new Error(
+        `Native2DCompiler @mutation "${name}": on_error is not supported. Remove it; a failed request is written to the error slot, so add error: "<name>" instead.`
+      );
+    }
+    if (cfg.destructive !== undefined && typeof cfg.destructive !== 'boolean') {
+      throw new Error(
+        `Native2DCompiler @mutation "${name}": destructive must be true or false, got ${JSON.stringify(cfg.destructive)}. Write destructive: true, or remove the key.`
+      );
+    }
+    if (cfg.notice !== undefined) {
+      // Spec r3 names `notice` but does not say what it holds. Refuse rather than ignore it silently.
+      throw new Error(
+        `Native2DCompiler @mutation "${name}": notice is not supported yet. Remove it and use error: "<name>"; a failed request is written to that slot.`
+      );
+    }
+    const needsConfirm = method === 'DELETE' || cfg.destructive === true;
+    if (cfg.confirm !== undefined && (typeof cfg.confirm !== 'string' || !cfg.confirm.trim())) {
+      throw new Error(
+        `Native2DCompiler @mutation "${name}": confirm must be a non-empty sentence. Write the question people will see, e.g. confirm: "Remove this app?".`
+      );
+    }
+    if (needsConfirm && cfg.confirm === undefined) {
+      throw new Error(
+        `Native2DCompiler @mutation "${name}": ${method === 'DELETE' ? 'This delete' : 'This destructive action'} needs a confirm sentence. Add confirm: "Remove this app?" to the @mutation.`
+      );
+    }
+    if (cfg.body !== undefined && (typeof cfg.body !== 'object' || cfg.body === null || Array.isArray(cfg.body))) {
+      throw new Error(
+        `Native2DCompiler @mutation "${name}": body must be an object. Write body: { field: "{name}" }.`
+      );
+    }
+    const bodyPh: string[] = [];
+    for (const [k, v] of Object.entries((cfg.body ?? {}) as Record<string, unknown>)) {
+      this.assertIdent(k, `@mutation "${name}" body key`);
+      if (typeof v === 'string' && /[{}]/.test(v)) {
+        const m = /^\{([A-Za-z_$][\w$]*)\}$/.exec(v);
+        if (!m) {
+          throw new Error(
+            `Native2DCompiler @mutation "${name}": body.${k} mixes text and a placeholder. Use exactly "{name}" as the whole value, or plain text with no braces.`
+          );
+        }
+        bodyPh.push(m[1]);
+      } else if (v !== null && !['string', 'number', 'boolean'].includes(typeof v)) {
+        throw new Error(
+          `Native2DCompiler @mutation "${name}": body.${k} must be a literal or "{name}". Nested objects and lists are not supported in body.`
+        );
+      }
+    }
+    if (cfg.pending !== undefined) {
+      this.declareSlot(this.assertIdent(cfg.pending, '@mutation pending'), null, '<unknown>');
+    }
+    if (cfg.error !== undefined) {
+      this.declareSlot(this.assertIdent(cfg.error, '@mutation error'), null, '<string | null>');
+    }
+    const pendingArg = [...this.placeholdersOf(cfg.endpoint), ...bodyPh][0];
+    this._mutations.set(name, { ...cfg, name, method, pendingArg });
+  }
+
+  private buildDataFetchEffect(f: Record<string, any>): string {
+    const into = this.assertIdent(f.into, '@fetch into');
+    const params = (f.params ?? {}) as Record<string, unknown>;
+    if (typeof params !== 'object' || Array.isArray(params)) {
+      throw new Error('Native2DCompiler @fetch: params must be an object of name -> state ref. Write params: { teamId: "state.teamId" }.');
+    }
+    const deps = new Set<string>();
+    const url = this.buildEndpointTemplate(String(f.endpoint ?? ''), '@fetch endpoint', (ph) => {
+      if (Object.prototype.hasOwnProperty.call(params, ph)) {
+        const expr = this.buildRefExpr(String(params[ph]), `@fetch params.${ph}`);
+        deps.add(String(params[ph]).split('.')[0]);
+        return expr;
+      }
+      if (this._stateFields.has(ph)) {
+        deps.add(ph);
+        return ph;
+      }
+      throw new Error(
+        `Native2DCompiler @fetch: unknown placeholder {${ph}} in endpoint. Add it to params (params: { ${ph}: "state.${ph}" }) or declare it in state { }.`
+      );
+    });
+    const method = String(f.method || 'GET').toUpperCase();
+    if (!Native2DCompiler.HTTP_METHODS.has(method)) {
+      throw new Error(
+        `Native2DCompiler @fetch: unsupported method ${JSON.stringify(f.method)}. Use GET, POST, PUT, PATCH or DELETE.`
+      );
+    }
+    const select = f.select ? this.assertSafeDotPath(String(f.select), '@fetch select') : '';
+    const valueExpr = select ? `body?.${select.split('.').join('?.')}` : 'body';
+    const init: string[] = [];
+    if (method !== 'GET') init.push(`method: '${method}'`);
+    if (f.cache !== undefined) init.push(`cache: ${JSON.stringify(this.assertSafeLiteral(String(f.cache), '@fetch cache'))}`);
+    init.push('signal: ctrl.signal');
+    const status = f.status !== undefined ? String(f.status) : null;
+    const error = f.error !== undefined ? String(f.error) : null;
+    const errText =
+      f.error_text !== undefined
+        ? JSON.stringify(String(f.error_text))
+        : `(e instanceof Error && e.message.startsWith('HTTP ') ? e.message : 'Network error')`;
+    const reloaded = [...this._mutations.values()].some((m) => m.on_ok?.refetch === into);
+    const removed = [...this._mutations.values()].some((m) => m.on_ok?.remove?.from === into);
+    const reload = `${into}Reload`;
+    if (reloaded) deps.add(reload);
+    const every = f.refresh !== undefined ? (f.refresh as { every_ms: number }).every_ms : null;
+    const lines: string[] = [];
+    if (reloaded) lines.push(`  const [${reload}, ${this.setterOf(reload)}] = useState(0);`);
+    lines.push(`  useEffect(() => {
+    const ctrl = new AbortController();
+    let alive = true;
+    const load = () => {
+      fetch(${url}, { ${init.join(', ')} })
+        .then(async (r) => {
+          if (!r.ok) throw new Error(\`HTTP \${r.status}\`);
+          const body = await r.json();
+          const value = ${valueExpr} ?? null;
+          if (!alive) return;
+          ${this.setterOf(into)}(value);${
+            status
+              ? `\n          ${this.setterOf(status)}(value == null || (Array.isArray(value) && value.length === 0) ? 'empty' : 'ready');`
+              : ''
+          }${error ? `\n          ${this.setterOf(error)}(null);` : ''}
+        })
+        .catch((e: unknown) => {
+          if (!alive || (e instanceof Error && e.name === 'AbortError')) return;${
+            status ? `\n          ${this.setterOf(status)}('error');` : ''
+          }${error ? `\n          ${this.setterOf(error)}(${errText});` : ''}
+        });
+    };
+    load();${every !== null ? `\n    const timer = setInterval(load, ${every});` : ''}
+    return () => {
+      alive = false;
+      ctrl.abort();${every !== null ? '\n      clearInterval(timer);' : ''}
+    };
+  }, [${[...deps].join(', ')}]);`);
+    if (status && removed) {
+      lines.push(`  useEffect(() => {
+    if (${status} === 'ready' && (${into} == null || (Array.isArray(${into}) && ${into}.length === 0))) ${this.setterOf(status)}('empty');
+  }, [${into}, ${status}]);`);
+    }
+    return lines.join('\n');
+  }
+
+  private buildMutationFn(m: Record<string, any>): string {
+    const name = String(m.name);
+    const argNames = this._mutationCallArgs.get(name) ?? new Set<string>();
+    const resolve = (ph: string): string => {
+      if (argNames.has(ph)) return `args[${JSON.stringify(ph)}]`;
+      if (this._stateFields.has(ph)) return ph;
+      throw new Error(
+        `Native2DCompiler @mutation "${name}": unknown placeholder {${ph}}. Pass it as a named arg on the @action (args: { ${ph}: "item.${ph}" }) or declare it in state { }.`
+      );
+    };
+    const url = this.buildEndpointTemplate(String(m.endpoint), `@mutation "${name}" endpoint`, resolve);
+    const init: string[] = [`method: '${m.method}'`];
+    if (m.body !== undefined) {
+      const fields = Object.entries(m.body as Record<string, unknown>).map(([k, v]) => {
+        const ph = typeof v === 'string' ? /^\{([A-Za-z_$][\w$]*)\}$/.exec(v) : null;
+        return `${k}: ${ph ? resolve(ph[1]) : JSON.stringify(v)}`;
+      });
+      init.push(`headers: { 'Content-Type': 'application/json' }`);
+      init.push(`body: JSON.stringify({ ${fields.join(', ')} })`);
+    }
+    const ok = Array.isArray(m.ok_status)
+      ? `[${m.ok_status
+          .map((n: unknown) => {
+            if (typeof n !== 'number' || !Number.isInteger(n)) {
+              throw new Error(
+                `Native2DCompiler @mutation "${name}": ok_status must be whole numbers. Write ok_status: [200, 204].`
+              );
+            }
+            return String(n);
+          })
+          .join(', ')}].includes(r.status)`
+      : 'r.ok';
+    const pending = m.pending !== undefined ? String(m.pending) : null;
+    const error = m.error !== undefined ? String(m.error) : null;
+    const errText =
+      m.error_text !== undefined
+        ? JSON.stringify(String(m.error_text))
+        : `(e instanceof Error && e.message.startsWith('HTTP ') ? e.message : 'Network error')`;
+    const onOk: string[] = [];
+    const oo = (m.on_ok ?? {}) as Record<string, any>;
+    for (const k of Object.keys(oo)) {
+      if (k !== 'refetch' && k !== 'remove' && k !== 'set') {
+        throw new Error(
+          `Native2DCompiler @mutation "${name}": on_ok.${k} is not supported. Use refetch, remove: { from, where }, or set: { ... }.`
+        );
+      }
+    }
+    if (oo.remove !== undefined) {
+      const rm = oo.remove as Record<string, unknown> | null;
+      if (rm === null || typeof rm !== 'object' || Array.isArray(rm) || rm.from === undefined || rm.where === undefined) {
+        throw new Error(
+          `Native2DCompiler @mutation "${name}": on_ok.remove needs both from and where. Write on_ok: { remove: { from: "apps", where: "id" } }.`
+        );
+      }
+      const from = this.assertIdent(rm.from, `@mutation "${name}" on_ok.remove.from`);
+      const where = this.assertIdent(rm.where, `@mutation "${name}" on_ok.remove.where`);
+      if (!this._stateFields.has(from)) {
+        throw new Error(
+          `Native2DCompiler @mutation "${name}": on_ok.remove.from "${from}" is not declared. Declare it in state { } or as a @fetch into.`
+        );
+      }
+      onOk.push(
+        `${this.setterOf(from)}((prev: unknown) => (Array.isArray(prev) ? prev.filter((it) => (it as Record<string, unknown> | null)?.[${JSON.stringify(where)}] !== ${resolve(where)}) : prev));`
+      );
+    }
+    if (oo.refetch !== undefined) {
+      const into = this.assertIdent(oo.refetch, `@mutation "${name}" on_ok.refetch`);
+      if (!this._dataFetches.some((f) => f.into === into)) {
+        throw new Error(
+          `Native2DCompiler @mutation "${name}": on_ok.refetch "${into}" is not a @fetch with status. Add status: "<name>" to that @fetch, or name a different one.`
+        );
+      }
+      onOk.push(`${this.setterOf(`${into}Reload`)}((n) => n + 1);`);
+    }
+    if (oo.set !== undefined) {
+      for (const [k, v] of Object.entries(oo.set as Record<string, unknown>)) {
+        if (!this._stateFields.has(this.assertIdent(k, `@mutation "${name}" on_ok.set`))) {
+          throw new Error(
+            `Native2DCompiler @mutation "${name}": on_ok.set "${k}" is not declared state. Add it to state { }.`
+          );
+        }
+        onOk.push(`${this.setterOf(k)}(${JSON.stringify(v)});`);
+      }
+    }
+    const pendingVal = m.pendingArg && argNames.has(m.pendingArg) ? `args[${JSON.stringify(m.pendingArg)}] ?? true` : 'true';
+    const body: string[] = [];
+    if (m.confirm !== undefined) body.push(`    if (!window.confirm(${JSON.stringify(String(m.confirm))})) return;`);
+    if (pending) body.push(`    ${this.setterOf(pending)}(${pendingVal});`);
+    if (error) body.push(`    ${this.setterOf(error)}(null);`);
+    body.push(`    try {
+      const r = await fetch(${url}, { ${init.join(', ')} });
+      if (!mountedRef.current) return;
+      if (!(${ok})) throw new Error(\`HTTP \${r.status}\`);${onOk.map((l) => `\n      ${l}`).join('')}
+    } catch (e: unknown) {
+      if (!mountedRef.current) return;${error ? `\n      ${this.setterOf(error)}(${errText});` : ''}
+    }${pending ? ` finally {\n      if (mountedRef.current) ${this.setterOf(pending)}(null);\n    }` : ''}`);
+    return `  const ${name} = async (args: Record<string, unknown> = {}) => {\n${body.join('\n')}\n  };`;
+  }
+
+  /** @action{call | set | remove, args:{name:"ref"}}: local state actions and @mutation calls. */
+  private buildStateAction(a: Record<string, any>): string {
+    if (a.emit !== undefined) {
+      throw new Error('Native2DCompiler @action: emit cannot be combined with call, set or remove. Keep emit on its own @action, or drop it.');
+    }
+    if (Array.isArray(a.args)) {
+      throw new Error('Native2DCompiler @action: positional args are not allowed here. Name each one, e.g. args: { id: "item.id" }.');
+    }
+    const rawArgs = (a.args ?? {}) as Record<string, unknown>;
+    if (typeof rawArgs !== 'object') throw new Error('Native2DCompiler @action: args must be an object. Write args: { id: "item.id" }.');
+    const args = new Map<string, string>();
+    for (const [k, v] of Object.entries(rawArgs)) {
+      args.set(this.assertIdent(k, '@action arg'), this.buildRefExpr(String(v), `@action args.${k}`));
+    }
+    const argsObj = `{ ${[...args].map(([k, e]) => `${k}: ${e}`).join(', ')} }`;
+    const stmts: string[] = [];
+    let extra = '';
+    if (a.call !== undefined) {
+      const name = this.assertIdent(a.call, '@action call');
+      const m = this._mutations.get(name);
+      if (!m) throw new Error(
+          `Native2DCompiler @action: call "${name}" names no @mutation. Add a @mutation with name: "${name}", or fix the name.`
+        );
+      const seen = this._mutationCallArgs.get(name) ?? new Set<string>();
+      for (const k of args.keys()) seen.add(k);
+      this._mutationCallArgs.set(name, seen);
+      stmts.push(`void ${name}(${argsObj});`);
+      if (m.pending !== undefined) {
+        const p = String(m.pending);
+        extra =
+          m.pendingArg && args.has(m.pendingArg)
+            ? ` disabled={${p} != null && ${p} === ${args.get(m.pendingArg)}}`
+            : ` disabled={${p} != null}`;
+      }
+    }
+    if (a.remove !== undefined) {
+      const from = this.assertIdent(a.remove.from, '@action remove.from');
+      const where = this.assertIdent(a.remove.where, '@action remove.where');
+      if (!this._stateFields.has(from)) throw new Error(
+          `Native2DCompiler @action: remove.from "${from}" is not declared state. Add it to state { } or as a @fetch into.`
+        );
+      if (!args.has(where)) throw new Error(
+          `Native2DCompiler @action: remove.where "${where}" needs a named arg of the same name. Add args: { ${where}: "item.${where}" }.`
+        );
+      stmts.push(
+        `${this.setterOf(from)}((prev: unknown) => (Array.isArray(prev) ? prev.filter((it) => (it as Record<string, unknown> | null)?.[${JSON.stringify(where)}] !== ${args.get(where)}) : prev));`
+      );
+    }
+    if (a.set !== undefined) {
+      for (const [k, v] of Object.entries(a.set as Record<string, unknown>)) {
+        if (!this._stateFields.has(this.assertIdent(k, '@action set'))) {
+          throw new Error(
+            `Native2DCompiler @action: set "${k}" is not declared state. Add it to state { }.`
+          );
+        }
+        if (v !== null && typeof v === 'object') throw new Error(
+          `Native2DCompiler @action: set.${k} must be a literal. Use a string, number, boolean or null.`
+        );
+        stmts.push(`${this.setterOf(k)}(${JSON.stringify(v)});`);
+      }
+    }
+    const on = String(a.on || 'click').toLowerCase();
+    const reactEvent = on === 'submit' ? 'onSubmit' : on === 'change' ? 'onChange' : 'onClick';
+    const handler =
+      on === 'submit'
+        ? `(e) => { e.preventDefault(); ${stmts.join(' ')} }`
+        : `() => { ${stmts.join(' ')} }`;
+    return ` ${reactEvent}={${handler}}${extra}`;
   }
 
   private extractTraits(obj: unknown): Record<string, any> {

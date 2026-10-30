@@ -33,7 +33,7 @@ import { logger } from '@/lib/logger';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
 import BrittneyAPIKeysPanel from './BrittneyAPIKeysPanel';
-import ConnectedAppsPanel from './ConnectedAppsPanel';
+import { ConnectedAppsComponent } from '@/components/panels/native/connectedApps.native';
 import { IntegrationsView } from '@/components/integrations/IntegrationsView';
 import { CreditBalanceCard, PricingTab } from '@/app/absorb/components';
 import { absorbFetch } from '@/lib/absorb/fetchWithAuth';
@@ -491,7 +491,7 @@ export function SettingsView() {
       {activeTab === 'api-keys' && session?.user?.id && (
         <div style={{ maxWidth: 700, margin: '0 auto', padding: '24px 24px 40px' }}>
           <BrittneyAPIKeysPanel />
-          <ConnectedAppsPanel />
+          <ConnectedAppsComponent />
         </div>
       )}
 

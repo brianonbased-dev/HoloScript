@@ -277,6 +277,15 @@ export function diagnoseVerifiedView(source: string): VerifiedViewDiagnosis {
           const into = (t.config as { into?: unknown } | undefined)?.into;
           roots.add(typeof into === 'string' && into ? into : 'data');
         }
+        // Data-binding slots (studio-panel-data-binding r3): @fetch status/error and
+        // @mutation pending/error are compiler-declared state, like into.
+        if (t.name === 'fetch' || t.name === 'mutation') {
+          const c = (t.config ?? {}) as Record<string, unknown>;
+          for (const k of ['status', 'error', 'pending']) {
+            const v = c[k];
+            if (typeof v === 'string' && v) roots.add(v);
+          }
+        }
         if (t.name === 'each') {
           const as = (t.config as { as?: unknown } | undefined)?.as;
           roots.add(typeof as === 'string' && as ? as : 'item');
