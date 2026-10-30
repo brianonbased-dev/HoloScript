@@ -393,13 +393,51 @@ describe('dominance property (attempt-EV > abstain-EV on solvable rows, independ
 // production-dependency-closure.test.ts (264c42076).
 // =============================================================================
 
+/**
+ * Where the cross-boundary grader can live, in priority order:
+ *   1. UAAL_GRADER_SCRIPT (explicit override; if set it is the only candidate)
+ *   2. ai-ecosystem checked out beside the HoloScript repo root (HoloCI / holo-dev layout)
+ *   3. ~/.ai-ecosystem (original local dev layout)
+ * Missing in all of them still FAILS loudly below; this only widens where we look.
+ */
+function uaalGraderCandidates(
+  env: Record<string, string | undefined>,
+  home: string,
+  testDir: string
+): string[] {
+  if (env.UAAL_GRADER_SCRIPT) return [env.UAAL_GRADER_SCRIPT];
+  const rel = path.join('scripts', 'reward', 'grade-uaal-emissions.mjs');
+  const repoRoot = path.resolve(testDir, '../../../../..');
+  return [
+    path.join(path.dirname(repoRoot), 'ai-ecosystem', rel),
+    path.join(home, '.ai-ecosystem', rel),
+  ];
+}
+
+describe('uaalGraderCandidates', () => {
+  it('uses only the explicit override when UAAL_GRADER_SCRIPT is set', () => {
+    expect(uaalGraderCandidates({ UAAL_GRADER_SCRIPT: '/x/g.mjs' }, '/home/u', __dirname)).toEqual([
+      '/x/g.mjs',
+    ]);
+  });
+
+  it('looks for a sibling ai-ecosystem checkout before ~/.ai-ecosystem', () => {
+    const c = uaalGraderCandidates({}, '/home/u', __dirname);
+    const repoRoot = path.resolve(__dirname, '../../../../..');
+    expect(fs.existsSync(path.join(repoRoot, 'packages', 'absorb-service', 'package.json'))).toBe(true);
+    expect(c).toEqual([
+      path.join(path.dirname(repoRoot), 'ai-ecosystem', 'scripts', 'reward', 'grade-uaal-emissions.mjs'),
+      path.join('/home/u', '.ai-ecosystem', 'scripts', 'reward', 'grade-uaal-emissions.mjs'),
+    ]);
+  });
+});
+
 describe('TS-vs-subprocess parity (cross-boundary grader)', () => {
   // Standard local dev layout for this environment: ai-ecosystem is a sibling
   // checkout under the user's home directory. Overridable via env var so this
   // test can be pointed at a different checkout without editing the test.
-  const graderScript =
-    process.env.UAAL_GRADER_SCRIPT ||
-    path.join(os.homedir(), '.ai-ecosystem', 'scripts', 'reward', 'grade-uaal-emissions.mjs');
+  const graderCandidates = uaalGraderCandidates(process.env, os.homedir(), __dirname);
+  const graderScript = graderCandidates.find((p) => fs.existsSync(p)) ?? graderCandidates[0];
 
   const graderExists = fs.existsSync(graderScript);
 
@@ -498,7 +536,7 @@ describe('TS-vs-subprocess parity (cross-boundary grader)', () => {
     // instead of a silent no-op, and would flag a broken CI checkout layout.
     if (!graderExists) {
       throw new Error(
-        `cross-boundary grader not found at ${graderScript} — the parity test above was skipped`
+        `cross-boundary grader not found (looked in: ${graderCandidates.join(', ')}) — the parity test above was skipped. Set UAAL_GRADER_SCRIPT or check out ai-ecosystem beside HoloScript.`
       );
     }
     expect(graderExists).toBe(true);
