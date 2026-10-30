@@ -81,7 +81,7 @@ export class SceneSerializer {
 
 ### HoloScript Syntax
 
-```holoscript
+```hsplus
 @export_config(
   format: "glb" | "usdz" | "all",
   optimize: true,
@@ -319,7 +319,7 @@ export class RenderNetworkClient {
 
 ### HoloScript Syntax
 
-```holoscript
+```hsplus
 @render_network(
   enabled: true,
   quality: "production",
@@ -446,7 +446,7 @@ export class VolumetricExporter {
 
 ### HoloScript Syntax
 
-```holoscript
+```hsplus
 object#volumetric_capture {
   @volumetric(
     source: "captures/scene.splat",

@@ -7,12 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('sensor:lidar_data', (data) => {
-              log('Updating spatial mesh with LiDAR depth data');
-              emit('spatial:update_gaussian_splat', { data: data });
-            });
-          "
+          "source": "\n            on('sensor:lidar_data', (data) => {\n              log('Updating spatial mesh with LiDAR depth data');\n              emit('spatial:update_gaussian_splat', { data: data });\n            });\n          "
         }
       ]
     }

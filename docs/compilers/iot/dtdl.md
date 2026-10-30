@@ -80,7 +80,7 @@ or more `.json` model files before upload.
 
 HoloScript source:
 
-```holoscript
+```holo
 composition SmartFactory {
   state {
     lineStatus: "running"

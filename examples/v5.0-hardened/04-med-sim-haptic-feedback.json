@@ -7,12 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('physical:collision', (impact) => {
-              log(`Surgical collision detected. Impact: ${impact.force}`);
-              emit('haptic:vibrate', { intensity: impact.force * 10 });
-            });
-          "
+          "source": "\n            on('physical:collision', (impact) => {\n              log(`Surgical collision detected. Impact: ${impact.force}`);\n              emit('haptic:vibrate', { intensity: impact.force * 10 });\n            });\n          "
         }
       ]
     }

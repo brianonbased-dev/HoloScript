@@ -34,7 +34,7 @@ composition ObjectTemplatePatternReference {
   // === TEMPLATE DEFINITIONS ===
   // Reusable configurations that can be instantiated multiple times
 
-  template GrabbableBall {
+  template "GrabbableBall" {
     // Mesh configuration
     mesh: {
       type: "sphere",
@@ -121,7 +121,7 @@ composition ObjectTemplatePatternReference {
   }
 
   // Template with nested configuration
-  template InteractiveButton {
+  template "InteractiveButton" {
     mesh: {
       type: "box",
       width: 0.3,
@@ -191,7 +191,7 @@ composition ObjectTemplatePatternReference {
   }
 
   // Complex template with multiple systems
-  template SmartNPC {
+  template "SmartNPC" {
     mesh: {
       type: "model",
       model_path: "/models/characters/npc_basic.glb"
@@ -268,7 +268,7 @@ composition ObjectTemplatePatternReference {
   // Instantiate templates with specific configurations
 
   // Simple floor
-  object Floor {
+  object "Floor" {
     mesh: {
       type: "plane",
       width: 20.0,
@@ -295,7 +295,7 @@ composition ObjectTemplatePatternReference {
   }
 
   // Instantiate template with overrides
-  object RedBall using GrabbableBall {
+  object "RedBall" using "GrabbableBall" {
     advanced_pbr: {
       base_color: [1.0, 0.27, 0.27],  // Override color to red
       metallic: 0.2,
@@ -320,7 +320,7 @@ composition ObjectTemplatePatternReference {
     }
   }
 
-  object GreenBall using GrabbableBall {
+  object "GreenBall" using "GrabbableBall" {
     advanced_pbr: {
       base_color: [0.27, 1.0, 0.27]  // Green
     }
@@ -330,7 +330,7 @@ composition ObjectTemplatePatternReference {
     }
   }
 
-  object BlueBall using GrabbableBall {
+  object "BlueBall" using "GrabbableBall" {
     advanced_pbr: {
       base_color: [0.27, 0.27, 1.0]  // Blue
     }
@@ -341,7 +341,7 @@ composition ObjectTemplatePatternReference {
   }
 
   // Button instances with custom actions
-  object StartButton using InteractiveButton {
+  object "StartButton" using "InteractiveButton" {
     transform: {
       position: [-1.0, 1.5, -3.0]
     }
@@ -353,7 +353,7 @@ composition ObjectTemplatePatternReference {
     }
   }
 
-  object ResetButton using InteractiveButton {
+  object "ResetButton" using "InteractiveButton" {
     transform: {
       position: [1.0, 1.5, -3.0]
     }
@@ -370,7 +370,7 @@ composition ObjectTemplatePatternReference {
   }
 
   // NPC instances
-  object Shopkeeper using SmartNPC {
+  object "Shopkeeper" using "SmartNPC" {
     transform: {
       position: [3.0, 0.0, -5.0],
       rotation: [0.0, 180.0, 0.0]
@@ -393,7 +393,7 @@ composition ObjectTemplatePatternReference {
     }
   }
 
-  object QuestGiver using SmartNPC {
+  object "QuestGiver" using "SmartNPC" {
     transform: {
       position: [-3.0, 0.0, -5.0],
       rotation: [0.0, 180.0, 0.0]
@@ -418,7 +418,7 @@ composition ObjectTemplatePatternReference {
   }
 
   // Lighting
-  object MainLight {
+  object "MainLight" {
     light: {
       type: "point",
       color: [1.0, 1.0, 1.0],
@@ -434,7 +434,7 @@ composition ObjectTemplatePatternReference {
   }
 
   // VR Camera rig
-  object VRCamera {
+  object "VRCamera" {
     camera: {
       type: "vr",
       field_of_view: 90.0,

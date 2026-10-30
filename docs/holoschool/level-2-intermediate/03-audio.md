@@ -6,7 +6,7 @@ Learn how to add immersive spatial audio to your HoloScript scenes.
 
 HoloScript uses positional audio by default — sounds come from where objects are in 3D space.
 
-```holoscript
+```hs
 orb speaker {
   @audio
   sound: "ambient/forest.wav"
@@ -32,7 +32,7 @@ The `@audio` trait enables sound playback on any object.
 
 ## Triggering Sounds on Events
 
-```holoscript
+```hs
 orb button {
   @clickable
   @audio
@@ -48,7 +48,7 @@ orb button {
 
 Use a non-spatial source for ambient music:
 
-```holoscript
+```holo
 composition "VR Lounge" {
   orb music_player {
     @audio
@@ -64,7 +64,7 @@ composition "VR Lounge" {
 
 Combine `@trigger_zone` with `@audio` for location-based audio:
 
-```holoscript
+```hs
 orb cave_entrance {
   @trigger_zone
   @audio
@@ -87,7 +87,7 @@ orb cave_entrance {
 
 Apply real-time DSP effects:
 
-```holoscript
+```hs
 orb reverb_zone {
   @audio_fx
   effect: "reverb"
@@ -101,7 +101,7 @@ Available effects: `reverb`, `echo`, `lowpass`, `highpass`, `distortion`, `choru
 
 ## Dynamic Volume Based on Distance
 
-```holoscript
+```hs
 orb proximity_alarm {
   @audio
   @physics
@@ -130,7 +130,7 @@ Create a "haunted room" scene with:
 3. A fireplace that crackles with audio attenuation
 4. An echo effect zone in the center of the room
 
-```holoscript
+```holo
 composition "Haunted Room" {
   orb ambience {
     @audio

@@ -1,0 +1,15 @@
+{
+  "metadata": { "name": "Audit Log Blockchain Checkpoint", "version": "5.0.0" },
+  "traits": [ { "trait": "secret", "config": {} } ],
+  "entities": [
+    {
+      "id": "blockchain_sync",
+      "components": [
+        {
+          "type": "script",
+          "source": "\n            on('system:checkpoint', (state) => {\n              const hash = hashState(state);\n              log(`Checkpointing state hash: ${hash}`);\n              emit('secret:store', { secretId: `chain_${Date.now()}`, value: hash, deletionNonce: 'BLOCKCHAIN_SYNC_KEY' });\n            });\n            function hashState(s) { return '0x' + btoa(JSON.stringify(s)).slice(0, 16); }\n          "
+        }
+      ]
+    }
+  ]
+}

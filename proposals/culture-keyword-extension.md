@@ -150,7 +150,7 @@ culture "JapaneseSocialVR" {
 
 ### 3.2 Culture Block Inside Compositions
 
-```holoscript
+```holo
 composition "TeaCeremony" {
   culture "WabiSabi" {
     norm "mindful_movement" {
@@ -188,7 +188,7 @@ composition "TeaCeremony" {
 
 ### 3.3 Culture Inheritance via `extends`
 
-```holoscript
+```hs
 // Base culture
 culture "EastAsian" {
   proxemics {
@@ -249,7 +249,7 @@ culture "Korean" extends "EastAsian" {
 
 ### 3.4 Agent Culture Binding
 
-```holoscript
+```hsplus
 // Agents declare cultural affiliation via traits
 template "LocalResident" {
   @norm_compliant(culture: "Japanese", enforcement: "hard")
@@ -282,7 +282,7 @@ template "Diplomat" {
 
 ### 3.5 Zone-Scoped Culture
 
-```holoscript
+```holo
 composition "InternationalHub" {
   zone "Japanese Quarter" {
     culture: "Japanese"

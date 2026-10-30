@@ -134,7 +134,7 @@ Each station is a self-contained `zone` with:
 
 ### Guided Navigation (Lines 309-403)
 
-```holoscript
+```hs
 path#training_route @visual_guide {
   waypoints: [
     { x: 0, z: 0, label: "Start" },
@@ -150,7 +150,7 @@ Creates a visual path guiding trainees through the experience.
 
 ### Progress Tracking (Lines 407-455)
 
-```holoscript
+```hs
 ui#progress_hud @always_visible @top_left {
   progress_bar#hazards {
     label: "Hazard Identification"
@@ -164,7 +164,7 @@ Real-time HUD showing completion status and score.
 
 ### Completion Certificate (Lines 459-526)
 
-```holoscript
+```hs
 on_interact {
   if (all_modules_complete && player.score >= 50) {
     export_certificate: {
@@ -211,7 +211,7 @@ Edit the training stations (lines 111-304) to customize:
 
 ### Adding New Modules
 
-```holoscript
+```hs
 zone#new_training_module @training_module {
   position: { x: X, z: Z }
 
@@ -223,7 +223,7 @@ zone#new_training_module @training_module {
 
 Update settings (lines 586-607):
 
-```holoscript
+```hs
 settings {
   supported_languages: ["en", "es", "zh", "fr", "de", "ja"]
   default_language: "en"
@@ -252,7 +252,7 @@ The experience tracks:
 
 Export settings (lines 602-606):
 
-```holoscript
+```hs
 settings {
   track_completion: true
   track_time_spent: true

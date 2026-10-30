@@ -30,7 +30,7 @@ The `@` prefix marks a trait — a reusable behavior module.
 
 ## Try it:
 
-```holoscript
+```hs
 orb "PhysicsBall" {
   color: "red"
   scale: 0.4

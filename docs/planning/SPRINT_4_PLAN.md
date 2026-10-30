@@ -64,7 +64,7 @@ export class AgentRegistry {
 
 ### HoloScript Syntax
 
-```holoscript
+```hsplus
 @agent_registry(
   discovery: "broadcast" | "central",
   ttl: 60s,
@@ -222,7 +222,7 @@ export class NegotiationProtocol {
 
 ### HoloScript Syntax
 
-```holoscript
+```hsplus
 negotiation#resource_allocation {
   @topic "Allocate GPU rendering time"
   @mechanism "weighted" // voting weight by trust level
@@ -289,7 +289,7 @@ export class SpatialContextProvider {
 
 ### HoloScript Syntax
 
-```holoscript
+```hsplus
 agent#patrol_bot {
   @spatial_awareness(
     updateRate: 30hz,
@@ -382,7 +382,7 @@ export class AgentMessaging {
 
 ### HoloScript Syntax
 
-```holoscript
+```hsplus
 channel#team_alpha {
   @participants [agent#leader, agent#worker_1, agent#worker_2]
   @encryption "aes-256"
@@ -442,7 +442,7 @@ export interface DelegationRule {
 
 ### HoloScript Syntax
 
-```holoscript
+```hs
 hierarchy#content_team {
   supervisor: agent#content_director
 

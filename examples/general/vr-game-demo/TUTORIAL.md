@@ -124,7 +124,7 @@ on_target_destroyed {
 
 ### 6. Power-Ups
 
-```holoscript
+```hs
 powerup#damage_boost @temporary {
   on_collect {
     player.damage_multiplier = 2.0
@@ -138,7 +138,7 @@ powerup#damage_boost @temporary {
 
 ### 7. VR Controllers
 
-```holoscript
+```hs
 camera#player @vr {
   controller#right_hand @weapon {
     on_trigger_press {
@@ -165,7 +165,7 @@ camera#player @vr {
 
 Instead of spawning/destroying:
 
-```holoscript
+```hs
 pool#projectiles {
   size: 100
   prefab: bullet

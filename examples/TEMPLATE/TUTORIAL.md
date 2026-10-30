@@ -8,7 +8,7 @@ Learn how to build [description] with HoloScript.
 
 [Introduction to concept 1 - what it is and why it matters]
 
-```holoscript
+```hs
 [Simple code example demonstrating concept 1]
 ```
 
@@ -33,7 +33,7 @@ Learn how to build [description] with HoloScript.
 
 [Introduction to concept 2]
 
-```holoscript
+```hs
 [Code example demonstrating concept 2]
 ```
 
@@ -47,7 +47,7 @@ Learn how to build [description] with HoloScript.
 
 **Example variations:**
 
-```holoscript
+```hs
 // Variation 1: [Description]
 [code snippet]
 
@@ -62,7 +62,7 @@ Learn how to build [description] with HoloScript.
 
 [Introduction to concept 3]
 
-```holoscript
+```hs
 [Code example demonstrating concept 3]
 ```
 
@@ -83,7 +83,7 @@ Learn how to build [description] with HoloScript.
 
 [Introduction to concept 4]
 
-```holoscript
+```hs
 [Code example demonstrating concept 4]
 ```
 
@@ -95,7 +95,7 @@ Learn how to build [description] with HoloScript.
 
 **Event handlers:**
 
-```holoscript
+```hs
 on_[event_name](params) {
   // [Description of what happens]
   [handler code]
@@ -204,7 +204,7 @@ on_[event_name](params) {
 
 [When you might need this]
 
-```holoscript
+```hs
 [Advanced code example]
 ```
 
@@ -222,7 +222,7 @@ on_[event_name](params) {
 
 [When you might need this]
 
-```holoscript
+```hs
 [Advanced code example]
 ```
 
@@ -253,7 +253,7 @@ on_[event_name](params) {
 
 [When you might need this]
 
-```holoscript
+```hs
 [Advanced code example]
 ```
 
@@ -277,13 +277,13 @@ on_[event_name](params) {
 
 **Solution**:
 
-```holoscript
+```hs
 [Pattern code]
 ```
 
 **Example**:
 
-```holoscript
+```hs
 [Concrete example]
 ```
 
@@ -293,13 +293,13 @@ on_[event_name](params) {
 
 **Solution**:
 
-```holoscript
+```hs
 [Pattern code]
 ```
 
 **Example**:
 
-```holoscript
+```hs
 [Concrete example]
 ```
 
@@ -309,13 +309,13 @@ on_[event_name](params) {
 
 **Solution**:
 
-```holoscript
+```hs
 [Pattern code]
 ```
 
 **Example**:
 
-```holoscript
+```hs
 [Concrete example]
 ```
 
@@ -336,7 +336,7 @@ on_[event_name](params) {
 
 **Solution**:
 
-```holoscript
+```hs
 // Change from:
 [incorrect code]
 
@@ -384,19 +384,19 @@ on_[event_name](params) {
 
 **Reduce draw calls:**
 
-```holoscript
+```hs
 [Optimization technique 1]
 ```
 
 **Optimize physics:**
 
-```holoscript
+```hs
 [Optimization technique 2]
 ```
 
 **Efficient scripting:**
 
-```holoscript
+```hs
 // Inefficient
 [bad example]
 
@@ -465,7 +465,7 @@ on_[event_name](params) {
 
 [Description of extension]
 
-```holoscript
+```hs
 [Code to add]
 ```
 
@@ -478,7 +478,7 @@ on_[event_name](params) {
 
 [Description of extension]
 
-```holoscript
+```hs
 [Code to add]
 ```
 
@@ -491,7 +491,7 @@ on_[event_name](params) {
 
 [Description of extension]
 
-```holoscript
+```hs
 [Code to add]
 ```
 

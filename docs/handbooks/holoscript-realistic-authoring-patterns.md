@@ -90,7 +90,7 @@ the scope slot, generate one object/zone at a time.
   is physical, pair a `collider` and `rigidbody` block.
 - **Scope:** one object + its referenced material, not the whole terrain.
 
-```holoscript
+```holo
 material "ForestGround" @advanced_pbr {
   base_color: "#5d4037"
   roughness: 0.85
@@ -123,7 +123,7 @@ object "Boulder" @collidable @advanced_pbr {
   `phase_offset` so they don't pulse in lockstep.
 - **Scope:** one emitter (or a small cluster sharing one archetype), not the whole lighting rig.
 
-```holoscript
+```holo
 object "MushroomRing_A" @bioluminescent @emissive {
   position: [3.5, 0.0, 3.0]
   model: "models/mushroom_cluster.glb"
@@ -145,7 +145,7 @@ object "MushroomRing_A" @bioluminescent @emissive {
 
 For a source meant to actually light a scene (not just glow), pair it with a `point_light`:
 
-```holoscript
+```holo
 object "Campfire" @emissive {
   position: [0, 0.3, 0]
   model: "models/campfire_rocks.glb"
@@ -174,7 +174,7 @@ object "Campfire" @emissive {
 - **Scope:** the driver object plus one or two subscribers per generation call — not every
   object in the scene at once.
 
-```holoscript
+```holo
 object "ForestTimeDriver" {
   @time_of_day {
     cycle_duration_minutes: 24
@@ -214,7 +214,7 @@ object "ForestSoundscape" {
 - **Scope:** the cloud layer or the wind zone as one generation call each; couple them to
   consumers in a follow-up call, not all at once.
 
-```holoscript
+```hsplus
 object "TwilightClouds" {
   position: [0, 280, 0]
   @volumetric_clouds(
@@ -247,7 +247,7 @@ object "ValleyWind" {
   thing"). Silence is the smell, not the primitive itself.
 - **Scope:** one object.
 
-```holoscript
+```hsplus
 // Legitimate: an explicitly labeled test collider, not presented as finished content.
 object "PlaceholderCrate_TEST" {
   mesh: { type: "cube", width: 1, height: 1, depth: 1 }
@@ -256,7 +256,7 @@ object "PlaceholderCrate_TEST" {
 }
 ```
 
-```holoscript
+```hsplus
 // Illegitimate if this is meant to be the finished "Boulder" seen by a user:
 object "Boulder" {
   mesh: { type: "sphere", radius: 2 }
@@ -280,7 +280,7 @@ object "Boulder" {
   procedural biome.
 - **Scope:** the terrain + its biome table as one call; the `scatter` population as a follow-up.
 
-```holoscript
+```holo
 procedural "ForestTerrain" @seed(42) {
   resolution: [512, 512]
   world_size: [500, 500]

@@ -1,0 +1,15 @@
+{
+  "metadata": { "name": "Autonomous Cluster Rebalance", "version": "5.0.0" },
+  "traits": [ { "trait": "agent_portal", "config": {} } ],
+  "entities": [
+    {
+      "id": "load_balancer",
+      "components": [
+        {
+          "type": "script",
+          "source": "\n            on('portal:utilization_high', (payload) => {\n              log(`Node capacity reached. Rebalancing agents to node ${payload.targetNode}`);\n              emit('portal:migrate', { agentId: 'heavy_agent_1', target: payload.targetNode });\n            });\n          "
+        }
+      ]
+    }
+  ]
+}

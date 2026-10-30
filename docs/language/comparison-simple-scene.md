@@ -11,7 +11,7 @@ The same VR scene implemented in all three HoloScript formats.
 
 ## `.hs` - Basic Format
 
-```holoscript
+```holo
 // Simple, declarative, no VR interaction
 
 environment {
@@ -72,7 +72,7 @@ object "Light" {
 
 ## `.hsplus` - Extended Format
 
-```holoscript
+```holo
 // Template reusability + VR decorators
 
 composition "InteractiveVRRoom" {
@@ -145,7 +145,7 @@ composition "InteractiveVRRoom" {
 
 ## `.holo` - Advanced Format
 
-```holoscript
+```holo
 // Fine-grained trait control + event handlers
 
 composition InteractiveVRRoom {

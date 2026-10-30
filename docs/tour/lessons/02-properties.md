@@ -22,7 +22,7 @@ orb "Cube" {
 
 ## Try it:
 
-```holoscript
+```hs
 orb "Floating" {
   color: "#ff6600"
   scale: 0.5

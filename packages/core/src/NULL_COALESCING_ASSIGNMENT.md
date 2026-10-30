@@ -38,7 +38,7 @@ Invalid uses (attempting to assign to non-assignable expressions) will result in
 
 ### Basic Usage
 
-```holoscript
+```hs
 // Simple default assignment
 count ??= 0
 
@@ -63,7 +63,7 @@ composition {
 
 ### In Arrays
 
-```holoscript
+```hs
 zones: [
   { enabled ??= false }
   { visible ??= true }
@@ -72,7 +72,7 @@ zones: [
 
 ### With Expressions
 
-```holoscript
+```hs
 // Function call
 value ??= getDefaultValue()
 
@@ -87,7 +87,7 @@ fallback ??= alternativeA ?? alternativeB
 
 The right-hand side is only evaluated if the left side is `null` or `undefined`:
 
-```holoscript
+```hs
 // expensive() is only called if cache is null
 cache ??= expensive()
 ```
@@ -210,14 +210,14 @@ For existing code using the manual pattern:
 
 **Before:**
 
-```holoscript
+```hs
 count = count ?? 0
 name = name ?? "default"
 ```
 
 **After (equivalent):**
 
-```holoscript
+```hs
 count ??= 0
 name ??= "default"
 ```

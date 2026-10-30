@@ -93,7 +93,7 @@ npm run build
 
 **HoloScript:**
 
-```holoscript
+```holo
 composition "WebVRDemo" {
   environment {
     skybox: "space"

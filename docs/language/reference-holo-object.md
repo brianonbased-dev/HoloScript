@@ -11,7 +11,7 @@ The `.holo` format supports **two patterns**:
 
 ## Basic Template
 
-```holoscript
+```holo
 composition Scene {
   template GrabbableBall {
     mesh: {
@@ -54,7 +54,7 @@ composition Scene {
 
 ## Template with Event Handlers
 
-```holoscript
+```holo
 template InteractiveButton {
   mesh: {
     type: "box",
@@ -94,7 +94,7 @@ object StartButton using InteractiveButton {
 
 Objects can override any template property:
 
-```holoscript
+```holo
 template BaseBall {
   mesh: {
     type: "sphere",
@@ -124,7 +124,7 @@ object LargeRedBall using BaseBall {
 
 ## Complete Example
 
-```holoscript
+```holo
 composition VRPlayground {
   template GrabbableBall {
     mesh: {

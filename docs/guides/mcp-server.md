@@ -283,7 +283,7 @@ Get a plain English explanation of HoloScript code.
 
 **Output:**
 
-```holoscript
+```text
 
 This code creates a glowing portal object:
 
@@ -570,7 +570,7 @@ Output: Specific error messages with suggestions
 
 ### Learn Best Practices
 
-```holoscript
+```text
 
 User: What traits should I use for a basketball?
 

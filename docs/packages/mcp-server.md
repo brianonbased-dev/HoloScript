@@ -214,7 +214,7 @@ Output:
 
 ### suggest_traits
 
-```holoscript
+```hs
 
 Input:
 

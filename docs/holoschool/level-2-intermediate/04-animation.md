@@ -64,7 +64,7 @@ orb character {
 
 ## Triggering Animations
 
-```holoscript
+```hs
 orb jump_button {
   @clickable
   on_click: {
@@ -76,7 +76,7 @@ orb jump_button {
 
 ## Easing Functions
 
-```holoscript
+```hs
 animation "bounce" {
   duration: 1.0
   easing: "ease-in-out-bounce"
@@ -112,7 +112,7 @@ animation "pulse" {
 
 Fire callbacks at specific points in an animation:
 
-```holoscript
+```hs
 animation "door_open" {
   duration: 1.2
   keyframes: {
@@ -130,7 +130,7 @@ animation "door_open" {
 
 Combine with `@physics` for procedural motion:
 
-```holoscript
+```hs
 orb pendulum {
   @physics
   @animated
