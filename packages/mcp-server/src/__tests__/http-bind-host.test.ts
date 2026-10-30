@@ -48,3 +48,38 @@ describe('resolveMcpBindHost', () => {
     ).toBe(false);
   });
 });
+
+describe('isLoopbackAddress coverage', () => {
+  it.each([
+    'localhost',
+    '::1',
+    '[::1]',
+    '127.0.0.1',
+    '127.255.255.254',
+    '127.1',
+    '127.0.1',
+    '::ffff:127.0.0.1',
+  ])('treats %s as loopback', (address) => {
+    expect(isLoopbackAddress(address)).toBe(true);
+  });
+
+  it.each([
+    '127.0.0.1.evil.com',
+    '1270.0.0.1',
+    '128.0.0.1',
+    '127.256.0.1',
+    '127',
+    '',
+    '0.0.0.0',
+    '::',
+    undefined,
+  ])('does not treat %s as loopback', (address) => {
+    expect(isLoopbackAddress(address)).toBe(false);
+  });
+
+  it('never treats an unset MCP_BIND_HOST as loopback', () => {
+    expect(resolveMcpBindHost({})).toBe('0.0.0.0');
+    expect(isLoopbackAddress(resolveMcpBindHost({}))).toBe(false);
+    expect(isLoopbackAddress(undefined)).toBe(false);
+  });
+});
