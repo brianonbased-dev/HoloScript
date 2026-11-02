@@ -9,7 +9,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { MISSING_MCP_API_KEY_ERROR, resolveMcpApiKey } from '../mcp-api-key';
+import {
+  MISSING_MCP_API_KEY_ERROR,
+  readJsonBody,
+  resolveMcpApiKey,
+  safeErrorText,
+} from '../mcp-api-key';
 
 const ORCHESTRATOR_URL = process.env['MCP_ORCHESTRATOR_URL'] ?? 'http://localhost:5555';
 const SERVER_ID = process.env['BRITTNEY_SERVER_ID'] ?? 'brittney-service';
@@ -96,7 +101,7 @@ async function callMcpJsonRpc(prompt: GenerationRequest): Promise<string | null>
     throw new Error(`MCP JSON-RPC failed: ${response.status} ${response.statusText}`);
   }
 
-  const json = (await response.json()) as JsonRpcToolResponse;
+  const json = await readJsonBody<JsonRpcToolResponse>(response, 'mcp');
   if (json.error) {
     throw new Error(`MCP error: ${json.error.code ?? 'unknown'}`);
   }
@@ -182,7 +187,7 @@ async function callOrchestrator(prompt: GenerationRequest): Promise<string | nul
       return await callMcpJsonRpc(prompt);
     }
 
-    const data = (await response.json()) as JsonMap;
+    const data = await readJsonBody<JsonMap>(response, 'orchestrator');
     const orchestratorResult = extractGeneratedCode(data);
     const pendingRoute =
       data['status'] === 'routed' &&
@@ -207,12 +212,15 @@ async function callOrchestrator(prompt: GenerationRequest): Promise<string | nul
     );
     return simulateBrittneyResponse(prompt);
   } catch (err) {
-    console.error('Failed to connect to orchestrator, attempting direct MCP call:', err);
+    console.error(
+      'Failed to connect to orchestrator, attempting direct MCP call:',
+      safeErrorText(err)
+    );
     try {
       const directResult = await callMcpJsonRpc(prompt);
       if (directResult) return directResult;
     } catch (mcpErr) {
-      console.error('Direct MCP call failed:', mcpErr);
+      console.error('Direct MCP call failed:', safeErrorText(mcpErr));
     }
     return simulateBrittneyResponse(prompt);
   }

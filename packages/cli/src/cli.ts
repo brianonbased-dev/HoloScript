@@ -7,7 +7,7 @@
 import 'dotenv/config';
 
 import { getCliVersionString, parseArgs, printHelp } from './args';
-import { MISSING_MCP_API_KEY_ERROR, resolveCliMcpApiKey } from './mcp-api-key';
+import { SETUP_MCP_MISSING_KEY_ERROR, resolveCliMcpApiKey } from './mcp-api-key';
 import { add, remove, list } from './packageManager';
 import { TRAITS, formatTrait, formatAllTraits, suggestTraits } from './traits';
 import { generateObject, listTemplates, getTemplate } from './generator';
@@ -5711,7 +5711,7 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
       console.log('\n\x1b[1m🚀 Provisioning HoloScript MCP Environment\x1b[0m\n');
       const apiKey = resolveCliMcpApiKey(process.env, options.input);
       if (!apiKey) {
-        cliError('E006', MISSING_MCP_API_KEY_ERROR, {
+        cliError('E006', SETUP_MCP_MISSING_KEY_ERROR, {
           usage: 'npx @holoscript/cli setup-mcp <your-api-key>',
           hint: 'Prefer setting HOLOSCRIPT_MCP_API_KEY. Passing the key as the first arg still works but can end up in shell history.',
           docs: 'https://holoscript.net/docs/mcp/setup',

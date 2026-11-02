@@ -6,7 +6,10 @@ import {
   DEPRECATED_MCP_API_KEY_WARNING,
   MCP_API_KEY_ENV,
   MISSING_MCP_API_KEY_ERROR,
+  SETUP_MCP_MISSING_KEY_ERROR,
+  readJsonBody,
   resolveCliMcpApiKey,
+  safeErrorText,
   resolveMcpApiKey,
 } from '../mcp-api-key';
 
@@ -36,6 +39,43 @@ describe('HOLOSCRIPT_MCP_API_KEY fail-closed (cli readers)', () => {
     expect(MISSING_MCP_API_KEY_ERROR).toBe(
       'HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key") and restart.'
     );
+  });
+
+  it('setup-mcp E006 tells the user to rerun setup-mcp, not restart', () => {
+    expect(SETUP_MCP_MISSING_KEY_ERROR).toBe(
+      'HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key"), then run hs setup-mcp again.'
+    );
+    const cli = readFileSync(join(src, 'cli.ts'), 'utf8');
+    expect(cli).toContain("cliError('E006', SETUP_MCP_MISSING_KEY_ERROR");
+    expect(cli).not.toContain("cliError('E006', MISSING_MCP_API_KEY_ERROR");
+  });
+
+  it('non-JSON bodies throw a fixed text with no body or parser message', async () => {
+    const bad = {
+      json: async () => {
+        throw new SyntaxError('Unexpected token < in JSON at position 0: <html>secret-BODY');
+      },
+    };
+    await expect(readJsonBody(bad, 'orchestrator')).rejects.toThrow(
+      /^orchestrator: response was not JSON$/
+    );
+    const err = (await readJsonBody(bad, 'mcp').catch((e: unknown) => e)) as Error;
+    expect(String(err.message)).toBe('mcp: response was not JSON');
+    expect(String(err.message)).not.toContain('secret-BODY');
+    expect(String(err.message)).not.toContain('Unexpected token');
+    await expect(readJsonBody({ json: async () => ({ ok: 1 }) }, 'x')).resolves.toEqual({ ok: 1 });
+    expect(safeErrorText(new Error('fixed'))).toBe('fixed');
+    expect(safeErrorText({ body: 'secret-BODY' })).toBe('unknown error');
+  });
+
+  it('generate_with_brittney wraps both json() calls and logs caught errors as message only', () => {
+    const gen = readFileSync(join(src, 'scripts', 'generate_with_brittney.ts'), 'utf8');
+    expect(gen).not.toMatch(/response\.json\(\)/);
+    expect(gen).toContain("readJsonBody<JsonRpcToolResponse>(response, 'mcp')");
+    expect(gen).toContain("readJsonBody<JsonMap>(response, 'orchestrator')");
+    expect(gen).toContain('safeErrorText(err)');
+    expect(gen).toContain("'Direct MCP call failed:', safeErrorText(mcpErr)");
+    expect(gen).not.toMatch(/console\.[a-z]+\([^;]*,\s*(err|mcpErr)\)/);
   });
 
   it('setup-mcp and generate_with_brittney use the shared reader and never print the key', () => {

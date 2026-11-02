@@ -6,6 +6,32 @@ export const MCP_API_KEY_ENV = 'HOLOSCRIPT_MCP_API_KEY';
 export const MISSING_MCP_API_KEY_ERROR =
   'HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key") and restart.';
 
+/** setup-mcp variant: the user fixes the env and reruns the command (no restart). */
+export const SETUP_MCP_MISSING_KEY_ERROR = MISSING_MCP_API_KEY_ERROR.replace(
+  ' and restart.',
+  ', then run hs setup-mcp again.'
+);
+
+/**
+ * Parse a JSON response body. A non-JSON body throws a fixed '<label>: response was not JSON'
+ * with no body text and no parser message (either could echo credentials).
+ */
+export async function readJsonBody<T>(
+  response: { json(): Promise<unknown> },
+  label: string
+): Promise<T> {
+  try {
+    return (await response.json()) as T;
+  } catch {
+    throw new Error(`${label}: response was not JSON`);
+  }
+}
+
+/** Safe text for logging a caught error: the message only, never the raw object. */
+export function safeErrorText(err: unknown): string {
+  return err instanceof Error ? err.message : 'unknown error';
+}
+
 export function resolveMcpApiKey(
   env: Record<string, string | undefined> = process.env,
   explicit?: string
