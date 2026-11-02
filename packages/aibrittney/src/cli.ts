@@ -116,7 +116,7 @@ Ollama Cloud usage:
   warns at startup if --host is non-localhost and no api-key is set.
 
 tool calling (v0.2, opt-in):
-  - requires HOLOSCRIPT_API_KEY (or MCP_API_KEY) in env
+  - requires HOLOSCRIPT_MCP_API_KEY in env (no other key name is read)
   - exposes a curated set of MCP tools to the local model:
     holo_query_codebase, holo_ask_codebase, knowledge_query, holo_parse_to_graph,
     edit_holo, trait_swap (local refusable diff previews)

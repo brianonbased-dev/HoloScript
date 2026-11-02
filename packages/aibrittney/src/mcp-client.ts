@@ -42,10 +42,15 @@ export interface McpClientConfig {
 export const DEFAULT_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 export const DEFAULT_OAUTH_ENDPOINT = 'https://mcp.holoscript.net';
 
+/** The only env var read for the MCP key. Fails closed: no fallback name is read. */
+export const MCP_API_KEY_ENV = 'HOLOSCRIPT_MCP_API_KEY';
+export const MISSING_MCP_API_KEY_ERROR =
+  'HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key") and restart.';
+
 export function defaultMcpConfig(overrides: Partial<McpClientConfig> = {}): McpClientConfig {
   const endpoint = overrides.endpoint ?? process.env.MCP_ORCHESTRATOR_URL ?? DEFAULT_ENDPOINT;
-  const apiKey =
-    overrides.apiKey ?? process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY ?? '';
+  // Whitespace-only counts as unset.
+  const apiKey = (overrides.apiKey ?? process.env.HOLOSCRIPT_MCP_API_KEY ?? '').trim();
   return {
     endpoint,
     apiKey,
@@ -70,6 +75,15 @@ interface OAuthClient {
   clientSecret: string;
 }
 
+/** Parse a JSON body; a non-JSON reply throws a fixed message that never includes the body. */
+async function readJsonBody(res: Response, label: string): Promise<Record<string, unknown>> {
+  try {
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    throw new Error(`${label}: response was not JSON`);
+  }
+}
+
 /** Seconds before expiry at which we proactively refresh. */
 const REFRESH_BUFFER_SECS = 60;
 
@@ -83,12 +97,12 @@ export class McpClient {
   constructor(readonly config: McpClientConfig) {}
 
   async callTool({ server, tool, args }: CallToolArgs): Promise<CallToolResult> {
-    if (!this.config.apiKey) {
+    if (!this.config.apiKey?.trim()) {
       return {
         ok: false,
         status: 0,
         data: null,
-        error: 'mcp-client: missing HOLOSCRIPT_API_KEY (or MCP_API_KEY) — tool calls disabled',
+        error: MISSING_MCP_API_KEY_ERROR,
       };
     }
 
@@ -232,18 +246,16 @@ export class McpClient {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`oauth/register failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
+      // Response body is never included: it may carry client_id/secret.
+      throw new Error(`oauth/register failed: HTTP ${res.status}`);
     }
 
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = await readJsonBody(res, 'oauth/register');
     const clientId = body.client_id as string | undefined;
     const clientSecret = body.client_secret as string | undefined;
 
     if (!clientId || !clientSecret) {
-      throw new Error(
-        `oauth/register: unexpected response shape — ${JSON.stringify(body).slice(0, 200)}`
-      );
+      throw new Error('oauth/register: unexpected response shape');
     }
 
     return { clientId, clientSecret };
@@ -269,11 +281,11 @@ export class McpClient {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`oauth/token failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
+      // Response body is never included: it may carry client_id/secret.
+      throw new Error(`oauth/token failed: HTTP ${res.status}`);
     }
 
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = await readJsonBody(res, 'oauth/token');
     return this._parseCachedToken(body);
   }
 
@@ -300,20 +312,18 @@ export class McpClient {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`oauth/token refresh failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
+      // Response body is never included: it may carry client_id/secret.
+      throw new Error(`oauth/token refresh failed: HTTP ${res.status}`);
     }
 
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = await readJsonBody(res, 'oauth/token refresh');
     return this._parseCachedToken(body);
   }
 
   private _parseCachedToken(body: Record<string, unknown>): CachedToken {
     const accessToken = body.access_token as string | undefined;
     if (!accessToken) {
-      throw new Error(
-        `oauth/token: no access_token in response — ${JSON.stringify(body).slice(0, 200)}`
-      );
+      throw new Error('oauth/token: no access_token in response');
     }
     const expiresIn = typeof body.expires_in === 'number' ? body.expires_in : 3600;
     return {
