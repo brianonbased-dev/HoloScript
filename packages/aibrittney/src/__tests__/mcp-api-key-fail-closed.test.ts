@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { McpClient, defaultMcpConfig, MCP_API_KEY_ENV } from '../mcp-client.js';
+import {
+  McpClient,
+  defaultMcpConfig,
+  MCP_API_KEY_ENV,
+  MISSING_MCP_API_KEY_ERROR,
+} from '../mcp-client.js';
 
 // Fail-closed migration: the MCP key is read from HOLOSCRIPT_MCP_API_KEY only.
 const OLD_NAMES = ['HOLOSCRIPT_API_KEY', 'MCP_API_KEY'];
@@ -79,5 +84,68 @@ describe('HOLOSCRIPT_MCP_API_KEY fail-closed (mcp-client reader)', () => {
     };
     walk(srcDir);
     expect(hits).toEqual([]);
+  });
+  it('(d) the error text is the exact user-facing wording', () => {
+    expect(MISSING_MCP_API_KEY_ERROR).toBe(
+      'HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key") and restart.'
+    );
+    expect(MISSING_MCP_API_KEY_ERROR.startsWith('mcp-client:')).toBe(false);
+  });
+
+  it('(e) a whitespace-only HOLOSCRIPT_MCP_API_KEY counts as unset', async () => {
+    vi.stubEnv('HOLOSCRIPT_MCP_API_KEY', '  \t\n ');
+    const fetchImpl = vi.fn();
+    const cfg = defaultMcpConfig({ fetchImpl: fetchImpl as unknown as typeof fetch });
+    expect(cfg.apiKey).toBe('');
+    const result = await new McpClient(cfg).callTool({ server: 's', tool: 't', args: {} });
+    expect(result.error).toBe(MISSING_MCP_API_KEY_ERROR);
+    const direct = new McpClient({
+      endpoint: 'x',
+      apiKey: '   ',
+      timeoutMs: 10,
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+    expect((await direct.callTool({ server: 's', tool: 't', args: {} })).error).toBe(
+      MISSING_MCP_API_KEY_ERROR
+    );
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('(f) register/token errors never include the server response body', async () => {
+    const secretish = { client_id: 'cid-LEAK', client_secret: 'sec-LEAK', detail: 'x'.repeat(500) };
+    const cases: Array<Array<{ status: number; body: unknown }>> = [
+      [{ status: 500, body: secretish }],
+      [{ status: 200, body: { client_id: 'cid-LEAK' } }],
+      [
+        { status: 200, body: { client_id: 'c', client_secret: 's' } },
+        { status: 400, body: secretish },
+      ],
+      [
+        { status: 200, body: { client_id: 'c', client_secret: 's' } },
+        { status: 200, body: secretish },
+      ],
+    ];
+    for (const steps of cases) {
+      let i = 0;
+      const fetchImpl = (async () => {
+        const st = steps[Math.min(i++, steps.length - 1)];
+        return new Response(JSON.stringify(st.body), {
+          status: st.status,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }) as unknown as typeof fetch;
+      const client = new McpClient({
+        endpoint: 'https://o.example',
+        oauthEndpoint: 'https://a.example',
+        apiKey: 'k',
+        timeoutMs: 5000,
+        fetchImpl,
+      });
+      const result = await client.callTool({ server: 's', tool: 't', args: {} });
+      expect(result.ok).toBe(false);
+      expect(result.error).toMatch(/^oauth\//);
+      expect(result.error).not.toMatch(/LEAK|xxxx/);
+      expect((result.error ?? '').length).toBeLessThanOrEqual(80);
+    }
   });
 });

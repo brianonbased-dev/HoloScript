@@ -45,11 +45,12 @@ export const DEFAULT_OAUTH_ENDPOINT = 'https://mcp.holoscript.net';
 /** The only env var read for the MCP key. Fails closed: no fallback name is read. */
 export const MCP_API_KEY_ENV = 'HOLOSCRIPT_MCP_API_KEY';
 export const MISSING_MCP_API_KEY_ERROR =
-  'mcp-client: HOLOSCRIPT_MCP_API_KEY is not set, so tool calls are disabled. Set HOLOSCRIPT_MCP_API_KEY to enable them.';
+  'HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key") and restart.';
 
 export function defaultMcpConfig(overrides: Partial<McpClientConfig> = {}): McpClientConfig {
   const endpoint = overrides.endpoint ?? process.env.MCP_ORCHESTRATOR_URL ?? DEFAULT_ENDPOINT;
-  const apiKey = overrides.apiKey ?? process.env.HOLOSCRIPT_MCP_API_KEY ?? '';
+  // Whitespace-only counts as unset.
+  const apiKey = (overrides.apiKey ?? process.env.HOLOSCRIPT_MCP_API_KEY ?? '').trim();
   return {
     endpoint,
     apiKey,
@@ -87,7 +88,7 @@ export class McpClient {
   constructor(readonly config: McpClientConfig) {}
 
   async callTool({ server, tool, args }: CallToolArgs): Promise<CallToolResult> {
-    if (!this.config.apiKey) {
+    if (!this.config.apiKey?.trim()) {
       return {
         ok: false,
         status: 0,
@@ -236,8 +237,8 @@ export class McpClient {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`oauth/register failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
+      // Response body is never included: it may carry client_id/secret.
+      throw new Error(`oauth/register failed: HTTP ${res.status}`);
     }
 
     const body = (await res.json()) as Record<string, unknown>;
@@ -245,9 +246,7 @@ export class McpClient {
     const clientSecret = body.client_secret as string | undefined;
 
     if (!clientId || !clientSecret) {
-      throw new Error(
-        `oauth/register: unexpected response shape — ${JSON.stringify(body).slice(0, 200)}`
-      );
+      throw new Error('oauth/register: unexpected response shape');
     }
 
     return { clientId, clientSecret };
@@ -273,8 +272,8 @@ export class McpClient {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`oauth/token failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
+      // Response body is never included: it may carry client_id/secret.
+      throw new Error(`oauth/token failed: HTTP ${res.status}`);
     }
 
     const body = (await res.json()) as Record<string, unknown>;
@@ -304,8 +303,8 @@ export class McpClient {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`oauth/token refresh failed: HTTP ${res.status} — ${text.slice(0, 200)}`);
+      // Response body is never included: it may carry client_id/secret.
+      throw new Error(`oauth/token refresh failed: HTTP ${res.status}`);
     }
 
     const body = (await res.json()) as Record<string, unknown>;
@@ -315,9 +314,7 @@ export class McpClient {
   private _parseCachedToken(body: Record<string, unknown>): CachedToken {
     const accessToken = body.access_token as string | undefined;
     if (!accessToken) {
-      throw new Error(
-        `oauth/token: no access_token in response — ${JSON.stringify(body).slice(0, 200)}`
-      );
+      throw new Error('oauth/token: no access_token in response');
     }
     const expiresIn = typeof body.expires_in === 'number' ? body.expires_in : 3600;
     return {
