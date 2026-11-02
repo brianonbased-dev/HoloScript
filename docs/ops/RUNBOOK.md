@@ -171,9 +171,9 @@ Actions → **Deploy to Railway** → Run workflow
 HOLOSCRIPT_API_KEY    # MCP auth + knowledge store
 HOLOMESH_API_KEY      # HoloMesh gossip + board
 DATABASE_URL          # Postgres (token store, audit log)
-# Postgres pools (including tenant key lookup) share one TLS setting:
-#   TLS with rejectUnauthorized:false (Railway internal network only).
-# DATABASE_SSL=false      # disables TLS (local non-TLS Postgres)
+# Postgres pools (including tenant key lookup) share one TLS setting: TLS with
+#   rejectUnauthorized:false, which assumes the Railway internal network. The
+#   helper does not check the host. DATABASE_SSL=false disables TLS.
 NODE_ENV=production
 ```
 
