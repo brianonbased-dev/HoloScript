@@ -9,12 +9,18 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  MISSING_MCP_API_KEY_ERROR,
+  readJsonBody,
+  resolveMcpApiKey,
+  safeErrorText,
+} from '../mcp-api-key';
 
 const ORCHESTRATOR_URL = process.env['MCP_ORCHESTRATOR_URL'] ?? 'http://localhost:5555';
 const SERVER_ID = process.env['BRITTNEY_SERVER_ID'] ?? 'brittney-service';
 const TOOL_NAME = process.env['BRITTNEY_TOOL_NAME'] ?? 'generate_holoscript';
 const MCP_SERVER_URL = process.env['HOLOSCRIPT_MCP_URL'] ?? 'https://mcp.holoscript.net';
-const MCP_API_KEY = process.env['HOLOSCRIPT_API_KEY'] ?? '';
+const mcpApiKey = resolveMcpApiKey();
 
 type JsonMap = Record<string, unknown>;
 
@@ -69,10 +75,8 @@ async function callMcpJsonRpc(prompt: GenerationRequest): Promise<string | null>
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
-  if (MCP_API_KEY) {
-    headers['Authorization'] = `Bearer ${MCP_API_KEY}`;
-    headers['x-mcp-api-key'] = MCP_API_KEY;
-  }
+  headers['Authorization'] = `Bearer ${mcpApiKey}`;
+  headers['x-mcp-api-key'] = mcpApiKey;
 
   const response = await fetch(`${MCP_SERVER_URL}/mcp`, {
     method: 'POST',
@@ -97,9 +101,9 @@ async function callMcpJsonRpc(prompt: GenerationRequest): Promise<string | null>
     throw new Error(`MCP JSON-RPC failed: ${response.status} ${response.statusText}`);
   }
 
-  const json = (await response.json()) as JsonRpcToolResponse;
+  const json = await readJsonBody<JsonRpcToolResponse>(response, 'mcp');
   if (json.error) {
-    throw new Error(`MCP error: ${json.error.message ?? 'Unknown MCP error'}`);
+    throw new Error(`MCP error: ${json.error.code ?? 'unknown'}`);
   }
 
   return extractGeneratedCode(json.result);
@@ -162,7 +166,7 @@ interface TrainingExample {
 async function callOrchestrator(prompt: GenerationRequest): Promise<string | null> {
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (MCP_API_KEY) headers['x-mcp-api-key'] = MCP_API_KEY;
+    headers['x-mcp-api-key'] = mcpApiKey;
 
     const response = await fetch(`${ORCHESTRATOR_URL}/tools/call`, {
       method: 'POST',
@@ -178,12 +182,12 @@ async function callOrchestrator(prompt: GenerationRequest): Promise<string | nul
     });
 
     if (!response.ok) {
-      const err = await response.text();
-      console.error(`Error calling orchestrator: ${response.status} ${err}`);
+      // Never print the response body: it may echo credentials.
+      console.error(`Error calling orchestrator: HTTP ${response.status}`);
       return await callMcpJsonRpc(prompt);
     }
 
-    const data = (await response.json()) as JsonMap;
+    const data = await readJsonBody<JsonMap>(response, 'orchestrator');
     const orchestratorResult = extractGeneratedCode(data);
     const pendingRoute =
       data['status'] === 'routed' &&
@@ -208,12 +212,15 @@ async function callOrchestrator(prompt: GenerationRequest): Promise<string | nul
     );
     return simulateBrittneyResponse(prompt);
   } catch (err) {
-    console.error('Failed to connect to orchestrator, attempting direct MCP call:', err);
+    console.error(
+      'Failed to connect to orchestrator, attempting direct MCP call:',
+      safeErrorText(err)
+    );
     try {
       const directResult = await callMcpJsonRpc(prompt);
       if (directResult) return directResult;
     } catch (mcpErr) {
-      console.error('Direct MCP call failed:', mcpErr);
+      console.error('Direct MCP call failed:', safeErrorText(mcpErr));
     }
     return simulateBrittneyResponse(prompt);
   }
@@ -226,6 +233,10 @@ function simulateBrittneyResponse(prompt: GenerationRequest): string {
 }
 
 async function main() {
+  if (!mcpApiKey) {
+    console.error(MISSING_MCP_API_KEY_ERROR);
+    process.exit(1);
+  }
   console.log(`Connecting to Quantum MCP Orchestrator at ${ORCHESTRATOR_URL}...`);
 
   const dataset: TrainingExample[] = [];
