@@ -12,6 +12,7 @@
 
 import { EventEmitter } from 'events';
 import { DEFAULT_MCP_CONFIG } from './ProtocolTypes';
+import { MISSING_MCP_API_KEY_ERROR, readJsonBody } from '../../mcp-api-key';
 import type {
   MCPCommandType,
   MCPCommandRequest,
@@ -349,6 +350,8 @@ export class Layer3MCPClient extends EventEmitter {
    * Send MCP request
    */
   private async sendMCPRequest(request: MCPCommandRequest): Promise<MCPCommandResponse> {
+    const apiKey = (this.config.apiKey ?? '').trim();
+    if (!apiKey) throw new Error(MISSING_MCP_API_KEY_ERROR);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 
@@ -357,7 +360,7 @@ export class Layer3MCPClient extends EventEmitter {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-mcp-api-key': this.config.apiKey,
+          'x-mcp-api-key': apiKey,
           'x-agent-id': this.agentId,
         },
         body: JSON.stringify(request),
@@ -368,7 +371,7 @@ export class Layer3MCPClient extends EventEmitter {
         throw new Error(`MCP HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await readJsonBody(response, 'mcp/command');
       return data as MCPCommandResponse;
     } finally {
       clearTimeout(timeoutId);
@@ -379,6 +382,8 @@ export class Layer3MCPClient extends EventEmitter {
    * Call MCP tool via orchestrator
    */
   private async mcpToolCall(server: string, tool: string, args: Record<string, any>): Promise<any> {
+    const apiKey = (this.config.apiKey ?? '').trim();
+    if (!apiKey) throw new Error(MISSING_MCP_API_KEY_ERROR);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 
@@ -387,7 +392,7 @@ export class Layer3MCPClient extends EventEmitter {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-mcp-api-key': this.config.apiKey,
+          'x-mcp-api-key': apiKey,
         },
         body: JSON.stringify({
           server,
@@ -401,7 +406,7 @@ export class Layer3MCPClient extends EventEmitter {
         throw new Error(`MCP Tool Call HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
+      const data = await readJsonBody(response, 'tools/call');
       return data;
     } finally {
       clearTimeout(timeoutId);

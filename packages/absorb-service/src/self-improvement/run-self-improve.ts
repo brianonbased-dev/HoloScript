@@ -21,7 +21,7 @@
  *   FLEET_INFERENCE_KEY        bearer for the serving box's OpenAI /v1 (needed to call it)
  *   BRITTNEY_FLEET_MODEL       served model (default qwen3.5:4b)
  *   MCP_ORCHESTRATOR_URL       /serve registry host (default prod orchestrator)
- *   HOLOSCRIPT_API_KEY         x-mcp-api-key for /serve/resolve
+ *   HOLOSCRIPT_MCP_API_KEY     x-mcp-api-key for /serve/resolve (BRITTNEY_FLEET_RESOLVE_KEY wins)
  *   HOLO_SELF_IMPROVE_LLM_URL  optional explicit /v1/chat/completions override (ops pin)
  * Cold serving → BYOK Anthropic fallback (F.112 — fallback ONLY) if ANTHROPIC_API_KEY is
  * set; else fails LOUD ("retry, autoscaler is warming"). Never fakes, never localhost.
@@ -33,6 +33,7 @@
 import { FLEET_DEFAULT_MODEL } from '@holoscript/llm-provider';
 import { SelfImproveCommand } from './SelfImproveCommand';
 import { FleetSelfImproveIO, type LLMComplete } from './FleetSelfImproveIO';
+import { MISSING_MCP_API_KEY_ERROR, readJsonBody, readMcpApiKey } from '../mcp-api-key';
 
 interface CliArgs {
   rootDir: string;
@@ -74,19 +75,19 @@ function buildLLMComplete(): LLMComplete {
   ).replace(/\/+$/, '');
   const model = process.env['BRITTNEY_FLEET_MODEL'] || FLEET_DEFAULT_MODEL;
   const bearer = process.env['FLEET_INFERENCE_KEY'] || process.env['SERVE_INFERENCE_KEY'] || '';
-  const resolveKey =
-    process.env['BRITTNEY_FLEET_RESOLVE_KEY'] || process.env['HOLOSCRIPT_API_KEY'] || '';
+  const resolveKey = (process.env['BRITTNEY_FLEET_RESOLVE_KEY'] ?? '').trim() || readMcpApiKey();
 
   async function resolveChatUrl(): Promise<string> {
     if (explicitUrl) return explicitUrl;
+    if (!resolveKey) throw new Error(MISSING_MCP_API_KEY_ERROR);
     const r = await fetch(`${orch}/serve/resolve?model=${encodeURIComponent(model)}`, {
-      headers: resolveKey ? { 'x-mcp-api-key': resolveKey } : {},
+      headers: { 'x-mcp-api-key': resolveKey },
       signal: AbortSignal.timeout(15_000),
     });
     if (!r.ok) {
       throw new Error(`/serve/resolve ${r.status} — cannot resolve sovereign serving endpoint`);
     }
-    const body = (await r.json()) as { status?: string; url?: string };
+    const body = await readJsonBody<{ status?: string; url?: string }>(r, '/serve/resolve');
     if (body.status !== 'warm' || !body.url) {
       throw new Error(
         `Sovereign serving is cold for "${model}" — the resolve bumped demand so the autoscaler ` +
@@ -120,9 +121,10 @@ function buildLLMComplete(): LLMComplete {
         }),
         signal: AbortSignal.timeout(120_000),
       });
-      if (!res.ok)
-        throw new Error(`sovereign LLM ${res.status}: ${(await res.text()).slice(0, 200)}`);
-      const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
+      if (!res.ok) throw new Error(`sovereign LLM HTTP ${res.status}`);
+      const data = (await readJsonBody(res, 'sovereign LLM')) as {
+        choices?: Array<{ message?: { content?: string } }>;
+      };
       const content = data.choices?.[0]?.message?.content;
       if (!content) throw new Error('sovereign LLM returned no content');
       return content;
@@ -144,9 +146,10 @@ function buildLLMComplete(): LLMComplete {
         }),
         signal: AbortSignal.timeout(120_000),
       });
-      if (!res.ok)
-        throw new Error(`Anthropic fallback ${res.status}: ${(await res.text()).slice(0, 200)}`);
-      const data = (await res.json()) as { content?: Array<{ type?: string; text?: string }> };
+      if (!res.ok) throw new Error(`Anthropic fallback HTTP ${res.status}`);
+      const data = (await readJsonBody(res, 'Anthropic fallback')) as {
+        content?: Array<{ type?: string; text?: string }>;
+      };
       const text = data.content?.find((b) => b.type === 'text')?.text;
       if (!text) throw new Error('Anthropic fallback returned no content');
       return text;

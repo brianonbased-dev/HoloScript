@@ -47,8 +47,8 @@ describe('endpoints', () => {
 describe('auth (server-side)', () => {
   beforeEach(() => {
     delete process.env.MCP_API_KEY;
-    delete process.env.HOLOSCRIPT_MCP_API_KEY;
-    process.env.HOLOSCRIPT_API_KEY = 'test-mcp-key';
+    delete process.env.HOLOSCRIPT_API_KEY;
+    process.env.HOLOSCRIPT_MCP_API_KEY = 'test-mcp-key';
     process.env.HOLOMESH_API_KEY = 'test-holomesh-key';
   });
 
@@ -73,7 +73,7 @@ describe('auth (server-side)', () => {
   it('async key helpers resolve through the configured HoloKey bridge first', async () => {
     configureConfigSecretResolver({
       async resolve(nameOrRef: string) {
-        if (nameOrRef === 'MCP_API_KEY') return 'vault-mcp-key';
+        if (nameOrRef === 'HOLOSCRIPT_MCP_API_KEY') return 'vault-mcp-key';
         if (nameOrRef === 'OPENAI_API_KEY') return 'vault-openai-key';
         return undefined;
       },
@@ -84,50 +84,34 @@ describe('auth (server-side)', () => {
     expect(await resolveConfigSecret('OPENAI_API_KEY')).toBe('vault-openai-key');
   });
 
-  it('async key helpers fall back to env when HoloKey has no value', async () => {
-    process.env.MCP_API_KEY = 'legacy-mcp-key';
+  it('async key helper falls back to env HOLOSCRIPT_MCP_API_KEY when HoloKey has no value', async () => {
     configureConfigSecretResolver({
       async resolve(nameOrRef: string) {
         return process.env[nameOrRef];
       },
     });
-
-    expect(await getMcpApiKeyAsync()).toBe('legacy-mcp-key');
-    delete process.env.MCP_API_KEY;
-    process.env.HOLOSCRIPT_MCP_API_KEY = 'holoscript-mcp-key';
-    expect(await getMcpApiKeyAsync()).toBe('holoscript-mcp-key');
-    delete process.env.HOLOSCRIPT_MCP_API_KEY;
     expect(await getMcpApiKeyAsync()).toBe('test-mcp-key');
+    process.env.HOLOSCRIPT_MCP_API_KEY = '  padded-key  ';
+    expect(await getMcpApiKeyAsync()).toBe('padded-key');
   });
 
-  it('returns empty string when env not set', () => {
-    // getMcpApiKey() reads the MCP-specific key first, then falls back to HoloScript API keys.
-    // Save both so the restore step is symmetric and doesn't leak state into the next test.
-    const savedHoloscriptKey = process.env.HOLOSCRIPT_API_KEY;
-    const savedMcpKey = process.env.MCP_API_KEY;
-    const savedHoloscriptMcpKey = process.env.HOLOSCRIPT_MCP_API_KEY;
-    delete process.env.HOLOSCRIPT_API_KEY;
-    delete process.env.MCP_API_KEY;
+  it('returns empty string when HOLOSCRIPT_MCP_API_KEY is not set', () => {
     delete process.env.HOLOSCRIPT_MCP_API_KEY;
-    try {
-      expect(getMcpApiKey()).toBe('');
-    } finally {
-      if (savedHoloscriptKey !== undefined) process.env.HOLOSCRIPT_API_KEY = savedHoloscriptKey;
-      if (savedMcpKey !== undefined) process.env.MCP_API_KEY = savedMcpKey;
-      if (savedHoloscriptMcpKey !== undefined)
-        process.env.HOLOSCRIPT_MCP_API_KEY = savedHoloscriptMcpKey;
-    }
+    expect(getMcpApiKey()).toBe('');
   });
 
-  it('getMcpApiKey prefers MCP-specific keys for orchestrator writes', () => {
-    process.env.MCP_API_KEY = 'write-key';
-    process.env.HOLOSCRIPT_MCP_API_KEY = 'holoscript-mcp-key';
-    process.env.HOLOSCRIPT_API_KEY = 'read-key';
-    expect(getMcpApiKey()).toBe('write-key');
-    delete process.env.MCP_API_KEY;
-    expect(getMcpApiKey()).toBe('holoscript-mcp-key');
+  it('ignores the old names MCP_API_KEY and HOLOSCRIPT_API_KEY (no fallback)', async () => {
     delete process.env.HOLOSCRIPT_MCP_API_KEY;
-    expect(getMcpApiKey()).toBe('read-key');
+    process.env.MCP_API_KEY = 'old-1';
+    process.env.HOLOSCRIPT_API_KEY = 'old-2';
+    configureConfigSecretResolver({
+      async resolve(nameOrRef: string) {
+        return process.env[nameOrRef];
+      },
+    });
+    expect(getMcpApiKey()).toBe('');
+    expect(await getMcpApiKeyAsync()).toBe('');
+    expect(mcpAuthHeaders()).toEqual({});
   });
 
   it('mcpAuthHeaders returns correct header (legacy)', () => {
@@ -211,7 +195,9 @@ describe('auth (server-side)', () => {
         })
       );
 
-      await expect(getOAuthToken()).rejects.toThrow('400');
+      const err = (await getOAuthToken().catch((e: unknown) => e)) as Error;
+      expect(err.message).toContain('400');
+      expect(err.message).not.toContain('invalid_client');
     });
 
     it('invalidateOAuthTokenCache forces re-fetch on next call', async () => {

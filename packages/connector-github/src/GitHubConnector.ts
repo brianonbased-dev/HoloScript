@@ -3,6 +3,7 @@ import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import { Octokit } from '@octokit/rest';
 import { createTokenAuth } from '@octokit/auth-token';
 import { githubTools } from './tools.js';
+import { MISSING_MCP_API_KEY_ERROR, readJsonBody, readMcpApiKey } from './mcp-api-key.js';
 
 /**
  * GitHubConnector bridges HoloScript Studio to GitHub's REST API.
@@ -409,6 +410,11 @@ export class GitHubConnector extends ServiceConnector {
 
     const results = [];
 
+    const mcpApiKey = readMcpApiKey();
+    if (!mcpApiKey) {
+      return { success: false, message: MISSING_MCP_API_KEY_ERROR };
+    }
+
     for (const filePath of filesToValidate) {
       try {
         const { data: fileData } = await this.octokit!.rest.repos.getContent({
@@ -429,7 +435,7 @@ export class GitHubConnector extends ServiceConnector {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-mcp-api-key': process.env.HOLOSCRIPT_API_KEY || '',
+              'x-mcp-api-key': mcpApiKey,
             },
             body: JSON.stringify({
               server: 'holoscript-remote',
@@ -438,7 +444,14 @@ export class GitHubConnector extends ServiceConnector {
             }),
           });
 
-          const validationData = (await validationResponse.json()) as {
+          if (!validationResponse.ok) {
+            throw new Error(`validate_holoscript HTTP ${validationResponse.status}`);
+          }
+
+          const validationData = (await readJsonBody(
+            validationResponse,
+            'validate_holoscript'
+          )) as {
             valid?: boolean;
             errors?: string[];
             warnings?: string[];

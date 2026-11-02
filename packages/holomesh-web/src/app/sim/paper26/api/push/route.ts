@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pushMetrics } from '@/lib/simStore';
 import type { PopulationMetrics } from '@/lib/simStore';
+import { readMcpApiKey } from '@/lib/mcp-api-key';
 
 /**
  * POST /sim/paper26/api/push
  *
  * Accepts a metric snapshot from Paper26SimRunner and stores it.
- * Auth: Bearer token matching SIM_PUSH_TOKEN env var (or HOLOSCRIPT_API_KEY).
+ * Auth: Bearer token matching SIM_PUSH_TOKEN env var (or HOLOSCRIPT_MCP_API_KEY).
+ * Fails closed: with neither set (or whitespace-only), every push is refused (503).
  *
  * Body:
  *   {
@@ -21,14 +23,15 @@ import type { PopulationMetrics } from '@/lib/simStore';
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Auth
-  const token = process.env['SIM_PUSH_TOKEN'] ?? process.env['HOLOSCRIPT_API_KEY'];
-  if (token) {
-    const auth = req.headers.get('authorization') ?? '';
-    const key = req.headers.get('x-sim-key') ?? '';
-    const provided = auth.replace(/^Bearer\s+/i, '') || key;
-    if (provided !== token) {
-      return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-    }
+  const token = (process.env['SIM_PUSH_TOKEN'] ?? '').trim() || readMcpApiKey();
+  if (!token) {
+    return NextResponse.json({ error: 'push auth not configured' }, { status: 503 });
+  }
+  const auth = req.headers.get('authorization') ?? '';
+  const key = req.headers.get('x-sim-key') ?? '';
+  const provided = (auth.replace(/^Bearer\s+/i, '') || key).trim();
+  if (provided !== token) {
+    return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
   let body: {

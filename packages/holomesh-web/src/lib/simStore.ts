@@ -14,6 +14,7 @@
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { readJsonBody, readMcpApiKey } from './mcp-api-key';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -137,7 +138,7 @@ function signSnapshot(snapshot: PopulationMetrics): SimReceipt {
 }
 
 async function anchorToBase(receipt: SimReceipt): Promise<void> {
-  const apiKey = process.env['HOLOSCRIPT_API_KEY'];
+  const apiKey = readMcpApiKey();
   const mcpBase = process.env['MCP_BASE_URL'] ?? 'https://mcp.holoscript.net';
   if (!apiKey) return;
 
@@ -163,7 +164,9 @@ async function anchorToBase(receipt: SimReceipt): Promise<void> {
     });
 
     if (resp.ok) {
-      const rpc = (await resp.json()) as { result?: { content?: { text?: string }[] } };
+      const rpc = (await readJsonBody(resp, 'mcp')) as {
+        result?: { content?: { text?: string }[] };
+      };
       const text = rpc.result?.content?.[0]?.text;
       if (text) {
         const data = JSON.parse(text) as { blockNumber?: string; txHash?: string };

@@ -24,6 +24,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { startHoloTunnel } from '../holo-tunnel/index.js';
+import { MISSING_MCP_API_KEY_ERROR, readJsonBody, readMcpApiKey } from '../mcp-api-key.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -655,12 +656,13 @@ async function startRelayUpload(
 ): Promise<HeadsetShareServer> {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const holomeshHost = (options.holomeshHost ?? 'https://mcp.holoscript.net').replace(/\/+$/, '');
-  const apiKey = options.apiKey ?? process.env.HOLOSCRIPT_API_KEY ?? process.env.HOLOMESH_API_KEY;
+  // HOLOMESH_API_KEY is a separate HoloMesh credential, not an alias of the retired
+  // HOLOSCRIPT_API_KEY name, so it stays as the last fallback (CoS ruling, key migration B3).
+  const apiKey =
+    readMcpApiKey(process.env, options.apiKey) || (process.env.HOLOMESH_API_KEY ?? '').trim();
 
   if (!apiKey) {
-    throw new Error(
-      'HoloMesh relay transport requires an API key. Set HOLOSCRIPT_API_KEY or pass options.apiKey.'
-    );
+    throw new Error(MISSING_MCP_API_KEY_ERROR);
   }
 
   const urlReadyMs = Date.now() - startMs;
@@ -683,11 +685,14 @@ async function startRelayUpload(
   });
 
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`HoloMesh relay upload failed (${response.status}): ${body}`);
+    // Status only: the relay body may echo credentials.
+    throw new Error(`HoloMesh relay upload failed (HTTP ${response.status})`);
   }
 
-  const data = (await response.json()) as { url?: string; relayId?: string };
+  const data = await readJsonBody<{ url?: string; relayId?: string }>(
+    response,
+    'HoloMesh relay upload'
+  );
   const relayUrl = data.url ?? `${holomeshHost}/s/${shareId}`;
   const relayId = data.relayId ?? shareId;
 

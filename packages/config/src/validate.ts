@@ -16,9 +16,9 @@ export interface ValidationResult {
  * Returns a result object — does NOT exit. Caller decides what to do.
  */
 export function validateConfig(required: string[], optional: string[] = []): ValidationResult {
-  const missing = required.filter((k) => !process.env[k]);
+  const missing = required.filter((k) => !(process.env[k] ?? '').trim());
   const warnings = optional
-    .filter((k) => !process.env[k])
+    .filter((k) => !(process.env[k] ?? '').trim())
     .map((k) => `Optional env var ${k} is not set`);
 
   return {
@@ -53,8 +53,8 @@ export function requireConfig(required: string[], serviceName?: string): void {
 
 /** Common required vars for each service type */
 export const REQUIRED_VARS = {
-  MCP_SERVER: ['HOLOSCRIPT_API_KEY'],
-  ABSORB_SERVICE: ['HOLOSCRIPT_API_KEY', 'DATABASE_URL'],
-  STUDIO: ['HOLOSCRIPT_API_KEY'],
-  ORCHESTRATOR: ['HOLOSCRIPT_API_KEY', 'DATABASE_URL'],
+  MCP_SERVER: ['HOLOSCRIPT_MCP_API_KEY'],
+  ABSORB_SERVICE: ['HOLOSCRIPT_MCP_API_KEY', 'DATABASE_URL'],
+  STUDIO: ['HOLOSCRIPT_MCP_API_KEY'],
+  ORCHESTRATOR: ['HOLOSCRIPT_MCP_API_KEY', 'DATABASE_URL'],
 } as const;

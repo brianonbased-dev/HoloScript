@@ -14,6 +14,8 @@
 /**
  * Real-time message types for 90fps coordination
  */
+import { readMcpApiKey } from '../../mcp-api-key';
+
 export type RealTimeMessageType =
   | 'position_sync' // Agent position/rotation/scale updates
   | 'frame_budget' // Frame time and budget status
@@ -492,7 +494,7 @@ export interface MCPProtocolConfig {
  */
 export const DEFAULT_MCP_CONFIG: MCPProtocolConfig = {
   endpoint: 'http://localhost:5567',
-  apiKey: process.env.HOLOSCRIPT_API_KEY || '',
+  apiKey: readMcpApiKey(),
   timeout: 30000, // 30 seconds
 };
 
