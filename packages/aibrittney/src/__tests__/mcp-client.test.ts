@@ -186,7 +186,7 @@ describe('McpClient — OAuth 2.1 client_credentials flow', () => {
 
     const result = await client.callTool({ server: 's', tool: 't', args: {} });
     expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/HOLOSCRIPT_API_KEY/);
+    expect(result.error).toMatch(/HOLOSCRIPT_MCP_API_KEY/);
   });
 
   it('returns an error when oauth/register fails', async () => {

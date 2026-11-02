@@ -42,10 +42,14 @@ export interface McpClientConfig {
 export const DEFAULT_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 export const DEFAULT_OAUTH_ENDPOINT = 'https://mcp.holoscript.net';
 
+/** The only env var read for the MCP key. Fails closed: no fallback name is read. */
+export const MCP_API_KEY_ENV = 'HOLOSCRIPT_MCP_API_KEY';
+export const MISSING_MCP_API_KEY_ERROR =
+  'mcp-client: HOLOSCRIPT_MCP_API_KEY is not set, so tool calls are disabled. Set HOLOSCRIPT_MCP_API_KEY to enable them.';
+
 export function defaultMcpConfig(overrides: Partial<McpClientConfig> = {}): McpClientConfig {
   const endpoint = overrides.endpoint ?? process.env.MCP_ORCHESTRATOR_URL ?? DEFAULT_ENDPOINT;
-  const apiKey =
-    overrides.apiKey ?? process.env.HOLOSCRIPT_API_KEY ?? process.env.MCP_API_KEY ?? '';
+  const apiKey = overrides.apiKey ?? process.env.HOLOSCRIPT_MCP_API_KEY ?? '';
   return {
     endpoint,
     apiKey,
@@ -88,7 +92,7 @@ export class McpClient {
         ok: false,
         status: 0,
         data: null,
-        error: 'mcp-client: missing HOLOSCRIPT_API_KEY (or MCP_API_KEY) — tool calls disabled',
+        error: MISSING_MCP_API_KEY_ERROR,
       };
     }
 
