@@ -97,7 +97,7 @@ generate flags:
 publish flags (v1.0 — POST to MCP orchestrator's /knowledge/sync):
       --endpoint <url>   knowledge-store sync URL (default: production orchestrator)
       --workspace <id>   workspace id (default: 'ai-ecosystem')
-      --api-key <key>    auth (default: \$HOLOSCRIPT_API_KEY or \$MCP_API_KEY)
+      --api-key <key>    auth (default: \$HOLOSCRIPT_MCP_API_KEY)
       --dry-run          show payload that would be sent, don't POST
 
 common flags:
@@ -148,7 +148,7 @@ async function main(): Promise<number> {
         return 0;
       }
       log(`  status:   HTTP ${result.status} ${result.ok ? 'OK' : 'FAILED'}\n`);
-      log(`  response: ${result.responseBody.slice(0, 400)}\n`);
+      if (result.ok) log(`  response: ${result.responseBody.slice(0, 400)}\n`);
       return result.ok ? 0 : 1;
     } catch (err) {
       process.stderr.write(`publish error: ${(err as Error).message}\n`);

@@ -117,7 +117,7 @@ Create `holoscript.config.json`:
 
 ## Package boundary & release posture
 
-`@holoscript/cli` targets the external HoloScript developer/operator audience — anyone driving `.holo`/`.hs`/`.hsplus` builds from a terminal, CI job, or an agent framework that shells out to `holoscript` as a build step. The CLI does not assume a founder-owned deployment target: you bring your own project directory, `holoscript.config.json`, and environment variables (`HOLOSCRIPT_API_KEY`, registry credentials, `HOLOGRAM_WORKER_URL`, etc.) — point it at your own services rather than a private instance.
+`@holoscript/cli` targets the external HoloScript developer/operator audience — anyone driving `.holo`/`.hs`/`.hsplus` builds from a terminal, CI job, or an agent framework that shells out to `holoscript` as a build step. The CLI does not assume a founder-owned deployment target: you bring your own project directory, `holoscript.config.json`, and environment variables (`HOLOSCRIPT_MCP_API_KEY`, registry credentials, `HOLOGRAM_WORKER_URL`, etc.) — point it at your own services rather than a private instance.
 
 This package does not ship founder-local infrastructure. Commands that talk to a backend (`deploy`, `publish`, `org`, `token`, `hologram` render targets) call whatever endpoint you configure; there is no private workspace or founder-local default baked into the package boundary — filling that in is the caller's job.
 

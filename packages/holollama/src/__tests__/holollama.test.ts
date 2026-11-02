@@ -1223,7 +1223,7 @@ composition "owned-edge" {
       writeFileSync(join(root, 'AGENTS.md'), 'Do not copy C:\\Users\\josep\\.ai-ecosystem\n');
       writeFileSync(
         join(root, '.env.example'),
-        'HOLOSCRIPT_API_KEY=holoscript_sk_liveabcdef123456789\n'
+        'HOLOSCRIPT_MCP_API_KEY=holoscript_sk_liveabcdef123456789\n'
       );
 
       const safety = await verifyHoloLlamaHarnessSafety(root, {
@@ -1235,7 +1235,10 @@ composition "owned-edge" {
         expect.arrayContaining([
           expect.objectContaining({ kind: 'private-anchor', id: 'founder-windows-user-path' }),
           expect.objectContaining({ kind: 'filled-secret', id: 'secret-looking-token' }),
-          expect.objectContaining({ kind: 'filled-secret', id: 'filled-env-holoscript_api_key' }),
+          expect.objectContaining({
+            kind: 'filled-secret',
+            id: 'filled-env-holoscript_mcp_api_key',
+          }),
           expect.objectContaining({ kind: 'missing-greeter', id: 'vehicle-greeter-missing' }),
         ])
       );

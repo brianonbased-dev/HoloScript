@@ -64,7 +64,7 @@ function HoloscriptNetComponent() {
       {`Runs anywhere — no lock-in`}
 
     </a>
-<a className="px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" href="https://github.com/brianonbased-dev/HoloScript">
+<a className="px-7 py-3 rounded-full border border-white/25 hover:border-white/60 transition" href="https://github.com/brianonbased-dev/HoloScript#readme">
       {`Read the docs`}
 
     </a>

@@ -32,8 +32,9 @@
  *   migrationMode is 'permissive' (default).
  */
 
-import { createHash, randomUUID, timingSafeEqual } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
+import { constantTimeEqual } from '../security/constant-time';
 import {
   TokenStore,
   InMemoryTokenStore,
@@ -1529,8 +1530,7 @@ export class OAuth2Provider {
   }
 
   private safeCompare(a: string, b: string): boolean {
-    if (a.length !== b.length) return false;
-    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+    return constantTimeEqual(a, b);
   }
 
   // ══════════════════════════════════════════════════════════════════════════

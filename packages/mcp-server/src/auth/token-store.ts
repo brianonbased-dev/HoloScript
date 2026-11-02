@@ -13,7 +13,8 @@
  * by implementing the TokenStoreBackend interface.
  */
 
-import { randomUUID, createHash, timingSafeEqual } from 'crypto';
+import { randomUUID, createHash } from 'crypto';
+import { constantTimeEqual } from '../security/constant-time';
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
@@ -680,8 +681,7 @@ export class TokenStore {
   }
 
   safeCompare(a: string, b: string): boolean {
-    if (a.length !== b.length) return false;
-    return timingSafeEqual(Buffer.from(a), Buffer.from(b));
+    return constantTimeEqual(a, b);
   }
 
   verifyS256Challenge(verifier: string, challenge: string): boolean {

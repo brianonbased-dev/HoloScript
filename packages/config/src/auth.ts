@@ -156,21 +156,31 @@ export function scrubSecretFromText(text: string, secret: string): string {
   return text.split(secret).join('[redacted]');
 }
 
+/**
+ * The only env var read for the HoloScript MCP API key. MCP_API_KEY and HOLOSCRIPT_API_KEY
+ * are no longer read (no fallback). Values are trimmed; whitespace-only counts as unset.
+ */
+export const MCP_API_KEY_ENV = 'HOLOSCRIPT_MCP_API_KEY';
+export const MISSING_MCP_API_KEY_ERROR =
+  'HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key") and restart.';
+
 /** HoloScript platform API key (used for orchestrator tool calls and knowledge sync) */
 export function getMcpApiKey(): string {
   assertServer('getMcpApiKey');
-  return (
-    process.env.MCP_API_KEY ||
-    process.env.HOLOSCRIPT_MCP_API_KEY ||
-    process.env.HOLOSCRIPT_API_KEY ||
-    ''
-  );
+  return (process.env[MCP_API_KEY_ENV] ?? '').trim();
+}
+
+/** Like {@link getMcpApiKey} but throws {@link MISSING_MCP_API_KEY_ERROR} when unset. */
+export function requireMcpApiKey(): string {
+  const key = getMcpApiKey();
+  if (!key) throw new Error(MISSING_MCP_API_KEY_ERROR);
+  return key;
 }
 
 /** HoloScript platform API key via HoloKey when configured, else env fallback. */
 export async function getMcpApiKeyAsync(): Promise<string> {
   assertServer('getMcpApiKeyAsync');
-  return resolveFirstSecret(['MCP_API_KEY', 'HOLOSCRIPT_MCP_API_KEY', 'HOLOSCRIPT_API_KEY']);
+  return resolveFirstSecret([MCP_API_KEY_ENV]);
 }
 
 /** HoloMesh agent API key (holomesh_sk_* format) */
@@ -316,17 +326,16 @@ export async function getOAuthToken(): Promise<string | undefined> {
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '(unreadable)');
-    throw new Error(
-      `@holoscript/config: OAuth token request failed — ${res.status} ${res.statusText}: ${text}`
-    );
+    // Status only: the token endpoint body may echo client_id/secret.
+    throw new Error(`@holoscript/config: OAuth token request failed (HTTP ${res.status})`);
   }
 
-  const data = (await res.json()) as {
-    access_token?: string;
-    expires_in?: number;
-    token_type?: string;
-  };
+  let data: { access_token?: string; expires_in?: number; token_type?: string };
+  try {
+    data = (await res.json()) as typeof data;
+  } catch {
+    throw new Error('@holoscript/config: OAuth token response was not JSON');
+  }
 
   if (!data.access_token) {
     throw new Error('@holoscript/config: OAuth token response missing access_token field');
@@ -365,6 +374,7 @@ export function invalidateOAuthTokenCache(): void {
  */
 export function mcpAuthHeaders(): Record<string, string> {
   const apiKey = getMcpApiKey();
+  if (!apiKey) return {};
   return { 'x-holoscript-api-key': apiKey, 'x-mcp-api-key': apiKey };
 }
 
@@ -386,6 +396,7 @@ export async function mcpAuthHeadersAsync(): Promise<Record<string, string>> {
   }
   // Legacy fallback — no client credentials configured.
   const apiKey = await getMcpApiKeyAsync();
+  if (!apiKey) return {};
   return { 'x-holoscript-api-key': apiKey, 'x-mcp-api-key': apiKey };
 }
 
