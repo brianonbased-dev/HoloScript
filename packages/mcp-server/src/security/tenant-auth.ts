@@ -7,7 +7,9 @@
  * @module security/tenant-auth
  */
 
+import { Pool } from 'pg';
 import type { TokenIntrospection } from './oauth21';
+import { createRailwayPostgresPoolOptions } from '../postgres-pool-options';
 
 export interface TenantContext {
   tenantId: string;
@@ -25,44 +27,6 @@ export type TokenIntrospectionWithTenant = TokenIntrospection & {
 };
 
 let pgPool: any = null;
-
-/**
- * SEC-T09: Build node-postgres SSL options with cert validation ON by default.
- *
- * Production: `rejectUnauthorized: true`. The CA bundle is read from
- * `PG_SSL_CA` (raw PEM) or `PG_SSL_CA_B64` (base64-encoded PEM). Providers
- * that use publicly-trusted roots (managed cloud Postgres) work without a
- * CA override because node uses the system trust store.
- *
- * Development: allow `PG_SSL_INSECURE=1` as an explicit opt-in escape hatch
- * for local Docker Compose setups with self-signed certs. Never honored in
- * production regardless of the flag.
- *
- * `DATABASE_SSL=false` still disables SSL entirely for local non-TLS DBs.
- */
-function buildPostgresSslOptions(): false | { rejectUnauthorized: boolean; ca?: string } {
-  if (process.env.DATABASE_SSL === 'false') {
-    return false;
-  }
-
-  const isProd = process.env.NODE_ENV === 'production';
-  const devInsecure = !isProd && process.env.PG_SSL_INSECURE === '1';
-
-  let ca: string | undefined;
-  if (process.env.PG_SSL_CA) {
-    ca = process.env.PG_SSL_CA;
-  } else if (process.env.PG_SSL_CA_B64) {
-    try {
-      ca = Buffer.from(process.env.PG_SSL_CA_B64, 'base64').toString('utf8');
-    } catch {
-      /* fall through to system trust store */
-    }
-  }
-
-  return devInsecure
-    ? { rejectUnauthorized: false }
-    : { rejectUnauthorized: true, ...(ca ? { ca } : {}) };
-}
 
 /**
  * Development-only escape hatch: no hardcoded keys in the repo.
@@ -103,18 +67,10 @@ export async function validateTenantKey(
   if (process.env.DATABASE_URL) {
     try {
       if (!pgPool) {
-        const { Pool } = require('pg');
-        pgPool = new Pool({
-          connectionString: process.env.DATABASE_URL,
-          // SEC-T09: previously used `rejectUnauthorized: false`, which
-          // negotiates TLS but skips cert validation — MITM on the network
-          // path between app and DB could intercept auth queries. Now
-          // defaults to strict verification; callers provide the PEM-encoded
-          // CA bundle via `PG_SSL_CA` (raw) or `PG_SSL_CA_B64` (base64). In
-          // non-production we still allow the lax mode behind an explicit
-          // env opt-in to keep local dev ergonomic.
-          ssl: buildPostgresSslOptions(),
-        });
+        // Same pool options as the other Railway Postgres pools in this server
+        // (http-server, holokey-resolver): DATABASE_SSL=false disables TLS,
+        // otherwise TLS without certificate verification on the private network.
+        pgPool = new Pool(createRailwayPostgresPoolOptions(process.env.DATABASE_URL));
       }
       const res = await pgPool.query(
         'SELECT tenant_id, tier, limits FROM api_keys WHERE key = $1 AND revoked = false',
@@ -131,7 +87,13 @@ export async function validateTenantKey(
         };
       }
     } catch (e) {
-      console.warn('[TenantAuth] DB query failed:', e);
+      // Log only the error code and name: the full pg error can carry
+      // connection details.
+      const err = (e ?? {}) as { code?: unknown; name?: unknown };
+      console.warn('[TenantAuth] DB query failed:', {
+        code: typeof err.code === 'string' ? err.code : undefined,
+        name: typeof err.name === 'string' ? err.name : undefined,
+      });
     }
   }
 
