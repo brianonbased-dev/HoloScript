@@ -596,7 +596,7 @@ const DEFAULT_LAPTOP_HOLO_LLAMA_EXECUTABLE =
   join(DEFAULT_LAPTOP_HOLO_LLAMA_BIN_DIR, 'llama-server.exe');
 const DEFAULT_HOLOMESH_ORCHESTRATOR_URL = 'https://mcp-orchestrator-production-45f9.up.railway.app';
 const DEFAULT_HOLOMESH_TEAM_ID = 'TEAM_ID';
-const DEFAULT_HOLOMESH_API_KEY_ENV = 'HOLOSCRIPT_API_KEY';
+const DEFAULT_HOLOMESH_API_KEY_ENV = 'HOLOSCRIPT_MCP_API_KEY';
 // Jetson lane defaults are env-driven so the founder's private LAN coordinates never ship as
 // literals in this published package (W.726 + public-consumption ratchet). The shipped defaults
 // are a generic mDNS reference; set HOLO_LLAMA_JETSON_ENDPOINT / _SSH_HOST for your own node.
