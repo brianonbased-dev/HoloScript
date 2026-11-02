@@ -484,3 +484,29 @@ export const rateCounters = pgTable('rate_counters', {
   windowStart: timestamp('window_start', { mode: 'date', withTimezone: true }).notNull(),
   count: integer('count').notNull(),
 });
+
+// =============================================================================
+// ADMIN CREDIT GRANTS (audit + idempotency for POST /api/admin/credits/grant)
+// =============================================================================
+// One row per applied grant, written in the SAME transaction as the balance
+// update and ledger row (addCredits withinTransaction). The unique
+// idempotency_key is the race backstop: a concurrent duplicate's insert fails,
+// its transaction rolls back, and no credits move twice. Migration 0003.
+
+export const adminCreditGrants = pgTable(
+  'admin_credit_grants',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    idempotencyKey: text('idempotency_key').notNull(),
+    adminGithubUsername: text('admin_github_username').notNull(),
+    userId: uuid('user_id').notNull(),
+    amountCents: integer('amount_cents').notNull(),
+    note: text('note').notNull(),
+    balanceAfterCents: integer('balance_after_cents').notNull(),
+    createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => ({
+    idx_admin_credit_grants_key: uniqueIndex('idx_admin_credit_grants_key').on(t.idempotencyKey),
+    idx_admin_credit_grants_user: index('idx_admin_credit_grants_user').on(t.userId),
+  })
+);

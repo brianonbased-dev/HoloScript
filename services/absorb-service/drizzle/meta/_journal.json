@@ -22,6 +22,13 @@
       "when": 1791938856393,
       "tag": "0002_rate_counters",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792033026147,
+      "tag": "0003_admin_credit_grants",
+      "breakpoints": true
     }
   ]
 }
