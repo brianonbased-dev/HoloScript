@@ -16,6 +16,6 @@ BREAKING: the HoloScript MCP key is now read only from `HOLOSCRIPT_MCP_API_KEY` 
 - `@holoscript/absorb-service`: `run-self-improve` uses `BRITTNEY_FLEET_RESOLVE_KEY`, then `HOLOSCRIPT_MCP_API_KEY`, and refuses `/serve/resolve` without one. LLM errors carry the HTTP status only.
 - `@hololand/platform-services`: the headset-share relay reads `options.apiKey`, then `HOLOSCRIPT_MCP_API_KEY`, then `HOLOMESH_API_KEY` (a separate credential, kept). Upload errors carry the status only.
 - `@holoscript/marketplace-api`: `McpProtocolPublisher` does not call out without a key and keeps no response body on failure (`raw: null`).
-- Private packages: `studio-ui-graph` publish/CLI, the `holomesh-web` sim push route (fails closed with 503 when no token is configured) and sim store, and `connector-github` validation.
+- Private packages: `studio-ui-graph` publish/CLI, the `holomesh-web` sim push route (fails closed with 503 when no token is configured) and sim store, and `connector-github` validation. `connector-github`: if you copied the old `holoscript-agentic.yml` or `holoscript-ci.yml` workflow templates, rename your repo secret `HOLOSCRIPT_API_KEY` to `HOLOSCRIPT_MCP_API_KEY` (the templates now read the new name).
 
 Missing-key error text: "HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key") and restart."
