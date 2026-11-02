@@ -148,4 +148,61 @@ describe('HOLOSCRIPT_MCP_API_KEY fail-closed (mcp-client reader)', () => {
       expect((result.error ?? '').length).toBeLessThanOrEqual(80);
     }
   });
+  it('(g) a non-JSON 200 from oauth gives a fixed error with no body text', async () => {
+    const cases: Array<Array<{ status: number; text: string }>> = [
+      [{ status: 200, text: '<html>client_secret=sec-LEAK</html>' }],
+      [
+        { status: 200, text: JSON.stringify({ client_id: 'c', client_secret: 's' }) },
+        { status: 200, text: 'not json sec-LEAK' },
+      ],
+    ];
+    const expected = [
+      'oauth/register: response was not JSON',
+      'oauth/token: response was not JSON',
+    ];
+    for (const [n, steps] of cases.entries()) {
+      let i = 0;
+      const fetchImpl = (async () => {
+        const st = steps[Math.min(i++, steps.length - 1)];
+        return new Response(st.text, { status: st.status });
+      }) as unknown as typeof fetch;
+      const client = new McpClient({
+        endpoint: 'https://o.example',
+        oauthEndpoint: 'https://a.example',
+        apiKey: 'k',
+        timeoutMs: 5000,
+        fetchImpl,
+      });
+      const result = await client.callTool({ server: 's', tool: 't', args: {} });
+      expect(result.ok).toBe(false);
+      expect(result.error).toBe(expected[n]);
+    }
+  });
+
+  it('(h) a non-JSON 200 on token refresh is caught and re-issued, never echoed', async () => {
+    const texts = [
+      'refresh-not-json sec-LEAK',
+      JSON.stringify({ access_token: 'tok2', expires_in: 3600 }),
+      '{"ok":true}',
+    ];
+    let i = 0;
+    const fetchImpl = (async () =>
+      new Response(texts[Math.min(i++, texts.length - 1)], {
+        status: 200,
+      })) as unknown as typeof fetch;
+    const client = new McpClient({
+      endpoint: 'https://o.example',
+      oauthEndpoint: 'https://a.example',
+      apiKey: 'k',
+      timeoutMs: 5000,
+      fetchImpl,
+    });
+    client._setTokenForTest(
+      { accessToken: 'old', refreshToken: 'r', expiresAt: 0 },
+      { clientId: 'c', clientSecret: 's' }
+    );
+    const result = await client.callTool({ server: 's', tool: 't', args: {} });
+    expect(result.ok).toBe(true);
+    expect(JSON.stringify(result)).not.toMatch(/LEAK/);
+  });
 });

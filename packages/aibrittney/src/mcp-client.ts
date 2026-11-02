@@ -75,6 +75,15 @@ interface OAuthClient {
   clientSecret: string;
 }
 
+/** Parse a JSON body; a non-JSON reply throws a fixed message that never includes the body. */
+async function readJsonBody(res: Response, label: string): Promise<Record<string, unknown>> {
+  try {
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    throw new Error(`${label}: response was not JSON`);
+  }
+}
+
 /** Seconds before expiry at which we proactively refresh. */
 const REFRESH_BUFFER_SECS = 60;
 
@@ -241,7 +250,7 @@ export class McpClient {
       throw new Error(`oauth/register failed: HTTP ${res.status}`);
     }
 
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = await readJsonBody(res, 'oauth/register');
     const clientId = body.client_id as string | undefined;
     const clientSecret = body.client_secret as string | undefined;
 
@@ -276,7 +285,7 @@ export class McpClient {
       throw new Error(`oauth/token failed: HTTP ${res.status}`);
     }
 
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = await readJsonBody(res, 'oauth/token');
     return this._parseCachedToken(body);
   }
 
@@ -307,7 +316,7 @@ export class McpClient {
       throw new Error(`oauth/token refresh failed: HTTP ${res.status}`);
     }
 
-    const body = (await res.json()) as Record<string, unknown>;
+    const body = await readJsonBody(res, 'oauth/token refresh');
     return this._parseCachedToken(body);
   }
 
