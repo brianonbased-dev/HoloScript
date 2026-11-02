@@ -119,7 +119,6 @@ export async function GET() {
     },
   };
 
-  return NextResponse.json(spec, {
-    headers: { 'Access-Control-Allow-Origin': '*' },
-  });
+  // CORS comes from src/proxy.ts (origin allowlist).
+  return NextResponse.json(spec);
 }

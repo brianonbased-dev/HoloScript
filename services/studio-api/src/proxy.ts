@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { applyCorsHeaders } from './lib/cors';
 
 // ─── CSRF Protection Proxy ──────────────────────────────────────────────────
 // Validates Origin header on state-changing requests to prevent cross-site
@@ -20,6 +21,20 @@ if (process.env.ALLOWED_ORIGINS) {
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 export function proxy(request: NextRequest) {
+  const response = csrfAndSecurity(request);
+  // CORS: reflect only allowlisted origins, always Vary: Origin (see lib/cors.ts).
+  applyCorsHeaders(response.headers, request.headers.get('origin'), {
+    preflight: request.method === 'OPTIONS',
+  });
+  return response;
+}
+
+function csrfAndSecurity(request: NextRequest): NextResponse {
+  // CORS preflight is answered here; ACAO is added only for allowlisted origins.
+  if (request.method === 'OPTIONS') {
+    return addSecurityHeaders(new NextResponse(null, { status: 204 }));
+  }
+
   // Skip CSRF check for safe (read-only) methods
   if (SAFE_METHODS.has(request.method)) {
     return addSecurityHeaders(NextResponse.next());
