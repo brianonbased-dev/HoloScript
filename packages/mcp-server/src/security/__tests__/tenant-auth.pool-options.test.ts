@@ -39,7 +39,9 @@ describe('tenant-auth Postgres pool', () => {
     await expect(validateTenantKey('unit-test-key')).resolves.toBeNull();
 
     expect(poolConfigs).toHaveLength(1);
-    expect(poolConfigs[0]).toEqual(createRailwayPostgresPoolOptions('postgres://unit-test-host/tenant'));
+    expect(poolConfigs[0]).toEqual(
+      createRailwayPostgresPoolOptions('postgres://unit-test-host/tenant')
+    );
   });
 
   it('honours DATABASE_SSL=false through the shared helper', async () => {
@@ -53,17 +55,22 @@ describe('tenant-auth Postgres pool', () => {
   });
 
   it('logs only the error code and name when the query fails', async () => {
-    const dbError = Object.assign(new Error('connect failed for postgres://user:secret@unit-test-host/tenant'), {
-      code: 'SELF_SIGNED_CERT_IN_CHAIN',
-      host: 'unit-test-host',
-    });
+    const dbError = Object.assign(
+      new Error('connect failed for postgres://user:secret@unit-test-host/tenant'),
+      {
+        code: 'SELF_SIGNED_CERT_IN_CHAIN',
+        host: 'unit-test-host',
+      }
+    );
     queryMock.mockRejectedValue(dbError);
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const { validateTenantKey } = await import('../tenant-auth');
 
     await expect(validateTenantKey('unit-test-key')).resolves.toBeNull();
 
-    const call = warn.mock.calls.find((args) => String(args[0]).includes('[TenantAuth] DB query failed'));
+    const call = warn.mock.calls.find((args) =>
+      String(args[0]).includes('[TenantAuth] DB query failed')
+    );
     expect(call).toBeDefined();
     expect(call?.slice(1)).toEqual([{ code: 'SELF_SIGNED_CERT_IN_CHAIN', name: 'Error' }]);
     expect(JSON.stringify(call)).not.toContain('secret');
