@@ -102,8 +102,7 @@ cloud — without changing the REPL or the tool-calling protocol.
 
 Pass `--tools` (or run `/tools` inside the REPL) to expose a curated MCP catalog
 to the local model. Calls are dispatched through the orchestrator's
-`/tools/call` endpoint, so one auth header (`HOLOSCRIPT_API_KEY` or
-`MCP_API_KEY`) covers every backend (HoloScript MCP, knowledge store, parser).
+`/tools/call` endpoint, so one key (`HOLOSCRIPT_MCP_API_KEY`) covers every backend (HoloScript MCP, knowledge store, parser).
 
 Catalog:
 
@@ -129,7 +128,8 @@ Requirements:
 - The chosen Ollama model must natively support function/tool calls. Verified
   good: `qwen2.5-coder:7b`, `llama3.1`. Custom Brittney models built on
   bases without tool tokens fall back to plain chat (no calls).
-- `HOLOSCRIPT_API_KEY` (or `MCP_API_KEY`) in the env. Override the orchestrator
+- `HOLOSCRIPT_MCP_API_KEY` in the env. No other key name is read; without it,
+  tool calls fail with an error naming `HOLOSCRIPT_MCP_API_KEY`. Override the orchestrator
   endpoint with `MCP_ORCHESTRATOR_URL`.
 
 The loop caps at 6 iterations per user turn to keep a confused model from

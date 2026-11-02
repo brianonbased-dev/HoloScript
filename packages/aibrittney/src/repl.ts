@@ -179,8 +179,8 @@ export async function runRepl(initial: RunReplOptions = {}): Promise<number> {
   const mcp = state.toolsOn ? new McpClient(defaultMcpConfig()) : null;
   if (state.toolsOn && mcp && !mcp.config.apiKey) {
     stdout.write(
-      `${YELLOW}warn: tools requested but HOLOSCRIPT_API_KEY (or MCP_API_KEY) is not set. ` +
-        `Tool calls will fail until you set one.${RESET}\n`
+      `${YELLOW}warn: tools requested but HOLOSCRIPT_MCP_API_KEY is not set. ` +
+        `Tool calls will fail until you set it.${RESET}\n`
     );
   }
   banner(session, state.toolsOn);
