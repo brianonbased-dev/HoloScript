@@ -10,6 +10,10 @@ const nextConfig = {
     '@holoscript/core',
     // Node-only (reads node:fs); resolved at runtime like core, not bundled into routes.
     '@holoscript/llm-provider',
+    // Native/ML deps reachable through core -> engine; never bundle sharp's libvips binaries.
+    '@holoscript/engine',
+    'sharp',
+    '@huggingface/transformers',
   ],
   turbopack: {
     root: path.join(__dirname, '..', '..'),
