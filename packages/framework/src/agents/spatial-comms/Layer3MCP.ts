@@ -368,7 +368,7 @@ export class Layer3MCPClient extends EventEmitter {
       });
 
       if (!response.ok) {
-        throw new Error(`MCP HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`MCP HTTP ${response.status}`);
       }
 
       const data = await readJsonBody(response, 'mcp/command');
@@ -403,7 +403,7 @@ export class Layer3MCPClient extends EventEmitter {
       });
 
       if (!response.ok) {
-        throw new Error(`MCP Tool Call HTTP ${response.status}: ${response.statusText}`);
+        throw new Error(`MCP Tool Call HTTP ${response.status}`);
       }
 
       const data = await readJsonBody(response, 'tools/call');

@@ -32,7 +32,7 @@ const store = new KnowledgeStore({
   persist: false,
   // Remote federation is OPT-IN — omit these to stay fully local.
   remoteUrl: process.env.HOLOMESH_ORCHESTRATOR_URL, // your orchestrator endpoint
-  remoteApiKey: process.env.HOLOSCRIPT_API_KEY, // injected from your vault/env
+  remoteApiKey: process.env.HOLOSCRIPT_MCP_API_KEY, // injected from your vault/env
 });
 
 // Local-first: works with no remote configured.
@@ -54,10 +54,10 @@ const hits = await store.semanticSearch('typescript');
 
 ## Configuration
 
-| Env var              | Purpose                                                     | Default when unset        |
-| -------------------- | ----------------------------------------------------------- | ------------------------- |
-| `HOLOMESH_WORKSPACE` | Workspace scope tag sent with remote knowledge calls        | `'default'`               |
-| `HOLOSCRIPT_API_KEY` | Auth key for the remote orchestrator (self-improve scanner) | none (remote calls no-op) |
+| Env var                  | Purpose                                                     | Default when unset        |
+| ------------------------ | ----------------------------------------------------------- | ------------------------- |
+| `HOLOMESH_WORKSPACE`     | Workspace scope tag sent with remote knowledge calls        | `'default'`               |
+| `HOLOSCRIPT_MCP_API_KEY` | Auth key for the remote orchestrator (self-improve scanner) | none (remote calls no-op) |
 
 The remote URL and key are passed in through `KnowledgeConfig` / `AbsorbScanConfig`
 or read from your environment — the package ships **no** default host, key, or

@@ -702,18 +702,18 @@ tracking.
 
 ### Environment Variables
 
-| Variable                | Required         | Description                                                                                                                                                                                       |
-| ----------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ABSORB_API_KEY`        | For paid tools   | API key for Studio authentication                                                                                                                                                                 |
-| `OPENAI_API_KEY`        | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106).                                  |
-| `OLLAMA_URL`            | Optional         | Ollama base URL (default: `http://localhost:11434`)                                                                                                                                               |
-| `HOLOLLAMA_PROFILE`     | Optional         | Default HoloLlama profile for `llmProvider: "holollama"` answer synthesis (`jetson-orin`, `laptop-windows`, or `vast-linux-gpu`). Resolved through HoloKey-aware config first, then env fallback. |
-| `HOLOLLAMA_ENDPOINT`    | Optional         | OpenAI-compatible HoloLlama endpoint override for answer synthesis. Accepts a base URL, `/v1` URL, or `/v1/chat/completions` URL. Resolved through HoloKey-aware config first, then env fallback. |
-| `EMBEDDING_PROVIDER`    | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106).                                    |
-| `HOLOSCRIPT_STUDIO_URL` | Optional         | Studio URL override (default: `https://holoscript.studio`)                                                                                                                                        |
-| `HOLOSCRIPT_API_KEY`    | For orchestrator | MCP orchestrator API key                                                                                                                                                                          |
-| `ANTHROPIC_API_KEY`     | Optional         | Anthropic API key for LLM-powered queries                                                                                                                                                         |
-| `GEMINI_API_KEY`        | Optional         | Google Gemini API key for LLM-powered queries                                                                                                                                                     |
+| Variable                 | Required         | Description                                                                                                                                                                                       |
+| ------------------------ | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ABSORB_API_KEY`         | For paid tools   | API key for Studio authentication                                                                                                                                                                 |
+| `OPENAI_API_KEY`         | Optional         | OpenAI key, used ONLY for the generic factory with explicit `provider: 'openai'`. The GraphRAG path (`detectBestEmbeddingProvider`) ignores it entirely (F.106).                                  |
+| `OLLAMA_URL`             | Optional         | Ollama base URL (default: `http://localhost:11434`)                                                                                                                                               |
+| `HOLOLLAMA_PROFILE`      | Optional         | Default HoloLlama profile for `llmProvider: "holollama"` answer synthesis (`jetson-orin`, `laptop-windows`, or `vast-linux-gpu`). Resolved through HoloKey-aware config first, then env fallback. |
+| `HOLOLLAMA_ENDPOINT`     | Optional         | OpenAI-compatible HoloLlama endpoint override for answer synthesis. Accepts a base URL, `/v1` URL, or `/v1/chat/completions` URL. Resolved through HoloKey-aware config first, then env fallback. |
+| `EMBEDDING_PROVIDER`     | Optional         | GraphRAG override — only `holoembed` is accepted (`structural` is a legacy alias mapped to `holoembed`); any other value (incl. `openai`) is rejected (F.106).                                    |
+| `HOLOSCRIPT_STUDIO_URL`  | Optional         | Studio URL override (default: `https://holoscript.studio`)                                                                                                                                        |
+| `HOLOSCRIPT_MCP_API_KEY` | For orchestrator | MCP orchestrator API key                                                                                                                                                                          |
+| `ANTHROPIC_API_KEY`      | Optional         | Anthropic API key for LLM-powered queries                                                                                                                                                         |
+| `GEMINI_API_KEY`         | Optional         | Google Gemini API key for LLM-powered queries                                                                                                                                                     |
 
 ### Embedding Provider Auto-Detection
 
@@ -954,7 +954,7 @@ founder reviewers, and agent operators** who want to absorb a repository and
 query it, not an internal script.
 
 Config is **caller-owned / bring-your-own**: you supply the orchestrator /
-knowledge-store URL, API keys (`ABSORB_API_KEY`, `HOLOSCRIPT_API_KEY`), model
+knowledge-store URL, API keys (`ABSORB_API_KEY`, `HOLOSCRIPT_MCP_API_KEY`), model
 endpoints, and workspace scope through your own env / vault. The package does
 **not** default consumers into any private workspace — remote knowledge/oracle
 calls are scoped by `HOLOMESH_WORKSPACE`, and when it is unset the neutral

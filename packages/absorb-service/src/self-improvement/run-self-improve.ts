@@ -232,4 +232,5 @@ if (invokedDirectly) {
   });
 }
 
-export { main as runSelfImprove };
+/** Exported for behaviour tests of the key resolve order; not a public API. */
+export { main as runSelfImprove, buildLLMComplete };

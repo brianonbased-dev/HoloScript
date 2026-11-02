@@ -7,6 +7,8 @@
  * - Layer 3: Metadata Layer (MCP) - Tool access, high-level commands
  */
 
+import { readMcpApiKey } from '../../mcp-api-key';
+
 // ============================================================================
 // LAYER 1: REAL-TIME LAYER (UDP/WebRTC)
 // ============================================================================
@@ -14,8 +16,6 @@
 /**
  * Real-time message types for 90fps coordination
  */
-import { readMcpApiKey } from '../../mcp-api-key';
-
 export type RealTimeMessageType =
   | 'position_sync' // Agent position/rotation/scale updates
   | 'frame_budget' // Frame time and budget status

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { pushMetrics } from '@/lib/simStore';
 import type { PopulationMetrics } from '@/lib/simStore';
@@ -21,6 +22,14 @@ import { readMcpApiKey } from '@/lib/mcp-api-key';
  *     config?: { innerFreq, latentDim, sycophancyFrac }
  *   }
  */
+/** Constant-time token compare; lengths are checked first (timingSafeEqual needs equal lengths). */
+function tokensMatch(provided: string, expected: string): boolean {
+  const a = Buffer.from(provided, 'utf8');
+  const b = Buffer.from(expected, 'utf8');
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // Auth
   const token = (process.env['SIM_PUSH_TOKEN'] ?? '').trim() || readMcpApiKey();
@@ -30,7 +39,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const auth = req.headers.get('authorization') ?? '';
   const key = req.headers.get('x-sim-key') ?? '';
   const provided = (auth.replace(/^Bearer\s+/i, '') || key).trim();
-  if (provided !== token) {
+  if (!tokensMatch(provided, token)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
