@@ -21,6 +21,9 @@ export { ENDPOINTS, getEndpoint } from './endpoints';
 export {
   getMcpApiKey,
   getMcpApiKeyAsync,
+  requireMcpApiKey,
+  MCP_API_KEY_ENV,
+  MISSING_MCP_API_KEY_ERROR,
   getHolomeshKey,
   getHolomeshKeyAsync,
   getAbsorbKey,

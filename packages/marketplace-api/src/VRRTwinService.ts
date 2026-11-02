@@ -5,6 +5,7 @@ import path from 'node:path';
 import { Pool } from 'pg';
 import { z } from 'zod';
 import type { ReconstructionManifest } from '@holoscript/core/reconstruction';
+import { MISSING_MCP_API_KEY_ERROR, readMcpApiKey } from './mcp-api-key';
 
 export type VrrProtocolLicense =
   'free' | 'cc_by' | 'cc_by_sa' | 'cc_by_nc' | 'commercial' | 'exclusive';
@@ -399,18 +400,24 @@ export class McpProtocolPublisher implements ProtocolPublisher {
     private readonly serverUrl: string = process.env.HOLOSCRIPT_MCP_URL ||
       process.env.HOLOSCRIPT_SERVER_URL ||
       'https://mcp.holoscript.net',
-    private readonly apiKey: string | undefined = process.env.HOLOSCRIPT_MCP_API_KEY ||
-      process.env.HOLOSCRIPT_API_KEY
+    private readonly apiKey: string | undefined = readMcpApiKey()
   ) {}
 
   async publish(input: ProtocolPublishInput): Promise<VrrProtocolPublishReceipt> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (this.apiKey) {
-      headers.Authorization = `Bearer ${this.apiKey}`;
-      headers['x-mcp-api-key'] = this.apiKey;
+    const apiKey = (this.apiKey ?? '').trim();
+    if (!apiKey) {
+      return {
+        status: 'error',
+        raw: null,
+        error: 'MCP_API_KEY_MISSING',
+        message: MISSING_MCP_API_KEY_ERROR,
+      };
     }
+    headers.Authorization = `Bearer ${apiKey}`;
+    headers['x-mcp-api-key'] = apiKey;
 
     const response = await fetch(`${this.serverUrl.replace(/\/$/, '')}/mcp`, {
       method: 'POST',
@@ -426,18 +433,17 @@ export class McpProtocolPublisher implements ProtocolPublisher {
       }),
     });
 
-    const rawText = await response.text();
-    const body = parseJsonOrMessage(rawText);
-
     if (!response.ok) {
+      // Status only: never keep or surface the body of a failed response.
       return {
         status: 'error',
-        raw: body,
+        raw: null,
         error: 'PUBLISH_HTTP_FAILED',
         message: `holo_protocol_publish returned HTTP ${response.status}`,
       };
     }
 
+    const body = parseJsonOrMessage(await response.text());
     return normalizeProtocolPublishReceipt(body);
   }
 }
@@ -937,7 +943,7 @@ function parseJsonOrMessage(text: string): unknown {
   try {
     return JSON.parse(text) as unknown;
   } catch {
-    return { message: text };
+    return { message: 'holo_protocol_publish: response was not JSON' };
   }
 }
 

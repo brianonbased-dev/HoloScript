@@ -10,6 +10,7 @@
 
 import { readdirSync, readFileSync } from 'fs';
 import { extname, join, relative, resolve } from 'path';
+import { MISSING_MCP_API_KEY_ERROR, readJsonBody, readMcpApiKey } from '../mcp-api-key';
 
 export interface AbsorbScanConfig {
   /** MCP Orchestrator URL (default: production) */
@@ -73,7 +74,7 @@ interface KnowledgeEntry {
  */
 export async function scanFramework(config: AbsorbScanConfig = {}): Promise<ScanResult> {
   const orchestratorUrl = config.orchestratorUrl || DEFAULT_ORCHESTRATOR_URL;
-  const apiKey = config.mcpApiKey || process.env.HOLOSCRIPT_API_KEY || '';
+  const apiKey = readMcpApiKey(process.env, config.mcpApiKey);
   const workspaceId = config.workspaceId || DEFAULT_WORKSPACE_ID;
   const maxTasks = config.maxTasks || 20;
   const searchQuery =
@@ -87,7 +88,7 @@ export async function scanFramework(config: AbsorbScanConfig = {}): Promise<Scan
       issuesFound: 0,
       improvements: [],
       knowledge: [],
-      error: 'HOLOSCRIPT_API_KEY required for knowledge store query',
+      error: MISSING_MCP_API_KEY_ERROR,
     };
   }
 
@@ -111,7 +112,7 @@ export async function scanFramework(config: AbsorbScanConfig = {}): Promise<Scan
     let filesAnalyzed = 0;
 
     if (queryRes.ok) {
-      const data = (await queryRes.json()) as {
+      const data = (await readJsonBody(queryRes, 'knowledge/query')) as {
         results?: KnowledgeEntry[];
         entries?: KnowledgeEntry[];
       };

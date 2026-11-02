@@ -14,7 +14,7 @@ import { mcpAuthHeadersAsync } from '@holoscript/config';
  *   When HOLOSCRIPT_MCP_CLIENT_ID + HOLOSCRIPT_MCP_CLIENT_SECRET are set,
  *   issues a client_credentials bearer token and sends
  *   `Authorization: Bearer <token>`. Falls back to the legacy
- *   `x-mcp-api-key` header (HOLOSCRIPT_API_KEY / MCP_API_KEY) when
+ *   `x-mcp-api-key` header (HOLOSCRIPT_MCP_API_KEY) when
  *   OAuth credentials are absent. Explicit --api-key overrides both.
  *
  * After publish, agents can ask:
@@ -54,6 +54,9 @@ export interface PublishResult {
   endpoint: string;
   responseBody: string;
 }
+
+export const MISSING_MCP_API_KEY_ERROR =
+  'HoloScript tools are off because HOLOSCRIPT_MCP_API_KEY is not set. Set it (macOS/Linux: export HOLOSCRIPT_MCP_API_KEY=your-key; PowerShell: $env:HOLOSCRIPT_MCP_API_KEY="your-key") and restart.';
 
 const DEFAULT_ENDPOINT = 'https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/sync';
 const DEFAULT_WORKSPACE = 'ai-ecosystem';
@@ -121,13 +124,14 @@ export async function publishHolo(opts: PublishOptions): Promise<PublishResult> 
   // Resolve auth headers.
   // Priority: explicit --api-key override > OAuth 2.1 client_credentials > legacy env key.
   let authHeaders: Record<string, string>;
-  if (opts.apiKey) {
+  const explicitKey = (opts.apiKey ?? '').trim();
+  if (explicitKey) {
     // Explicit CLI override — use legacy header directly.
-    authHeaders = { 'x-mcp-api-key': opts.apiKey };
+    authHeaders = { 'x-mcp-api-key': explicitKey };
   } else {
     // mcpAuthHeadersAsync: issues OAuth bearer when HOLOSCRIPT_MCP_CLIENT_ID +
     // HOLOSCRIPT_MCP_CLIENT_SECRET are configured; falls back to x-mcp-api-key
-    // (HOLOSCRIPT_API_KEY / MCP_API_KEY) when they are absent.
+    // (HOLOSCRIPT_MCP_API_KEY) when they are absent.
     authHeaders = await mcpAuthHeadersAsync();
     // Guard: neither OAuth nor legacy key available.
     const hasAuth =
@@ -135,9 +139,7 @@ export async function publishHolo(opts: PublishOptions): Promise<PublishResult> 
       ('x-mcp-api-key' in authHeaders && (authHeaders['x-mcp-api-key'] || '').length > 0);
     if (!hasAuth) {
       throw new Error(
-        'publishHolo: no auth credentials — set HOLOSCRIPT_MCP_CLIENT_ID + ' +
-          'HOLOSCRIPT_MCP_CLIENT_SECRET for OAuth, or HOLOSCRIPT_API_KEY for legacy key auth, ' +
-          'or pass --api-key'
+        `publishHolo: ${MISSING_MCP_API_KEY_ERROR} (OAuth alternative: HOLOSCRIPT_MCP_CLIENT_ID + HOLOSCRIPT_MCP_CLIENT_SECRET; or pass --api-key.)`
       );
     }
   }
@@ -150,7 +152,8 @@ export async function publishHolo(opts: PublishOptions): Promise<PublishResult> 
     },
     body: JSON.stringify(payload),
   });
-  const responseBody = await response.text();
+  // Never surface the body of a failed response: it may echo credentials.
+  const responseBody = response.ok ? await response.text() : '';
 
   return {
     ok: response.ok,

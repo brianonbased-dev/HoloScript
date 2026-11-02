@@ -7,6 +7,8 @@
  * - Layer 3: Metadata Layer (MCP) - Tool access, high-level commands
  */
 
+import { readMcpApiKey } from '../../mcp-api-key';
+
 // ============================================================================
 // LAYER 1: REAL-TIME LAYER (UDP/WebRTC)
 // ============================================================================
@@ -492,7 +494,7 @@ export interface MCPProtocolConfig {
  */
 export const DEFAULT_MCP_CONFIG: MCPProtocolConfig = {
   endpoint: 'http://localhost:5567',
-  apiKey: process.env.HOLOSCRIPT_API_KEY || '',
+  apiKey: readMcpApiKey(),
   timeout: 30000, // 30 seconds
 };
 

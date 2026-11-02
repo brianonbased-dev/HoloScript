@@ -67,7 +67,7 @@ The graph is published to the MCP orchestrator's knowledge store as `id=studio-u
 
 ```bash
 curl -X POST https://mcp-orchestrator-production-45f9.up.railway.app/knowledge/query \
-  -H "x-mcp-api-key: $HOLOSCRIPT_API_KEY" \
+  -H "x-mcp-api-key: $HOLOSCRIPT_MCP_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"search":"page agents shared_component","workspace_id":"ai-ecosystem"}'
 ```

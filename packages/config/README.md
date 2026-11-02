@@ -14,7 +14,7 @@ npm install @holoscript/config
 import { ENDPOINTS, getMcpApiKey, mcpAuthHeaders, requireConfig } from '@holoscript/config';
 
 // Fail fast at startup if required env vars are missing
-requireConfig(['HOLOSCRIPT_API_KEY'], 'my-service');
+requireConfig(['HOLOSCRIPT_MCP_API_KEY'], 'my-service');
 
 // Read a caller-configured endpoint (falls back to the public default)
 const res = await fetch(`${ENDPOINTS.HOLOSCRIPT_MCP}/health`);
