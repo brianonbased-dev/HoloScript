@@ -296,6 +296,27 @@ const HOLOSCRIPT_GATES: Record<string, GateSpec> = {
     profiles: ['quick', 'full'],
     resource_requirements: { max_dph: 0.2 },
   },
+  // #667: absorb-service@6.1.5 shipped vitest/eslint/typescript as runtime deps and npm 10
+  // crashed resolving them. Static ratchet over every publishable package.json (KNOWN list).
+  'no-devtools-in-deps': {
+    description:
+      'No dev tooling in runtime deps: publishable @holoscript packages must not list vitest/eslint/typescript/@types/* etc. in dependencies (ratchet; #667)',
+    step: 'node scripts/holo-ci/check-no-devtools-in-deps.mjs',
+    profiles: ['quick', 'full'],
+    resource_requirements: { max_dph: 0.2 },
+  },
+  // #667: pack absorb-service + its workspace closure and install it into an empty npm
+  // consumer under npm 10 and 11, then import every export. Needs a build, so full only.
+  'consumption-install': {
+    description:
+      'Consumption install: packed @holoscript/absorb-service (plus workspace closure) installs and imports under npm 10.9.2 and 11.6.2 in a fresh consumer (#667)',
+    step: [
+      'pnpm --filter "@holoscript/absorb-service..." build',
+      'node scripts/holo-ci/check-package-consumption-install.mjs --package @holoscript/absorb-service',
+    ].join('\n'),
+    profiles: ['full'],
+    resource_requirements: { max_dph: 0.4 },
+  },
 };
 
 const HOLOLAND_GATES: Record<string, GateSpec> = {
