@@ -97,7 +97,7 @@ module PhysicsSystem {
 
 Inline event handlers and reactive logic now support modern Arrow Function syntax.
 
-```holoscript
+```hs
 button#submit {
   text: "Submit"
   // Arrow function with block
@@ -113,7 +113,7 @@ button#submit {
 
 Declarative graph connections can be expressed in natural language.
 
-```holoscript
+```hs
 // Connect nodes
 connect SourceNode to TargetNode
 
@@ -125,7 +125,7 @@ connect PlayerState to HUD as "updates"
 
 Directives now support block configuration and inline usage.
 
-```holoscript
+```hsplus
 // Directive Block
 @manifest("Level1") {
    version: "1.0"
@@ -140,7 +140,7 @@ model: @asset("hero-model")
 
 Standard dot-notation is supported in property values.
 
-```holoscript
+```hs
 // Dotted access
 target: Agent.config.personality.type
 

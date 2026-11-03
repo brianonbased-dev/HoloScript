@@ -124,7 +124,7 @@ HoloScript is a general-purpose semantic systems programming language with decla
 imperative, reactive, and compositional surfaces. This example uses the `.holo` spatial
 composition surface:
 
-```holoscript
+```holo
 world "My World" {
   @setting("forest")
   @skybox("sunset")

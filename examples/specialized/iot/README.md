@@ -25,7 +25,7 @@ This example shows how to model a smart factory with multiple IoT devices that s
 
 ### Telemetry Streaming
 
-```holoscript
+```hs
 telemetry {
   speed: { type: "double", unit: "metresPerSecond" }
   vibration: { type: "double", unit: "metersPerSecondSquared" }
@@ -35,7 +35,7 @@ telemetry {
 
 ### Device Commands
 
-```holoscript
+```hs
 commands {
   start: {
     request_schema: { speed: "double" }
@@ -56,7 +56,7 @@ commands {
 
 ### Predictive Maintenance
 
-```holoscript
+```hs
 maintenance_rule#vibration_monitor {
   condition: conveyor_1.vibration > 2.5
 
@@ -180,7 +180,7 @@ HoloScript automatically generates standard DTDL v2 interfaces:
 
 HoloScript defines device relationships that map to Azure DT relationships:
 
-```holoscript
+```hs
 device#conveyor_1 {
   relationships {
     feeds_to: "robot_1"

@@ -183,7 +183,7 @@ animation transitionName {
 
 **Pattern Structure**:
 
-```holoscript
+```hs
 @version "2.1.0"
 @feature "spatial-audio"  // Requires compiler v2.1+
 
@@ -302,7 +302,7 @@ Throw compile error: "Cyclic layout dependency detected: A → B → A"
 
 **Fix**: Platform capability declarations + compile-time validation:
 
-```holoscript
+```hs
 @platform web {
   element Input(type: text | password | email)
 }
@@ -334,7 +334,7 @@ if (targetPlatform === 'xr' && usesElement('Input')) {
 
 **Fix**: Layer-based z-index allocation:
 
-```holoscript
+```hs
 @layer background {
   z-range: 0-99
 }

@@ -39,7 +39,7 @@ Behavior logic lives in `behavior` sub-blocks inside the npc body.
 
 ### Syntax
 
-```holoscript
+```hs
 npc "NpcName" {
   type: "merchant"           // npc role/type string (free-form)
   model: "/models/foo.glb"   // asset path
@@ -94,7 +94,7 @@ npc "NpcName" {
 
 ### Minimal example
 
-```holoscript
+```holo
 composition "TavernScene" {
 
   npc "Greta" {
@@ -109,7 +109,7 @@ composition "TavernScene" {
 
 ### Example with brain attachment
 
-```holoscript
+```hs
 npc "BrittneyNPC" {
   type: "companion"
   model: "/models/brittney.glb"
@@ -135,7 +135,7 @@ npc "BrittneyNPC" {
 
 ### Syntax
 
-```holoscript
+```hs
 npc "GuardNPC" {
   // ...
 
@@ -288,7 +288,7 @@ quest "QuestName" {
 
 ### Minimal example
 
-```holoscript
+```hs
 quest "retrieve_the_gem" {
   giver: "Elder_Nira"
   type: "fetch"
@@ -316,7 +316,7 @@ typed sub-blocks.
 
 ### Syntax
 
-```holoscript
+```hs
 ability "AbilityName" {
   type: "spell"          // spell | skill | passive | ultimate
   class: "mage"          // optional class restriction
@@ -426,7 +426,7 @@ ability "AbilityName" {
 
 ### Minimal example
 
-```holoscript
+```hs
 ability "fireball" {
   type: "spell"
   stats: {
@@ -505,7 +505,7 @@ dialogue "dialog_id" {
 
 ### Minimal example
 
-```holoscript
+```holo
 composition "TavernScene" {
 
   dialogue "greta_greeting" {
@@ -630,7 +630,7 @@ state_machine "BossPhases" {
 
 ### Minimal example
 
-```holoscript
+```hs
 state_machine "DoorFSM" {
   initial: "closed"
 
@@ -664,7 +664,7 @@ becomes truthy. An optional `progress` expression tracks partial completion.
 
 ### Syntax
 
-```holoscript
+```hs
 achievement "AchievementName" {
   description: "Defeat 100 enemies."
   points: 50
@@ -702,7 +702,7 @@ achievement "AchievementName" {
 
 ### Minimal example
 
-```holoscript
+```hs
 achievement "first_blood" {
   description: "Win your first combat encounter."
   points: 10
@@ -830,7 +830,7 @@ block defines items that always drop regardless of roll.
 
 ### Syntax
 
-```holoscript
+```hs
 loot_table goblin_drops {          // name can be bare identifier or quoted string
   entry common_coin {
     item: "gold_coin"
@@ -884,7 +884,7 @@ loot_table goblin_drops {          // name can be bare identifier or quoted stri
 
 ### Minimal example
 
-```holoscript
+```hs
 loot_table cave_chest {
   entry gold { item: "gold_coin" qty: "5..20" weight: 70 }
   entry gem  { item: "ruby"      qty: 1       weight: 10 rarity: "rare" }
@@ -902,7 +902,7 @@ loot_table cave_chest {
 
 ### Syntax
 
-```holoscript
+```hs
 spawn_point village_entry {        // name can be bare identifier or quoted
   faction: "neutral"               // free-form faction tag
   max_count: 10                    // max concurrent entities at this point
@@ -924,7 +924,7 @@ Any other `key: value` pairs are collected in `properties` for runtime use.
 
 ### Minimal example
 
-```holoscript
+```hs
 spawn_point main_spawn {
   faction: "alliance"
   max_count: 20
@@ -944,7 +944,7 @@ factions trigger it.
 
 ### Syntax
 
-```holoscript
+```hs
 game_trigger dungeon_entrance {
   radius: 3                              // detection sphere radius in metres
   faction_filter: ["alliance", "neutral"]
@@ -975,7 +975,7 @@ Any other `key: value` pairs are collected in `properties`.
 
 ### Minimal example
 
-```holoscript
+```hs
 game_trigger boss_room_entry {
   radius: 5
   on_enter {
@@ -994,7 +994,7 @@ or a `move` behavior action.
 
 ### Syntax
 
-```holoscript
+```hs
 movement_path patrol_route {
   mode: "patrol"                         // patrol | follow | path | orbit | snap
   loop: true
@@ -1023,7 +1023,7 @@ Any other `key: value` pairs are collected in `properties`.
 
 ### Minimal example
 
-```holoscript
+```hs
 movement_path guard_beat {
   mode: "patrol"
   loop: true
@@ -1042,7 +1042,7 @@ leaves, `on_deactivate` handlers run. An optional `cooldown` prevents rapid re-f
 
 ### Syntax
 
-```holoscript
+```hs
 reaction_trigger on_player_enter_shrine {
   target: "player"                       // entity type or id
   condition: "player.level >= 5"         // optional guard expression string
@@ -1072,7 +1072,7 @@ Any other `key: value` pairs are collected in `properties`.
 
 ### Minimal example
 
-```holoscript
+```hs
 reaction_trigger door_proximity {
   target: "player"
   cooldown: 1.0
@@ -1095,7 +1095,7 @@ sub-block for load/unload radii and memory budgets.
 
 ### Syntax
 
-```holoscript
+```holo
 world_chunk dockside {
   priority: "high"                       // high | medium | low | number
   biome: "coastal_urban"
@@ -1133,7 +1133,7 @@ Any other `key: value` pairs are collected in `properties`.
 
 ### Minimal example
 
-```holoscript
+```holo
 world_chunk forest_north {
   priority: "medium"
   biome: "temperate_forest"
@@ -1159,7 +1159,7 @@ same composition. An unknown quest is a compile error.
 
 ### Syntax
 
-```holoscript
+```holo
 // Visible AFTER completing the quest
 world_layer post_awakening {
   requires_quest: "main_chapter_1"
@@ -1188,7 +1188,7 @@ Any other `key: value` pairs are collected in `properties`.
 
 ### Minimal example
 
-```holoscript
+```holo
 quest "rescue_the_keeper" {
   objectives: [{ id: "rescue", description: "Free the keeper", type: "interact", target: "keeper_cage" }]
   rewards: { experience: 200 }
@@ -1212,7 +1212,7 @@ The `completion_quest` is compile-validated against declared quests.
 
 ### Syntax
 
-```holoscript
+```hs
 dungeon_instance shadowfen_keep {
   max_instances: 10            // concurrent instance cap
   party_size: 5                // players per instance
@@ -1238,7 +1238,7 @@ Any other `key: value` pairs are collected in `properties`.
 
 ### Minimal example
 
-```holoscript
+```hs
 dungeon_instance goblin_warren {
   max_instances: 20
   party_size: 3
@@ -1262,7 +1262,7 @@ Neighbor names are compile-validated: all `neighbors` entries must refer to othe
 
 ### Syntax
 
-```holoscript
+```holo
 world_shard north_province {
   min: [-1000, 0, -1000]      // AABB minimum corner [x, y, z]
   max: [0, 256, 1000]         // AABB maximum corner [x, y, z]
@@ -1294,7 +1294,7 @@ Any other `key: value` pairs are collected in `properties`.
 
 ### Minimal example
 
-```holoscript
+```holo
 world_shard city_center {
   min: [-500, 0, -500]
   max: [500, 200, 500]
@@ -1318,7 +1318,7 @@ world_shard city_east_district {
 
 The following composition shows all game construct types together in a single scene:
 
-```holoscript
+```holo
 composition "AdventureZone" {
 
   // ── World structure ──────────────────────────────────────────────────────

@@ -277,7 +277,7 @@ HoloScript auto-selects mobile shaders for Quest:
 
 **ASTC Settings:**
 
-```holoscript
+```hs
 material {
   texture_compression: "astc_6x6"  // Good balance
   // or "astc_4x4" (higher quality, larger)
@@ -324,7 +324,7 @@ Window > Rendering > Occlusion Culling
 
 **Simplified Collision:**
 
-```holoscript
+```hs
 collision {
   type: "box"  // Not "mesh" (too expensive)
   layer: "Default"
@@ -333,7 +333,7 @@ collision {
 
 **Fixed Timestep:**
 
-```holoscript
+```hs
 performance {
   fixed_timestep: 0.0111  // 90 Hz physics
 }
@@ -345,7 +345,7 @@ performance {
 
 Enable hand tracking for controller-free interaction:
 
-```holoscript
+```hs
 hand_tracking#both_hands @quest_feature {
   enabled: true
 
@@ -376,7 +376,7 @@ hand_tracking#both_hands @quest_feature {
 
 Toggle passthrough for mixed reality:
 
-```holoscript
+```hs
 passthrough#mr_mode @quest3_feature {
   enabled: false
 
@@ -416,7 +416,7 @@ void TogglePassthrough()
 
 Visualize play area boundaries:
 
-```holoscript
+```hs
 guardian#boundary @quest_feature {
   visualization {
     enabled: true
@@ -495,7 +495,7 @@ void Update()
 
 Realistic hand collision with physics:
 
-```holoscript
+```hs
 controller#left_hand {
   physics_hand {
     enabled: true

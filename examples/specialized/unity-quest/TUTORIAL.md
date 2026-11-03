@@ -6,7 +6,7 @@ Learn how to build optimized VR experiences for Meta Quest using HoloScript and 
 
 ### 1. Platform Configuration
 
-```holoscript
+```hs
 platform_config#quest {
   @unity_target {
     platform: "android"
@@ -34,7 +34,7 @@ platform_config#quest {
 
 ### 2. Unity XR Origin (Player Rig)
 
-```holoscript
+```hsplus
 player#xr_rig @unity_xr_toolkit {
   unity_components: ["XROrigin", "CharacterController"]
 
@@ -126,7 +126,7 @@ controller#left_hand @vr @unity_xr {
 
 ### 4. Mobile Shader Optimization
 
-```holoscript
+```hs
 material {
   base_color: #90ee90
   metallic: 0.0
@@ -153,7 +153,7 @@ material {
 
 ### 5. Grabbable Objects (XR Grab Interactable)
 
-```holoscript
+```hs
 object#box @grabbable @unity_xr_interactable {
   unity_components: ["XRGrabInteractable", "Rigidbody"]
 
@@ -196,7 +196,7 @@ object#box @grabbable @unity_xr_interactable {
 
 ### 6. XR Simple Interactable (Buttons/Targets)
 
-```holoscript
+```hs
 object#target @interactive @unity_xr_interactable {
   unity_components: ["XRSimpleInteractable"]
 
@@ -232,7 +232,7 @@ object#target @interactive @unity_xr_interactable {
 
 ### 7. Teleportation System
 
-```holoscript
+```hsplus
 teleport_system @unity_xr {
   unity_components: ["TeleportationProvider"]
 
@@ -289,7 +289,7 @@ object#ground {
 
 ### 9. Baked Lighting (Quest Optimization)
 
-```holoscript
+```hs
 lighting {
   mode: "baked"              // NOT realtime
   lightmap_resolution: 512   // Lower for Quest
@@ -320,7 +320,7 @@ lighting {
 
 #### Hand Tracking
 
-```holoscript
+```hs
 hand_tracking#both_hands @quest_feature {
   enabled: true
 
@@ -336,7 +336,7 @@ hand_tracking#both_hands @quest_feature {
 
 #### Passthrough (Mixed Reality)
 
-```holoscript
+```hs
 passthrough#mr_mode @quest3_feature {
   enabled: false
 
@@ -353,7 +353,7 @@ passthrough#mr_mode @quest3_feature {
 
 #### Foveated Rendering (Quest 3 Eye Tracking)
 
-```holoscript
+```hs
 foveated_rendering @quest3_feature {
   enabled: true
 
@@ -448,7 +448,7 @@ foveated_rendering @quest3_feature {
 
 Build for both Quest and PCVR from one .holo file:
 
-```holoscript
+```hs
 export#unity_quest {
   target: "unity"
   platform: "quest"
@@ -466,7 +466,7 @@ export#unity_pcvr {
 
 Map custom controls with Unity Input System:
 
-```holoscript
+```hs
 input_actions {
   jump: "primarybutton"
   crouch: "secondarybutton"
@@ -476,7 +476,7 @@ input_actions {
 
 ### Physics Optimization
 
-```holoscript
+```hs
 physics {
   fixed_timestep: 0.0111  // 90 Hz physics
   max_substeps: 2         // Limit for performance

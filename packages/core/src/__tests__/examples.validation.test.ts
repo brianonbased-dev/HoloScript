@@ -213,7 +213,7 @@ describe('Examples Validation', () => {
         const content = readFileSync(tutorialPath, 'utf-8');
 
         // Should have fenced code blocks
-        expect(content).toMatch(/```holoscript/);
+        expect(content).toMatch(/```(holoscript|holo|hsplus|hs)\b/);
       });
 
       it(`${example.name} TUTORIAL should have "Best Practices" or "Workflow" section`, () => {

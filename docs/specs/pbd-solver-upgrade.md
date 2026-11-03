@@ -124,7 +124,7 @@ Resolution control: `resolution_scale` parameter (default 0.5 = half-res).
 
 ### Phase 4: @fluid Trait (Week 3)
 
-```holoscript
+```holo
 object Ocean {
   @fluid {
     type: "liquid"

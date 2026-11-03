@@ -4,7 +4,7 @@ Put everything together — build a complete, multiplayer, accessible VR gallery
 
 ## Your full scene:
 
-```holoscript
+```hsplus
 @manifest {
   title: "HoloScript Gallery"
   version: "1.0.0"

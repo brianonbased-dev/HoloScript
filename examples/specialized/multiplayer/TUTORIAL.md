@@ -6,7 +6,7 @@ Learn how to build networked VR experiences with HoloScript's multiplayer system
 
 ### 1. Network Manager
 
-```holoscript
+```hs
 network_manager#multiplayer @photon {
   app_id: "YOUR_PHOTON_APP_ID"
   region: "us"  // us, eu, asia, jp, etc.
@@ -24,7 +24,7 @@ network_manager#multiplayer @photon {
 
 ### 2. Lobby System
 
-```holoscript
+```hs
 ui#lobby_screen {
   room_list_view {
     on_room_discovered(room_info) {
@@ -59,7 +59,7 @@ ui#lobby_screen {
 
 ### 3. Networked Player Rig
 
-```holoscript
+```hsplus
 player#vr_rig @networked @photon_view {
   network_id: auto  // Assigned by network
   ownership: "mine"  // This player controls this rig
@@ -111,7 +111,7 @@ player#vr_rig @networked @photon_view {
 
 ### 4. Network Ownership
 
-```holoscript
+```hs
 object#cube @grabbable @networked {
   network_id: auto
   ownership: "request"  // Request from current owner
@@ -173,7 +173,7 @@ object#ball @networked {
 
 ### 6. RPCs (Remote Procedure Calls)
 
-```holoscript
+```hs
 // Send RPC to all players
 button#ring_bell {
   on_click {
@@ -206,7 +206,7 @@ on_hit_target() {
 
 ### 7. Voice Chat
 
-```holoscript
+```hs
 voice_chat#player_voice @photon_voice {
   enabled: true
   codec: "opus"  // High quality, low bandwidth
@@ -247,7 +247,7 @@ voice_chat#player_voice @photon_voice {
 
 ### 8. Shared Whiteboard
 
-```holoscript
+```hs
 object#whiteboard @networked @drawable {
   network_id: "whiteboard_1"
   ownership: "shared"  // Multiple users can draw
@@ -294,7 +294,7 @@ object#whiteboard @networked @drawable {
 
 ### 9. Synchronized Video Player
 
-```holoscript
+```hs
 object#video_screen @networked {
   network_id: "video_player"
   ownership: "master_client"
@@ -340,7 +340,7 @@ object#video_screen @networked {
 
 ### 10. Network Callbacks
 
-```holoscript
+```hs
 on_connected_to_server() {
   log: "Connected to Photon"
   show_lobby()
@@ -431,7 +431,7 @@ on_disconnected(reason) {
 
 **Optimization**:
 
-```holoscript
+```hs
 transform_sync {
   send_rate: 15  // Lower for distant players
   position_threshold: 0.02  // 2cm deadzone
@@ -453,7 +453,7 @@ transform_sync {
 - **Master client authority**: Critical state (scores, rules)
 - **Cheat detection**: Server-side validation
 
-```holoscript
+```hs
 on_rpc("SpawnObject", sender, params) {
   // Validate
   if (!sender.is_master_client) {
@@ -482,7 +482,7 @@ on_rpc("SpawnObject", sender, params) {
 
 ### Custom Properties (Sync Variables)
 
-```holoscript
+```hs
 player#vr_rig @networked {
   // Synced properties
   health: 100
@@ -504,7 +504,7 @@ player#vr_rig @networked {
 
 ### Late Joiners (State Sync)
 
-```holoscript
+```hs
 on_player_joined(player) {
   if (network_is_master_client) {
     // Send full room state to new player
@@ -528,7 +528,7 @@ on_rpc("SyncGameState", sender, params) {
 
 ### Buffered RPCs (Persistent Events)
 
-```holoscript
+```hs
 // RPC persists for late joiners
 send_rpc_all_buffered: "SetGameMode", ["team_deathmatch"]
 

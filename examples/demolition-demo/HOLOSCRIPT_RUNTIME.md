@@ -56,7 +56,7 @@ scene.createExplosion({ position: { x: 0, y: 5, z: 0 }, force: 1000 });
 
 ### ✅ HoloScript Way (Declarative → Runtime)
 
-```holoscript
+```holo
 // demolition.holo
 composition ExplosiveDemolition {
   scene {

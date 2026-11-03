@@ -89,7 +89,7 @@ export interface MQTTSinkConfig {
 
 ### Runtime Integration
 
-```holoscript
+```hsplus
 sensor#temperature {
   @mqtt_source(
     broker: "mqtt://localhost:1883",

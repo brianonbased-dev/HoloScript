@@ -105,7 +105,7 @@ holoscript compile furniture-catalog.holo --target arcore --output ./output/andr
 
 ### AR Session Setup (Lines 19-58)
 
-```holoscript
+```hs
 ar_session#furniture_preview @mobile @markerless {
   mode: "world_tracking"
   plane_detection: "horizontal"
@@ -123,7 +123,7 @@ Configures the AR session for furniture placement with environmental understandi
 
 ### Product Catalog (Lines 62-176)
 
-```holoscript
+```hs
 catalog#furniture_items {
   category "Living Room" {
     product#modern_sofa @furniture @interactive {
@@ -169,7 +169,7 @@ Handles placement validation and spawning furniture at tap location.
 
 ### Gesture Controls (Lines 239-298)
 
-```holoscript
+```hs
 behavior#placed_furniture_controls {
   on_horizontal_swipe {
     rotate_furniture: { axis: "y", smooth: true }
@@ -196,7 +196,7 @@ Implements intuitive touch gestures for manipulation.
 
 ### Product Configuration UI (Lines 357-467)
 
-```holoscript
+```hs
 ui#config_panel @floating @contextual {
   position: "above_furniture"
   visible: furniture_selected
@@ -221,7 +221,7 @@ Floating UI panel for configuring placed furniture.
 
 ### Environmental Lighting (Lines 632-670)
 
-```holoscript
+```hs
 ar_lighting#environment_match @auto {
   light_estimation: true
 
@@ -273,7 +273,7 @@ Matches virtual furniture lighting to real-world environment.
 
 ### Adding New Products
 
-```holoscript
+```hs
 product#new_item @furniture @interactive {
   id: "ITEM-XXX"
   name: "Product Name"
@@ -291,7 +291,7 @@ product#new_item @furniture @interactive {
 
 Update UI colors and fonts (lines 302-356):
 
-```holoscript
+```hs
 ui#catalog_panel @bottom_sheet {
   background: #ffffff  // Your brand color
   border_radius: { top_left: 20, top_right: 20 }
@@ -306,7 +306,7 @@ ui#catalog_panel @bottom_sheet {
 
 Modify gesture handlers (lines 239-298):
 
-```holoscript
+```hs
 on_pinch_gesture {
   scale_furniture: {
     min_scale: 0.3,  // Smaller minimum
@@ -317,7 +317,7 @@ on_pinch_gesture {
 
 ### Integration with E-Commerce Platform
 
-```holoscript
+```hs
 button#add_to_cart {
   on_tap {
     // Call your e-commerce API
@@ -344,7 +344,7 @@ Track user behavior:
 - Material variant preferences
 - Cart abandonment rates
 
-```holoscript
+```hs
 on_furniture_placed {
   track_event: {
     event: "ar_placement",
@@ -430,7 +430,7 @@ on_furniture_placed {
 
 ### Accessibility
 
-```holoscript
+```hs
 settings {
   haptic_feedback: true  // Vibration for touch events
   audio_feedback: true   // Sounds for placement/removal

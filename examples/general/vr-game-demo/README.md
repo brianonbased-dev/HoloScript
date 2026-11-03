@@ -84,7 +84,7 @@ holoscript compile target-practice.holo --target vrchat --output ./output/vrchat
 
 ### Weapon System (Lines 98-198)
 
-```holoscript
+```hs
 weapon#pistol @firearm @physics {
   stats {
     damage: 25
@@ -155,7 +155,7 @@ system#spawner @game_system {
 
 ### Game State Machine (Lines 619-662)
 
-```holoscript
+```hs
 game_state_machine {
   state#main_menu {
     on_start_button_pressed {
@@ -240,7 +240,7 @@ target#boss @enemy @boss {
 
 ### Adjusting Difficulty
 
-```holoscript
+```hs
 game_settings {
   difficulty_levels: {
     nightmare: {
@@ -263,7 +263,7 @@ game_settings {
 
 ### Graphics Settings
 
-```holoscript
+```hs
 settings {
   graphics_quality: "high"
   shadow_quality: "medium"  // Shadows are expensive

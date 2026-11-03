@@ -43,7 +43,7 @@ New directives that allow objects to expose themselves to AI perception.
 - `@detectable`: Object broadcasts its semantic tags to AI agents.
 - `@affordance`: Object declares how it _can_ be used (e.g., "sit", "grasp").
 
-```holoscript
+```hs
 // Object that teaches AI how to use it
 chair#wooden @detectable @affordance {
     tags: ["furniture", "seat"]

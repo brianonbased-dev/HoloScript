@@ -277,7 +277,7 @@ messenger.on('message', async (msg) => {
 
 Here's a complete team communication setup:
 
-```holoscript
+```holo
 composition "TeamWorkspace" {
   config {
     communication: {

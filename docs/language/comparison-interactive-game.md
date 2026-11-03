@@ -12,7 +12,7 @@ The same target practice game implemented in all three formats - demonstrates st
 
 ## `.hs` - Basic Format (Limited)
 
-```holoscript
+```holo
 // Cannot implement game logic in .hs
 
 object "Target1" {
@@ -39,7 +39,7 @@ object "ScoreText" {
 
 ## `.hsplus` - Extended Format (Full Implementation)
 
-```holoscript
+```holo
 composition "TargetPracticeGame" {
   // State management
   state {
@@ -186,7 +186,7 @@ composition "TargetPracticeGame" {
 
 ## `.holo` - Advanced Format (VR Version)
 
-```holoscript
+```holo
 composition TargetPracticeGameVR {
   // Game controller entity
   entity GameController {

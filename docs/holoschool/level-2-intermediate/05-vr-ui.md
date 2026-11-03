@@ -55,7 +55,7 @@ orb hud_panel {
 
 ### Labels
 
-```holoscript
+```hs
 label "score_text" {
   text: "Score: 0"
   font_size: 0.05
@@ -67,7 +67,7 @@ label "score_text" {
 
 ### Buttons
 
-```holoscript
+```hs
 button "start_btn" {
   text: "Start Game"
   width: 0.2
@@ -88,7 +88,7 @@ button "start_btn" {
 
 ### Sliders
 
-```holoscript
+```hs
 slider "volume_slider" {
   label: "Volume"
   min: 0.0
@@ -105,7 +105,7 @@ slider "volume_slider" {
 
 ### Toggle / Checkbox
 
-```holoscript
+```hs
 toggle "shadows_toggle" {
   label: "Enable Shadows"
   checked: true
@@ -119,7 +119,7 @@ toggle "shadows_toggle" {
 
 ### Image
 
-```holoscript
+```hs
 image "logo" {
   src: "textures/logo.png"
   width: 0.15
@@ -130,7 +130,7 @@ image "logo" {
 
 ## Layouts
 
-```holoscript
+```hs
 ui {
   layout: "vertical"   // or "horizontal", "grid"
   gap: 0.01
@@ -142,7 +142,7 @@ ui {
 
 ### Grid Layout
 
-```holoscript
+```hs
 ui {
   layout: "grid"
   columns: 3
@@ -214,7 +214,7 @@ orb info_tooltip {
 
 ## Accessibility
 
-```holoscript
+```hs
 orb accessible_panel {
   @ui_panel
   @accessible

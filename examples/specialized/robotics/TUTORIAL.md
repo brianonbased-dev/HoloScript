@@ -6,7 +6,7 @@ Learn how to define robots with HoloScript and export to ROS2/Gazebo.
 
 ### 1. Robot Definition
 
-```holoscript
+```hs
 robot#ur5_arm @industrial @6dof {
   name: "Universal Robots UR5"
   specs {
@@ -21,7 +21,7 @@ robot#ur5_arm @industrial @6dof {
 
 ### 2. Links (Rigid Bodies)
 
-```holoscript
+```hs
 link#base_link @fixed {
   visual {
     geometry: "cylinder"
@@ -47,7 +47,7 @@ link#base_link @fixed {
 
 ### 3. Joints (Connections)
 
-```holoscript
+```hsplus
 joint#shoulder_pan @revolute {
   parent: "base_link"
   child: "shoulder_link"
@@ -73,7 +73,7 @@ joint#shoulder_pan @revolute {
 
 ### 4. End Effectors
 
-```holoscript
+```hsplus
 gripper#two_finger @parallel_jaw {
   parent: "tool0"
 
@@ -97,7 +97,7 @@ gripper#two_finger @parallel_jaw {
 
 ### 5. Sensors
 
-```holoscript
+```hs
 sensor#wrist_camera @rgb_camera {
   parent: "wrist_2_link"
 
@@ -115,7 +115,7 @@ sensor#wrist_camera @rgb_camera {
 
 ### 6. Inverse Kinematics
 
-```holoscript
+```hs
 ik_solver#arm_ik @kdl {
   chain: ["base_link", "shoulder_link", ..., "tool0"]
   algorithm: "TRAC_IK"
@@ -135,7 +135,7 @@ ik_solver#arm_ik @kdl {
 
 ### 7. Path Planning
 
-```holoscript
+```hs
 path_planner#moveit @ompl {
   planner: "RRTConnect"
 
@@ -155,7 +155,7 @@ path_planner#moveit @ompl {
 
 ### 8. URDF Export
 
-```holoscript
+```hs
 export#urdf_export @ros2_compatible {
   target: "urdf"
   output_file: "ur5_robot.urdf"

@@ -27,7 +27,7 @@ A parser extension that enables declarative graphics configuration in HoloScript
 
 **Example Usage:**
 
-```holoscript
+```holo
 composition myMetal {
   position: [0, 0, 0]
   @material {

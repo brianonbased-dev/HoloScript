@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "name": "Affective Proximity Trigger",
+    "description": "Environment reactivity based on agent emotional/brainwave state.",
+    "version": "5.0.0",
+    "author": "HoloScript Core"
+  },
+  "traits": [
+    { "trait": "brainwave_state", "config": { "sensitivity": 0.8 } }
+  ],
+  "entities": [
+    {
+      "id": "lighting_controller",
+      "name": "Ambient Light",
+      "components": [
+        {
+          "type": "script",
+          "source": "\n            on('brainwave:state_change', (payload) => {\n              if (payload.focus > 0.9) {\n                log('State: High Focus. Dimmimg ambient lights.');\n                emit('light:set_intensity', { intensity: 0.2 });\n              } else if (payload.stress > 0.7) {\n                log('State: High Stress. Switching to calming blue.');\n                emit('light:set_color', { color: '#0000ff' });\n              }\n            });\n          "
+        }
+      ]
+    }
+  ]
+}

@@ -21,7 +21,7 @@ This step-by-step tutorial breaks down the `furniture-catalog.holo` example, exp
 
 In HoloScript, AR experiences start with an `ar_session` block:
 
-```holoscript
+```hs
 ar_session#furniture_preview @mobile @markerless {
   mode: "world_tracking"
   plane_detection: "horizontal"
@@ -41,7 +41,7 @@ ar_session#furniture_preview @mobile @markerless {
 
 ### AR Features Configuration
 
-```holoscript
+```hs
 features {
   plane_visualization: true  // Show detected surfaces (debug)
   feature_points: false      // Hide tracking points
@@ -56,7 +56,7 @@ features {
 
 ### Session Lifecycle Events
 
-```holoscript
+```hs
 on_session_start {
   show_instruction: "Point camera at floor or flat surface"
   play_audio: "ar_start_chime.mp3"
@@ -82,7 +82,7 @@ on_plane_detected {
 
 ### Defining Products
 
-```holoscript
+```hs
 catalog#furniture_items {
   category "Living Room" {
     product#modern_sofa @furniture @interactive {
@@ -119,7 +119,7 @@ catalog#furniture_items {
 
 ### Material Variants
 
-```holoscript
+```hs
 materials: [
   { id: "gray_fabric", name: "Charcoal Gray", texture: "sofa_gray.png", price_modifier: 0 },
   { id: "navy_fabric", name: "Navy Blue", texture: "sofa_navy.png", price_modifier: 50 },
@@ -134,7 +134,7 @@ materials: [
 
 ### Placement Settings
 
-```holoscript
+```hs
 placement {
   surface_type: "floor"
   min_area: 4.0  // Minimum 4 square meters
@@ -185,7 +185,7 @@ ar_placement#furniture_placer {
 
 ### Placement Validation
 
-```holoscript
+```hs
 validate_placement {
   check_surface_area: true
   check_lighting: true
@@ -211,7 +211,7 @@ validate_placement {
 
 ### Tap to Place
 
-```holoscript
+```hs
 on_screen_tap {
   if (placement_valid && selected_product) {
     spawn_furniture: {
@@ -242,7 +242,7 @@ on_screen_tap {
 
 ### Tap to Select
 
-```holoscript
+```hs
 on_furniture_tap {
   select_furniture: this
   show_bounding_box: true
@@ -254,7 +254,7 @@ on_furniture_tap {
 
 ### Swipe to Rotate
 
-```holoscript
+```hs
 on_horizontal_swipe {
   rotate_furniture: {
     axis: "y"
@@ -268,7 +268,7 @@ on_horizontal_swipe {
 
 ### Pinch to Scale
 
-```holoscript
+```hs
 on_pinch_gesture {
   scale_furniture: {
     min_scale: 0.5
@@ -286,7 +286,7 @@ on_pinch_gesture {
 
 ### Drag to Move
 
-```holoscript
+```hs
 on_drag_gesture {
   move_furniture: {
     constraint: "horizontal_plane"  // Keep on detected surface
@@ -302,7 +302,7 @@ on_drag_gesture {
 
 ### Swipe Up to Delete
 
-```holoscript
+```hs
 on_vertical_swipe_up {
   show_confirmation: {
     message: "Remove {furniture.name}?"
@@ -328,7 +328,7 @@ on_vertical_swipe_up {
 
 ### Floating UI Panel
 
-```holoscript
+```hs
 ui#config_panel @floating @contextual {
   position: "above_furniture"
   offset_y: 0.5
@@ -350,7 +350,7 @@ ui#config_panel @floating @contextual {
 
 ### Material Selector
 
-```holoscript
+```hs
 grid#material_swatches {
   columns: 3
   gap: 10
@@ -385,7 +385,7 @@ grid#material_swatches {
 
 ### Scale Slider
 
-```holoscript
+```hs
 slider#scale_control {
   position: { y: 30 }
   width: 280
@@ -405,7 +405,7 @@ slider#scale_control {
 
 ### Add to Cart Button
 
-```holoscript
+```hs
 button#add_to_cart {
   position: { y: 320 }
   size: { x: 280, y: 44 }
@@ -431,7 +431,7 @@ button#add_to_cart {
 
 ### Auto-Matching Real-World Light
 
-```holoscript
+```hs
 ar_lighting#environment_match @auto {
   light_estimation: true
 
@@ -460,7 +460,7 @@ ar_lighting#environment_match @auto {
 
 ### Realistic Shadows
 
-```holoscript
+```hs
 shadow_casting {
   enabled: true
   receive_on_planes: true  // Real surfaces receive shadows
@@ -479,7 +479,7 @@ shadow_casting {
 
 ### Cart Data Structure
 
-```holoscript
+```hs
 ui#cart_panel @modal {
   scrollable#cart_items {
     for_each_cart_item {
@@ -523,7 +523,7 @@ ui#cart_panel @modal {
 
 ### E-Commerce API Integration
 
-```holoscript
+```hs
 button#checkout {
   on_tap {
     api_call: {
@@ -605,7 +605,7 @@ export_json: {
 
 ### Share Dialog
 
-```holoscript
+```hs
 show_share_dialog: {
   title: "Share Room Layout"
   message: "Send to email, messaging, or social media"
@@ -621,7 +621,7 @@ show_share_dialog: {
 
 ### Model Optimization
 
-```holoscript
+```hs
 settings {
   model_quality: "high"  // "low", "medium", "high"
   shadow_quality: "medium"
@@ -637,7 +637,7 @@ settings {
 
 ### Mobile-Specific Settings
 
-```holoscript
+```hs
 settings {
   // Performance
   max_placed_items: 20  // Prevent performance issues

@@ -81,7 +81,7 @@ build/[platform]/
 
 [Description of feature 1]
 
-```holoscript
+```hs
 [Code snippet demonstrating feature 1]
 ```
 
@@ -94,7 +94,7 @@ build/[platform]/
 
 [Description of feature 2]
 
-```holoscript
+```hs
 [Code snippet demonstrating feature 2]
 ```
 
@@ -107,7 +107,7 @@ build/[platform]/
 
 [Description of feature 3]
 
-```holoscript
+```hs
 [Code snippet demonstrating feature 3]
 ```
 
@@ -125,13 +125,13 @@ build/[platform]/
 
 ### Basic Configuration
 
-```holoscript
+```hs
 [Configuration example 1]
 ```
 
 ### Advanced Configuration
 
-```holoscript
+```hs
 [Configuration example 2]
 ```
 
@@ -141,7 +141,7 @@ build/[platform]/
 
 [Instructions for customization 1]
 
-```holoscript
+```hs
 [Code snippet]
 ```
 
@@ -149,7 +149,7 @@ build/[platform]/
 
 [Instructions for customization 2]
 
-```holoscript
+```hs
 [Code snippet]
 ```
 
@@ -216,7 +216,7 @@ build/[platform]/
 
 [Description of advanced feature]
 
-```holoscript
+```hs
 [Code snippet]
 ```
 
@@ -229,7 +229,7 @@ build/[platform]/
 
 [Description of advanced feature]
 
-```holoscript
+```hs
 [Code snippet]
 ```
 

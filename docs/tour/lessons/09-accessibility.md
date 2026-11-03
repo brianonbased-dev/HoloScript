@@ -4,7 +4,7 @@ Make your VR scenes usable by everyone with `@accessible` and `@alt_text`.
 
 ## Concept: @accessible, @alt_text
 
-```holoscript
+```hs
 orb "InfoPanel" {
   color: "white"
   scale: [0.8, 0.5, 0.05]
@@ -34,7 +34,7 @@ orb "InfoPanel" {
 
 ## Try it:
 
-```holoscript
+```hs
 orb "Door" {
   color: "#8B4513"
   scale: [1, 2, 0.1]

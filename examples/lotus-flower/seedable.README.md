@@ -218,7 +218,7 @@ sacred. /artist does not flip the gate.
 When `@phyllotaxis` + `instanced_object` parsing lands, the 42 explicit
 `object "Petal Px.y"` blocks become redundant and can be replaced with:
 
-```holoscript
+```hs
 instanced_object "Petals" {
   source_trait: @phyllotaxis
   instance_trait: @lotus_petal

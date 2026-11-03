@@ -111,7 +111,7 @@ samples/compiled/{target}/
 
 ### 1. Simple Cube (`simple-cube.holo`)
 
-```holoscript
+```hsplus
 cube {
   @color(red)
   @position(0, 1, 0)
@@ -123,7 +123,7 @@ cube {
 
 ### 2. Complex Scene (`complex-scene.holo`)
 
-```holoscript
+```hsplus
 scene {
   sphere {
     @color(blue)
@@ -150,7 +150,7 @@ scene {
 
 ### 3. Physics Demo (`physics-demo.holo`)
 
-```holoscript
+```hsplus
 scene {
   sphere {
     @color(red)
@@ -172,7 +172,7 @@ scene {
 
 ### 4. VR Interaction (`vr-interaction.holo`)
 
-```holoscript
+```hsplus
 scene {
   cube {
     @color(blue)

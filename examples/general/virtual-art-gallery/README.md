@@ -113,7 +113,7 @@ Creates a quiet, contemplative museum atmosphere with subtle ambient sound.
 
 ### Language Selection (Lines 84-141)
 
-```holoscript
+```hs
 object#language_selector @interactive {
   ui#language_panel @interactive {
     grid#language_buttons {
@@ -140,7 +140,7 @@ Interactive podium for selecting interface and audio guide language.
 
 ### Interactive Artwork (Lines 188-255)
 
-```holoscript
+```hsplus
 artwork#monet_lilies @interactive @audio_guided {
   position: { x: -7, y: 2.5, z: -6.5 }
   frame_style: "ornate_gold"
@@ -177,7 +177,7 @@ Framed painting with dedicated spotlight and interactive audio guide.
 
 ### 3D Sculpture (Lines 489-550)
 
-```holoscript
+```hsplus
 sculpture#abstract_metal @interactive @3d_artwork {
   model: "abstract_sculpture.glb"
   scale: { x: 2, y: 2, z: 2 }
@@ -234,7 +234,7 @@ Global audio guide system with language substitution and subtitles.
 
 ### VR Navigation (Lines 800-855)
 
-```holoscript
+```hsplus
 camera#player @vr @first_person {
   controller#left_hand @navigation {
     teleport {
@@ -296,7 +296,7 @@ VR teleportation + smooth movement with desktop/mobile fallback.
 
 ### Adding New Artwork
 
-```holoscript
+```hs
 artwork#new_piece @interactive @audio_guided {
   position: { x: X, y: 2.5, z: Z }
   frame_style: "ornate_gold"  // or "simple_wood", "modern_black"
@@ -324,7 +324,7 @@ artwork#new_piece @interactive @audio_guided {
 
 ### Creating New Exhibition Rooms
 
-```holoscript
+```hs
 zone#new_room @navigable @exhibition {
   position: { x: X, z: Z }
 
@@ -360,7 +360,7 @@ walls @static {
 
 Update translations in your localization files:
 
-```holoscript
+```hs
 // en.json
 {
   "MONET_LILIES_DESC": "Series of approximately 250 oil paintings by Claude Monet...",
@@ -384,7 +384,7 @@ Track visitor behavior:
 - Room visitation patterns
 - Language preferences
 
-```holoscript
+```hs
 on_artwork_viewed {
   track_event: {
     event: "artwork_view",
@@ -471,7 +471,7 @@ on_artwork_viewed {
 
 ### Accessibility
 
-```holoscript
+```hs
 settings {
   subtitles_enabled: true
   high_contrast_mode: false

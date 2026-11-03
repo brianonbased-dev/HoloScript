@@ -4,7 +4,7 @@ Complete reference for all event types in `.hsplus` format.
 
 ## Lifecycle Events
 
-```holoscript
+```holo
 template "LifecycleObject" {
   on_create() {
     console.log("Object created");
@@ -34,7 +34,7 @@ template "LifecycleObject" {
 
 ## Collision Events
 
-```holoscript
+```holo
 template "CollisionObject" {
   @collidable
 
@@ -59,7 +59,7 @@ template "CollisionObject" {
 
 ## Trigger Events
 
-```holoscript
+```holo
 template "TriggerZone" {
   @collidable
 
@@ -84,7 +84,7 @@ template "TriggerZone" {
 
 ## Input Events
 
-```holoscript
+```holo
 template "ClickableButton" {
   @interactive
 
@@ -121,7 +121,7 @@ template "ClickableButton" {
 
 ## VR Interaction Events
 
-```holoscript
+```holo
 template "VRGrabbable" {
   @grabbable {
     hand: "both"
@@ -164,7 +164,7 @@ template "VRGrabbable" {
 
 ## Proximity Events
 
-```holoscript
+```holo
 template "ProximitySensor" {
   @proximity {
     radius: 3.0
@@ -192,7 +192,7 @@ template "ProximitySensor" {
 
 ## Gaze Events
 
-```holoscript
+```holo
 template "GazeButton" {
   @gaze_interactive {
     dwell_time: 1.0
@@ -221,7 +221,7 @@ template "GazeButton" {
 
 ## Animation Events
 
-```holoscript
+```holo
 template "AnimatedCharacter" {
   animation: "idle"
 
@@ -255,7 +255,7 @@ template "AnimatedCharacter" {
 
 ## Audio Events
 
-```holoscript
+```holo
 template "AudioPlayer" {
   on_audio_start(event) {
     console.log("Audio started:", event.audioId);
@@ -281,7 +281,7 @@ template "AudioPlayer" {
 
 ## Network Events
 
-```holoscript
+```holo
 template "NetworkedObject" {
   @networked
 

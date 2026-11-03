@@ -34,7 +34,7 @@ Agent choreography enables multiple AI agents to collaborate on complex tasks. U
 
 First, create a registry to manage your agents:
 
-```holoscript
+```holo
 composition "AgentWorkspace" {
   // Configure the agent registry
   config {
@@ -241,7 +241,7 @@ Here's a full example of a multi-agent code review system:
 
 > Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await parallel([` is not live HoloScript.
 
-```holoscript
+```holo
 composition "CodeReviewPipeline" {
   config {
     agent_registry: {

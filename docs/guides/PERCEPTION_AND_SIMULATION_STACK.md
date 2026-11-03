@@ -64,7 +64,7 @@ HoloScript offers **two approaches** to defining perception/simulation:
 
 **Examples:**
 
-```holoscript
+```hs
 // Top-level material (reusable)
 pbr_material "BrushedSteel" @pbr {
   baseColor: #888888
@@ -188,7 +188,7 @@ Physically-based rendering materials with metalness-roughness workflow. Compatib
 
 **When to use:** Simple materials with basic texture maps.
 
-```holoscript
+```hs
 pbr_material "HardwoodFloor" {
   albedo_map: "textures/hardwood_albedo.png"
   normal_map: "textures/hardwood_normal.png"
@@ -254,7 +254,7 @@ pbr_material "WeatheredBrick" @pbr {
 
 **When to use:** Self-illuminating surfaces (UI panels, neon signs, glowing lava).
 
-```holoscript
+```hs
 pbr_material "NeonSign" {
   baseColor: #111111
   roughness: 0.1
@@ -275,7 +275,7 @@ pbr_material "NeonSign" {
 
 **When to use:** Glass, water, holographic overlays.
 
-```holoscript
+```hs
 pbr_material "HologramOverlay" @transparent {
   baseColor: #00ffaa
   opacity: 0.6
@@ -297,7 +297,7 @@ pbr_material "HologramOverlay" @transparent {
 - **Normal map format**: Use `"directx"` (default) — 10% faster than OpenGL on Quest
 - **Channel packing**: Combine roughness + metallic into single texture (R = roughness, G = metallic)
 
-```holoscript
+```hs
 pbr_material "OptimizedQuestMaterial" {
   albedo_map: "textures/quest_albedo_512.png"   // 512×512
   normal_map: "textures/quest_normal_512.png"   // 512×512
@@ -376,7 +376,7 @@ pbr_material "OakHardwood" @pbr {
 
 #### Example 2: Brushed Aluminum (Hero Asset)
 
-```holoscript
+```hs
 pbr_material "BrushedAluminum" @pbr {
   baseColor: #cccccc
   roughness: 0.3
@@ -401,7 +401,7 @@ pbr_material "BrushedAluminum" @pbr {
 
 #### Example 3: Worn Leather (Character Asset)
 
-```holoscript
+```hs
 pbr_material "WornLeather" @pbr {
   baseColor: #5a3a2a
   roughness: 0.7
@@ -471,7 +471,7 @@ Materials with subsurface scattering (SSS) for skin, wax, marble, jade, and tran
 
 **When to use:** Character faces, hands, arms.
 
-```holoscript
+```hs
 subsurface_material "HumanSkin" @sss {
   baseColor: #ddb8a0      // Fair skin tone
   roughness: 0.4          // Slightly matte (skin oils)
@@ -514,7 +514,7 @@ skinMat.SetVector("_DiffusionProfileAsset", skinProfile);
 
 **When to use:** Candles, soap, translucent plastics.
 
-```holoscript
+```hs
 subsurface_material "BeeswaxCandle" @sss {
   baseColor: #fff4e0
   roughness: 0.3
@@ -539,7 +539,7 @@ subsurface_material "BeeswaxCandle" @sss {
 
 **When to use:** Gemstones, translucent minerals.
 
-```holoscript
+```hs
 subsurface_material "Jade" @sss {
   baseColor: #44aa55
   roughness: 0.1   // Polished stone
@@ -563,7 +563,7 @@ subsurface_material "Jade" @sss {
 - Use **screen-space SSS** (cheaper than full volumetric)
 - Reduce `subsurface_radius` by 50% for mobile
 
-```holoscript
+```hs
 // Mobile-optimized skin
 subsurface_material "MobileSkin" @sss {
   subsurface_radius: [0.5, 0.1, 0.05]  // 50% of desktop radius
@@ -585,7 +585,7 @@ subsurface_material "MobileSkin" @sss {
 
 #### Example 1: Photorealistic Skin (AAA Character)
 
-```holoscript
+```hs
 subsurface_material "AAASkin_Fair" @sss {
   // Base PBR
   baseColor: #e5c8b0
@@ -621,7 +621,7 @@ subsurface_material "AAASkin_Fair" @sss {
 
 #### Example 2: Translucent Leaves
 
-```holoscript
+```hs
 subsurface_material "Leaves" @sss {
   baseColor: #55aa33
   roughness: 0.6
@@ -834,7 +834,7 @@ GPU-accelerated particle systems with modular configuration. Supports emission, 
 
 **When to use:** Campfires, torches, forge fires.
 
-```holoscript
+```holo
 particles "CampfireEmbers" @looping {
   rate: 150
   max_particles: 800
@@ -1054,7 +1054,7 @@ particle_system "RainDrops" @looping {
 - **Texture size:** 128×128 for particle sprites
 - **Sorting:** Use `"none"` instead of `"distance"` (5-10% faster)
 
-```holoscript
+```hs
 // Mobile-optimized fire
 particles "MobileEmbers" @looping {
   max_particles: 500  // Reduced from 800
@@ -1354,7 +1354,7 @@ Screen-space post-processing effects for cinematic look, atmospheric effects, an
 
 **When to use:** Narrative experiences, cutscenes, story-driven games.
 
-```holoscript
+```hs
 post_processing "CinematicLook" {
   bloom {
     intensity: 0.8
@@ -1424,7 +1424,7 @@ tonemapping.mode.value = TonemappingMode.ACES;
 
 **When to use:** Outdoor scenes, weather effects, mood lighting.
 
-```holoscript
+```hs
 post_fx "Atmospheric" {
   volumetric_fog {
     density: 0.02
@@ -1470,7 +1470,7 @@ post_fx "Atmospheric" {
 
 **When to use:** Cartoon games, cel-shaded art style, anime-inspired visuals.
 
-```holoscript
+```hs
 render_pipeline "ToonShading" {
   outline {
     width: 2.0
@@ -1515,7 +1515,7 @@ render_pipeline "ToonShading" {
 - **Avoid:** SSR, volumetric fog, motion blur (too expensive)
 - **AA mode:** Use `"FXAA"` (cheapest, ~2ms) instead of TAA
 
-```holoscript
+```hs
 // Mobile-optimized post-processing
 post_processing "QuestOptimized" {
   bloom {
@@ -1550,7 +1550,7 @@ post_processing "QuestOptimized" {
 - **AA mode:** Use `"TAA"` for best quality
 - **Resolution:** Full resolution for all effects
 
-```holoscript
+```hs
 // Desktop VR full-quality
 post_processing "DesktopVR" {
   bloom {
@@ -1746,7 +1746,7 @@ Spatial or global audio emitters with distance attenuation, doppler effect, and 
 
 **When to use:** VR experiences, 3D environments, positional sounds.
 
-```holoscript
+```hs
 audio_source "Waterfall" @spatial @hrtf {
   clip: "sounds/waterfall_loop.ogg"
   volume: 0.8
@@ -1792,7 +1792,7 @@ waterfallSource.Play();
 
 **When to use:** Menu music, background ambience, UI sounds.
 
-```holoscript
+```hs
 audio_source "BackgroundMusic" {
   clip: "sounds/ambient_music.ogg"
   volume: 0.4
@@ -1808,7 +1808,7 @@ audio_source "BackgroundMusic" {
 
 **When to use:** Triggered sounds (footsteps, gunshots, impacts).
 
-```holoscript
+```hs
 sound_emitter "FootstepEmitter" @spatial {
   clip: "sounds/footstep_stone.ogg"
   volume: 0.6
@@ -1838,7 +1838,7 @@ sound_emitter "FootstepEmitter" @spatial {
 - **HRTF:** Use built-in Oculus Spatializer (free, optimized)
 - **Avoid:** High `spread` values (expensive spatialization)
 
-```holoscript
+```hs
 // Mobile-optimized spatial audio
 audio_source "MobileWaterfall" @spatial {
   clip: "sounds/waterfall_mono.ogg"  // Mono audio (required for spatial)
@@ -1869,7 +1869,7 @@ audio_source "MobileWaterfall" @spatial {
 
 #### Example 1: Realistic River Flow
 
-```holoscript
+```hs
 audio_source "RiverFlow" @spatial @hrtf {
   clip: "sounds/river_gentle.ogg"
   volume: 0.65
@@ -1943,7 +1943,7 @@ Spatial volumes that apply room acoustics simulation (reverberation, early refle
 
 **When to use:** Caves, underground tunnels, enclosed stone spaces.
 
-```holoscript
+```hs
 reverb_zone "CaveReverb" {
   preset: "cave"
   min_distance: 5
@@ -1988,7 +1988,7 @@ caveReverb.density = 100f;
 
 **When to use:** Large churches, cathedrals, concert halls.
 
-```holoscript
+```hs
 reverb_zone "CathedralReverb" {
   preset: "cathedral"
   min_distance: 10
@@ -2050,7 +2050,7 @@ Directional wind with turbulence, gusting, and per-object force application.
 
 **When to use:** Outdoor environments, sandstorms, deserts.
 
-```holoscript
+```hs
 wind_zone "DesertWindCorridor" {
   direction: [1, 0.2, 0]  // Mostly horizontal, slight uplift
   strength: 15
@@ -2088,7 +2088,7 @@ Regions with altered gravity (stronger, weaker, reversed, or directional).
 
 **When to use:** Trap zones, hazard areas, black hole effects.
 
-```holoscript
+```hs
 gravity_zone "HeavyGravityPit" @persistent {
   strength: 20         // 2× Earth gravity
   shape: "sphere"
@@ -2193,7 +2193,7 @@ articulation "IndustrialRobotArm" @kinematic {
 
 **When to use:** Interactive objects with physics, audio, and particles.
 
-```holoscript
+```hsplus
 object "InteractiveBarrel" @grabbable @throwable @breakable {
   src: "models/barrel.glb"
   position: [3, 0.5, 1]
@@ -2245,7 +2245,7 @@ object "InteractiveBarrel" @grabbable @throwable @breakable {
 
 **When to use:** Consistent object types (crates, props, pickups).
 
-```holoscript
+```holo
 template "PhysicsCrate" {
   @physics
   @grabbable
@@ -2317,7 +2317,7 @@ From `packages/core/src/compiler/safety/ResourceBudgetAnalyzer.ts`:
 
 Full integrated scene demonstrating all five perception block types.
 
-```holoscript
+```holo
 // ============================================================================
 // Production Scene: Blacksmith's Forge Workshop
 // ============================================================================

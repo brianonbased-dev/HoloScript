@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "name": "Secure Agent Escrow",
+    "description": "Agent-to-agent secure transaction with automated escrow release.",
+    "version": "5.0.0",
+    "author": "HoloScript Core"
+  },
+  "traits": [
+    {
+      "trait": "economy_primitives",
+      "config": { "max_balance": 1000000, "allow_overdraft": false }
+    }
+  ],
+  "entities": [
+    {
+      "id": "escrow_agent",
+      "name": "Escrow Service",
+      "components": [
+        {
+          "type": "script",
+          "source": "\n            on('economy:transaction_request', (payload) => {\n              if (payload.amount > 0) {\n                log(`Escrow: Holding ${payload.amount} BRIAN for ${payload.toId}`);\n                emit('economy:transfer', { \n                  from: payload.fromId, \n                  to: 'escrow_vault', \n                  amount: payload.amount,\n                  metadata: { originalTarget: payload.toId }\n                });\n              }\n            });\n\n            on('escrow:release', (payload) => {\n               log(`Escrow: Releasing funds to ${payload.targetId}`);\n               emit('economy:transfer', { from: 'escrow_vault', to: payload.targetId, amount: payload.amount });\n            });\n          "
+        }
+      ]
+    }
+  ]
+}

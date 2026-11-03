@@ -137,7 +137,7 @@ VRChat SDK > Build & Test > Last Build
 
 VRChat mirrors reflect avatars and environment:
 
-```holoscript
+```hs
 object#mirror @vrchat_mirror {
   unity_components: ["VRC_MirrorReflection"]
 
@@ -165,7 +165,7 @@ object#mirror @vrchat_mirror {
 
 Stream YouTube/Twitch/direct video URLs:
 
-```holoscript
+```hs
 object#video_screen @vrchat_video_player {
   unity_components: ["VRC_AVProVideoPlayer"]
 
@@ -202,7 +202,7 @@ object#video_screen @vrchat_video_player {
 
 Let players try different avatars:
 
-```holoscript
+```hs
 object#avatar_pedestal @vrchat_avatar_pedestal {
   unity_components: ["VRC_AvatarPedestal"]
 
@@ -227,7 +227,7 @@ object#avatar_pedestal @vrchat_avatar_pedestal {
 
 Physics objects players can grab and throw:
 
-```holoscript
+```hs
 object#ball @vrchat_pickup {
   unity_components: ["VRC_Pickup"]
 
@@ -267,7 +267,7 @@ object#ball @vrchat_pickup {
 
 Teleport to other VRChat worlds:
 
-```holoscript
+```hs
 object#portal @vrchat_portal {
   unity_components: ["VRC_PortalMarker"]
 
@@ -290,7 +290,7 @@ object#portal @vrchat_portal {
 
 Udon is VRChat's scripting system (sandboxed C#):
 
-```holoscript
+```hs
 udon_behavior#color_changer {
   program: "ColorChanger"
 
@@ -331,7 +331,7 @@ udon_behavior#color_changer {
 
 **VRChat-specific events:**
 
-```holoscript
+```hs
 udon_behavior {
   on_player_joined(player) {
     // New player joined instance
@@ -361,7 +361,7 @@ udon_behavior {
 
 Send events across network:
 
-```holoscript
+```hs
 udon_behavior {
   function broadcast_message(message) {
     send_custom_network_event: "OnMessageReceived", message
@@ -472,7 +472,7 @@ VRChat SDK > Validation
 
 ### Station (Seated Interaction)
 
-```holoscript
+```hs
 object#chair @vrchat_station {
   unity_components: ["VRC_Station"]
 
@@ -493,7 +493,7 @@ object#chair @vrchat_station {
 
 ### Object Pool (Spawn System)
 
-```holoscript
+```hs
 udon_behavior#object_spawner {
   program: "ObjectPoolSpawner"
 
@@ -514,7 +514,7 @@ udon_behavior#object_spawner {
 
 ### Trigger Zone
 
-```holoscript
+```hs
 object#safe_zone @trigger {
   physics {
     trigger: true

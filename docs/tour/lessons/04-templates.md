@@ -4,7 +4,7 @@ Templates let you define reusable object blueprints.
 
 ## Concept: Reusable definitions
 
-```holoscript
+```holo
 template "Button" {
   color: "blue"
   scale: 0.2
@@ -29,7 +29,7 @@ The spread operator `...Template` copies all template properties.
 
 ## Try it:
 
-```holoscript
+```holo
 template "Gem" {
   scale: 0.15
   @physics { mass: 0.01 }

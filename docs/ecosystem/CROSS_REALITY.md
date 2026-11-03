@@ -21,7 +21,7 @@ Physical  ◄──────────────────────�
 
 ### 1. Adaptive Rendering
 
-```holoscript
+```holo
 composition SharedSpace {
   // Base scene definition
   objects {
@@ -58,7 +58,7 @@ composition SharedSpace {
 
 ### 2. Shared Anchors
 
-```holoscript
+```hsplus
 // Define a persistent spatial anchor
 anchor#table {
   // Physical world position (set during calibration)
@@ -79,7 +79,7 @@ anchor#table {
 
 ### 3. Multi-Device Sync
 
-```holoscript
+```holo
 composition CollaborativeReview {
   @shared_world(
     server: "wss://holoscript.io/sync",
@@ -110,7 +110,7 @@ composition CollaborativeReview {
 
 ### VR Mode
 
-```holoscript
+```hs
 @vr_mode {
   // Full immersion features
   locomotion: "teleport"
@@ -125,7 +125,7 @@ composition CollaborativeReview {
 
 ### AR Passthrough
 
-```holoscript
+```hs
 @ar_passthrough {
   // See-through mixed reality
   occlusion: "depth_sensor"
@@ -139,7 +139,7 @@ composition CollaborativeReview {
 
 ### Mobile AR
 
-```holoscript
+```hs
 @ar_phone {
   // ARCore/ARKit features
   image_tracking: ["markers/logo.png"]
@@ -155,7 +155,7 @@ composition CollaborativeReview {
 
 Allow non-XR users to observe and interact with XR sessions:
 
-```holoscript
+```holo
 composition SpectatorView {
   // Main XR experience
   @vr_mode { ... }
@@ -191,7 +191,7 @@ composition SpectatorView {
 
 Overlay IoT/digital twin data in AR:
 
-```holoscript
+```holo
 composition ARFactoryOverlay {
   @ar_passthrough
 
@@ -237,7 +237,7 @@ composition ARFactoryOverlay {
 
 Connect AR and VR users in the same space:
 
-```holoscript
+```holo
 composition BridgedWorkspace {
   @shared_world
 
@@ -290,7 +290,7 @@ composition BridgedWorkspace {
 
 ### WebRTC for Real-Time
 
-```holoscript
+```hsplus
 @sync_transport(
   protocol: "webrtc",
   ice_servers: ["stun:stun.l.google.com:19302"]
@@ -299,7 +299,7 @@ composition BridgedWorkspace {
 
 ### WebSocket for Reliability
 
-```holoscript
+```hsplus
 @sync_transport(
   protocol: "websocket",
   fallback: true,
@@ -311,7 +311,7 @@ composition BridgedWorkspace {
 
 ### Foveated Rendering
 
-```holoscript
+```hsplus
 @foveated_rendering(
   enabled: true,
   mode: "eye_tracked",  // or "fixed"
@@ -322,7 +322,7 @@ composition BridgedWorkspace {
 
 ### Level of Detail
 
-```holoscript
+```hsplus
 model#complex {
   @lod(
     levels: [
@@ -337,7 +337,7 @@ model#complex {
 
 ### Network Optimization
 
-```holoscript
+```hs
 @network_optimization {
   // Reduce sync frequency for distant objects
   distance_culling: 50,

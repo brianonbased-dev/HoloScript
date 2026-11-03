@@ -39,7 +39,7 @@ Spatial context awareness allows agents to understand:
 
 Add spatial awareness to any agent:
 
-```holoscript
+```holo
 composition "SpatialAgent" {
   template "AwareAgent" {
     @agent {
@@ -270,7 +270,7 @@ const path = spatial.findPath({
 
 > Historical / not accepted as a keyword. compiler-wasm treats `await` as an identifier; `validate=true` is a lie. `await scan(target)` is not live HoloScript.
 
-```holoscript
+```holo
 composition "SecuritySystem" {
   config {
     spatial: {

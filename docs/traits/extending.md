@@ -29,7 +29,7 @@ registerTrait({
 
 Use in HoloScript:
 
-```holoscript
+```hsplus
 sphere {
   @pulse_glow(color=blue, speed=2.0)
 }
@@ -230,7 +230,7 @@ const ParticleTrait: TraitHandler<ParticleConfig> = {
 
 HoloScript syntax:
 
-```holoscript
+```hsplus
 sphere {
   @particles(count=200, color=red, speed=3.0)
 }
@@ -303,7 +303,7 @@ registerTrait<HealthBarConfig>({
 
 Usage:
 
-```holoscript
+```hsplus
 enemy_robot {
   @health_bar(maxHealth=200, showText=true)
   @character

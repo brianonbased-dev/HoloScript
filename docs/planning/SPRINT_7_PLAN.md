@@ -285,7 +285,7 @@ export class CodeSceneSync {
 
 ### Preview Features
 
-```holoscript
+```hsplus
 // Preview annotations
 @preview(
   camera: { position: [0, 2, 5], target: [0, 0, 0] },
@@ -418,7 +418,7 @@ export interface ICollaborationServer {
 
 ### HoloScript Syntax
 
-```holoscript
+```hsplus
 @collaboration(
   enabled: true,
   server: "wss://collab.holoscript.net",
@@ -997,7 +997,7 @@ export class PerformancePanel implements WebviewViewProvider {
 
 ### Dashboard Features
 
-```holoscript
+```hsplus
 // Performance annotations
 @profile(enabled: true)
 scene#benchmark {

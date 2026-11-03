@@ -19,7 +19,7 @@ This step-by-step tutorial breaks down the `workplace-safety.holo` example, expl
 
 Every HoloScript file starts with a `composition` - the top-level container:
 
-```holoscript
+```holo
 composition "WorkplaceSafetyTraining" {
   // All your content goes here
 }
@@ -64,7 +64,7 @@ environment#warehouse @indoor @realistic {
 
 Zones are spatial containers for organizing content:
 
-```holoscript
+```hs
 zone#training_area @navigable @safe_zone {
   floor#concrete @physics {
     material: "concrete_weathered"
@@ -93,7 +93,7 @@ zone#training_area @navigable @safe_zone {
 
 ### Basic Interactive Object
 
-```holoscript
+```hs
 object#wet_floor @hazard @interactive {
   type: "plane"
   texture: "wet_floor.png"
@@ -121,7 +121,7 @@ object#wet_floor @hazard @interactive {
 
 ### Physics-Enabled Objects
 
-```holoscript
+```hs
 object#box_to_lift @physics @interactive {
   type: "cube"
   size: { x: 0.5, y: 0.5, z: 0.5 }
@@ -151,7 +151,7 @@ object#box_to_lift @physics @interactive {
 
 ### Nested Objects
 
-```holoscript
+```hs
 object#forklift @static @industrial {
   model: "forklift.glb"
   position: { x: -10, y: 0, z: 15 }
@@ -186,7 +186,7 @@ object#forklift @static @industrial {
 
 Each training module is a self-contained `zone`:
 
-```holoscript
+```hs
 zone#hazard_station @training_module {
   position: { x: 5, z: 5 }
 
@@ -204,7 +204,7 @@ zone#hazard_station @training_module {
 
 ### Conditional Interactions
 
-```holoscript
+```hs
 object#blocked_exit @hazard @interactive {
   model: "emergency_door.glb"
 
@@ -236,7 +236,7 @@ object#blocked_exit @hazard @interactive {
 
 ### Placement Zones
 
-```holoscript
+```hs
 object#target_shelf @placement_zone {
   type: "cube"
   size: { x: 1, y: 0.05, z: 1 }
@@ -265,7 +265,7 @@ object#target_shelf @placement_zone {
 
 ### Visual Path System
 
-```holoscript
+```hs
 path#training_route @visual_guide {
   waypoints: [
     { x: 0, z: 0, label: "Start" },
@@ -299,7 +299,7 @@ path#training_route @visual_guide {
 
 ### AI Instructor Avatar
 
-```holoscript
+```hsplus
 object#instructor_avatar @ai_guide @always_visible {
   model: "safety_instructor.glb"
   position: { y: 0, z: 2 }
@@ -416,7 +416,7 @@ if (all_modules_complete && player.score >= 50) {
 
 ### Certificate Generation
 
-```holoscript
+```hs
 zone#exit_zone @completion {
   object#certificate_podium @interactive {
     object#certificate @document {
@@ -465,7 +465,7 @@ zone#exit_zone @completion {
 
 ### Celebration Effects
 
-```holoscript
+```hs
 particle_effect#celebration @conditional {
   trigger: "training_complete"
   type: "confetti"
@@ -508,7 +508,7 @@ camera#player_camera @vr @first_person {
 
 ### Desktop/Mobile Fallback
 
-```holoscript
+```hs
 camera#player_camera @vr @first_person {
   // ... VR settings above ...
 
@@ -528,7 +528,7 @@ camera#player_camera @vr @first_person {
 
 ### Settings & Configuration
 
-```holoscript
+```hs
 settings {
   // Language support
   supported_languages: ["en", "es", "zh", "fr"]

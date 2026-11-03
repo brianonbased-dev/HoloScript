@@ -15,10 +15,10 @@ string nor a composition object throws a `TypeError` naming `HS1009`.
 
 ## Two modes, both documented
 
-| Mode | Returns | For |
-| --- | --- | --- |
-| `parseTolerant(src)` | `{ ok: true, ast, diagnostics }` — whatever parsed, plus every diagnostic | Editors, language servers, partial input while typing |
-| `parseStrict(src)` | `{ ok: false, ast: null, diagnostics }` if any diagnostic has severity `error` | CI, compilers, agent-generated code, anything that acts on the result |
+| Mode                 | Returns                                                                        | For                                                                   |
+| -------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| `parseTolerant(src)` | `{ ok: true, ast, diagnostics }` — whatever parsed, plus every diagnostic      | Editors, language servers, partial input while typing                 |
+| `parseStrict(src)`   | `{ ok: false, ast: null, diagnostics }` if any diagnostic has severity `error` | CI, compilers, agent-generated code, anything that acts on the result |
 
 Both modes run the same checks and report the same diagnostics at the same
 places; they differ only in what they return. Tolerant never throws and never
@@ -53,19 +53,19 @@ of its name. Diagnostics about the whole file (`HS1001`, `HS1009`, `HS1010`)
 point at line 1, column 1. Codes are stable: a new check gets a new code in a
 minor release; renaming or removing one is a major release.
 
-| Code | Severity | Means | Example input |
-| --- | --- | --- | --- |
-| `HS1001` | error | Source is empty — nothing but whitespace and comments | `""` |
-| `HS1002` | error | A delimiter never closes, or closes with nothing open | `object Cube {` |
-| `HS1003` | error | A token that cannot start a top-level item | `SELECT * FROM users;` |
-| `HS1004` | error | Tokens exist, nothing parsed into the composition | `this is not holo at all` |
-| `HS1005` | error | A trait with no name, including `@` alone | `{{{@@@` |
-| `HS1006` | warning (both modes; error with `unknownTraits: "error"`) | Trait is in no known vocabulary | `@nope_xyz` |
-| `HS1007` | error | The parser's own error, carried through (the parser's own code is kept when it has one, e.g. HS1005; only the first error on a token is kept) | `object Cube { position: [0, 1, 0]` |
-| `HS1008` | warning | The parser's own warning, carried through | — |
-| `HS1009` | error | Source was not a string | `parse(42)` |
-| `HS1010` | error | The tokenizer or parser threw | — |
-| `HS1011` | error | A likeness source (face, voice, body) without the `.hs` `render_likeness` rule's yes | `object "Ava" { @voice_print(grant: "g") }` |
+| Code     | Severity                                                  | Means                                                                                                                                         | Example input                               |
+| -------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `HS1001` | error                                                     | Source is empty — nothing but whitespace and comments                                                                                         | `""`                                        |
+| `HS1002` | error                                                     | A delimiter never closes, or closes with nothing open                                                                                         | `object Cube {`                             |
+| `HS1003` | error                                                     | A token that cannot start a top-level item                                                                                                    | `SELECT * FROM users;`                      |
+| `HS1004` | error                                                     | Tokens exist, nothing parsed into the composition                                                                                             | `this is not holo at all`                   |
+| `HS1005` | error                                                     | A trait with no name, including `@` alone                                                                                                     | `{{{@@@`                                    |
+| `HS1006` | warning (both modes; error with `unknownTraits: "error"`) | Trait is in no known vocabulary                                                                                                               | `@nope_xyz`                                 |
+| `HS1007` | error                                                     | The parser's own error, carried through (the parser's own code is kept when it has one, e.g. HS1005; only the first error on a token is kept) | `object Cube { position: [0, 1, 0]`         |
+| `HS1008` | warning                                                   | The parser's own warning, carried through                                                                                                     | —                                           |
+| `HS1009` | error                                                     | Source was not a string                                                                                                                       | `parse(42)`                                 |
+| `HS1010` | error                                                     | The tokenizer or parser threw                                                                                                                 | —                                           |
+| `HS1011` | error                                                     | A likeness source (face, voice, body) without the `.hs` `render_likeness` rule's yes                                                          | `object "Ava" { @voice_print(grant: "g") }` |
 
 `HS1003` works from a deliberately short denylist of tokens that cannot begin a
 top-level item in any reading of the grammar. A token missing from that list is
@@ -202,9 +202,10 @@ be compiled this way later.
   layer fix.
 - **Real files that still fail.** Running every tracked `.holo` through core
   and this layer, the only files core accepts and strict refuses (outside this
-  folder's invalid corpus) are JSON-shaped documents (most do not even parse as JSON) saved with a `.holo` extension
+  folder's invalid corpus) were JSON-shaped documents (most did not even parse as JSON) saved with a `.holo` extension
   (`examples/v5.0-hardened/`, some of `examples/v6/`,
-  `packages/studio/holoscript-editor.holo`). Core accepts them as an empty
+  `packages/studio/holoscript-editor.holo`); the ones under `examples/v5.0-hardened/` and
+  `examples/v6/` are now named `.json`. Core accepts such a file as an empty
   composition; `HS1004` is right and core is wrong.
 - **Traits nothing declares get a warning only.** Many real files use traits
   that no vocabulary above declares (`@interactable`, `@reactive`,

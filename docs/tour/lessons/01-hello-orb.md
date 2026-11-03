@@ -6,7 +6,7 @@ Welcome to HoloScript! In this first lesson, you'll create your very first 3D ob
 
 An `orb` is a named 3D composition. The simplest orb looks like this:
 
-```holoscript
+```hs
 orb "MyBox" {
   color: "blue"
 }
@@ -16,7 +16,7 @@ That's it! Three lines and you have a blue box floating in your scene.
 
 ## Try it:
 
-```holoscript
+```hs
 orb "HelloWorld" {
   color: "red"
   scale: 1.5

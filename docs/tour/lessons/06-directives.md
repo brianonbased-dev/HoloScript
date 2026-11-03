@@ -4,7 +4,7 @@ Directives configure your entire scene — metadata, zones, and imports.
 
 ## Concept: @manifest, @zones
 
-```holoscript
+```hs
 @manifest {
   title: "My Gallery"
   version: "1.0.0"
@@ -34,7 +34,7 @@ orb "WelcomeSign" {
 
 ## Try it:
 
-```holoscript
+```hs
 @manifest {
   title: "My First Scene"
   version: "0.1.0"

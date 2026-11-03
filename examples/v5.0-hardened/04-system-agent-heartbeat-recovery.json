@@ -7,12 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('portal:heartbeat_missing', (agentId) => {
-              log(`CRITICAL: Heartbeat missing for ${agentId}. Restarting agent.`);
-              emit('system:respawn', { agentId: agentId });
-            });
-          "
+          "source": "\n            on('portal:heartbeat_missing', (agentId) => {\n              log(`CRITICAL: Heartbeat missing for ${agentId}. Restarting agent.`);\n              emit('system:respawn', { agentId: agentId });\n            });\n          "
         }
       ]
     }

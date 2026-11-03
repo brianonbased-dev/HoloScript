@@ -191,7 +191,7 @@ Detects markdown code fences:
 const validator = new AIValidator({ provider: 'openai' });
 
 // ❌ Invalid: Markdown fences
-```holoscript
+```hsplus
 cube { @color(red) }
 ````
 

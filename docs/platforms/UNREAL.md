@@ -104,7 +104,7 @@ Edit > Project Settings
 
 **HoloScript:**
 
-```holoscript
+```hs
 object#cube @physics @interactive {
   type: "cube"
   mass: 1.0
@@ -262,7 +262,7 @@ Compiles to Unreal Material with PBR nodes.
 
 ### Niagara Particles
 
-```holoscript
+```hs
 particle_effect#explosion {
   type: "burst"
   particle_count: 100
@@ -274,7 +274,7 @@ particle_effect#explosion {
 
 ### Metasounds Audio
 
-```holoscript
+```hs
 audio#3d_sound @positional {
   source: "explosion.wav"
   attenuation: {

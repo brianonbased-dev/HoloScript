@@ -20,7 +20,7 @@ HoloScript's scene graph model maps directly to robotic workspace definitions. T
 
 ### 1. Workspace Definition
 
-```holoscript
+```holo
 composition RobotWorkspace {
   environment {
     type: "industrial"
@@ -64,7 +64,7 @@ composition RobotWorkspace {
 
 ### 2. Collision Avoidance
 
-```holoscript
+```hsplus
 robot#arm {
   @collision_avoidance(
     method: "swept_sphere",
@@ -140,7 +140,7 @@ A production-validated URDF generated from the `TwoDoFRobotArm` composition is a
 
 ### Topic Bindings
 
-```holoscript
+```hsplus
 robot#arm {
   @ros2_subscriber(
     topic: "/joint_states",
@@ -156,7 +156,7 @@ robot#arm {
 
 ### Action Server Integration
 
-```holoscript
+```hsplus
 @ros2_action_client(
   action: "/move_group",
   action_type: "moveit_msgs/MoveGroup"
@@ -176,7 +176,7 @@ action moveTo(target) {
 
 ## Example: Pick-and-Place Cell
 
-```holoscript
+```holo
 composition PickPlaceCell {
   environment {
     type: "industrial"
@@ -241,7 +241,7 @@ composition PickPlaceCell {
 
 ### NVIDIA Isaac Sim
 
-```holoscript
+```hsplus
 @isaac_sim(
   scene: "omniverse://localhost/NVIDIA/Samples/",
   physics_dt: 0.001,
@@ -259,7 +259,7 @@ holoscript compile workspace.holo --target sdf -o gazebo_world/
 
 ### Speed Monitoring
 
-```holoscript
+```hsplus
 robot#arm {
   @speed_monitor(
     max_linear: 1.5,    // m/s
@@ -273,7 +273,7 @@ robot#arm {
 
 ### Emergency Stop
 
-```holoscript
+```hsplus
 @global_estop(
   trigger: "any_collision",
   recovery: "manual"

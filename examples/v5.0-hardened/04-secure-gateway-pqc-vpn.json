@@ -7,12 +7,7 @@
       "components": [
         {
           "type": "script",
-          "source": "
-            on('tunnel:init', (payload) => {
-              log('Establishing Quantum-Resistant VPN tunnel.');
-              emit('zk:prove', { identity: payload.nodeId, challenge: payload.challenge });
-            });
-          "
+          "source": "\n            on('tunnel:init', (payload) => {\n              log('Establishing Quantum-Resistant VPN tunnel.');\n              emit('zk:prove', { identity: payload.nodeId, challenge: payload.challenge });\n            });\n          "
         }
       ]
     }

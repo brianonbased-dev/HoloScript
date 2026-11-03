@@ -42,7 +42,7 @@ environment#gallery @indoor @museum_lighting {
 
 ### Gallery Floor & Walls
 
-```holoscript
+```hsplus
 zone#entrance_hall @navigable {
   floor#marble @physics {
     material: "marble_white_polished"
@@ -73,7 +73,7 @@ zone#entrance_hall @navigable {
 
 ### Museum Lighting System
 
-```holoscript
+```hs
 spatial_group#ceiling_lights {
   repeat(8, x_axis, 2) {
     light#spot @museum_lighting {
@@ -104,7 +104,7 @@ spatial_group#ceiling_lights {
 
 ### Language Selection UI
 
-```holoscript
+```hs
 object#language_selector @interactive {
   model: "info_podium.glb"
 
@@ -145,7 +145,7 @@ object#language_selector @interactive {
 
 ### Localization Pattern
 
-```holoscript
+```hs
 ui#room_label @text {
   text: localize("IMPRESSIONISM_ROOM_TITLE")
   // Returns: "Impressionism: Light and Color" (en)
@@ -180,7 +180,7 @@ lang/
 
 ### Framed Painting with Metadata
 
-```holoscript
+```hs
 artwork#monet_lilies @interactive @audio_guided {
   position: { x: -7, y: 2.5, z: -6.5 }
   frame_style: "ornate_gold"
@@ -213,7 +213,7 @@ artwork#monet_lilies @interactive @audio_guided {
 
 ### Dedicated Artwork Spotlight
 
-```holoscript
+```hs
 light#artwork_spot @focused {
   type: "spot"
   intensity: 2.0
@@ -234,7 +234,7 @@ light#artwork_spot @focused {
 
 ### Information Plaque
 
-```holoscript
+```hs
 object#plaque @interactive {
   type: "plane"
   size: { x: 0.4, y: 0.25 }
@@ -259,7 +259,7 @@ object#plaque @interactive {
 
 ### Proximity & Interaction
 
-```holoscript
+```hs
 on_approach(distance < 2) {
   show_interaction_hint: "Tap for more information"
 }
@@ -362,7 +362,7 @@ ui#audio_controls @floating @bottom {
 
 ### Subtitle Panel
 
-```holoscript
+```hs
 ui#subtitle_panel @floating @bottom {
   position: "bottom_center"
   offset_y: 100  // Above audio controls
@@ -397,7 +397,7 @@ Created during the last thirty years of his life, the works depict Monet's flowe
 
 ### Interactive 3D Sculpture
 
-```holoscript
+```hsplus
 sculpture#abstract_metal @interactive @3d_artwork {
   model: "abstract_sculpture.glb"
   scale: { x: 2, y: 2, z: 2 }
@@ -445,7 +445,7 @@ sculpture#abstract_metal @interactive @3d_artwork {
 
 ### Interactive Digital Art
 
-```holoscript
+```hsplus
 artwork#digital_interactive @interactive @digital_art {
   type: "screen"
   size: { x: 3, y: 2 }
@@ -530,7 +530,7 @@ controller#left_hand @navigation {
 
 ### Smooth Locomotion (Optional)
 
-```holoscript
+```hs
 controller#right_hand @interaction {
   smooth_movement {
     enabled: true
@@ -549,7 +549,7 @@ controller#right_hand @interaction {
 
 ### Desktop/Mobile Fallback
 
-```holoscript
+```hs
 camera#player @vr @first_person {
   // ... VR settings ...
 
@@ -579,7 +579,7 @@ camera#player @vr @first_person {
 
 ### Settings Menu
 
-```holoscript
+```hs
 settings {
   // Language
   supported_languages: ["en", "es", "fr", "de", "zh", "ja"]
@@ -605,7 +605,7 @@ settings {
 
 ### High Contrast Mode
 
-```holoscript
+```hs
 if (settings.high_contrast_mode) {
   walls.material = "pure_white"
   floor.material = "pure_black"
@@ -618,7 +618,7 @@ if (settings.high_contrast_mode) {
 
 ### Colorblind Modes
 
-```holoscript
+```hs
 if (settings.colorblind_mode == "protanopia") {
   // Red-blind: shift reds to orange/brown
   adjust_color_palette: "protanopia_safe"
@@ -627,7 +627,7 @@ if (settings.colorblind_mode == "protanopia") {
 
 ### Reduce Motion
 
-```holoscript
+```hs
 if (settings.reduce_motion) {
   // Disable animations
   disable_all_animations: true
@@ -642,7 +642,7 @@ if (settings.reduce_motion) {
 
 ### Tracking Visitor Behavior
 
-```holoscript
+```hs
 on_artwork_viewed {
   track_event: {
     event: "artwork_view",
@@ -660,7 +660,7 @@ on_artwork_viewed {
 
 ### Engagement Metrics
 
-```holoscript
+```hs
 track_metrics: {
   // Time-based
   total_session_time: session_duration,
@@ -725,7 +725,7 @@ sculpture#detailed_statue {
 
 ### Texture Compression
 
-```holoscript
+```hs
 painting {
   texture: "monet_lilies.jpg"
   compression: "basis_universal"  // Smaller file size, GPU-friendly
@@ -735,7 +735,7 @@ painting {
 
 ### Occlusion Culling
 
-```holoscript
+```hs
 zone#impressionism_room {
   occlusion_culling: true  // Don't render objects behind walls
   frustum_culling: true    // Don't render objects outside camera view

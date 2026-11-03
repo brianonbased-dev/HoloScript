@@ -39,7 +39,7 @@ HoloScript is uniquely positioned to expand beyond VR into IoT, robotics, and di
 
 > **Note**: Since this roadmap was written (February 2026), substantial implementation has occurred. Use [docs/NUMBERS.md](../NUMBERS.md) for live counts, and use the evidence paths below for capability status.
 
-```holoscript
+```hsplus
 // Digital Twin & IoT traits (ALREADY EXIST)
 sensor#temp @sensor @digital_twin @data_binding {
   @alert(threshold: 85)
@@ -104,7 +104,7 @@ HoloScript → WasmEdge (IoT Edge Runtime)
 
 #### Example Output
 
-```holoscript
+```hs
 @wot_thing
 device#thermostat @sensor {
   @property temperature: number
@@ -156,7 +156,7 @@ Physical Device ←→ HoloScript Twin ←→ Cloud Platform
 
 #### Example
 
-```holoscript
+```holo
 composition "RobotArm" @urdf_export {
   link#base @static { mass: 10.0 }
 

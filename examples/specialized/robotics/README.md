@@ -146,7 +146,7 @@ ros2 topic pub /joint_commands std_msgs/Float64MultiArray \
 
 ### Modify Robot Parameters
 
-```holoscript
+```hs
 robot#ur5_arm @industrial @6dof {
   specs {
     reach: 850  // Change reach
@@ -158,7 +158,7 @@ robot#ur5_arm @industrial @6dof {
 
 ### Add Custom End Effector
 
-```holoscript
+```hs
 tool#vacuum_gripper @suction {
   parent: "tool0"
 
@@ -179,7 +179,7 @@ tool#vacuum_gripper @suction {
 
 ### Add Sensors
 
-```holoscript
+```hs
 sensor#lidar @laser_scan {
   parent: "wrist_2_link"
 

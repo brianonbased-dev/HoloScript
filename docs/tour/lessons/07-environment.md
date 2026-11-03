@@ -4,7 +4,7 @@ Set up the world around your objects — lighting, sky, and fog.
 
 ## Concept: Lighting, skybox
 
-```holoscript
+```holo
 environment "DaytimeForest" {
   skybox: "forest_day.hdr"
   ambientColor: "#b0c4d8"
@@ -31,7 +31,7 @@ environment "DaytimeForest" {
 
 ## Try it:
 
-```holoscript
+```holo
 environment "Night" {
   skybox: "starry_night.hdr"
   ambientColor: "#0a0a2e"

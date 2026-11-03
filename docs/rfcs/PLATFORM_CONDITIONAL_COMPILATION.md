@@ -53,7 +53,7 @@ Today's approaches:
 
 The `@platform()` decorator enables **compile-time conditional compilation**:
 
-```holoscript
+```holo
 // Single composition with platform-specific sections
 composition "AdaptiveMuseumTour" {
   // Shared state (compiled everywhere)
@@ -113,7 +113,7 @@ composition "AdaptiveMuseumTour" {
 
 Target a specific platform:
 
-```holoscript
+```hsplus
 @platform(visionos)
 object "OrnamentPanel" {
   // Only compiled when target is visionos
@@ -124,7 +124,7 @@ object "OrnamentPanel" {
 
 Target all platforms in a category:
 
-```holoscript
+```hsplus
 @platform(vr)
 object "ImmersiveAvatar" {
   // Compiled for quest3, pcvr, visionos, android-xr
@@ -155,7 +155,7 @@ wearable        watchos, wearos
 
 Use comma-separated values to target multiple platforms or categories:
 
-```holoscript
+```hsplus
 @platform(quest3, android-xr)
 object "XRHandMenu" {
   // Compiled only for Quest 3 and Android XR
@@ -176,7 +176,7 @@ object "SpatialCursor" {
 
 Use the `not:` prefix to exclude platforms:
 
-```holoscript
+```hsplus
 @platform(not: web)
 object "NativeOnlyFeature" {
   // Compiled for every platform EXCEPT web
@@ -192,7 +192,7 @@ object "FullInteractionModel" {
 
 Platform decorators can be applied at multiple levels:
 
-```holoscript
+```hsplus
 // Root level: decorates entire objects
 @platform(vr)
 object "VROnlyObject" { ... }
@@ -416,7 +416,7 @@ Each compiler extends `CompilerBase` and receives a pre-filtered AST containing 
 
 This example demonstrates a spatial menu system that adapts its input modality per platform:
 
-```holoscript
+```holo
 composition "AdaptiveSpatialMenu" {
 
   // ── Shared State (all platforms) ────────────────────────────────
@@ -578,7 +578,7 @@ compositions/
 
 **museum-tour-vr.holo** (duplicates shared state/logic):
 
-```holoscript
+```holo
 composition "MuseumTourVR" {
   @state {
     currentExhibit: "lobby"
@@ -607,7 +607,7 @@ composition "MuseumTourVR" {
 
 **museum-tour-mobile.holo** (duplicates shared state/logic):
 
-```holoscript
+```holo
 composition "MuseumTourMobile" {
   @state {
     currentExhibit: "lobby"
@@ -653,7 +653,7 @@ compositions/
 
 **museum-tour.holo** (platform-conditional sections):
 
-```holoscript
+```holo
 composition "MuseumTour" {
 
   // ── Shared State (compiled to ALL platforms) ────────────────────
@@ -789,7 +789,7 @@ holoscript compile --target web compositions/museum-tour.holo
 
 **Before** (separate files):
 
-```holoscript
+```holo
 // vr-scene.holo
 object "Logo" {
   mesh: cube
@@ -805,7 +805,7 @@ object "Logo" {
 
 **After** (conditional):
 
-```holoscript
+```hsplus
 object "Logo" {
   mesh: cube
 
@@ -823,14 +823,14 @@ Use platform categories instead of listing individual platforms:
 
 **Before**:
 
-```holoscript
+```hsplus
 @platform(quest3, pcvr, visionos, android-xr)
 object "VRHandMenu" { ... }
 ```
 
 **After**:
 
-```holoscript
+```hsplus
 @platform(vr)
 object "VRHandMenu" { ... }
 ```
@@ -839,7 +839,7 @@ object "VRHandMenu" { ... }
 
 Use `not:` to define fallback behaviors:
 
-```holoscript
+```hsplus
 // Default behavior (all platforms except automotive/wearable)
 @platform(not: automotive, wearable)
 object "FullFeatureMenu" {
@@ -957,7 +957,7 @@ export interface HoloInteraction {
 
 **Input HoloScript**:
 
-```holoscript
+```hsplus
 @platform(vr)
 object "VRMenu" {
   position: [0, 1, 0]

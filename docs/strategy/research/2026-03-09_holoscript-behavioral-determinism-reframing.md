@@ -35,7 +35,7 @@ The determinism isn't just one flavor. Because HoloScript operates across THREE 
 
 In classic `.hs` prototyping, the contract is step-by-step procedural certainty:
 
-```holoscript
+```hs
 function throw_sequence {
   execute mold_clay
   connect pressure_sensor to wheel
@@ -46,7 +46,7 @@ function throw_sequence {
 
 This is where the strongest determinism mechanisms live. Combining reactive state machines with network sync targets:
 
-```holoscript
+```hsplus
 @networked_object(sync_rate: "20hz", authority: "server")
 @state_machine(states: ["idle", "active"], transitions: ["idle -> active"])
 object Defibrillator { ... }
@@ -58,7 +58,7 @@ The `@state_machine` makes the frame problem tractable by explicitly enumerating
 
 Compositions act as governed experience documents enforcing macro-level compliance:
 
-```holoscript
+```holo
 template OperatingRoom {
   environment { gravity: 9.8, physics_substeps: 4 }
   logic { enforce_sterile_field() }

@@ -143,7 +143,7 @@ holoscript plugin add @myorg/holoscript-plugin-physics-advanced
 
 ### In HoloScript source
 
-```holoscript
+```hs
 // .holoscript/workspace.json
 {
   "plugins": [

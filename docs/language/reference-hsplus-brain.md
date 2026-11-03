@@ -346,7 +346,7 @@ brain GuardCaptainBrain : @behavior_tree {
 
 Brains defined in `.hsplus` are attached to entities in `.holo` compositions using the `@brain` annotation:
 
-```holoscript
+```hs
 npc "GuardCaptain" {
   @brain GuardCaptainBrain
   position: [0, 1, -15]
@@ -355,7 +355,7 @@ npc "GuardCaptain" {
 
 Multiple NPCs can share the same brain declaration; each instance gets its own runtime state:
 
-```holoscript
+```hs
 npc "Guard1" {
   @brain GuardCaptainBrain
   position: [0, 1, -5]

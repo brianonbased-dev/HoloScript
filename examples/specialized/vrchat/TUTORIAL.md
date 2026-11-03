@@ -6,7 +6,7 @@ Learn how to build VRChat worlds with HoloScript, VRChat SDK3, and Udon# scripti
 
 ### 1. VRChat World Configuration
 
-```holoscript
+```holo
 vrchat_world#config @vrchat_sdk3 {
   world_name: "Social Hub - HoloScript Demo"
   author: "Your Name"
@@ -67,7 +67,7 @@ for i in range(8) {
 
 ### 3. VRChat Mirror
 
-```holoscript
+```hs
 object#mirror @vrchat_mirror {
   unity_components: ["VRC_MirrorReflection"]
 
@@ -305,7 +305,7 @@ object#ball @vrchat_pickup {
 
 ### 7. Portals (World Teleport)
 
-```holoscript
+```hs
 object#portal @vrchat_portal {
   unity_components: ["VRC_PortalMarker"]
 
@@ -332,7 +332,7 @@ object#portal @vrchat_portal {
 
 ### 8. Udon# Variables & Networking
 
-```holoscript
+```hs
 udon_behavior#color_changer {
   program: "ColorChanger"
 
@@ -382,7 +382,7 @@ udon_behavior#color_changer {
 
 ### 9. Udon Custom Network Events (RPC)
 
-```holoscript
+```hs
 udon_behavior#notification_system {
   function broadcast_notification(message) {
     // Send to all clients (including self)
@@ -412,7 +412,7 @@ udon_behavior#notification_system {
 
 ### 10. Udon Player Events
 
-```holoscript
+```hs
 udon_behavior#player_tracker @global {
   variables {
     player_count: 0
@@ -487,7 +487,7 @@ udon_behavior#player_tracker @global {
 - Limit network sync rate (not every frame)
 - Cache component references in `on_start()`
 
-```holoscript
+```hs
 udon_behavior {
   variables {
     cached_renderer: null
@@ -526,7 +526,7 @@ udon_behavior {
 
 ### Trigger Zones
 
-```holoscript
+```hs
 object#safe_zone @trigger {
   type: "box"
   size: { x: 10, y: 5, z: 10 }
@@ -584,7 +584,7 @@ object#chair @vrchat_station {
 
 ### Object Sync (Late Joiners)
 
-```holoscript
+```hs
 udon_behavior#persistent_state {
   synced_variables {
     persistent_data: {}

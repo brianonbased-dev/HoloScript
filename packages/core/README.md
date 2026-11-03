@@ -118,7 +118,7 @@ HoloScript v4.1 adds five production-ready language features. See [LANGUAGE_FEAT
 
 ### Trait Composition
 
-```holoscript
+```hs
 // Compose multiple traits into one named trait
 @HoverVehicle = @physics + @navmesh + @propulsion
 @Warrior = @combat + @inventory + @stats
@@ -143,7 +143,7 @@ const result = composer.compose('Warrior', handlers, ['combat', 'inventory', 'st
 
 ### Reactive State
 
-```holoscript
+```hs
 @state {
   hp: 100,
   shield: 50,
@@ -172,7 +172,7 @@ effect(() => console.log('HP changed:', state.hp));
 
 ### Gaussian Splat Trait
 
-```holoscript
+```hs
 @gaussian_splat {
   source: "./assets/scene.ply",
   quality: "ultra",
