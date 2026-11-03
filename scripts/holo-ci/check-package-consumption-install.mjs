@@ -15,6 +15,9 @@
  *
  *   node scripts/holo-ci/check-package-consumption-install.mjs --package @holoscript/absorb-service \
  *     [--npm 10.9.2,11.6.2] [--receipt <path>]
+ *
+ * The receipt defaults to <os tmpdir>/holoscript-receipts/ (outside the repo and .scratch),
+ * like the other tmpdir-based holo-ci gates. Pass --receipt <path> to keep it elsewhere.
  */
 import { execFileSync, spawnSync } from 'node:child_process';
 import crypto from 'node:crypto';
@@ -216,9 +219,8 @@ const receipt = {
 const receiptPath = arg(
   'receipt',
   path.join(
-    ROOT,
-    '.scratch',
-    'receipts',
+    os.tmpdir(),
+    'holoscript-receipts',
     `consumption-${target.replace(/[@/]/g, '_')}-${head.slice(0, 10)}.json`
   )
 );
