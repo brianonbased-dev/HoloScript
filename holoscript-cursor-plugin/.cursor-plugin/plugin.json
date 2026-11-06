@@ -1,0 +1,11 @@
+{
+  "name": "holoscript",
+  "description": "Skills and rules for writing HoloScript .holo, .hsplus and .hs files, based on the examples HoloScript's parser conformance test accepts.",
+  "version": "0.1.0",
+  "author": {
+    "name": "HoloScript Contributors"
+  },
+  "repository": "https://github.com/brianonbased-dev/HoloScript",
+  "license": "MIT",
+  "keywords": ["holoscript", "holo", "spatial", "3d", "dsl"]
+}

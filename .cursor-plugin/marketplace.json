@@ -1,0 +1,12 @@
+{
+  "name": "holoscript",
+  "owner": {
+    "name": "HoloScript Contributors"
+  },
+  "plugins": [
+    {
+      "name": "holoscript",
+      "source": "holoscript-cursor-plugin"
+    }
+  ]
+}

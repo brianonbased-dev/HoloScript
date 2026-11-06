@@ -1,0 +1,25 @@
+---
+description: HoloScript authoring conventions for .holo, .hs and .hsplus files
+globs: **/*.holo,**/*.hs,**/*.hsplus
+alwaysApply: false
+---
+
+# HoloScript files
+
+- `.holo` is the scene/composition syntax, `.hsplus` the typed semantic-component
+  syntax (modules, templates, traits, reactive state, state machines), and `.hs` the
+  logic syntax. Keep each file in its own surface.
+- In `.holo`, prefer the modern `composition` / `template` / `object` pattern. The
+  `orb` form is legacy: keep it working where it exists, but do not introduce it in
+  new code.
+- Names of compositions, templates and objects are double-quoted strings:
+  `composition "Scene"`, `template "Enemy"`, `object "Crystal" using "Enemy"`.
+- Traits are `@name` annotations, written before the properties of a template or
+  after an object's name: `@grabbable @glowing`.
+- Positions are three-number arrays: `position: [x, y, z]`.
+- Only present syntax as valid when it matches an accepted example. The accepted
+  grammar is defined by the parsers listed in
+  `docs/spec/holoscript-grammar-ssot.md` in the HoloScript repository. Do not copy
+  forms from `docs/language/holoscript-language-spec.md`, which that file marks as
+  non-authoritative history.
+- If you cannot tell whether a form parses, say so ("unknown") rather than guess.
