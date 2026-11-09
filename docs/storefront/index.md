@@ -11,11 +11,11 @@ compilers/tools live here.
 | Crew                    | HoloMesh               | [`crew.md`](./crew.md)                     |
 | Pay                     | HoloProtocol / economy | [`pay.md`](./pay.md)                       |
 
-**Vehicle / breezeway:** `C:/holo-dev/ai-ecosystem/docs/storefront/local.md`
-**Worlds:** `C:/holo-dev/HoloRepo/Hololand/docs/storefront/local.md`
-**Mind:** `C:/holo-dev/ai-ecosystem/docs/storefront/mind.md`
-**Meal kits (paint desk):** `C:/holo-dev/ai-ecosystem/docs/storefront/meal-kits.md`
-**Mall handbook:** `C:/holo-dev/ai-ecosystem/docs/handbooks/holon-storefront.md`
+**Vehicle / breezeway:** `docs/storefront/local.md` in ai-ecosystem
+**Worlds:** `docs/storefront/local.md` in Hololand
+**Mind:** `docs/storefront/mind.md` in ai-ecosystem
+**Meal kits (paint desk):** `docs/storefront/meal-kits.md` in ai-ecosystem
+**Mall handbook:** `docs/handbooks/holon-storefront.md` in ai-ecosystem
 
 Do not dump Land, Mesh, or QR into `README.md` until
 [`github-v1-gate.md`](./github-v1-gate.md) is green.

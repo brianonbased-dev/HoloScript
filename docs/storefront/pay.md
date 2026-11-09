@@ -6,7 +6,7 @@ People own what they make (D.095). Agency that cannot pay or stop is
 decoration.
 
 Index: [`index.md`](./index.md).
-Mall: `C:/holo-dev/ai-ecosystem/docs/handbooks/holon-storefront.md`.
+Mall: `docs/handbooks/holon-storefront.md` in ai-ecosystem.
 
 ---
 

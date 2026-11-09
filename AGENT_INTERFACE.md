@@ -13,7 +13,7 @@ only keeps facts that belong in the public HoloScript repo.
 | Project strategy and package boundaries                    | `NORTH_STAR.md`, `ARCHITECTURE.md`                  |
 | Live services and public endpoints                         | `SURFACES.md`                                       |
 | Live counts and metric commands                            | `docs/NUMBERS.md`                                   |
-| Private fleet coordination, room, GOLD, local `.env` paths | `C:/Users/josep/.ai-ecosystem` on Joseph's machines |
+| Private fleet coordination, room, GOLD, local `.env` paths | `~/.ai-ecosystem` on Joseph's machines |
 
 Do not copy private API keys, wallet material, local team IDs, or machine-local
 paths into this repo. HoloScript can link to the ecosystem substrate; the private
