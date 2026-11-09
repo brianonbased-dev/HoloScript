@@ -157,8 +157,7 @@ export function computeCoverage(root = path.join(REPO_ROOT, 'packages')) {
   // enforced: the gate's verdict stays on `ratio` so this disclosure cannot
   // silently fail a build, and so nobody is tempted to reseed against it.
   const denomSansDesc = native - descriptors + handTsTraits;
-  const ratioSansDescriptors =
-    denomSansDesc <= 0 ? 0 : (native - descriptors) / denomSansDesc;
+  const ratioSansDescriptors = denomSansDesc <= 0 ? 0 : (native - descriptors) / denomSansDesc;
   return {
     native,
     handTsTraits,
