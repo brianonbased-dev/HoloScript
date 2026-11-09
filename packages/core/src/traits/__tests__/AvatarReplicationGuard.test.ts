@@ -72,6 +72,11 @@ const poseEmitOffenders = (sources: Source[]) =>
 const localLeakOffenders = (sources: Source[]) =>
   sources.filter(({ f, src }) => NETWORK.test(src) && LOCAL_LIVE.test(src) && !GATED(src) && !(f in ALLOW)).map((e) => e.f);
 
+// The four whole-repo scans list and read every source under packages/ (16-20 s each alone on
+// the Work laptop). Inside the 4-way sharded core baseline they exceed the 30 s default testTimeout
+// and fail as NEW. A longer timeout changes nothing about what is asserted.
+const REPO_SCAN_TIMEOUT_MS = 180_000;
+
 describe('avatar replication guard', () => {
   it('every replicating file calls avatarRenderAllowed', () => {
     const files = listSourceFiles();
@@ -85,7 +90,7 @@ describe('avatar replication guard', () => {
     }
     expect(offenders, 'replicate avatar state without avatarRenderAllowed').toEqual([]);
     expect(replicating).toBeGreaterThanOrEqual(2); // NetworkedAvatarTrait (core + engine)
-  });
+  }, REPO_SCAN_TIMEOUT_MS);
 
   it('the guard bites: a replicating file without the call is flagged', () => {
     const src = "transport.send(peer, { pose: node.__avatarState.pose });";
@@ -109,11 +114,11 @@ describe('avatar replication guard', () => {
       'packages/engine/src/traits/NetworkedAvatarTrait.ts',
     ]);
     expect(poseEmitOffenders(emitters)).toEqual([]);
-  });
+  }, REPO_SCAN_TIMEOUT_MS);
 
   it('B1: live self-preview events stay local (no network file touches them ungated)', () => {
     expect(localLeakOffenders(sources())).toEqual([]);
-  });
+  }, REPO_SCAN_TIMEOUT_MS);
 
   it.each([
     "context.emit?.('avatar_pose_update', { node, joints });",
@@ -167,5 +172,5 @@ describe('avatar replication guard', () => {
       rmSync(abs, { force: true });
     }
     expect(listSourceFiles()).not.toContain(rel);
-  });
+  }, REPO_SCAN_TIMEOUT_MS);
 });
