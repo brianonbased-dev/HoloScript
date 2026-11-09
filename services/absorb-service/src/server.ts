@@ -1,4 +1,6 @@
 import express from 'express';
+import type { Server } from 'node:http';
+import { pathToFileURL } from 'node:url';
 import cors from 'cors';
 import { writeHealthResponse } from './health.js';
 import { hydrateServiceSecrets } from './boot-secrets.js';
@@ -259,7 +261,7 @@ async function initializeCreditSystem(): Promise<void> {
 // --- Start server ---
 import { requireConfig, REQUIRED_VARS } from '@holoscript/config';
 
-async function start(): Promise<void> {
+export async function start(): Promise<Server> {
   requireConfig([...REQUIRED_VARS.ABSORB_SERVICE], 'absorb-service');
   // HoloKey Phase 2: hydrate LLM/config secrets from the shared vault before any provider is built.
   // Fail-safe — never throws; keys absent from the vault are left as their process.env values.
@@ -281,11 +283,15 @@ async function start(): Promise<void> {
   startBackgroundHealthProbes();
   await initializeCreditSystem();
 
-  const server = app.listen(PORT, () => {
-    console.log(`[absorb-service] Running on http://localhost:${PORT}`);
-    console.log(`[absorb-service] MCP endpoint: http://localhost:${PORT}/mcp`);
-    console.log(`[absorb-service] Discovery: http://localhost:${PORT}/.well-known/mcp`);
-    console.log(`[absorb-service] Health: http://localhost:${PORT}/health`);
+  const server = await new Promise<Server>((resolve, reject) => {
+    const s = app.listen(PORT, () => {
+      console.log(`[absorb-service] Running on http://localhost:${PORT}`);
+      console.log(`[absorb-service] MCP endpoint: http://localhost:${PORT}/mcp`);
+      console.log(`[absorb-service] Discovery: http://localhost:${PORT}/.well-known/mcp`);
+      console.log(`[absorb-service] Health: http://localhost:${PORT}/health`);
+      resolve(s);
+    });
+    s.on('error', reject);
   });
 
   // Graceful shutdown
@@ -308,9 +314,17 @@ async function start(): Promise<void> {
     console.error('[absorb-service] Uncaught exception:', err);
     shutdown('uncaughtException');
   });
+
+  return server;
 }
 
-start().catch((err) => {
-  console.error('[absorb-service] Failed to start:', err);
-  process.exit(1);
-});
+// Production entry (node dist/server.js / docker-entrypoint). Vitest imports must not auto-boot.
+const isDirectRun =
+  typeof process.argv[1] === 'string' && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isDirectRun) {
+  start().catch((err) => {
+    console.error('[absorb-service] Failed to start:', err);
+    process.exit(1);
+  });
+}
