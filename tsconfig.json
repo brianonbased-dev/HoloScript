@@ -13,7 +13,17 @@
     "noEmit": true,
     "allowImportingTsExtensions": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    // Root type-check gate (`pnpm exec tsc --noEmit`) runs right after `pnpm install`, with no
+    // package build. packages/engine/src/** is already part of this program (see "include"), but
+    // the bare specifier '@holoscript/engine/character' resolves through engine's package.json
+    // "exports" to ./dist/character/index.d.ts, which only exists after an engine build, so the
+    // gate failed with TS2307 in packages/mcp-server/src/tools/rig_match_skeleton.ts. Point the
+    // specifier at the source barrel this program already type-checks. Exact specifier only (no
+    // wildcard), so no other import changes; tsup keeps the dependency external (deps first).
+    "paths": {
+      "@holoscript/engine/character": ["./packages/engine/src/character/index.ts"]
+    }
   },
   "include": [
     "packages/core/src/**/*",
