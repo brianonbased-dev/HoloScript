@@ -10,7 +10,11 @@ import {
   type IngestObservedPageResult,
   type ObservedPageExtractInput,
 } from '../ingest/ingestObservedPage';
-import { setKnowledgeExtractionGraph } from './knowledge-extraction-tools';
+import {
+  resolvedOwner,
+  setKnowledgeExtractionGraph,
+  type KnowledgeCallerContext,
+} from './knowledge-extraction-tools';
 
 export interface AbsorbPageExtractReceipt {
   kind: IngestObservedPageResult['kind'];
@@ -30,7 +34,8 @@ export function absorbArgsHavePageExtract(args: Record<string, unknown>): boolea
 }
 
 export async function foldObservedPageIntoAbsorbArgs(
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  ctx?: KnowledgeCallerContext
 ): Promise<
   | { ok: true; args: Record<string, unknown>; pageExtract?: AbsorbPageExtractReceipt }
   | { ok: false; error: string; message: string }
@@ -57,7 +62,17 @@ export async function foldObservedPageIntoAbsorbArgs(
 
   try {
     const ingested = await ingestObservedPage(pageExtractInput);
-    setKnowledgeExtractionGraph(ingested.graph);
+    // workspaceId is caller-chosen: store the page graph under it only for a
+    // verified owner, never as an unowned write that could replace another
+    // tenant's graph.
+    const ownerId = resolvedOwner(ctx);
+    if (ownerId) {
+      setKnowledgeExtractionGraph(
+        ingested.graph,
+        typeof args.workspaceId === 'string' ? args.workspaceId : undefined,
+        ownerId
+      );
+    }
     return {
       ok: true,
       args: {

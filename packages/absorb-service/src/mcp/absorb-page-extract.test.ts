@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { absorbArgsHavePageExtract, foldObservedPageIntoAbsorbArgs } from './absorb-page-extract';
+import { CodebaseGraph } from '../engine/CodebaseGraph';
+import { getActiveGraph, setKnowledgeExtractionGraph } from './knowledge-extraction-tools';
 
 const OBSERVE = {
   operation: 'observe',
@@ -44,6 +46,28 @@ describe('foldObservedPageIntoAbsorbArgs', () => {
       sourceFiles: ['observed-page.holo', 'observed-page.md'],
       holoPartial: false,
     });
+  });
+
+  afterEach(() => setKnowledgeExtractionGraph(null));
+
+  it("an unowned fold cannot overwrite the victim workspace's knowledge graph", async () => {
+    const victim = new CodebaseGraph();
+    setKnowledgeExtractionGraph(victim, 'victim-ws');
+    const folded = await foldObservedPageIntoAbsorbArgs({
+      observe: OBSERVE,
+      workspaceId: 'victim-ws',
+    });
+    expect(folded.ok).toBe(true);
+    expect(getActiveGraph('victim-ws')).toBe(victim);
+  });
+
+  it('an owned fold stores the page graph under that owner only', async () => {
+    await foldObservedPageIntoAbsorbArgs(
+      { observe: OBSERVE, workspaceId: 'ws-o' },
+      { ownerId: 'owner-1' }
+    );
+    expect(getActiveGraph('ws-o', 'owner-1')).not.toBeNull();
+    expect(getActiveGraph('ws-o')).toBeNull();
   });
 
   it('rejects mixing a page extract with a repo root', async () => {

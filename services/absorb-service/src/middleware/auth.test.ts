@@ -75,6 +75,21 @@ describe('authMiddleware', () => {
     }
   });
 
+  it('N: the service key compare is timing-safe and length-safe (no ===); a near-miss key is refused', async () => {
+    const fsm = await import('fs');
+    const src = fsm.readFileSync(new URL('./auth.ts', import.meta.url), 'utf8');
+    expect(src).not.toContain('token === apiKey');
+    process.env.ABSORB_API_KEY = 'test-key-123';
+    mockResolveGitHubToken.mockResolvedValue(null);
+    for (const bad of ['test-key-12', 'test-key-1234', 'test-key-124', '']) {
+      const req = createMockReq({ path: '/api/absorb/scan', headers: { authorization: `Bearer ${bad}` } });
+      const res = createMockRes();
+      const n = vi.fn();
+      await authMiddleware(req, res, n);
+      expect(req.authKind).not.toBe('service');
+    }
+  });
+
   it('authenticates valid Bearer token (API key)', async () => {
     process.env.ABSORB_API_KEY = 'test-key-123';
     const req = createMockReq({
@@ -274,7 +289,7 @@ describe('authMiddleware', () => {
     expect(mockResolveGitHubToken).toHaveBeenCalledWith('ghp_raw_token');
   });
 
-  it('proceeds without userId when X-User-Authorization token is invalid (non-fatal)', async () => {
+  it('#654 N1: an unresolvable X-User-Authorization token is a 401, not an anonymous call', async () => {
     process.env.ABSORB_API_KEY = 'svc-key';
     mockResolveGitHubToken.mockResolvedValue(null); // invalid / expired token
 
@@ -288,13 +303,12 @@ describe('authMiddleware', () => {
     const res = createMockRes();
     await authMiddleware(req, res, next);
 
-    // Request still succeeds — service key auth is valid even without user scope
-    expect(next).toHaveBeenCalled();
-    expect(req.authenticated).toBe(true);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(401);
     expect(req.userId).toBeUndefined();
   });
 
-  it('proceeds without userId when X-User-Authorization resolution throws (non-fatal)', async () => {
+  it('#654 N1: a resolver failure on X-User-Authorization is a 503, not an anonymous call', async () => {
     process.env.ABSORB_API_KEY = 'svc-key';
     mockResolveGitHubToken.mockRejectedValue(new Error('GitHub API down'));
 
@@ -308,8 +322,8 @@ describe('authMiddleware', () => {
     const res = createMockRes();
     await authMiddleware(req, res, next);
 
-    expect(next).toHaveBeenCalled();
-    expect(req.authenticated).toBe(true);
+    expect(next).not.toHaveBeenCalled();
+    expect(res.statusCode).toBe(503);
     expect(req.userId).toBeUndefined();
   });
 

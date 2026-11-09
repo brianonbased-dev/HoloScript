@@ -81,21 +81,76 @@ export const knowledgeExtractionTools: Tool[] = [
 // STATE — shares graph state with graph-rag-tools
 // =============================================================================
 
-let activeGraph: CodebaseGraph | null = null;
-
 /**
- * Set the active graph for knowledge extraction.
- * Called by the absorb pipeline after building the graph.
+ * One graph per workspace (and owner, when the caller knows it). A request for
+ * workspace X only ever sees X's graph: an unknown workspace is an error, never
+ * whichever graph was loaded last (cross-tenant read, #617 set).
+ *
+ * Bounded LRU: at most MAX_KNOWLEDGE_GRAPHS graphs are held; reading or
+ * writing a workspace marks it most recent, and the least recent is dropped.
  */
-export function setKnowledgeExtractionGraph(graph: CodebaseGraph | null): void {
-  activeGraph = graph;
+export const DEFAULT_KNOWLEDGE_WORKSPACE = 'auto';
+export const MAX_KNOWLEDGE_GRAPHS = 64;
+const graphsByWorkspace = new Map<string, CodebaseGraph>();
+
+/** Verified caller identity, supplied by the transport, never by tool args. */
+export interface KnowledgeCallerContext {
+  ownerId?: string | null;
+}
+
+/** The caller's verified owner id, or null when the transport resolved none. */
+export function resolvedOwner(ctx?: KnowledgeCallerContext): string | null {
+  const owner = ctx?.ownerId;
+  return typeof owner === 'string' && owner.trim() ? owner.trim() : null;
+}
+
+function graphKey(workspaceId?: string | null, ownerId?: string | null): string {
+  const ws =
+    typeof workspaceId === 'string' && workspaceId.trim()
+      ? workspaceId.trim()
+      : DEFAULT_KNOWLEDGE_WORKSPACE;
+  const owner = typeof ownerId === 'string' && ownerId.trim() ? ownerId.trim() : '';
+  return JSON.stringify([owner, ws]);
 }
 
 /**
- * Get the active graph (for testing).
+ * Set the graph for one workspace. `null` clears that workspace's graph; with
+ * no workspace and a null graph, every workspace's graph is cleared.
+ * Called by the absorb pipeline after building the graph.
  */
-export function getActiveGraph(): CodebaseGraph | null {
-  return activeGraph;
+export function setKnowledgeExtractionGraph(
+  graph: CodebaseGraph | null,
+  workspaceId?: string | null,
+  ownerId?: string | null
+): void {
+  if (graph === null && workspaceId === undefined && ownerId === undefined) {
+    graphsByWorkspace.clear();
+    return;
+  }
+  const key = graphKey(workspaceId, ownerId);
+  graphsByWorkspace.delete(key);
+  if (!graph) return;
+  graphsByWorkspace.set(key, graph);
+  while (graphsByWorkspace.size > MAX_KNOWLEDGE_GRAPHS) {
+    const oldest = graphsByWorkspace.keys().next().value;
+    if (oldest === undefined) break;
+    graphsByWorkspace.delete(oldest);
+  }
+}
+
+/**
+ * Get one workspace's graph (for testing).
+ */
+export function getActiveGraph(
+  workspaceId?: string | null,
+  ownerId?: string | null
+): CodebaseGraph | null {
+  const key = graphKey(workspaceId, ownerId);
+  const graph = graphsByWorkspace.get(key);
+  if (!graph) return null;
+  graphsByWorkspace.delete(key);
+  graphsByWorkspace.set(key, graph);
+  return graph;
 }
 
 // =============================================================================
@@ -104,7 +159,8 @@ export function getActiveGraph(): CodebaseGraph | null {
 
 export async function handleKnowledgeExtractionTool(
   toolName: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
+  ctx?: KnowledgeCallerContext
 ): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   const respond = (data: unknown) => ({
     content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -122,11 +178,16 @@ export async function handleKnowledgeExtractionTool(
     url: typeof args.url === 'string' ? args.url : undefined,
     title: typeof args.title === 'string' ? args.title : undefined,
   };
+  const workspaceId = typeof args.workspaceId === 'string' ? args.workspaceId : undefined;
+  const ownerId = resolvedOwner(ctx);
   let pageExtract: Awaited<ReturnType<typeof ingestObservedPage>> | undefined;
   if (hasObservedPageExtractInput(pageExtractInput)) {
     try {
       pageExtract = await ingestObservedPage(pageExtractInput);
-      setKnowledgeExtractionGraph(pageExtract.graph);
+      // workspaceId is caller-chosen. Only a verified owner may store under it;
+      // without one the page graph serves this request only, so it can never
+      // overwrite another tenant's workspace graph.
+      if (ownerId) setKnowledgeExtractionGraph(pageExtract.graph, workspaceId, ownerId);
     } catch (error) {
       return respond({
         error: 'page_extract_failed',
@@ -135,6 +196,8 @@ export async function handleKnowledgeExtractionTool(
     }
   }
 
+  const activeGraph =
+    pageExtract && !ownerId ? pageExtract.graph : getActiveGraph(workspaceId, ownerId);
   if (!activeGraph) {
     return respond({
       error: 'No codebase graph loaded. Run absorb_run_absorb first to build the graph.',
@@ -147,7 +210,7 @@ export async function handleKnowledgeExtractionTool(
     maxPerType: typeof args.maxPerType === 'number' ? args.maxPerType : undefined,
     includeSpeculative:
       typeof args.includeSpeculative === 'boolean' ? args.includeSpeculative : undefined,
-    workspaceId: typeof args.workspaceId === 'string' ? args.workspaceId : undefined,
+    workspaceId,
   };
 
   const extractor = new KnowledgeExtractor();

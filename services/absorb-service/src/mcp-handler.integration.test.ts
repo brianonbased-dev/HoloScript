@@ -102,9 +102,12 @@ describe('HoloAbsorb stateless MCP integration', () => {
       (entry: { type?: string }) => entry.type === 'text',
     )?.text;
     const result = JSON.parse(text);
-    expect(result.manifest).toMatchObject({
-      productName: 'HoloAbsorb',
-      officialMcpTool: 'holo_absorb_manifest',
+    // CoS ruling (#617 set): holo_absorb_manifest is a paid tool; an
+    // unauthenticated caller is refused before the handler runs.
+    expect(result).toMatchObject({
+      error: 'forbidden',
+      status: 403,
+      tool: 'holo_absorb_manifest',
     });
   }, 60_000);
 });

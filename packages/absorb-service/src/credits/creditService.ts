@@ -155,17 +155,75 @@ export async function checkBalance(userId: string, requiredCents: number): Promi
 
 // ─── Credit Operations (Atomic) ──────────────────────────────────────────────
 
+/** Thrown by deductCredits when its `guard` refused the charge: nothing was debited. */
+export const CHARGE_GUARD_REFUSED = 'charge_guard_refused';
+export class ChargeGuardRefused extends Error {
+  readonly code = CHARGE_GUARD_REFUSED;
+  constructor(message = 'The charge guard refused this debit; nothing was charged.') {
+    super(message);
+    this.name = 'ChargeGuardRefused';
+  }
+}
+
+export interface DeductOptions {
+  /**
+   * Runs INSIDE the debit's transaction, before the balance update, on the
+   * transaction's own client. Returning false rolls the transaction back and
+   * throws ChargeGuardRefused: nothing is debited and no ledger row is written.
+   * /scan URL imports (#617) use it to confirm, in the same transaction as the
+   * debit, that this request still holds its import claim.
+   */
+  guard?: (tx: DbClient) => Promise<boolean>;
+  /**
+   * Settle a charge for work that already ran (#617 N2): the caller checked
+   * the balance before starting, and the debit lands even if the balance has
+   * since dropped below the price, leaving a negative balance (owed) instead
+   * of handing out the finished work free. Still null with no account row.
+   */
+  allowOverdraft?: boolean;
+}
+
 /**
  * Deduct credits from a user's account. Returns the new balance or null on failure.
  * Uses SQL-level atomic update to prevent race conditions.
+ * With `opts.guard`, the guard, the balance update and the ledger row run in
+ * one transaction (see DeductOptions).
  */
 export async function deductCredits(
   userId: string,
   amountCents: number,
   description: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
+  opts: DeductOptions = {}
 ): Promise<{ balanceCents: number } | null> {
   const db = getDb();
+  if (db && opts.guard) {
+    const guard = opts.guard;
+    // A guarded charge must be atomic with its guard. Without a transaction it
+    // fails closed (not charged) rather than charging unguarded.
+    if (typeof db.transaction !== 'function') {
+      throw new ChargeGuardRefused(
+        'The database client exposes no transaction(); a guarded charge was not made.'
+      );
+    }
+    return await db.transaction(async (tx: DbClient) => {
+      if (!(await guard(tx))) throw new ChargeGuardRefused();
+      return debitOn(tx, userId, amountCents, description, metadata, opts.allowOverdraft === true);
+    });
+  }
+  if (db)
+    return debitOn(db, userId, amountCents, description, metadata, opts.allowOverdraft === true);
+  return debitOn(null, userId, amountCents, description, metadata, false);
+}
+
+async function debitOn(
+  db: DbClient | null,
+  userId: string,
+  amountCents: number,
+  description: string,
+  metadata: Record<string, unknown>,
+  allowOverdraft = false
+): Promise<{ balanceCents: number } | null> {
   if (!db) {
     console.warn('[creditService] Database unavailable — operation skipped. Set DATABASE_URL.');
     return null;
@@ -180,7 +238,9 @@ export async function deductCredits(
       updatedAt: new Date(),
     })
     .where(
-      sql`${creditAccounts.userId} = ${userId} AND ${creditAccounts.balanceCents} >= ${amountCents}`
+      allowOverdraft
+        ? sql`${creditAccounts.userId} = ${userId}`
+        : sql`${creditAccounts.userId} = ${userId} AND ${creditAccounts.balanceCents} >= ${amountCents}`
     )
     .returning({ balanceCents: creditAccounts.balanceCents });
 

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
 import { getDb } from '../db/client.js';
-import { userUuid } from '../middleware/auth.js';
+import { isOrchestratorBilled, setOrchestratorCost, userUuid } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -291,7 +291,7 @@ router.post('/semantic-dedup', async (req: Request, res: Response) => {
     const userId = userUuid(req);
     if (!userId) { res.status(401).json({ error: 'Authentication required', message: 'No user scope (moltbook agents are user-owned; user_id is uuid — a non-uuid/anonymous identity cannot be queried)' }); return; }
     // @ts-ignore - Automatic remediation for TS18046
-    const creditCheck = await requireCredits(userId, 'semantic_dedup');
+    const creditCheck = await (requireCredits as any)(userId, 'semantic_dedup');
     
     // @ts-ignore - Automatic remediation for TS18046
     if (isCreditError(creditCheck)) {
@@ -314,12 +314,18 @@ router.post('/semantic-dedup', async (req: Request, res: Response) => {
     // Similarity > 0.85 = Semantic duplicate
     const isDuplicate = results.length > 0 && results[0].score > 0.85;
 
-    await deductCredits(
+    const debit = await deductCredits(
       userId,
       creditCheck.costCents,
       `Semantic deduplication evaluation`,
       { concept: body.concept.substring(0, 32) }
     );
+    if (!debit) {
+      res.status(402).json({ error: 'Not enough credits for this evaluation.' });
+      return;
+    }
+    // Informational only (absorb is the only biller).
+    if (isOrchestratorBilled(req)) setOrchestratorCost(res, creditCheck.costCents);
 
     res.json({
       isDuplicate,
