@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsup';
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/repository-identity.ts'],
+  entry: ['src/index.ts', 'src/repository-identity.ts', 'src/holokeyd.ts'],
   format: ['esm', 'cjs'],
   dts: true,
   splitting: false,
