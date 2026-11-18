@@ -5,7 +5,7 @@
  * Cache version bumped on each deploy.
  */
 
-const CACHE_NAME = 'holoscript-studio-v1';
+const CACHE_NAME = 'holoscript-studio-v2';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json'];
 
 // Install — pre-cache static assets
