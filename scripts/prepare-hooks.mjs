@@ -6,8 +6,10 @@
  * Skips (one plain line, exit 0) when CI=true, HOLO_SKIP_HOOKS=1, there is no
  * .git at the repo root, or this directory is not the root of a git work tree
  * of this repo (for example when installed as a dependency).
+ *
+ * The no-.git / CI / HOLO_SKIP_HOOKS checks run before any other import, so a
+ * Docker or CI install that copied only this file still exits 0.
  */
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,6 +36,8 @@ if (!fs.existsSync(gitPath)) {
     'Skipping git hook install: no .git at the repo root (installed as a dependency). To install in a git clone: pnpm hooks:install'
   );
 }
+
+const { spawnSync } = await import('node:child_process');
 
 const top = spawnSync('git', ['-C', repoRoot, 'rev-parse', '--show-toplevel'], {
   encoding: 'utf8',

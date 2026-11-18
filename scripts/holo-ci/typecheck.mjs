@@ -25,14 +25,18 @@
  *
  * Pre-commit (--changed) trigger notes:
  *   - Staged paths come from `git -c core.quotepath=off -c diff.renames=false diff --cached
- *     --name-only -z --diff-filter=ACMD` so names with spaces stay unquoted, and a rename is
- *     seen as a delete plus an add (a .ts renamed away still triggers).
- *   - Deletions are included (ACMD): removing a .ts/.tsx can break imports, so Gate 2 still runs.
+ *     --name-only -z --diff-filter=ACMDT` so names with spaces stay unquoted, and a rename is
+ *     seen as a delete plus an add (a .ts renamed away still triggers). Type changes (T,
+ *     for example a file becoming a symlink) are included. Renames are not taken as R because
+ *     diff.renames=false turns them into a delete plus an add.
+ *   - Deletions and type changes are included (ACMDT): removing a .ts/.tsx, or changing its
+ *     type, can break imports, so Gate 2 still runs.
  *   - For packages/studio only, a staged path triggers the type-check when it is a TypeScript
  *     source file (.ts/.tsx/.mts/.cts; .d.ts is covered by .ts) or a tsconfig*.json file.
  *     HTML/CSS/assets and package.json do not. package.json is excluded because this gate's
  *     stated intent is staged source/tsconfig, and a version or script bump should not force
- *     a full studio tsc on an unbuilt tree; CI remains the backstop for export/dep-only edits.
+ *     a full studio tsc on an unbuilt tree. Studio type-check coverage comes from the HoloCI
+ *     studio-typecheck job; nothing in GitHub Actions runs it.
  *     Other ENFORCED packages still trigger on any staged path under the package.
  */
 import { spawn } from 'node:child_process';
@@ -63,7 +67,7 @@ const STAGED_PATHS_GIT_ARGS = [
   '--cached',
   '--name-only',
   '-z',
-  '--diff-filter=ACMD',
+  '--diff-filter=ACMDT',
 ];
 
 function normalizeRepoPath(relPath) {
