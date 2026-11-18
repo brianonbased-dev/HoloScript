@@ -76,4 +76,91 @@ describe('tenant-auth Postgres pool', () => {
     expect(JSON.stringify(call)).not.toContain('secret');
     expect(JSON.stringify(call)).not.toContain('unit-test-host');
   });
+
+  it('logs only the error code and name when the Upstash lookup fails', async () => {
+    delete process.env.DATABASE_URL;
+    process.env.UPSTASH_REDIS_REST_URL = 'https://unit-test-cache.example';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'unit-test-cache-token';
+    const fetchError = Object.assign(
+      new Error(
+        'request to https://unit-test-cache.example/get/apikey:unitTestTenantKey0001 failed'
+      ),
+      { code: 'ECONNRESET' }
+    );
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(fetchError));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { validateTenantKey } = await import('../tenant-auth');
+
+    await expect(validateTenantKey('unitTestTenantKey0001')).resolves.toBeNull();
+
+    const call = warn.mock.calls.find((args) =>
+      String(args[0]).includes('[TenantAuth] Upstash query failed')
+    );
+    expect(call?.slice(1)).toEqual([{ code: 'ECONNRESET', name: 'Error' }]);
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('unitTestTenantKey0001');
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('unit-test-cache');
+    vi.unstubAllGlobals();
+  });
+
+  describe('revokeTenantKeyById', () => {
+    it('marks the row revoked by id', async () => {
+      queryMock.mockResolvedValue({ rows: [{ id: 7, tenant_id: 'tenant_seven', key: 'k' }] });
+      const { revokeTenantKeyById } = await import('../tenant-auth');
+
+      await expect(revokeTenantKeyById(7)).resolves.toEqual({
+        status: 'revoked',
+        id: 7,
+        tenantId: 'tenant_seven',
+        cacheCleared: null,
+      });
+      const [sql, params] = queryMock.mock.calls[0];
+      expect(sql).toContain('SET revoked = true');
+      expect(sql).toContain('WHERE id = $1');
+      expect(params).toEqual([7]);
+    });
+
+    it('reports not_found when no row matches', async () => {
+      queryMock.mockResolvedValue({ rows: [] });
+      const { revokeTenantKeyById } = await import('../tenant-auth');
+      await expect(revokeTenantKeyById(99)).resolves.toEqual({ status: 'not_found' });
+    });
+
+    it('reports unavailable without a database', async () => {
+      delete process.env.DATABASE_URL;
+      const { revokeTenantKeyById } = await import('../tenant-auth');
+      await expect(revokeTenantKeyById(7)).resolves.toEqual({ status: 'unavailable' });
+      expect(queryMock).not.toHaveBeenCalled();
+    });
+
+    it('reports unavailable and logs only code and name when the update fails', async () => {
+      queryMock.mockRejectedValue(
+        Object.assign(new Error('connect failed for postgres://user:secret@unit-test-host/t'), {
+          code: 'ECONNREFUSED',
+        })
+      );
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const { revokeTenantKeyById } = await import('../tenant-auth');
+
+      await expect(revokeTenantKeyById(7)).resolves.toEqual({ status: 'unavailable' });
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('secret');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('unit-test-host');
+    });
+
+    it('clears the cached entry when Upstash is configured', async () => {
+      process.env.UPSTASH_REDIS_REST_URL = 'https://unit-test-cache.example';
+      process.env.UPSTASH_REDIS_REST_TOKEN = 'unit-test-cache-token';
+      queryMock.mockResolvedValue({ rows: [{ id: 7, tenant_id: 'tenant_seven', key: 'abc/def' }] });
+      const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+      vi.stubGlobal('fetch', fetchMock);
+      const { revokeTenantKeyById } = await import('../tenant-auth');
+
+      const result = await revokeTenantKeyById(7);
+
+      expect(result).toMatchObject({ status: 'revoked', cacheCleared: true });
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        'https://unit-test-cache.example/del/apikey:abc%2Fdef'
+      );
+      vi.unstubAllGlobals();
+    });
+  });
 });

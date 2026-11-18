@@ -55,6 +55,59 @@ function tryDevMockTenant(apiKey: string): TenantContext | undefined {
   };
 }
 
+/** The code and name of an error, and nothing else from it. */
+function neutralError(e: unknown): { code?: string; name?: string } {
+  const err = (e ?? {}) as { code?: unknown; name?: unknown };
+  return {
+    code: typeof err.code === 'string' ? err.code : undefined,
+    name: typeof err.name === 'string' ? err.name : undefined,
+  };
+}
+
+export type TenantKeyRevokeResult =
+  | { status: 'revoked'; id: number; tenantId: string; cacheCleared: boolean | null }
+  | { status: 'not_found' }
+  | { status: 'unavailable' };
+
+/**
+ * Revoke one tenant API key by its row id. Marks the Postgres row revoked and,
+ * when Upstash is configured, removes the cached entry so the key cannot
+ * authenticate through the cache either.
+ */
+export async function revokeTenantKeyById(id: number): Promise<TenantKeyRevokeResult> {
+  if (!process.env.DATABASE_URL) return { status: 'unavailable' };
+  let row: { id: number; tenant_id: string; key: string } | undefined;
+  try {
+    if (!pgPool) {
+      pgPool = new Pool(createRailwayPostgresPoolOptions(process.env.DATABASE_URL));
+    }
+    const res = await pgPool.query(
+      'UPDATE api_keys SET revoked = true, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, tenant_id, key',
+      [id]
+    );
+    row = res.rows[0];
+  } catch (e) {
+    console.warn('[TenantAuth] Tenant key revoke failed:', neutralError(e));
+    return { status: 'unavailable' };
+  }
+  if (!row) return { status: 'not_found' };
+
+  let cacheCleared: boolean | null = null;
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    try {
+      const resp = await fetch(
+        `${process.env.UPSTASH_REDIS_REST_URL}/del/apikey:${encodeURIComponent(row.key)}`,
+        { headers: { Authorization: `Bearer ${process.env.UPSTASH_REDIS_REST_TOKEN}` } }
+      );
+      cacheCleared = resp.ok;
+    } catch (e) {
+      console.warn('[TenantAuth] Upstash delete failed:', neutralError(e));
+      cacheCleared = false;
+    }
+  }
+  return { status: 'revoked', id: Number(row.id), tenantId: row.tenant_id, cacheCleared };
+}
+
 /**
  * Validates a dynamic API key against the configured backend store.
  */
@@ -121,7 +174,8 @@ export async function validateTenantKey(
         tenant = JSON.parse(data.result);
       }
     } catch (e) {
-      console.warn('[TenantAuth] Upstash query failed:', e);
+      // Log only the error code and name: the error can carry the request URL.
+      console.warn('[TenantAuth] Upstash query failed:', neutralError(e));
     }
   }
 

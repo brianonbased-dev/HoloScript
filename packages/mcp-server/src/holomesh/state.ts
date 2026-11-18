@@ -549,6 +549,7 @@ const TEAM_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'teams.json');
 const AGENT_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'agents.json');
 const SOCIAL_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'social.json');
 const KEY_REGISTRY_PATH = path.join(HOLOMESH_DATA_DIR, 'keys.json');
+const REVOKED_KEYS_PATH = path.join(HOLOMESH_DATA_DIR, 'revoked-keys.json');
 const HOLODOOR_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'holodoor-store.json');
 const EXPORT_SESSION_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'export-sessions.json');
 const TOKEN_LEDGER_PATH = path.join(HOLOMESH_DATA_DIR, 'token-ledger.json');
@@ -631,22 +632,104 @@ export function persistAgentStore(): void {
   });
 }
 
+// ── Key revocation ───────────────────────────────────────────────────────────
+
+/**
+ * Fingerprints (sha256 hex) of revoked key values. Persisted to
+ * revoked-keys.json, separately from keys.json, so a revocation still holds
+ * when keys.json is missing or unreadable and the registry is re-seeded from
+ * env vars.
+ */
+const revokedKeyFingerprints: Set<string> = new Set();
+/** Keys revoked in this process, by value, with the time of revocation. */
+const pendingRevocations: Map<string, string> = new Map();
+
+function keyFingerprint(key: string): string {
+  return crypto.createHash('sha256').update(key, 'utf8').digest('hex');
+}
+
+/** True when this key value has been revoked (in this process or a previous one). */
+export function isKeyRevoked(key: string): boolean {
+  return pendingRevocations.has(key) || revokedKeyFingerprints.has(keyFingerprint(key));
+}
+
+/**
+ * Revoke one key: drop it from the live registry and record the revocation so
+ * the next persistKeyRegistry() writes it to disk. Callers persist afterwards,
+ * as they already do after any registry change.
+ */
+export function revokeKeyRecord(key: string): void {
+  keyRegistry.delete(key);
+  pendingRevocations.set(key, new Date().toISOString());
+  revokedKeyFingerprints.add(keyFingerprint(key));
+}
+
+/** The record's keyId, assigning one first if it has none yet. */
+export function keyIdOf(record: KeyRecord): string {
+  if (!record.keyId) record.keyId = `key_${crypto.randomUUID().replace(/-/g, '')}`;
+  return record.keyId;
+}
+
+/** Find the single live record with this keyId. */
+export function findKeyRecordById(keyId: string): KeyRecord | undefined {
+  for (const r of keyRegistry.values()) {
+    if (keyIdOf(r) === keyId) return r;
+  }
+  return undefined;
+}
+
+function loadRevokedKeyFingerprints(): void {
+  const data = readJSON(REVOKED_KEYS_PATH);
+  const list: unknown[] = Array.isArray(data?.revoked) ? data.revoked : [];
+  for (const entry of list) {
+    const fp = (entry as { sha256?: unknown })?.sha256;
+    if (typeof fp === 'string' && /^[0-9a-f]{64}$/.test(fp)) revokedKeyFingerprints.add(fp);
+  }
+}
+
+/** Test helper: forget every revocation held in memory. */
+export function _resetKeyRevocationsForTests(): void {
+  revokedKeyFingerprints.clear();
+  pendingRevocations.clear();
+}
+
 /**
  * keys.json is append-only — read existing records, merge new ones, write.
- * Old keys are preserved for audit trail. Rotated keys are never truly deleted
- * from the file (only from the in-memory map).
+ * Old keys are preserved for audit trail. A revoked or rotated-out key stays in
+ * the file but is marked with revokedAt, and its fingerprint is written to
+ * revoked-keys.json, so it is not loaded again on the next start.
  */
 export function persistKeyRegistry(): void {
   const existing = readJSON(KEY_REGISTRY_PATH);
   const existingRecords: KeyRecord[] = existing?.keys || [];
   const merged = new Map<string, KeyRecord>();
   for (const r of existingRecords) merged.set(r.key, r);
-  for (const r of keyRegistry.values()) merged.set(r.key, r);
+  for (const r of keyRegistry.values()) {
+    keyIdOf(r);
+    merged.set(r.key, r);
+  }
+  for (const [key, revokedAt] of pendingRevocations) {
+    if (keyRegistry.has(key)) continue;
+    const r = merged.get(key);
+    if (r && !r.revokedAt) merged.set(key, { ...r, revokedAt });
+  }
   atomicWriteJSON(KEY_REGISTRY_PATH, {
     version: 1,
     keys: Array.from(merged.values()),
     savedAt: new Date().toISOString(),
   });
+  if (revokedKeyFingerprints.size > 0) {
+    const stored = readJSON(REVOKED_KEYS_PATH);
+    const all = new Set<string>(revokedKeyFingerprints);
+    for (const entry of Array.isArray(stored?.revoked) ? stored.revoked : []) {
+      if (typeof entry?.sha256 === 'string') all.add(entry.sha256);
+    }
+    atomicWriteJSON(REVOKED_KEYS_PATH, {
+      version: 1,
+      revoked: Array.from(all).map((sha256) => ({ sha256 })),
+      savedAt: new Date().toISOString(),
+    });
+  }
 }
 
 export function persistSocialStore(): void {
@@ -750,6 +833,10 @@ export function _seedFounderKeysFromEnv(): void {
     const key = (process.env[envVar] || '').trim();
     if (!key || seenKeys.has(key)) continue;
     seenKeys.add(key);
+    if (isKeyRevoked(key)) {
+      console.warn(`[KeyRegistry] Not seeding ${envVar}: that key has been revoked.`);
+      continue;
+    }
     candidates.push({ envVar, key });
   }
 
@@ -833,14 +920,79 @@ export function _markSeededKeysFromEnv(): number {
   return marked;
 }
 
+/**
+ * Founder restriction runs in report-only mode unless HOLOMESH_DEFOUNDER_DRY_RUN
+ * is set to 0 (or false/no/off). Unset means dry run.
+ */
+export function isDefounderDryRun(): boolean {
+  const value = (process.env.HOLOMESH_DEFOUNDER_DRY_RUN ?? '').trim().toLowerCase();
+  return !['0', 'false', 'no', 'off'].includes(value);
+}
+
+/**
+ * Founder authority belongs to one key: the value configured as
+ * HOLOMESH_FOUNDER_KEY. Any other key record or agent record that carries the
+ * founder flag is demoted at load. In dry run it is only reported. Log lines
+ * name the record by id, never by key value.
+ */
+export function _restrictFounderFlag(): { demoted: string[]; dryRun: boolean } {
+  const founderKey = (process.env.HOLOMESH_FOUNDER_KEY || '').trim();
+  const dryRun = isDefounderDryRun();
+  const demoted: string[] = [];
+  let keysChanged = false;
+  let agentsChanged = false;
+
+  const handle = (kind: string, id: string, demote: () => void): void => {
+    demoted.push(id);
+    if (dryRun) {
+      console.warn(`[KeyRegistry] Founder flag: would demote ${kind} ${id} (dry run).`);
+    } else {
+      demote();
+      console.warn(`[KeyRegistry] Founder flag: demoted ${kind} ${id}.`);
+    }
+  };
+
+  for (const r of keyRegistry.values()) {
+    if (r.isFounder !== true || (founderKey && r.key === founderKey)) continue;
+    handle('key record', r.agentId, () => {
+      r.isFounder = false;
+      keysChanged = true;
+    });
+  }
+  for (const a of agentKeyStore.values()) {
+    if (a.isFounder !== true || (founderKey && a.apiKey === founderKey)) continue;
+    handle('agent record', a.id, () => {
+      a.isFounder = false;
+      agentsChanged = true;
+    });
+  }
+
+  if (keysChanged) persistKeyRegistry();
+  if (agentsChanged) persistAgentStore();
+  return { demoted, dryRun };
+}
+
 export async function initStores(): Promise<void> {
+  // Revocations first, so neither the stored records nor the env seeds below
+  // can bring a revoked key back.
+  loadRevokedKeyFingerprints();
+
   // Load Key Registry (must come first — auth depends on it)
   const keyData = readJSON(KEY_REGISTRY_PATH);
   if (keyData?.keys && Array.isArray(keyData.keys) && keyData.keys.length > 0) {
+    let skippedRevoked = 0;
     for (const r of keyData.keys as KeyRecord[]) {
+      if (r.revokedAt || isKeyRevoked(r.key)) {
+        skippedRevoked += 1;
+        continue;
+      }
       keyRegistry.set(r.key, r);
     }
-    console.info(`[KeyRegistry] Loaded ${keyRegistry.size} key record(s)`);
+    console.info(
+      `[KeyRegistry] Loaded ${keyRegistry.size} key record(s)${
+        skippedRevoked > 0 ? `, skipped ${skippedRevoked} revoked` : ''
+      }`
+    );
     // Records written before the marker existed carry no provenance. Stamp them
     // now, while the env values are still the ones they were seeded from.
     _markSeededKeysFromEnv();
@@ -853,10 +1005,13 @@ export async function initStores(): Promise<void> {
   const agentData = readJSON(AGENT_STORE_PATH);
   if (agentData?.agents) {
     for (const a of agentData.agents) {
+      if (typeof a?.apiKey === 'string' && isKeyRevoked(a.apiKey)) continue;
       agentKeyStore.set(a.apiKey, a);
       walletToAgent.set((a.walletAddress || '').toLowerCase(), a);
     }
   }
+
+  _restrictFounderFlag();
 
   // Load Social
   const socialData = readJSON(SOCIAL_STORE_PATH);

@@ -5,8 +5,10 @@
  * All routes under /api/holomesh/admin/* require isFounder=true.
  *
  * POST /api/holomesh/admin/provision          — Create agent with pre-assigned wallet + API key
- * POST /api/holomesh/admin/rotate-key        — Issue new key, same wallet/team/reputation
- * POST /api/holomesh/admin/revoke            — Invalidate all keys for an agent (wallet mapping preserved)
+ * POST /api/holomesh/admin/rotate-key        — Issue new key for one record (key_id, or an agent_id /
+ *                                              wallet_address that matches exactly one record)
+ * POST /api/holomesh/admin/revoke            — Revoke one key by key_id (wallet mapping preserved)
+ * POST /api/holomesh/admin/tenant-keys/revoke — Revoke one tenant API key by its id
  * POST /api/holomesh/admin/deregister        — Fully remove an agent and FREE ITS NAME (reaches
  *                                              publicly self-registered agents that revoke cannot)
  * GET  /api/holomesh/admin/agents            — List all agents — provisioned AND self-registered (no keys exposed)
@@ -22,6 +24,10 @@ import {
   walletToAgent,
   persistKeyRegistry,
   persistAgentStore,
+  revokeKeyRecord,
+  findKeyRecordById,
+  keyIdOf,
+  isDefounderDryRun,
   teamStore,
   persistTeamDurable,
   reloadTeam,
@@ -32,6 +38,7 @@ import { json, parseJsonBody } from '../utils';
 import { resolveRequestingAgent } from '../auth-utils';
 import { recordAdminOperation } from '../admin-operations-audit';
 import { revokeLeasesForAgent } from '../identity/vault-lease-registry';
+import { revokeTenantKeyById } from '../../security/tenant-auth';
 import type { KeyRecord, RegisteredAgent } from '../types';
 
 export async function handleAdminRoutes(
@@ -83,6 +90,14 @@ export async function handleAdminRoutes(
       ? (body.scopes as string[])
       : ['holomesh', 'mcp', 'tools:read'];
     const isFounder = body.is_founder === true;
+    if (isFounder) {
+      // The founder flag belongs to the configured founder key only.
+      if (!isDefounderDryRun()) {
+        json(res, 400, { error: 'is_founder is reserved for the configured founder key' });
+        return true;
+      }
+      console.warn('[KeyRegistry] Founder flag: would refuse is_founder on provision (dry run).');
+    }
     const agentId = `agent_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
     const apiKey = `hs_sk_${crypto.randomUUID().replace(/-/g, '')}`;
 
@@ -99,6 +114,7 @@ export async function handleAdminRoutes(
     };
     keyRegistry.set(apiKey, record);
     persistKeyRegistry();
+    const keyId = keyIdOf(record);
 
     const agent: RegisteredAgent = {
       id: agentId,
@@ -136,6 +152,7 @@ export async function handleAdminRoutes(
     json(res, 201, {
       success: true,
       api_key: apiKey,
+      key_id: keyId,
       agent_id: agentId,
       wallet_address: walletAddress,
       scopes,
@@ -147,22 +164,38 @@ export async function handleAdminRoutes(
   // ── POST /api/holomesh/admin/rotate-key ────────────────────────────────────
   if (pathname === '/api/holomesh/admin/rotate-key' && method === 'POST') {
     const body = await parseJsonBody(req);
+    const keyId = body.key_id as string | undefined;
     const agentId = body.agent_id as string | undefined;
     const walletAddress = body.wallet_address as string | undefined;
 
-    let existingRecord: KeyRecord | undefined;
-    if (agentId) {
-      existingRecord = Array.from(keyRegistry.values()).find((r) => r.agentId === agentId);
+    // Rotate exactly one record. An agent can hold several keys, so agent_id
+    // or wallet_address is accepted only when it matches a single record.
+    let candidates: KeyRecord[] = [];
+    if (keyId) {
+      const found = findKeyRecordById(keyId);
+      candidates = found ? [found] : [];
+    } else if (agentId) {
+      candidates = Array.from(keyRegistry.values()).filter((r) => r.agentId === agentId);
     } else if (walletAddress) {
-      existingRecord = Array.from(keyRegistry.values()).find(
+      candidates = Array.from(keyRegistry.values()).filter(
         (r) => r.walletAddress.toLowerCase() === walletAddress.toLowerCase()
       );
     }
 
-    if (!existingRecord) {
-      json(res, 404, { error: 'Agent not found in key registry. Use agent_id or wallet_address.' });
+    if (candidates.length === 0) {
+      json(res, 404, {
+        error: 'Key record not found in key registry. Use key_id, agent_id or wallet_address.',
+      });
       return true;
     }
+    if (candidates.length > 1) {
+      json(res, 409, {
+        error: 'More than one key record matches. Rotate a single record by key_id.',
+        key_ids: candidates.map((r) => keyIdOf(r)),
+      });
+      return true;
+    }
+    const existingRecord = candidates[0];
 
     const newKey = `hs_sk_${crypto.randomUUID().replace(/-/g, '')}`;
     const now = new Date().toISOString();
@@ -179,10 +212,12 @@ export async function handleAdminRoutes(
       // key held in common by every caller configured with that variable
       // silently becomes one that proves a single agent's identity.
       ...(existingRecord.seededFromEnv ? { seededFromEnv: existingRecord.seededFromEnv } : {}),
+      keyId: `key_${crypto.randomUUID().replace(/-/g, '')}`,
     };
+    const newKeyId = keyIdOf(newRecord);
 
-    // Invalidate old key in memory, insert new key
-    keyRegistry.delete(existingRecord.key);
+    // Revoke the old key (durably, on persist below), insert the new key
+    revokeKeyRecord(existingRecord.key);
     keyRegistry.set(newKey, newRecord);
 
     // Update agent key store
@@ -231,6 +266,7 @@ export async function handleAdminRoutes(
     json(res, 200, {
       success: true,
       new_key: newKey,
+      key_id: newKeyId,
       wallet_address: newRecord.walletAddress,
       agent_id: newRecord.agentId,
       rotation_count: newRecord.rotationCount,
@@ -336,28 +372,34 @@ export async function handleAdminRoutes(
   }
 
   // ── POST /api/holomesh/admin/revoke ────────────────────────────────────────
+  // Revokes ONE key, named by key_id (listed per agent by GET /admin/agents).
+  // An agent can hold several keys, so agent_id alone is not accepted.
   if (pathname === '/api/holomesh/admin/revoke' && method === 'POST') {
     const body = await parseJsonBody(req);
-    const agentId = body.agent_id as string | undefined;
+    const keyId = typeof body.key_id === 'string' ? body.key_id.trim() : '';
 
-    if (!agentId) {
-      json(res, 400, { error: 'agent_id required' });
+    if (!keyId) {
+      json(res, 400, {
+        error: 'key_id required. Key ids are listed per agent by GET /api/holomesh/admin/agents.',
+      });
       return true;
     }
 
-    const matchingEntries = Array.from(keyRegistry.entries()).filter(
-      ([, r]) => r.agentId === agentId
-    );
-
-    if (matchingEntries.length === 0) {
-      json(res, 404, { error: 'Agent not found in key registry' });
+    const record = findKeyRecordById(keyId);
+    if (!record) {
+      json(res, 404, { error: 'Key record not found in key registry' });
       return true;
     }
 
-    for (const [key] of matchingEntries) {
-      keyRegistry.delete(key);
-      agentKeyStore.delete(key);
+    const founderKey = (process.env.HOLOMESH_FOUNDER_KEY || '').trim();
+    if (founderKey && record.key === founderKey) {
+      json(res, 403, { error: 'Refusing to revoke the configured founder key' });
+      return true;
     }
+
+    const agentId = record.agentId;
+    revokeKeyRecord(record.key);
+    agentKeyStore.delete(record.key);
 
     persistKeyRegistry();
     persistAgentStore();
@@ -372,19 +414,60 @@ export async function handleAdminRoutes(
       path: pathname,
       before: {
         agent_id: agentId,
-        keys_to_revoke: matchingEntries.length,
+        key_id: keyId,
+        keys_to_revoke: 1,
       },
       after: {
         agent_id: agentId,
-        revoked_keys: matchingEntries.length,
+        key_id: keyId,
+        revoked_keys: 1,
       },
     });
 
     json(res, 200, {
       success: true,
-      revoked_keys: matchingEntries.length,
+      revoked_keys: 1,
+      key_id: keyId,
       agent_id: agentId,
       note: 'Wallet entry preserved. Re-provision via POST /api/holomesh/admin/provision with the same wallet_address.',
+    });
+    return true;
+  }
+
+  // ── POST /api/holomesh/admin/tenant-keys/revoke ────────────────────────────
+  // Revoke one tenant API key (api_keys table) by its row id. Founder-only via
+  // the guard at the top of this handler.
+  if (pathname === '/api/holomesh/admin/tenant-keys/revoke' && method === 'POST') {
+    const body = await parseJsonBody(req);
+    const id = typeof body.id === 'number' ? body.id : Number(body.id);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      json(res, 400, { error: 'id (positive integer) required' });
+      return true;
+    }
+
+    const result = await revokeTenantKeyById(id);
+    if (result.status === 'unavailable') {
+      json(res, 503, { error: 'Tenant key store unavailable' });
+      return true;
+    }
+    if (result.status === 'not_found') {
+      json(res, 404, { error: 'Tenant key not found' });
+      return true;
+    }
+
+    recordAdminOperation({
+      actor: { agentId: caller.id, agentName: caller.name, wallet: caller.wallet },
+      action: 'tenant_key_revoke',
+      path: pathname,
+      before: { tenant_key_id: id },
+      after: { tenant_key_id: result.id, tenant_id: result.tenantId, revoked: true },
+    });
+
+    json(res, 200, {
+      success: true,
+      id: result.id,
+      tenant_id: result.tenantId,
+      cache_cleared: result.cacheCleared,
     });
     return true;
   }
@@ -462,7 +545,7 @@ export async function handleAdminRoutes(
       });
     }
     for (const [key, r] of keyEntries) {
-      keyRegistry.delete(key);
+      revokeKeyRecord(key);
       agentKeyStore.delete(key);
       if (r.walletAddress) walletToAgent.delete(r.walletAddress.toLowerCase());
       removed.push({
@@ -526,11 +609,17 @@ export async function handleAdminRoutes(
       is_founder?: boolean;
       created_at: string;
       source: 'key_registry' | 'public_register';
+      /** Ids (not values) of every key the agent holds; revoke and rotate take these. */
+      key_ids?: string[];
     }
     const byAgent = new Map<string, AgentRow>();
+    const keyIdsByAgent = new Map<string, string[]>();
 
     // Provisioned agents — dedup by agentId, latest key record wins.
     for (const record of keyRegistry.values()) {
+      const ids = keyIdsByAgent.get(record.agentId) ?? [];
+      ids.push(keyIdOf(record));
+      keyIdsByAgent.set(record.agentId, ids);
       const existing = byAgent.get(record.agentId);
       if (!existing || record.createdAt > existing.created_at) {
         byAgent.set(record.agentId, {
@@ -560,6 +649,7 @@ export async function handleAdminRoutes(
 
     const agents = Array.from(byAgent.values()).map((a) => ({
       ...a,
+      ...(a.source === 'key_registry' ? { key_ids: keyIdsByAgent.get(a.agent_id) ?? [] } : {}),
       removable: a.is_founder !== true,
       // Tokens are never held in this map; nothing to redact.
     }));

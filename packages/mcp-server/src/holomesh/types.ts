@@ -1061,6 +1061,17 @@ export interface KeyRecord {
   /** Founder keys can provision agents, create teams, and access /admin routes */
   isFounder: boolean;
   /**
+   * Stable, non-secret identifier for this record. Admin routes target a single
+   * key by this id, because one agent can hold several keys.
+   */
+  keyId?: string;
+  /**
+   * ISO timestamp at which this key was revoked. keys.json keeps revoked
+   * records for audit; a record carrying this is never loaded back into the
+   * live registry.
+   */
+  revokedAt?: string;
+  /**
    * Name of the env var this record was seeded from on first boot, when it was.
    *
    * A seeded key is a SHARED secret: every holder of that variable's value

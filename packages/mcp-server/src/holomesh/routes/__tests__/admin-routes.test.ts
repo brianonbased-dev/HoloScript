@@ -393,19 +393,19 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
 
   // ── Revoke ──
 
-  it('POST /api/holomesh/admin/revoke removes all keys for an agent', async () => {
+  it('POST /api/holomesh/admin/revoke removes the key named by key_id', async () => {
     const provisioned = await callAdmin('POST', '/api/holomesh/admin/provision', {
       name: 'RevokeBot',
     });
     const agentId = provisioned._body.agent_id;
 
     const res = await callAdmin('POST', '/api/holomesh/admin/revoke', {
-      agent_id: agentId,
+      key_id: provisioned._body.key_id,
     });
 
     expect(res._status).toBe(200);
     expect(res._body.success).toBe(true);
-    expect(res._body.revoked_keys).toBeGreaterThanOrEqual(1);
+    expect(res._body.revoked_keys).toBe(1);
 
     // Key registry should no longer contain the agent
     const remaining = Array.from(keyRegistry.values()).filter((r) => r.agentId === agentId);
@@ -417,7 +417,7 @@ describe('Admin Routes — API Key Rotation Mechanism (P.009.01)', () => {
     const res = await callAdmin(
       'POST',
       '/api/holomesh/admin/revoke',
-      { agent_id: NON_FOUNDER_ID },
+      { key_id: 'key_any' },
       NON_FOUNDER_KEY
     );
     expect(res._status).toBe(403);
