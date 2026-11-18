@@ -49,7 +49,7 @@ const CONCURRENCY = 6;
 
 /** Plain skip line printed by Gate 2 when studio is staged but has no TypeScript trigger. */
 export const STUDIO_GATE2_SKIP_MESSAGE =
-  'Gate 2 skipped: no TypeScript files staged in packages/studio (CI still type-checks).';
+  'Gate 2 skipped: no TypeScript files staged in packages/studio. Nothing else type-checks studio yet, so run pnpm check:studio-typecheck before you push.';
 
 const STUDIO_TYPE_SOURCE = /\.(?:[cm]?ts|tsx)$/i;
 const STUDIO_TSCONFIG = /^tsconfig.*\.json$/i;
