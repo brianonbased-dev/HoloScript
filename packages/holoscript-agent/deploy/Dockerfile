@@ -21,9 +21,9 @@ COPY packages/config/package.json packages/config/
 COPY packages/llm-provider/package.json packages/llm-provider/
 # The agent build emits declarations that import @holoscript/agent-protocol.
 COPY packages/agent-protocol/package.json packages/agent-protocol/
-# Root preinstall and postinstall invoke these. This stage copies only the
-# filtered manifests, so the scripts have to be in the image or pnpm install exits 1.
-COPY scripts/check-pnpm-package-manager.mjs scripts/check-pnpm-install-integrity.mjs scripts/
+# Root preinstall, postinstall, and prepare invoke these. This stage copies only
+# the filtered manifests, so the scripts have to be in the image or pnpm install exits 1.
+COPY scripts/check-pnpm-package-manager.mjs scripts/check-pnpm-install-integrity.mjs scripts/prepare-hooks.mjs scripts/
 RUN pnpm install --filter @holoscript/holoscript-agent --filter @holoscript/secrets-broker --filter @holoscript/config --filter @holoscript/llm-provider --filter @holoscript/agent-protocol --frozen-lockfile
 
 COPY packages/secrets-broker packages/secrets-broker

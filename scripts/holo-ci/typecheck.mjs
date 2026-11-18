@@ -21,6 +21,23 @@
  *   node scripts/holo-ci/typecheck.mjs --package cli   # check one package (any, incl. staged)
  *   node scripts/holo-ci/typecheck.mjs --staged        # report current error counts for STAGED
  *   node scripts/holo-ci/typecheck.mjs --list          # print ENFORCED / STAGED / unenrolled
+ *   node scripts/holo-ci/typecheck.mjs --changed       # pre-commit: only ENFORCED packages with staged changes
+ *
+ * Pre-commit (--changed) trigger notes:
+ *   - Staged paths come from `git -c core.quotepath=off -c diff.renames=false diff --cached
+ *     --name-only -z --diff-filter=ACMDT` so names with spaces stay unquoted, and a rename is
+ *     seen as a delete plus an add (a .ts renamed away still triggers). Type changes (T,
+ *     for example a file becoming a symlink) are included. Renames are not taken as R because
+ *     diff.renames=false turns them into a delete plus an add.
+ *   - Deletions and type changes are included (ACMDT): removing a .ts/.tsx, or changing its
+ *     type, can break imports, so Gate 2 still runs.
+ *   - For packages/studio only, a staged path triggers the type-check when it is a TypeScript
+ *     source file (.ts/.tsx/.mts/.cts; .d.ts is covered by .ts) or a tsconfig*.json file.
+ *     HTML/CSS/assets and package.json do not. package.json is excluded because this gate's
+ *     stated intent is staged source/tsconfig, and a version or script bump should not force
+ *     a full studio tsc on an unbuilt tree. Studio type-check coverage comes from the HoloCI
+ *     studio-typecheck job; nothing in GitHub Actions runs it.
+ *     Other ENFORCED packages still trigger on any staged path under the package.
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -33,6 +50,90 @@ const ROOT = path.resolve(HERE, '..', '..');
 const TSC = path.join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc');
 const TAG = '[typecheck]';
 const CONCURRENCY = 6;
+
+/** Plain skip line printed by Gate 2 when studio is staged but has no TypeScript trigger. */
+export const STUDIO_GATE2_SKIP_MESSAGE =
+  'Gate 2 skipped: no TypeScript files staged in packages/studio. Nothing else type-checks studio yet, so run pnpm check:studio-typecheck before you push.';
+
+const STUDIO_TYPE_SOURCE = /\.(?:[cm]?ts|tsx)$/i;
+const STUDIO_TSCONFIG = /^tsconfig.*\.json$/i;
+
+const STAGED_PATHS_GIT_ARGS = [
+  '-c',
+  'core.quotepath=off',
+  '-c',
+  'diff.renames=false',
+  'diff',
+  '--cached',
+  '--name-only',
+  '-z',
+  '--diff-filter=ACMDT',
+];
+
+function normalizeRepoPath(relPath) {
+  return String(relPath || '').replace(/\\/g, '/');
+}
+
+/**
+ * True when a staged path under packages/studio should run the studio type-check.
+ * .mts/.cts are included because they are TypeScript module variants that tsc type-checks.
+ */
+export function isStudioTypecheckTrigger(relPath) {
+  const normalized = normalizeRepoPath(relPath);
+  if (!normalized.startsWith('packages/studio/')) return false;
+  const base = normalized.slice(normalized.lastIndexOf('/') + 1);
+  return STUDIO_TSCONFIG.test(base) || STUDIO_TYPE_SOURCE.test(base);
+}
+
+export function parseNulPaths(raw) {
+  return String(raw || '')
+    .split('\0')
+    .map((s) => s.replace(/^\ufeff/, ''))
+    .filter(Boolean);
+}
+
+/**
+ * List ENFORCED packages that --changed should type-check for a staged-path list.
+ * Studio is included only when a TypeScript / tsconfig trigger is present.
+ */
+export function collectChangedEnforcedPackages(stagedPaths, enforcedNames) {
+  const enforcedSet = new Set(enforcedNames);
+  const changed = [];
+  const seen = new Set();
+  let studioStaged = false;
+  let studioTriggered = false;
+  for (const relPath of stagedPaths) {
+    const normalized = normalizeRepoPath(relPath);
+    if (!normalized) continue;
+    const pkg = normalized.match(/^packages\/([^/]+)\//)?.[1];
+    if (!pkg || !enforcedSet.has(pkg)) continue;
+    if (pkg === 'studio') {
+      studioStaged = true;
+      if (!isStudioTypecheckTrigger(normalized)) continue;
+      studioTriggered = true;
+    }
+    if (!seen.has(pkg)) {
+      seen.add(pkg);
+      changed.push(pkg);
+    }
+  }
+  return {
+    changed,
+    studioStaged,
+    studioTriggered,
+    skipStudioOnly: studioStaged && !studioTriggered && changed.length === 0,
+  };
+}
+
+/** Read staged paths with NUL delimiters, including deletions, without rename folding. */
+export async function readStagedPathsAsync(cwd) {
+  const { execFileSync } = await import('node:child_process');
+  const raw = execFileSync('git', STAGED_PATHS_GIT_ARGS, {
+    cwd,
+    encoding: 'utf8',
+  });
+  return parseNulPaths(raw);
+}
 
 // Packages whose src MUST type-check clean (`tsc --noEmit -p <pkg>/tsconfig.json` passes today,
 // 2026-07-12 sweep). A tsc error in ANY of these fails the gate.
@@ -302,28 +403,22 @@ async function main() {
 
   // --changed: type-check only the ENFORCED packages that have STAGED changes (the pre-commit path —
   // fast: 0 packages when a commit touches no enforced src). Errors block the commit.
+  // Studio is narrower: only .ts/.tsx/.mts/.cts or tsconfig*.json (including deletions).
   if (argv.includes('--changed')) {
-    let staged = '';
+    let stagedPaths = [];
     try {
-      staged = (await import('node:child_process')).execSync('git diff --cached --name-only', {
-        cwd: ROOT,
-        encoding: 'utf8',
-      });
+      stagedPaths = await readStagedPathsAsync(ROOT);
     } catch {
       console.log(`${TAG} (git unavailable — skipping changed-package typecheck)`);
       return;
     }
-    const enforcedSet = new Set(ENFORCED);
-    const changed = [
-      ...new Set(
-        staged
-          .split(/\r?\n/)
-          .map((f) => f.match(/^packages\/([^/]+)\//)?.[1])
-          .filter((p) => p && enforcedSet.has(p))
-      ),
-    ];
+    const { changed, skipStudioOnly } = collectChangedEnforcedPackages(stagedPaths, ENFORCED);
     if (!changed.length) {
-      console.log(`${TAG} ✓ no ENFORCED package has staged changes — nothing to type-check.`);
+      if (skipStudioOnly) {
+        console.log(STUDIO_GATE2_SKIP_MESSAGE);
+      } else {
+        console.log(`${TAG} ✓ no ENFORCED package has staged changes — nothing to type-check.`);
+      }
       return;
     }
     console.log(
@@ -418,7 +513,20 @@ async function main() {
   console.log(`\n${TAG} ✅ All ${ENFORCED.length} ENFORCED packages type-check clean.`);
 }
 
-main().catch((e) => {
-  console.error(`${TAG} gate crashed:`, e?.message || e);
-  process.exit(2);
-});
+const isDirectRun = (() => {
+  const self = fileURLToPath(import.meta.url);
+  const argv1 = process.argv[1];
+  if (!argv1) return false;
+  try {
+    return fs.realpathSync(self) === fs.realpathSync(path.resolve(argv1));
+  } catch {
+    return path.resolve(self) === path.resolve(argv1);
+  }
+})();
+
+if (isDirectRun) {
+  main().catch((e) => {
+    console.error(`${TAG} gate crashed:`, e?.message || e);
+    process.exit(2);
+  });
+}

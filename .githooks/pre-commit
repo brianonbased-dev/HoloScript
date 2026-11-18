@@ -205,6 +205,10 @@ fi
 # days; CI's only tsc gate — studio-typecheck.mjs — is studio-only). To keep it fast and dodge the
 # whole-repo OOM concern, this type-checks ONLY the ENFORCED packages that have STAGED changes: 0
 # packages (instant) when no enforced src is touched; ~20-60s for the 1-2 packages a commit edits.
+# Studio trigger (in typecheck.mjs --changed): only staged .ts/.tsx/.mts/.cts or tsconfig*.json
+# under packages/studio, including deletions. An HTML-only studio change prints
+# "Gate 2 skipped: no TypeScript files staged in packages/studio. Nothing else type-checks studio yet, so run pnpm check:studio-typecheck before you push."
+# and does not run tsc. Other packages are unchanged.
 echo -e "  ├─ TypeScript type check (changed ENFORCED packages)..."
 if ! node scripts/holo-ci/typecheck.mjs --changed; then
     echo -e "  ${RED}❌ COMMIT BLOCKED — type error(s) in a staged ENFORCED package (see above).${NC}"
