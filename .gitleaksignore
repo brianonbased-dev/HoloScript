@@ -11,12 +11,12 @@
 9001c5ad44bffb311d5751879b07959f81ad8571:docs/reviews/2026-05-08.md:jwt:59
 
 # ── packages/holoscript-agent/README.md (commit 8ea36cc1) ────────────────────
-# Truncated placeholder key "holomesh_sk_1f351b0c..." — the trailing "..." proves
+# Truncated placeholder key "<redacted: legacy key, see rotation record>..." — the trailing "..." proves
 # it is an intentionally-truncated README example, not a full secret.
 8ea36cc161f8f9b647712d0086b235a66046db06:packages/holoscript-agent/README.md:generic-api-key:60
 
 # ── .agent/workflows/absorb-orchestrator-funnel.md (commit 5f2b0a4f) ─────────
-# holomesh_sk_q8VL4jrxcwPi0O9DP-gMOnqEUhLuiNZR — legacy HoloMesh key from
+# <redacted: legacy key, see rotation record>-gMOnqEUhLuiNZR — legacy HoloMesh key from
 # team_d141a6972eac1e9d (obsolete team; current team is team_1777834718247_unr35n).
 # File deleted from tree in commit 5a749f2bc. Key no longer in .env or active use.
 5f2b0a4fd19d91417c7acf47f69a0ea83fc3325a:.agent/workflows/absorb-orchestrator-funnel.md:curl-auth-header:23
@@ -27,7 +27,7 @@
 5f2b0a4fd19d91417c7acf47f69a0ea83fc3325a:.agent/workflows/absorb-orchestrator-funnel.md:curl-auth-header:89
 
 # ── .local-worker-key.legacy.1775327969021.json (commit e0e642b4) ─────────────
-# holomesh_sk_sh2cGmwD6-FIjVJHfkTIaEPfcx7PfgbS — legacy worker key (file name
+# <redacted: legacy key, see rotation record>-FIjVJHfkTIaEPfcx7PfgbS — legacy worker key (file name
 # includes ".legacy." marker). File deleted from tree. Key not in current .env.
 e0e642b46ecd3038596887f5a909412a22e38575:.local-worker-key.legacy.1775327969021.json:generic-api-key:1
 
