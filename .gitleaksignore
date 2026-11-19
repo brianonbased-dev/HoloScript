@@ -72,3 +72,8 @@ e0e642b46ecd3038596887f5a909412a22e38575:.local-worker-key.legacy.1775327969021.
 2af5b7dd64a2bcb0001e95db5d8089a2e289b553:packages/llm-provider/src/adapters/anthropic.ts:generic-api-key:279
 2af5b7dd64a2bcb0001e95db5d8089a2e289b553:packages/llm-provider/src/adapters/anthropic.ts:generic-api-key:284
 fa581512cdac8a10fd36afde3ac8bc5a06984783:research/audit-reports/gaps-consumed/A-009-2026-06-10T01-43-19Z-stress-d0b34241.json:generic-api-key:39
+
+# gitleaks triage at 1ee37832, category 2 false positives (hex under hash/id-named fields). Option A: exact fingerprints, no globs.
+be4768117349bfab9314e8f146f2108211e869f1:artifacts/releases/0.1.0/systems-preview-public-canary-after-framework-6.1.7.json:generic-api-key:42
+be4768117349bfab9314e8f146f2108211e869f1:artifacts/releases/0.1.0/systems-preview-public-canary-after-framework-6.1.7.json:generic-api-key:49
+be4768117349bfab9314e8f146f2108211e869f1:artifacts/releases/0.1.0/systems-preview-public-canary-after-framework-6.1.7.json:generic-api-key:56

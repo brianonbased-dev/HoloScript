@@ -39,7 +39,12 @@ class CouldNotRun extends Error {}
  */
 function cargoCandidates() {
   if (process.env.CARGO) return [process.env.CARGO];
-  const rustup = join(homedir(), '.cargo', 'bin', process.platform === 'win32' ? 'cargo.exe' : 'cargo');
+  const rustup = join(
+    homedir(),
+    '.cargo',
+    'bin',
+    process.platform === 'win32' ? 'cargo.exe' : 'cargo'
+  );
   return existsSync(rustup) ? ['cargo', rustup] : ['cargo'];
 }
 
@@ -78,7 +83,17 @@ function collectHsFiles(rootRel) {
 }
 
 function runChecker(files) {
-  const args = ['run', '-q', '--locked', '-p', 'holoscript-wasm', '--example', 'validate_hs', '--', ...files];
+  const args = [
+    'run',
+    '-q',
+    '--locked',
+    '-p',
+    'holoscript-wasm',
+    '--example',
+    'validate_hs',
+    '--',
+    ...files,
+  ];
   const tried = [];
   let cargo;
   let result;
@@ -131,7 +146,9 @@ function main() {
 
   for (const allowed of ALLOW_REJECTION) {
     if (!files.includes(allowed)) {
-      console.error(`[hs-conformance] FAIL — allow-list entry is not in the checked set: ${allowed}`);
+      console.error(
+        `[hs-conformance] FAIL — allow-list entry is not in the checked set: ${allowed}`
+      );
       process.exit(1);
     }
   }

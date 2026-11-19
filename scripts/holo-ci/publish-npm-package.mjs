@@ -107,11 +107,7 @@ function withAuthNpmRc(callback) {
 
 function runNpm(cmdArgs, opts = {}) {
   return withAuthNpmRc((authArgs) => {
-    const effectiveArgs = [
-      ...cmdArgs,
-      ...authArgs,
-      ...(REGISTRY ? ['--registry', REGISTRY] : []),
-    ];
+    const effectiveArgs = [...cmdArgs, ...authArgs, ...(REGISTRY ? ['--registry', REGISTRY] : [])];
     return execFileSync(NPM_BIN, effectiveArgs, {
       cwd: ROOT,
       encoding: 'utf8',
@@ -337,7 +333,9 @@ function npmViewExactVersion(name, version) {
 
 function npmViewVersions(name) {
   try {
-    const parsed = JSON.parse(runNpm(['view', name, 'versions', '--json'], { timeout: 60_000 }).trim());
+    const parsed = JSON.parse(
+      runNpm(['view', name, 'versions', '--json'], { timeout: 60_000 }).trim()
+    );
     return Array.isArray(parsed) ? parsed : parsed ? [parsed] : [];
   } catch {
     return [];
@@ -501,18 +499,13 @@ function inspectPackedTarball(tarball) {
   }
   const packedManifest = readPackedPackageJson(tarball);
   if (PACKAGE_NAME && packedManifest.name !== PACKAGE_NAME) {
-    throw new Error(
-      `tarball name ${packedManifest.name} does not match --package ${PACKAGE_NAME}`
-    );
+    throw new Error(`tarball name ${packedManifest.name} does not match --package ${PACKAGE_NAME}`);
   }
   assertAllowedTarballPackage(packedManifest.name);
   assertNoWorkspaceSpecs(packedManifest, {
     label: `${packedManifest.name}@${packedManifest.version} packed tarball`,
   });
-  if (
-    packedManifest.name === '@holoscript/framework' &&
-    packedManifest.version === '6.1.7'
-  ) {
+  if (packedManifest.name === '@holoscript/framework' && packedManifest.version === '6.1.7') {
     if (!SAME_FILES_AS) {
       throw new Error(
         '@holoscript/framework@6.1.7 requires --same-files-as the published 6.1.6 tarball'
@@ -527,9 +520,7 @@ function inspectPackedTarball(tarball) {
       sourceManifest,
     });
     assertSameFilesExcept(tarball, sourceTarball);
-    console.log(
-      `[publish-npm-package] framework-6.1.7-repair PASS vs ${sourceTarball}`
-    );
+    console.log(`[publish-npm-package] framework-6.1.7-repair PASS vs ${sourceTarball}`);
   } else if (
     packedManifest.name === '@holoscript/snn-webgpu' &&
     packedManifest.version === '8.7.3'
@@ -548,9 +539,7 @@ function inspectPackedTarball(tarball) {
       sourceManifest,
     });
     assertSameFilesExcept(tarball, sourceTarball);
-    console.log(
-      `[publish-npm-package] snn-webgpu-8.7.3-repair PASS vs ${sourceTarball}`
-    );
+    console.log(`[publish-npm-package] snn-webgpu-8.7.3-repair PASS vs ${sourceTarball}`);
   } else {
     if (REQUIRE_DEPS.length > 0) {
       assertRequiredDeps(packedManifest, REQUIRE_DEPS);
@@ -672,11 +661,23 @@ async function main() {
     console.log(
       `[publish-npm-package] packed-manifest PASS ${manifest.name}@${manifest.version} no workspace: specs`
     );
-    runNpm(['publish', packed.filename, ...modeArgs, '--access', ACCESS, '--tag', TAG, '--ignore-scripts'], {
-      cwd: ROOT,
-      stdio: 'inherit',
-      timeout: 300_000,
-    });
+    runNpm(
+      [
+        'publish',
+        packed.filename,
+        ...modeArgs,
+        '--access',
+        ACCESS,
+        '--tag',
+        TAG,
+        '--ignore-scripts',
+      ],
+      {
+        cwd: ROOT,
+        stdio: 'inherit',
+        timeout: 300_000,
+      }
+    );
     console.log(
       `[publish-npm-package] ${PUBLISH ? 'PUBLISHED' : 'DRY-RUN-PASS'} ${manifest.name}@${manifest.version}`
     );

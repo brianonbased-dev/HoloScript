@@ -29,7 +29,7 @@ function usage(message) {
       '',
       'With no --artifact/--artifact-js override (the package layout every caller uses), the gate',
       'also checks the web build packages/compiler-wasm/pkg (the package\'s default "." export) and',
-      'each build\'s rebuild-receipt.json: its wasmSha256 must match its holoscript_wasm_bg.wasm, and',
+      "each build's rebuild-receipt.json: its wasmSha256 must match its holoscript_wasm_bg.wasm, and",
       'both receipts must name the same sourceCommit.',
     ].join('\n')
   );
@@ -226,8 +226,13 @@ async function main() {
 
   console.log(
     `[compiler-wasm-drift] PASS ${srcRel}@${short(srcCommit.hash)} <= ${freshness
-      .map((result) => `${result.rel}@${short(result.artifactCommit.hash)}${result.stagedArtifactRefresh ? '+staged-refresh' : ''}`)
-      .join(', ')} (${exports.length} function export${exports.length === 1 ? '' : 's'} checked${receiptNote})`
+      .map(
+        (result) =>
+          `${result.rel}@${short(result.artifactCommit.hash)}${result.stagedArtifactRefresh ? '+staged-refresh' : ''}`
+      )
+      .join(
+        ', '
+      )} (${exports.length} function export${exports.length === 1 ? '' : 's'} checked${receiptNote})`
   );
 }
 
@@ -239,7 +244,9 @@ function readReceipt(root, rel, problems) {
   const receiptPath = join(root, rel, 'rebuild-receipt.json');
   const wasmPath = join(root, rel, 'holoscript_wasm_bg.wasm');
   if (!existsSync(receiptPath)) {
-    problems.push(`${rel}/rebuild-receipt.json is missing; a build with no receipt cannot be checked`);
+    problems.push(
+      `${rel}/rebuild-receipt.json is missing; a build with no receipt cannot be checked`
+    );
     return null;
   }
   if (!existsSync(wasmPath)) {
