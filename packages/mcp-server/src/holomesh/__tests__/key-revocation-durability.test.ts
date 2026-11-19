@@ -268,6 +268,7 @@ describe('founder flag restricted to the configured founder key', () => {
     process.env.HOLOMESH_FOUNDER_KEY = FOUNDER_VALUE;
     process.env.HOLOMESH_DEFOUNDER_DRY_RUN = '0';
     vi.spyOn(console, 'warn').mockImplementation(() => {});
+    keyRegistry.set(FOUNDER_VALUE, record(FOUNDER_VALUE, 'agent_configured', true));
     agentKeyStore.set(OTHER_FLAGGED, {
       id: 'agent_legacy_flagged',
       apiKey: OTHER_FLAGGED,
@@ -284,13 +285,87 @@ describe('founder flag restricted to the configured founder key', () => {
     expect(agentKeyStore.get(OTHER_FLAGGED)?.isFounder).toBe(false);
   });
 
-  it('with no founder key configured, no record keeps the flag when enforced', () => {
+  it('with no founder key configured, demotes no one and logs an error', () => {
     process.env.HOLOMESH_DEFOUNDER_DRY_RUN = '0';
     vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     seedFlagged();
 
-    _restrictFounderFlag();
+    const result = _restrictFounderFlag();
 
-    expect([...keyRegistry.values()].some((r) => r.isFounder)).toBe(false);
+    expect(result.demoted).toEqual([]);
+    expect(result.skipped).toMatch(/not set/);
+    expect(keyRegistry.get(FOUNDER_VALUE)?.isFounder).toBe(true);
+    expect(keyRegistry.get(OTHER_FLAGGED)?.isFounder).toBe(true);
+    expect(error.mock.calls.some((c) => String(c[0]).includes('demoting no one'))).toBe(true);
+  });
+
+  it('when the founder key matches no live founder record, demotes no one', () => {
+    process.env.HOLOMESH_FOUNDER_KEY = 'value-no-record-holds-for-test';
+    process.env.HOLOMESH_DEFOUNDER_DRY_RUN = '0';
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    seedFlagged();
+
+    const result = _restrictFounderFlag();
+
+    expect(result.demoted).toEqual([]);
+    expect(keyRegistry.get(OTHER_FLAGGED)?.isFounder).toBe(true);
+    expect(JSON.stringify(error.mock.calls)).not.toContain('value-no-record-holds-for-test');
+  });
+
+  it('a rotated founder survives an enforced restart before the env var is updated', async () => {
+    const ROTATED = 'rotated-founder-value-for-test';
+    process.env.HOLOMESH_FOUNDER_KEY = FOUNDER_VALUE;
+    seedFlagged();
+    persistKeyRegistry();
+
+    // What admin/rotate-key does: new record inherits the flag, old value revoked.
+    const old = keyRegistry.get(FOUNDER_VALUE)!;
+    revokeKeyRecord(FOUNDER_VALUE);
+    keyRegistry.set(ROTATED, { ...old, key: ROTATED, keyId: undefined, rotationCount: 1 });
+    persistKeyRegistry();
+
+    process.env.HOLOMESH_DEFOUNDER_DRY_RUN = '0';
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    await restart();
+
+    // HOLOMESH_FOUNDER_KEY still names the revoked value: nobody is demoted.
+    expect(keyRegistry.has(FOUNDER_VALUE)).toBe(false);
+    expect(keyRegistry.get(ROTATED)?.isFounder).toBe(true);
+    expect([...keyRegistry.values()].filter((r) => r.isFounder).length).toBeGreaterThan(0);
+
+    // Once the env var names the new value, enforcement narrows to it.
+    process.env.HOLOMESH_FOUNDER_KEY = ROTATED;
+    await restart();
+    expect(keyRegistry.get(ROTATED)?.isFounder).toBe(true);
+    expect(keyRegistry.get(OTHER_FLAGGED)?.isFounder).toBe(false);
+  });
+});
+
+describe('persistence failures are reported', () => {
+  it('persistKeyRegistry returns false when the revocation file cannot be written', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    keyRegistry.set(PLAIN, record(PLAIN, 'agent_plain'));
+    expect(persistKeyRegistry()).toBe(true);
+    // A directory where the file should be: the write fails even for root.
+    mkdirSync(join(TEMP_DIR, 'revoked-keys.json', 'blocker'), { recursive: true });
+
+    revokeKeyRecord(PLAIN);
+
+    expect(persistKeyRegistry()).toBe(false);
+  });
+
+  it('logs loudly at boot when HOLOMESH_DATA_DIR is unset', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    delete process.env.HOLOMESH_DATA_DIR;
+    try {
+      await restart();
+    } finally {
+      process.env.HOLOMESH_DATA_DIR = TEMP_DIR;
+    }
+    expect(
+      error.mock.calls.some((c) => String(c[0]).includes('HOLOMESH_DATA_DIR is not set'))
+    ).toBe(true);
   });
 });

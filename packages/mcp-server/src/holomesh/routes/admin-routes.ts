@@ -8,6 +8,11 @@
  * POST /api/holomesh/admin/rotate-key        — Issue new key for one record (key_id, or an agent_id /
  *                                              wallet_address that matches exactly one record)
  * POST /api/holomesh/admin/revoke            — Revoke one key by key_id (wallet mapping preserved)
+ *
+ * rotate-key and revoke refuse a founder record unless confirm_founder: true is
+ * sent, refuse (409) a key that is still the value of a seedable env var, and
+ * answer 503 instead of success when the key store cannot be written.
+ *
  * POST /api/holomesh/admin/tenant-keys/revoke — Revoke one tenant API key by its id
  * POST /api/holomesh/admin/deregister        — Fully remove an agent and FREE ITS NAME (reaches
  *                                              publicly self-registered agents that revoke cannot)
@@ -28,6 +33,8 @@ import {
   findKeyRecordById,
   keyIdOf,
   isDefounderDryRun,
+  keyStoreDurabilityProblem,
+  envVarHoldingKey,
   teamStore,
   persistTeamDurable,
   reloadTeam,
@@ -40,6 +47,35 @@ import { recordAdminOperation } from '../admin-operations-audit';
 import { revokeLeasesForAgent } from '../identity/vault-lease-registry';
 import { revokeTenantKeyById } from '../../security/tenant-auth';
 import type { KeyRecord, RegisteredAgent } from '../types';
+
+const NOT_DURABLE_ERROR =
+  'Revoked in memory only; NOT durable. The key store could not be written, so the key would return after a restart. Check HOLOMESH_DATA_DIR.';
+
+/**
+ * Before revoking: refuse when enforcement is on and the key store is known not
+ * to be durable. Returns a warning string to attach in dry run, or null.
+ * Answers 503 itself (and returns false) when it refuses.
+ */
+function durabilityPrecheck(res: http.ServerResponse): { ok: boolean; warning?: string } {
+  const problem = keyStoreDurabilityProblem();
+  if (!problem) return { ok: true };
+  if (!isDefounderDryRun()) {
+    json(res, 503, { success: false, durable: false, error: `Not durable: ${problem}` });
+    return { ok: false };
+  }
+  return { ok: true, warning: `Revocation may not survive a restart: ${problem}` };
+}
+
+/** 409 when the key is still the value of a seedable env var. */
+function refuseEnvHeldKey(res: http.ServerResponse, key: string): boolean {
+  const envVar = envVarHoldingKey(key);
+  if (!envVar) return false;
+  json(res, 409, {
+    error: `This key is the current value of ${envVar}. Rotate the env var (and redeploy) instead; revoke the old record by key_id after that.`,
+    env_var: envVar,
+  });
+  return true;
+}
 
 export async function handleAdminRoutes(
   req: http.IncomingMessage,
@@ -164,7 +200,11 @@ export async function handleAdminRoutes(
   // ── POST /api/holomesh/admin/rotate-key ────────────────────────────────────
   if (pathname === '/api/holomesh/admin/rotate-key' && method === 'POST') {
     const body = await parseJsonBody(req);
-    const keyId = body.key_id as string | undefined;
+    if (body.key_id !== undefined && typeof body.key_id !== 'string') {
+      json(res, 400, { error: 'key_id must be a string' });
+      return true;
+    }
+    const keyId = typeof body.key_id === 'string' ? body.key_id.trim() : '';
     const agentId = body.agent_id as string | undefined;
     const walletAddress = body.wallet_address as string | undefined;
 
@@ -196,6 +236,19 @@ export async function handleAdminRoutes(
       return true;
     }
     const existingRecord = candidates[0];
+
+    // A founder record needs an explicit confirm: after rotation the new key
+    // only stays founder across restarts once HOLOMESH_FOUNDER_KEY is updated.
+    if (existingRecord.isFounder === true && body.confirm_founder !== true) {
+      json(res, 409, {
+        error:
+          'This is a founder record. Pass confirm_founder: true to rotate it, then update HOLOMESH_FOUNDER_KEY to the new key before the next restart.',
+      });
+      return true;
+    }
+    if (refuseEnvHeldKey(res, existingRecord.key)) return true;
+    const rotatePre = durabilityPrecheck(res);
+    if (!rotatePre.ok) return true;
 
     const newKey = `hs_sk_${crypto.randomUUID().replace(/-/g, '')}`;
     const now = new Date().toISOString();
@@ -231,8 +284,8 @@ export async function handleAdminRoutes(
       }
     }
 
-    persistKeyRegistry();
-    persistAgentStore();
+    const rotateDurableKeys = persistKeyRegistry();
+    const rotateDurable = persistAgentStore() && rotateDurableKeys;
 
     // Revoke any active vault leases held by the rotated agent.
     // If an API key is rotated (e.g., compromise response), the agent should
@@ -260,11 +313,32 @@ export async function handleAdminRoutes(
         rotation_count: newRecord.rotationCount,
         last_rotated_at: newRecord.lastRotatedAt,
         revoked_leases: revokedLeases.length,
+        durable: rotateDurable,
       },
     });
 
+    if (!rotateDurable) {
+      // The new key works now, but neither it nor the revocation of the old
+      // one is on disk. Hand the key back, but do not report success.
+      json(res, 503, {
+        success: false,
+        durable: false,
+        error: NOT_DURABLE_ERROR,
+        new_key: newKey,
+        key_id: newKeyId,
+      });
+      return true;
+    }
+
     json(res, 200, {
       success: true,
+      ...(existingRecord.isFounder === true
+        ? {
+            founder_key_env_update_required:
+              'Set HOLOMESH_FOUNDER_KEY to new_key before the next restart.',
+          }
+        : {}),
+      ...(rotatePre.warning ? { durability_warning: rotatePre.warning } : {}),
       new_key: newKey,
       key_id: newKeyId,
       wallet_address: newRecord.walletAddress,
@@ -285,6 +359,8 @@ export async function handleAdminRoutes(
   // (tools:read + tools:write + tools:codebase) so its mcp_call reaches the language
   // surface, without the disruption of re-provisioning a new key. Founder-authed
   // (guard at the top of this handler). /founder-ruled agent-decidable 2026-06-21.
+  // Targets one record: key_id, or an agent_id / wallet_address matching exactly
+  // one record (409 with key_ids when several match), as rotate-key does.
   if (pathname === '/api/holomesh/admin/update-scopes' && method === 'POST') {
     const body = await parseJsonBody(req);
     const agentId = body.agent_id as string | undefined;
@@ -295,15 +371,37 @@ export async function handleAdminRoutes(
       return true;
     }
 
+    if (body.key_id !== undefined && typeof body.key_id !== 'string') {
+      json(res, 400, { error: 'key_id must be a string' });
+      return true;
+    }
+    const scopesKeyId = typeof body.key_id === 'string' ? body.key_id.trim() : '';
+
+    // Same targeting rule as rotate-key: key_id, or an agent_id / wallet_address
+    // that matches exactly one record.
     let existingRecord: KeyRecord | undefined;
-    if (agentId) {
-      existingRecord = Array.from(keyRegistry.values()).find((r) => r.agentId === agentId);
-    } else if (walletAddress) {
-      existingRecord = Array.from(keyRegistry.values()).find(
-        (r) => r.walletAddress.toLowerCase() === walletAddress.toLowerCase()
+    if (scopesKeyId) {
+      existingRecord = findKeyRecordById(scopesKeyId);
+      if (!existingRecord) {
+        json(res, 404, { error: 'Key record not found in key registry' });
+        return true;
+      }
+    } else if (agentId || walletAddress) {
+      const matches = Array.from(keyRegistry.values()).filter((r) =>
+        agentId
+          ? r.agentId === agentId
+          : r.walletAddress.toLowerCase() === (walletAddress as string).toLowerCase()
       );
+      if (matches.length > 1) {
+        json(res, 409, {
+          error: 'More than one key record matches. Update a single record by key_id.',
+          key_ids: matches.map((r) => keyIdOf(r)),
+        });
+        return true;
+      }
+      existingRecord = matches[0];
     } else {
-      json(res, 400, { error: 'agent_id or wallet_address is required' });
+      json(res, 400, { error: 'key_id, agent_id or wallet_address is required' });
       return true;
     }
     // Public-register agents (the live edge agents — e.g. jetson-orin-01) live in
@@ -313,7 +411,7 @@ export async function handleAdminRoutes(
     // access without a new key/identity (resolveRequestingAgent checks keyRegistry
     // first). Wallet / agentId / name preserved (G.GOLD.016); never escalated to founder.
     let bridgedFromPublic = false;
-    if (!existingRecord) {
+    if (!existingRecord && !scopesKeyId) {
       const legacy = Array.from(agentKeyStore.values()).find((a) =>
         agentId
           ? a.id === agentId
@@ -374,6 +472,9 @@ export async function handleAdminRoutes(
   // ── POST /api/holomesh/admin/revoke ────────────────────────────────────────
   // Revokes ONE key, named by key_id (listed per agent by GET /admin/agents).
   // An agent can hold several keys, so agent_id alone is not accepted.
+  // A founder record also needs confirm_founder: true. A key that is still the
+  // value of a seedable env var answers 409 (rotate the env var). When the
+  // store cannot be written the answer is 503, never success.
   if (pathname === '/api/holomesh/admin/revoke' && method === 'POST') {
     const body = await parseJsonBody(req);
     const keyId = typeof body.key_id === 'string' ? body.key_id.trim() : '';
@@ -396,13 +497,22 @@ export async function handleAdminRoutes(
       json(res, 403, { error: 'Refusing to revoke the configured founder key' });
       return true;
     }
+    if (record.isFounder === true && body.confirm_founder !== true) {
+      json(res, 403, {
+        error: 'This is a founder record. Pass confirm_founder: true to revoke it.',
+      });
+      return true;
+    }
+    if (refuseEnvHeldKey(res, record.key)) return true;
+    const revokePre = durabilityPrecheck(res);
+    if (!revokePre.ok) return true;
 
     const agentId = record.agentId;
     revokeKeyRecord(record.key);
     agentKeyStore.delete(record.key);
 
-    persistKeyRegistry();
-    persistAgentStore();
+    const revokeDurableKeys = persistKeyRegistry();
+    const revokeDurable = persistAgentStore() && revokeDurableKeys;
 
     recordAdminOperation({
       actor: {
@@ -421,11 +531,18 @@ export async function handleAdminRoutes(
         agent_id: agentId,
         key_id: keyId,
         revoked_keys: 1,
+        durable: revokeDurable,
       },
     });
 
+    if (!revokeDurable) {
+      json(res, 503, { success: false, durable: false, error: NOT_DURABLE_ERROR, key_id: keyId });
+      return true;
+    }
+
     json(res, 200, {
       success: true,
+      ...(revokePre.warning ? { durability_warning: revokePre.warning } : {}),
       revoked_keys: 1,
       key_id: keyId,
       agent_id: agentId,
@@ -454,14 +571,34 @@ export async function handleAdminRoutes(
       json(res, 404, { error: 'Tenant key not found' });
       return true;
     }
+    const cacheFailed = result.cacheCleared === false;
 
     recordAdminOperation({
       actor: { agentId: caller.id, agentName: caller.name, wallet: caller.wallet },
       action: 'tenant_key_revoke',
       path: pathname,
       before: { tenant_key_id: id },
-      after: { tenant_key_id: result.id, tenant_id: result.tenantId, revoked: true },
+      after: {
+        tenant_key_id: result.id,
+        tenant_id: result.tenantId,
+        revoked: true,
+        cache_cleared: result.cacheCleared,
+      },
     });
+
+    if (cacheFailed) {
+      // Postgres says revoked, but the cached entry still authenticates until
+      // it expires, so this is not done.
+      json(res, 503, {
+        success: false,
+        error:
+          'Revoked in the database, but the cache entry could not be cleared; the key may still authenticate from the cache. Retry.',
+        id: result.id,
+        tenant_id: result.tenantId,
+        cache_cleared: false,
+      });
+      return true;
+    }
 
     json(res, 200, {
       success: true,
@@ -527,6 +664,12 @@ export async function handleAdminRoutes(
       return true;
     }
 
+    for (const [key] of keyEntries) {
+      if (refuseEnvHeldKey(res, key)) return true;
+    }
+    const deregisterPre = durabilityPrecheck(res);
+    if (!deregisterPre.ok) return true;
+
     const removed: Array<{
       agent_id: string;
       agent_name: string;
@@ -556,8 +699,8 @@ export async function handleAdminRoutes(
       });
     }
 
-    persistAgentStore();
-    persistKeyRegistry();
+    const agentsWritten = persistAgentStore();
+    const deregisterDurable = persistKeyRegistry() && agentsWritten;
 
     recordAdminOperation({
       actor: {
@@ -581,11 +724,18 @@ export async function handleAdminRoutes(
           agent_name: r.agent_name,
           source: r.source,
         })),
+        durable: deregisterDurable,
       },
     });
 
+    if (!deregisterDurable) {
+      json(res, 503, { success: false, durable: false, error: NOT_DURABLE_ERROR, removed });
+      return true;
+    }
+
     json(res, 200, {
       success: true,
+      ...(deregisterPre.warning ? { durability_warning: deregisterPre.warning } : {}),
       removed_count: removed.length,
       removed,
       note: 'Agent name(s) freed. Wallet mapping cleared; on-chain funds untouched (wallet remains a valid identity, F.119). The name can now be re-registered or Trezor-provisioned.',

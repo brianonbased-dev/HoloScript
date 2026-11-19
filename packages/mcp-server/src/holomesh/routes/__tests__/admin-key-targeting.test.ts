@@ -2,14 +2,16 @@
  * Admin key operations act on ONE record.
  *
  * An agent can hold several keys (a provisioned key plus mobile keys minted for
- * the same agent id), so revoke and rotate target a record by key_id. Revoke
- * refuses the configured founder key, provisioning cannot mint a founder once
- * enforcement is on, and tenant keys can be revoked by id.
+ * the same agent id), so revoke, rotate and update-scopes target a record by
+ * key_id. Founder records need confirm_founder, a key still held by a seedable
+ * env var answers 409, a store that cannot be written answers 503, provisioning
+ * cannot mint a founder once enforcement is on, and tenant keys can be revoked
+ * by id.
  */
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type http from 'http';
 import { EventEmitter } from 'events';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -80,12 +82,16 @@ beforeEach(() => {
   resetAdminOperationsAudit();
   revokeTenantKeyById.mockReset();
   delete process.env.HOLOMESH_DEFOUNDER_DRY_RUN;
+  delete process.env.HOLOMESH_API_KEY;
+  process.env.HOLOMESH_DATA_DIR = TEMP_DIR;
+  rmSync(join(TEMP_DIR, 'revoked-keys.json'), { recursive: true, force: true });
   process.env.HOLOMESH_FOUNDER_KEY = FOUNDER_KEY;
   keyRegistry.set(FOUNDER_KEY, rec(FOUNDER_KEY, 'agent_targeting_founder', true));
   keyRegistry.set(NON_FOUNDER_KEY, rec(NON_FOUNDER_KEY, 'agent_targeting_regular'));
 });
 
 afterAll(() => {
+  delete process.env.HOLOMESH_API_KEY;
   delete process.env.HOLOMESH_FOUNDER_KEY;
   delete process.env.HOLOMESH_DEFOUNDER_DRY_RUN;
   rmSync(TEMP_DIR, { recursive: true, force: true });
@@ -249,10 +255,163 @@ describe('admin/tenant-keys/revoke', () => {
     expect(JSON.stringify(audit)).toContain('tenant_key_revoke');
   });
 
+  it('answers 503, not success, when the cache entry could not be cleared', async () => {
+    revokeTenantKeyById.mockResolvedValue({
+      status: 'revoked',
+      id: 9,
+      tenantId: 'tenant_nine',
+      cacheCleared: false,
+    });
+    const res = await call(path, { id: 9 });
+    expect(res._status).toBe(503);
+    expect(res._body.success).toBe(false);
+    expect(res._body.cache_cleared).toBe(false);
+  });
+
   it('maps not_found to 404 and unavailable to 503', async () => {
     revokeTenantKeyById.mockResolvedValueOnce({ status: 'not_found' });
     expect((await call(path, { id: 8 }))._status).toBe(404);
     revokeTenantKeyById.mockResolvedValueOnce({ status: 'unavailable' });
     expect((await call(path, { id: 8 }))._status).toBe(503);
+  });
+});
+
+describe('founder records need an explicit confirm', () => {
+  const OTHER_FOUNDER = 'targeting-other-founder-value';
+
+  it('revoke refuses a founder record that is not the configured key', async () => {
+    keyRegistry.set(OTHER_FOUNDER, rec(OTHER_FOUNDER, 'agent_other_founder', true));
+    const id = keyIdOf(keyRegistry.get(OTHER_FOUNDER)!);
+    const res = await call('/api/holomesh/admin/revoke', { key_id: id });
+    expect(res._status).toBe(403);
+    expect(keyRegistry.has(OTHER_FOUNDER)).toBe(true);
+    expect(isKeyRevoked(OTHER_FOUNDER)).toBe(false);
+  });
+
+  it('revoke refuses the only founder when HOLOMESH_FOUNDER_KEY is unset', async () => {
+    delete process.env.HOLOMESH_FOUNDER_KEY;
+    const id = keyIdOf(keyRegistry.get(FOUNDER_KEY)!);
+    const res = await call('/api/holomesh/admin/revoke', { key_id: id });
+    expect(res._status).toBe(403);
+    expect(keyRegistry.has(FOUNDER_KEY)).toBe(true);
+  });
+
+  it('revoke goes ahead with confirm_founder: true', async () => {
+    keyRegistry.set(OTHER_FOUNDER, rec(OTHER_FOUNDER, 'agent_other_founder', true));
+    const id = keyIdOf(keyRegistry.get(OTHER_FOUNDER)!);
+    const res = await call('/api/holomesh/admin/revoke', { key_id: id, confirm_founder: true });
+    expect(res._status).toBe(200);
+    expect(isKeyRevoked(OTHER_FOUNDER)).toBe(true);
+  });
+
+  it('revoke still refuses the configured founder key even with confirm', async () => {
+    const id = keyIdOf(keyRegistry.get(FOUNDER_KEY)!);
+    const res = await call('/api/holomesh/admin/revoke', { key_id: id, confirm_founder: true });
+    expect(res._status).toBe(403);
+    expect(keyRegistry.has(FOUNDER_KEY)).toBe(true);
+  });
+
+  it('rotate refuses a founder record without confirm, and says what to do with it', async () => {
+    const id = keyIdOf(keyRegistry.get(FOUNDER_KEY)!);
+    const res = await call('/api/holomesh/admin/rotate-key', { key_id: id });
+    expect(res._status).toBe(409);
+    expect(keyRegistry.has(FOUNDER_KEY)).toBe(true);
+    expect(isKeyRevoked(FOUNDER_KEY)).toBe(false);
+
+    const confirmed = await call('/api/holomesh/admin/rotate-key', {
+      key_id: id,
+      confirm_founder: true,
+    });
+    expect(confirmed._status).toBe(200);
+    expect(confirmed._body.founder_key_env_update_required).toMatch(/HOLOMESH_FOUNDER_KEY/);
+    expect(keyRegistry.get(confirmed._body.new_key)?.isFounder).toBe(true);
+  });
+});
+
+describe('a key still held by a seedable env var', () => {
+  it('cannot be revoked or rotated through the API (409)', async () => {
+    process.env.HOLOMESH_API_KEY = NON_FOUNDER_KEY;
+    const id = keyIdOf(keyRegistry.get(NON_FOUNDER_KEY)!);
+
+    const revoke = await call('/api/holomesh/admin/revoke', { key_id: id });
+    expect(revoke._status).toBe(409);
+    expect(revoke._body.env_var).toBe('HOLOMESH_API_KEY');
+
+    const rotate = await call('/api/holomesh/admin/rotate-key', { key_id: id });
+    expect(rotate._status).toBe(409);
+
+    expect(keyRegistry.has(NON_FOUNDER_KEY)).toBe(true);
+    expect(isKeyRevoked(NON_FOUNDER_KEY)).toBe(false);
+    expect(JSON.stringify([revoke._body, rotate._body])).not.toContain(NON_FOUNDER_KEY);
+  });
+});
+
+describe('revoke never reports success when it is not durable', () => {
+  it('answers 503 when the revocation file cannot be written', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // A directory where the file should be: the write fails even for root.
+    mkdirSync(join(TEMP_DIR, 'revoked-keys.json', 'blocker'), { recursive: true });
+    const [firstId] = seedTwoKeys();
+
+    const res = await call('/api/holomesh/admin/revoke', { key_id: firstId });
+
+    expect(res._status).toBe(503);
+    expect(res._body.success).toBe(false);
+    expect(res._body.durable).toBe(false);
+    const audit = queryAdminOperationsAudit(10);
+    expect(JSON.stringify(audit)).toContain('"durable":false');
+  });
+
+  it('when enforced and HOLOMESH_DATA_DIR is unset, refuses before revoking', async () => {
+    process.env.HOLOMESH_DEFOUNDER_DRY_RUN = '0';
+    delete process.env.HOLOMESH_DATA_DIR;
+    const [firstId] = seedTwoKeys();
+
+    const res = await call('/api/holomesh/admin/revoke', { key_id: firstId });
+
+    expect(res._status).toBe(503);
+    expect(keyRegistry.has('two-keys-first')).toBe(true);
+    expect(isKeyRevoked('two-keys-first')).toBe(false);
+  });
+
+  it('in dry run with HOLOMESH_DATA_DIR unset, revokes but warns', async () => {
+    delete process.env.HOLOMESH_DATA_DIR;
+    const [firstId] = seedTwoKeys();
+    const res = await call('/api/holomesh/admin/revoke', { key_id: firstId });
+    expect(res._status).toBe(200);
+    expect(res._body.durability_warning).toMatch(/HOLOMESH_DATA_DIR/);
+  });
+});
+
+describe('admin/update-scopes targets one record', () => {
+  it('refuses an ambiguous agent_id with 409', async () => {
+    const ids = seedTwoKeys();
+    const res = await call('/api/holomesh/admin/update-scopes', {
+      agent_id: 'agent_two_keys',
+      scopes: ['tools:read'],
+    });
+    expect(res._status).toBe(409);
+    expect(res._body.key_ids.sort()).toEqual([...ids].sort());
+    expect(keyRegistry.get('two-keys-first')?.scopes).toEqual(['holomesh']);
+    expect(keyRegistry.get('two-keys-second')?.scopes).toEqual(['holomesh']);
+  });
+
+  it('updates only the record named by key_id', async () => {
+    const [, secondId] = seedTwoKeys();
+    const res = await call('/api/holomesh/admin/update-scopes', {
+      key_id: secondId,
+      scopes: ['tools:read'],
+    });
+    expect(res._status).toBe(200);
+    expect(keyRegistry.get('two-keys-second')?.scopes).toEqual(['tools:read']);
+    expect(keyRegistry.get('two-keys-first')?.scopes).toEqual(['holomesh']);
+  });
+
+  it('returns 404 for an unknown key_id', async () => {
+    const res = await call('/api/holomesh/admin/update-scopes', {
+      key_id: 'key_does_not_exist',
+      scopes: ['tools:read'],
+    });
+    expect(res._status).toBe(404);
   });
 });
