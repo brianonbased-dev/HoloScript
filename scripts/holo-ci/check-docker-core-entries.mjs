@@ -117,7 +117,9 @@ function runtimeWorkspaceSrcDirs() {
 function coreBuildImageSrcDirs() {
   let files;
   try {
-    files = fs.readdirSync(path.join(ROOT, 'infrastructure')).filter((f) => /^Dockerfile\./.test(f));
+    files = fs
+      .readdirSync(path.join(ROOT, 'infrastructure'))
+      .filter((f) => /^Dockerfile\./.test(f));
   } catch {
     return [];
   }
@@ -130,7 +132,9 @@ function coreBuildImageSrcDirs() {
     // (mcp-server's cli) never runs there. An image that ships the whole built tree
     // (`COPY --from=builder /app/packages packages`, as absorb-service does) ships every
     // workspace it COPY'd in.
-    const shipped = [...df.matchAll(/((?:packages|services)\/[a-z0-9][a-z0-9-]*)\/dist\b/g)].map((m) => m[1]);
+    const shipped = [...df.matchAll(/((?:packages|services)\/[a-z0-9][a-z0-9-]*)\/dist\b/g)].map(
+      (m) => m[1]
+    );
     const copied = [
       ...df.matchAll(/^\s*COPY\s+(?:--\S+\s+)*((?:packages|services)\/[a-z0-9][a-z0-9-]*)\//gm),
     ].map((m) => m[1]);
@@ -149,9 +153,9 @@ function coreBuildImageSrcDirs() {
 function stripLineComments(src) {
   return src.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, '').replace(/^[ \t]*\/\/.*$/gm, '');
 }
-const WORKSPACE_SRC_DIRS = [...new Set([...runtimeWorkspaceSrcDirs(), ...coreBuildImageSrcDirs()])].filter(
-  (rel) => fs.existsSync(path.join(ROOT, rel))
-);
+const WORKSPACE_SRC_DIRS = [
+  ...new Set([...runtimeWorkspaceSrcDirs(), ...coreBuildImageSrcDirs()]),
+].filter((rel) => fs.existsSync(path.join(ROOT, rel)));
 
 // 1. core exports → map dist path -> declared subpath. Both export shapes count:
 //      ./dist/<dir>/index.{cjs,js} -> '<dir>'   (policy, world, hololand, ...)
@@ -171,7 +175,9 @@ for (const [sub, val] of Object.entries(corePkg.exports || {})) {
 //    only quoted keys, so every bare-key entry (index, parser, runtime, ...) was invisible.
 function parseEntries(src) {
   const entries = new Map();
-  for (const m of src.matchAll(/(?:'([^']+)'|"([^"]+)"|\b([A-Za-z_$][\w$]*))\s*:\s*['"](src\/[^'"]+)['"]/g)) {
+  for (const m of src.matchAll(
+    /(?:'([^']+)'|"([^"]+)"|\b([A-Za-z_$][\w$]*))\s*:\s*['"](src\/[^'"]+)['"]/g
+  )) {
     const key = m[1] ?? m[2] ?? m[3];
     if (!entries.has(key)) entries.set(key, m[4]);
   }

@@ -83,9 +83,7 @@ function extractPackage(tarball, destination) {
 }
 
 if (!existsSync(parserDist)) {
-  fail(
-    `missing ${parserDist}. Build first: pnpm --filter @holoscript/core build`
-  );
+  fail(`missing ${parserDist}. Build first: pnpm --filter @holoscript/core build`);
 }
 
 const work = mkdtempSync(join(tmpdir(), 'hsplus-checker-dist-'));
@@ -98,7 +96,8 @@ try {
   wasmTarball = pack(wasmDir, packs);
   coreTarball = pack(coreDir, packs);
 } catch (error) {
-  const stderr = error && typeof error === 'object' && 'stderr' in error ? String(error.stderr) : '';
+  const stderr =
+    error && typeof error === 'object' && 'stderr' in error ? String(error.stderr) : '';
   fail(`pnpm pack failed: ${error instanceof Error ? error.message : String(error)}\n${stderr}`);
 }
 
@@ -141,7 +140,11 @@ extractPackage(wasmTarball, installedWasm);
 
 const packedCore = JSON.parse(readFileSync(join(installedCore, 'package.json'), 'utf8'));
 const wasmDep = packedCore.dependencies?.['@holoscript/wasm'];
-if (typeof wasmDep !== 'string' || wasmDep.startsWith('workspace:') || wasmDep.startsWith('file:')) {
+if (
+  typeof wasmDep !== 'string' ||
+  wasmDep.startsWith('workspace:') ||
+  wasmDep.startsWith('file:')
+) {
   fail(`packed @holoscript/core dependency on @holoscript/wasm is ${JSON.stringify(wasmDep)}`);
 }
 
@@ -185,8 +188,10 @@ try {
     .pop();
   proof = JSON.parse(line ?? '');
 } catch (error) {
-  const stderr = error && typeof error === 'object' && 'stderr' in error ? String(error.stderr) : '';
-  const stdout = error && typeof error === 'object' && 'stdout' in error ? String(error.stdout) : '';
+  const stderr =
+    error && typeof error === 'object' && 'stderr' in error ? String(error.stderr) : '';
+  const stdout =
+    error && typeof error === 'object' && 'stdout' in error ? String(error.stdout) : '';
   fail(`consumer import failed\n${stdout}\n${stderr}`);
 }
 

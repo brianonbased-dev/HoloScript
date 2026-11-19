@@ -9,14 +9,7 @@
 
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import {
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  statSync,
-} from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -38,9 +31,7 @@ export const SNN_873_REPAIR = Object.freeze({
   version: '8.7.3',
   sourceName: '@holoscript/snn-webgpu',
   sourceVersion: '8.7.2',
-  peerDeps: Object.freeze([
-    Object.freeze({ name: '@holoscript/core', spec: '^8.7.0' }),
-  ]),
+  peerDeps: Object.freeze([Object.freeze({ name: '@holoscript/core', spec: '^8.7.0' })]),
 });
 
 export function leftoverWorkspaceIn(value) {
@@ -75,7 +66,12 @@ export function assertRequiredDeps(pkg, required) {
   }
 }
 
-export function assertFramework617Repair({ tarballPath, sourceTarballPath, packedManifest, sourceManifest }) {
+export function assertFramework617Repair({
+  tarballPath,
+  sourceTarballPath,
+  packedManifest,
+  sourceManifest,
+}) {
   if (
     packedManifest?.name !== FRAMEWORK_617_REPAIR.name ||
     packedManifest?.version !== FRAMEWORK_617_REPAIR.version
@@ -113,7 +109,12 @@ export function assertRequiredPeers(pkg, required) {
   }
 }
 
-export function assertSnn873Repair({ tarballPath, sourceTarballPath, packedManifest, sourceManifest }) {
+export function assertSnn873Repair({
+  tarballPath,
+  sourceTarballPath,
+  packedManifest,
+  sourceManifest,
+}) {
   if (
     packedManifest?.name !== SNN_873_REPAIR.name ||
     packedManifest?.version !== SNN_873_REPAIR.version
