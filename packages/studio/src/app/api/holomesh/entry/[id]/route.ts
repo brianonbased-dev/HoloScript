@@ -66,28 +66,30 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         if (cached) {
           // The cache knows nothing about who bought what: premium rows leave
           // it as teasers only, for everyone.
-          return NextResponse.json(hidePremiumRowsDeep({
-            success: true,
-            entry: {
-              id: cached.id,
-              workspaceId: cached.workspaceId,
-              type: cached.type,
-              content: cached.content,
-              authorId: cached.authorId,
-              authorName: cached.authorName,
-              domain: cached.domain,
-              price: cached.price,
-              premium: cached.premium,
-              confidence: cached.confidence != null ? cached.confidence / 100 : 0,
-              tags: cached.tags ?? [],
-              provenanceHash: cached.provenanceHash,
-              queryCount: cached.queryCount ?? 0,
-              reuseCount: cached.reuseCount ?? 0,
-              salesCount: cached.salesCount ?? 0,
-              createdAt: cached.mcpCreatedAt ?? cached.syncedAt,
-            },
-            source: 'db-cache',
-          }));
+          return NextResponse.json(
+            hidePremiumRowsDeep({
+              success: true,
+              entry: {
+                id: cached.id,
+                workspaceId: cached.workspaceId,
+                type: cached.type,
+                content: cached.content,
+                authorId: cached.authorId,
+                authorName: cached.authorName,
+                domain: cached.domain,
+                price: cached.price,
+                premium: cached.premium,
+                confidence: cached.confidence != null ? cached.confidence / 100 : 0,
+                tags: cached.tags ?? [],
+                provenanceHash: cached.provenanceHash,
+                queryCount: cached.queryCount ?? 0,
+                reuseCount: cached.reuseCount ?? 0,
+                salesCount: cached.salesCount ?? 0,
+                createdAt: cached.mcpCreatedAt ?? cached.syncedAt,
+              },
+              source: 'db-cache',
+            })
+          );
         }
       } catch {
         // fall through to original 404

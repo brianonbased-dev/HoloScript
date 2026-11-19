@@ -12,10 +12,17 @@ const FOUNDER_ME = { success: true, agentId: 'agent_founder', name: 'Founder', w
 function mockUpstream() {
   const fetchMock = vi.fn(async (url: string | URL) => {
     const u = String(url);
-    if (u.includes('/api/holomesh/me')) return new Response(JSON.stringify(FOUNDER_ME), { status: 200 });
-    if (u.includes('/api/holomesh/agents')) return new Response(JSON.stringify({ agents: [] }), { status: 200 });
+    if (u.includes('/api/holomesh/me'))
+      return new Response(JSON.stringify(FOUNDER_ME), { status: 200 });
+    if (u.includes('/api/holomesh/agents'))
+      return new Response(JSON.stringify({ agents: [] }), { status: 200 });
     if (u.includes('/api/holomesh/feed')) {
-      return new Response(JSON.stringify({ entries: [{ id: 'k1', authorId: 'agent_founder', authorName: 'Founder', content: 'x' }] }), { status: 200 });
+      return new Response(
+        JSON.stringify({
+          entries: [{ id: 'k1', authorId: 'agent_founder', authorName: 'Founder', content: 'x' }],
+        }),
+        { status: 200 }
+      );
     }
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   });
@@ -32,7 +39,11 @@ describe('HoloMesh "self" never resolves to the server key (audit item 3)', () =
     const res = await GET(new NextRequest('http://localhost/api/holomesh/agent/self'), {
       params: Promise.resolve({ id: 'self' }),
     });
-    const body = (await res.json()) as { success: boolean; code?: string; agent?: { name?: string } };
+    const body = (await res.json()) as {
+      success: boolean;
+      code?: string;
+      agent?: { name?: string };
+    };
     expect(body.success).toBe(false);
     expect(body.code).toBe('no_holomesh_agent');
     expect(res.status).toBe(404);
@@ -43,17 +54,21 @@ describe('HoloMesh "self" never resolves to the server key (audit item 3)', () =
     mockUpstream();
     const { GET } = await import('../[id]/route');
     const res = await GET(
-      new NextRequest('http://localhost/api/holomesh/agent/self', { headers: { authorization: 'Bearer caller-key' } }),
+      new NextRequest('http://localhost/api/holomesh/agent/self', {
+        headers: { authorization: 'Bearer caller-key' },
+      }),
       { params: Promise.resolve({ id: 'self' }) }
     );
     const body = (await res.json()) as { success: boolean };
     expect(body.success).toBe(true);
   });
 
-  it('/api/holomesh/agent/self/knowledge without a caller key: 404 no_holomesh_agent, nothing upstream (not the founder\'s)', async () => {
+  it("/api/holomesh/agent/self/knowledge without a caller key: 404 no_holomesh_agent, nothing upstream (not the founder's)", async () => {
     const fetchMock = mockUpstream();
     const { GET } = await import('../self/knowledge/route');
-    const res = await GET(new NextRequest('http://localhost/api/holomesh/agent/self/knowledge?limit=30'));
+    const res = await GET(
+      new NextRequest('http://localhost/api/holomesh/agent/self/knowledge?limit=30')
+    );
     const body = (await res.json()) as { code?: string; entries?: unknown[] };
     expect(res.status).toBe(404);
     expect(body.code).toBe('no_holomesh_agent');

@@ -28,7 +28,10 @@ afterEach(() => {
 
 describe('GET /api/holomesh/transactions', () => {
   it('without a caller key: 404 no_holomesh_agent and nothing upstream', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ transactions: [{ id: 'founder-tx' }] }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ transactions: [{ id: 'founder-tx' }] }), { status: 200 })
+    );
     vi.stubGlobal('fetch', fetchMock);
     const { GET } = await import('../route');
     const res = await GET(new NextRequest('http://localhost/api/holomesh/transactions?limit=50'));
@@ -38,7 +41,12 @@ describe('GET /api/holomesh/transactions', () => {
   });
 
   it('with a caller key: proxies upstream as that caller', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ success: true, transactions: [{ id: 'mine' }] }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ success: true, transactions: [{ id: 'mine' }] }), {
+          status: 200,
+        })
+    );
     vi.stubGlobal('fetch', fetchMock);
     const { GET } = await import('../route');
     const res = await GET(
@@ -47,13 +55,20 @@ describe('GET /api/holomesh/transactions', () => {
       })
     );
     expect(res.status).toBe(200);
-    expect(((await res.json()) as { transactions: { id: string }[] }).transactions[0].id).toBe('mine');
+    expect(((await res.json()) as { transactions: { id: string }[] }).transactions[0].id).toBe(
+      'mine'
+    );
     expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe('Bearer caller-own-key');
   });
 
   it('SECURITY: a caller with its own key never sees the server-key transactions cache', async () => {
     getDbMock.mockReturnValue(serverKeyCacheDb());
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ success: true, transactions: [{ id: 'mine' }] }), { status: 200 }));
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ success: true, transactions: [{ id: 'mine' }] }), {
+          status: 200,
+        })
+    );
     vi.stubGlobal('fetch', fetchMock);
     const { GET } = await import('../route');
     const res = await GET(

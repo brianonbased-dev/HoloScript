@@ -84,7 +84,10 @@ function collectPageRoutes(): PageRoute[] {
       routes.push({
         route: `/${segments.join('/')}`,
         segments,
-        file: full.slice(studioRoot.length + 1).split('\\').join('/'),
+        file: full
+          .slice(studioRoot.length + 1)
+          .split('\\')
+          .join('/'),
       });
     }
   }
@@ -165,12 +168,15 @@ describe('a wrong address is refused', () => {
     expect(isAnsweredByRootCatchAll('/zzz-probe-9182-not-a-real-page')).toBe(false);
   });
 
-  it.each(OPERATOR_PATHS)('answers %s with its own page or with a 404, never a stand-in', (path) => {
-    // Either a page of its own exists, or nothing matches and Next renders
-    // not-found.tsx with a 404. What must never happen is a DIFFERENT page
-    // answering to this address and calling it a success.
-    expect(isAnsweredByRootCatchAll(path)).toBe(false);
-  });
+  it.each(OPERATOR_PATHS)(
+    'answers %s with its own page or with a 404, never a stand-in',
+    (path) => {
+      // Either a page of its own exists, or nothing matches and Next renders
+      // not-found.tsx with a 404. What must never happen is a DIFFERENT page
+      // answering to this address and calling it a success.
+      expect(isAnsweredByRootCatchAll(path)).toBe(false);
+    }
+  );
 });
 
 describe('the industry verticals still work', () => {

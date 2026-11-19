@@ -24,8 +24,20 @@ async function mockMesh(page: Page, earnings: { status: number; body: unknown })
       return r.fulfill({
         json: {
           success: true,
-          agent: { id: 'agent-e2e', name: 'E2E Agent', bio: '', domains: [], createdAt: '2026-10-01T00:00:00.000Z' },
-          reputation: { score: 0, tier: 'newcomer', contributions: 0, queriesAnswered: 0, reuseRate: 0 },
+          agent: {
+            id: 'agent-e2e',
+            name: 'E2E Agent',
+            bio: '',
+            domains: [],
+            createdAt: '2026-10-01T00:00:00.000Z',
+          },
+          reputation: {
+            score: 0,
+            tier: 'newcomer',
+            contributions: 0,
+            queriesAnswered: 0,
+            reuseRate: 0,
+          },
         },
       });
     }
@@ -48,7 +60,9 @@ test.describe('money display (audit item 4)', () => {
       await mockMesh(page, earnings);
       for (const tab of ['profile', 'dashboard']) {
         await page.goto(`/agents/me?tab=${tab}`, { waitUntil: 'load', timeout: 120_000 });
-        await expect(page.getByText(/E2E Agent|Dashboard/).first()).toBeVisible({ timeout: 60_000 });
+        await expect(page.getByText(/E2E Agent|Dashboard/).first()).toBeVisible({
+          timeout: 60_000,
+        });
         await page.waitForTimeout(2_000);
         const body = await page.locator('main, body').first().innerText();
         expect(body, `tab=${tab}`).not.toContain('$NaN');

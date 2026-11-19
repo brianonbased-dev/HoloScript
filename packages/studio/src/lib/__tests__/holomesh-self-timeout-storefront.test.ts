@@ -14,7 +14,11 @@ function stubFetch(impl: (url: string) => Promise<Response>) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string, init?: RequestInit) => {
-      calls.push({ url: String(url), auth: new Headers(init?.headers).get('authorization'), signal: init?.signal });
+      calls.push({
+        url: String(url),
+        auth: new Headers(init?.headers).get('authorization'),
+        signal: init?.signal,
+      });
       return impl(String(url));
     })
   );
@@ -34,9 +38,14 @@ afterEach(() => {
 
 describe('Self helpers time out like the fallback helpers', () => {
   it('fetchHoloMeshJsonSelf: timeout -> 504 holomesh_timeout, with an abort signal', async () => {
-    stubFetch(async () => { throw timeoutErr(); });
+    stubFetch(async () => {
+      throw timeoutErr();
+    });
     const { fetchHoloMeshJsonSelf } = await import('../holomesh-proxy');
-    const r = await fetchHoloMeshJsonSelf<{ code?: string }>('/api/holomesh/me', req('https://s.test/x', 'Bearer user-key'));
+    const r = await fetchHoloMeshJsonSelf<{ code?: string }>(
+      '/api/holomesh/me',
+      req('https://s.test/x', 'Bearer user-key')
+    );
     expect(r?.status).toBe(504);
     expect(r?.ok).toBe(false);
     expect(r?.data?.code).toBe('holomesh_timeout');
@@ -44,31 +53,48 @@ describe('Self helpers time out like the fallback helpers', () => {
   });
 
   it('fetchHoloMeshJsonSelf: unreachable -> 503 holomesh_unavailable', async () => {
-    stubFetch(async () => { throw new TypeError('fetch failed'); });
+    stubFetch(async () => {
+      throw new TypeError('fetch failed');
+    });
     const { fetchHoloMeshJsonSelf } = await import('../holomesh-proxy');
-    const r = await fetchHoloMeshJsonSelf<{ code?: string }>('/api/holomesh/me', req('https://s.test/x', 'Bearer user-key'));
+    const r = await fetchHoloMeshJsonSelf<{ code?: string }>(
+      '/api/holomesh/me',
+      req('https://s.test/x', 'Bearer user-key')
+    );
     expect(r?.status).toBe(503);
     expect(r?.data?.code).toBe('holomesh_unavailable');
   });
 
   it('proxyHoloMeshSelf: timeout -> 504 JSON, unreachable -> 503 JSON', async () => {
-    stubFetch(async () => { throw timeoutErr(); });
+    stubFetch(async () => {
+      throw timeoutErr();
+    });
     let mod = await import('../holomesh-proxy');
-    let res = await mod.proxyHoloMeshSelf('/api/holomesh/dashboard', req('https://s.test/x', 'Bearer user-key'));
+    let res = await mod.proxyHoloMeshSelf(
+      '/api/holomesh/dashboard',
+      req('https://s.test/x', 'Bearer user-key')
+    );
     expect(res.status).toBe(504);
     expect((await res.json()).code).toBe('holomesh_timeout');
     expect(calls[0].signal).toBeInstanceOf(AbortSignal);
 
     vi.resetModules();
-    stubFetch(async () => { throw new TypeError('fetch failed'); });
+    stubFetch(async () => {
+      throw new TypeError('fetch failed');
+    });
     mod = await import('../holomesh-proxy');
-    res = await mod.proxyHoloMeshSelf('/api/holomesh/dashboard', req('https://s.test/x', 'Bearer user-key'));
+    res = await mod.proxyHoloMeshSelf(
+      '/api/holomesh/dashboard',
+      req('https://s.test/x', 'Bearer user-key')
+    );
     expect(res.status).toBe(503);
     expect((await res.json()).code).toBe('holomesh_unavailable');
   });
 
   it('agent/self with a key: upstream timeout surfaces as 504, not a hang or Founder', async () => {
-    stubFetch(async () => { throw timeoutErr(); });
+    stubFetch(async () => {
+      throw timeoutErr();
+    });
     const { GET } = await import('../../app/api/holomesh/agent/[id]/route');
     const res = await GET(req('https://s.test/api/holomesh/agent/self', 'Bearer user-key'), {
       params: Promise.resolve({ id: 'self' }),

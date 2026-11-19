@@ -42,20 +42,20 @@ Studio has a generated route inventory guarded by `pnpm --filter @holoscript/stu
 
 ### Supporting Routes (12 routes)
 
-| Route           | Purpose                                                                                   |
-| --------------- | ----------------------------------------------------------------------------------------- |
-| `/absorb`       | Codebase intelligence UI — GraphRAG queries, absorb runs. Admin panel at `/absorb/admin`. |
-| `/admin`        | Platform admin dashboard. Requires auth.                                                  |
-| `/character`    | Character creator — VRM/avatar authoring.                                                 |
-| `/holoclaw`     | Skill shelf — browse `.hsplus` skills, create from templates, SSE activity feed.          |
-| `/holodaemon`   | Daemon dashboard — status, metrics, agent pool, BT progress, event feed.                  |
+| Route           | Purpose                                                                                                                                                     |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/absorb`       | Codebase intelligence UI — GraphRAG queries, absorb runs. Admin panel at `/absorb/admin`.                                                                   |
+| `/admin`        | Platform admin dashboard. Requires auth.                                                                                                                    |
+| `/character`    | Character creator — VRM/avatar authoring.                                                                                                                   |
+| `/holoclaw`     | Skill shelf — browse `.hsplus` skills, create from templates, SSE activity feed.                                                                            |
+| `/holodaemon`   | Daemon dashboard — status, metrics, agent pool, BT progress, event feed.                                                                                    |
 | `/projects`     | Projects tab: your GitHub repos (via GitHub sign-in) → Import into a server workspace. Repos tab: agent workbench (workspace git ops, jobs). Not IndexedDB. |
-| `/registry`     | Public asset pack browser. Search + tag filters + import.                                 |
-| `/settings`     | User settings. Requires auth.                                                             |
-| `/templates`    | Template gallery. Loads `.holo` into `/create`.                                           |
-| `/u/[username]` | Public user profile page.                                                                 |
-| `/shared/[id]`  | Community scene page. SSR/ISR with SEO metadata.                                          |
-| `/view/[id]`    | Read-only scene viewer. Full-screen renderer.                                             |
+| `/registry`     | Public asset pack browser. Search + tag filters + import.                                                                                                   |
+| `/settings`     | User settings. Requires auth.                                                                                                                               |
+| `/templates`    | Template gallery. Loads `.holo` into `/create`.                                                                                                             |
+| `/u/[username]` | Public user profile page.                                                                                                                                   |
+| `/shared/[id]`  | Community scene page. SSR/ISR with SEO metadata.                                                                                                            |
+| `/view/[id]`    | Read-only scene viewer. Full-screen renderer.                                                                                                               |
 
 ### Dynamic Routes (industry, pipeline, learn, integrations, remote)
 
@@ -141,12 +141,12 @@ Local export formats: GLB, GLTF, OBJ, USD, HoloScript source. Quality tiers: dra
 
 Studio can validate credentials for these services. Today the connector panel does **connect + health check only** — it does not deploy, sync code, or open PRs from this surface:
 
-| Connector | Package                          | Purpose                             |
-| --------- | -------------------------------- | ----------------------------------- |
-| GitHub    | `@holoscript/connector-github`   | Token / OAuth connect + health check |
-| Railway   | `@holoscript/connector-railway`  | Project token connect + health check |
-| VS Code   | `@holoscript/connector-vscode`   | Local extension bridge reachability (`bridgeUrl`) |
-| App Store | `@holoscript/connector-appstore` | Apple / Google credential connect + health check |
+| Connector | Package                          | Purpose                                                       |
+| --------- | -------------------------------- | ------------------------------------------------------------- |
+| GitHub    | `@holoscript/connector-github`   | Token / OAuth connect + health check                          |
+| Railway   | `@holoscript/connector-railway`  | Project token connect + health check                          |
+| VS Code   | `@holoscript/connector-vscode`   | Local extension bridge reachability (`bridgeUrl`)             |
+| App Store | `@holoscript/connector-appstore` | Apple / Google credential connect + health check              |
 | Upstash   | `@holoscript/connector-upstash`  | Redis REST (`redisUrl` + `redisToken`) connect + health check |
 
 Connect via `POST /api/connectors/connect` (credential keys per service: `src/lib/stores/connectorFormFields.ts`), GitHub OAuth via `/api/connectors/oauth`. `/api/connectors/activity` exists but has no server-side event producer yet, so the panel shows only local connect/disconnect activity. Secrets are not persisted; after a reload, re-enter them to reconnect.

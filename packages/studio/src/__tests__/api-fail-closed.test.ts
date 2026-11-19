@@ -159,7 +159,10 @@ describe('the /api default is closed', () => {
     }
 
     // …while an ordinary agent id still answers, or the carve-out ate the rule.
-    for (const path of ['/api/holomesh/agent/agent-abc', '/api/holomesh/agent/agent-abc/storefront']) {
+    for (const path of [
+      '/api/holomesh/agent/agent-abc',
+      '/api/holomesh/agent/agent-abc/storefront',
+    ]) {
       expect.soft((await anonymous(path)).status, path).not.toBe(401);
     }
   });
@@ -371,61 +374,149 @@ const SIGNED_OUT_UI_DEPENDENCIES: ReadonlyArray<{
   callSite: string;
 }> = [
   // Sign-in itself.
-  { method: 'GET', path: '/api/auth/session', callSite: 'NextAuth; every page via SessionProvider' },
+  {
+    method: 'GET',
+    path: '/api/auth/session',
+    callSite: 'NextAuth; every page via SessionProvider',
+  },
   { method: 'GET', path: '/api/auth/csrf', callSite: 'NextAuth sign-in form' },
 
   // Liveness and discovery. `/api/health` is the entry the reviewer deleted.
-  { method: 'GET', path: '/api/health', callSite: 'next.config.js rewrite of /health; Railway + external monitors' },
-  { method: 'GET', path: '/api/docs', callSite: 'agents reading how to authenticate before they can' },
+  {
+    method: 'GET',
+    path: '/api/health',
+    callSite: 'next.config.js rewrite of /health; Railway + external monitors',
+  },
+  {
+    method: 'GET',
+    path: '/api/docs',
+    callSite: 'agents reading how to authenticate before they can',
+  },
 
   // Landing page, first paint, no session.
-  { method: 'POST', path: '/api/manufacturing/mesh', callSite: 'components/landing/ParametricPartDemo.tsx:121 via app/page.tsx:438' },
-  { method: 'POST', path: '/api/manufacturing/stl', callSite: 'components/landing/ParametricPartDemo.tsx:153' },
+  {
+    method: 'POST',
+    path: '/api/manufacturing/mesh',
+    callSite: 'components/landing/ParametricPartDemo.tsx:121 via app/page.tsx:438',
+  },
+  {
+    method: 'POST',
+    path: '/api/manufacturing/stl',
+    callSite: 'components/landing/ParametricPartDemo.tsx:153',
+  },
   { method: 'GET', path: '/api/feed', callSite: 'signed-out activity feed' },
   { method: 'GET', path: '/api/examples', callSite: 'landing + editor example library' },
 
   // Public share viewer at /shared/[id].
   { method: 'GET', path: '/api/share/abc12345', callSite: 'app/shared/[id]/page.tsx:19' },
-  { method: 'POST', path: '/api/share', callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:963' },
-  { method: 'GET', path: '/api/examples/hello-world', callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:642' },
-  { method: 'GET', path: '/api/portable-mind/agent-abc', callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:691' },
+  {
+    method: 'POST',
+    path: '/api/share',
+    callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:963',
+  },
+  {
+    method: 'GET',
+    path: '/api/examples/hello-world',
+    callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:642',
+  },
+  {
+    method: 'GET',
+    path: '/api/portable-mind/agent-abc',
+    callSite: 'app/shared/[id]/ImmersiveViewer.client.tsx:691',
+  },
 
   // Headset proof capture, from pages with no sign-in.
-  { method: 'POST', path: '/api/quest-proof', callSite: 'ImmersiveViewer.client.tsx:597; components/quest/QuestProbe.tsx:127' },
-  { method: 'GET', path: '/api/quest-proof', callSite: 'receipt read-back with the x-quest-proof-token header (GET never records)' },
+  {
+    method: 'POST',
+    path: '/api/quest-proof',
+    callSite: 'ImmersiveViewer.client.tsx:597; components/quest/QuestProbe.tsx:127',
+  },
+  {
+    method: 'GET',
+    path: '/api/quest-proof',
+    callSite: 'receipt read-back with the x-quest-proof-token header (GET never records)',
+  },
 
   // Signed-out editor at /create.
   { method: 'POST', path: '/api/preview', callSite: 'app/create/page.tsx live preview compile' },
-  { method: 'GET', path: '/api/registry', callSite: 'components/registry/RegistryPanel.tsx:60 via app/create/page.tsx:276' },
-  { method: 'POST', path: '/api/registry/pack-abc', callSite: 'components/registry/RegistryPanel.tsx:87 download counter' },
+  {
+    method: 'GET',
+    path: '/api/registry',
+    callSite: 'components/registry/RegistryPanel.tsx:60 via app/create/page.tsx:276',
+  },
+  {
+    method: 'POST',
+    path: '/api/registry/pack-abc',
+    callSite: 'components/registry/RegistryPanel.tsx:87 download counter',
+  },
   { method: 'GET', path: '/api/asset-packs', callSite: 'editor asset-pack catalog' },
   { method: 'GET', path: '/api/trait-registry', callSite: 'editor trait vocabulary' },
   { method: 'GET', path: '/api/nodes', callSite: 'editor node-graph panel' },
 
   // Public mesh catalogue pages.
-  { method: 'GET', path: '/api/holomesh/agents', callSite: 'app/agents/page.tsx:47; app/holomesh/page.tsx:68' },
+  {
+    method: 'GET',
+    path: '/api/holomesh/agents',
+    callSite: 'app/agents/page.tsx:47; app/holomesh/page.tsx:68',
+  },
   { method: 'GET', path: '/api/holomesh/agent/agent-abc', callSite: 'app/agents/[id]/page.tsx:78' },
-  { method: 'GET', path: '/api/holomesh/agent/agent-abc/storefront', callSite: 'app/agents/[id]/storefront/page.tsx:51' },
+  {
+    method: 'GET',
+    path: '/api/holomesh/agent/agent-abc/storefront',
+    callSite: 'app/agents/[id]/storefront/page.tsx:51',
+  },
   { method: 'GET', path: '/api/holomesh/domains', callSite: 'app/holomesh/page.tsx:79' },
   { method: 'GET', path: '/api/holomesh/team/discover', callSite: 'app/teams/page.tsx:88' },
-  { method: 'GET', path: '/api/holomesh/teams/leaderboard', callSite: 'app/holomesh/leaderboard/page.tsx:78' },
+  {
+    method: 'GET',
+    path: '/api/holomesh/teams/leaderboard',
+    callSite: 'app/holomesh/leaderboard/page.tsx:78',
+  },
   { method: 'GET', path: '/api/holomesh/feed', callSite: 'public mesh feed' },
   { method: 'GET', path: '/api/holomesh/marketplace', callSite: 'public marketplace listing' },
   { method: 'GET', path: '/api/holomesh/search', callSite: 'public mesh search' },
 
   // Remaining signed-out pages.
-  { method: 'GET', path: '/api/conjecture/receipts', callSite: 'app/conjecture/receipts/page.tsx:52' },
-  { method: 'GET', path: '/api/training/stream', callSite: 'app/spectator/training/page.tsx:79 (EventSource, cannot send headers)' },
+  {
+    method: 'GET',
+    path: '/api/conjecture/receipts',
+    callSite: 'app/conjecture/receipts/page.tsx:52',
+  },
+  {
+    method: 'GET',
+    path: '/api/training/stream',
+    callSite: 'app/spectator/training/page.tsx:79 (EventSource, cannot send headers)',
+  },
 
   // Token-authenticated phone surfaces. The `?t=` token IS the credential; a
   // phone that scanned a QR code holds no session and can never get one.
-  { method: 'PUT', path: '/api/reconstruction/session', callSite: 'app/scan-room/mobile/[token]/page.tsx:233 phone-connected' },
-  { method: 'GET', path: '/api/reconstruction/session', callSite: 'app/scan-room/mobile/[token]/page.tsx:441 feedback poll' },
-  { method: 'PUT', path: '/api/remote', callSite: 'app/remote/[token]/page.tsx:29 viewport command' },
-  { method: 'GET', path: '/api/remote', callSite: 'app/remote/[token]/page.tsx:137 token check + command queue' },
+  {
+    method: 'PUT',
+    path: '/api/reconstruction/session',
+    callSite: 'app/scan-room/mobile/[token]/page.tsx:233 phone-connected',
+  },
+  {
+    method: 'GET',
+    path: '/api/reconstruction/session',
+    callSite: 'app/scan-room/mobile/[token]/page.tsx:441 feedback poll',
+  },
+  {
+    method: 'PUT',
+    path: '/api/remote',
+    callSite: 'app/remote/[token]/page.tsx:29 viewport command',
+  },
+  {
+    method: 'GET',
+    path: '/api/remote',
+    callSite: 'app/remote/[token]/page.tsx:137 token check + command queue',
+  },
 
   // Public profile.
-  { method: 'GET', path: '/api/users/user-abc', callSite: 'app/u/[username]/page.tsx:49 renders empty without it' },
+  {
+    method: 'GET',
+    path: '/api/users/user-abc',
+    callSite: 'app/u/[username]/page.tsx:49 renders empty without it',
+  },
 ];
 
 describe('the signed-out site keeps working, checked against a hand-written list', () => {
@@ -489,9 +580,11 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
   {
     method: 'POST',
     path: '/api/brittney',
-    credential: "the customer's own Brittney key (bk_…), validated against the database by requireAuthOrApiKey (lib/api-auth.ts:138)",
+    credential:
+      "the customer's own Brittney key (bk_…), validated against the database by requireAuthOrApiKey (lib/api-auth.ts:138)",
     header: { authorization: 'Bearer bk_a_customers_own_key' },
-    callSite: 'lib/brittney/BrittneySession.ts:150; sold and documented at components/settings/BrittneyAPIKeysPanel.tsx:119-126 as "no browser session required"',
+    callSite:
+      'lib/brittney/BrittneySession.ts:150; sold and documented at components/settings/BrittneyAPIKeysPanel.tsx:119-126 as "no browser session required"',
   },
   {
     method: 'GET',
@@ -505,7 +598,8 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
     path: '/api/holomesh/agent/agent-abc/withdraw',
     credential: "the agent's own HoloMesh key, introspected upstream and required to BE that agent",
     header: { 'x-mcp-api-key': 'an-agents-own-mesh-key' },
-    callSite: 'lib/holomesh-proxy.ts:79 resolveHoloMeshCaller — the one credential this route accepts',
+    callSite:
+      'lib/holomesh-proxy.ts:79 resolveHoloMeshCaller — the one credential this route accepts',
   },
   {
     method: 'GET',
@@ -537,7 +631,8 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
     // POST and nothing else — the search goes in the body — so the row was
     // claiming a caller that cannot exist. Fixed the row rather than widening
     // the allowlist to match it, which is the rule this list is written under.
-    callSite: 'app/api/knowledge/query/route.ts:26 (POST is the only handler), guarded in 886264d9f',
+    callSite:
+      'app/api/knowledge/query/route.ts:26 (POST is the only handler), guarded in 886264d9f',
   },
   {
     method: 'POST',
@@ -549,9 +644,11 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
   {
     method: 'GET',
     path: '/api/mcp/call',
-    credential: "the agent's own mesh key, forwarded upstream unchanged; ours is never substituted for a caller who sent one",
+    credential:
+      "the agent's own mesh key, forwarded upstream unchanged; ours is never substituted for a caller who sent one",
     header: { 'x-mcp-api-key': 'an-agents-own-key' },
-    callSite: 'app/api/mcp/call/route.ts callerMeshKey — GET reads the mesh inventory under the caller own key (#302)',
+    callSite:
+      'app/api/mcp/call/route.ts callerMeshKey — GET reads the mesh inventory under the caller own key (#302)',
   },
   {
     method: 'GET',
@@ -572,11 +669,13 @@ const CALLER_CREDENTIAL_DEPENDENCIES: ReadonlyArray<{
   {
     method: 'POST',
     path: '/api/agents/fleet/scheduler-tick',
-    credential: 'the fleet service token alone, judged by the dispatch handler (fleetServiceTokenOk, timing-safe against FLEET_DISPATCH_SERVICE_TOKEN, refused when unset)',
+    credential:
+      'the fleet service token alone, judged by the dispatch handler (fleetServiceTokenOk, timing-safe against FLEET_DISPATCH_SERVICE_TOKEN, refused when unset)',
     header: { 'x-fleet-service-token': 'the-fleets-own-service-token' },
     // The same tick without its mesh key. The route accepts it on the token
     // alone, so the gate in front must too (task uq6w).
-    callSite: 'ai-ecosystem scripts/fleet-dispatch-tick.mjs:141 — the token header, sent whether or not HOLOSCRIPT_MCP_API_KEY is set',
+    callSite:
+      'ai-ecosystem scripts/fleet-dispatch-tick.mjs:141 — the token header, sent whether or not HOLOSCRIPT_MCP_API_KEY is set',
   },
 ];
 

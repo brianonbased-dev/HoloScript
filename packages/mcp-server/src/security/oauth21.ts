@@ -621,7 +621,13 @@ export class OAuth21Service {
    * over-age: not live.
    */
   grantIsLive(
-    ref: { grantId?: string; userId?: string; clientId: string; scopes?: OAuthScope[]; issuedAt?: number },
+    ref: {
+      grantId?: string;
+      userId?: string;
+      clientId: string;
+      scopes?: OAuthScope[];
+      issuedAt?: number;
+    },
     now: number = Date.now(),
     touch = false
   ): boolean {
@@ -647,7 +653,8 @@ export class OAuth21Service {
     if (!grant) return false;
     grant.revokedAt = grant.revokedAt ?? now;
     for (const [key, code] of authCodes) if (code.grantId === grantId) authCodes.delete(key);
-    for (const [key, token] of accessTokens) if (token.grantId === grantId) accessTokens.delete(key);
+    for (const [key, token] of accessTokens)
+      if (token.grantId === grantId) accessTokens.delete(key);
     for (const [key, token] of refreshTokens) {
       if (token.grantId === grantId) {
         revokedChains.add(token.chainId);
@@ -859,7 +866,9 @@ export class OAuth21Service {
     if (params.scopes?.some((s) => USER_BOUND_SCOPES.includes(s))) {
       throw new Error(USER_BOUND_SCOPE_CC_ERROR);
     }
-    let requestedScopes = (params.scopes || client.scopes).filter((s) => !USER_BOUND_SCOPES.includes(s));
+    let requestedScopes = (params.scopes || client.scopes).filter(
+      (s) => !USER_BOUND_SCOPES.includes(s)
+    );
     if (client.selfRegistered) {
       requestedScopes = requestedScopes.filter((s) => CLIENT_CREDENTIALS_MAX_SCOPES.includes(s));
     }

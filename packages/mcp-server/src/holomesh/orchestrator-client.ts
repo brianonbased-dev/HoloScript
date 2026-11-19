@@ -52,12 +52,17 @@ const DETAILED_ANSWER_CAP_BYTES = 64 * 1024;
  * or credentials written into MCP_ORCHESTRATOR_URL (claude3's review of #319).
  */
 function transportFailure(error: unknown): string {
-  const e = error as { name?: unknown; code?: unknown; cause?: { code?: unknown; name?: unknown } } | null;
+  const e = error as {
+    name?: unknown;
+    code?: unknown;
+    cause?: { code?: unknown; name?: unknown };
+  } | null;
   if (e?.name === 'TimeoutError' || e?.name === 'AbortError' || e?.cause?.name === 'TimeoutError') {
     return 'unreachable (TIMEOUT)';
   }
   for (const code of [e?.cause?.code, e?.code]) {
-    if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{2,32}$/.test(code)) return `unreachable (${code})`;
+    if (typeof code === 'string' && /^[A-Z][A-Z0-9_]{2,32}$/.test(code))
+      return `unreachable (${code})`;
   }
   return 'unreachable';
 }
@@ -391,7 +396,9 @@ export class HoloMeshOrchestratorClient {
     const counted = Number(res.answer.synced ?? res.answer.count);
     // A JSON answer that names no count accepted the batch as sent; a count comes from
     // another service, so it is clamped to what was sent.
-    const synced = Number.isFinite(counted) ? Math.min(sent, Math.max(0, Math.trunc(counted))) : sent;
+    const synced = Number.isFinite(counted)
+      ? Math.min(sent, Math.max(0, Math.trunc(counted)))
+      : sent;
     const accepted = synced === sent;
     return {
       synced,
@@ -534,10 +541,20 @@ export class HoloMeshOrchestratorClient {
     const status = typeof res.status === 'number' ? res.status : null;
     if (!res.ok) {
       await discardBody(res);
-      return { ok: false, status, answer: undefined, failure: `refused (HTTP ${status ?? 'unknown'})` };
+      return {
+        ok: false,
+        status,
+        answer: undefined,
+        failure: `refused (HTTP ${status ?? 'unknown'})`,
+      };
     }
     try {
-      return { ok: true, status, answer: await readJsonAnswer(res, DETAILED_ANSWER_CAP_BYTES), failure: null };
+      return {
+        ok: true,
+        status,
+        answer: await readJsonAnswer(res, DETAILED_ANSWER_CAP_BYTES),
+        failure: null,
+      };
     } catch (error) {
       // The answer's body stalled or broke after the headers: no answer arrived, so
       // this is unreachable, not a status the orchestrator chose (status null).

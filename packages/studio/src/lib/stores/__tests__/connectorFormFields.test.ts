@@ -25,7 +25,11 @@ function routeCredentialKeys(): Record<string, string[]> {
   let m: RegExpExecArray | null;
   while ((m = caseRe.exec(src))) {
     const d = /const \{([^}]*)\} = credentials;/.exec(m[2]);
-    if (d) out[m[1]] = d[1].split(',').map((k) => k.trim()).filter(Boolean);
+    if (d)
+      out[m[1]] = d[1]
+        .split(',')
+        .map((k) => k.trim())
+        .filter(Boolean);
   }
   return out;
 }
@@ -58,7 +62,12 @@ describe('connector form keys match the connect route', () => {
         applePrivateKey: 'P',
         googleServiceAccount: '{}',
       }).credentials
-    ).toEqual({ appleKeyId: 'K', appleIssuerId: 'I', applePrivateKey: 'P', googleServiceAccount: '{}' });
+    ).toEqual({
+      appleKeyId: 'K',
+      appleIssuerId: 'I',
+      applePrivateKey: 'P',
+      googleServiceAccount: '{}',
+    });
     expect(
       buildConnectPayload('upstash', { redisUrl: 'https://x.upstash.io', redisToken: 't' })
         .credentials

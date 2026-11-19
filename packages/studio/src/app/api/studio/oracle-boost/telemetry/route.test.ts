@@ -15,7 +15,10 @@ const h = vi.hoisted(() => {
   process.env.ORACLE_TELEMETRY_PATH = file;
   return { file, requireFounder: vi.fn() };
 });
-vi.mock('@/lib/api-auth', () => ({ requireFounder: h.requireFounder, requireAuth: h.requireFounder }));
+vi.mock('@/lib/api-auth', () => ({
+  requireFounder: h.requireFounder,
+  requireAuth: h.requireFounder,
+}));
 
 import { GET } from './route';
 

@@ -941,9 +941,7 @@ export {
   type LocalCaptureSession,
   type TrackingSource,
 } from './traits/LocalCapture';
-export {
-  avatarRenderAllowed,
-} from './traits/AvatarEmbodimentTrait';
+export { avatarRenderAllowed } from './traits/AvatarEmbodimentTrait';
 export { avatarEmbodimentNeedsGrant, carriesRealLikeness } from './traits/AvatarLikeness';
 export {
   grantLikenessShare,

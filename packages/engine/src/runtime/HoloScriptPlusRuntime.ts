@@ -462,10 +462,17 @@ export class HoloScriptPlusRuntimeImpl implements HSPlusRuntime {
 
   /** Dispatch a locally captured tracking event to every node with the matching trait. */
   private routeLocalTracking(event: Record<string, unknown>): void {
-    const trait = event.type === 'body_pose_update' ? 'body_tracking' : event.type === 'face_data_update' ? 'face_tracking' : null;
+    const trait =
+      event.type === 'body_pose_update'
+        ? 'body_tracking'
+        : event.type === 'face_data_update'
+          ? 'face_tracking'
+          : null;
     if (!trait || !this.rootInstance) return;
     const visit = (instance: NodeInstance) => {
-      const traits = (instance.node as unknown as { traits?: Map<string, unknown> | Record<string, unknown> }).traits;
+      const traits = (
+        instance.node as unknown as { traits?: Map<string, unknown> | Record<string, unknown> }
+      ).traits;
       const has = traits instanceof Map ? traits.has(trait) : !!traits && trait in traits;
       if (has) this.handleVREvent(event as unknown as TraitEvent, instance.node);
       for (const child of instance.children || []) visit(child);

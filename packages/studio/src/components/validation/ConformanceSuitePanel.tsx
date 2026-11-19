@@ -164,7 +164,6 @@ export const DEFAULT_RULES: ConformanceRule[] = [
   },
 ];
 
-
 const CHECKER_STOPPED =
   'Not checked: the checker stopped while reading this scene. Try again; if it keeps happening, report it with the details below.';
 

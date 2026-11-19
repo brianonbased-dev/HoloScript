@@ -29,7 +29,8 @@ function subpathsFrameworkImports(): string[] {
   for (const file of walk(frameworkSrc)) {
     const text = readFileSync(file, 'utf8');
     for (const m of text.matchAll(re)) {
-      if (/^\s*import\s+type\b/.test(text.slice(text.lastIndexOf('\n', m.index) + 1, m.index))) continue;
+      if (/^\s*import\s+type\b/.test(text.slice(text.lastIndexOf('\n', m.index) + 1, m.index)))
+        continue;
       found.add(`./${m[1]}`);
     }
   }

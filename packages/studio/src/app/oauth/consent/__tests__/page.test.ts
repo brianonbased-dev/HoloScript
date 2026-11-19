@@ -97,7 +97,9 @@ describe('/oauth/consent page', () => {
     const page = async (client_name: string) => {
       fetchMock.mockResolvedValueOnce(
         new Response(
-          JSON.stringify({ authorization_request: { client_id: 'hsc_test', client_name, csrf_token: 'C' } }),
+          JSON.stringify({
+            authorization_request: { client_id: 'hsc_test', client_name, csrf_token: 'C' },
+          }),
           { status: 200 }
         )
       );

@@ -4,7 +4,6 @@ import { holomeshUpstream } from '../_lib/holomeshUpstream';
 
 export const runtime = 'nodejs';
 
-
 /** Founder-only: requireFounder answers 401/403 before the team key is read. */
 export async function GET(req: NextRequest) {
   const auth = await requireFounder(req);

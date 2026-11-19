@@ -1197,8 +1197,8 @@ export default function CreatePage() {
     setChatOpen(
       Boolean(
         seededPrompt ||
-          useCreateModeStore.getState().landingPrompt ||
-          searchParams.get('chat') === '1'
+        useCreateModeStore.getState().landingPrompt ||
+        searchParams.get('chat') === '1'
       )
     );
 

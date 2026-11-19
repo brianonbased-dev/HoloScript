@@ -223,7 +223,8 @@ export const bodyTrackingHandler: TraitHandler<BodyTrackingConfig> = {
           context.emit?.('avatar_generic_fallback', {
             node,
             trait: 'body_tracking',
-            reason: 'live_self tracking data did not come from a local capture device opened by the runtime',
+            reason:
+              'live_self tracking data did not come from a local capture device opened by the runtime',
           });
         }
         return;

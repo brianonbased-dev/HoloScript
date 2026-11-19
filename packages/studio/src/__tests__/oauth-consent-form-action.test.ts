@@ -10,7 +10,10 @@ import { proxy, formActionSources } from '../proxy';
 import { consentErrorText } from '../lib/oauth/consentError';
 
 function formAction(csp: string | null): string {
-  const d = (csp || '').split(';').map((x) => x.trim()).find((x) => x.startsWith('form-action'));
+  const d = (csp || '')
+    .split(';')
+    .map((x) => x.trim())
+    .find((x) => x.startsWith('form-action'));
   return (d || '').replace(/^form-action\s*/, '');
 }
 
@@ -48,24 +51,25 @@ describe('proxy CSP form-action on /oauth/consent', () => {
     );
   });
 
-  it.each([
-    'javascript:alert(1)',
-    'data:text/html,hi',
-    'ftp://h.example/cb',
-    'not a url',
-    '',
-  ])('a %j redirect_uri is not added', async (uri) => {
-    expect(formAction(await cspFor('/oauth/consent' + q(uri)))).toBe("'self'");
-  });
+  it.each(['javascript:alert(1)', 'data:text/html,hi', 'ftp://h.example/cb', 'not a url', ''])(
+    'a %j redirect_uri is not added',
+    async (uri) => {
+      expect(formAction(await cspFor('/oauth/consent' + q(uri)))).toBe("'self'");
+    }
+  );
 
   it('directive text smuggled into redirect_uri reduces to the bare origin', async () => {
-    const fa = formAction(await cspFor('/oauth/consent' + q("http://a.example/ 'unsafe-inline'; script-src *")));
+    const fa = formAction(
+      await cspFor('/oauth/consent' + q("http://a.example/ 'unsafe-inline'; script-src *"))
+    );
     expect(fa).toBe("'self' http://a.example");
   });
 
   it('never emits a wildcard', () => {
     for (const uri of ['http://*.example/cb', 'https://*/cb']) {
-      expect(formActionSources('/oauth/consent', new URLSearchParams({ redirect_uri: uri }))).not.toContain('*');
+      expect(
+        formActionSources('/oauth/consent', new URLSearchParams({ redirect_uri: uri }))
+      ).not.toContain('*');
     }
   });
 });

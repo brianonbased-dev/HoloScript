@@ -38,11 +38,20 @@ export async function checkAbsorbHealth(opts: AbsorbHealthOptions): Promise<Abso
     url = new URL(opts.baseUrl ?? '');
     if (url.protocol !== 'https:' && url.protocol !== 'http:') throw new Error('protocol');
   } catch {
-    return { status: 'misconfigured', degraded: true, reason: 'ABSORB_SERVICE_URL is not an http(s) URL' };
+    return {
+      status: 'misconfigured',
+      degraded: true,
+      reason: 'ABSORB_SERVICE_URL is not an http(s) URL',
+    };
   }
   const origin = url.origin;
   if (!opts.apiKeyConfigured) {
-    return { status: 'misconfigured', degraded: true, origin, reason: 'no absorb API key configured' };
+    return {
+      status: 'misconfigured',
+      degraded: true,
+      origin,
+      reason: 'no absorb API key configured',
+    };
   }
 
   const fetchImpl = opts.fetchImpl ?? fetch;
@@ -73,7 +82,10 @@ export async function checkAbsorbHealth(opts: AbsorbHealthOptions): Promise<Abso
 let cached: { at: number; value: Promise<AbsorbHealth> } | null = null;
 
 /** Memoized for ABSORB_HEALTH_CACHE_MS; concurrent callers share one probe. */
-export function getAbsorbHealthCached(opts: AbsorbHealthOptions, now = Date.now()): Promise<AbsorbHealth> {
+export function getAbsorbHealthCached(
+  opts: AbsorbHealthOptions,
+  now = Date.now()
+): Promise<AbsorbHealth> {
   if (cached && now - cached.at < ABSORB_HEALTH_CACHE_MS) return cached.value;
   cached = { at: now, value: checkAbsorbHealth(opts) };
   return cached.value;

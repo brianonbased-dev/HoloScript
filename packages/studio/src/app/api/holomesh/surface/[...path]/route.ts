@@ -59,7 +59,10 @@ async function injectSelfProfile(code: string, req: NextRequest): Promise<string
     fetchHoloMeshJsonSelf<ProfilePayload>('/api/holomesh/profile', req),
   ]);
   if (!me || !profile) return code;
-  const agentsPayload = await fetchHoloMeshJson<AgentsPayload>('/api/holomesh/agents?limit=500', req);
+  const agentsPayload = await fetchHoloMeshJson<AgentsPayload>(
+    '/api/holomesh/agents?limit=500',
+    req
+  );
 
   if (!me.ok || !me.data?.success) return code;
 

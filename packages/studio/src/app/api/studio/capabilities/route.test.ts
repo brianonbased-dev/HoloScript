@@ -59,7 +59,9 @@ describe('GET /api/studio/capabilities — the credential it names', () => {
 
   it('says the advertised gateway is not answering, rather than leaving it to be discovered', async () => {
     const payload = await body();
-    const gateway = payload.known_issues?.find((issue) => issue.endpoint?.includes('/api/mcp/call'));
+    const gateway = payload.known_issues?.find((issue) =>
+      issue.endpoint?.includes('/api/mcp/call')
+    );
 
     expect(gateway).toBeDefined();
     expect(gateway?.answering).toBe(false);

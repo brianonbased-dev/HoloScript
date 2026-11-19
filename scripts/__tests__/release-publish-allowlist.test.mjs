@@ -167,7 +167,11 @@ describe('hold snapshots', () => {
       assert.equal(prepared.ok, true);
       assert.deepEqual(prepared.publishSet, ['@holoscript/llm-provider']);
       assert.equal(JSON.parse(readFileSync(corePath, 'utf8')).version, '8.7.0');
-      assert.equal(JSON.parse(readFileSync(join(root, 'packages', 'llm-provider', 'package.json'), 'utf8')).version, '1.6.2');
+      assert.equal(
+        JSON.parse(readFileSync(join(root, 'packages', 'llm-provider', 'package.json'), 'utf8'))
+          .version,
+        '1.6.2'
+      );
     } finally {
       restoreSnapshots(prepared.snapshots);
       if (prepared.receiptPath) rmSync(prepared.receiptPath, { force: true });
@@ -187,7 +191,8 @@ describe('hold snapshots', () => {
       rootDir: root,
       allowlist: ['@holoscript/llm-provider'],
       logger() {},
-      lookupRegistryVersions: async (name) => (name === '@holoscript/llm-provider' ? ['1.6.1'] : []),
+      lookupRegistryVersions: async (name) =>
+        name === '@holoscript/llm-provider' ? ['1.6.1'] : [],
     });
     assert.equal(prepared.ok, false);
     assert.equal(prepared.code, 'stray-unpublished');
@@ -256,15 +261,26 @@ describe('release:publish wrapper', () => {
         calls.push(args.join(' '));
         return 0;
       },
-      prepare: async () => ({ ok: false, code: 'stray-unpublished', message: 'stray', snapshots: [] }),
+      prepare: async () => ({
+        ok: false,
+        code: 'stray-unpublished',
+        message: 'stray',
+        snapshots: [],
+      }),
       restore() {
         calls.push('restore');
       },
     });
     assert.equal(code, 1);
-    assert.equal(calls.some((call) => call.startsWith('publish')), false);
+    assert.equal(
+      calls.some((call) => call.startsWith('publish')),
+      false
+    );
     assert.equal(calls.at(-1), 'restore');
-    assert.equal(calls.some((call) => call.includes('check-registry-cold-start.mjs')), false);
+    assert.equal(
+      calls.some((call) => call.includes('check-registry-cold-start.mjs')),
+      false
+    );
   });
 
   it('restores holds when changeset publish fails and skips post gates', async () => {
@@ -288,7 +304,10 @@ describe('release:publish wrapper', () => {
     });
     assert.equal(code, 1);
     assert.equal(calls.at(-1), 'restore:1');
-    assert.equal(calls.some((call) => call.includes('cold-repro-onramp.mjs --published')), false);
+    assert.equal(
+      calls.some((call) => call.includes('cold-repro-onramp.mjs --published')),
+      false
+    );
   });
 
   it('fails closed on an empty allowlist before any gate', async () => {
@@ -307,7 +326,12 @@ describe('release:publish wrapper', () => {
     });
     assert.equal(code, 1);
     assert.equal(steps, 0);
-    assert.equal(parseReleasePublishArgs(['node', 'script', '--skip-gates']).error.includes('Unknown argument'), true);
+    assert.equal(
+      parseReleasePublishArgs(['node', 'script', '--skip-gates']).error.includes(
+        'Unknown argument'
+      ),
+      true
+    );
   });
 });
 
@@ -317,7 +341,9 @@ describe('repo contract', () => {
     assert.equal(pkg.scripts['release:publish'], 'node scripts/holo-ci/release-publish.mjs');
     assert.match(pkg.scripts.publish, /exit 1/);
     assert.match(pkg.scripts['changeset:publish'], /exit 1/);
-    const manifest = JSON.parse(readFileSync(join(REPO_ROOT, 'packages/llm-provider/package.json'), 'utf8'));
+    const manifest = JSON.parse(
+      readFileSync(join(REPO_ROOT, 'packages/llm-provider/package.json'), 'utf8')
+    );
     assert.equal(manifest.name, '@holoscript/llm-provider');
     assert.equal(manifest.private, undefined);
     const config = JSON.parse(readFileSync(join(REPO_ROOT, '.changeset/config.json'), 'utf8'));
@@ -328,17 +354,28 @@ describe('repo contract', () => {
   });
 
   it('cli self-test exits 0', () => {
-    const result = spawnSync(process.execPath, [ALLOWLIST_SCRIPT, '--self-test'], { encoding: 'utf8' });
+    const result = spawnSync(process.execPath, [ALLOWLIST_SCRIPT, '--self-test'], {
+      encoding: 'utf8',
+    });
     assert.equal(result.status, 0, result.stderr);
   });
 
   it('scrubs registry errors and treats npm 404 as unpublished', () => {
-    assert.equal(scrubSecrets('token npm_abc123 and _authToken=sekret'), 'token npm_[redacted] and _authToken=[redacted]');
+    assert.equal(
+      scrubSecrets('token npm_abc123 and _authToken=sekret'),
+      'token npm_[redacted] and _authToken=[redacted]'
+    );
     assert.deepEqual(
-      versionsFromNpmView({ status: 1, stdout: '', stderr: 'npm ERR! code E404\nnpm ERR! 404 Not Found' }),
+      versionsFromNpmView({
+        status: 1,
+        stdout: '',
+        stderr: 'npm ERR! code E404\nnpm ERR! 404 Not Found',
+      }),
       []
     );
-    assert.deepEqual(versionsFromNpmView({ status: 0, stdout: '"1.6.1"\n', stderr: '' }), ['1.6.1']);
+    assert.deepEqual(versionsFromNpmView({ status: 0, stdout: '"1.6.1"\n', stderr: '' }), [
+      '1.6.1',
+    ]);
   });
 });
 

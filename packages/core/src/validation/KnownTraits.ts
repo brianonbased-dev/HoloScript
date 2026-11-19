@@ -37,7 +37,10 @@ interface Index {
 }
 let coreIndex: Index | undefined;
 
-function indexOf(names: Iterable<unknown>, into: Index = { normalized: new Set(), squashed: new Set() }) {
+function indexOf(
+  names: Iterable<unknown>,
+  into: Index = { normalized: new Set(), squashed: new Set() }
+) {
   for (const name of names) {
     const n = normalizeTraitName(name);
     if (!n) continue;
@@ -129,7 +132,9 @@ export function collectTraitUses(ast: unknown): TraitUse[] {
       found.push({
         trait: n as TraitNode,
         owner,
-        name: String(n.name ?? '').trim().replace(/^@/, ''),
+        name: String(n.name ?? '')
+          .trim()
+          .replace(/^@/, ''),
       });
     }
     const next = n.loc && n.loc.start ? n : owner;
@@ -147,7 +152,10 @@ export function collectTraitUses(ast: unknown): TraitUse[] {
  * Names this source itself declares: `@trait { name: "@x" }` (and `trait`, the declaration
  * form) and `trait X { ... }` (the AST's traitDefinitions).
  */
-export function declaredTraitNames(ast: unknown, uses: TraitUse[] = collectTraitUses(ast)): Set<string> {
+export function declaredTraitNames(
+  ast: unknown,
+  uses: TraitUse[] = collectTraitUses(ast)
+): Set<string> {
   const names = new Set<string>(['trait']);
   for (const { trait, name } of uses) {
     const config = trait.config;

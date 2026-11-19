@@ -208,7 +208,7 @@ describe('the stateless tool routes run the tool-call gate (real server)', () =>
         },
       });
     const state = (r: Reply) =>
-      ((r.body.result as { status?: { state?: string } } | undefined)?.status)?.state;
+      (r.body.result as { status?: { state?: string } } | undefined)?.status?.state;
     const text = (r: Reply) => JSON.stringify(r.body);
     const auditedPaths = (tool: string) =>
       getAuditLogger()
@@ -286,7 +286,10 @@ describe('stateless POST /mcp caps an oversized result and pages it back (real s
 
     const result = call.body.result as {
       content: Array<{ type: string; text?: string; uri?: string }>;
-      _meta: Record<string, { truncated: boolean; totalBytes: number; sha256: string; handle: string }>;
+      _meta: Record<
+        string,
+        { truncated: boolean; totalBytes: number; sha256: string; handle: string }
+      >;
     };
     const meta = result._meta['holoscript/result'];
     expect(meta.truncated).toBe(true);

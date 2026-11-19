@@ -40,7 +40,8 @@ const VARIANTS: Array<[string, string]> = [
   ['body_tracking', 'body_tracking'],
 ];
 
-const src = (name: string) => `composition "Variant" {\n  object "Ava" {\n    @${name} { }\n  }\n}\n`;
+const src = (name: string) =>
+  `composition "Variant" {\n  object "Ava" {\n    @${name} { }\n  }\n}\n`;
 const strictDeps = {
   tokenizeHoloSource: parser.tokenizeHoloSource,
   parseHolo: parser.parseHolo,
@@ -73,7 +74,11 @@ describe.each(VARIANTS)('@%s (a spelling of %s) with no grant', (written) => {
   });
   it('strict with core: HS1011 error', () => {
     const r = analyze(src(written), strictDeps);
-    expect(r.diagnostics.filter((d: { severity: string }) => d.severity === 'error').map((d: { code: string }) => d.code)).toContain('HS1011');
+    expect(
+      r.diagnostics
+        .filter((d: { severity: string }) => d.severity === 'error')
+        .map((d: { code: string }) => d.code)
+    ).toContain('HS1011');
   });
   it('strict without core (fail closed): HS1011 error', () => {
     const r = analyze(src(written), fallbackDeps);
@@ -82,12 +87,21 @@ describe.each(VARIANTS)('@%s (a spelling of %s) with no grant', (written) => {
 });
 
 describe('live exemptions still hold for every spelling', () => {
-  it.each(['face_tracking', 'facetracking', 'FaceTracking', 'BodyTracking'])('@%s source: "live_self" needs no grant', (n) => {
-    const r = validateCanonicalSource({ source: src(n).replace('{ }', '{ source: "live_self" }'), surface: 'holo' });
-    expect(codes(r.errors)).not.toContain('HS1011');
-  });
+  it.each(['face_tracking', 'facetracking', 'FaceTracking', 'BodyTracking'])(
+    '@%s source: "live_self" needs no grant',
+    (n) => {
+      const r = validateCanonicalSource({
+        source: src(n).replace('{ }', '{ source: "live_self" }'),
+        surface: 'holo',
+      });
+      expect(codes(r.errors)).not.toContain('HS1011');
+    }
+  );
   it.each(['facetracking', 'FaceTracking'])('@%s source: "recording" needs the grant', (n) => {
-    const r = validateCanonicalSource({ source: src(n).replace('{ }', '{ source: "recording" }'), surface: 'holo' });
+    const r = validateCanonicalSource({
+      source: src(n).replace('{ }', '{ source: "recording" }'),
+      surface: 'holo',
+    });
     expect(codes(r.errors)).toContain('HS1011');
   });
 });

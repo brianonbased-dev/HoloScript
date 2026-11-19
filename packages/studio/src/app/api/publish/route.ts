@@ -117,8 +117,7 @@ async function publishToProtocol(
       contentHash,
       publish: null,
       revenue: null,
-      error:
-        'Studio is not configured to publish to the protocol registry for a signed-in caller.',
+      error: 'Studio is not configured to publish to the protocol registry for a signed-in caller.',
     };
   }
 
@@ -244,7 +243,10 @@ export async function POST(req: Request) {
           ? 'A scene published with a key of your own must carry "code" — the registry is what vouches for that key.'
           : 'The protocol registry did not accept that key, so nothing was stored.';
       return NextResponse.json(
-        { error: `${reason} Sign in to HoloScript Studio to store a scene without one.`, signInRequired: true },
+        {
+          error: `${reason} Sign in to HoloScript Studio to store a scene without one.`,
+          signInRequired: true,
+        },
         { status: 401 }
       );
     }

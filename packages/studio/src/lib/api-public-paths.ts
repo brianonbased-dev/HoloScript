@@ -328,7 +328,7 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/training/stream',
     methods: ['GET'],
-    why: "Server-sent events consumed by app/spectator/training/page.tsx:79 through EventSource, which cannot attach headers — if this sat in the caller-credential tier no browser could ever reach it. Keyless, reads an in-process job history. GET only: POST on the same route broadcasts a packet to every connected viewer with no credential and stays closed.",
+    why: 'Server-sent events consumed by app/spectator/training/page.tsx:79 through EventSource, which cannot attach headers — if this sat in the caller-credential tier no browser could ever reach it. Keyless, reads an in-process job history. GET only: POST on the same route broadcasts a packet to every connected viewer with no credential and stays closed.',
   },
 
   // ── Token-authenticated phone surfaces. On these two the `?t=` token IS the
@@ -342,12 +342,12 @@ export const PUBLIC_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/reconstruction/session',
     methods: ['GET', 'PUT'],
-    why: "The phone half of a room or face scan: app/scan-room/mobile/[token]/page.tsx:233 (PUT phone-connected), :142 (PUT capture state) and :441 (GET feedback poll). The desktop opens the session and shows a QR; the phone that scans it holds only the token. POST is NOT here — creating a session already requires a signed-in caller in production (route.ts:51-56,133-137).",
+    why: 'The phone half of a room or face scan: app/scan-room/mobile/[token]/page.tsx:233 (PUT phone-connected), :142 (PUT capture state) and :441 (GET feedback poll). The desktop opens the session and shows a QR; the phone that scans it holds only the token. POST is NOT here — creating a session already requires a signed-in caller in production (route.ts:51-56,133-137).',
   },
   {
     pattern: '/api/remote',
     methods: ['GET', 'PUT', 'DELETE'],
-    why: "The phone half of the viewport remote: app/remote/[token]/page.tsx:137 (GET, verifies the token and polls the command queue) and :29 (PUT, sends an orbit/zoom/pan command). DELETE ends the session from the same page. Commands live in an in-process Map keyed by the token and expire in 30 minutes. POST is NOT here — it mints a token.",
+    why: 'The phone half of the viewport remote: app/remote/[token]/page.tsx:137 (GET, verifies the token and polls the command queue) and :29 (PUT, sends an orbit/zoom/pan command). DELETE ends the session from the same page. Commands live in an in-process Map keyed by the token and expire in 30 minutes. POST is NOT here — it mints a token.',
   },
 
   {
@@ -468,7 +468,7 @@ export const CALLER_CREDENTIAL_API_PATHS: readonly ApiPathRule[] = [
   {
     pattern: '/api/orchestrator/**',
     methods: ['GET'],
-    why: "NO GUARD of its own, and it does spend ours: the relay sends `x-mcp-api-key` built from MCP_ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY (route.ts:30-34,63) because a browser cannot hold that key. Said plainly, since this entry previously asked for the same pin /api/export/v2 just received and the difference is the reason it does not get one: this relay is GET-only — GET and OPTIONS are the only handlers the file exports — and it answers 403 for every path outside an explicit two-entry allowlist of read-only telemetry, `gpu/lotus-status` and `serve/status` (route.ts:37-51). So the blast radius is those two read-only endpoints rather than the orchestrator, and it cannot be made to write. `methods` now pins GET here too, so a POST added to that file tomorrow inherits `session` instead of this entry.",
+    why: 'NO GUARD of its own, and it does spend ours: the relay sends `x-mcp-api-key` built from MCP_ORCHESTRATOR_API_KEY / HOLOSCRIPT_API_KEY / HOLOMESH_API_KEY (route.ts:30-34,63) because a browser cannot hold that key. Said plainly, since this entry previously asked for the same pin /api/export/v2 just received and the difference is the reason it does not get one: this relay is GET-only — GET and OPTIONS are the only handlers the file exports — and it answers 403 for every path outside an explicit two-entry allowlist of read-only telemetry, `gpu/lotus-status` and `serve/status` (route.ts:37-51). So the blast radius is those two read-only endpoints rather than the orchestrator, and it cannot be made to write. `methods` now pins GET here too, so a POST added to that file tomorrow inherits `session` instead of this entry.',
   },
   {
     pattern: '/api/capabilities',
@@ -528,8 +528,7 @@ function patternToRegExp(pattern: string): RegExp {
       source += '(?:/.*)?';
       return;
     }
-    const literal =
-      segment === '*' ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const literal = segment === '*' ? '[^/]+' : segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     source += index === 0 ? literal : `/${literal}`;
   });
   return new RegExp(`^${source}/?$`);

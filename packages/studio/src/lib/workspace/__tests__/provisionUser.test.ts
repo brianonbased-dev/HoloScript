@@ -897,8 +897,7 @@ describe('E2E smoke: provision → HoloMesh identity → display', () => {
 
     // ...and the same rule in the other direction.
     const callsToOrchestrator = fetchMock.mock.calls.filter(
-      ([url]) =>
-        !String(url).startsWith(MCP_SERVER_BASE) && !String(url).includes('api.github.com')
+      ([url]) => !String(url).startsWith(MCP_SERVER_BASE) && !String(url).includes('api.github.com')
     );
     for (const [url, init] of callsToOrchestrator) {
       const values = headerValuesOf(init);

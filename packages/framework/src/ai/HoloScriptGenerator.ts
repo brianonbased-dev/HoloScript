@@ -141,7 +141,10 @@ function collectTraits(
 /** Core locations are { line, column } or { start: { line, column } }. */
 function locOf(loc: any): { line: number; column: number } {
   const p = loc?.start ?? loc;
-  return { line: typeof p?.line === 'number' ? p.line : 1, column: typeof p?.column === 'number' ? p.column : 1 };
+  return {
+    line: typeof p?.line === 'number' ? p.line : 1,
+    column: typeof p?.column === 'number' ? p.column : 1,
+  };
 }
 
 function failure(code: string, message: string, line = 1, column = 1): HSPlusCompileResult {
@@ -182,7 +185,14 @@ export function validateHoloScript(
       ...locOf(e.loc),
     }));
   if (!r?.success || !r.ast || errors.length > 0) {
-    if (errors.length === 0) errors.push({ code: 'HS1004', severity: 'error', message: 'Nothing parsed into the composition', line: 1, column: 1 });
+    if (errors.length === 0)
+      errors.push({
+        code: 'HS1004',
+        severity: 'error',
+        message: 'Nothing parsed into the composition',
+        line: 1,
+        column: 1,
+      });
     return { success: false, errors, warnings: [], ast: null } as unknown as HSPlusCompileResult;
   }
   // Same rule as parseHoloStrict: a source of only whitespace/comments is refused (HS1001).
@@ -191,12 +201,14 @@ export function validateHoloScript(
   } catch (e) {
     return failure('HS1001', e instanceof Error ? e.message : String(e));
   }
-  const warnings: ValidationDiagnostic[] = (Array.isArray(r.warnings) ? r.warnings : []).map((w: CoreDiagnostic) => ({
-    code: 'HS1008',
-    severity: 'warning' as const,
-    message: w.message,
-    ...locOf(w.loc),
-  }));
+  const warnings: ValidationDiagnostic[] = (Array.isArray(r.warnings) ? r.warnings : []).map(
+    (w: CoreDiagnostic) => ({
+      code: 'HS1008',
+      severity: 'warning' as const,
+      message: w.message,
+      ...locOf(w.loc),
+    })
+  );
   for (const t of collectTraits(r.ast)) {
     if (t.name && !isKnownTrait(t.name)) {
       warnings.push({

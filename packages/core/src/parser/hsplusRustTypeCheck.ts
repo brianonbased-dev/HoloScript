@@ -64,7 +64,9 @@ function loadChecker(): WasmValidate | null {
     const loaded = require(resolved) as { validate_detailed?: unknown };
     if (typeof loaded.validate_detailed === 'function') {
       checker = {
-        validate_detailed: loaded.validate_detailed.bind(loaded) as WasmValidate['validate_detailed'],
+        validate_detailed: loaded.validate_detailed.bind(
+          loaded
+        ) as WasmValidate['validate_detailed'],
       };
       return checker;
     }

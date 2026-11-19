@@ -13,11 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { provisionUser } from '@/lib/workspace/provisionUser';
 import { putUserSecret } from '@/lib/secrets/userSecretStore';
-import {
-  createGitHubHeaders,
-  getGitHubToken,
-  GITHUB_API_BASE_URL,
-} from '@/app/api/github/_shared';
+import { createGitHubHeaders, getGitHubToken, GITHUB_API_BASE_URL } from '@/app/api/github/_shared';
 
 import { corsHeaders } from '../../_lib/cors';
 

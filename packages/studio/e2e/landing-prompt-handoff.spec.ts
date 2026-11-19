@@ -41,7 +41,9 @@ function brittneyInput(page: Page) {
 test.describe('landing prompt -> Brittney chat handoff', () => {
   test.describe.configure({ timeout: 180_000 });
 
-  test('signed in: sessionStorage prompt opens the dock and prefills the chat', async ({ page }) => {
+  test('signed in: sessionStorage prompt opens the dock and prefills the chat', async ({
+    page,
+  }) => {
     await suppressOnboarding(page);
     await mockAuth(page, () => true);
     await page.addInitScript((p) => {
@@ -56,7 +58,9 @@ test.describe('landing prompt -> Brittney chat handoff', () => {
     expect(await page.evaluate(() => sessionStorage.getItem('studio.landing.prompt'))).toBeNull();
   });
 
-  test('signed out: home -> sign-in redirect carries the prompt into the chat', async ({ page }) => {
+  test('signed out: home -> sign-in redirect carries the prompt into the chat', async ({
+    page,
+  }) => {
     let signedIn = false;
     let capturedCallback = '';
     await suppressOnboarding(page);
@@ -74,7 +78,9 @@ test.describe('landing prompt -> Brittney chat handoff', () => {
         },
       })
     );
-    await page.route('**/api/auth/csrf', (route) => route.fulfill({ json: { csrfToken: 'e2e-csrf' } }));
+    await page.route('**/api/auth/csrf', (route) =>
+      route.fulfill({ json: { csrfToken: 'e2e-csrf' } })
+    );
     // Stand-in for the OAuth round-trip: record the callbackUrl the home page
     // asked for, mark the user signed in, and send the browser straight there.
     await page.route('**/api/auth/signin/github**', async (route) => {
@@ -104,7 +110,9 @@ test.describe('landing prompt -> Brittney chat handoff', () => {
     await expect(brittneyInput(page)).toHaveValue(PROMPT);
   });
 
-  test('signed out (auth still loading on mount): the prompt survives until sign-in', async ({ page }) => {
+  test('signed out (auth still loading on mount): the prompt survives until sign-in', async ({
+    page,
+  }) => {
     let signedIn = false;
     await suppressOnboarding(page);
     // Slow session endpoint: the panel mounts while auth is still "loading".

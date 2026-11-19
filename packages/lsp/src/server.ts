@@ -431,7 +431,10 @@ async function validateDocument(document: TextDocument): Promise<void> {
   try {
     // allowEmpty inside: a blank buffer gives no HS1001; garbage still reports errors.
     // Fail closed on likeness (HS1011): no consent-rules source is wired into the server yet.
-    const { parseResult, diagnostics: canonicalDiagnostics } = canonicalSourceDiagnostics(text, surface);
+    const { parseResult, diagnostics: canonicalDiagnostics } = canonicalSourceDiagnostics(
+      text,
+      surface
+    );
     diagnostics.push(...canonicalDiagnostics);
 
     if (surface === 'hsplus' && parseResult.ast) {

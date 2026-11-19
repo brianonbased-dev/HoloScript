@@ -22,7 +22,11 @@ const wasm = require('../../../../compiler-wasm/pkg-node/holoscript_wasm.js') as
   validate_detailed: (source: string) => string;
 };
 
-function parseSource(source: string): { success: boolean; errors: Array<{ message: string }>; node: HSPlusNode } {
+function parseSource(source: string): {
+  success: boolean;
+  errors: Array<{ message: string }>;
+  node: HSPlusNode;
+} {
   const result = new HoloScriptPlusParser().parse(source);
   const root = result.ast.root as HSPlusNode;
   return { success: result.success, errors: result.errors, node: root };

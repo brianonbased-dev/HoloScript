@@ -203,7 +203,7 @@ function traitPosition(
     return source.lastIndexOf('/*', index) > source.lastIndexOf('*/', index);
   };
   let match: RegExpExecArray | null = null;
-  for (let i = 0; i <= k; ) {
+  for (let i = 0; i <= k;) {
     match = re.exec(source);
     if (!match) break;
     if (!inComment(match.index)) i++;

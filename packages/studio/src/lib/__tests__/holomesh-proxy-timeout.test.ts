@@ -60,7 +60,9 @@ describe('fetchHoloMeshJson', () => {
   });
 
   it('answers 503 when the upstream cannot be reached', async () => {
-    globalThis.fetch = vi.fn(() => Promise.reject(new TypeError('fetch failed'))) as unknown as typeof fetch;
+    globalThis.fetch = vi.fn(() =>
+      Promise.reject(new TypeError('fetch failed'))
+    ) as unknown as typeof fetch;
     const r = await fetchHoloMeshJson<{ code?: string }>('/api/holomesh/me');
     expect(r).toMatchObject({ ok: false, status: 503 });
     expect(r.data?.code).toBe('holomesh_unavailable');
@@ -78,11 +80,12 @@ describe('proxyHoloMesh', () => {
   });
 
   it('passes a healthy upstream through unchanged', async () => {
-    globalThis.fetch = vi.fn(async () =>
-      new Response(JSON.stringify({ entries: [{ name: 'a' }] }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
+    globalThis.fetch = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ entries: [{ name: 'a' }] }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
     ) as unknown as typeof fetch;
     const req = new NextRequest('https://studio.test/api/holomesh/teams/leaderboard');
     const res = await proxyHoloMesh('/api/holomesh/teams/leaderboard', req);

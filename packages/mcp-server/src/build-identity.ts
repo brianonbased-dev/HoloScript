@@ -7,7 +7,12 @@
  * also bake HOLOSCRIPT_BUILD_SHA. Only a hex commit id is ever echoed: never
  * any other env value, and null rather than a guess when none is set.
  */
-const SOURCES = ['RAILWAY_GIT_COMMIT_SHA', 'HOLOSCRIPT_BUILD_SHA', 'GITHUB_SHA', 'GIT_COMMIT'] as const;
+const SOURCES = [
+  'RAILWAY_GIT_COMMIT_SHA',
+  'HOLOSCRIPT_BUILD_SHA',
+  'GITHUB_SHA',
+  'GIT_COMMIT',
+] as const;
 const SHA = /^[0-9a-f]{7,40}$/i;
 
 export interface BuildCommit {

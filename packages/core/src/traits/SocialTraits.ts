@@ -163,7 +163,10 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
       recordingUses: new Set<string>(),
     };
     node.__collaborativeState = state;
-    if (config.localUserId && (node as unknown as Record<string, unknown>).__trackedPersonId === undefined) {
+    if (
+      config.localUserId &&
+      (node as unknown as Record<string, unknown>).__trackedPersonId === undefined
+    ) {
       (node as unknown as Record<string, unknown>).__trackedPersonId = config.localUserId;
     }
 
@@ -205,7 +208,11 @@ export const collaborativeHandler: TraitHandler<CollaborativeConfig> = {
     }
   },
 
-  async initializeVoice(node: HSPlusNode, context: TraitContext, config?: Partial<CollaborativeConfig>) {
+  async initializeVoice(
+    node: HSPlusNode,
+    context: TraitContext,
+    config?: Partial<CollaborativeConfig>
+  ) {
     try {
       // In a real browser environment, this would request mic access
       // navigator.mediaDevices.getUserMedia({ audio: true })

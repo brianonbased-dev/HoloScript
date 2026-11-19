@@ -481,7 +481,9 @@ describe('resolveBrittneyProviderAsync — fleet (sovereign serving)', () => {
   it('delegates to sync resolution and refuses a silent anthropic fallback', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-test';
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    await expect(resolveBrittneyProviderAsync()).rejects.toBeInstanceOf(FrontierFallbackRefusedError);
+    await expect(resolveBrittneyProviderAsync()).rejects.toBeInstanceOf(
+      FrontierFallbackRefusedError
+    );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('FRONTIER FALLBACK REFUSED'));
   });
 

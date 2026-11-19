@@ -8,7 +8,9 @@ const absorbState = { value: { status: 'ok', degraded: false } as any, calls: 0 
 
 vi.mock('../../../db/client', () => ({
   getDb: () => ({
-    execute: async () => ({ rows: [{ active_teams: 1, total_agents: 2, tasks_completed_today: 3 }] }),
+    execute: async () => ({
+      rows: [{ active_teams: 1, total_agents: 2, tasks_completed_today: 3 }],
+    }),
   }),
 }));
 vi.mock('../../../db/schema', () => ({ holomeshBoardTasks: {} }));
@@ -33,7 +35,12 @@ describe('/api/health absorb check', () => {
   });
 
   it('healthy when the board and absorb are both fine', async () => {
-    absorbState.value = { status: 'ok', degraded: false, origin: 'https://absorb.example', httpStatus: 200 };
+    absorbState.value = {
+      status: 'ok',
+      degraded: false,
+      origin: 'https://absorb.example',
+      httpStatus: 200,
+    };
     const { status, json } = await body();
     expect(status).toBe(200);
     expect(json.degraded).toBe(false);
@@ -41,12 +48,15 @@ describe('/api/health absorb check', () => {
     expect(absorbState.calls).toBe(1);
   });
 
-  it.each(['unreachable', 'misconfigured', 'unhealthy'])('degraded when absorb is %s', async (s) => {
-    absorbState.value = { status: s, degraded: true };
-    const { json } = await body();
-    expect(json.degraded).toBe(true);
-    expect(json.absorb.status).toBe(s);
-  });
+  it.each(['unreachable', 'misconfigured', 'unhealthy'])(
+    'degraded when absorb is %s',
+    async (s) => {
+      absorbState.value = { status: s, degraded: true };
+      const { json } = await body();
+      expect(json.degraded).toBe(true);
+      expect(json.absorb.status).toBe(s);
+    }
+  );
 
   it('never echoes an API key', async () => {
     absorbState.value = { status: 'ok', degraded: false };

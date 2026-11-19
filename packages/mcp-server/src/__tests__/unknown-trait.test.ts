@@ -16,7 +16,11 @@ describe('validate_holoscript: HS1006', () => {
     expect(r.valid).toBe(true);
     const w = (r.warnings ?? []).filter((x) => x.code === 'HS1006');
     expect(w.map((x) => [x.line, x.column])).toEqual([[3, 5]]);
-    expect((r.warnings ?? []).some((x) => x.code === 'unknown-trait' || /Unknown directive/.test(x.message))).toBe(false);
+    expect(
+      (r.warnings ?? []).some(
+        (x) => x.code === 'unknown-trait' || /Unknown directive/.test(x.message)
+      )
+    ).toBe(false);
   });
 
   it('a doc tag in a comment is not a trait use; a registry-only trait is known', async () => {
@@ -30,7 +34,10 @@ describe('validate_holoscript: HS1006', () => {
 });
 
 describe('hs_diagnostics: unknown-ness from the shared set, suggestions from the curated list', () => {
-  type D = { count: number; diagnostics: Array<{ code: string; message: string; line: number; quickFixes?: unknown[] }> };
+  type D = {
+    count: number;
+    diagnostics: Array<{ code: string; message: string; line: number; quickFixes?: unknown[] }>;
+  };
   it('flags only the parsed unknown trait, with a did-you-mean fix', async () => {
     const r = (await handleTool('hs_diagnostics', {
       code: '// @version 2\nobject "A" {\n  @grabable\n  @skeleton\n  @a_i_driver\n}\n',

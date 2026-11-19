@@ -51,7 +51,10 @@ test.describe('Brittney first use', () => {
 
   test('chat panel is usable width', async ({ page }) => {
     await setup(page);
-    await page.goto('/create?mode=world&chat=1', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/create?mode=world&chat=1', {
+      waitUntil: 'domcontentloaded',
+      timeout: 90_000,
+    });
     const input = brittneyInput(page);
     await expect(input).toBeVisible({ timeout: 90_000 });
     const box = await input.boundingBox();
@@ -73,7 +76,10 @@ test.describe('Brittney first use', () => {
         body: events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join(''),
       });
     });
-    await page.goto('/create?mode=world&chat=1', { waitUntil: 'domcontentloaded', timeout: 90_000 });
+    await page.goto('/create?mode=world&chat=1', {
+      waitUntil: 'domcontentloaded',
+      timeout: 90_000,
+    });
     const input = brittneyInput(page);
     await expect(input).toBeVisible({ timeout: 90_000 });
     await expect(async () => {

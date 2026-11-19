@@ -244,12 +244,12 @@ to loopback `llama-server`. Bearer auth on the proxy is optional and comes from
 the environment. With neither auth variable set, the proxy stays open, which is
 the behavior already deployed.
 
-| Variable | Role |
-| --- | --- |
-| `HOLO_PROXY_AUTH_MODE` | Exactly `off`, `log-only`, or `enforce` after trim and lower-case. When unset: `log-only` if a key name is set, otherwise `off`. Any other value fails closed. |
-| `HOLO_PROXY_AUTH_KEY_NAME` | HoloKey secret name. Suggested value: `HOLO_INFERENCE_PROXY_KEY`. |
-| `HOLOKEY_SOCKET` | Optional holokeyd unix socket. Default: `/run/holokeyd/holokeyd.sock`. |
-| `HOLOKEYD_CLIENT` | Optional `holokeyctl` path. Default: `/usr/local/bin/holokeyctl`. |
+| Variable                   | Role                                                                                                                                                           |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HOLO_PROXY_AUTH_MODE`     | Exactly `off`, `log-only`, or `enforce` after trim and lower-case. When unset: `log-only` if a key name is set, otherwise `off`. Any other value fails closed. |
+| `HOLO_PROXY_AUTH_KEY_NAME` | HoloKey secret name. Suggested value: `HOLO_INFERENCE_PROXY_KEY`.                                                                                              |
+| `HOLOKEY_SOCKET`           | Optional holokeyd unix socket. Default: `/run/holokeyd/holokeyd.sock`.                                                                                         |
+| `HOLOKEYD_CLIENT`          | Optional `holokeyctl` path. Default: `/usr/local/bin/holokeyctl`.                                                                                              |
 
 At startup the proxy runs `holokeyctl resolve-stdin` once (the same contract the
 secrets-broker uses) and caches the value in memory. It does not call holokeyd

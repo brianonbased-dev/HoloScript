@@ -146,7 +146,7 @@ describe('who may export a team board', () => {
     expect(res.status).toBe(401);
   });
 
-  it("refuses a real key belonging to someone who is not on the team", async () => {
+  it('refuses a real key belonging to someone who is not on the team', async () => {
     const { calls, fetchImpl } = upstreamIdentifying({
       [MEMBER_KEY]: MEMBER,
       [OUTSIDER_KEY]: OUTSIDER,
@@ -195,7 +195,9 @@ describe('who may export a team board', () => {
   });
 
   it('accepts the member list in the nested shape too', async () => {
-    const { fetchImpl } = upstreamAnswers({ members: { team: { members: [{ agentId: MEMBER }] } } });
+    const { fetchImpl } = upstreamAnswers({
+      members: { team: { members: [{ agentId: MEMBER }] } },
+    });
     vi.stubGlobal('fetch', fetchImpl);
 
     expect((await GET(request({ 'x-mcp-api-key': MEMBER_KEY }), params)).status).toBe(200);

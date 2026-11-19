@@ -407,7 +407,9 @@ describe('frontier-fallback gate (2026-09-24 audit, fix 7)', () => {
     const r = resolveSovereignProvider({ caller: 'flagged-caller' });
     expect(r.providerName).toBe('openai');
     expect(r.frontierFallback).toBe(true);
-    expect(String(warn.mock.calls[0]?.[0])).toMatch(/FRONTIER FALLBACK ACTIVE.*"openai".*flagged-caller/u);
+    expect(String(warn.mock.calls[0]?.[0])).toMatch(
+      /FRONTIER FALLBACK ACTIVE.*"openai".*flagged-caller/u
+    );
   });
 
   it('async: a cold Vast fleet no longer falls through to a frontier key without the flag', async () => {
@@ -990,7 +992,10 @@ describe('hosted-bridge gate (2026-09-24 audit follow-up: brittney-standard)', (
   });
 
   it('never logs credentials, query or fragment from the URL', () => {
-    vi.stubEnv('HOLO_LLM_SERVICE_URL', 'https://user:s3cret@brittney.example.com/base?token=abc#frag');
+    vi.stubEnv(
+      'HOLO_LLM_SERVICE_URL',
+      'https://user:s3cret@brittney.example.com/base?token=abc#frag'
+    );
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
     expect(() => resolveSovereignProvider()).toThrow(HostedBridgeRefusedError);
     const line = String(warn.mock.calls[0][0]);
@@ -1610,7 +1615,9 @@ describe('Joseph coding-backup chain (native → vast-oss-coding → gated hoste
     expect(r.model).toBe('Qwen3-Coder-30B-A3B-Instruct');
     expect(r.frontierFallback).toBeFalsy();
     expect(r.hostedBridge).toBeFalsy();
-    expect(String(fetchMock.mock.calls.map((c) => String(c[0])).join(' '))).toMatch(/127\.0\.0\.1:18780\/health/);
+    expect(String(fetchMock.mock.calls.map((c) => String(c[0])).join(' '))).toMatch(
+      /127\.0\.0\.1:18780\/health/
+    );
     vi.restoreAllMocks();
   });
 
@@ -1664,9 +1671,9 @@ describe('Joseph coding-backup chain (native → vast-oss-coding → gated hoste
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
       throw new Error('ECONNREFUSED');
     });
-    await expect(resolveSovereignProviderAsync({ caller: 'backup-fail-closed' })).rejects.toBeInstanceOf(
-      BackupChainExhaustedError
-    );
+    await expect(
+      resolveSovereignProviderAsync({ caller: 'backup-fail-closed' })
+    ).rejects.toBeInstanceOf(BackupChainExhaustedError);
     try {
       await resolveSovereignProviderAsync({ caller: 'backup-fail-closed' });
     } catch (err) {
@@ -1687,9 +1694,9 @@ describe('Joseph coding-backup chain (native → vast-oss-coding → gated hoste
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
       throw new Error('ECONNREFUSED');
     });
-    await expect(resolveSovereignProviderAsync({ caller: 'backup-frontier-gate' })).rejects.toBeInstanceOf(
-      FrontierFallbackRefusedError
-    );
+    await expect(
+      resolveSovereignProviderAsync({ caller: 'backup-frontier-gate' })
+    ).rejects.toBeInstanceOf(FrontierFallbackRefusedError);
     vi.restoreAllMocks();
   });
 
@@ -1719,9 +1726,9 @@ describe('Joseph coding-backup chain (native → vast-oss-coding → gated hoste
       if (url.includes('18099')) throw new Error('native-down');
       return new Response('no', { status: 500 });
     });
-    await expect(resolveSovereignProviderAsync({ caller: 'backup-non-loopback' })).rejects.toBeInstanceOf(
-      BackupChainExhaustedError
-    );
+    await expect(
+      resolveSovereignProviderAsync({ caller: 'backup-non-loopback' })
+    ).rejects.toBeInstanceOf(BackupChainExhaustedError);
     vi.restoreAllMocks();
   });
 

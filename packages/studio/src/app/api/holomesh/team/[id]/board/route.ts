@@ -79,10 +79,7 @@ function hasOwnMeshCredential(req: NextRequest): boolean {
   return Boolean(req.headers.get('x-mcp-api-key')?.trim());
 }
 
-async function boardCallerRefusal(
-  req: NextRequest,
-  teamId: string
-): Promise<NextResponse | null> {
+async function boardCallerRefusal(req: NextRequest, teamId: string): Promise<NextResponse | null> {
   if (hasOwnMeshCredential(req)) {
     const caller = await resolveHoloMeshCaller(req);
     if (!caller.ok) {

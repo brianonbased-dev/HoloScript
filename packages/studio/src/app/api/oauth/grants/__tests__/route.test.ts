@@ -101,7 +101,11 @@ describe('/api/oauth/grants', () => {
     expect(
       (
         await DELETE(
-          del('grant_a', { origin: 'https://evil.test', host: 'evil.test', 'x-forwarded-host': 'evil.test' })
+          del('grant_a', {
+            origin: 'https://evil.test',
+            host: 'evil.test',
+            'x-forwarded-host': 'evil.test',
+          })
         )
       ).status
     ).toBe(403);

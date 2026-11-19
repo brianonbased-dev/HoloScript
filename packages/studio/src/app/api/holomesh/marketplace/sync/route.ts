@@ -102,7 +102,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Studio is not configured to refresh the marketplace cache for a signed-in caller.',
+          error:
+            'Studio is not configured to refresh the marketplace cache for a signed-in caller.',
         },
         { status: 503 }
       );

@@ -24,12 +24,20 @@ function seed(ownerId: string): string {
   const localPath = path.join(dir, 'brian-music-bot');
   fs.mkdirSync(localPath, { recursive: true });
   fs.writeFileSync(path.join(localPath, 'README.md'), 'x');
-  upsertDurableAbsorbProject({ id: ID, name: 'brian-music-bot', ownerId, localPath, status: 'ready' });
+  upsertDurableAbsorbProject({
+    id: ID,
+    name: 'brian-music-bot',
+    ownerId,
+    localPath,
+    status: 'ready',
+  });
   return dir;
 }
 
 function del(id = ID): Promise<Response> {
-  return DELETE(new NextRequest(`http://localhost/api/workspace/import?id=${id}`, { method: 'DELETE' }));
+  return DELETE(
+    new NextRequest(`http://localhost/api/workspace/import?id=${id}`, { method: 'DELETE' })
+  );
 }
 
 describe('DELETE /api/workspace/import (failed-import rollback)', () => {
@@ -43,7 +51,7 @@ describe('DELETE /api/workspace/import (failed-import rollback)', () => {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   });
 
-  it('removes the caller\'s never-absorbed workspace dir and its project row', async () => {
+  it("removes the caller's never-absorbed workspace dir and its project row", async () => {
     const dir = seed('joseph');
     const res = await del();
     expect(res.status).toBe(200);
@@ -68,7 +76,7 @@ describe('DELETE /api/workspace/import (failed-import rollback)', () => {
     expect(listDurableAbsorbProjects('joseph')).toHaveLength(1);
   });
 
-  it('twin: refuses (404) another account\'s workspace and leaves it intact', async () => {
+  it("twin: refuses (404) another account's workspace and leaves it intact", async () => {
     const dir = seed('someone-else');
     const res = await del();
     expect(res.status).toBe(404);

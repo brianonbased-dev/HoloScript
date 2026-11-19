@@ -38,8 +38,13 @@ const strictDeps = {
   declaredTraitNames: parser.declaredTraitNames,
 };
 const strictUnknown = (source: string) =>
-  (analyze(source, strictDeps).diagnostics as Array<{ code: string; severity: string; message: string }>)
-    .filter((d) => d.code === 'HS1006');
+  (
+    analyze(source, strictDeps).diagnostics as Array<{
+      code: string;
+      severity: string;
+      message: string;
+    }>
+  ).filter((d) => d.code === 'HS1006');
 const nameOf = (message: string) => /"@([^"]+)"/.exec(message)?.[1] ?? message;
 
 describe('isKnownTrait: the one known-trait set', () => {
@@ -94,16 +99,25 @@ describe('HS1006 on the canonical validator (CLI, MCP, LSP)', () => {
     expect(r.valid).toBe(true);
     expect(r.errors).toEqual([]);
     expect(r.warnings.filter((w) => w.code === 'HS1006')).toEqual([
-      expect.objectContaining({ severity: 'warning', line: 3, column: 5, message: 'Unknown trait "@nope_xyz".' }),
+      expect.objectContaining({
+        severity: 'warning',
+        line: 3,
+        column: 5,
+        message: 'Unknown trait "@nope_xyz".',
+      }),
     ]);
   });
 
   it('.hsplus: HS1006 is authoritative, HSP001 for the same @ is not repeated', () => {
     const direct = new HoloScriptPlusParser().parse(src);
-    expect(direct.warnings.some((w) => /Unknown directive @nope_xyz/.test(String(w.message)))).toBe(true);
+    expect(direct.warnings.some((w) => /Unknown directive @nope_xyz/.test(String(w.message)))).toBe(
+      true
+    );
     const r = validateCanonicalSource({ source: src, fileName: 't.hsplus' });
     expect(r.valid).toBe(true);
-    expect(r.warnings.filter((w) => w.code === 'HS1006').map((w) => [w.line, nameOf(w.message)])).toEqual([[3, 'nope_xyz']]);
+    expect(
+      r.warnings.filter((w) => w.code === 'HS1006').map((w) => [w.line, nameOf(w.message)])
+    ).toEqual([[3, 'nope_xyz']]);
     expect(r.warnings.some((w) => /Unknown directive @nope_xyz/.test(w.message))).toBe(false);
   });
 
@@ -116,13 +130,19 @@ describe('HS1006 on the canonical validator (CLI, MCP, LSP)', () => {
   });
 
   it('caller-passed knownTraits silence HS1006', () => {
-    const r = validateCanonicalSource({ source: src, fileName: 't.holo', knownTraits: ['nope_xyz'] });
+    const r = validateCanonicalSource({
+      source: src,
+      fileName: 't.holo',
+      knownTraits: ['nope_xyz'],
+    });
     expect(r.warnings.filter((w) => w.code === 'HS1006')).toEqual([]);
   });
 
   it('a doc tag in a comment is not a trait use', () => {
     const r = validateCanonicalSource({ source: '// @version 2\n' + src, fileName: 't.holo' });
-    expect(r.warnings.filter((w) => w.code === 'HS1006').map((w) => nameOf(w.message))).toEqual(['nope_xyz']);
+    expect(r.warnings.filter((w) => w.code === 'HS1006').map((w) => nameOf(w.message))).toEqual([
+      'nope_xyz',
+    ]);
   });
 });
 
@@ -168,10 +188,14 @@ const STRICT_HSPLUS_GRAMMAR_GAP = new Set([
 describe('corpus parity: canonical validator and strict layer report the same unknown traits', () => {
   // No shell (Windows pre-push has no grep and cmd does not strip single quotes): git gets the
   // pathspecs as argv, and the extension filter runs in JS.
-  const files = execFileSync('git', ['ls-files', '--', 'examples', 'compositions', 'scripts/holo-ci'], {
-    cwd: REPO,
-    encoding: 'utf8',
-  })
+  const files = execFileSync(
+    'git',
+    ['ls-files', '--', 'examples', 'compositions', 'scripts/holo-ci'],
+    {
+      cwd: REPO,
+      encoding: 'utf8',
+    }
+  )
     .split(/\r?\n/)
     .map((f) => f.trim())
     .filter((f) => /\.(holo|hsplus)$/.test(f));
@@ -182,39 +206,37 @@ describe('corpus parity: canonical validator and strict layer report the same un
     expect(files.length).toBeGreaterThanOrEqual(MIN_CORPUS_FILES);
   });
 
-  it(
-    'same names in the same files, all warnings, verdicts unchanged by HS1006',
-    () => {
-      const mismatches: string[] = [];
-      let filesWithUnknown = 0;
-      const names = new Set<string>();
-      for (const file of files) {
-        const source = readFileSync(path.join(REPO, file), 'utf8');
-        const strict = strictUnknown(source);
-        let canonical: Array<{ code?: string; severity: string; message: string }> = [];
-        try {
-          const r = validateCanonicalSource({ source, fileName: file });
-          canonical = r.warnings.filter((w) => w.code === 'HS1006');
-          // HS1006 is authoritative: no HSP001 "Unknown directive" is left beside it.
-          expect(r.warnings.filter((w) => /Unknown directive @/.test(w.message))).toEqual([]);
-          expect(r.errors.some((e) => e.code === 'HS1006')).toBe(false);
-        } catch {
-          canonical = [];
-        }
-        expect(strict.every((d) => d.severity === 'warning')).toBe(true);
-        const a = [...new Set(strict.map((d) => nameOf(d.message)))].sort();
-        const b = [...new Set(canonical.map((d) => nameOf(d.message)))].sort();
-        if (JSON.stringify(a) !== JSON.stringify(b)) mismatches.push(file);
-        if (a.length) filesWithUnknown++;
-        for (const n of a) names.add(n);
+  it('same names in the same files, all warnings, verdicts unchanged by HS1006', () => {
+    const mismatches: string[] = [];
+    let filesWithUnknown = 0;
+    const names = new Set<string>();
+    for (const file of files) {
+      const source = readFileSync(path.join(REPO, file), 'utf8');
+      const strict = strictUnknown(source);
+      let canonical: Array<{ code?: string; severity: string; message: string }> = [];
+      try {
+        const r = validateCanonicalSource({ source, fileName: file });
+        canonical = r.warnings.filter((w) => w.code === 'HS1006');
+        // HS1006 is authoritative: no HSP001 "Unknown directive" is left beside it.
+        expect(r.warnings.filter((w) => /Unknown directive @/.test(w.message))).toEqual([]);
+        expect(r.errors.some((e) => e.code === 'HS1006')).toBe(false);
+      } catch {
+        canonical = [];
       }
-      // eslint-disable-next-line no-console
-      console.log(`[known-traits-parity] ${files.length} files, ${filesWithUnknown} with HS1006, ${names.size} names`);
-      expect(mismatches.filter((f) => !f.endsWith('.hsplus'))).toEqual([]);
-      expect(mismatches.filter((f) => f.endsWith('.hsplus')).sort()).toEqual(
-        [...STRICT_HSPLUS_GRAMMAR_GAP].sort()
-      );
-    },
-    300_000
-  );
+      expect(strict.every((d) => d.severity === 'warning')).toBe(true);
+      const a = [...new Set(strict.map((d) => nameOf(d.message)))].sort();
+      const b = [...new Set(canonical.map((d) => nameOf(d.message)))].sort();
+      if (JSON.stringify(a) !== JSON.stringify(b)) mismatches.push(file);
+      if (a.length) filesWithUnknown++;
+      for (const n of a) names.add(n);
+    }
+    // eslint-disable-next-line no-console
+    console.log(
+      `[known-traits-parity] ${files.length} files, ${filesWithUnknown} with HS1006, ${names.size} names`
+    );
+    expect(mismatches.filter((f) => !f.endsWith('.hsplus'))).toEqual([]);
+    expect(mismatches.filter((f) => f.endsWith('.hsplus')).sort()).toEqual(
+      [...STRICT_HSPLUS_GRAMMAR_GAP].sort()
+    );
+  }, 300_000);
 });

@@ -59,7 +59,9 @@ export function creditBalanceFrom(data: unknown): number {
 }
 
 /** What to tell a buyer arriving with `?purchase=<value>`, or null when they are not returning from checkout. */
-export function purchaseReturnNotice(value: string | null | undefined): PurchaseReturnNotice | null {
+export function purchaseReturnNotice(
+  value: string | null | undefined
+): PurchaseReturnNotice | null {
   if (value === 'success') {
     return {
       tone: 'ok',
@@ -68,7 +70,11 @@ export function purchaseReturnNotice(value: string | null | undefined): Purchase
     };
   }
   if (value === 'cancelled') {
-    return { tone: 'info', text: 'Payment cancelled. You were not charged.', refreshBalance: false };
+    return {
+      tone: 'info',
+      text: 'Payment cancelled. You were not charged.',
+      refreshBalance: false,
+    };
   }
   return null;
 }

@@ -4,7 +4,11 @@
  * `consentRules` to validateCanonicalSource; both must be in the public types.
  */
 import { validateCanonicalSource } from '@holoscript/core';
-import type { CanonicalSourceValidationRequest, ConsentRules, LikenessSource } from '@holoscript/core';
+import type {
+  CanonicalSourceValidationRequest,
+  ConsentRules,
+  LikenessSource,
+} from '@holoscript/core';
 
 const face: LikenessSource = 'face';
 const asRecord: ConsentRules = { grant_self: [face, 'voice'] };

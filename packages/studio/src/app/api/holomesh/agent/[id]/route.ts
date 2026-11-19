@@ -90,7 +90,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { id } = await params;
 
   if (id === 'self') {
-// "self" is the CALLER's agent. Ask as the caller only: under Studio's
+    // "self" is the CALLER's agent. Ask as the caller only: under Studio's
     // server key /me answers as Studio's own agent ("Founder"), which every
     // signed-in user without a HoloMesh agent was shown as their profile.
     // No key of their own: refuse before anything goes upstream.

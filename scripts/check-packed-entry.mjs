@@ -23,8 +23,12 @@ export function resolvePackageDir(d) {
 
 function declaredEntries(pkg) {
   const out = new Set();
-  const add = (p) => typeof p === 'string' && !p.includes('*') && out.add(posix.normalize(p.replace(/^\.\//, '')));
-  add(pkg.main); add(pkg.module); add(pkg.types); add(pkg.typings);
+  const add = (p) =>
+    typeof p === 'string' && !p.includes('*') && out.add(posix.normalize(p.replace(/^\.\//, '')));
+  add(pkg.main);
+  add(pkg.module);
+  add(pkg.types);
+  add(pkg.typings);
   if (typeof pkg.bin === 'string') add(pkg.bin);
   else if (pkg.bin) Object.values(pkg.bin).forEach(add);
   const walk = (e) => {
@@ -37,7 +41,9 @@ function declaredEntries(pkg) {
 
 function packedFiles(dir) {
   const json = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
-    cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    cwd: dir,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
     // npm is npm.cmd on Windows; it needs a shell there. Args are fixed literals.
     shell: process.platform === 'win32',
   });
@@ -52,16 +58,23 @@ export function checkPackedEntry(dir) {
 }
 
 const dirs = process.argv.slice(2);
-if (dirs.length === 0) { console.error('usage: check-packed-entry.mjs <packageDir>...'); process.exit(2); }
+if (dirs.length === 0) {
+  console.error('usage: check-packed-entry.mjs <packageDir>...');
+  process.exit(2);
+}
 let failed = false;
 for (const d of dirs) {
   const dir = resolvePackageDir(d);
   const r = checkPackedEntry(dir);
   if (r.missing.length) {
     failed = true;
-    console.error(`FAIL ${r.name}@${r.version}: packed tarball lacks declared entr${r.missing.length > 1 ? 'ies' : 'y'}: ${r.missing.join(', ')}`);
+    console.error(
+      `FAIL ${r.name}@${r.version}: packed tarball lacks declared entr${r.missing.length > 1 ? 'ies' : 'y'}: ${r.missing.join(', ')}`
+    );
   } else {
-    console.log(`OK ${r.name}@${r.version}: all declared entries present (${r.files.length} files)`);
+    console.log(
+      `OK ${r.name}@${r.version}: all declared entries present (${r.files.length} files)`
+    );
   }
 }
 process.exit(failed ? 1 : 0);

@@ -20,7 +20,10 @@ vi.mock('os', async (orig) => {
   const patched = { ...actual, homedir: () => h.home };
   return { ...patched, default: patched };
 });
-vi.mock('@/lib/api-auth', () => ({ requireFounder: h.requireFounder, requireAuth: h.requireFounder }));
+vi.mock('@/lib/api-auth', () => ({
+  requireFounder: h.requireFounder,
+  requireAuth: h.requireFounder,
+}));
 
 import * as fs from 'fs';
 import { POST } from './route';

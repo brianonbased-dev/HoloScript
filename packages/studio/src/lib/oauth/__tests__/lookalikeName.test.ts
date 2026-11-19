@@ -23,7 +23,7 @@ describe('lookalike client names', () => {
 
   it('leaves unrelated names alone', () => {
     expect(lookalikeOf('Weather Agent')).toBeNull();
-    expect(lookalikeOf('Dana\'s research bot')).toBeNull();
+    expect(lookalikeOf("Dana's research bot")).toBeNull();
     expect(lookalikeOf('')).toBeNull();
     expect(lookalikeOf(null)).toBeNull();
   });

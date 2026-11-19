@@ -51,7 +51,16 @@ function makeFakeDb(opts: { withTransaction: boolean }) {
   const state = {
     balanceCents: 0,
     pendingAmount: 0,
-    accountRows: [{ userId: USER, balanceCents: 0, lifetimeSpentCents: 0, lifetimePurchasedCents: 0, tier: 'free', freeCreditsUsedCents: 0 }],
+    accountRows: [
+      {
+        userId: USER,
+        balanceCents: 0,
+        lifetimeSpentCents: 0,
+        lifetimePurchasedCents: 0,
+        tier: 'free',
+        freeCreditsUsedCents: 0,
+      },
+    ],
     ledger: [] as LedgerRow[],
     transactionCalls: 0,
   };
