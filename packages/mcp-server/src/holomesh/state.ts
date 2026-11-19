@@ -662,6 +662,125 @@ export function isKeyRevoked(key: string): boolean {
 let revokedStoreCorrupt = false;
 
 /**
+ * Set at boot in production when HOLOMESH_DATA_DIR is not on a durable mounted
+ * volume (or that cannot be verified): everything written there is lost on
+ * the next deploy.
+ */
+let dataDirNotOnVolume: string | null = null;
+
+/** Where the boot check reads the mount table. Tests point it at a fixture. */
+let bootMountinfoPath = '/proc/self/mountinfo';
+
+/** Test hook: read the mount table from `p` at boot; null restores the default and clears the flag. */
+export function _setMountinfoPathForTests(p: string | null): void {
+  bootMountinfoPath = p ?? '/proc/self/mountinfo';
+  if (p === null) dataDirNotOnVolume = null;
+}
+
+/** Filesystem types that live in memory or in the container layer: never durable. */
+export const NON_DURABLE_FS_TYPES = ['tmpfs', 'ramfs', 'overlay'] as const;
+
+/**
+ * The mount that holds `dir`, read from /proc/self/mountinfo text: the longest
+ * mount point (field 5, octal-escaped) that is `dir` or a parent of it, with
+ * its filesystem type (the first field after the " - " separator).
+ */
+export function mountFor(
+  dir: string,
+  mountinfo: string
+): { mountPoint: string; fsType: string | null } | null {
+  let best: { mountPoint: string; fsType: string | null } | null = null;
+  for (const line of mountinfo.split('\n')) {
+    const fields = line.split(' ');
+    if (fields.length < 5) continue;
+    const mp = fields[4].replace(/\\([0-7]{3})/g, (_m, o: string) =>
+      String.fromCharCode(parseInt(o, 8))
+    );
+    const prefix = mp.endsWith('/') ? mp : `${mp}/`;
+    if (
+      (dir === mp || dir.startsWith(prefix)) &&
+      (best === null || mp.length >= best.mountPoint.length)
+    ) {
+      const sep = fields.indexOf('-', 5);
+      const fsType = sep >= 0 && fields[sep + 1] ? fields[sep + 1] : null;
+      best = { mountPoint: mp, fsType };
+    }
+  }
+  return best;
+}
+
+/** The mount point that holds `dir` (see mountFor). */
+export function mountPointFor(dir: string, mountinfo: string): string | null {
+  return mountFor(dir, mountinfo)?.mountPoint ?? null;
+}
+
+/**
+ * The real path of `dir`. When it does not exist yet, the real path of its
+ * nearest existing ancestor plus the rest, so a symlinked parent or `..` in
+ * the configured value is still resolved.
+ */
+export function resolveDataDirPath(dir: string): string {
+  let current = path.resolve(dir);
+  const rest: string[] = [];
+  for (;;) {
+    try {
+      return path.join(fs.realpathSync(current), ...rest);
+    } catch {
+      const parent = path.dirname(current);
+      if (parent === current) return path.resolve(dir);
+      rest.unshift(path.basename(current));
+      current = parent;
+    }
+  }
+}
+
+/**
+ * Is the data dir on a durable mounted volume? Method: resolve the dir's real
+ * path (or its nearest existing ancestor's) and find the mount holding it in
+ * /proc/self/mountinfo. The container root ("/"), no matching mount, or a
+ * tmpfs, ramfs or overlay mount is not durable. When mountinfo cannot be read
+ * the answer is unknown: in production that counts as not a volume (fail
+ * closed); elsewhere nothing is reported and `checked` is false.
+ */
+export function dataDirVolumeCheck(
+  dir: string = HOLOMESH_DATA_DIR,
+  mountinfoPath = '/proc/self/mountinfo',
+  production = process.env.NODE_ENV === 'production'
+): { problem: string | null; mountPoint: string | null; fsType: string | null; checked: boolean } {
+  let info: string;
+  try {
+    info = fs.readFileSync(mountinfoPath, 'utf-8');
+  } catch {
+    return {
+      problem: production
+        ? `HOLOMESH_DATA_DIR could not be verified as a mounted volume (${mountinfoPath} is unreadable)`
+        : null,
+      mountPoint: null,
+      fsType: null,
+      checked: false,
+    };
+  }
+  const mount = mountFor(resolveDataDirPath(dir), info);
+  if (!mount || mount.mountPoint === '/') {
+    return {
+      problem: 'HOLOMESH_DATA_DIR is not on a mounted volume (it is on the root filesystem)',
+      mountPoint: mount?.mountPoint ?? null,
+      fsType: mount?.fsType ?? null,
+      checked: true,
+    };
+  }
+  if (mount.fsType && (NON_DURABLE_FS_TYPES as readonly string[]).includes(mount.fsType)) {
+    return {
+      problem: `HOLOMESH_DATA_DIR is on a ${mount.fsType} mount, which does not survive a redeploy`,
+      mountPoint: mount.mountPoint,
+      fsType: mount.fsType,
+      checked: true,
+    };
+  }
+  return { problem: null, mountPoint: mount.mountPoint, fsType: mount.fsType, checked: true };
+}
+
+/**
  * Why a revocation written now would not survive a restart, or null when the
  * key store looks durable: HOLOMESH_DATA_DIR unset (home-directory fallback),
  * the data dir not writable, or a corrupt revoked-keys.json that is being
@@ -674,6 +793,7 @@ export function keyStoreDurabilityProblem(): string | null {
   if (!(process.env.HOLOMESH_DATA_DIR || '').trim()) {
     return 'HOLOMESH_DATA_DIR is not set; the key store falls back to a home-directory path';
   }
+  if (dataDirNotOnVolume) return dataDirNotOnVolume;
   // An unwritable directory shows up as a failed write, which callers check.
   return null;
 }
@@ -1080,6 +1200,27 @@ export async function initStores(): Promise<void> {
   // Revocations first, so neither the stored records nor the env seeds below
   // can bring a revoked key back.
   loadRevokedKeyFingerprints();
+  const volume = dataDirVolumeCheck(HOLOMESH_DATA_DIR, bootMountinfoPath);
+  dataDirNotOnVolume = null;
+  if (volume.problem) {
+    console.error(
+      [
+        '[KeyRegistry] ==========================================================',
+        `[KeyRegistry] ERROR: ${volume.problem}.`,
+        '[KeyRegistry] Key revocations, keys and agents written there are LOST on the next deploy.',
+        '[KeyRegistry] Mount a durable volume at or above HOLOMESH_DATA_DIR. (Checked /proc/self/mountinfo.)',
+        '[KeyRegistry] ==========================================================',
+      ].join('\n')
+    );
+    // In production, key changes then answer 503 (done in memory only).
+    if (process.env.NODE_ENV === 'production') dataDirNotOnVolume = volume.problem;
+  } else if (volume.mountPoint) {
+    console.info(
+      `[KeyRegistry] HOLOMESH_DATA_DIR is on mounted volume ${volume.mountPoint} (${volume.fsType ?? 'unknown type'}; checked /proc/self/mountinfo).`
+    );
+  } else if (!volume.checked) {
+    console.info('[KeyRegistry] Volume check skipped: /proc/self/mountinfo is not readable here.');
+  }
   const durability = keyStoreBootProblem();
   if (durability) {
     console.error(

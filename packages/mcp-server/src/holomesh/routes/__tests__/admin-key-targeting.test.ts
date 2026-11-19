@@ -12,7 +12,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type http from 'http';
 import { EventEmitter } from 'events';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -487,5 +487,46 @@ describe('admin/update-scopes targets one record', () => {
       scopes: ['tools:read'],
     });
     expect(res._status).toBe(404);
+  });
+});
+
+describe('boot volume check in production', () => {
+  it('a revoke answers 503 once boot flags the data dir as not on a volume', async () => {
+    const mountinfo = join(TEMP_DIR, 'mountinfo-root-only');
+    writeFileSync(mountinfo, '22 1 0:21 / / rw,relatime - overlay overlay rw\n');
+    const savedNodeEnv = process.env.NODE_ENV;
+    const savedDatabaseUrl = process.env.DATABASE_URL;
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    process.env.NODE_ENV = 'production';
+    delete process.env.DATABASE_URL;
+    state._setMountinfoPathForTests(mountinfo);
+    try {
+      await state.initStores();
+      expect(state.keyStoreDurabilityProblem()).toMatch(/not on a mounted volume/);
+      expect(errorSpy.mock.calls.flat().join('\n')).toMatch(/ERROR: HOLOMESH_DATA_DIR is not/);
+
+      keyRegistry.set(FOUNDER_KEY, rec(FOUNDER_KEY, 'agent_targeting_founder', true));
+      keyRegistry.set(NON_FOUNDER_KEY, rec(NON_FOUNDER_KEY, 'agent_targeting_regular'));
+      const keyId = keyIdOf(keyRegistry.get(NON_FOUNDER_KEY)!);
+      const res = await call('/api/holomesh/admin/revoke', { key_id: keyId });
+
+      expect(res._status).toBe(503);
+      expect(res._body).toMatchObject({
+        success: false,
+        durable: false,
+        in_memory_only: true,
+        revoked_in_memory: true,
+        key_id: keyId,
+      });
+      expect(res._body.problem).toMatch(/not on a mounted volume/);
+      expect(isKeyRevoked(NON_FOUNDER_KEY)).toBe(true);
+    } finally {
+      state._setMountinfoPathForTests(null);
+      errorSpy.mockRestore();
+      if (savedNodeEnv === undefined) delete process.env.NODE_ENV;
+      else process.env.NODE_ENV = savedNodeEnv;
+      if (savedDatabaseUrl !== undefined) process.env.DATABASE_URL = savedDatabaseUrl;
+    }
+    expect(state.keyStoreDurabilityProblem()).toBeNull();
   });
 });

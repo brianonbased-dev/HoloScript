@@ -30,6 +30,13 @@ MCP_SERVER_SIZE = "standard"
 # Railway sleeps containers after ~5 min idle; self-ping at 4.5 min keeps it live.
 MCP_KEEP_ALIVE_ENABLED = "true"
 MCP_KEEP_ALIVE_INTERVAL_MS = "270000"
+# NOTE (2026-11-18): Railway does NOT apply this [env] table or the [[volumes]]
+# block below. Config-as-code applies only build, deploy and environments
+# overrides, and Railway stops reading these files on 2026-12-01. They are kept
+# for reference only. HOLOMESH_DATA_DIR comes from the image ENV
+# (infrastructure/Dockerfile.mcp-server: /app/.holoscript/holomesh) unless the
+# service sets a variable, and durability needs a volume created in the Railway
+# dashboard and mounted at, or above, HOLOMESH_DATA_DIR.
 # W.101 / task_1777114501690_h56d — point HOLOMESH_DATA_DIR at the persistent
 # volume mounted at /data/holomesh (see [[volumes]] block below). Without the
 # volume + this env, the CAEL audit JSONL store at <HOLOMESH_DATA_DIR>/audit/
@@ -42,6 +49,8 @@ HOLOMESH_DATA_DIR = "/data/holomesh"
 # Classic MCP SSE on Railway needs one replica or sticky routing; default is streamable HTTP.
 # MCP_ENABLE_SSE = "true"
 
+# NOT APPLIED by Railway (see the NOTE in [env] above); create the volume in the
+# dashboard instead.
 # W.101 — persistent volume for HOLOMESH_DATA_DIR (CAEL audit + defense state).
 # Declarative volumes are honored by Railway's deployment pipeline when the
 # project's plan supports them. If the volume does not auto-provision on first
