@@ -196,8 +196,14 @@ can bring a revoked key back, and the legacy single-key checks refuse it too.
 - A key that is still the value of a seedable env var cannot be revoked or
   rotated through the API (409). Rotate the env var and redeploy, then revoke
   the old record by `key_id`.
-- At boot the server checks that `HOLOMESH_DATA_DIR` is on a mounted volume
-  (the mount point holding it in `/proc/self/mountinfo` is not `/`). If not, it
-  logs a loud error; in production, revoke, rotate and deregister then answer
-  503 (done in memory only). The mcp-server image no longer sets
-  `HOLOMESH_DATA_DIR`; the service must set it to its volume mount.
+- At boot the server checks that `HOLOMESH_DATA_DIR` is on a durable mounted
+  volume: the mount holding its real path (or its nearest existing ancestor's)
+  in `/proc/self/mountinfo` is not `/` and is not `tmpfs`, `ramfs` or
+  `overlay`. If not, it logs a loud error; in production, revoke, rotate and
+  deregister then answer 503 (done in memory only). In production an unreadable
+  mountinfo counts as not a volume.
+- The mcp-server image sets `HOLOMESH_DATA_DIR=/app/.holoscript/holomesh`; a
+  service variable overrides it. Railway does not apply `railway.toml` `[env]`
+  or `[[volumes]]`, and stops reading config-as-code files on 2026-12-01, so
+  durability needs a volume created in the Railway dashboard and mounted at, or
+  above, `HOLOMESH_DATA_DIR`.

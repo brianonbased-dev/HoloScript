@@ -243,10 +243,14 @@ RUN chmod +x /app/packages/mcp-server/scripts/docker-entrypoint.sh
 # Environment
 ENV NODE_ENV=production
 ENV HOLOSCRIPT_CACHE_DIR=/app/.holoscript
-# HOLOMESH_DATA_DIR is deliberately NOT set here: the service sets it to its
-# volume mount (packages/mcp-server/railway.toml: /data/holomesh). An image
-# default pointed it at the image filesystem, which every deploy wipes, and hid
-# a missing volume. Boot logs an error when the dir is not on a mounted volume.
+# Default data dir. A service variable overrides this image ENV at runtime.
+# Railway does NOT apply railway.toml [env] or [[volumes]] (config-as-code covers
+# build, deploy and environments only, and stops being read on 2026-12-01), so
+# this line is what sets HOLOMESH_DATA_DIR unless the service sets its own.
+# Durability needs a volume created in the Railway dashboard and mounted at, or
+# above, HOLOMESH_DATA_DIR; the boot check logs an error (and in production key
+# changes answer 503) when the dir is not on a durable mounted volume.
+ENV HOLOMESH_DATA_DIR=/app/.holoscript/holomesh
 # GraphRAG is HoloEmbed-only by product rule (requireNativeGraphRAGProvider throws on
 # anything else), so this MUST be holoembed. It was 'openai', which made every embedding
 # warm throw and get swallowed -> semantic_search permanently empty. HoloEmbed is local /
