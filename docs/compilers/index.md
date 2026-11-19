@@ -23,6 +23,7 @@ Not every target is equally proven. Each one carries a tier, and the tier is **e
 
 The `list_export_targets` MCP tool returns the same tier and sentence for every target. The data lives in `packages/core/src/compiler/target-tiers.ts`; to move a target up, add the evidence there (a golden test, a quote from a build or device run, a reference app) and the test will confirm it.
 
+<!-- prettier-ignore-start -->
 <!-- target-tiers:start (checked by target-tiers.test.ts) -->
 | Target | Tier | What it still lacks |
 | --- | --- | --- |
@@ -91,6 +92,7 @@ The `list_export_targets` MCP tool returns the same tier and sentence for every 
 | `openapi` | experimental | No test checks this compiler. |
 | `stl-export` | experimental | No test checks this compiler. |
 <!-- target-tiers:end -->
+<!-- prettier-ignore-end -->
 
 ## Common targets (non-exhaustive)
 

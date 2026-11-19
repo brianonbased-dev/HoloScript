@@ -17,6 +17,10 @@ yarn.lock
 # WASM and Rust
 packages/compiler-wasm/pkg/
 packages/compiler-wasm/target/
+# wasm-pack output for the nodejs and bundler targets: generated wasm-bindgen glue,
+# the same kind of output as pkg/ above (never hand-edited)
+packages/compiler-wasm/pkg-node/
+packages/compiler-wasm/pkg-bundler/
 **/*.wasm
 
 # Packaged distributables (wasm-bindgen glue, native binaries, published bundles --
