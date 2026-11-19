@@ -17,6 +17,7 @@
 
 import { randomUUID, createHash, createHmac } from 'crypto';
 import { constantTimeEqual } from './constant-time';
+import { isKeyRevoked } from './revoked-keys';
 import {
   agentIdBindingAllowed,
   canonicalAgentIdFor,
@@ -1067,6 +1068,8 @@ export class OAuth21Service {
     }
 
     if (safeCompare(key, this.config.legacyApiKey)) {
+      // A revoked key stays refused even while it is still the configured value.
+      if (isKeyRevoked(key)) return { active: false };
       return {
         active: true,
         scopes: ['admin:*'],

@@ -31,6 +31,13 @@ import { createStateStore, type StateStoreBackend } from './state-store';
 import { createPlayerStore, type PlayerStore, type StoredPlayer } from './player-store';
 import { createInviteStore, type InviteStore } from './invite-store';
 import { createGeoAnchorStore, type GeoAnchorStore } from './geo-anchor-store';
+import {
+  addRevokedFingerprint,
+  isKeyRevoked as isFingerprintRevoked,
+  markKeyRevoked,
+  revokedFingerprintList,
+  _resetRevokedKeysForTests,
+} from '../security/revoked-keys';
 
 // ── Persistence Config ────────────────────────────────────────────────────────
 
@@ -43,16 +50,18 @@ export const HOLOMESH_DATA_DIR =
 
 // ── Atomic Writes ─────────────────────────────────────────────────────────────
 
-/** Atomic JSON write: temp file → rename */
-export function atomicWriteJSON(filePath: string, data: unknown): void {
+/** Atomic JSON write: temp file → rename. Returns false when the write failed. */
+export function atomicWriteJSON(filePath: string, data: unknown): boolean {
   try {
     const dir = path.dirname(filePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     const tmp = filePath + '.tmp';
     fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf-8');
     fs.renameSync(tmp, filePath);
+    return true;
   } catch (e: unknown) {
     console.warn('[HoloMesh] persist failed:', e instanceof Error ? e.message : String(e));
+    return false;
   }
 }
 
@@ -549,6 +558,7 @@ const TEAM_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'teams.json');
 const AGENT_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'agents.json');
 const SOCIAL_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'social.json');
 const KEY_REGISTRY_PATH = path.join(HOLOMESH_DATA_DIR, 'keys.json');
+const REVOKED_KEYS_PATH = path.join(HOLOMESH_DATA_DIR, 'revoked-keys.json');
 const HOLODOOR_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'holodoor-store.json');
 const EXPORT_SESSION_STORE_PATH = path.join(HOLOMESH_DATA_DIR, 'export-sessions.json');
 const TOKEN_LEDGER_PATH = path.join(HOLOMESH_DATA_DIR, 'token-ledger.json');
@@ -623,30 +633,187 @@ export async function persistTeamDurable(teamId: string): Promise<void> {
   }
 }
 
-export function persistAgentStore(): void {
-  atomicWriteJSON(AGENT_STORE_PATH, {
+export function persistAgentStore(): boolean {
+  return atomicWriteJSON(AGENT_STORE_PATH, {
     version: 1,
     agents: Array.from(agentKeyStore.values()),
     savedAt: new Date().toISOString(),
   });
 }
 
+// ── Key revocation ───────────────────────────────────────────────────────────
+
+// Fingerprints (sha256 hex) of revoked key values live in security/revoked-keys
+// so the legacy auth paths can refuse them too. They are persisted to
+// revoked-keys.json, separately from keys.json, so a revocation still holds when
+// keys.json is missing or unreadable and the registry is re-seeded from env vars.
+
+/** Keys revoked in this process, by value, with the time of revocation. */
+const pendingRevocations: Map<string, string> = new Map();
+/** key_id -> value for keys revoked in this process, so a retry can find them. */
+const pendingRevocationIds: Map<string, string> = new Map();
+
+/** True when this key value has been revoked (in this process or a previous one). */
+export function isKeyRevoked(key: string): boolean {
+  return pendingRevocations.has(key) || isFingerprintRevoked(key);
+}
+
+/** True when revoked-keys.json existed but could not be parsed at load. */
+let revokedStoreCorrupt = false;
+
+/**
+ * Why a revocation written now would not survive a restart, or null when the
+ * key store looks durable: HOLOMESH_DATA_DIR unset (home-directory fallback),
+ * the data dir not writable, or a corrupt revoked-keys.json that is being
+ * preserved rather than overwritten.
+ */
+export function keyStoreDurabilityProblem(): string | null {
+  if (revokedStoreCorrupt) {
+    return 'revoked-keys.json could not be parsed and is preserved; fix or restore it first';
+  }
+  if (!(process.env.HOLOMESH_DATA_DIR || '').trim()) {
+    return 'HOLOMESH_DATA_DIR is not set; the key store falls back to a home-directory path';
+  }
+  // An unwritable directory shows up as a failed write, which callers check.
+  return null;
+}
+
+/** Boot-time check: keyStoreDurabilityProblem plus whether the dir is writable. */
+function keyStoreBootProblem(): string | null {
+  const problem = keyStoreDurabilityProblem();
+  if (problem) return problem;
+  try {
+    fs.mkdirSync(HOLOMESH_DATA_DIR, { recursive: true });
+    fs.accessSync(HOLOMESH_DATA_DIR, fs.constants.W_OK);
+  } catch {
+    return 'HOLOMESH_DATA_DIR is not writable';
+  }
+  return null;
+}
+
+/** The seedable env var currently holding this key value, if any. */
+export function envVarHoldingKey(key: string): string | undefined {
+  for (const envVar of SEEDABLE_KEY_ENV_VARS) {
+    const value = (process.env[envVar] || '').trim();
+    if (value && value === key) return envVar;
+  }
+  return undefined;
+}
+
+/**
+ * Revoke one key: drop it from the live registry and record the revocation so
+ * the next persistKeyRegistry() writes it to disk. Callers persist afterwards,
+ * as they already do after any registry change.
+ */
+export function revokeKeyRecord(key: string): void {
+  const record = keyRegistry.get(key);
+  if (record) pendingRevocationIds.set(keyIdOf(record), key);
+  keyRegistry.delete(key);
+  pendingRevocations.set(key, new Date().toISOString());
+  markKeyRevoked(key);
+}
+
+/** The value of a key revoked in this process, by its key_id. */
+export function revokedKeyById(keyId: string): string | undefined {
+  return pendingRevocationIds.get(keyId);
+}
+
+/** The record's keyId, assigning one first if it has none yet. */
+export function keyIdOf(record: KeyRecord): string {
+  if (!record.keyId) record.keyId = `key_${crypto.randomUUID().replace(/-/g, '')}`;
+  return record.keyId;
+}
+
+/** Find the single live record with this keyId. */
+export function findKeyRecordById(keyId: string): KeyRecord | undefined {
+  for (const r of keyRegistry.values()) {
+    if (keyIdOf(r) === keyId) return r;
+  }
+  return undefined;
+}
+
+/**
+ * Load revoked-keys.json. A file that exists but cannot be parsed is kept as
+ * <name>.corrupt-<time> and never overwritten: persistKeyRegistry() refuses to
+ * write tombstones until it is fixed, so revokes report "not durable".
+ */
+function loadRevokedKeyFingerprints(): void {
+  revokedStoreCorrupt = false;
+  if (!fs.existsSync(REVOKED_KEYS_PATH)) return;
+  let data: any;
+  try {
+    data = JSON.parse(fs.readFileSync(REVOKED_KEYS_PATH, 'utf-8'));
+    if (!data || !Array.isArray(data.revoked)) throw new Error('unexpected shape');
+  } catch {
+    revokedStoreCorrupt = true;
+    try {
+      fs.copyFileSync(REVOKED_KEYS_PATH, `${REVOKED_KEYS_PATH}.corrupt-${Date.now()}`);
+    } catch {
+      /* the original stays in place either way */
+    }
+    console.error(
+      '[KeyRegistry] revoked-keys.json could not be parsed. It is preserved and will not be overwritten; key revocations are NOT durable until it is fixed.'
+    );
+    return;
+  }
+  for (const entry of data.revoked as unknown[]) {
+    const fp = (entry as { sha256?: unknown })?.sha256;
+    if (typeof fp === 'string') addRevokedFingerprint(fp);
+  }
+}
+
+/** Test helper: forget every revocation held in memory. */
+export function _resetKeyRevocationsForTests(): void {
+  _resetRevokedKeysForTests();
+  pendingRevocations.clear();
+  pendingRevocationIds.clear();
+  revokedStoreCorrupt = false;
+}
+
 /**
  * keys.json is append-only — read existing records, merge new ones, write.
- * Old keys are preserved for audit trail. Rotated keys are never truly deleted
- * from the file (only from the in-memory map).
+ * Old keys are preserved for audit trail. A revoked or rotated-out key stays in
+ * the file but is marked with revokedAt, and its fingerprint is written to
+ * revoked-keys.json, so it is not loaded again on the next start.
+ *
+ * Returns false when keys.json or revoked-keys.json was not written. Routes
+ * that revoke a key must not report success in that case.
  */
-export function persistKeyRegistry(): void {
+export function persistKeyRegistry(): boolean {
   const existing = readJSON(KEY_REGISTRY_PATH);
   const existingRecords: KeyRecord[] = existing?.keys || [];
   const merged = new Map<string, KeyRecord>();
   for (const r of existingRecords) merged.set(r.key, r);
-  for (const r of keyRegistry.values()) merged.set(r.key, r);
-  atomicWriteJSON(KEY_REGISTRY_PATH, {
+  for (const r of keyRegistry.values()) {
+    keyIdOf(r);
+    merged.set(r.key, r);
+  }
+  for (const [key, revokedAt] of pendingRevocations) {
+    if (keyRegistry.has(key)) continue;
+    const r = merged.get(key);
+    if (r && !r.revokedAt) merged.set(key, { ...r, revokedAt });
+  }
+  const keysWritten = atomicWriteJSON(KEY_REGISTRY_PATH, {
     version: 1,
     keys: Array.from(merged.values()),
     savedAt: new Date().toISOString(),
   });
+  const fingerprints = revokedFingerprintList();
+  if (fingerprints.length === 0) return keysWritten;
+  // Never overwrite a tombstone file that could not be read: that would drop
+  // every fingerprint it held.
+  if (revokedStoreCorrupt) return false;
+  const stored = readJSON(REVOKED_KEYS_PATH);
+  const all = new Set<string>(fingerprints);
+  for (const entry of Array.isArray(stored?.revoked) ? stored.revoked : []) {
+    if (typeof entry?.sha256 === 'string') all.add(entry.sha256);
+  }
+  const revokedWritten = atomicWriteJSON(REVOKED_KEYS_PATH, {
+    version: 1,
+    revoked: Array.from(all).map((sha256) => ({ sha256 })),
+    savedAt: new Date().toISOString(),
+  });
+  return keysWritten && revokedWritten;
 }
 
 export function persistSocialStore(): void {
@@ -750,6 +917,10 @@ export function _seedFounderKeysFromEnv(): void {
     const key = (process.env[envVar] || '').trim();
     if (!key || seenKeys.has(key)) continue;
     seenKeys.add(key);
+    if (isKeyRevoked(key)) {
+      console.warn(`[KeyRegistry] Not seeding ${envVar}: that key has been revoked.`);
+      continue;
+    }
     candidates.push({ envVar, key });
   }
 
@@ -833,14 +1004,108 @@ export function _markSeededKeysFromEnv(): number {
   return marked;
 }
 
+/**
+ * Founder restriction runs in report-only mode unless HOLOMESH_DEFOUNDER_DRY_RUN
+ * is set to 0 (or false/no/off). Unset means dry run.
+ */
+export function isDefounderDryRun(): boolean {
+  const value = (process.env.HOLOMESH_DEFOUNDER_DRY_RUN ?? '').trim().toLowerCase();
+  return !['0', 'false', 'no', 'off'].includes(value);
+}
+
+/**
+ * Founder authority belongs to one key: the value configured as
+ * HOLOMESH_FOUNDER_KEY. Any other key record or agent record that carries the
+ * founder flag is demoted at load. In dry run it is only reported. Log lines
+ * name the record by id, never by key value.
+ */
+export function _restrictFounderFlag(): { demoted: string[]; dryRun: boolean; skipped?: string } {
+  const founderKey = (process.env.HOLOMESH_FOUNDER_KEY || '').trim();
+  const dryRun = isDefounderDryRun();
+  const demoted: string[] = [];
+  let keysChanged = false;
+  let agentsChanged = false;
+
+  // Never leave zero founders. When HOLOMESH_FOUNDER_KEY is unset, or names no
+  // live founder-flagged record (for example after the founder key was rotated
+  // and the env var not yet updated), demote no one and say so loudly.
+  const anyFlagged =
+    [...keyRegistry.values()].some((r) => r.isFounder === true) ||
+    [...agentKeyStore.values()].some((a) => a.isFounder === true);
+  const founderPresent =
+    founderKey.length > 0 &&
+    ([...keyRegistry.values()].some((r) => r.isFounder === true && r.key === founderKey) ||
+      [...agentKeyStore.values()].some((a) => a.isFounder === true && a.apiKey === founderKey));
+  if (anyFlagged && !founderPresent) {
+    const skipped = founderKey
+      ? 'HOLOMESH_FOUNDER_KEY matches no live founder record'
+      : 'HOLOMESH_FOUNDER_KEY is not set';
+    console.error(
+      `[KeyRegistry] Founder flag: ${skipped}; demoting no one. Set HOLOMESH_FOUNDER_KEY to the current founder key.`
+    );
+    return { demoted, dryRun, skipped };
+  }
+
+  const handle = (kind: string, id: string, demote: () => void): void => {
+    demoted.push(id);
+    if (dryRun) {
+      console.warn(`[KeyRegistry] Founder flag: would demote ${kind} ${id} (dry run).`);
+    } else {
+      demote();
+      console.warn(`[KeyRegistry] Founder flag: demoted ${kind} ${id}.`);
+    }
+  };
+
+  for (const r of keyRegistry.values()) {
+    if (r.isFounder !== true || (founderKey && r.key === founderKey)) continue;
+    handle('key record', r.agentId, () => {
+      r.isFounder = false;
+      keysChanged = true;
+    });
+  }
+  for (const a of agentKeyStore.values()) {
+    if (a.isFounder !== true || (founderKey && a.apiKey === founderKey)) continue;
+    handle('agent record', a.id, () => {
+      a.isFounder = false;
+      agentsChanged = true;
+    });
+  }
+
+  if (keysChanged) persistKeyRegistry();
+  if (agentsChanged) persistAgentStore();
+  return { demoted, dryRun };
+}
+
 export async function initStores(): Promise<void> {
+  // Revocations first, so neither the stored records nor the env seeds below
+  // can bring a revoked key back.
+  loadRevokedKeyFingerprints();
+  const durability = keyStoreBootProblem();
+  if (durability) {
+    console.error(
+      `[KeyRegistry] WARNING: key revocations may not survive a restart: ${durability}. Revoke, rotate and deregister will answer 503 (done in memory only) until this is fixed.`
+    );
+  }
+
   // Load Key Registry (must come first — auth depends on it)
   const keyData = readJSON(KEY_REGISTRY_PATH);
   if (keyData?.keys && Array.isArray(keyData.keys) && keyData.keys.length > 0) {
+    let skippedRevoked = 0;
     for (const r of keyData.keys as KeyRecord[]) {
+      if (r.revokedAt || isKeyRevoked(r.key)) {
+        // A record marked revoked in keys.json also tombstones its value, so
+        // the legacy checks and the env seed path refuse it too.
+        if (r.revokedAt && typeof r.key === 'string') markKeyRevoked(r.key);
+        skippedRevoked += 1;
+        continue;
+      }
       keyRegistry.set(r.key, r);
     }
-    console.info(`[KeyRegistry] Loaded ${keyRegistry.size} key record(s)`);
+    console.info(
+      `[KeyRegistry] Loaded ${keyRegistry.size} key record(s)${
+        skippedRevoked > 0 ? `, skipped ${skippedRevoked} revoked` : ''
+      }`
+    );
     // Records written before the marker existed carry no provenance. Stamp them
     // now, while the env values are still the ones they were seeded from.
     _markSeededKeysFromEnv();
@@ -849,14 +1114,26 @@ export async function initStores(): Promise<void> {
     _seedFounderKeysFromEnv();
   }
 
+  for (const envVar of SEEDABLE_KEY_ENV_VARS) {
+    const value = (process.env[envVar] || '').trim();
+    if (value && isKeyRevoked(value)) {
+      console.error(
+        `[KeyRegistry] WARNING: ${envVar} holds a revoked key. It is refused everywhere; rotate the env var.`
+      );
+    }
+  }
+
   // Load Agents
   const agentData = readJSON(AGENT_STORE_PATH);
   if (agentData?.agents) {
     for (const a of agentData.agents) {
+      if (typeof a?.apiKey === 'string' && isKeyRevoked(a.apiKey)) continue;
       agentKeyStore.set(a.apiKey, a);
       walletToAgent.set((a.walletAddress || '').toLowerCase(), a);
     }
   }
+
+  _restrictFounderFlag();
 
   // Load Social
   const socialData = readJSON(SOCIAL_STORE_PATH);

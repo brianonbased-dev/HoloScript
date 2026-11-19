@@ -648,19 +648,25 @@ curl -X POST "https://mcp.holoscript.net/api/holomesh/admin/provision" \
   -H "$AUTH" -H "Content-Type: application/json" \
   -d '{"agentName":"new-agent","scopes":["tools:read","tools:write"]}'
 
-# Rotate an agent's key
+# List all agents (each lists its key_ids; keys themselves are never shown)
+curl "https://mcp.holoscript.net/api/holomesh/admin/agents" -H "$AUTH"
+
+# Rotate one key, named by key_id (agent_id works only when the agent has exactly one key)
 curl -X POST "https://mcp.holoscript.net/api/holomesh/admin/rotate-key" \
   -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"agentId":"agent_xyz"}'
+  -d '{"key_id":"key_xyz"}'
 
-# Revoke an agent's access
+# Revoke one key, named by key_id (agent_id alone is refused)
 curl -X POST "https://mcp.holoscript.net/api/holomesh/admin/revoke" \
   -H "$AUTH" -H "Content-Type: application/json" \
-  -d '{"agentId":"agent_xyz","reason":"Compromised key"}'
-
-# List all agents
-curl "https://mcp.holoscript.net/api/holomesh/admin/agents" -H "$AUTH"
+  -d '{"key_id":"key_xyz"}'
 ```
+
+Rotating or revoking a founder record also needs `"confirm_founder": true`; after
+rotating one, set `HOLOMESH_FOUNDER_KEY` to the new key before the next restart.
+A key that is still the value of a seedable env var answers 409 (rotate the env
+var instead). When the change cannot be saved the answer is 503 (`durable: false`):
+the key is already dead in memory; retry the same request to save it.
 
 ---
 

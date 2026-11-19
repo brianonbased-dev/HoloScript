@@ -1,4 +1,5 @@
 import type http from 'http';
+import { isKeyRevoked } from './security/revoked-keys';
 
 export const PARTNER_REGISTRY_VALIDATE_PATHS = new Set([
   '/api/v1/partner/validate',
@@ -91,7 +92,7 @@ export function validatePartnerRegistryCredentials(
   }
 
   const providedHoloKey = readPartnerRegistryHoloKey(headers);
-  if (!providedHoloKey || providedHoloKey !== expectedHoloKey) {
+  if (!providedHoloKey || providedHoloKey !== expectedHoloKey || isKeyRevoked(providedHoloKey)) {
     return {
       status: 401,
       headers: responseHeaders,

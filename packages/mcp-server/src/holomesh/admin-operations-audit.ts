@@ -15,6 +15,7 @@ export type AdminOperationAction =
   | 'provision'
   | 'update_scopes'
   | 'revoke'
+  | 'tenant_key_revoke'
   | 'deregister'
   | 'manual_failover'
   | 'scaling_override'

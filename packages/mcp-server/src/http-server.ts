@@ -42,6 +42,7 @@ import { resolveServiceSecret, migrateEnvKeys } from './holokey-resolver';
 import { createRailwayPostgresPoolOptions } from './postgres-pool-options';
 import { getMcpServerSizing } from './server-sizing';
 import { handlePartnerRegistryValidateRoute } from './partner-registry-route';
+import { isKeyRevoked } from './security/revoked-keys';
 import { authenticateOrReject } from './security/authenticate-or-reject';
 import { tools } from './tools';
 import { handleTool } from './handlers';
@@ -1642,7 +1643,7 @@ const httpServer = http.createServer(async (req, res) => {
     const provided =
       (req.headers['x-mcp-api-key'] as string | undefined) ??
       (req.headers['authorization'] as string | undefined)?.replace(/^Bearer\s+/i, '');
-    if (!HOLOSCRIPT_API_KEY || provided !== HOLOSCRIPT_API_KEY) {
+    if (!HOLOSCRIPT_API_KEY || provided !== HOLOSCRIPT_API_KEY || isKeyRevoked(provided)) {
       res.writeHead(401, { 'Content-Type': 'application/json; charset=utf-8' });
       res.end(JSON.stringify({ error: 'unauthorized' }));
       return;

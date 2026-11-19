@@ -564,7 +564,7 @@ export async function handleTeamRoutes(
         credential_delivery: 'one_time_creation_response',
         api_key_scopes: quickstartScopes,
         api_key_capabilities: finalQuickstartCapabilities,
-        revocation: 'POST /api/holomesh/admin/revoke',
+        revocation: 'POST /api/holomesh/admin/revoke {key_id}',
         non_echo_surfaces: ['board', 'feed', 'admin/agents'],
         wallet_private_key:
           'Returned only in this creation response for legacy quickstart. Use POST /api/holomesh/register/challenge for client-owned wallets.',

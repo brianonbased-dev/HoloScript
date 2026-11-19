@@ -119,9 +119,9 @@ All permission denials are logged via `requireTeamAccess()`. To debug access iss
 Founder authority is a property of a **key record in the key registry**, never of
 an environment variable on its own.
 
-| Variable               | What it must contain                                                                                                                                                                                             | Handling                                                                                                                              |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `HOLOMESH_FOUNDER_KEY` | The exact key value that is to hold founder authority. It must also be the value of one of the seedable variables below, or no founder is granted at all.                                                          | Secret. An agent must never set it, echo it, log it, or print its value — report only whether it is set.                               |
+| Variable               | What it must contain                                                                                                                                      | Handling                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `HOLOMESH_FOUNDER_KEY` | The exact key value that is to hold founder authority. It must also be the value of one of the seedable variables below, or no founder is granted at all. | Secret. An agent must never set it, echo it, log it, or print its value — report only whether it is set. |
 
 Seedable key variables: `HOLOSCRIPT_API_KEY`, `HOLOMESH_API_KEY`,
 `COPILOT_HOLOMESH_KEY`, `GEMINI_HOLOMESH_KEY`.
@@ -157,3 +157,42 @@ Two things a **running** server needs before this takes effect:
 2. Seeded records carry `scopes: ['*']`. Narrowing them is deliberately **not**
    part of this change: a live caller may depend on that grant today, and a
    silent narrowing would lock it out.
+
+## Restricting The Founder Flag
+
+At boot the server checks every record flagged `isFounder` against
+`HOLOMESH_FOUNDER_KEY`. Only the record whose value equals it keeps the flag.
+
+| Variable                     | Effect                                                                                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `HOLOMESH_DEFOUNDER_DRY_RUN` | Unset, or any value other than `0`, `false`, `no` or `off`: **dry run**. Boot logs which records it would demote (by id) and changes nothing. |
+|                              | `0`, `false`, `no` or `off`: **enforced**. Those records are demoted and the store is rewritten; `/admin/provision` refuses `is_founder`.     |
+
+Safety rules, in both modes:
+
+- If `HOLOMESH_FOUNDER_KEY` is unset, or names no live founder-flagged record
+  (for example right after the founder key was rotated), boot logs an error and
+  **demotes no one**. It never leaves the server with zero founders.
+- `/admin/rotate-key` and `/admin/revoke` refuse any founder record unless the
+  request carries `"confirm_founder": true`. `/admin/revoke` always refuses the
+  key named by `HOLOMESH_FOUNDER_KEY`, and the last live founder record, even
+  with the confirm. After rotating the founder key, set `HOLOMESH_FOUNDER_KEY`
+  to the new value before the next restart.
+
+## Revocation Is Durable
+
+Revoked keys are kept as SHA-256 fingerprints in `revoked-keys.json` beside
+`keys.json` in `HOLOMESH_DATA_DIR`. Neither the stored records nor the env seeds
+can bring a revoked key back, and the legacy single-key checks refuse it too.
+
+- Set `HOLOMESH_DATA_DIR` to a mounted volume. If it is unset or not writable,
+  boot logs an error.
+- Revoke, rotate and deregister always take effect in memory first, so a revoked
+  key stops working at once. If the change cannot be saved (a write failed,
+  `HOLOMESH_DATA_DIR` is unset, or `revoked-keys.json` is corrupt) they answer
+  503 with `durable: false` and `in_memory_only: true`, in every mode. Retry the
+  same request (same `key_id`) to re-attempt the save; it does not answer 404.
+  A non-durable rotate's 503 still carries `new_key`, which is **live**.
+- A key that is still the value of a seedable env var cannot be revoked or
+  rotated through the API (409). Rotate the env var and redeploy, then revoke
+  the old record by `key_id`.
