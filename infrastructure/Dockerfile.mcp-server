@@ -243,7 +243,10 @@ RUN chmod +x /app/packages/mcp-server/scripts/docker-entrypoint.sh
 # Environment
 ENV NODE_ENV=production
 ENV HOLOSCRIPT_CACHE_DIR=/app/.holoscript
-ENV HOLOMESH_DATA_DIR=/app/.holoscript/holomesh
+# HOLOMESH_DATA_DIR is deliberately NOT set here: the service sets it to its
+# volume mount (packages/mcp-server/railway.toml: /data/holomesh). An image
+# default pointed it at the image filesystem, which every deploy wipes, and hid
+# a missing volume. Boot logs an error when the dir is not on a mounted volume.
 # GraphRAG is HoloEmbed-only by product rule (requireNativeGraphRAGProvider throws on
 # anything else), so this MUST be holoembed. It was 'openai', which made every embedding
 # warm throw and get swallowed -> semantic_search permanently empty. HoloEmbed is local /

@@ -662,6 +662,64 @@ export function isKeyRevoked(key: string): boolean {
 let revokedStoreCorrupt = false;
 
 /**
+ * Set at boot in production when HOLOMESH_DATA_DIR is not on a mounted volume:
+ * everything written there is lost on the next deploy.
+ */
+let dataDirNotOnVolume: string | null = null;
+
+/**
+ * The mount point that holds `dir`, read from /proc/self/mountinfo text: the
+ * longest mount point (field 5, octal-escaped) that is `dir` or a parent of it.
+ */
+export function mountPointFor(dir: string, mountinfo: string): string | null {
+  let best: string | null = null;
+  for (const line of mountinfo.split('\n')) {
+    const fields = line.split(' ');
+    if (fields.length < 5) continue;
+    const mp = fields[4].replace(/\\([0-7]{3})/g, (_m, o: string) =>
+      String.fromCharCode(parseInt(o, 8))
+    );
+    const prefix = mp.endsWith('/') ? mp : `${mp}/`;
+    if ((dir === mp || dir.startsWith(prefix)) && (best === null || mp.length > best.length)) {
+      best = mp;
+    }
+  }
+  return best;
+}
+
+/**
+ * Is the data dir on a mounted volume? Method: resolve the dir's real path and
+ * find the mount point holding it in /proc/self/mountinfo. On the container's
+ * root filesystem ("/") it is not a volume. Where mountinfo cannot be read
+ * (not Linux) the answer is unknown and no problem is reported.
+ */
+export function dataDirVolumeCheck(
+  dir: string = HOLOMESH_DATA_DIR,
+  mountinfoPath = '/proc/self/mountinfo'
+): { problem: string | null; mountPoint: string | null } {
+  let info: string;
+  try {
+    info = fs.readFileSync(mountinfoPath, 'utf-8');
+  } catch {
+    return { problem: null, mountPoint: null };
+  }
+  let real = dir;
+  try {
+    real = fs.realpathSync(dir);
+  } catch {
+    /* not created yet: check the configured path */
+  }
+  const mountPoint = mountPointFor(real, info);
+  if (!mountPoint || mountPoint === '/') {
+    return {
+      problem: 'HOLOMESH_DATA_DIR is not on a mounted volume (it is on the root filesystem)',
+      mountPoint,
+    };
+  }
+  return { problem: null, mountPoint };
+}
+
+/**
  * Why a revocation written now would not survive a restart, or null when the
  * key store looks durable: HOLOMESH_DATA_DIR unset (home-directory fallback),
  * the data dir not writable, or a corrupt revoked-keys.json that is being
@@ -674,6 +732,7 @@ export function keyStoreDurabilityProblem(): string | null {
   if (!(process.env.HOLOMESH_DATA_DIR || '').trim()) {
     return 'HOLOMESH_DATA_DIR is not set; the key store falls back to a home-directory path';
   }
+  if (dataDirNotOnVolume) return dataDirNotOnVolume;
   // An unwritable directory shows up as a failed write, which callers check.
   return null;
 }
@@ -1080,6 +1139,25 @@ export async function initStores(): Promise<void> {
   // Revocations first, so neither the stored records nor the env seeds below
   // can bring a revoked key back.
   loadRevokedKeyFingerprints();
+  const volume = dataDirVolumeCheck();
+  dataDirNotOnVolume = null;
+  if (volume.problem) {
+    console.error(
+      [
+        '[KeyRegistry] ==========================================================',
+        `[KeyRegistry] ERROR: ${volume.problem}.`,
+        '[KeyRegistry] Key revocations, keys and agents written there are LOST on the next deploy.',
+        '[KeyRegistry] Mount a volume at HOLOMESH_DATA_DIR. (Checked /proc/self/mountinfo.)',
+        '[KeyRegistry] ==========================================================',
+      ].join('\n')
+    );
+    // In production, key changes then answer 503 (done in memory only).
+    if (process.env.NODE_ENV === 'production') dataDirNotOnVolume = volume.problem;
+  } else if (volume.mountPoint) {
+    console.info(
+      `[KeyRegistry] HOLOMESH_DATA_DIR is on mounted volume ${volume.mountPoint} (checked /proc/self/mountinfo).`
+    );
+  }
   const durability = keyStoreBootProblem();
   if (durability) {
     console.error(

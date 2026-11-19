@@ -196,3 +196,8 @@ can bring a revoked key back, and the legacy single-key checks refuse it too.
 - A key that is still the value of a seedable env var cannot be revoked or
   rotated through the API (409). Rotate the env var and redeploy, then revoke
   the old record by `key_id`.
+- At boot the server checks that `HOLOMESH_DATA_DIR` is on a mounted volume
+  (the mount point holding it in `/proc/self/mountinfo` is not `/`). If not, it
+  logs a loud error; in production, revoke, rotate and deregister then answer
+  503 (done in memory only). The mcp-server image no longer sets
+  `HOLOMESH_DATA_DIR`; the service must set it to its volume mount.
