@@ -3,8 +3,9 @@
  *
  * An agent can hold several keys (a provisioned key plus mobile keys minted for
  * the same agent id), so revoke, rotate and update-scopes target a record by
- * key_id. Founder records need confirm_founder, a key still held by a seedable
- * env var answers 409, a store that cannot be written answers 503, provisioning
+ * key_id. Founder records need confirm_founder and the last one is never
+ * revoked, a key still held by a seedable env var answers 409, a change that
+ * cannot be saved is done in memory and answers 503, provisioning
  * cannot mint a founder once enforcement is on, and tenant keys can be revoked
  * by id.
  */
@@ -304,6 +305,16 @@ describe('founder records need an explicit confirm', () => {
     expect(isKeyRevoked(OTHER_FOUNDER)).toBe(true);
   });
 
+  it('revoke refuses the last founder record even with confirm and the env var unset', async () => {
+    delete process.env.HOLOMESH_FOUNDER_KEY;
+    const id = keyIdOf(keyRegistry.get(FOUNDER_KEY)!);
+    const res = await call('/api/holomesh/admin/revoke', { key_id: id, confirm_founder: true });
+    expect(res._status).toBe(403);
+    expect(res._body.error).toMatch(/last founder/);
+    expect(keyRegistry.has(FOUNDER_KEY)).toBe(true);
+    expect(isKeyRevoked(FOUNDER_KEY)).toBe(false);
+  });
+
   it('revoke still refuses the configured founder key even with confirm', async () => {
     const id = keyIdOf(keyRegistry.get(FOUNDER_KEY)!);
     const res = await call('/api/holomesh/admin/revoke', { key_id: id, confirm_founder: true });
@@ -346,40 +357,103 @@ describe('a key still held by a seedable env var', () => {
   });
 });
 
-describe('revoke never reports success when it is not durable', () => {
-  it('answers 503 when the revocation file cannot be written', async () => {
+describe('a change that cannot be saved fails closed, in every mode', () => {
+  const BLOCKER = () => join(TEMP_DIR, 'revoked-keys.json', 'blocker');
+
+  it('revoke: key dead in memory, 503 not durable; a retry re-attempts the save', async () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {});
     // A directory where the file should be: the write fails even for root.
-    mkdirSync(join(TEMP_DIR, 'revoked-keys.json', 'blocker'), { recursive: true });
+    mkdirSync(BLOCKER(), { recursive: true });
     const [firstId] = seedTwoKeys();
 
     const res = await call('/api/holomesh/admin/revoke', { key_id: firstId });
 
     expect(res._status).toBe(503);
-    expect(res._body.success).toBe(false);
-    expect(res._body.durable).toBe(false);
-    const audit = queryAdminOperationsAudit(10);
-    expect(JSON.stringify(audit)).toContain('"durable":false');
+    expect(res._body).toMatchObject({
+      success: false,
+      durable: false,
+      in_memory_only: true,
+      revoked_in_memory: true,
+    });
+    expect(keyRegistry.has('two-keys-first')).toBe(false);
+    expect(isKeyRevoked('two-keys-first')).toBe(true);
+    expect(JSON.stringify(queryAdminOperationsAudit(10))).toContain('"durable":false');
+
+    // Retry while still broken: no 404, still not durable.
+    const retry = await call('/api/holomesh/admin/revoke', { key_id: firstId });
+    expect(retry._status).toBe(503);
+    expect(retry._body.already_revoked).toBe(true);
+
+    // Fix the store, retry: saved.
+    rmSync(join(TEMP_DIR, 'revoked-keys.json'), { recursive: true, force: true });
+    const saved = await call('/api/holomesh/admin/revoke', { key_id: firstId });
+    expect(saved._status).toBe(200);
+    expect(saved._body).toMatchObject({ success: true, durable: true, already_revoked: true });
   });
 
-  it('when enforced and HOLOMESH_DATA_DIR is unset, refuses before revoking', async () => {
-    process.env.HOLOMESH_DEFOUNDER_DRY_RUN = '0';
-    delete process.env.HOLOMESH_DATA_DIR;
-    const [firstId] = seedTwoKeys();
+  for (const mode of ['dry run', 'enforced']) {
+    it(`revoke with HOLOMESH_DATA_DIR unset answers 503 (${mode}), key dead in memory`, async () => {
+      if (mode === 'enforced') process.env.HOLOMESH_DEFOUNDER_DRY_RUN = '0';
+      delete process.env.HOLOMESH_DATA_DIR;
+      const [firstId] = seedTwoKeys();
 
-    const res = await call('/api/holomesh/admin/revoke', { key_id: firstId });
+      const res = await call('/api/holomesh/admin/revoke', { key_id: firstId });
+
+      expect(res._status).toBe(503);
+      expect(res._body.problem).toMatch(/HOLOMESH_DATA_DIR/);
+      expect(keyRegistry.has('two-keys-first')).toBe(false);
+      expect(isKeyRevoked('two-keys-first')).toBe(true);
+    });
+  }
+
+  it('rotate: 503 says new_key is live; a retry by the old key_id re-attempts the save', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mkdirSync(BLOCKER(), { recursive: true });
+    const [, secondId] = seedTwoKeys();
+
+    const res = await call('/api/holomesh/admin/rotate-key', { key_id: secondId });
 
     expect(res._status).toBe(503);
-    expect(keyRegistry.has('two-keys-first')).toBe(true);
-    expect(isKeyRevoked('two-keys-first')).toBe(false);
+    expect(res._body).toMatchObject({
+      durable: false,
+      in_memory_only: true,
+      new_key_live: true,
+      old_key_revoked_in_memory: true,
+    });
+    expect(keyRegistry.has(res._body.new_key)).toBe(true);
+    expect(isKeyRevoked('two-keys-second')).toBe(true);
+
+    rmSync(join(TEMP_DIR, 'revoked-keys.json'), { recursive: true, force: true });
+    const retry = await call('/api/holomesh/admin/rotate-key', { key_id: secondId });
+    expect(retry._status).toBe(200);
+    expect(retry._body).toMatchObject({
+      durable: true,
+      already_rotated: true,
+      key_id: res._body.key_id,
+    });
+    expect(retry._body.new_key).toBeUndefined();
   });
 
-  it('in dry run with HOLOMESH_DATA_DIR unset, revokes but warns', async () => {
-    delete process.env.HOLOMESH_DATA_DIR;
-    const [firstId] = seedTwoKeys();
-    const res = await call('/api/holomesh/admin/revoke', { key_id: firstId });
-    expect(res._status).toBe(200);
-    expect(res._body.durability_warning).toMatch(/HOLOMESH_DATA_DIR/);
+  it('deregister: 503 removed in memory; a retry re-attempts the save', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mkdirSync(BLOCKER(), { recursive: true });
+    seedTwoKeys();
+
+    const res = await call('/api/holomesh/admin/deregister', { agent_id: 'agent_two_keys' });
+
+    expect(res._status).toBe(503);
+    expect(res._body).toMatchObject({ durable: false, removed_in_memory: true });
+    expect(isKeyRevoked('two-keys-first')).toBe(true);
+    expect(isKeyRevoked('two-keys-second')).toBe(true);
+
+    rmSync(join(TEMP_DIR, 'revoked-keys.json'), { recursive: true, force: true });
+    const retry = await call('/api/holomesh/admin/deregister', { agent_id: 'agent_two_keys' });
+    expect(retry._status).toBe(200);
+    expect(retry._body).toMatchObject({ durable: true, already_removed: true });
+
+    // Once saved, the retry entry is gone: a further retry is an honest 404.
+    const again = await call('/api/holomesh/admin/deregister', { agent_id: 'agent_two_keys' });
+    expect(again._status).toBe(404);
   });
 });
 

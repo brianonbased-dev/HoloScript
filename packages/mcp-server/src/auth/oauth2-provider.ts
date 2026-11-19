@@ -35,6 +35,7 @@
 import { createHash, randomUUID } from 'crypto';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { constantTimeEqual } from '../security/constant-time';
+import { isKeyRevoked } from '../security/revoked-keys';
 import {
   TokenStore,
   InMemoryTokenStore,
@@ -1518,6 +1519,8 @@ export class OAuth2Provider {
     }
 
     if (this.safeCompare(key, this.config.legacyApiKey)) {
+      // A revoked key stays refused even while it is still the configured value.
+      if (isKeyRevoked(key)) return { active: false };
       return {
         active: true,
         scopes: ['admin:*'],

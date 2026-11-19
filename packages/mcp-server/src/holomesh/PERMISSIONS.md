@@ -175,8 +175,9 @@ Safety rules, in both modes:
   **demotes no one**. It never leaves the server with zero founders.
 - `/admin/rotate-key` and `/admin/revoke` refuse any founder record unless the
   request carries `"confirm_founder": true`. `/admin/revoke` always refuses the
-  key named by `HOLOMESH_FOUNDER_KEY`. After rotating the founder key, set
-  `HOLOMESH_FOUNDER_KEY` to the new value before the next restart.
+  key named by `HOLOMESH_FOUNDER_KEY`, and the last live founder record, even
+  with the confirm. After rotating the founder key, set `HOLOMESH_FOUNDER_KEY`
+  to the new value before the next restart.
 
 ## Revocation Is Durable
 
@@ -185,8 +186,13 @@ Revoked keys are kept as SHA-256 fingerprints in `revoked-keys.json` beside
 can bring a revoked key back, and the legacy single-key checks refuse it too.
 
 - Set `HOLOMESH_DATA_DIR` to a mounted volume. If it is unset or not writable,
-  boot logs a warning, and when enforcement is on, revoke, rotate and deregister
-  answer 503 instead of claiming success.
+  boot logs an error.
+- Revoke, rotate and deregister always take effect in memory first, so a revoked
+  key stops working at once. If the change cannot be saved (a write failed,
+  `HOLOMESH_DATA_DIR` is unset, or `revoked-keys.json` is corrupt) they answer
+  503 with `durable: false` and `in_memory_only: true`, in every mode. Retry the
+  same request (same `key_id`) to re-attempt the save; it does not answer 404.
+  A non-durable rotate's 503 still carries `new_key`, which is **live**.
 - A key that is still the value of a seedable env var cannot be revoked or
   rotated through the API (409). Rotate the env var and redeploy, then revoke
   the old record by `key_id`.

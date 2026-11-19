@@ -13,6 +13,7 @@ import {
   _resetRevokedKeysForTests,
 } from '../revoked-keys';
 import { OAuth21Service } from '../oauth21';
+import { OAuth2Provider } from '../../auth/oauth2-provider';
 import { validatePartnerRegistryCredentials } from '../../partner-registry-route';
 
 const LEGACY = 'legacy-single-key-value-for-test';
@@ -57,6 +58,18 @@ describe('OAuth legacy key check', () => {
     const svc = service();
     markKeyRevoked(LEGACY);
     expect(svc.validateLegacyKey(LEGACY)).toEqual({ active: false });
+  });
+});
+
+describe('OAuth2Provider legacy key check', () => {
+  it('refuses the configured key once it is revoked', async () => {
+    const provider = new OAuth2Provider({ legacyApiKey: LEGACY, migrationMode: 'permissive' });
+    expect((await provider.authenticateRequest({ 'x-api-key': LEGACY })).active).toBe(true);
+    markKeyRevoked(LEGACY);
+    expect((await provider.authenticateRequest({ 'x-api-key': LEGACY })).active).toBe(false);
+    expect((await provider.authenticateRequest({ authorization: `Bearer ${LEGACY}` })).active).toBe(
+      false
+    );
   });
 });
 

@@ -665,7 +665,8 @@ curl -X POST "https://mcp.holoscript.net/api/holomesh/admin/revoke" \
 Rotating or revoking a founder record also needs `"confirm_founder": true`; after
 rotating one, set `HOLOMESH_FOUNDER_KEY` to the new key before the next restart.
 A key that is still the value of a seedable env var answers 409 (rotate the env
-var instead). When the key store cannot be written the answer is 503, not success.
+var instead). When the change cannot be saved the answer is 503 (`durable: false`):
+the key is already dead in memory; retry the same request to save it.
 
 ---
 

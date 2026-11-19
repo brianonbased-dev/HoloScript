@@ -650,6 +650,8 @@ export function persistAgentStore(): boolean {
 
 /** Keys revoked in this process, by value, with the time of revocation. */
 const pendingRevocations: Map<string, string> = new Map();
+/** key_id -> value for keys revoked in this process, so a retry can find them. */
+const pendingRevocationIds: Map<string, string> = new Map();
 
 /** True when this key value has been revoked (in this process or a previous one). */
 export function isKeyRevoked(key: string): boolean {
@@ -672,6 +674,14 @@ export function keyStoreDurabilityProblem(): string | null {
   if (!(process.env.HOLOMESH_DATA_DIR || '').trim()) {
     return 'HOLOMESH_DATA_DIR is not set; the key store falls back to a home-directory path';
   }
+  // An unwritable directory shows up as a failed write, which callers check.
+  return null;
+}
+
+/** Boot-time check: keyStoreDurabilityProblem plus whether the dir is writable. */
+function keyStoreBootProblem(): string | null {
+  const problem = keyStoreDurabilityProblem();
+  if (problem) return problem;
   try {
     fs.mkdirSync(HOLOMESH_DATA_DIR, { recursive: true });
     fs.accessSync(HOLOMESH_DATA_DIR, fs.constants.W_OK);
@@ -696,9 +706,16 @@ export function envVarHoldingKey(key: string): string | undefined {
  * as they already do after any registry change.
  */
 export function revokeKeyRecord(key: string): void {
+  const record = keyRegistry.get(key);
+  if (record) pendingRevocationIds.set(keyIdOf(record), key);
   keyRegistry.delete(key);
   pendingRevocations.set(key, new Date().toISOString());
   markKeyRevoked(key);
+}
+
+/** The value of a key revoked in this process, by its key_id. */
+export function revokedKeyById(keyId: string): string | undefined {
+  return pendingRevocationIds.get(keyId);
 }
 
 /** The record's keyId, assigning one first if it has none yet. */
@@ -749,6 +766,7 @@ function loadRevokedKeyFingerprints(): void {
 export function _resetKeyRevocationsForTests(): void {
   _resetRevokedKeysForTests();
   pendingRevocations.clear();
+  pendingRevocationIds.clear();
   revokedStoreCorrupt = false;
 }
 
@@ -1062,12 +1080,10 @@ export async function initStores(): Promise<void> {
   // Revocations first, so neither the stored records nor the env seeds below
   // can bring a revoked key back.
   loadRevokedKeyFingerprints();
-  const durability = keyStoreDurabilityProblem();
+  const durability = keyStoreBootProblem();
   if (durability) {
     console.error(
-      `[KeyRegistry] WARNING: key revocations may not survive a restart: ${durability}.${
-        isDefounderDryRun() ? '' : ' Revoke and rotate will answer 503 until this is fixed.'
-      }`
+      `[KeyRegistry] WARNING: key revocations may not survive a restart: ${durability}. Revoke, rotate and deregister will answer 503 (done in memory only) until this is fixed.`
     );
   }
 

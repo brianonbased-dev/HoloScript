@@ -10,6 +10,7 @@ import {
   failoverStateStore,
   teamStore,
   persistTeamStore,
+  HOLOMESH_DATA_DIR,
 } from '../../state';
 import type { KeyRecord } from '../../types';
 import {
@@ -146,6 +147,8 @@ async function callAdmin(
 }
 
 beforeEach(() => {
+  // Name the store dir explicitly; an unset HOLOMESH_DATA_DIR makes key changes 503.
+  process.env.HOLOMESH_DATA_DIR = HOLOMESH_DATA_DIR;
   keyRegistry.clear();
   agentKeyStore.clear();
   walletToAgent.clear();

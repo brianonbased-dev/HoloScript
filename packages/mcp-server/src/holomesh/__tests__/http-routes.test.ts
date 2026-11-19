@@ -7605,6 +7605,8 @@ describe('HoloMesh HTTP Routes', () => {
       expect(listPayload).not.toContain(quickstartKey);
       expect(listPayload).not.toContain(quickstartPrivateKey);
 
+      // fs is mocked here; naming a store dir keeps the revoke from answering 503.
+      process.env.HOLOMESH_DATA_DIR = '/tmp/holomesh-http-routes-test';
       const revokeReq = mockReq(
         'POST',
         '/api/holomesh/admin/revoke',
@@ -7615,6 +7617,7 @@ describe('HoloMesh HTTP Routes', () => {
       );
       const revokeRes = mockRes();
       await handleHoloMeshRoute(revokeReq, revokeRes, '/api/holomesh/admin/revoke');
+      delete process.env.HOLOMESH_DATA_DIR;
 
       expect(revokeRes._status).toBe(200);
       expect(revokeRes._body.revoked_keys).toBe(1);
