@@ -67,7 +67,14 @@ export class WebXRManager {
   async requestSession(): Promise<XRSession> {
     if (!this.session) {
       const sessionInit = {
-        optionalFeatures: ['local-floor', 'bounded-floor', 'hand-tracking', 'hit-test', 'anchors', ...WEBXR_TRACKING_OPTIONAL_FEATURES],
+        optionalFeatures: [
+          'local-floor',
+          'bounded-floor',
+          'hand-tracking',
+          'hit-test',
+          'anchors',
+          ...WEBXR_TRACKING_OPTIONAL_FEATURES,
+        ],
       };
       this.session = await (
         navigator as unknown as {

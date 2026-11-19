@@ -182,9 +182,7 @@ describe('getGitHubToken provider scoping', () => {
       user: { id: SESSION_USER, provider: 'github' },
     }));
 
-    await expect(getGitHubToken(githubRequest())).resolves.toBe(
-      'gho_github_server_session_token'
-    );
+    await expect(getGitHubToken(githubRequest())).resolves.toBe('gho_github_server_session_token');
   });
 
   it('gives the Google caller the GitHub credential they actually linked', async () => {

@@ -31,8 +31,13 @@ vi.mock('@/components/holo-surface', () => ({
 }));
 vi.mock('../BrittneyAPIKeysPanel', () => ({ default: () => null }));
 vi.mock('@/components/integrations/IntegrationsView', () => ({ IntegrationsView: () => null }));
-vi.mock('@/app/absorb/components', () => ({ CreditBalanceCard: () => null, PricingTab: () => null }));
-vi.mock('@/lib/absorb/fetchWithAuth', () => ({ absorbFetch: vi.fn(async () => new Response('{}')) }));
+vi.mock('@/app/absorb/components', () => ({
+  CreditBalanceCard: () => null,
+  PricingTab: () => null,
+}));
+vi.mock('@/lib/absorb/fetchWithAuth', () => ({
+  absorbFetch: vi.fn(async () => new Response('{}')),
+}));
 vi.mock('@/lib/logger', () => ({ logger: { warn: vi.fn(), info: vi.fn() } }));
 
 import { SettingsView } from '../SettingsView';
@@ -70,9 +75,7 @@ describe('Settings Oracle Boost panel is founder-only', () => {
     render(<SettingsView />);
     await waitFor(() => expect(oracleCalls().length).toBe(2));
     expect(oracleCalls().some((u) => u.includes('/oracle-boost/telemetry'))).toBe(true);
-    await waitFor(() =>
-      expect(setState.mock.calls.at(-1)?.[0]).toMatchObject({ isFounder: true })
-    );
+    await waitFor(() => expect(setState.mock.calls.at(-1)?.[0]).toMatchObject({ isFounder: true }));
   });
 
   it('the settings surface hides OracleSection unless $isFounder', () => {

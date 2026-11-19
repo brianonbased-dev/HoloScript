@@ -62,7 +62,8 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
 
   it('calls absorb /scan once with only path, shallow and projectId, and returns its result', async () => {
     const fetchMock = vi.fn(
-      async () => new Response('{"graphId":"g1","stats":{"totalFiles":3},"cost":10}', { status: 200 })
+      async () =>
+        new Response('{"graphId":"g1","stats":{"totalFiles":3},"cost":10}', { status: 200 })
     );
     vi.stubGlobal('fetch', fetchMock);
     const res = await POST(post(WS_PATH, '{"depth":"shallow","tier":"ultra","rootDir":"/etc"}'), {
@@ -73,7 +74,11 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe('https://absorb.test/api/absorb/scan');
-    expect(JSON.parse(init.body as string)).toEqual({ path: WS_PATH, shallow: true, projectId: WS_PATH });
+    expect(JSON.parse(init.body as string)).toEqual({
+      path: WS_PATH,
+      shallow: true,
+      projectId: WS_PATH,
+    });
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer absorb-key-test');
   });
 
@@ -106,7 +111,10 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
   });
 
   it('absorb 5xx: 502 with a short reason; upstream text only in the job record', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('stack trace secret-ish', { status: 500 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('stack trace secret-ish', { status: 500 }))
+    );
     const res = await POST(post(WS_PATH, '{"depth":"shallow"}'), {
       params: Promise.resolve({ id: WS_PATH }),
     });
@@ -123,7 +131,10 @@ describe('/api/absorb/projects/[id]/absorb route (direct absorb /scan, no MCP lo
   });
 
   it("absorb's own refusals pass through: 402 not enough credits", async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"error":"Not enough credits"}', { status: 402 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('{"error":"Not enough credits"}', { status: 402 }))
+    );
     const res = await POST(post(WS_PATH, '{}'), { params: Promise.resolve({ id: WS_PATH }) });
     expect(res.status).toBe(402);
     expect((await res.json()).reason).toBe('absorb_refused');

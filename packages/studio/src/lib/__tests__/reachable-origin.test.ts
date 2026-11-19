@@ -84,7 +84,10 @@ describe('resolvePublicStudioOrigin (where a browser is sent back to)', () => {
   it('prefers the explicit public Studio URL', () => {
     expect(
       resolvePublicStudioOrigin(at('https://0.0.0.0:8080/api/absorb/credits'), {
-        env: { NEXT_PUBLIC_STUDIO_URL: 'https://holoscript.studio/', NEXTAUTH_URL: 'https://auth.example.test' },
+        env: {
+          NEXT_PUBLIC_STUDIO_URL: 'https://holoscript.studio/',
+          NEXTAUTH_URL: 'https://auth.example.test',
+        },
       })
     ).toBe('https://holoscript.studio');
   });

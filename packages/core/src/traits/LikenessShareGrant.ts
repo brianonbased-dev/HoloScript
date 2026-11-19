@@ -67,7 +67,8 @@ const nonEmpty = (v: unknown): v is string => typeof v === 'string' && v.trim() 
  */
 export function grantLikenessShare(node: object, req: LikenessShareRequest): boolean {
   if (!node || !req) return false;
-  if (!nonEmpty(req.grantorId) || !nonEmpty(req.trackedPersonId) || !nonEmpty(req.sessionId)) return false;
+  if (!nonEmpty(req.grantorId) || !nonEmpty(req.trackedPersonId) || !nonEmpty(req.sessionId))
+    return false;
   if (req.grantorId !== req.trackedPersonId) return false;
   // Fail closed (Release, like HS1011): a node with no bound tracked person matches no grant.
   const bound = (node as { __trackedPersonId?: unknown }).__trackedPersonId;
@@ -100,7 +101,10 @@ export function nodeTraitNames(node: object): string[] {
 }
 
 /** Does this node carry a likeness or live tracking source (trait or runtime state)? */
-export function carriesLikenessOrTracking(node: object, opts: { embodimentDecided?: boolean } = {}): boolean {
+export function carriesLikenessOrTracking(
+  node: object,
+  opts: { embodimentDecided?: boolean } = {}
+): boolean {
   const n = node as Record<string, unknown>;
   if (n.__faceTrackingState || n.__bodyTrackingState || n.__lip_sync_instance) return true;
   return nodeTraitNames(node).some((t) => {
@@ -135,7 +139,14 @@ export function likenessShareAllowed(node: object, scope: LikenessShareScope | u
  * session; live captions do not. voice_print additionally needs the render_likeness yes
  * (@consent_gate granted on the node), like any real-person likeness.
  */
-export const VOICE_USES = Object.freeze(['record', 'store', 'transcribe', 'replay', 'ai', 'voice_print'] as const);
+export const VOICE_USES = Object.freeze([
+  'record',
+  'store',
+  'transcribe',
+  'replay',
+  'ai',
+  'voice_print',
+] as const);
 export type VoiceUse = (typeof VOICE_USES)[number] | 'live_captions';
 
 export interface VoiceUseRequest {

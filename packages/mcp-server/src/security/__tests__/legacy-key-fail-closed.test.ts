@@ -23,7 +23,11 @@ describe.each([
 ])('production with a %s HOLOSCRIPT_API_KEY', (_label, legacyApiKey) => {
   it('OAuth21Service.validateLegacyKey refuses any presented key', () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const svc = new OAuth21Service({ legacyApiKey, migrationMode: 'permissive', tokenSecret: 'x'.repeat(64) });
+    const svc = new OAuth21Service({
+      legacyApiKey,
+      migrationMode: 'permissive',
+      tokenSecret: 'x'.repeat(64),
+    });
     const r = svc.validateLegacyKey('anything-at-all');
     expect(r.active).toBe(false);
     expect(r.scopes).toBeUndefined();
@@ -31,7 +35,11 @@ describe.each([
 
   it('OAuth21Service.authenticateRequest refuses no-credential and any-key callers', () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const svc = new OAuth21Service({ legacyApiKey, migrationMode: 'permissive', tokenSecret: 'x'.repeat(64) });
+    const svc = new OAuth21Service({
+      legacyApiKey,
+      migrationMode: 'permissive',
+      tokenSecret: 'x'.repeat(64),
+    });
     expect(svc.authenticateRequest({}).active).toBe(false);
     expect(svc.authenticateRequest({ 'x-api-key': 'guess' }).active).toBe(false);
     expect(svc.authenticateRequest({ 'x-mcp-api-key': 'guess' }).active).toBe(false);
@@ -43,20 +51,28 @@ describe.each([
     const provider = new OAuth2Provider({ legacyApiKey, migrationMode: 'permissive' });
     expect((await provider.authenticateRequest({})).active).toBe(false);
     expect((await provider.authenticateRequest({ 'x-api-key': 'guess' })).active).toBe(false);
-    expect((await provider.authenticateRequest({ authorization: 'Bearer guess' })).active).toBe(false);
+    expect((await provider.authenticateRequest({ authorization: 'Bearer guess' })).active).toBe(
+      false
+    );
   });
 });
 
 describe('production with a configured HOLOSCRIPT_API_KEY', () => {
   it('accepts the right key and refuses a wrong one (both modules)', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const svc = new OAuth21Service({ legacyApiKey: REAL_KEY, migrationMode: 'permissive', tokenSecret: 'x'.repeat(64) });
+    const svc = new OAuth21Service({
+      legacyApiKey: REAL_KEY,
+      migrationMode: 'permissive',
+      tokenSecret: 'x'.repeat(64),
+    });
     expect(svc.authenticateRequest({ 'x-api-key': REAL_KEY }).agentId).toBe('legacy-api-key');
     expect(svc.authenticateRequest({ 'x-api-key': 'wrong' }).active).toBe(false);
     expect(svc.authenticateRequest({}).active).toBe(false);
 
     const provider = new OAuth2Provider({ legacyApiKey: REAL_KEY, migrationMode: 'permissive' });
-    expect((await provider.authenticateRequest({ 'x-api-key': REAL_KEY })).agentId).toBe('legacy-api-key');
+    expect((await provider.authenticateRequest({ 'x-api-key': REAL_KEY })).agentId).toBe(
+      'legacy-api-key'
+    );
     expect((await provider.authenticateRequest({ 'x-api-key': 'wrong' })).active).toBe(false);
   });
 });
@@ -64,7 +80,11 @@ describe('production with a configured HOLOSCRIPT_API_KEY', () => {
 describe('local development keeps the documented open dev mode', () => {
   it('no key outside production still opens (OAuth21Service and OAuth2Provider)', async () => {
     vi.stubEnv('NODE_ENV', 'development');
-    const svc = new OAuth21Service({ legacyApiKey: '', migrationMode: 'permissive', tokenSecret: 'x'.repeat(64) });
+    const svc = new OAuth21Service({
+      legacyApiKey: '',
+      migrationMode: 'permissive',
+      tokenSecret: 'x'.repeat(64),
+    });
     expect(svc.authenticateRequest({}).agentId).toBe('open-dev-mode');
     expect(svc.validateLegacyKey('anything').agentId).toBe('legacy-open-dev');
 
@@ -74,7 +94,11 @@ describe('local development keeps the documented open dev mode', () => {
 
   it('strict migration mode refuses legacy keys everywhere', () => {
     vi.stubEnv('NODE_ENV', 'development');
-    const svc = new OAuth21Service({ legacyApiKey: '', migrationMode: 'strict', tokenSecret: 'x'.repeat(64) });
+    const svc = new OAuth21Service({
+      legacyApiKey: '',
+      migrationMode: 'strict',
+      tokenSecret: 'x'.repeat(64),
+    });
     expect(svc.authenticateRequest({}).active).toBe(false);
     expect(svc.validateLegacyKey('anything').active).toBe(false);
   });

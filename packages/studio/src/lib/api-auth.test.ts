@@ -44,7 +44,9 @@ describe('getSession JWT fallback', () => {
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', FOUNDER_GITHUB_ID);
     vi.stubEnv('STUDIO_FOUNDER_EMAILS', FOUNDER_EMAIL);
-    cookiesStub.mockResolvedValue({ getAll: () => [{ name: 'next-auth.session-token', value: 'x' }] });
+    cookiesStub.mockResolvedValue({
+      getAll: () => [{ name: 'next-auth.session-token', value: 'x' }],
+    });
   });
 
   it('returns null for a valid token that is not on the invite allowlist', async () => {
@@ -224,7 +226,9 @@ describe('requireFounder', () => {
     vi.unstubAllEnvs();
     vi.stubEnv('NEXTAUTH_SECRET', 'test-secret');
     vi.stubEnv('STUDIO_FOUNDER_GITHUB_IDS', FOUNDER_GITHUB_ID);
-    cookiesStub.mockResolvedValue({ getAll: () => [{ name: 'next-auth.session-token', value: 'x' }] });
+    cookiesStub.mockResolvedValue({
+      getAll: () => [{ name: 'next-auth.session-token', value: 'x' }],
+    });
   });
 
   it('lets the founder through on the account id alone', async () => {
@@ -330,9 +334,7 @@ describe('requireAuthOrApiKey', () => {
   it('never treats an API key as the founder, even on the founder email', async () => {
     validateApiKeyStub.mockResolvedValue({ userId: 'user-9', keyId: 'key-9' });
     getDbStub.mockReturnValue(
-      databaseReturning([
-        { id: 'user-9', name: FOUNDER_LOGIN, email: FOUNDER_EMAIL, image: null },
-      ])
+      databaseReturning([{ id: 'user-9', name: FOUNDER_LOGIN, email: FOUNDER_EMAIL, image: null }])
     );
 
     const auth = await requireAuthOrApiKey(keyRequest());

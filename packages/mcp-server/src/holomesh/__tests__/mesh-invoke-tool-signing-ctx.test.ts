@@ -20,13 +20,22 @@ const WORK = mkdtempSync(join(tmpdir(), 'mesh-invoke-signing-ctx-'));
 afterEach(() => rmSync(WORK, { recursive: true, force: true }));
 
 const { _handleSingleToolLogic } = await import('../../index');
-const { buildMeshToolManifest, clearMeshToolRegistry, publishMeshToolManifest } = await import(
-  '../mesh-tool-registry'
-);
+const { buildMeshToolManifest, clearMeshToolRegistry, publishMeshToolManifest } =
+  await import('../mesh-tool-registry');
 
 const publisher = { agentId: 'agent_test_publisher', name: 'test-publisher' };
-const TOOLS_WRITE_ONLY = { signedRequest: true, signingValid: true, signer: 'attacker', scopes: ['tools:write'] };
-const ADMIN = { signedRequest: true, signingValid: true, signer: 'owner-agent', scopes: ['admin:*'] };
+const TOOLS_WRITE_ONLY = {
+  signedRequest: true,
+  signingValid: true,
+  signer: 'attacker',
+  scopes: ['tools:write'],
+};
+const ADMIN = {
+  signedRequest: true,
+  signingValid: true,
+  signer: 'owner-agent',
+  scopes: ['admin:*'],
+};
 
 function publishLocalWriteFileManifest() {
   return publishMeshToolManifest(
@@ -45,7 +54,11 @@ function publishLocalWriteFileManifest() {
 async function invoke(manifestId: string, target: string, signingCtx: unknown) {
   return (await _handleSingleToolLogic(
     'holomesh_invoke_tool',
-    { mesh_tool_id: manifestId, args: { filePath: target, content: 'PLANTED-VIA-MESH-INVOKE' }, allow_high_risk: true },
+    {
+      mesh_tool_id: manifestId,
+      args: { filePath: target, content: 'PLANTED-VIA-MESH-INVOKE' },
+      allow_high_risk: true,
+    },
     signingCtx as never
   )) as { content?: Array<{ text?: string }>; isError?: boolean };
 }

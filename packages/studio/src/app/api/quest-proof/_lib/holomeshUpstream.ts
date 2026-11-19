@@ -12,7 +12,9 @@ export interface HolomeshUpstream {
   headers: Record<string, string>;
 }
 
-export function holomeshUpstream(empty: Record<string, unknown> = {}): HolomeshUpstream | NextResponse {
+export function holomeshUpstream(
+  empty: Record<string, unknown> = {}
+): HolomeshUpstream | NextResponse {
   const base =
     process.env.HOLOMESH_API_URL ?? process.env.MCP_SERVER_URL ?? 'https://mcp.holoscript.net';
   const key = process.env.HOLOMESH_API_KEY ?? process.env.HOLOMESH_KEY ?? '';
@@ -26,6 +28,10 @@ export function holomeshUpstream(empty: Record<string, unknown> = {}): HolomeshU
   return {
     base,
     teamId,
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'x-mcp-api-key': key },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+      'x-mcp-api-key': key,
+    },
   };
 }

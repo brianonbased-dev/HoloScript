@@ -2866,7 +2866,12 @@ const httpServer = http.createServer(async (req, res) => {
           'Content-Type': 'application/json; charset=utf-8',
           'Cache-Control': 'no-store',
         });
-        res.end(JSON.stringify({ error: 'login_required', error_description: 'Session assertion already used or expired.' }));
+        res.end(
+          JSON.stringify({
+            error: 'login_required',
+            error_description: 'Session assertion already used or expired.',
+          })
+        );
         return;
       }
       const code = oauth.createAuthorizationCode({
@@ -3027,7 +3032,10 @@ const httpServer = http.createServer(async (req, res) => {
       }
       const target = oauth.getGrant(grantsDelete[1]);
       if (!target || target.userId !== grantsUser || target.revokedAt) {
-        json(404, { error: 'not_found', error_description: 'No such connected app for this account.' });
+        json(404, {
+          error: 'not_found',
+          error_description: 'No such connected app for this account.',
+        });
         return;
       }
       oauth.revokeGrant(target.grantId);
@@ -3045,9 +3053,7 @@ const httpServer = http.createServer(async (req, res) => {
   // DELETE /oauth/clients/:id — revoke a client (Trust & Consent A4 / d)
   {
     const deleteMatch =
-      req.method === 'DELETE'
-        ? /^\/oauth\/clients\/([A-Za-z0-9_-]{1,128})$/.exec(url ?? '')
-        : null;
+      req.method === 'DELETE' ? /^\/oauth\/clients\/([A-Za-z0-9_-]{1,128})$/.exec(url ?? '') : null;
     if (deleteMatch) {
       const targetClientId = deleteMatch[1];
       const actorAuth = await authenticateRequest(req);
@@ -3271,7 +3277,10 @@ const httpServer = http.createServer(async (req, res) => {
       // RFC 6749 §5.2: an unknown, deleted or wrongly-authenticated client is
       // invalid_client (401), not invalid_grant.
       if (message.startsWith('unauthorized_client')) {
-        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.writeHead(400, {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Cache-Control': 'no-store',
+        });
         res.end(JSON.stringify({ error: 'unauthorized_client', error_description: message }));
         return;
       }

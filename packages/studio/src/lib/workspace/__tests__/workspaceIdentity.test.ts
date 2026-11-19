@@ -64,9 +64,9 @@ describe('founder recognition', () => {
         name: 'Somebody Else Entirely',
       })
     ).toBe(true);
-    expect(
-      isFounderWorkspaceIdentity({ provider: 'github', providerAccountId: '999999999' })
-    ).toBe(false);
+    expect(isFounderWorkspaceIdentity({ provider: 'github', providerAccountId: '999999999' })).toBe(
+      false
+    );
   });
 
   it('accepts a configured email only from a Google sign-in, and never over a refusal', () => {

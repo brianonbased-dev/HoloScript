@@ -98,17 +98,29 @@ afterEach(() => {
 describe('R1 default grant types at registration', () => {
   it('a remote registrant gets no client_credentials by default', () => {
     expect(
-      defaultRegistrationGrantTypes({ clientType: 'confidential', registrarIsLoopback: false, remoteRegistrationAllowed: true })
+      defaultRegistrationGrantTypes({
+        clientType: 'confidential',
+        registrarIsLoopback: false,
+        remoteRegistrationAllowed: true,
+      })
     ).toEqual(['authorization_code', 'refresh_token']);
   });
   it('a loopback peer on a remote-open server counts as remote (proxy)', () => {
     expect(
-      defaultRegistrationGrantTypes({ clientType: 'confidential', registrarIsLoopback: true, remoteRegistrationAllowed: true })
+      defaultRegistrationGrantTypes({
+        clientType: 'confidential',
+        registrarIsLoopback: true,
+        remoteRegistrationAllowed: true,
+      })
     ).not.toContain('client_credentials');
   });
   it('negative control: loopback-only server, loopback confidential registrant keeps cc', () => {
     expect(
-      defaultRegistrationGrantTypes({ clientType: 'confidential', registrarIsLoopback: true, remoteRegistrationAllowed: false })
+      defaultRegistrationGrantTypes({
+        clientType: 'confidential',
+        registrarIsLoopback: true,
+        remoteRegistrationAllowed: false,
+      })
     ).toContain('client_credentials');
   });
   it('a client registered without cc is refused on the cc grant', () => {
@@ -192,9 +204,9 @@ describe('R1/a client_credentials never carries user:private', () => {
       'tools:read',
     ]);
     expect(consentFreeScopes({ selfRegistered: false }, ['user:private'], undefined)).toEqual([]);
-    expect(consentFreeScopes({ selfRegistered: true }, ['user:private'], { userId: 'u' })).toEqual(
-      ['user:private']
-    );
+    expect(consentFreeScopes({ selfRegistered: true }, ['user:private'], { userId: 'u' })).toEqual([
+      'user:private',
+    ]);
     expect(USER_BOUND_SCOPES).toEqual(['user:private']);
   });
 
@@ -251,7 +263,12 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
   it('C3 a grant this instance never recorded is NOT live (fail closed)', () => {
     const { clientId } = selfRegistered();
     expect(
-      svc().grantIsLive({ grantId: 'grant_unknown', userId: 'alice', clientId, issuedAt: Date.now() })
+      svc().grantIsLive({
+        grantId: 'grant_unknown',
+        userId: 'alice',
+        clientId,
+        issuedAt: Date.now(),
+      })
     ).toBe(false);
   });
 
@@ -294,11 +311,15 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
     });
     fresh.setClientStatusResolver(async () => 'approved');
 
-    const revived = await fresh.authenticateRequestAsync({ authorization: `Bearer ${t.access_token}` });
+    const revived = await fresh.authenticateRequestAsync({
+      authorization: `Bearer ${t.access_token}`,
+    });
     expect(revived.active).toBe(false);
     expect(fresh.introspect(t.access_token).active).toBe(false);
     // Negative control: a token with no human (no grant) still rehydrates.
-    const ctl = await fresh.authenticateRequestAsync({ authorization: `Bearer ${social.access_token}` });
+    const ctl = await fresh.authenticateRequestAsync({
+      authorization: `Bearer ${social.access_token}`,
+    });
     expect(ctl.active).toBe(true);
   });
 
@@ -307,9 +328,9 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
     const t = exchange(clientId, clientSecret, codeFor(clientId));
     const grantId = svc().introspect(t.access_token).grantId!;
     svc().revokeGrant(grantId);
-    expect(
-      svc().grantIsLive({ grantId, userId: 'alice', clientId, issuedAt: Date.now() })
-    ).toBe(false);
+    expect(svc().grantIsLive({ grantId, userId: 'alice', clientId, issuedAt: Date.now() })).toBe(
+      false
+    );
   });
 
   it('grant expires 30 days idle', () => {
@@ -319,8 +340,12 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
     const t = exchange(clientId, clientSecret, codeFor(clientId));
     const grantId = svc().introspect(t.access_token).grantId!;
     const start = Date.now();
-    expect(svc().grantIsLive({ grantId, userId: 'alice', clientId }, start + GRANT_IDLE_MS - 1000)).toBe(true);
-    expect(svc().grantIsLive({ grantId, userId: 'alice', clientId }, start + GRANT_IDLE_MS + 1000)).toBe(false);
+    expect(
+      svc().grantIsLive({ grantId, userId: 'alice', clientId }, start + GRANT_IDLE_MS - 1000)
+    ).toBe(true);
+    expect(
+      svc().grantIsLive({ grantId, userId: 'alice', clientId }, start + GRANT_IDLE_MS + 1000)
+    ).toBe(false);
   });
 
   it('grant expires 90 days after consent even when used every day', () => {
@@ -331,7 +356,9 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
     const grantId = svc().introspect(t.access_token).grantId!;
     const start = Date.now();
     for (let d = 1; d <= 89; d += 20) {
-      expect(svc().grantIsLive({ grantId, userId: 'alice', clientId }, start + d * 86400000, true)).toBe(true);
+      expect(
+        svc().grantIsLive({ grantId, userId: 'alice', clientId }, start + d * 86400000, true)
+      ).toBe(true);
     }
     expect(
       svc().grantIsLive({ grantId, userId: 'alice', clientId }, start + GRANT_MAX_AGE_MS + 1, true)
@@ -368,19 +395,29 @@ describe('R2/b the human is bound to code, access and refresh token', () => {
     };
     const S = 's'.repeat(40);
     it('verifies for the same request', () => {
-      expect(verifyOAuthCsrfToken(issueOAuthCsrfToken(b, Date.now(), S), b, Date.now(), S)).toBe(true);
+      expect(verifyOAuthCsrfToken(issueOAuthCsrfToken(b, Date.now(), S), b, Date.now(), S)).toBe(
+        true
+      );
     });
     it('refuses another client, redirect or challenge', () => {
       const t = issueOAuthCsrfToken(b, Date.now(), S);
       expect(verifyOAuthCsrfToken(t, { ...b, clientId: 'hsc_2' }, Date.now(), S)).toBe(false);
-      expect(verifyOAuthCsrfToken(t, { ...b, redirectUri: 'https://evil.test/cb' }, Date.now(), S)).toBe(false);
+      expect(
+        verifyOAuthCsrfToken(t, { ...b, redirectUri: 'https://evil.test/cb' }, Date.now(), S)
+      ).toBe(false);
       expect(verifyOAuthCsrfToken(t, { ...b, codeChallenge: 'x' }, Date.now(), S)).toBe(false);
     });
     it('N2: is bound to the requested scope (order-insensitive); a widened scope is refused', () => {
       const t = issueOAuthCsrfToken(b, Date.now(), S);
-      expect(verifyOAuthCsrfToken(t, { ...b, scope: 'social  tools:read' }, Date.now(), S)).toBe(true);
-      expect(verifyOAuthCsrfToken(t, { ...b, scope: ['social', 'tools:read'] }, Date.now(), S)).toBe(true);
-      expect(verifyOAuthCsrfToken(t, { ...b, scope: 'tools:read social user:private' }, Date.now(), S)).toBe(false);
+      expect(verifyOAuthCsrfToken(t, { ...b, scope: 'social  tools:read' }, Date.now(), S)).toBe(
+        true
+      );
+      expect(
+        verifyOAuthCsrfToken(t, { ...b, scope: ['social', 'tools:read'] }, Date.now(), S)
+      ).toBe(true);
+      expect(
+        verifyOAuthCsrfToken(t, { ...b, scope: 'tools:read social user:private' }, Date.now(), S)
+      ).toBe(false);
       expect(verifyOAuthCsrfToken(t, { ...b, scope: 'tools:read' }, Date.now(), S)).toBe(false);
     });
     it('F2 refuses a token minted for another user', () => {
@@ -434,7 +471,10 @@ describe('R3/c user:private gates the private tools; handlers use the token user
       workflow_memory_read: ['tools:admin'],
       workflow_memory_subscribe: ['tools:admin'],
     });
-    expect([...USER_PRIVATE_TOOLS].sort()).toEqual(['absorb_check_credits', 'get_creator_earnings']);
+    expect([...USER_PRIVATE_TOOLS].sort()).toEqual([
+      'absorb_check_credits',
+      'get_creator_earnings',
+    ]);
     for (const t of USER_PRIVATE_TOOLS) expect(resolveRequiredScopes(t)).toEqual(['user:private']);
   });
 
@@ -446,7 +486,9 @@ describe('R3/c user:private gates the private tools; handlers use the token user
 
   it('C1 absorb_check_credits refuses a caller-supplied apiKey', () => {
     const ctx = { userId: 'alice', scopes: ['user:private'], signer: 'c' };
-    expect(bindUserPrivateArgs('absorb_check_credits', { apiKey: 'someone-elses' }, ctx).ok).toBe(false);
+    expect(bindUserPrivateArgs('absorb_check_credits', { apiKey: 'someone-elses' }, ctx).ok).toBe(
+      false
+    );
     expect(bindUserPrivateArgs('absorb_check_credits', { api_key: 'k' }, ctx).ok).toBe(false);
     const ok = bindUserPrivateArgs('absorb_check_credits', {}, ctx);
     expect(ok.ok && (ok as { args: Record<string, unknown> }).args.userId).toBe('alice');
@@ -491,7 +533,10 @@ describe('R3/c user:private gates the private tools; handlers use the token user
     const ctx = { userId: 'alice', scopes: ['user:private'] };
     expect(bindUserPrivateArgs('get_creator_earnings', { creatorId: 'alice' }, ctx).ok).toBe(true);
     expect(
-      bindUserPrivateArgs('absorb_check_credits', {}, { scopes: ['user:private'], signer: 'c' } as never).ok
+      bindUserPrivateArgs('absorb_check_credits', {}, {
+        scopes: ['user:private'],
+        signer: 'c',
+      } as never).ok
     ).toBe(false);
   });
 
@@ -499,7 +544,10 @@ describe('R3/c user:private gates the private tools; handlers use the token user
     const admin = { scopes: ['admin:*'], signer: 'admin' };
     const r = bindUserPrivateArgs('get_creator_earnings', { creatorId: 'anyone' }, admin as never);
     expect(r.ok && (r as { args: Record<string, unknown> }).args.creatorId).toBe('anyone');
-    const p = bindUserPrivateArgs('parse_hs', { userId: 'x' }, { scopes: [], signer: 's' } as never);
+    const p = bindUserPrivateArgs('parse_hs', { userId: 'x' }, {
+      scopes: [],
+      signer: 's',
+    } as never);
     expect(p.ok && (p as { args: Record<string, unknown> }).args.userId).toBe('x');
   });
 });
@@ -554,7 +602,10 @@ describe('R4/d client revoke kills everything; who may delete', () => {
 
   it('owner (own token, bound agent, client secret) or admin may delete; others may not', () => {
     const base = { targetClientId: 'hsc_t', isAdmin: false, secretMatches: false };
-    expect(clientDeletionActor({ ...base, auth: { active: false } })).toMatchObject({ ok: false, status: 401 });
+    expect(clientDeletionActor({ ...base, auth: { active: false } })).toMatchObject({
+      ok: false,
+      status: 401,
+    });
     expect(
       clientDeletionActor({ ...base, auth: { active: true, clientId: 'hsc_other' } })
     ).toMatchObject({ ok: false, status: 403 });
@@ -575,7 +626,9 @@ describe('R4/d client revoke kills everything; who may delete', () => {
         boundAgentId: 'agent-a',
       })
     ).toMatchObject({ ok: false, status: 403 });
-    expect(clientDeletionActor({ ...base, secretMatches: true, auth: { active: false } })).toMatchObject({
+    expect(
+      clientDeletionActor({ ...base, secretMatches: true, auth: { active: false } })
+    ).toMatchObject({
       ok: true,
       role: 'owner',
     });

@@ -1211,7 +1211,10 @@ describe('soul writes, ritual writes and the corpus path are bound to the transp
   const observe = (
     ownerId: string | undefined,
     binding?: unknown,
-    delta: Record<string, unknown> = { updatedPreferences: { theme: 'dark' }, significanceScore: 0.9 }
+    delta: Record<string, unknown> = {
+      updatedPreferences: { theme: 'dark' },
+      significanceScore: 0.9,
+    }
   ) =>
     handleDaemonLifecycleTool(
       'holo_observe_soul',
@@ -1270,7 +1273,13 @@ describe('soul writes, ritual writes and the corpus path are bound to the transp
     it('keeps ownerId required, and self-declared without a verified principal', async () => {
       await expect(observe(undefined, { signer: STRANGER })).rejects.toThrow(/ownerId is required/);
       let n = 0;
-      for (const binding of [undefined, null, { signer: null }, { signer: '' }, { signer: 'stdio-local' }]) {
+      for (const binding of [
+        undefined,
+        null,
+        { signer: null },
+        { signer: '' },
+        { signer: 'stdio-local' },
+      ]) {
         const soul = `soulbound-local-${n++}`;
         const got = (await observe(soul, binding)) as { observed: boolean };
         expect(got.observed).toBe(true);
@@ -1280,14 +1289,13 @@ describe('soul writes, ritual writes and the corpus path are bound to the transp
   });
 
   describe('holo_create_daemon', () => {
-    const create = (
-      ownerId: string | undefined,
-      daemonId: string | undefined,
-      binding?: unknown
-    ) =>
+    const create = (ownerId: string | undefined, daemonId: string | undefined, binding?: unknown) =>
       handleDaemonLifecycleTool(
         'holo_create_daemon',
-        { ...(ownerId === undefined ? {} : { ownerId }), ...(daemonId === undefined ? {} : { daemonId }) },
+        {
+          ...(ownerId === undefined ? {} : { ownerId }),
+          ...(daemonId === undefined ? {} : { daemonId }),
+        },
         binding as Parameters<typeof handleDaemonLifecycleTool>[2]
       ) as Promise<{ daemon: { daemonId: string; ownerId: string } }>;
 
@@ -1300,7 +1308,7 @@ describe('soul writes, ritual writes and the corpus path are bound to the transp
       expect(_daemonExistsForTest(id)).toBe(false);
     });
 
-    it('blocks the emergent-id squat: a stranger cannot pre-create a victim soul\'s own daemon-<soul> id', async () => {
+    it("blocks the emergent-id squat: a stranger cannot pre-create a victim soul's own daemon-<soul> id", async () => {
       const victimSoul = 'create-bound-victim-soul';
       const reservedId = emergentDaemonId(victimSoul);
       await expect(create(victimSoul, reservedId, { signer: STRANGER })).rejects.toThrow(
@@ -1339,7 +1347,13 @@ describe('soul writes, ritual writes and the corpus path are bound to the transp
 
     it('keeps local trust: no verified principal may still name any ownerId', async () => {
       let n = 0;
-      for (const binding of [undefined, null, { signer: null }, { signer: '' }, { signer: 'stdio-local' }]) {
+      for (const binding of [
+        undefined,
+        null,
+        { signer: null },
+        { signer: '' },
+        { signer: 'stdio-local' },
+      ]) {
         const owner = `create-bound-local-owner-${n}`;
         const id = `create-bound-local-daemon-${n++}`;
         const got = await create(owner, id, binding);
@@ -1404,18 +1418,29 @@ describe('soul writes, ritual writes and the corpus path are bound to the transp
         /Unauthorized daemon access/
       );
       await expect(
-        update(id, [ritual('x')], { callerId: OWNER }, { signer: wallet, signerMapsToCaller: () => false })
+        update(
+          id,
+          [ritual('x')],
+          { callerId: OWNER },
+          { signer: wallet, signerMapsToCaller: () => false }
+        )
       ).rejects.toThrow(/not bound to the authenticated principal/);
-      await expect(update(id, [ritual('x')], { callerId: OWNER }, { signer: wallet })).rejects.toThrow(
-        /not bound to the authenticated principal/
-      );
+      await expect(
+        update(id, [ritual('x')], { callerId: OWNER }, { signer: wallet })
+      ).rejects.toThrow(/not bound to the authenticated principal/);
     });
 
     it('keeps local trust: no principal and no callerId still updates; a wrong callerId is refused', async () => {
       const id = 'ritual-bound-4';
       await handleDaemonLifecycleTool('holo_create_daemon', { ownerId: OWNER, daemonId: id });
       let n = 0;
-      for (const binding of [undefined, null, { signer: null }, { signer: '' }, { signer: 'stdio-local' }]) {
+      for (const binding of [
+        undefined,
+        null,
+        { signer: null },
+        { signer: '' },
+        { signer: 'stdio-local' },
+      ]) {
         n += 1;
         const r = await update(id, [ritual(`local${n}`)], {}, binding);
         expect(r.profile.style.rituals).toHaveLength(n);
@@ -1458,7 +1483,13 @@ describe('soul writes, ritual writes and the corpus path are bound to the transp
       const dir = mkdtempSync(join(tmpdir(), 'export-local-'));
       try {
         let n = 0;
-        for (const binding of [undefined, null, { signer: null }, { signer: '' }, { signer: 'stdio-local' }]) {
+        for (const binding of [
+          undefined,
+          null,
+          { signer: null },
+          { signer: '' },
+          { signer: 'stdio-local' },
+        ]) {
           const target = join(dir, `out-${(n += 1)}.jsonl`);
           const got = await exportTo(target, binding);
           expect(got.path).toBe(target);

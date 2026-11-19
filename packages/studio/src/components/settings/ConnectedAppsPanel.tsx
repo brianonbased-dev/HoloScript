@@ -103,7 +103,10 @@ export default function ConnectedAppsPanel() {
                 <span className="cap-name">
                   {app.client_name || 'Unnamed app'}
                   {!app.client_name_verified && (
-                    <span className="cap-unverified" title="The app chose this name; it is not verified.">
+                    <span
+                      className="cap-unverified"
+                      title="The app chose this name; it is not verified."
+                    >
                       Unverified name
                     </span>
                   )}

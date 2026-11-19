@@ -50,7 +50,11 @@ async function register(body: Record<string, unknown> = {}) {
     },
   });
   expect(r.status, JSON.stringify(r.body)).toBe(201);
-  return { clientId: r.body.client_id as string, clientSecret: r.body.client_secret as string, body: r.body };
+  return {
+    clientId: r.body.client_id as string,
+    clientSecret: r.body.client_secret as string,
+    body: r.body,
+  };
 }
 
 async function csrfFor(
@@ -75,7 +79,11 @@ async function csrfFor(
   return token;
 }
 
-function authorizeBody(clientId: string, extra: Record<string, unknown> = {}, scope = 'user:private') {
+function authorizeBody(
+  clientId: string,
+  extra: Record<string, unknown> = {},
+  scope = 'user:private'
+) {
   return {
     client_id: clientId,
     redirect_uri: REDIRECT,
@@ -87,7 +95,11 @@ function authorizeBody(clientId: string, extra: Record<string, unknown> = {}, sc
   };
 }
 
-function consentFor(clientId: string, sub = 'alice', scp = ['user:private', 'tools:read', 'social']) {
+function consentFor(
+  clientId: string,
+  sub = 'alice',
+  scp = ['user:private', 'tools:read', 'social']
+) {
   return signStudioConsent({ sub, cid: clientId, scp }, CONSENT_SECRET);
 }
 
@@ -135,7 +147,12 @@ describe('R1 no client_credentials by default for dynamic clients', () => {
   it('and the token endpoint refuses client_credentials for that client', async () => {
     const { clientId, clientSecret } = await register({ scope: 'social' });
     const t = await server.request('POST', '/oauth/token', {
-      body: { grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope: 'social' },
+      body: {
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: 'social',
+      },
     });
     expect(t.status).toBe(400);
     expect(t.body.error).toBe('unauthorized_client');
@@ -144,16 +161,29 @@ describe('R1 no client_credentials by default for dynamic clients', () => {
   it('client_credentials is refused for user:private even when the client asked for cc', async () => {
     const { clientId, clientSecret } = await register({ grant_types: ['client_credentials'] });
     const t = await server.request('POST', '/oauth/token', {
-      body: { grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope: 'user:private' },
+      body: {
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: 'user:private',
+      },
     });
     expect(t.status).toBe(400);
     expect(t.body.error).toBe('invalid_scope');
   });
 
   it('negative control: an explicit cc client still gets social', async () => {
-    const { clientId, clientSecret } = await register({ scope: 'social', grant_types: ['client_credentials'] });
+    const { clientId, clientSecret } = await register({
+      scope: 'social',
+      grant_types: ['client_credentials'],
+    });
     const t = await server.request('POST', '/oauth/token', {
-      body: { grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope: 'social' },
+      body: {
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: 'social',
+      },
     });
     expect(t.status, JSON.stringify(t.body)).toBe(200);
     expect(t.body.scope).toBe('social');
@@ -195,7 +225,10 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
     const b = await register();
     const csrfA = await csrfFor(a.clientId);
     const r = await server.request('POST', '/oauth/authorize', {
-      body: authorizeBody(b.clientId, { csrf_token: csrfA, studio_consent: consentFor(b.clientId) }),
+      body: authorizeBody(b.clientId, {
+        csrf_token: csrfA,
+        studio_consent: consentFor(b.clientId),
+      }),
     });
     expect(r.status).toBe(403);
   });
@@ -203,7 +236,10 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
   it('a forged session (wrong secret) is refused', async () => {
     const { clientId } = await register();
     const csrf = await csrfFor(clientId);
-    const forged = signStudioConsent({ sub: 'alice', cid: clientId, scp: ['user:private'] }, 'z'.repeat(48));
+    const forged = signStudioConsent(
+      { sub: 'alice', cid: clientId, scp: ['user:private'] },
+      'z'.repeat(48)
+    );
     const r = await server.request('POST', '/oauth/authorize', {
       body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: forged }),
     });
@@ -214,23 +250,35 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
     const { clientId, clientSecret } = await register();
     const t = await userToken(clientId, clientSecret, 'alice');
     expect(t.scope).toContain('user:private');
-    const i = await server.request('POST', '/oauth/introspect', { body: { token: t.access_token } });
+    const i = await server.request('POST', '/oauth/introspect', {
+      body: { token: t.access_token },
+    });
     expect(i.body.active).toBe(true);
     expect(i.body.user_id).toBe('alice');
     expect(i.body.grant_id).toBeTruthy();
     const r = await server.request('POST', '/oauth/token', {
-      body: { grant_type: 'refresh_token', refresh_token: t.refresh_token, client_id: clientId, client_secret: clientSecret },
+      body: {
+        grant_type: 'refresh_token',
+        refresh_token: t.refresh_token,
+        client_id: clientId,
+        client_secret: clientSecret,
+      },
     });
     expect(r.status, JSON.stringify(r.body)).toBe(200);
-    const i2 = await server.request('POST', '/oauth/introspect', { body: { token: r.body.access_token } });
+    const i2 = await server.request('POST', '/oauth/introspect', {
+      body: { token: r.body.access_token },
+    });
     expect(i2.body.user_id).toBe('alice');
   });
 
-  it('F2 a CSRF token minted for alice is refused with bob\'s session', async () => {
+  it("F2 a CSRF token minted for alice is refused with bob's session", async () => {
     const { clientId } = await register();
     const csrfAlice = await csrfFor(clientId, 'user:private', consentFor(clientId, 'alice'));
     const r = await server.request('POST', '/oauth/authorize', {
-      body: authorizeBody(clientId, { csrf_token: csrfAlice, studio_consent: consentFor(clientId, 'bob') }),
+      body: authorizeBody(clientId, {
+        csrf_token: csrfAlice,
+        studio_consent: consentFor(clientId, 'bob'),
+      }),
     });
     expect(r.status).toBe(403);
     expect(r.body.code).toBeUndefined();
@@ -239,8 +287,12 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
   it('F2 GET without a session issues no CSRF token', async () => {
     const { clientId } = await register();
     const q = new URLSearchParams({
-      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
-      code_challenge: CHALLENGE, code_challenge_method: 'S256',
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: REDIRECT,
+      scope: 'user:private',
+      code_challenge: CHALLENGE,
+      code_challenge_method: 'S256',
     });
     const r = await server.request('GET', `/oauth/authorize?${q}`);
     expect((r.body.authorization_request as Record<string, unknown>).csrf_token).toBeUndefined();
@@ -249,8 +301,13 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
   it('F3 studio_consent in the GET query string is ignored (no CSRF token)', async () => {
     const { clientId } = await register();
     const q = new URLSearchParams({
-      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
-      code_challenge: CHALLENGE, code_challenge_method: 'S256', studio_consent: consentFor(clientId),
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: REDIRECT,
+      scope: 'user:private',
+      code_challenge: CHALLENGE,
+      code_challenge_method: 'S256',
+      studio_consent: consentFor(clientId),
     });
     const r = await server.request('GET', `/oauth/authorize?${q}`);
     expect(r.status).toBe(200);
@@ -260,10 +317,18 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
   it('F3/a a browser GET is sent to Studio /oauth/consent with the same params, minus studio_consent', async () => {
     const { clientId } = await register();
     const q = new URLSearchParams({
-      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
-      code_challenge: CHALLENGE, code_challenge_method: 'S256', state: 's1', studio_consent: 'v1.leak.x',
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: REDIRECT,
+      scope: 'user:private',
+      code_challenge: CHALLENGE,
+      code_challenge_method: 'S256',
+      state: 's1',
+      studio_consent: 'v1.leak.x',
     });
-    const r = await server.request('GET', `/oauth/authorize?${q}`, { headers: { accept: 'text/html' } });
+    const r = await server.request('GET', `/oauth/authorize?${q}`, {
+      headers: { accept: 'text/html' },
+    });
     expect(r.status).toBe(302);
     const loc = new URL(String(r.headers?.location));
     expect(loc.pathname).toBe('/oauth/consent');
@@ -276,19 +341,29 @@ describe('R2 /oauth/authorize needs a signed-in session and CSRF, and binds the 
   it('browser consent goes to live Studio by default (https://holoscript.studio); STUDIO_PUBLIC_URL overrides', async () => {
     const { clientId } = await register();
     const q = new URLSearchParams({
-      response_type: 'code', client_id: clientId, redirect_uri: REDIRECT, scope: 'user:private',
-      code_challenge: CHALLENGE, code_challenge_method: 'S256',
+      response_type: 'code',
+      client_id: clientId,
+      redirect_uri: REDIRECT,
+      scope: 'user:private',
+      code_challenge: CHALLENGE,
+      code_challenge_method: 'S256',
     });
     const saved = process.env.STUDIO_PUBLIC_URL;
     try {
       delete process.env.STUDIO_PUBLIC_URL;
-      const r = await server.request('GET', `/oauth/authorize?${q}`, { headers: { accept: 'text/html' } });
+      const r = await server.request('GET', `/oauth/authorize?${q}`, {
+        headers: { accept: 'text/html' },
+      });
       expect(r.status).toBe(302);
       const loc = new URL(String(r.headers?.location));
       expect(loc.origin + loc.pathname).toBe('https://holoscript.studio/oauth/consent');
       process.env.STUDIO_PUBLIC_URL = 'https://studio.example.test/';
-      const o = await server.request('GET', `/oauth/authorize?${q}`, { headers: { accept: 'text/html' } });
-      expect(String(o.headers?.location)).toMatch(/^https:\/\/studio\.example\.test\/oauth\/consent\?/);
+      const o = await server.request('GET', `/oauth/authorize?${q}`, {
+        headers: { accept: 'text/html' },
+      });
+      expect(String(o.headers?.location)).toMatch(
+        /^https:\/\/studio\.example\.test\/oauth\/consent\?/
+      );
     } finally {
       if (saved === undefined) delete process.env.STUDIO_PUBLIC_URL;
       else process.env.STUDIO_PUBLIC_URL = saved;
@@ -332,7 +407,12 @@ describe("R3 a user:private token can't read another creator's earnings", () => 
   async function callTool(token: string, args: Record<string, unknown>) {
     const r = await server.request('POST', '/mcp', {
       token,
-      body: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'get_creator_earnings', arguments: args } },
+      body: {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'get_creator_earnings', arguments: args },
+      },
     });
     return JSON.stringify(r.body);
   }
@@ -360,14 +440,21 @@ describe('C1 absorb_check_credits reads only the token user', () => {
   async function credits(token: string, args: Record<string, unknown>) {
     const r = await server.request('POST', '/mcp', {
       token,
-      body: { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'absorb_check_credits', arguments: args } },
+      body: {
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: { name: 'absorb_check_credits', arguments: args },
+      },
     });
     return JSON.stringify(r.body);
   }
   it('a caller-supplied apiKey is refused', async () => {
     const { clientId, clientSecret } = await register();
     const { access_token } = await userToken(clientId, clientSecret);
-    expect(await credits(access_token, { apiKey: 'someone-elses-key' })).toMatch(/names someone else/);
+    expect(await credits(access_token, { apiKey: 'someone-elses-key' })).toMatch(
+      /names someone else/
+    );
   });
   it('no ledger: refused, never the absorb server key', async () => {
     const { clientId, clientSecret } = await register();
@@ -384,35 +471,57 @@ describe('R4 DELETE /oauth/clients/:id', () => {
     const spy = vi
       .spyOn(OAuth2Provider.prototype, 'revokeClient')
       .mockRejectedValueOnce(new Error('db down'));
-    const d = await server.request('DELETE', `/oauth/clients/${clientId}`, { token: REAL_SERVER_ADMIN_KEY });
+    const d = await server.request('DELETE', `/oauth/clients/${clientId}`, {
+      token: REAL_SERVER_ADMIN_KEY,
+    });
     expect(d.status).toBe(503);
     const failed = getAuditLogger()
       .query({ limit: 100_000 })
-      .entries.filter((e) => e.agent?.clientId === clientId && /durable=false/.test(String(e.metadata?.reason)));
+      .entries.filter(
+        (e) => e.agent?.clientId === clientId && /durable=false/.test(String(e.metadata?.reason))
+      );
     expect(failed.length).toBe(1);
     spy.mockRestore();
-    const again = await server.request('DELETE', `/oauth/clients/${clientId}`, { token: REAL_SERVER_ADMIN_KEY });
+    const again = await server.request('DELETE', `/oauth/clients/${clientId}`, {
+      token: REAL_SERVER_ADMIN_KEY,
+    });
     expect(again.status).toBe(204);
   });
 
   it('admin delete kills existing tokens: introspection inactive, token endpoint invalid_client, audit, 204', async () => {
     const { clientId, clientSecret } = await register();
     const t = await userToken(clientId, clientSecret);
-    const before = await server.request('POST', '/oauth/introspect', { body: { token: t.access_token } });
+    const before = await server.request('POST', '/oauth/introspect', {
+      body: { token: t.access_token },
+    });
     expect(before.body.active).toBe(true);
 
-    const d = await server.request('DELETE', `/oauth/clients/${clientId}`, { token: REAL_SERVER_ADMIN_KEY });
+    const d = await server.request('DELETE', `/oauth/clients/${clientId}`, {
+      token: REAL_SERVER_ADMIN_KEY,
+    });
     expect(d.status).toBe(204);
 
-    const after = await server.request('POST', '/oauth/introspect', { body: { token: t.access_token } });
+    const after = await server.request('POST', '/oauth/introspect', {
+      body: { token: t.access_token },
+    });
     expect(after.body.active).toBe(false);
     const refresh = await server.request('POST', '/oauth/token', {
-      body: { grant_type: 'refresh_token', refresh_token: t.refresh_token, client_id: clientId, client_secret: clientSecret },
+      body: {
+        grant_type: 'refresh_token',
+        refresh_token: t.refresh_token,
+        client_id: clientId,
+        client_secret: clientSecret,
+      },
     });
     expect(refresh.status).toBe(400);
     expect(refresh.body.error).toBe('invalid_grant'); // chain is gone
     const cc = await server.request('POST', '/oauth/token', {
-      body: { grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret, scope: 'social' },
+      body: {
+        grant_type: 'client_credentials',
+        client_id: clientId,
+        client_secret: clientSecret,
+        scope: 'social',
+      },
     });
     expect(cc.body.error).toBe('invalid_client');
     const mcp = await server.request('POST', '/mcp', {
@@ -426,14 +535,18 @@ describe('R4 DELETE /oauth/clients/:id', () => {
       .entries.filter((e) => e.event === 'client_revoked' && e.agent?.clientId === clientId);
     expect(audit.length).toBe(1);
 
-    const again = await server.request('DELETE', `/oauth/clients/${clientId}`, { token: REAL_SERVER_ADMIN_KEY });
+    const again = await server.request('DELETE', `/oauth/clients/${clientId}`, {
+      token: REAL_SERVER_ADMIN_KEY,
+    });
     expect(again.status).toBe(204);
   });
 
   it('owner (its own token) may delete itself', async () => {
     const { clientId, clientSecret } = await register();
     const t = await userToken(clientId, clientSecret);
-    const d = await server.request('DELETE', `/oauth/clients/${clientId}`, { token: t.access_token });
+    const d = await server.request('DELETE', `/oauth/clients/${clientId}`, {
+      token: t.access_token,
+    });
     expect(d.status).toBe(204);
   });
 
@@ -442,14 +555,24 @@ describe('R4 DELETE /oauth/clients/:id', () => {
     const vt = await userToken(victim.clientId, victim.clientSecret);
     const attacker = await register();
     const at = await userToken(attacker.clientId, attacker.clientSecret, 'mallory');
-    expect((await server.request('DELETE', `/oauth/clients/${victim.clientId}`, { token: at.access_token })).status).toBe(403);
+    expect(
+      (
+        await server.request('DELETE', `/oauth/clients/${victim.clientId}`, {
+          token: at.access_token,
+        })
+      ).status
+    ).toBe(403);
     expect((await server.request('DELETE', `/oauth/clients/${victim.clientId}`)).status).toBe(401);
-    const still = await server.request('POST', '/oauth/introspect', { body: { token: vt.access_token } });
+    const still = await server.request('POST', '/oauth/introspect', {
+      body: { token: vt.access_token },
+    });
     expect(still.body.active).toBe(true);
   });
 
   it('unknown client id with admin: still 204', async () => {
-    const d = await server.request('DELETE', '/oauth/clients/hsc_doesnotexist', { token: REAL_SERVER_ADMIN_KEY });
+    const d = await server.request('DELETE', '/oauth/clients/hsc_doesnotexist', {
+      token: REAL_SERVER_ADMIN_KEY,
+    });
     expect(d.status).toBe(204);
   });
 });
@@ -460,11 +583,19 @@ describe('N2 the csrf_token is bound to the requested scope', () => {
     const assertion = consentFor(clientId);
     const csrf = await csrfFor(clientId, 'social', assertion);
     const widened = await server.request('POST', '/oauth/authorize', {
-      body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: assertion }, 'social user:private'),
+      body: authorizeBody(
+        clientId,
+        { csrf_token: csrf, studio_consent: assertion },
+        'social user:private'
+      ),
     });
     expect(widened.status).toBe(403);
     const same = await server.request('POST', '/oauth/authorize', {
-      body: authorizeBody(clientId, { csrf_token: csrf, studio_consent: consentFor(clientId) }, 'social'),
+      body: authorizeBody(
+        clientId,
+        { csrf_token: csrf, studio_consent: consentFor(clientId) },
+        'social'
+      ),
     });
     expect(same.status, JSON.stringify(same.body)).toBe(200);
   });

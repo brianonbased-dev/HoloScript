@@ -384,8 +384,7 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Workspace not found' }, { status: 404 });
   }
   const absorbed =
-    project.lastAbsorbedAt !== null ||
-    project.absorbJobs.some((job) => job.status !== 'failed');
+    project.lastAbsorbedAt !== null || project.absorbJobs.some((job) => job.status !== 'failed');
   if (absorbed) {
     return NextResponse.json(
       { error: 'Workspace has a completed absorb; it is not a failed import.' },

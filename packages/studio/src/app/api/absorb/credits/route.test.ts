@@ -95,9 +95,11 @@ describe('/api/absorb/credits route', () => {
   describe('where Stripe sends the buyer afterwards', () => {
     const envSnapshot = { ...process.env };
     const checkoutOk = () =>
-      vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ checkoutUrl: 'https://pay.example/xyz' }), { status: 200 })
-      );
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ checkoutUrl: 'https://pay.example/xyz' }), { status: 200 })
+        );
     const sentBody = (fetchMock: ReturnType<typeof vi.fn>) =>
       (fetchMock.mock.calls[0][1] as RequestInit).body as string;
 
@@ -125,7 +127,9 @@ describe('/api/absorb/credits route', () => {
       expect(sent.successUrl).toBe(
         'https://holoscript.studio/settings?tab=credits&purchase=success&session_id={CHECKOUT_SESSION_ID}'
       );
-      expect(sent.cancelUrl).toBe('https://holoscript.studio/settings?tab=credits&purchase=cancelled');
+      expect(sent.cancelUrl).toBe(
+        'https://holoscript.studio/settings?tab=credits&purchase=cancelled'
+      );
     });
 
     it('POST overwrites return URLs the client sent, so checkout cannot be aimed elsewhere', async () => {
@@ -151,9 +155,11 @@ describe('/api/absorb/credits route', () => {
     });
 
     it('POST passes a body that is not a JSON object through untouched, for absorb to report', async () => {
-      const fetchSpy = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ error: 'Validation error' }), { status: 400 })
-      );
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ error: 'Validation error' }), { status: 400 })
+        );
       vi.stubGlobal('fetch', fetchSpy);
 
       const res = await POST(

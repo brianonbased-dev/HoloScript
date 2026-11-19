@@ -69,13 +69,29 @@ afterEach(() => {
 /** Every binding useOrchestrationKeyboard actually implements. */
 const BINDINGS = [
   { name: 'onToggleMCP', label: 'MCP Servers', event: { ctrlKey: true, key: 'm' } },
-  { name: 'onToggleWorkflow', label: 'Agent Orchestration', event: { ctrlKey: true, shiftKey: true, key: 'W' } },
+  {
+    name: 'onToggleWorkflow',
+    label: 'Agent Orchestration',
+    event: { ctrlKey: true, shiftKey: true, key: 'W' },
+  },
   { name: 'onToggleBehaviorTree', label: 'Behavior Tree', event: { ctrlKey: true, key: 'b' } },
   { name: 'onToggleEventMonitor', label: 'Event Monitor', event: { ctrlKey: true, key: 'e' } },
-  { name: 'onToggleToolCallGraph', label: 'Tool Call Graph', event: { ctrlKey: true, shiftKey: true, key: 'T' } },
-  { name: 'onToggleAgentEnsemble', label: 'Agent Ensemble', event: { ctrlKey: true, shiftKey: true, key: 'A' } },
+  {
+    name: 'onToggleToolCallGraph',
+    label: 'Tool Call Graph',
+    event: { ctrlKey: true, shiftKey: true, key: 'T' },
+  },
+  {
+    name: 'onToggleAgentEnsemble',
+    label: 'Agent Ensemble',
+    event: { ctrlKey: true, shiftKey: true, key: 'A' },
+  },
   { name: 'onTogglePlugins', label: 'Plugin Manager', event: { ctrlKey: true, key: 'p' } },
-  { name: 'onToggleCloud', label: 'Cloud Deploy', event: { ctrlKey: true, shiftKey: true, key: 'D' } },
+  {
+    name: 'onToggleCloud',
+    label: 'Cloud Deploy',
+    event: { ctrlKey: true, shiftKey: true, key: 'D' },
+  },
 ] as const;
 
 function mountHotkeys() {
@@ -95,7 +111,10 @@ describe('studio header — orchestration keyboard shortcuts', () => {
       expect(calls[binding.name]).toHaveBeenCalledTimes(1);
       for (const other of BINDINGS) {
         if (other.name === binding.name) continue;
-        expect(calls[other.name], `${other.name} should not fire on ${binding.label}`).not.toHaveBeenCalled();
+        expect(
+          calls[other.name],
+          `${other.name} should not fire on ${binding.label}`
+        ).not.toHaveBeenCalled();
       }
     });
   }

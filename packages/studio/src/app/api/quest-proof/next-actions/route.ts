@@ -14,7 +14,6 @@ export const runtime = 'nodejs';
  * (GET and POST): requireFounder answers 401/403 before the key is read.
  */
 
-
 export async function GET(req: NextRequest) {
   const auth = await requireFounder(req);
   if (auth instanceof NextResponse) return auth;

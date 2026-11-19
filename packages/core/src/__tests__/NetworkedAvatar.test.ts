@@ -82,7 +82,10 @@ describe('NetworkedAvatarTrait', () => {
     await networkedAvatarHandler.onUpdate!(node, localConfig, ctx as any, 0.016);
 
     // No share grant: others get only the generic payload (no node, no pose).
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', {
+      generic: true,
+      avatarId: expect.anything(),
+    });
     expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.node || c[1]?.pose)).toBe(false);
   });
 

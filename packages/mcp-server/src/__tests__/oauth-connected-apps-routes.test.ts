@@ -34,10 +34,12 @@ afterAll(() => restoreRealHttpServerEnv());
  * fresh gid per call keeps two same-second assertions distinct (single-use).
  */
 function session(sub: string) {
-  return { 'x-studio-consent': signStudioConsent(
+  return {
+    'x-studio-consent': signStudioConsent(
       { sub, cid: STUDIO_GRANTS_AUDIENCE, scp: [], gid: `grant_${randomUUID()}` },
       SECRET
-    ) };
+    ),
+  };
 }
 
 async function connect(sub: string, name: string) {
@@ -52,7 +54,8 @@ async function connect(sub: string, name: string) {
   expect(reg.status, JSON.stringify(reg.body)).toBe(201);
   const clientId = reg.body.client_id as string;
   const clientSecret = reg.body.client_secret as string;
-  const mint = () => signStudioConsent({ sub, cid: clientId, scp: ['tools:read', 'social'] }, SECRET);
+  const mint = () =>
+    signStudioConsent({ sub, cid: clientId, scp: ['tools:read', 'social'] }, SECRET);
   const q = new URLSearchParams({
     response_type: 'code',
     client_id: clientId,
@@ -129,7 +132,9 @@ describe('GET /oauth/grants', () => {
   it('an approval assertion for a client cannot be used here (audience-bound)', async () => {
     const app = await connect('frank', 'aud-probe');
     const wrong = signStudioConsent({ sub: 'frank', cid: app.clientId, scp: [] }, SECRET);
-    const r = await server.request('GET', '/oauth/grants', { headers: { 'x-studio-consent': wrong } });
+    const r = await server.request('GET', '/oauth/grants', {
+      headers: { 'x-studio-consent': wrong },
+    });
     expect(r.status).toBe(401);
   });
 
@@ -165,7 +170,9 @@ describe('DELETE /oauth/grants/:id', () => {
   it("another user's grant is 404 and stays live", async () => {
     const theirs = await connect('carol', 'Carol Agent');
     const id = (await list('carol')).find((g) => g.client_id === theirs.clientId)!.id;
-    const r = await server.request('DELETE', `/oauth/grants/${id}`, { headers: session('mallory') });
+    const r = await server.request('DELETE', `/oauth/grants/${id}`, {
+      headers: session('mallory'),
+    });
     expect(r.status).toBe(404);
     expect((await list('carol')).map((g) => g.id)).toContain(id);
     const ok = await server.request('POST', '/mcp', {
@@ -206,7 +213,9 @@ describe('DELETE /oauth/grants/:id', () => {
     expect(refreshed.body.access_token).toBeUndefined();
 
     // Revoking again is a 404, not a second success.
-    const again = await server.request('DELETE', `/oauth/grants/${id}`, { headers: session('dana') });
+    const again = await server.request('DELETE', `/oauth/grants/${id}`, {
+      headers: session('dana'),
+    });
     expect(again.status).toBe(404);
   });
 });

@@ -14,6 +14,7 @@ export const BLANK_SOURCE_CODE = 'HS1001';
 export function isOnlyBlankSourceError(errors: unknown): boolean {
   if (!Array.isArray(errors) || errors.length === 0) return false;
   return errors.every(
-    (e) => typeof e === 'object' && e !== null && (e as { code?: unknown }).code === BLANK_SOURCE_CODE
+    (e) =>
+      typeof e === 'object' && e !== null && (e as { code?: unknown }).code === BLANK_SOURCE_CODE
   );
 }

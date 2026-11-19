@@ -6,6 +6,8 @@ describe('LSP server canonical diagnostics: blank buffers', () => {
     expect(canonicalSourceDiagnostics(text, 'holo').diagnostics).toHaveLength(0);
   });
   it("'{{{@@@' still gives at least 1 diagnostic", () => {
-    expect(canonicalSourceDiagnostics('{{{@@@', 'holo').diagnostics.length).toBeGreaterThanOrEqual(1);
+    expect(canonicalSourceDiagnostics('{{{@@@', 'holo').diagnostics.length).toBeGreaterThanOrEqual(
+      1
+    );
   });
 });

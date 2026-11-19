@@ -136,9 +136,7 @@ describe('POST /api/knowledge/sync — credential gate', () => {
     signedOut();
     installOutboundRecorder();
 
-    const response = await POST(
-      post(filingFormBody(), { Authorization: `Bearer ${CALLER_KEY}` })
-    );
+    const response = await POST(post(filingFormBody(), { Authorization: `Bearer ${CALLER_KEY}` }));
 
     expect(response.status).toBe(200);
     expect(calls[0].headers['x-mcp-api-key']).toBe(CALLER_KEY);
@@ -174,7 +172,7 @@ describe('POST /api/knowledge/sync — credential gate', () => {
     expect(JSON.stringify(calls[0].body)).not.toContain(FOUNDER_WORKSPACE_ID);
   });
 
-  it('forwards only the fields Studio\'s own callers send', async () => {
+  it("forwards only the fields Studio's own callers send", async () => {
     installOutboundRecorder();
 
     await POST(

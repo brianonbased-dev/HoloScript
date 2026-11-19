@@ -29,8 +29,16 @@ import type { LipSyncConfig } from './LipSyncTrait';
 import type { EmotionDirectiveConfig } from './EmotionDirectiveTrait';
 import type { VoiceOutputConfig } from './VoiceOutputTrait';
 import { isLocalCapture } from './LocalCapture';
-import { avatarEmbodimentNeedsGrant, carriesRealLikeness, LIVE_TRACKING_SOURCES } from './AvatarLikeness';
-import { carriesLikenessOrTracking, likenessShareAllowed, type LikenessShareScope } from './LikenessShareGrant';
+import {
+  avatarEmbodimentNeedsGrant,
+  carriesRealLikeness,
+  LIVE_TRACKING_SOURCES,
+} from './AvatarLikeness';
+import {
+  carriesLikenessOrTracking,
+  likenessShareAllowed,
+  type LikenessShareScope,
+} from './LikenessShareGrant';
 
 // =============================================================================
 // TYPES
@@ -173,7 +181,8 @@ export function avatarRenderAllowed(
   // Live tracking (any live source, verified or not) and any likeness / tracking trait need the
   // tracked person's own share grant for this session and audience plus the render_likeness yes.
   const live = scope?.livePose === true || state?.visibility === 'self_preview';
-  if (live || carriesLikenessOrTracking(node, { embodimentDecided: !!state })) return likenessShareAllowed(node, scope);
+  if (live || carriesLikenessOrTracking(node, { embodimentDecided: !!state }))
+    return likenessShareAllowed(node, scope);
   return !state || state.visibility === 'shared';
 }
 
@@ -261,7 +270,11 @@ export const avatarEmbodimentHandler: TraitHandler<any> = {
       const source = config?.tracking_source ?? 'unknown';
       const traits = (node as { traits?: unknown }).traits;
       const names =
-        traits instanceof Map ? [...traits.keys()] : traits && typeof traits === 'object' ? Object.keys(traits) : [];
+        traits instanceof Map
+          ? [...traits.keys()]
+          : traits && typeof traits === 'object'
+            ? Object.keys(traits)
+            : [];
       // Runtime half of the shared rule: where a grant is needed, the node's @consent_gate must
       // be granted at runtime (ConsentGateTrait state); otherwise fail closed.
       if (avatarEmbodimentNeedsGrant(source, carriesRealLikeness(names))) {
@@ -278,7 +291,8 @@ export const avatarEmbodimentHandler: TraitHandler<any> = {
         }
       }
       const live = LIVE_TRACKING_SOURCES.includes(String(source));
-      const capture = typeof event === 'object' ? (event as { capture?: unknown }).capture : undefined;
+      const capture =
+        typeof event === 'object' ? (event as { capture?: unknown }).capture : undefined;
       const verified = isLocalCapture(capture, 'body') || isLocalCapture(capture, 'face');
       state.visibility = live ? 'self_preview' : 'shared';
       state.liveVerified = live && verified;

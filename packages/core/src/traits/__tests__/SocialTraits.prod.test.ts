@@ -166,7 +166,13 @@ describe('collaborativeHandler — Production', () => {
   });
 
   describe('@collaborative voice (Trust ruling)', () => {
-    const cfg = { ...collaborativeHandler.defaultConfig, voice: true, sessionId: 's1', audience: ['bob', 'cy'], localUserId: 'ava' } as any;
+    const cfg = {
+      ...collaborativeHandler.defaultConfig,
+      voice: true,
+      sessionId: 's1',
+      audience: ['bob', 'cy'],
+      localUserId: 'ava',
+    } as any;
     const setup = (config = cfg) => {
       const node: any = { id: 'seat-1' };
       const ctx = makeCtx();
@@ -181,9 +187,13 @@ describe('collaborativeHandler — Production', () => {
 
     it('joins muted: plain muted state, nothing sent', () => {
       const { ctx, names, frame } = setup();
-      frame(); frame();
+      frame();
+      frame();
       expect(names()).not.toContain('local_voice_stream_ready');
-      expect(ctx.emit).toHaveBeenCalledWith('voice_muted', { muted: true, message: "You're muted" });
+      expect(ctx.emit).toHaveBeenCalledWith('voice_muted', {
+        muted: true,
+        message: "You're muted",
+      });
     });
 
     it("the speaker's unmute sends; someone else's unmute does not", () => {
@@ -193,20 +203,25 @@ describe('collaborativeHandler — Production', () => {
       expect(a.names()).not.toContain('local_voice_stream_ready');
       a.ev({ type: 'voice_unmute', userId: 'ava' });
       a.frame();
-      expect(a.ctx.emit).toHaveBeenCalledWith('local_voice_stream_ready', { stream: { id: 'mic' } });
+      expect(a.ctx.emit).toHaveBeenCalledWith('local_voice_stream_ready', {
+        stream: { id: 'mic' },
+      });
     });
 
-    it.each(['voice_mute', 'push_to_talk_end', 'user_leave'])('%s stops the relay on the next frame', (type) => {
-      const a = setup();
-      a.ev({ type: 'push_to_talk_start', userId: 'ava' });
-      a.frame();
-      expect(a.names()).toContain('local_voice_stream_ready');
-      (a.ctx.emit as any).mockClear();
-      a.ev(type === 'user_leave' ? { type, user: { id: 'ava' } } : { type, userId: 'ava' });
-      a.frame();
-      expect(a.names()).toContain('voice_stream_stop');
-      expect(a.names()).not.toContain('local_voice_stream_ready');
-    });
+    it.each(['voice_mute', 'push_to_talk_end', 'user_leave'])(
+      '%s stops the relay on the next frame',
+      (type) => {
+        const a = setup();
+        a.ev({ type: 'push_to_talk_start', userId: 'ava' });
+        a.frame();
+        expect(a.names()).toContain('local_voice_stream_ready');
+        (a.ctx.emit as any).mockClear();
+        a.ev(type === 'user_leave' ? { type, user: { id: 'ava' } } : { type, userId: 'ava' });
+        a.frame();
+        expect(a.names()).toContain('voice_stream_stop');
+        expect(a.names()).not.toContain('local_voice_stream_ready');
+      }
+    );
 
     it('unset localUserId fails closed: unmute shares nothing', () => {
       const a = setup({ ...cfg, localUserId: undefined });
@@ -215,13 +230,16 @@ describe('collaborativeHandler — Production', () => {
       expect(a.names()).not.toContain('local_voice_stream_ready');
     });
 
-    it.each(['record', 'store', 'transcribe', 'replay', 'ai', 'voice_print'])('%s without a separate grant is refused', (use) => {
-      const a = setup();
-      a.ev({ type: 'voice_unmute', userId: 'ava' }); // relay grant is not a recording grant
-      a.ev({ type: 'recording_request', use, requesterId: 'bob' });
-      expect(a.ctx.emit).toHaveBeenCalledWith('voice_use_refused', { use, requesterId: 'bob' });
-      expect(a.names()).not.toContain('recording_active');
-    });
+    it.each(['record', 'store', 'transcribe', 'replay', 'ai', 'voice_print'])(
+      '%s without a separate grant is refused',
+      (use) => {
+        const a = setup();
+        a.ev({ type: 'voice_unmute', userId: 'ava' }); // relay grant is not a recording grant
+        a.ev({ type: 'recording_request', use, requesterId: 'bob' });
+        expect(a.ctx.emit).toHaveBeenCalledWith('voice_use_refused', { use, requesterId: 'bob' });
+        expect(a.names()).not.toContain('recording_active');
+      }
+    );
 
     it('live captions need no extra grant; voice_print still needs render_likeness', () => {
       const a = setup();
@@ -232,7 +250,10 @@ describe('collaborativeHandler — Production', () => {
       expect(a.names()).toContain('voice_use_refused');
       a.node.__consentGateState = { status: 'granted' };
       a.ev({ type: 'recording_request', use: 'voice_print', requesterId: 'bob' });
-      expect(a.ctx.emit).toHaveBeenCalledWith('recording_active', expect.objectContaining({ active: true, uses: ['voice_print'] }));
+      expect(a.ctx.emit).toHaveBeenCalledWith(
+        'recording_active',
+        expect.objectContaining({ active: true, uses: ['voice_print'] })
+      );
     });
 
     it('granted recording broadcasts the indicator to the whole session, and its end', () => {
@@ -243,11 +264,19 @@ describe('collaborativeHandler — Production', () => {
       a.ev({ type: 'voice_use_grant', userId: 'ava', use: 'record' });
       a.ev({ type: 'recording_request', use: 'record', requesterId: 'bob' });
       expect(a.ctx.emit).toHaveBeenCalledWith('recording_active', {
-        active: true, uses: ['record'], sessionId: 's1', audience: 'session', broadcast: true,
+        active: true,
+        uses: ['record'],
+        sessionId: 's1',
+        audience: 'session',
+        broadcast: true,
       });
       a.ev({ type: 'recording_stop', use: 'record' });
       expect(a.ctx.emit).toHaveBeenLastCalledWith('recording_active', {
-        active: false, uses: [], sessionId: 's1', audience: 'session', broadcast: true,
+        active: false,
+        uses: [],
+        sessionId: 's1',
+        audience: 'session',
+        broadcast: true,
       });
     });
   });

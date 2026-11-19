@@ -361,11 +361,7 @@ export function defaultAnthropicPricer(model: string, usage: TokenUsage): number
  * but their cache is priced at THEIR policy: Claude's 0.1 read discount must
  * never reach another provider's traffic.
  */
-function priceThroughAnthropicTable(
-  model: string,
-  usage: TokenUsage,
-  policy: CachePolicy
-): number {
+function priceThroughAnthropicTable(model: string, usage: TokenUsage, policy: CachePolicy): number {
   const resolved = resolveModelPricingOrFallback(model);
   if (resolved.source === 'fallback') {
     warnUnpricedOnce(model, 'ANTHROPIC_PRICING_USD_PER_MTOK');

@@ -30,9 +30,15 @@ import { checkCredits, bypassesDisabled } from '../creditGate';
 // Any non-free op exercises the bypass + metered lane. Cast: every defined
 // StudioOperation is free today, which is exactly why the lane is latent.
 const METERED = 'studio_deep_absorb' as never;
-const req = (h: Record<string, string> = {}) => new Request('https://studio.test/x', { headers: h });
+const req = (h: Record<string, string> = {}) =>
+  new Request('https://studio.test/x', { headers: h });
 
-const ENV_KEYS = ['NODE_ENV', 'BRITTNEY_BENCHMARK_KEY', 'RAILWAY_ENVIRONMENT_NAME', 'RAILWAY_ENVIRONMENT'];
+const ENV_KEYS = [
+  'NODE_ENV',
+  'BRITTNEY_BENCHMARK_KEY',
+  'RAILWAY_ENVIRONMENT_NAME',
+  'RAILWAY_ENVIRONMENT',
+];
 let saved: Record<string, string | undefined>;
 let fetchMock: ReturnType<typeof vi.fn>;
 

@@ -21,22 +21,22 @@
  * unknown-trait check (HS1006) is skipped and every other check still runs;
  * `coreInfo()` reports which sources were loaded.
  */
-import { createRequire } from "node:module";
-import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { createRequire } from 'node:module';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   analyze as analyzeWith,
   parseStrict as strictWith,
   parseTolerant as tolerantWith,
-} from "./holo_strict.mjs";
+} from './holo_strict.mjs';
 
 const require = createRequire(import.meta.url);
 
 /** True when `manifest` is @holoscript/core's package.json, not just any package with a dist/. */
 function isCorePackage(manifest) {
   try {
-    return JSON.parse(readFileSync(manifest, "utf8")).name === "@holoscript/core";
+    return JSON.parse(readFileSync(manifest, 'utf8')).name === '@holoscript/core';
   } catch {
     return false;
   }
@@ -45,32 +45,33 @@ function isCorePackage(manifest) {
 /** Find the core: this package when the layer lives inside it, else the installed one. */
 function findCoreRoot() {
   // strict/ sits inside packages/core, so ../dist is the parser we were built against.
-  const inRepo = join(dirname(fileURLToPath(import.meta.url)), "..");
-  if (existsSync(join(inRepo, "dist")) && isCorePackage(join(inRepo, "package.json"))) return inRepo;
+  const inRepo = join(dirname(fileURLToPath(import.meta.url)), '..');
+  if (existsSync(join(inRepo, 'dist')) && isCorePackage(join(inRepo, 'package.json')))
+    return inRepo;
   try {
-    return dirname(require.resolve("@holoscript/core/package.json"));
+    return dirname(require.resolve('@holoscript/core/package.json'));
   } catch {
     // Exports map hides package.json: resolve the entry point and walk up.
   }
-  let dir = dirname(require.resolve("@holoscript/core"));
+  let dir = dirname(require.resolve('@holoscript/core'));
   while (dir !== dirname(dir)) {
-    const manifest = join(dir, "package.json");
+    const manifest = join(dir, 'package.json');
     if (existsSync(manifest)) {
       try {
-        if (JSON.parse(readFileSync(manifest, "utf8")).name === "@holoscript/core") return dir;
+        if (JSON.parse(readFileSync(manifest, 'utf8')).name === '@holoscript/core') return dir;
       } catch {
         // keep walking
       }
     }
     dir = dirname(dir);
   }
-  throw new Error("@holoscript/strict: @holoscript/core is not installed");
+  throw new Error('@holoscript/strict: @holoscript/core is not installed');
 }
 
 /** The file core's `exports` map publishes for `subpath` (ESM condition). */
 function publicFile(coreRoot, manifest, subpath) {
   const entry = manifest.exports && manifest.exports[subpath];
-  const target = typeof entry === "string" ? entry : entry && (entry.import || entry.default);
+  const target = typeof entry === 'string' ? entry : entry && (entry.import || entry.default);
   if (!target) {
     throw new Error(`@holoscript/strict: @holoscript/core does not export "${subpath}"`);
   }
@@ -79,13 +80,13 @@ function publicFile(coreRoot, manifest, subpath) {
 
 async function loadCore() {
   const coreRoot = findCoreRoot();
-  const manifest = JSON.parse(readFileSync(join(coreRoot, "package.json"), "utf8"));
+  const manifest = JSON.parse(readFileSync(join(coreRoot, 'package.json'), 'utf8'));
 
-  const parserFile = publicFile(coreRoot, manifest, "./parser");
+  const parserFile = publicFile(coreRoot, manifest, './parser');
   const parser = await import(pathToFileURL(parserFile).href);
-  if (typeof parser.tokenizeHoloSource !== "function" || typeof parser.parseHolo !== "function") {
+  if (typeof parser.tokenizeHoloSource !== 'function' || typeof parser.parseHolo !== 'function') {
     throw new Error(
-      "@holoscript/strict: @holoscript/core/parser does not export tokenizeHoloSource and parseHolo"
+      '@holoscript/strict: @holoscript/core/parser does not export tokenizeHoloSource and parseHolo'
     );
   }
 
@@ -95,28 +96,32 @@ async function loadCore() {
   // buildKnownTraitSet and DERIVED_TRAIT names, the same function the canonical validator,
   // CLI, MCP and LSP use. The vocabulary loading below is only the fallback for an older core.
   const coreKnown =
-    typeof parser.isKnownTrait === "function" && typeof parser.declaredTraitNames === "function";
-  if (coreKnown) traitSources.push("@holoscript/core/parser#isKnownTrait");
-  if (!coreKnown) try {
-    const constants = await import(pathToFileURL(publicFile(coreRoot, manifest, "./constants")).href);
-    if (Array.isArray(constants.VR_TRAITS) && constants.VR_TRAITS.length) {
-      for (const id of constants.VR_TRAITS) traitIds.add(String(id));
-      traitSources.push("@holoscript/core/constants#VR_TRAITS");
+    typeof parser.isKnownTrait === 'function' && typeof parser.declaredTraitNames === 'function';
+  if (coreKnown) traitSources.push('@holoscript/core/parser#isKnownTrait');
+  if (!coreKnown)
+    try {
+      const constants = await import(
+        pathToFileURL(publicFile(coreRoot, manifest, './constants')).href
+      );
+      if (Array.isArray(constants.VR_TRAITS) && constants.VR_TRAITS.length) {
+        for (const id of constants.VR_TRAITS) traitIds.add(String(id));
+        traitSources.push('@holoscript/core/constants#VR_TRAITS');
+      }
+    } catch {
+      // Not available in this core: the registry below may still be.
     }
-  } catch {
-    // Not available in this core: the registry below may still be.
-  }
-  if (!coreKnown) try {
-    const registryFile = publicFile(coreRoot, manifest, "./traits/trait-registry.json");
-    const registry = JSON.parse(readFileSync(registryFile, "utf8"));
-    const ids = Object.keys(registry);
-    if (ids.length) {
-      for (const id of ids) traitIds.add(id);
-      traitSources.push("@holoscript/core/traits/trait-registry.json");
+  if (!coreKnown)
+    try {
+      const registryFile = publicFile(coreRoot, manifest, './traits/trait-registry.json');
+      const registry = JSON.parse(readFileSync(registryFile, 'utf8'));
+      const ids = Object.keys(registry);
+      if (ids.length) {
+        for (const id of ids) traitIds.add(id);
+        traitSources.push('@holoscript/core/traits/trait-registry.json');
+      }
+    } catch {
+      // No registry shipped: VR_TRAITS above may still be.
     }
-  } catch {
-    // No registry shipped: VR_TRAITS above may still be.
-  }
 
   return {
     coreRoot,
@@ -127,9 +132,14 @@ async function loadCore() {
       traitIds,
       isKnownTrait: coreKnown ? parser.isKnownTrait : undefined,
       declaredTraitNames: coreKnown ? parser.declaredTraitNames : undefined,
-      checkLikeness: typeof parser.checkLikeness === "function" ? parser.checkLikeness : undefined,
-      likenessTraitName: typeof parser.likenessTraitName === "function" ? parser.likenessTraitName : undefined,
-      likenessSources: parser.LIKENESS_SOURCES && { ...parser.LIKENESS_SOURCES, ...(parser.SOURCE_GATED_TRACKING || {}), avatar_embodiment: "body" },
+      checkLikeness: typeof parser.checkLikeness === 'function' ? parser.checkLikeness : undefined,
+      likenessTraitName:
+        typeof parser.likenessTraitName === 'function' ? parser.likenessTraitName : undefined,
+      likenessSources: parser.LIKENESS_SOURCES && {
+        ...parser.LIKENESS_SOURCES,
+        ...(parser.SOURCE_GATED_TRACKING || {}),
+        avatar_embodiment: 'body',
+      },
     },
     info: {
       coreRoot,
@@ -137,7 +147,7 @@ async function loadCore() {
       parser: parserFile,
       traitSources,
       traitCheck: coreKnown || traitIds.size > 0,
-      likenessCheck: typeof parser.checkLikeness === "function" && !!parser.LIKENESS_SOURCES,
+      likenessCheck: typeof parser.checkLikeness === 'function' && !!parser.LIKENESS_SOURCES,
     },
     full: null,
   };
@@ -157,18 +167,20 @@ function loadFullVocabulary(state) {
   if (!state.full) {
     state.full = (async () => {
       try {
-        const main = await import(pathToFileURL(publicFile(state.coreRoot, state.manifest, ".")).href);
+        const main = await import(
+          pathToFileURL(publicFile(state.coreRoot, state.manifest, '.')).href
+        );
         const traitIds = new Set(state.deps.traitIds);
         const before = traitIds.size;
-        if (typeof main.buildKnownTraitSet === "function") {
+        if (typeof main.buildKnownTraitSet === 'function') {
           for (const id of main.buildKnownTraitSet()) traitIds.add(String(id));
-          state.info.traitSources.push("@holoscript/core#buildKnownTraitSet");
+          state.info.traitSources.push('@holoscript/core#buildKnownTraitSet');
         }
         if (Array.isArray(main.DERIVED_TRAIT_SCHEMAS)) {
           for (const schema of main.DERIVED_TRAIT_SCHEMAS) {
             if (schema && schema.name) traitIds.add(String(schema.name));
           }
-          state.info.traitSources.push("@holoscript/core#DERIVED_TRAIT_SCHEMAS");
+          state.info.traitSources.push('@holoscript/core#DERIVED_TRAIT_SCHEMAS');
         }
         if (traitIds.size > before || before === 0) {
           state.deps = { ...state.deps, traitIds };
@@ -191,9 +203,9 @@ function core() {
 /** Deps with a vocabulary complete enough for `source`. */
 async function depsFor(source, options) {
   const state = await core();
-  if (!state.full && typeof source === "string") {
+  if (!state.full && typeof source === 'string') {
     const probe = analyzeWith(source, state.deps, options);
-    if (probe.diagnostics.some((d) => d.code === "HS1006")) await loadFullVocabulary(state);
+    if (probe.diagnostics.some((d) => d.code === 'HS1006')) await loadFullVocabulary(state);
   }
   return state.deps;
 }
@@ -210,16 +222,16 @@ export async function coreInfo(options = {}) {
 }
 
 export const CODES = {
-  HS1001: "empty source",
-  HS1002: "unbalanced delimiter",
-  HS1003: "token cannot start a top-level item",
-  HS1004: "nothing parsed into the composition",
-  HS1005: "trait with no name",
-  HS1006: "unknown trait",
-  HS1007: "parser error",
-  HS1008: "parser warning",
-  HS1009: "source is not a string",
-  HS1010: "tokenizer or parser threw",
+  HS1001: 'empty source',
+  HS1002: 'unbalanced delimiter',
+  HS1003: 'token cannot start a top-level item',
+  HS1004: 'nothing parsed into the composition',
+  HS1005: 'trait with no name',
+  HS1006: 'unknown trait',
+  HS1007: 'parser error',
+  HS1008: 'parser warning',
+  HS1009: 'source is not a string',
+  HS1010: 'tokenizer or parser threw',
   HS1011: "likeness source without the render_likeness rule's yes",
 };
 

@@ -22,7 +22,10 @@ afterAll(() => fs.rmSync(h.base, { recursive: true, force: true }));
 
 describe('oracle-boost/status creates no directories', () => {
   it('reports telemetry_writable fail and leaves the folder absent', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 200 })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('{}', { status: 200 }))
+    );
     const res = await POST(
       new NextRequest('https://studio.test/api/studio/oracle-boost/status', {
         method: 'POST',

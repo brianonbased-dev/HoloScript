@@ -54,7 +54,15 @@ describe('quest-proof capture token expiry', () => {
     const [exp, mac] = t.split('.');
     const msg = `quest-proof-capture:v2:run-1:${exp}`;
     const raw = createHmac('sha256', 'test-nextauth-secret').update(msg).digest('base64url');
-    const key = Buffer.from(hkdfSync('sha256', 'test-nextauth-secret', 'holoscript/quest-proof-capture/salt/v1', 'quest-proof-capture-v1', 32));
+    const key = Buffer.from(
+      hkdfSync(
+        'sha256',
+        'test-nextauth-secret',
+        'holoscript/quest-proof-capture/salt/v1',
+        'quest-proof-capture-v1',
+        32
+      )
+    );
     expect(mac).not.toBe(raw);
     expect(mac).toBe(createHmac('sha256', key).update(msg).digest('base64url'));
   });

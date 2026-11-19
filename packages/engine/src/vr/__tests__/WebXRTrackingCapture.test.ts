@@ -4,32 +4,67 @@ import { WebXRManager as RuntimeWebXRManager } from '../../runtime/WebXRManager'
 import { WebXRManager as VrWebXRManager } from '../WebXRManager';
 
 // Commit A: the Quest host caller. A mocked XRSession / XRFrame plays Quest Browser.
-const META_JOINTS = ['head', 'neck', 'chest', 'spine-middle', 'spine-lower', 'hips', 'left-arm-upper', 'right-arm-upper', 'left-arm-lower', 'right-arm-lower', 'left-hand-wrist', 'right-hand-wrist', 'left-hand-palm', 'right-hand-palm', 'left-upper-leg', 'right-upper-leg', 'left-lower-leg', 'right-lower-leg', 'left-foot-ankle', 'right-foot-ankle', 'left-foot-ball', 'right-foot-ball'];
+const META_JOINTS = [
+  'head',
+  'neck',
+  'chest',
+  'spine-middle',
+  'spine-lower',
+  'hips',
+  'left-arm-upper',
+  'right-arm-upper',
+  'left-arm-lower',
+  'right-arm-lower',
+  'left-hand-wrist',
+  'right-hand-wrist',
+  'left-hand-palm',
+  'right-hand-palm',
+  'left-upper-leg',
+  'right-upper-leg',
+  'left-lower-leg',
+  'right-lower-leg',
+  'left-foot-ankle',
+  'right-foot-ankle',
+  'left-foot-ball',
+  'right-foot-ball',
+];
 
 function mockXR(granted: boolean) {
   let endHandler: (() => void) | null = null;
   let rafCallback: ((t: number, f: unknown) => void) | null = null;
   const init: { value?: any } = {};
   const session: any = {
-    enabledFeatures: granted ? ['local-floor', 'hand-tracking', 'body-tracking'] : ['local-floor', 'hand-tracking'],
+    enabledFeatures: granted
+      ? ['local-floor', 'hand-tracking', 'body-tracking']
+      : ['local-floor', 'hand-tracking'],
     inputSources: [],
-    addEventListener: vi.fn((type: string, cb: () => void) => { if (type === 'end') endHandler = cb; }),
+    addEventListener: vi.fn((type: string, cb: () => void) => {
+      if (type === 'end') endHandler = cb;
+    }),
     removeEventListener: vi.fn(),
     requestReferenceSpace: vi.fn(async (type: string) => ({ type })),
-    requestAnimationFrame: vi.fn((cb: any) => { rafCallback = cb; return 1; }),
+    requestAnimationFrame: vi.fn((cb: any) => {
+      rafCallback = cb;
+      return 1;
+    }),
     updateRenderState: vi.fn(),
     end: vi.fn(async () => endHandler?.()),
   };
   vi.stubGlobal('navigator', {
     xr: {
       isSessionSupported: vi.fn(async () => true),
-      requestSession: vi.fn(async (_mode: string, i: any) => { init.value = i; return session; }),
+      requestSession: vi.fn(async (_mode: string, i: any) => {
+        init.value = i;
+        return session;
+      }),
     },
   });
   const frame: any = {
     session,
     body: granted ? new Map(META_JOINTS.map((j) => [j, { joint: j }])) : undefined,
-    getPose: vi.fn(() => ({ transform: { position: { x: 0, y: 1.6, z: 0 }, orientation: { x: 0, y: 0, z: 0, w: 1 } } })),
+    getPose: vi.fn(() => ({
+      transform: { position: { x: 0, y: 1.6, z: 0 }, orientation: { x: 0, y: 0, z: 0, w: 1 } },
+    })),
     getHitTestResults: vi.fn(() => []),
   };
   return { session, frame, init, tick: () => rafCallback?.(16, frame) };
@@ -38,7 +73,11 @@ function mockXR(granted: boolean) {
 function bodyTrait() {
   const node: Record<string, any> = {};
   const emit = vi.fn();
-  const config = { ...bodyTrackingHandler.defaultConfig, source: 'live_self', mode: 'full_body' } as any;
+  const config = {
+    ...bodyTrackingHandler.defaultConfig,
+    source: 'live_self',
+    mode: 'full_body',
+  } as any;
   bodyTrackingHandler.onAttach!(node as any, config, { emit } as any);
   const send = (e: any) => bodyTrackingHandler.onEvent!(node as any, config, { emit } as any, e);
   const names = () => emit.mock.calls.map((c) => c[0]);
@@ -46,7 +85,10 @@ function bodyTrait() {
 }
 
 describe.each([
-  ['runtime/WebXRManager', () => new RuntimeWebXRManager({ device: {}, format: 'bgra8unorm' } as any)],
+  [
+    'runtime/WebXRManager',
+    () => new RuntimeWebXRManager({ device: {}, format: 'bgra8unorm' } as any),
+  ],
   ['vr/WebXRManager', () => new VrWebXRManager()],
 ] as const)('%s: Quest body tracking as a local capture host', (_name, make) => {
   afterEach(() => vi.unstubAllGlobals());
@@ -63,7 +105,10 @@ describe.each([
     const m: any = make();
     const t = bodyTrait();
     const seen: any[] = [];
-    m.onLocalTrackingEvent = (e: any) => { seen.push(e); t.send(e); };
+    m.onLocalTrackingEvent = (e: any) => {
+      seen.push(e);
+      t.send(e);
+    };
     await m.requestSession();
     expect(m.getLocalTracking()).toEqual({ body: true, face: false });
     m.setAnimationLoop(() => {});
@@ -99,7 +144,12 @@ describe.each([
     m.setAnimationLoop(() => {});
     xr.tick();
     expect(seen).toHaveLength(0);
-    t.send({ type: 'body_pose_update', joints: { head: { position: [0, 1.6, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 1 } } });
+    t.send({
+      type: 'body_pose_update',
+      joints: {
+        head: { position: [0, 1.6, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 1 },
+      },
+    });
     expect(t.tracking()).toBe(false);
     expect(t.names()).toContain('avatar_generic_fallback');
   });

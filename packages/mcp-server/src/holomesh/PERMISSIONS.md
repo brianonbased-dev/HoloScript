@@ -119,9 +119,9 @@ All permission denials are logged via `requireTeamAccess()`. To debug access iss
 Founder authority is a property of a **key record in the key registry**, never of
 an environment variable on its own.
 
-| Variable               | What it must contain                                                                                                                                                                                             | Handling                                                                                                                              |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `HOLOMESH_FOUNDER_KEY` | The exact key value that is to hold founder authority. It must also be the value of one of the seedable variables below, or no founder is granted at all.                                                          | Secret. An agent must never set it, echo it, log it, or print its value — report only whether it is set.                               |
+| Variable               | What it must contain                                                                                                                                      | Handling                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `HOLOMESH_FOUNDER_KEY` | The exact key value that is to hold founder authority. It must also be the value of one of the seedable variables below, or no founder is granted at all. | Secret. An agent must never set it, echo it, log it, or print its value — report only whether it is set. |
 
 Seedable key variables: `HOLOSCRIPT_API_KEY`, `HOLOMESH_API_KEY`,
 `COPILOT_HOLOMESH_KEY`, `GEMINI_HOLOMESH_KEY`.

@@ -649,10 +649,14 @@ describe('the Postgres retirement SQL keeps every protective clause', () => {
       params.push(values ?? []);
       return { rows: [], rowCount: 0 };
     });
-    return { store: new PostgresTokenStore(
-      // pg.Pool also lends a client (the lock-bounded DDL transaction uses one).
-      { query, connect: async () => ({ query, release: () => undefined }) } as unknown as Pool
-    ), sql, params };
+    return {
+      store: new PostgresTokenStore(
+        // pg.Pool also lends a client (the lock-bounded DDL transaction uses one).
+        { query, connect: async () => ({ query, release: () => undefined }) } as unknown as Pool
+      ),
+      sql,
+      params,
+    };
   }
 
   it('retires only rows with no token of any kind, idle and registered before the cutoff, re-checked at delete', async () => {
@@ -692,7 +696,9 @@ describe('the Postgres retirement SQL keeps every protective clause', () => {
 
     // The lock-bounded no_client_credentials DDL runs as its own transaction.
     const [schema, touch, upsert] = sql.filter(
-      (q) => !/^(BEGIN|COMMIT|ROLLBACK|SET LOCAL lock_timeout)/.test(q) && !/no_client_credentials BOOLEAN/.test(q)
+      (q) =>
+        !/^(BEGIN|COMMIT|ROLLBACK|SET LOCAL lock_timeout)/.test(q) &&
+        !/no_client_credentials BOOLEAN/.test(q)
     );
     expect(schema).toMatch(
       /ALTER TABLE oauth_clients ADD COLUMN IF NOT EXISTS last_used_at BIGINT NOT NULL DEFAULT/

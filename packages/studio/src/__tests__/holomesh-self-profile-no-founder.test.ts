@@ -26,7 +26,12 @@ function mockUpstream() {
       if (u.endsWith('/api/holomesh/me')) {
         if (auth === `Bearer ${SERVER_KEY}`) return Response.json(FOUNDER);
         if (auth === 'Bearer user-key') {
-          return Response.json({ success: true, agentId: 'agent_user', name: 'Builder', wallet: null });
+          return Response.json({
+            success: true,
+            agentId: 'agent_user',
+            name: 'Builder',
+            wallet: null,
+          });
         }
         return Response.json({ error: 'Authentication required' }, { status: 401 });
       }

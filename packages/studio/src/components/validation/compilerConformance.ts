@@ -36,7 +36,6 @@ interface ParseIssue {
 
 const MAX_LISTED = 5;
 
-
 /**
  * Same folding as packages/core/src/validation/TraitName.ts (HS1006 / HS1011).
  * TraitName.ts is not on this base yet (lands with the unknown-trait series), so
@@ -137,9 +136,8 @@ export function evaluateCompilerRules(source: string): CompilerConformance {
       const result = new HoloScriptPlusParser().parse(source) as {
         errors?: Array<string | { message?: string; line?: number }>;
       };
-      issues = (result.errors ?? []).map(
-        (e: string | { message?: string; line?: number }) =>
-          typeof e === 'string' ? { message: e } : { message: String(e.message ?? e), line: e.line }
+      issues = (result.errors ?? []).map((e: string | { message?: string; line?: number }) =>
+        typeof e === 'string' ? { message: e } : { message: String(e.message ?? e), line: e.line }
       );
     }
   } catch (err) {

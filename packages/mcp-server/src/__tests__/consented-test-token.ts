@@ -119,7 +119,9 @@ export async function consentedGrant(
     status: issued.status,
     body: issued.body,
     clientId,
-    granted: String(issued.body.scope ?? '').split(' ').filter(Boolean),
+    granted: String(issued.body.scope ?? '')
+      .split(' ')
+      .filter(Boolean),
   };
 }
 

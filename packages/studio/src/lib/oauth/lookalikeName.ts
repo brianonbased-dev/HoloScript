@@ -32,17 +32,61 @@ export const PROTECTED_APP_NAMES: readonly string[] = [
 
 const CONFUSABLES: Record<string, string> = {
   // Cyrillic
-  а: 'a', в: 'b', е: 'e', ё: 'e', к: 'k', м: 'm', н: 'h', о: 'o', р: 'p', с: 'c', т: 't', у: 'y',
-  х: 'x', і: 'i', ї: 'i', ј: 'j', ѕ: 's', ԁ: 'd', ӏ: 'l', ԛ: 'q', ԝ: 'w', һ: 'h', ɡ: 'g',
+  а: 'a',
+  в: 'b',
+  е: 'e',
+  ё: 'e',
+  к: 'k',
+  м: 'm',
+  н: 'h',
+  о: 'o',
+  р: 'p',
+  с: 'c',
+  т: 't',
+  у: 'y',
+  х: 'x',
+  і: 'i',
+  ї: 'i',
+  ј: 'j',
+  ѕ: 's',
+  ԁ: 'd',
+  ӏ: 'l',
+  ԛ: 'q',
+  ԝ: 'w',
+  һ: 'h',
+  ɡ: 'g',
   // Greek
-  α: 'a', β: 'b', ε: 'e', η: 'n', ι: 'i', κ: 'k', ν: 'v', ο: 'o', ρ: 'p', τ: 't', υ: 'u', χ: 'x',
+  α: 'a',
+  β: 'b',
+  ε: 'e',
+  η: 'n',
+  ι: 'i',
+  κ: 'k',
+  ν: 'v',
+  ο: 'o',
+  ρ: 'p',
+  τ: 't',
+  υ: 'u',
+  χ: 'x',
   // digits and symbols
-  '0': 'o', '1': 'l', '3': 'e', '4': 'a', '5': 's', '7': 't', $: 's', '@': 'a', '|': 'l', '!': 'l',
+  '0': 'o',
+  '1': 'l',
+  '3': 'e',
+  '4': 'a',
+  '5': 's',
+  '7': 't',
+  $: 's',
+  '@': 'a',
+  '|': 'l',
+  '!': 'l',
 };
 
 export function nameSkeleton(name: string): string {
   let s = String(name ?? '').normalize('NFKC');
-  s = s.normalize('NFKD').replace(/\p{M}+/gu, '').toLowerCase();
+  s = s
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase();
   s = Array.from(s, (ch) => CONFUSABLES[ch] ?? ch).join('');
   s = s.replace(/[^a-z]/g, '');
   s = s.replace(/rn/g, 'm').replace(/vv/g, 'w').replace(/i/g, 'l');
@@ -55,7 +99,9 @@ export function lookalikeOf(name: string | null | undefined): string | null {
   const skel = nameSkeleton(name);
   if (!skel) return null;
   // Longest first so "HoloScript Studio" wins over "HoloScript".
-  const sorted = [...PROTECTED_APP_NAMES].sort((a, b) => nameSkeleton(b).length - nameSkeleton(a).length);
+  const sorted = [...PROTECTED_APP_NAMES].sort(
+    (a, b) => nameSkeleton(b).length - nameSkeleton(a).length
+  );
   for (const p of sorted) {
     const ps = nameSkeleton(p);
     if (ps && skel.includes(ps)) return p;

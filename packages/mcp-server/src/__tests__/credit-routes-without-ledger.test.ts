@@ -129,8 +129,7 @@ beforeAll(async () => {
   });
 
   globalThis.fetch = (async (input: Parameters<typeof fetch>[0], init?: RequestInit) => {
-    const href =
-      typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const href = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
     const { hostname, origin } = new URL(href);
     if (!['127.0.0.1', 'localhost', '[::1]', '::1'].includes(hostname)) {
       offMachine.push(origin);

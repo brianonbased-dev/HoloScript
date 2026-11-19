@@ -41,7 +41,13 @@ function upstreamRows(): Array<Record<string, unknown>> {
       workspace_id: 'ws',
       metadata: { price: 0.05, filePath: 'src/paid.ts', symbolType: 'function' },
     },
-    { id: 'ap-short', type: 'gotcha', content: SHORT_SECRET, workspace_id: 'ws', metadata: { price: 0.05 } },
+    {
+      id: 'ap-short',
+      type: 'gotcha',
+      content: SHORT_SECRET,
+      workspace_id: 'ws',
+      metadata: { price: 0.05 },
+    },
     { id: 'af-free', type: 'wisdom', content: FREE_TEXT, workspace_id: 'ws', metadata: {} },
   ];
 }
@@ -89,7 +95,9 @@ describe('knowledge rows leaving this package (doors audit)', () => {
 
   it('holo_resolve_symbol returns federated premium rows as teasers', async () => {
     resetCodebaseToolStateForTests();
-    const out = await handleCodebaseTool('holo_resolve_symbol', { symbolName: 'paidPatternSymbol' });
+    const out = await handleCodebaseTool('holo_resolve_symbol', {
+      symbolName: 'paidPatternSymbol',
+    });
 
     expect(stand.urls.some((u) => u.endsWith('/knowledge/query'))).toBe(true);
     const text = JSON.stringify(out);
@@ -145,7 +153,12 @@ describe('knowledge_query when the premium charge does not go through (doors aud
   }
 
   it('a paid-tier caller whose charge fails gets what a free caller gets', async () => {
-    const out = await handleKnowledgeToolCall('knowledge_query', { search: 'tip' }, deps(false), 'caller-1');
+    const out = await handleKnowledgeToolCall(
+      'knowledge_query',
+      { search: 'tip' },
+      deps(false),
+      'caller-1'
+    );
     const text = out.content[0].text;
 
     expect(text).toContain(FREE_TEXT);
@@ -154,7 +167,12 @@ describe('knowledge_query when the premium charge does not go through (doors aud
   });
 
   it('positive control: when the charge goes through, the paying caller reads the entry', async () => {
-    const out = await handleKnowledgeToolCall('knowledge_query', { search: 'tip' }, deps(true), 'caller-1');
+    const out = await handleKnowledgeToolCall(
+      'knowledge_query',
+      { search: 'tip' },
+      deps(true),
+      'caller-1'
+    );
     expect(out.content[0].text).toContain(SHORT_SECRET);
   });
 });

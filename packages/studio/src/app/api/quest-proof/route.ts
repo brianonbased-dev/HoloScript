@@ -75,7 +75,10 @@ function receiptsFile(runId: string): string {
 async function appendReceipt(receipt: QuestProofReceipt): Promise<'ok' | 'full'> {
   const file = receiptsFile(receipt.runId);
   await mkdir(path.dirname(file), { recursive: true });
-  const size = await stat(file).then((s) => s.size, () => 0);
+  const size = await stat(file).then(
+    (s) => s.size,
+    () => 0
+  );
   if (size >= QUEST_PROOF_MAX_RUN_FILE_BYTES) return 'full';
   await appendFile(file, `${JSON.stringify(receipt)}\n`, 'utf8');
   return 'ok';
@@ -106,7 +109,10 @@ function tooLarge() {
 }
 
 function runFull() {
-  return NextResponse.json({ ok: false, error: 'This run has reached its receipt limit' }, { status: 507 });
+  return NextResponse.json(
+    { ok: false, error: 'This run has reached its receipt limit' },
+    { status: 507 }
+  );
 }
 
 function tokenFrom(req: NextRequest): string | null {

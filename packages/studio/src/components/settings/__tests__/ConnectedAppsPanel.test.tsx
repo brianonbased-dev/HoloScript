@@ -36,11 +36,14 @@ describe('ConnectedAppsPanel', () => {
   });
 
   it('warns when an app name mimics HoloScript or a known app (confusables folded)', async () => {
-    fetchMock.mockImplementation(async () =>
-      new Response(
-        JSON.stringify({ grants: [{ ...grant, id: 'grant_2', client_name: 'HoIoScript Officiаl' }] }),
-        { status: 200 }
-      )
+    fetchMock.mockImplementation(
+      async () =>
+        new Response(
+          JSON.stringify({
+            grants: [{ ...grant, id: 'grant_2', client_name: 'HoIoScript Officiаl' }],
+          }),
+          { status: 200 }
+        )
     );
     render(<ConnectedAppsPanel />);
     expect(await screen.findByText(/Looks like HoloScript, but not verified/)).toBeTruthy();

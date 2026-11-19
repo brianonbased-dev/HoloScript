@@ -27,7 +27,12 @@ const rows = [
     metadata: { price: 0.05, authorId: 'someone', title: `Title ${PAID_TAIL}` },
   },
   { id: 'q-short', type: 'gotcha', content: SHORT_SECRET, metadata: { price: 0.05 } },
-  { id: 'q-free', type: 'wisdom', content: 'Free query wisdom stays whole', metadata: { price: 0 } },
+  {
+    id: 'q-free',
+    type: 'wisdom',
+    content: 'Free query wisdom stays whole',
+    metadata: { price: 0 },
+  },
 ];
 
 let calls: Array<{ url: string; body: Record<string, unknown> }> = [];

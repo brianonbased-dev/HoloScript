@@ -55,18 +55,27 @@ describe('strict reports an unknown trait exactly once', () => {
     declaredTraitNames: parser.declaredTraitNames,
   };
   it('@nope_xyz -> one HS1006, no HS1008 copy', () => {
-    const d = analyze('object Cube { @nope_xyz }', deps).diagnostics as { code: string; message: string }[];
+    const d = analyze('object Cube { @nope_xyz }', deps).diagnostics as {
+      code: string;
+      message: string;
+    }[];
     const about = d.filter((x) => /nope_xyz/.test(x.message));
     expect(about.map((x) => x.code)).toEqual(['HS1006']);
   });
   it('without a trait vocabulary, the parser copy is kept once as HS1006', () => {
     const { isKnownTrait: _k, declaredTraitNames: _d, ...noVocab } = deps;
-    const d = analyze('object Cube { @nope_xyz }', noVocab).diagnostics as { code: string; message: string }[];
+    const d = analyze('object Cube { @nope_xyz }', noVocab).diagnostics as {
+      code: string;
+      message: string;
+    }[];
     expect(d.filter((x) => /nope_xyz/.test(x.message)).map((x) => x.code)).toEqual(['HS1006']);
   });
   it('caps its own HS1006 at 100 plus one summary: 20k unknown traits -> 101 diagnostics, small JSON', () => {
     const body = Array.from({ length: 20000 }, (_, i) => `  @nope_unknown_trait_${i}`).join('\n');
-    const d = analyze(`object Big {\n${body}\n}\n`, deps).diagnostics as { code: string; message: string }[];
+    const d = analyze(`object Big {\n${body}\n}\n`, deps).diagnostics as {
+      code: string;
+      message: string;
+    }[];
     expect(MAX_UNKNOWN_TRAIT_DIAGNOSTICS).toBe(MAX_UNKNOWN_TRAIT_WARNINGS);
     expect(d.length).toBe(101);
     expect(d.every((x) => x.code === 'HS1006')).toBe(true);
@@ -74,4 +83,3 @@ describe('strict reports an unknown trait exactly once', () => {
     expect(JSON.stringify(d).length).toBeLessThan(50_000);
   });
 });
-

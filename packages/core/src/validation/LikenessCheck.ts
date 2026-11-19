@@ -78,7 +78,11 @@ type NodeLike = Record<string, unknown> & { loc?: { start?: unknown }; traits?: 
 const normalize = normalizeTraitName;
 
 /** Every name this check gates, as written in its tables. */
-const GATED_NAMES = [...Object.keys(LIKENESS_SOURCES), ...Object.keys(SOURCE_GATED_TRACKING), 'avatar_embodiment'];
+const GATED_NAMES = [
+  ...Object.keys(LIKENESS_SOURCES),
+  ...Object.keys(SOURCE_GATED_TRACKING),
+  'avatar_embodiment',
+];
 
 /**
  * The likeness or source-gated trait `name` is a spelling of (TraitName.resolveTraitName, the
@@ -156,12 +160,14 @@ export function checkLikeness(ast: unknown, consentRules?: ConsentRules | null):
       // Trust: gate on whose likeness the avatar carries (traits/AvatarLikeness.ts, shared with
       // the runtime). Synthetic avatars are exempt for any source.
       const value = trait.config ? trait.config.tracking_source : undefined;
-      const siblings = (Array.isArray(owner?.traits) ? (owner!.traits as TraitLike[]) : []).map((t) => t?.name);
+      const siblings = (Array.isArray(owner?.traits) ? (owner!.traits as TraitLike[]) : []).map(
+        (t) => t?.name
+      );
       if (!avatarEmbodimentNeedsGrant(value, carriesRealLikeness(siblings))) continue;
       source = 'body';
       tracking =
         value === undefined
-          ? ' (no tracking_source on an avatar that carries a real person\'s likeness)'
+          ? " (no tracking_source on an avatar that carries a real person's likeness)"
           : ` (tracking_source ${JSON.stringify(value)} carries a real person's likeness)`;
     }
     if (!source) continue;

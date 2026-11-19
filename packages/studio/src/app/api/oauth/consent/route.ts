@@ -24,7 +24,6 @@ export const dynamic = 'force-dynamic';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
-
 async function readForm(req: NextRequest): Promise<Record<string, string>> {
   const ct = (req.headers.get('content-type') || '').toLowerCase();
   if (ct.includes('application/json')) {
@@ -109,7 +108,13 @@ export async function POST(req: NextRequest) {
   if (decision === 'approve') {
     studioConsent = mintStudioConsentFor(userId, params) ?? undefined;
     if (!studioConsent) {
-      return fail(req, form, 503, 'consent_unavailable', 'Studio consent signing is not configured.');
+      return fail(
+        req,
+        form,
+        503,
+        'consent_unavailable',
+        'Studio consent signing is not configured.'
+      );
     }
   }
 

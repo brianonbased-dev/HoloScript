@@ -165,19 +165,19 @@ export class PostgresTokenStore implements TokenStoreBackend {
         .query(SCHEMA_SQL)
         .then(() => runLockBoundedDdl(this.pool, NO_CLIENT_CREDENTIALS_DDL))
         .then(
-        () => {
-          // schema ensured
-        },
-        (err: unknown) => {
-          // Forget the failure so the next call tries again. Cached, one
-          // database blip at boot failed every store call until a restart.
-          // Registration now refuses when the store fails, rather than handing
-          // out a client that dies at the next deploy, so a sticky failure
-          // would have turned that blip into a registration outage.
-          this.schemaReady = null;
-          throw err;
-        }
-      );
+          () => {
+            // schema ensured
+          },
+          (err: unknown) => {
+            // Forget the failure so the next call tries again. Cached, one
+            // database blip at boot failed every store call until a restart.
+            // Registration now refuses when the store fails, rather than handing
+            // out a client that dies at the next deploy, so a sticky failure
+            // would have turned that blip into a registration outage.
+            this.schemaReady = null;
+            throw err;
+          }
+        );
     }
     return this.schemaReady;
   }

@@ -14,7 +14,20 @@ const setup = (handler: any, source?: string) => {
 };
 const POSE = { position: [0, 1.7, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 1 };
 const JOINTS = Object.fromEntries(
-  ['head', 'neck', 'spine_chest', 'spine_mid', 'shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right', 'wrist_left', 'wrist_right', 'hand_left', 'hand_right'].map((j) => [j, POSE])
+  [
+    'head',
+    'neck',
+    'spine_chest',
+    'spine_mid',
+    'shoulder_left',
+    'shoulder_right',
+    'elbow_left',
+    'elbow_right',
+    'wrist_left',
+    'wrist_right',
+    'hand_left',
+    'hand_right',
+  ].map((j) => [j, POSE])
 );
 const events = (emit: any) => emit.mock.calls.map((c: any[]) => c[0]);
 
@@ -31,8 +44,20 @@ describe('LocalCapture handles', () => {
 });
 
 describe.each([
-  ['face_tracking', faceTrackingHandler, 'face', { type: 'face_data_update', blendShapes: { jawOpen: 0.5 } }, 'face_expression_update'],
-  ['body_tracking', bodyTrackingHandler, 'body', { type: 'body_pose_update', joints: JOINTS }, 'body_pose_changed'],
+  [
+    'face_tracking',
+    faceTrackingHandler,
+    'face',
+    { type: 'face_data_update', blendShapes: { jawOpen: 0.5 } },
+    'face_expression_update',
+  ],
+  [
+    'body_tracking',
+    bodyTrackingHandler,
+    'body',
+    { type: 'body_pose_update', joints: JOINTS },
+    'body_pose_changed',
+  ],
 ] as const)('%s runtime: live_self needs a local capture', (_n, handler, kind, event, applied) => {
   it('declared live_self, no capture handle: refused, generic avatar fallback', () => {
     const t = setup(handler, 'live_self');
@@ -53,7 +78,9 @@ describe.each([
     const h = openLocalCapture(kind, 'device');
     t.send({ ...event, capture: h });
     expect(events(t.emit)).not.toContain('avatar_generic_fallback');
-    expect((t.node as any)[kind === 'face' ? '__faceTrackingState' : '__bodyTrackingState'].isTracking).toBe(true);
+    expect(
+      (t.node as any)[kind === 'face' ? '__faceTrackingState' : '__bodyTrackingState'].isTracking
+    ).toBe(true);
     closeLocalCapture(h);
     t.send({ ...event, capture: h });
     expect(events(t.emit)).toContain('avatar_generic_fallback');

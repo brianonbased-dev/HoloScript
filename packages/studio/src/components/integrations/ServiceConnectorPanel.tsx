@@ -126,7 +126,8 @@ const SERVICE_CONFIGS: Record<
     id: 'appstore',
     name: 'App Store',
     icon: Package,
-    description: 'Validate App Store Connect / Google Play credentials (connection + health check only)',
+    description:
+      'Validate App Store Connect / Google Play credentials (connection + health check only)',
     dashboardUrl: 'https://appstoreconnect.apple.com',
   },
   upstash: {
@@ -336,8 +337,8 @@ function ServiceTabContent({ service }: { service: ServiceConfig }) {
           Configuration
         </legend>
         <p className="text-[10px] text-studio-muted">
-          Secrets are never saved. After a page reload this connector shows Disconnected —
-          re-enter secrets to reconnect.
+          Secrets are never saved. After a page reload this connector shows Disconnected — re-enter
+          secrets to reconnect.
         </p>
         {service.configFields.map((field) => (
           <div key={field.key} className="flex flex-col gap-1">
@@ -496,51 +497,50 @@ export function ServiceConnectorPanel({ onClose }: ServiceConnectorPanelProps) {
   const activities = useConnectorStore((s) => s.activities);
 
   // Build service configs from store data
-  const services: ServiceConfig[] = Object.values(SERVICE_CONFIGS)
-    .map((config) => {
-      const connection = connections[config.id as StoreServiceId];
-      const serviceActivities = activities
-        .filter((a) => a.serviceId === config.id)
-        .map((a) => ({
-          timestamp: new Date(a.timestamp).toLocaleTimeString(),
-          action: a.action,
-          status: a.status,
-        }));
+  const services: ServiceConfig[] = Object.values(SERVICE_CONFIGS).map((config) => {
+    const connection = connections[config.id as StoreServiceId];
+    const serviceActivities = activities
+      .filter((a) => a.serviceId === config.id)
+      .map((a) => ({
+        timestamp: new Date(a.timestamp).toLocaleTimeString(),
+        action: a.action,
+        status: a.status,
+      }));
 
-      // Config fields come from the shared form-field table whose keys match
-      // what POST /api/connectors/connect actually reads (see connectorFormFields).
-      const configFields: ConfigField[] = (
-        CONNECTOR_FORM_FIELDS[config.id as StoreServiceId] ?? []
-      ).map((field) => {
-        const raw = connection?.config?.[field.key];
-        return {
-          key: field.key,
-          label: field.label,
-          type: field.type,
-          placeholder: field.placeholder,
-          helpText: field.helpText,
-          // Never pre-fill the masked echo the API returns for secrets.
-          value: typeof raw === 'string' && raw !== MASKED_SECRET ? raw : '',
-        };
-      });
-
-      // GitHub: the signed-in session counts as connected (session token is
-      // what /api/github/* actually uses). Store connection, when present,
-      // takes precedence so the PAT path keeps its existing UI.
-      const storeStatus = (connection?.status || 'disconnected') as ConnectionStatus;
-      const viaSession =
-        config.id === 'github' && githubSessionConnected && storeStatus !== 'connected';
-
+    // Config fields come from the shared form-field table whose keys match
+    // what POST /api/connectors/connect actually reads (see connectorFormFields).
+    const configFields: ConfigField[] = (
+      CONNECTOR_FORM_FIELDS[config.id as StoreServiceId] ?? []
+    ).map((field) => {
+      const raw = connection?.config?.[field.key];
       return {
-        ...config,
-        status: viaSession ? ('connected' as ConnectionStatus) : storeStatus,
-        connectedAt: connection?.connectedAt,
-        configFields,
-        recentActivity: serviceActivities,
-        viaSession,
-        sessionUsername: config.id === 'github' ? githubUsername : null,
+        key: field.key,
+        label: field.label,
+        type: field.type,
+        placeholder: field.placeholder,
+        helpText: field.helpText,
+        // Never pre-fill the masked echo the API returns for secrets.
+        value: typeof raw === 'string' && raw !== MASKED_SECRET ? raw : '',
       };
     });
+
+    // GitHub: the signed-in session counts as connected (session token is
+    // what /api/github/* actually uses). Store connection, when present,
+    // takes precedence so the PAT path keeps its existing UI.
+    const storeStatus = (connection?.status || 'disconnected') as ConnectionStatus;
+    const viaSession =
+      config.id === 'github' && githubSessionConnected && storeStatus !== 'connected';
+
+    return {
+      ...config,
+      status: viaSession ? ('connected' as ConnectionStatus) : storeStatus,
+      connectedAt: connection?.connectedAt,
+      configFields,
+      recentActivity: serviceActivities,
+      viaSession,
+      sessionUsername: config.id === 'github' ? githubUsername : null,
+    };
+  });
 
   const activeService = services.find((s) => s.id === activeTab);
 

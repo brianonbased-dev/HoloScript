@@ -106,11 +106,9 @@ export async function getStudioSessionUserId(req?: NextRequest): Promise<string 
  * an earlier GitHub sign-in on the same token, so a present `provider` must
  * always win.
  */
-function signedInWithGitHub(identity: {
-  provider?: unknown;
-  githubUsername?: unknown;
-}): boolean {
-  const provider = typeof identity.provider === 'string' ? identity.provider.trim().toLowerCase() : '';
+function signedInWithGitHub(identity: { provider?: unknown; githubUsername?: unknown }): boolean {
+  const provider =
+    typeof identity.provider === 'string' ? identity.provider.trim().toLowerCase() : '';
   if (provider) return provider === 'github';
   const login = typeof identity.githubUsername === 'string' ? identity.githubUsername.trim() : '';
   return login.length > 0;

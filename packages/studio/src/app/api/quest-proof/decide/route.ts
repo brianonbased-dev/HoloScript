@@ -4,7 +4,6 @@ import { holomeshUpstream } from '../_lib/holomeshUpstream';
 
 export const runtime = 'nodejs';
 
-
 const ALLOWED_ACTIONS = new Set(['done']);
 const TASK_ID_RE = /^[a-zA-Z0-9_-]+$/;
 
@@ -41,7 +40,6 @@ export async function POST(req: NextRequest) {
       ? payload.summary.slice(0, 500)
       : 'founder-console decide-all';
   const verificationEvidence = 'founder-console decide-all';
-
 
   const results = await Promise.all(
     taskIds.map(async (taskId) => {

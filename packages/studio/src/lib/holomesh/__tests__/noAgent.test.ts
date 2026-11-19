@@ -11,7 +11,11 @@ describe('noAgent helpers', () => {
     const r = new Response(JSON.stringify({ code: 'no_holomesh_agent' }), { status: 404 });
     expect(await isNoHoloMeshAgentResponse(r)).toBe(true);
     expect(await r.json()).toEqual({ code: 'no_holomesh_agent' });
-    expect(await isNoHoloMeshAgentResponse(new Response(JSON.stringify({ code: 'no_holomesh_agent' }), { status: 500 }))).toBe(false);
+    expect(
+      await isNoHoloMeshAgentResponse(
+        new Response(JSON.stringify({ code: 'no_holomesh_agent' }), { status: 500 })
+      )
+    ).toBe(false);
     expect(await isNoHoloMeshAgentResponse(new Response('nope', { status: 404 }))).toBe(false);
   });
 });

@@ -1176,171 +1176,174 @@ export function ReposTab() {
               </section>
             ) : (
               <>
-            <section className="border-b border-slate-800 p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
-                  <GitPullRequestCreate className="h-4 w-4 text-blue-300" />
-                  Import Repository
-                </div>
-                {activeWorkspace && (
-                  <button
-                    type="button"
-                    onClick={() => setAddRepoOpen(false)}
-                    className="text-[11px] text-slate-500 hover:text-slate-300"
-                  >
-                    Hide
-                  </button>
-                )}
-              </div>
-              <div className="space-y-2">
-                <input
-                  value={repoUrl}
-                  onChange={(event) => setRepoUrl(event.target.value)}
-                  placeholder="https://github.com/owner/repo"
-                  className="h-9 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <input
-                    value={importBranch}
-                    onChange={(event) => setImportBranch(event.target.value)}
-                    placeholder="branch"
-                    className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
-                  />
-                  <input
-                    value={importName}
-                    onChange={(event) => setImportName(event.target.value)}
-                    placeholder="name"
-                    className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void handleImport()}
-                  disabled={!repoUrl.trim() || importing}
-                  className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/15 px-3 text-sm font-medium text-blue-200 transition hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-45"
-                >
-                  {importing ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <UploadCloud className="h-4 w-4" />
-                  )}
-                  Import
-                </button>
-              </div>
-              {workspaceError && <p className="mt-2 text-xs text-rose-300">{workspaceError}</p>}
-            </section>
-
-            {/* Bulk import from the signed-in user's GitHub repos */}
-            <section className="border-b border-slate-800 p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
-                  <ListTree className="h-4 w-4 text-blue-300" />
-                  Your GitHub Repos
-                </div>
-                {selectedRepoUrls.size > 0 && (
-                  <span className="text-xs text-blue-300">{selectedRepoUrls.size} selected</span>
-                )}
-              </div>
-              {!githubRepos.isConnected ? (
-                <p className="text-xs text-slate-500">
-                  Sign in with GitHub to pick repos from your account.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                <section className="border-b border-slate-800 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                      <GitPullRequestCreate className="h-4 w-4 text-blue-300" />
+                      Import Repository
+                    </div>
+                    {activeWorkspace && (
+                      <button
+                        type="button"
+                        onClick={() => setAddRepoOpen(false)}
+                        className="text-[11px] text-slate-500 hover:text-slate-300"
+                      >
+                        Hide
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2">
                     <input
-                      value={githubRepos.search}
-                      onChange={(event) => githubRepos.setSearch(event.target.value)}
-                      placeholder="Filter repos…"
-                      className="h-9 w-full rounded-lg border border-slate-700 bg-slate-900 pl-9 pr-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
+                      value={repoUrl}
+                      onChange={(event) => setRepoUrl(event.target.value)}
+                      placeholder="https://github.com/owner/repo"
+                      className="h-9 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
                     />
-                  </div>
-                  <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-800 bg-slate-900/50 p-1">
-                    {githubRepos.isLoading ? (
-                      <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-500">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading repos…
-                      </div>
-                    ) : githubRepos.error ? (
-                      <p className="px-2 py-3 text-xs text-rose-300">{githubRepos.error}</p>
-                    ) : githubRepos.repos.length === 0 ? (
-                      <p className="px-2 py-3 text-xs text-slate-500">No repos found.</p>
-                    ) : (
-                      githubRepos.repos.map((repo) => {
-                        const normalizedUrl = repo.cloneUrl.toLowerCase().replace(/\.git$/, '');
-                        const alreadyImported = importedRepoKeys.has(normalizedUrl);
-                        const checked = selectedRepoUrls.has(repo.cloneUrl);
-                        return (
-                          <label
-                            key={repo.id}
-                            className={`flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs transition ${
-                              alreadyImported
-                                ? 'cursor-default opacity-50'
-                                : checked
-                                  ? 'bg-blue-500/15 text-blue-100'
-                                  : 'text-slate-300 hover:bg-slate-800/80'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              disabled={alreadyImported || bulkProgress !== null}
-                              onChange={() => toggleRepoSelection(repo.cloneUrl)}
-                              className="h-3.5 w-3.5 accent-blue-500"
-                            />
-                            <span className="min-w-0 flex-1 truncate font-medium">
-                              {repo.fullName}
-                            </span>
-                            {alreadyImported ? (
-                              <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-300">
-                                imported
-                              </span>
-                            ) : (
-                              repo.language && (
-                                <span className="shrink-0 text-[10px] text-slate-500">
-                                  {repo.language}
-                                </span>
-                              )
-                            )}
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void handleBulkImport()}
-                    disabled={selectedRepoUrls.size === 0 || bulkProgress !== null}
-                    className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/15 px-3 text-sm font-medium text-blue-200 transition hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-45"
-                  >
-                    {bulkProgress ? (
-                      <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={importBranch}
+                        onChange={(event) => setImportBranch(event.target.value)}
+                        placeholder="branch"
+                        className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
+                      />
+                      <input
+                        value={importName}
+                        onChange={(event) => setImportName(event.target.value)}
+                        placeholder="name"
+                        className="h-9 rounded-lg border border-slate-700 bg-slate-900 px-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleImport()}
+                      disabled={!repoUrl.trim() || importing}
+                      className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/15 px-3 text-sm font-medium text-blue-200 transition hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-45"
+                    >
+                      {importing ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Importing {bulkProgress.done + 1}/{bulkProgress.total}…
-                      </>
-                    ) : (
-                      <>
+                      ) : (
                         <UploadCloud className="h-4 w-4" />
-                        Import selected ({selectedRepoUrls.size})
-                      </>
+                      )}
+                      Import
+                    </button>
+                  </div>
+                  {workspaceError && <p className="mt-2 text-xs text-rose-300">{workspaceError}</p>}
+                </section>
+
+                {/* Bulk import from the signed-in user's GitHub repos */}
+                <section className="border-b border-slate-800 p-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-100">
+                      <ListTree className="h-4 w-4 text-blue-300" />
+                      Your GitHub Repos
+                    </div>
+                    {selectedRepoUrls.size > 0 && (
+                      <span className="text-xs text-blue-300">
+                        {selectedRepoUrls.size} selected
+                      </span>
                     )}
-                  </button>
-                  {bulkProgress && (
-                    <p className="truncate text-[10px] text-slate-500">{bulkProgress.current}</p>
-                  )}
-                  {bulkErrors.length > 0 && (
-                    <div className="space-y-0.5">
-                      {bulkErrors.map((message) => (
-                        <p key={message} className="text-[10px] text-rose-300">
-                          {message}
+                  </div>
+                  {!githubRepos.isConnected ? (
+                    <p className="text-xs text-slate-500">
+                      Sign in with GitHub to pick repos from your account.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                        <input
+                          value={githubRepos.search}
+                          onChange={(event) => githubRepos.setSearch(event.target.value)}
+                          placeholder="Filter repos…"
+                          className="h-9 w-full rounded-lg border border-slate-700 bg-slate-900 pl-9 pr-3 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-400"
+                        />
+                      </div>
+                      <div className="max-h-48 space-y-1 overflow-y-auto rounded-lg border border-slate-800 bg-slate-900/50 p-1">
+                        {githubRepos.isLoading ? (
+                          <div className="flex items-center justify-center gap-2 py-4 text-xs text-slate-500">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading repos…
+                          </div>
+                        ) : githubRepos.error ? (
+                          <p className="px-2 py-3 text-xs text-rose-300">{githubRepos.error}</p>
+                        ) : githubRepos.repos.length === 0 ? (
+                          <p className="px-2 py-3 text-xs text-slate-500">No repos found.</p>
+                        ) : (
+                          githubRepos.repos.map((repo) => {
+                            const normalizedUrl = repo.cloneUrl.toLowerCase().replace(/\.git$/, '');
+                            const alreadyImported = importedRepoKeys.has(normalizedUrl);
+                            const checked = selectedRepoUrls.has(repo.cloneUrl);
+                            return (
+                              <label
+                                key={repo.id}
+                                className={`flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-xs transition ${
+                                  alreadyImported
+                                    ? 'cursor-default opacity-50'
+                                    : checked
+                                      ? 'bg-blue-500/15 text-blue-100'
+                                      : 'text-slate-300 hover:bg-slate-800/80'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  disabled={alreadyImported || bulkProgress !== null}
+                                  onChange={() => toggleRepoSelection(repo.cloneUrl)}
+                                  className="h-3.5 w-3.5 accent-blue-500"
+                                />
+                                <span className="min-w-0 flex-1 truncate font-medium">
+                                  {repo.fullName}
+                                </span>
+                                {alreadyImported ? (
+                                  <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-300">
+                                    imported
+                                  </span>
+                                ) : (
+                                  repo.language && (
+                                    <span className="shrink-0 text-[10px] text-slate-500">
+                                      {repo.language}
+                                    </span>
+                                  )
+                                )}
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void handleBulkImport()}
+                        disabled={selectedRepoUrls.size === 0 || bulkProgress !== null}
+                        className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-lg border border-blue-500/40 bg-blue-500/15 px-3 text-sm font-medium text-blue-200 transition hover:bg-blue-500/25 disabled:cursor-not-allowed disabled:opacity-45"
+                      >
+                        {bulkProgress ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Importing {bulkProgress.done + 1}/{bulkProgress.total}…
+                          </>
+                        ) : (
+                          <>
+                            <UploadCloud className="h-4 w-4" />
+                            Import selected ({selectedRepoUrls.size})
+                          </>
+                        )}
+                      </button>
+                      {bulkProgress && (
+                        <p className="truncate text-[10px] text-slate-500">
+                          {bulkProgress.current}
                         </p>
-                      ))}
+                      )}
+                      {bulkErrors.length > 0 && (
+                        <div className="space-y-0.5">
+                          {bulkErrors.map((message) => (
+                            <p key={message} className="text-[10px] text-rose-300">
+                              {message}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-            </section>
-
+                </section>
               </>
             )}
 
@@ -1534,24 +1537,20 @@ export function ReposTab() {
                     </h3>
                     {activeWorkspace && (
                       <StatusPill
-                        status={
-                          (() => {
-                            const r = workspaceReadiness(
-                              activeWorkspace,
-                              jobs,
-                              activeWorkspace
-                                ? workspaceGitSnapshots[activeWorkspace.id]
-                                : null
-                            );
-                            return r.ready
-                              ? 'ready'
-                              : r.tone === 'running'
-                                ? 'running'
-                                : r.tone === 'blocked'
-                                  ? 'failed'
-                                  : 'stale';
-                          })()
-                        }
+                        status={(() => {
+                          const r = workspaceReadiness(
+                            activeWorkspace,
+                            jobs,
+                            activeWorkspace ? workspaceGitSnapshots[activeWorkspace.id] : null
+                          );
+                          return r.ready
+                            ? 'ready'
+                            : r.tone === 'running'
+                              ? 'running'
+                              : r.tone === 'blocked'
+                                ? 'failed'
+                                : 'stale';
+                        })()}
                       />
                     )}
                     {activeWorkspace && (
@@ -1929,32 +1928,32 @@ export function ReposTab() {
                                     ? 'completed'
                                     : job.status;
                           return (
-                          <button
-                            key={job.id}
-                            type="button"
-                            onClick={() => {
-                              setSelectedJobId(job.id);
-                              setJobDetailsOpen(false);
-                            }}
-                            className={`grid w-full grid-cols-[minmax(0,1fr)_90px_90px] items-center gap-3 px-3 py-2 text-left text-sm transition ${
-                              selectedJob?.id === job.id ? 'bg-slate-800' : 'hover:bg-slate-900'
-                            }`}
-                          >
-                            <span className="min-w-0">
-                              <span className="block truncate text-slate-100">
-                                {job.status === 'queued' || job.status === 'running'
-                                  ? `What it'll do: ${outcome.headline}`
-                                  : `What it did: ${outcome.headline}`}
+                            <button
+                              key={job.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedJobId(job.id);
+                                setJobDetailsOpen(false);
+                              }}
+                              className={`grid w-full grid-cols-[minmax(0,1fr)_90px_90px] items-center gap-3 px-3 py-2 text-left text-sm transition ${
+                                selectedJob?.id === job.id ? 'bg-slate-800' : 'hover:bg-slate-900'
+                              }`}
+                            >
+                              <span className="min-w-0">
+                                <span className="block truncate text-slate-100">
+                                  {job.status === 'queued' || job.status === 'running'
+                                    ? `What it'll do: ${outcome.headline}`
+                                    : `What it did: ${outcome.headline}`}
+                                </span>
+                                <span className="block truncate text-xs text-slate-500">
+                                  {outcome.honesty ?? job.statusMessage ?? 'queued'}
+                                </span>
                               </span>
-                              <span className="block truncate text-xs text-slate-500">
-                                {outcome.honesty ?? job.statusMessage ?? 'queued'}
+                              <StatusPill status={pillStatus} />
+                              <span className="text-right text-xs text-slate-500">
+                                {outcome.showProgressPercent ? `${job.progress}%` : '—'}
                               </span>
-                            </span>
-                            <StatusPill status={pillStatus} />
-                            <span className="text-right text-xs text-slate-500">
-                              {outcome.showProgressPercent ? `${job.progress}%` : '—'}
-                            </span>
-                          </button>
+                            </button>
                           );
                         })}
                         {workspaceJobs.length === 0 && (

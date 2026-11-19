@@ -19,12 +19,27 @@ vi.mock('@/lib/api-auth', () => ({
 vi.mock('next-auth', () => ({ getServerSession: async () => ({ user: { id: 'not-founder' } }) }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
 
-const ROUTES: Array<{ name: string; load: () => Promise<Record<string, unknown>>; method: 'GET' | 'POST'; body?: unknown }> = [
+const ROUTES: Array<{
+  name: string;
+  load: () => Promise<Record<string, unknown>>;
+  method: 'GET' | 'POST';
+  body?: unknown;
+}> = [
   { name: 'inbox', load: () => import('../inbox/route'), method: 'GET' },
   { name: 'next-actions', load: () => import('../next-actions/route'), method: 'GET' },
-  { name: 'next-actions', load: () => import('../next-actions/route'), method: 'POST', body: { taskId: 't1' } },
+  {
+    name: 'next-actions',
+    load: () => import('../next-actions/route'),
+    method: 'POST',
+    body: { taskId: 't1' },
+  },
   { name: 'board', load: () => import('../board/route'), method: 'GET' },
-  { name: 'decide', load: () => import('../decide/route'), method: 'POST', body: { taskIds: ['t1'] } },
+  {
+    name: 'decide',
+    load: () => import('../decide/route'),
+    method: 'POST',
+    body: { taskIds: ['t1'] },
+  },
 ];
 
 function req(name: string, method: string, body?: unknown) {
@@ -40,7 +55,9 @@ beforeEach(() => {
   vi.resetModules();
   vi.stubEnv('HOLOMESH_TEAM_ID', 'team_test');
   vi.stubEnv('HOLOMESH_API_KEY', 'test-key');
-  fetchMock = vi.fn(async () => new Response(JSON.stringify({ tasks: [], items: [] }), { status: 200 }));
+  fetchMock = vi.fn(
+    async () => new Response(JSON.stringify({ tasks: [], items: [] }), { status: 200 })
+  );
   vi.stubGlobal('fetch', fetchMock);
 });
 afterEach(() => {
@@ -51,7 +68,10 @@ afterEach(() => {
 
 describe('Founder Console readers are founder-only', () => {
   for (const r of ROUTES) {
-    for (const [status, label] of [[401, 'signed out'], [403, 'non-founder']] as const) {
+    for (const [status, label] of [
+      [401, 'signed out'],
+      [403, 'non-founder'],
+    ] as const) {
       it(`${r.method} ${r.name}: ${label} -> ${status}, no upstream call`, async () => {
         h.res = NextResponse.json({ error: label }, { status });
         const handler = (await r.load())[r.method] as (q: NextRequest) => Promise<Response>;
