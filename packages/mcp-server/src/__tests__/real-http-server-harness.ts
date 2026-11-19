@@ -176,7 +176,8 @@ export async function bootRealHttpServer(options: {
   }
 
   // Muse Gap 9: a tools:* login needs a human's consent (see consented-test-token.ts).
-  const tokenWithScope: RealHttpServer['tokenWithScope'] = (scope) => consentedToken(request, scope);
+  const tokenWithScope: RealHttpServer['tokenWithScope'] = (scope) =>
+    consentedToken(request, scope);
 
   return { port, request, tokenWithScope };
 }

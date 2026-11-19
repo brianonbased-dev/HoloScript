@@ -73,8 +73,7 @@ vi.mock('../../db/client', () => ({ getDb: () => stand.db }));
  */
 vi.mock('@/lib/api-auth', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../api-auth')>()),
-  requireAuth: async () =>
-    NextResponse.json({ error: 'Authentication required' }, { status: 401 }),
+  requireAuth: async () => NextResponse.json({ error: 'Authentication required' }, { status: 401 }),
 }));
 
 import { fetchHoloMeshJson } from '../holomesh-proxy';
@@ -153,7 +152,8 @@ async function upstream(url: string, init?: RequestInit): Promise<Response> {
     if (stand.state.entryMissing) return reply({ error: 'not found' }, 404);
     return reply({ success: true, entry: upstreamRows()[0] });
   }
-  if (url.includes('/api/holomesh/search')) return reply({ success: true, results: upstreamRows() });
+  if (url.includes('/api/holomesh/search'))
+    return reply({ success: true, results: upstreamRows() });
   return reply({ success: true, entries: upstreamRows() });
 }
 
@@ -236,7 +236,10 @@ describe('Studio relays of HoloMesh answers (doors audit)', () => {
   });
 
   it('GET /api/holomesh/knowledge/catalog: cache rows and the live fallback give teasers', async () => {
-    stand.state.rows = [cacheRow('sp-short', SHORT_SECRET, true), cacheRow('sf-free', FREE_TEXT, false)];
+    stand.state.rows = [
+      cacheRow('sp-short', SHORT_SECRET, true),
+      cacheRow('sf-free', FREE_TEXT, false),
+    ];
     const cached = await catalogGet(visitor('/api/holomesh/knowledge/catalog'));
     const cachedBody = await cached.json();
     expect(cachedBody.entries).toHaveLength(2);
@@ -328,7 +331,7 @@ describe('Studio relays of HoloMesh answers (doors audit)', () => {
     expect(stand.state.calls).toHaveLength(0);
   });
 
-  it("POST /api/holomesh/marketplace/sync still stores premium entries as teasers for a caller who may call it", async () => {
+  it('POST /api/holomesh/marketplace/sync still stores premium entries as teasers for a caller who may call it', async () => {
     // The premium guarantee this suite exists to prove, now exercised through
     // the door rather than around it: the caller runs under their OWN key.
     const res = await syncPost(

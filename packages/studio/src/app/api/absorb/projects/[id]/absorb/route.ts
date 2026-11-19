@@ -1,4 +1,3 @@
-
 export const maxDuration = 300;
 
 import * as path from 'path';

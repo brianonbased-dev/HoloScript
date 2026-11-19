@@ -358,7 +358,7 @@ describe('defaultPricerForProvider', () => {
     ).toThrowError(/No OpenRouter pricing configured/);
   });
 
-  it('bills an unrecognized provider through the Anthropic table, but never at Claude\'s cache discount', () => {
+  it("bills an unrecognized provider through the Anthropic table, but never at Claude's cache discount", () => {
     expect(defaultPricerForProvider('openai')).toBe(defaultOpenAIPricer);
     // Same rates as the Anthropic table (no cache fields: the plain formula) ...
     const plain = { promptTokens: 1_000, completionTokens: 100, totalTokens: 1_100 };
@@ -368,10 +368,9 @@ describe('defaultPricerForProvider', () => {
     );
     // ... but a cached read is billed at full input, not at Claude's 0.1.
     const cached = { ...plain, cacheReadTokens: 800 };
-    expect(defaultPricerForProvider('some-future-provider')('claude-haiku-4-5', cached)).toBeCloseTo(
-      (1_000 * 1 + 100 * 5) / 1_000_000,
-      12
-    );
+    expect(
+      defaultPricerForProvider('some-future-provider')('claude-haiku-4-5', cached)
+    ).toBeCloseTo((1_000 * 1 + 100 * 5) / 1_000_000, 12);
   });
 });
 
@@ -554,9 +553,21 @@ describe('cache fields survive aggregation (qf65)', () => {
     expect(typeof mod.addTokenUsage).toBe('function');
     const sum = mod.addTokenUsage(
       { promptTokens: 1000, completionTokens: 50, totalTokens: 1050, cacheReadTokens: 800 },
-      { promptTokens: 500, completionTokens: 25, totalTokens: 525, cacheReadTokens: 400, cacheWriteTokens: 100 }
+      {
+        promptTokens: 500,
+        completionTokens: 25,
+        totalTokens: 525,
+        cacheReadTokens: 400,
+        cacheWriteTokens: 100,
+      }
     );
-    expect(sum).toEqual({ promptTokens: 1500, completionTokens: 75, totalTokens: 1575, cacheReadTokens: 1200, cacheWriteTokens: 100 });
+    expect(sum).toEqual({
+      promptTokens: 1500,
+      completionTokens: 75,
+      totalTokens: 1575,
+      cacheReadTokens: 1200,
+      cacheWriteTokens: 100,
+    });
     const plain = mod.addTokenUsage(
       { promptTokens: 10, completionTokens: 1, totalTokens: 11 },
       { promptTokens: 20, completionTokens: 2, totalTokens: 22 }
@@ -573,22 +584,42 @@ describe('cache fields survive aggregation (qf65)', () => {
 });
 
 describe('per-provider cache policies (o3gp)', () => {
-  const cachedPrompt = { promptTokens: 1000, completionTokens: 100, totalTokens: 1100, cacheReadTokens: 800 };
+  const cachedPrompt = {
+    promptTokens: 1000,
+    completionTokens: 100,
+    totalTokens: 1100,
+    cacheReadTokens: 800,
+  };
 
   it('OpenAI bills a cached read at full input (its discount runs down to none by model), never at the Claude tenth', () => {
     // gpt-5.6: $5 in / $30 out. 200 uncached + 800 cached at full input + 100 out.
-    expect(defaultOpenAIPricer('gpt-5.6', cachedPrompt)).toBeCloseTo((200 * 5 + 800 * 5 * 1 + 100 * 30) / 1_000_000, 12);
+    expect(defaultOpenAIPricer('gpt-5.6', cachedPrompt)).toBeCloseTo(
+      (200 * 5 + 800 * 5 * 1 + 100 * 30) / 1_000_000,
+      12
+    );
   });
 
   it('xAI bills a cached read at a quarter of the input rate', () => {
     // grok-4.3: $1.25 in / $2.50 out.
-    expect(defaultXAIPricer('grok-4.3', cachedPrompt)).toBeCloseTo((200 * 1.25 + 800 * 1.25 * 0.25 + 100 * 2.5) / 1_000_000, 12);
+    expect(defaultXAIPricer('grok-4.3', cachedPrompt)).toBeCloseTo(
+      (200 * 1.25 + 800 * 1.25 * 0.25 + 100 * 2.5) / 1_000_000,
+      12
+    );
   });
 
   it('Anthropic bills reads at 0.1x and writes at the 1-hour 2x', () => {
     // claude-haiku-4-5: $1 in / $5 out. 100 uncached + 100 written + 800 read.
-    const usage = { promptTokens: 1000, completionTokens: 0, totalTokens: 1000, cacheReadTokens: 800, cacheWriteTokens: 100 };
-    expect(defaultAnthropicPricer('claude-haiku-4-5', usage)).toBeCloseTo((100 * 1 + 100 * 1 * 2 + 800 * 1 * 0.1) / 1_000_000, 12);
+    const usage = {
+      promptTokens: 1000,
+      completionTokens: 0,
+      totalTokens: 1000,
+      cacheReadTokens: 800,
+      cacheWriteTokens: 100,
+    };
+    expect(defaultAnthropicPricer('claude-haiku-4-5', usage)).toBeCloseTo(
+      (100 * 1 + 100 * 1 * 2 + 800 * 1 * 0.1) / 1_000_000,
+      12
+    );
   });
 
   it('an unknown provider and OpenRouter bill the cache at full input and writes at 2x (fail closed); Gemini at a quarter', async () => {
@@ -601,7 +632,9 @@ describe('per-provider cache policies (o3gp)', () => {
     expect(mod.cachePolicyFor('openai')).toEqual({ write: 1.25, read: 1 });
     expect(mod.cachePolicyFor('anthropic')).toEqual({ write: 2, read: 0.1 });
     // The shared pricer honours the policy it is handed.
-    expect(mod.priceUsageWithCacheSplit(cachedPrompt, { input: 2, output: 4 }, mod.CACHE_POLICIES.gemini)).toBeCloseTo((200 * 2 + 800 * 2 * 0.25 + 100 * 4) / 1_000_000, 12);
+    expect(
+      mod.priceUsageWithCacheSplit(cachedPrompt, { input: 2, output: 4 }, mod.CACHE_POLICIES.gemini)
+    ).toBeCloseTo((200 * 2 + 800 * 2 * 0.25 + 100 * 4) / 1_000_000, 12);
   });
 });
 
@@ -610,21 +643,34 @@ describe('per-provider cache policies (o3gp)', () => {
 // shared pricer's default, both ceiling fallbacks, every provider billed through the Anthropic
 // table, and the supervisor (pricer unset for every paid provider). Measured on OpenAI traffic,
 // 200k prompt with 196k cached: o1's real bill 1.548 USD, the guard 0.251.
-describe('no path bills another provider at Claude\'s cache discount (claude2 review of #321)', () => {
-  const cachedPrompt = { promptTokens: 1000, completionTokens: 100, totalTokens: 1100, cacheReadTokens: 800 };
+describe("no path bills another provider at Claude's cache discount (claude2 review of #321)", () => {
+  const cachedPrompt = {
+    promptTokens: 1000,
+    completionTokens: 100,
+    totalTokens: 1100,
+    cacheReadTokens: 800,
+  };
 
   it('the shared pricer bills the cache fail-closed when a caller passes no policy at runtime', () => {
-    expect(priceUsageWithCacheSplit(cachedPrompt, { input: 2, output: 4 }, undefined as never)).toBeCloseTo(
-      (200 * 2 + 800 * 2 * 1 + 100 * 4) / 1_000_000,
-      12
-    );
+    expect(
+      priceUsageWithCacheSplit(cachedPrompt, { input: 2, output: 4 }, undefined as never)
+    ).toBeCloseTo((200 * 2 + 800 * 2 * 1 + 100 * 4) / 1_000_000, 12);
   });
 
   it('a provider billed through the Anthropic table prices the cache at its own policy', () => {
     const haiku = (read: number) => (200 * 1 + 800 * 1 * read + 100 * 5) / 1_000_000;
-    expect(defaultPricerForProvider('anthropic')('claude-haiku-4-5', cachedPrompt)).toBeCloseTo(haiku(0.1), 12);
-    expect(defaultPricerForProvider('gemini')('claude-haiku-4-5', cachedPrompt)).toBeCloseTo(haiku(0.25), 12);
-    expect(defaultPricerForProvider('sovereign')('claude-haiku-4-5', cachedPrompt)).toBeCloseTo(haiku(1), 12);
+    expect(defaultPricerForProvider('anthropic')('claude-haiku-4-5', cachedPrompt)).toBeCloseTo(
+      haiku(0.1),
+      12
+    );
+    expect(defaultPricerForProvider('gemini')('claude-haiku-4-5', cachedPrompt)).toBeCloseTo(
+      haiku(0.25),
+      12
+    );
+    expect(defaultPricerForProvider('sovereign')('claude-haiku-4-5', cachedPrompt)).toBeCloseTo(
+      haiku(1),
+      12
+    );
   });
 
   it('the ceiling fallback bills a cached OpenAI prompt above its real bill (the measured case)', () => {

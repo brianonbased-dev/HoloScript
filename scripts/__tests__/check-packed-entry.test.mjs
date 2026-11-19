@@ -22,35 +22,60 @@ const run = (dir, cwd) => spawnSync(process.execPath, [script, dir], { encoding:
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 test('fails when main is declared but not packed (linter 6.1.1 shape)', () => {
-  const dir = fixture({ name: 'fx-bad', main: 'dist/index.js', types: 'dist/index.d.ts', files: ['dist'] },
-    ['dist/index.mjs', 'dist/index.d.ts']);
+  const dir = fixture(
+    { name: 'fx-bad', main: 'dist/index.js', types: 'dist/index.d.ts', files: ['dist'] },
+    ['dist/index.mjs', 'dist/index.d.ts']
+  );
   try {
     const r = run(dir);
     assert.equal(r.status, 1);
     assert.match(r.stderr, /lacks declared entry: dist\/index\.js/);
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('fails when an exports target or bin is missing', () => {
-  const dir = fixture({ name: 'fx-exp', main: 'dist/index.js', bin: { x: './bin/x.cjs' },
-    exports: { '.': { require: './dist/index.js', import: './dist/index.mjs' } }, files: ['dist'] },
-    ['dist/index.js']);
+  const dir = fixture(
+    {
+      name: 'fx-exp',
+      main: 'dist/index.js',
+      bin: { x: './bin/x.cjs' },
+      exports: { '.': { require: './dist/index.js', import: './dist/index.mjs' } },
+      files: ['dist'],
+    },
+    ['dist/index.js']
+  );
   try {
     const r = run(dir);
     assert.equal(r.status, 1);
     assert.match(r.stderr, /dist\/index\.mjs/);
     assert.match(r.stderr, /bin\/x\.cjs/);
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('passes when every declared entry is packed', () => {
-  const dir = fixture({ name: 'fx-ok', main: 'dist/index.js', module: 'dist/index.mjs', types: 'dist/index.d.ts',
-    exports: { '.': { types: './dist/index.d.ts', import: './dist/index.mjs', require: './dist/index.js' } }, files: ['dist'] },
-    ['dist/index.js', 'dist/index.mjs', 'dist/index.d.ts']);
+  const dir = fixture(
+    {
+      name: 'fx-ok',
+      main: 'dist/index.js',
+      module: 'dist/index.mjs',
+      types: 'dist/index.d.ts',
+      exports: {
+        '.': { types: './dist/index.d.ts', import: './dist/index.mjs', require: './dist/index.js' },
+      },
+      files: ['dist'],
+    },
+    ['dist/index.js', 'dist/index.mjs', 'dist/index.d.ts']
+  );
   try {
     const r = run(dir);
     assert.equal(r.status, 0, r.stderr);
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('resolves a repo-relative package path from any cwd (pnpm --filter shape)', () => {
@@ -64,5 +89,7 @@ test('resolves a repo-relative package path from any cwd (pnpm --filter shape)',
       const a = run(dir, linterDir);
       assert.equal(a.status, 0, `absolute from cwd=${cwd}: ${a.stderr}`);
     }
-  } finally { rmSync(dir, { recursive: true, force: true }); }
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

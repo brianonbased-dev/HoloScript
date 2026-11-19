@@ -9,7 +9,9 @@ describe('studio own-origin check (configured URL only)', () => {
   it('takes the origin from NEXTAUTH_URL, else NEXT_PUBLIC_STUDIO_URL, else null', () => {
     expect(studioOwnOrigin(env)).toBe('https://holoscript.studio');
     expect(
-      studioOwnOrigin({ NEXT_PUBLIC_STUDIO_URL: 'https://s.test/x' } as unknown as NodeJS.ProcessEnv)
+      studioOwnOrigin({
+        NEXT_PUBLIC_STUDIO_URL: 'https://s.test/x',
+      } as unknown as NodeJS.ProcessEnv)
     ).toBe('https://s.test');
     expect(studioOwnOrigin({} as NodeJS.ProcessEnv)).toBeNull();
   });

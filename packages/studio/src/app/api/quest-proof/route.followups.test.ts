@@ -84,7 +84,11 @@ describe('F1: token first, then streamed body', () => {
     const res = await POST(
       new NextRequest(`${STUDIO}/api/quest-proof?runId=run-e`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-quest-proof-token': token, origin: STUDIO },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-quest-proof-token': token,
+          origin: STUDIO,
+        },
         body: JSON.stringify({ label: 'x' }),
       })
     );

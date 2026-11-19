@@ -124,7 +124,11 @@ describe('UXCommandPalette — a failed command is visible, not just logged', ()
     vi.spyOn(console, 'error').mockImplementation(() => {});
     palette = new UXCommandPalette();
     palette.registerCommands([
-      { id: 'cmd_a', label: 'First', action: async () => Promise.reject(new Error('first reason')) },
+      {
+        id: 'cmd_a',
+        label: 'First',
+        action: async () => Promise.reject(new Error('first reason')),
+      },
     ]);
 
     palette.toggle();

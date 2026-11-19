@@ -1,7 +1,15 @@
 #!/usr/bin/env node
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, chmodSync, rmSync, cpSync, readFileSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  chmodSync,
+  rmSync,
+  cpSync,
+  readFileSync,
+} from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -133,10 +141,7 @@ test('missing shebang fails even when the hook is 100755', () => {
 
 test('pre-push runs check-hooks-runnable.mjs and blocks on failure', () => {
   const text = readFileSync(join(root, '.githooks/pre-push'), 'utf8');
-  assert.match(
-    text,
-    /if ! node scripts\/holo-ci\/check-hooks-runnable\.mjs; then[\s\S]*?exit 1/
-  );
+  assert.match(text, /if ! node scripts\/holo-ci\/check-hooks-runnable\.mjs; then[\s\S]*?exit 1/);
 });
 
 function layoutPrepare(dir) {

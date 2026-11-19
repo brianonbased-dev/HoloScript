@@ -9,7 +9,10 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 
 vi.mock('next-auth/react', () => ({
-  useSession: () => ({ data: { user: { name: 'Octo Cat', email: 'octo@example.com' } }, status: 'authenticated' }),
+  useSession: () => ({
+    data: { user: { name: 'Octo Cat', email: 'octo@example.com' } },
+    status: 'authenticated',
+  }),
 }));
 
 afterEach(() => vi.unstubAllGlobals());
@@ -27,7 +30,12 @@ function stubFetch(earnings: () => Response) {
 
 describe('/earn no_holomesh_agent', () => {
   it('shows the Join HoloMesh state instead of an error', async () => {
-    stubFetch(() => new Response(JSON.stringify({ success: false, code: 'no_holomesh_agent', error: 'x' }), { status: 404 }));
+    stubFetch(
+      () =>
+        new Response(JSON.stringify({ success: false, code: 'no_holomesh_agent', error: 'x' }), {
+          status: 404,
+        })
+    );
     const { default: EarnPage } = await import('../page');
     render(<EarnPage />);
     await waitFor(() => expect(screen.getByTestId('join-holomesh')).toBeTruthy());
@@ -40,7 +48,9 @@ describe('/earn no_holomesh_agent', () => {
     stubFetch(() => new Response('not found', { status: 404 }));
     const { default: EarnPage } = await import('../page');
     render(<EarnPage />);
-    await waitFor(() => expect(document.body.textContent).toMatch(/Could not load earnings data: HTTP 404/));
+    await waitFor(() =>
+      expect(document.body.textContent).toMatch(/Could not load earnings data: HTTP 404/)
+    );
     expect(screen.queryByTestId('join-holomesh')).toBeNull();
   });
 });

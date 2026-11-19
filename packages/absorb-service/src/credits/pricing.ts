@@ -38,11 +38,23 @@ export const OPERATION_COSTS = {
   // below. Left priced pending a founder call on whether our metal counts as
   // cloud: services/absorb-service/src/routes/absorb.ts charges it.
   absorb_shallow: { baseCostCents: 10, tier: 'unverified', description: 'Shallow codebase scan' },
-  absorb_deep: { baseCostCents: 50, tier: 'unverified', description: 'Deep codebase scan with full graph' },
+  absorb_deep: {
+    baseCostCents: 50,
+    tier: 'unverified',
+    description: 'Deep codebase scan with full graph',
+  },
 
   daemon_quick: { baseCostCents: 50, tier: 'unverified', description: 'Quick fix cycle (1 cycle)' },
-  daemon_balanced: { baseCostCents: 100, tier: 'unverified', description: 'Balanced improvement (2 cycles)' },
-  daemon_deep: { baseCostCents: 250, tier: 'unverified', description: 'Deep improvement (3 cycles)' },
+  daemon_balanced: {
+    baseCostCents: 100,
+    tier: 'unverified',
+    description: 'Balanced improvement (2 cycles)',
+  },
+  daemon_deep: {
+    baseCostCents: 250,
+    tier: 'unverified',
+    description: 'Deep improvement (3 cycles)',
+  },
 
   // UNBILLED: no charge site anywhere in the workspace. Studio displays these;
   // nothing takes them. Kept at their historical numbers because each plausibly
@@ -67,15 +79,27 @@ export const OPERATION_COSTS = {
   // provider is 'structural' — zero-dependency, no API key, no model download —
   // and F.106 forbids the factory from ever auto-selecting a paid one. Nothing
   // about this costs us money, so nothing about it may cost the customer.
-  query_basic: { baseCostCents: 0, tier: 'local', description: 'Semantic codebase search (local, keyless)' },
+  query_basic: {
+    baseCostCents: 0,
+    tier: 'local',
+    description: 'Semantic codebase search (local, keyless)',
+  },
   query_with_llm: {
     baseCostCents: 0,
     tier: 'local',
     description: 'Semantic codebase query over the absorbed graph (local embeddings, keyless)',
   },
 
-  semantic_dedup: { baseCostCents: 1, tier: 'unverified', description: 'Agent semantic deduplication evaluation' },
-  knowledge_query: { baseCostCents: 0, tier: 'local', description: 'Knowledge search (free entries)' },
+  semantic_dedup: {
+    baseCostCents: 1,
+    tier: 'unverified',
+    description: 'Agent semantic deduplication evaluation',
+  },
+  knowledge_query: {
+    baseCostCents: 0,
+    tier: 'local',
+    description: 'Knowledge search (free entries)',
+  },
   knowledge_query_premium: {
     baseCostCents: 5,
     tier: 'unverified',
@@ -111,9 +135,21 @@ export const OPERATION_COSTS = {
   // When metered Studio work is added it deducts against the orchestrator
   // wallet — creditGate's comment says explicitly: do NOT extend the absorb
   // credits path. Until then these stay here, free and labelled.
-  studio_autocomplete: { baseCostCents: 0, tier: 'unbilled', description: 'Code autocomplete (free; we pay the model)' },
-  studio_generate: { baseCostCents: 0, tier: 'unbilled', description: 'Code generation (free; we pay the model)' },
-  studio_chat: { baseCostCents: 0, tier: 'unbilled', description: 'Brittney chat message (free; we pay the model)' },
+  studio_autocomplete: {
+    baseCostCents: 0,
+    tier: 'unbilled',
+    description: 'Code autocomplete (free; we pay the model)',
+  },
+  studio_generate: {
+    baseCostCents: 0,
+    tier: 'unbilled',
+    description: 'Code generation (free; we pay the model)',
+  },
+  studio_chat: {
+    baseCostCents: 0,
+    tier: 'unbilled',
+    description: 'Brittney chat message (free; we pay the model)',
+  },
   studio_material: {
     baseCostCents: 0,
     tier: 'unbilled',

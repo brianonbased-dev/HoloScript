@@ -68,7 +68,9 @@ describe('viewRegistry.generated — invariants of the generated registry', () =
   it('every view id is unique', () => {
     const ids = GENERATED_VIEW_REGISTRY.map((v) => v.id);
     const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
-    expect([...new Set(dupes)], `duplicate view ids: ${[...new Set(dupes)].join(', ')}`).toEqual([]);
+    expect([...new Set(dupes)], `duplicate view ids: ${[...new Set(dupes)].join(', ')}`).toEqual(
+      []
+    );
   });
 
   it('exclusiveWith is symmetric and every id it names exists', () => {
@@ -88,7 +90,10 @@ describe('viewRegistry.generated — invariants of the generated registry', () =
         if (!(target.exclusiveWith ?? []).includes(v.id)) asymmetric.push(`${v.id} -> ${other}`);
       }
     }
-    expect(dangling, `exclusiveWith names a view that does not exist: ${dangling.join(', ')}`).toEqual([]);
+    expect(
+      dangling,
+      `exclusiveWith names a view that does not exist: ${dangling.join(', ')}`
+    ).toEqual([]);
     expect(asymmetric, `exclusiveWith is one-sided: ${asymmetric.join(', ')}`).toEqual([]);
   });
 
@@ -112,7 +117,9 @@ describe('viewRegistry.generated — invariants of the generated registry', () =
       if (first) collisions.push(`${cmd} (${first} and ${v.id})`);
       else seen.set(cmd, v.id);
     }
-    expect(collisions, `two views share an activation command: ${collisions.join(', ')}`).toEqual([]);
+    expect(collisions, `two views share an activation command: ${collisions.join(', ')}`).toEqual(
+      []
+    );
   });
 
   it('round-trips the relational exclusiveWith field (the premortem ceiling test)', () => {

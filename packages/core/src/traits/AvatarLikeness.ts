@@ -18,7 +18,11 @@
 import { resolveTraitName } from '../validation/TraitName';
 
 /** Traits that carry a real person's likeness (kept in step with LIKENESS_SOURCES). */
-export const REAL_LIKENESS_TRAITS: readonly string[] = Object.freeze(['face_mesh', 'voice_print', 'body_scan']);
+export const REAL_LIKENESS_TRAITS: readonly string[] = Object.freeze([
+  'face_mesh',
+  'voice_print',
+  'body_scan',
+]);
 
 export const LIVE_TRACKING_SOURCES: readonly string[] = Object.freeze(['headset', 'camera']);
 /** Sources that are, by definition, a real person's recorded or remote tracking. */
@@ -45,7 +49,10 @@ export function carriesRealLikeness(traitNames: Iterable<unknown>): boolean {
 }
 
 /** The shared decision: does this avatar_embodiment need a render_likeness grant? */
-export function avatarEmbodimentNeedsGrant(trackingSource: unknown, carriesLikeness: boolean): boolean {
+export function avatarEmbodimentNeedsGrant(
+  trackingSource: unknown,
+  carriesLikeness: boolean
+): boolean {
   const source = typeof trackingSource === 'string' ? trackingSource.trim().toLowerCase() : '';
   if (LIVE_TRACKING_SOURCES.includes(source)) return false;
   if (HUMAN_TRACKING_SOURCES.includes(source)) return true;

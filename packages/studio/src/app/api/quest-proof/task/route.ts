@@ -148,7 +148,11 @@ async function fileTask(raw: Record<string, unknown>): Promise<TaskResult> {
   const result = await runAddTasks(seedPath);
   if (result.exitCode !== 0) {
     // Details stay server-side; the response carries only a generic outcome.
-    console.error('[quest-proof/task] add-tasks script exit', result.exitCode, result.stderr.slice(-2000));
+    console.error(
+      '[quest-proof/task] add-tasks script exit',
+      result.exitCode,
+      result.stderr.slice(-2000)
+    );
   }
   const combined = `${result.stdout}\n${result.stderr}`;
   const taskId = extractTaskId(combined);

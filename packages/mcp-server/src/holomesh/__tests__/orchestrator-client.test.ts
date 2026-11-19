@@ -147,18 +147,33 @@ describe('HoloMeshOrchestratorClient contributeKnowledge reports what the orches
   });
 
   it("a refused write is synced: 0 with the status, never the caller's own count and never the orchestrator's text", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ error: 'forbidden' }) });
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 403,
+      json: async () => ({ error: 'forbidden' }),
+    });
     const client = new HoloMeshOrchestratorClient(baseConfig);
     expect(await client.contributeKnowledge([entry])).toBe(0);
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: 'bad key sk-live-123' }) });
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      json: async () => ({ error: 'bad key sk-live-123' }),
+    });
     const outcome = await client.contributeKnowledgeDetailed([entry]);
-    expect(outcome).toEqual({ synced: 0, accepted: false, status: 401, reason: 'refused (HTTP 401)' });
+    expect(outcome).toEqual({
+      synced: 0,
+      accepted: false,
+      status: 401,
+      reason: 'refused (HTTP 401)',
+    });
   });
 
   it('an unreachable orchestrator is named by its error code, never by its message', async () => {
     // The shape Node's fetch really throws: TypeError('fetch failed') with the code on cause.
     const refused = Object.assign(new TypeError('fetch failed'), {
-      cause: Object.assign(new Error('connect ECONNREFUSED 10.1.2.3:443'), { code: 'ECONNREFUSED' }),
+      cause: Object.assign(new Error('connect ECONNREFUSED 10.1.2.3:443'), {
+        code: 'ECONNREFUSED',
+      }),
     });
     mockFetch.mockRejectedValueOnce(refused);
     const client = new HoloMeshOrchestratorClient(baseConfig);
@@ -175,12 +190,14 @@ describe('HoloMeshOrchestratorClient contributeKnowledge reports what the orches
   it("an accepted write reports the orchestrator's count, clamped to what was sent", async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: 2 }) });
     const client = new HoloMeshOrchestratorClient(baseConfig);
-    expect(await client.contributeKnowledgeDetailed([entry, { ...entry, id: 'W.team.2' }])).toEqual({
-      synced: 2,
-      accepted: true,
-      status: 200,
-      reason: null,
-    });
+    expect(await client.contributeKnowledgeDetailed([entry, { ...entry, id: 'W.team.2' }])).toEqual(
+      {
+        synced: 2,
+        accepted: true,
+        status: 200,
+        reason: null,
+      }
+    );
     // A JSON answer that names no count accepted the batch as sent.
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({}) });
     expect(await client.contributeKnowledge([entry])).toBe(1);
@@ -193,7 +210,11 @@ describe('HoloMeshOrchestratorClient contributeKnowledge reports what the orches
       reason: 'accepted 0 of 1',
     });
     // A count beyond what was sent, or a fraction, is clamped.
-    mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: 999999 }) });
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ synced: 999999 }),
+    });
     expect((await client.contributeKnowledgeDetailed([entry])).synced).toBe(1);
     mockFetch.mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ synced: -5 }) });
     expect((await client.contributeKnowledgeDetailed([entry])).synced).toBe(0);

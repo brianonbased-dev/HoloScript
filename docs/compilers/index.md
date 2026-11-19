@@ -13,16 +13,17 @@ grep -n "export enum ExportTarget" -A 200 packages/core/src/compiler/CircuitBrea
 
 Not every target is equally proven. Each one carries a tier, and the tier is **earned from evidence, not declared**: a unit test (`packages/core/src/compiler/__tests__/target-tiers.test.ts`) checks every label against the files that prove it, and fails if a label claims more than its evidence (or less).
 
-| Tier | What it means |
-| --- | --- |
-| reference | Proven on a real device. Its output is pinned byte-for-byte to a reference app that every change is checked against. |
-| production | Its output is pinned by a passing golden test, and a real build tool or engine has accepted it. Not yet proven on a device. |
-| preview | Tests check the code, but nothing here shows its output running in the real engine yet. |
-| experimental | The code exists, but no test checks it yet. |
-| format-only | Writes a description or manifest for another system to read. There is no program to run. |
+| Tier         | What it means                                                                                                               |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| reference    | Proven on a real device. Its output is pinned byte-for-byte to a reference app that every change is checked against.        |
+| production   | Its output is pinned by a passing golden test, and a real build tool or engine has accepted it. Not yet proven on a device. |
+| preview      | Tests check the code, but nothing here shows its output running in the real engine yet.                                     |
+| experimental | The code exists, but no test checks it yet.                                                                                 |
+| format-only  | Writes a description or manifest for another system to read. There is no program to run.                                    |
 
 The `list_export_targets` MCP tool returns the same tier and sentence for every target. The data lives in `packages/core/src/compiler/target-tiers.ts`; to move a target up, add the evidence there (a golden test, a quote from a build or device run, a reference app) and the test will confirm it.
 
+<!-- prettier-ignore-start -->
 <!-- target-tiers:start (checked by target-tiers.test.ts) -->
 | Target | Tier | What it still lacks |
 | --- | --- | --- |
@@ -91,6 +92,7 @@ The `list_export_targets` MCP tool returns the same tier and sentence for every 
 | `openapi` | experimental | No test checks this compiler. |
 | `stl-export` | experimental | No test checks this compiler. |
 <!-- target-tiers:end -->
+<!-- prettier-ignore-end -->
 
 ## Common targets (non-exhaustive)
 

@@ -779,9 +779,4 @@ export {
   targetTier,
   describeTargetLimits,
 } from './target-tiers';
-export type {
-  TargetTier,
-  TargetTierEntry,
-  TargetRuntimeProof,
-  TierAuditIO,
-} from './target-tiers';
+export type { TargetTier, TargetTierEntry, TargetRuntimeProof, TierAuditIO } from './target-tiers';

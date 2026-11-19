@@ -4,9 +4,12 @@ import { resolve } from 'path';
 import { HoloScriptGenerator, validateBatch, validateHoloScript } from '../HoloScriptGenerator';
 import type { AIAdapter } from '../AIAdapter';
 
-const VALID = 'composition "Red Cube" {\n  object "Cube" @grabbable {\n    geometry: "box"\n    color: "red"\n  }\n}';
-const UNKNOWN_TRAIT = 'composition "Odd" {\n  object "Cube" @nope_xyz_trait {\n    geometry: "box"\n  }\n}';
-const GRABBABLE_BLOCK = 'composition "Grab" {\n  object "Ball" {\n    @grabbable { snap_to_hand: true }\n    @hand_tracked\n    geometry: "sphere"\n  }\n}';
+const VALID =
+  'composition "Red Cube" {\n  object "Cube" @grabbable {\n    geometry: "box"\n    color: "red"\n  }\n}';
+const UNKNOWN_TRAIT =
+  'composition "Odd" {\n  object "Cube" @nope_xyz_trait {\n    geometry: "box"\n  }\n}';
+const GRABBABLE_BLOCK =
+  'composition "Grab" {\n  object "Ball" {\n    @grabbable { snap_to_hand: true }\n    @hand_tracked\n    geometry: "sphere"\n  }\n}';
 const REPO = resolve(__dirname, '../../../../..');
 const GARBAGE = '{{{@@@';
 const UNCLOSED = 'composition "Open" { // comment swallows the brace }';
@@ -127,7 +130,9 @@ describe('HoloScriptGenerator', () => {
 
   it('auto-fix replaces invalid output with the adapter fix when the fix parses', async () => {
     const adapter = mockAdapter(GARBAGE);
-    adapter.fixHoloScript = vi.fn(async () => ({ holoScript: VALID, fixes: [], confidence: 0.9 }) as any);
+    adapter.fixHoloScript = vi.fn(
+      async () => ({ holoScript: VALID, fixes: [], confidence: 0.9 }) as any
+    );
     const session = gen.createSession(adapter, { maxAttempts: 2, autoFix: true });
     const result = await gen.generate('fix me', session);
     expect(adapter.fixHoloScript).toHaveBeenCalledTimes(1);
@@ -172,7 +177,11 @@ describe('validateHoloScript', () => {
   });
 
   it('a parser that throws yields a failure, not success', () => {
-    const throwing = { parse: () => { throw new Error('boom'); } } as any;
+    const throwing = {
+      parse: () => {
+        throw new Error('boom');
+      },
+    } as any;
     const r = validateHoloScript(VALID, throwing);
     expect(r.success).toBe(false);
     expect(String((r.errors[0] as any).message)).toContain('boom');
@@ -204,11 +213,22 @@ describe('HS1006 unknown trait is a warning (ERROR_CONTRACT.md), garbage still f
   });
 
   it('twin: garbage, empty, comment-only and unclosed input still fail with errors', () => {
-    for (const bad of [GARBAGE, '', '  \n', '// only a comment', UNCLOSED, 'composition "A" {', 'SELECT * FROM users;']) {
+    for (const bad of [
+      GARBAGE,
+      '',
+      '  \n',
+      '// only a comment',
+      UNCLOSED,
+      'composition "A" {',
+      'SELECT * FROM users;',
+    ]) {
       const r = validateHoloScript(bad) as any;
       expect(r.success, JSON.stringify(bad)).toBe(false);
       expect(r.errors.length, JSON.stringify(bad)).toBeGreaterThan(0);
-      expect(r.errors.every((e: any) => e.severity === 'error'), JSON.stringify(bad)).toBe(true);
+      expect(
+        r.errors.every((e: any) => e.severity === 'error'),
+        JSON.stringify(bad)
+      ).toBe(true);
     }
   });
 
@@ -241,7 +261,12 @@ describe('repo sample check: real compositions pass', () => {
       expect(r.success, JSON.stringify(r.errors.slice(0, 3))).toBe(true);
     });
   }
-  for (const f of ['examples/perception-tests/02-physics-blocks.holo', 'examples/perception-tests/06-integrated-perception-stack.holo', 'examples/quickstart/1-floating-cyan-orb.refreshed.holo', 'examples/traits/interaction-grabbable-clickable-hoverable.holo']) {
+  for (const f of [
+    'examples/perception-tests/02-physics-blocks.holo',
+    'examples/perception-tests/06-integrated-perception-stack.holo',
+    'examples/quickstart/1-floating-cyan-orb.refreshed.holo',
+    'examples/traits/interaction-grabbable-clickable-hoverable.holo',
+  ]) {
     it(`@grabbable { } sample ${f} passes`, () => {
       const src = readFileSync(resolve(REPO, f), 'utf8');
       expect(src).toContain('@grabbable {');

@@ -90,7 +90,9 @@ describe('/api/absorb/[...path] route', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const getReq = new NextRequest('http://localhost/api/absorb/projects/abc');
-    const deleteReq = new NextRequest('http://localhost/api/absorb/projects/abc', { method: 'DELETE' });
+    const deleteReq = new NextRequest('http://localhost/api/absorb/projects/abc', {
+      method: 'DELETE',
+    });
     await GET(getReq, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
     await DELETE(deleteReq, { params: Promise.resolve({ path: ['projects', 'abc'] }) });
 

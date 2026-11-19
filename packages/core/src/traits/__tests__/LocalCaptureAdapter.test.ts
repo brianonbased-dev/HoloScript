@@ -11,7 +11,30 @@ import { HoloScriptPlusParser } from '../../parser/HoloScriptPlusParser';
 // every event with its handle and ends it with the device. The tests play that host (no real
 // device exists in CI). Network / replay paths carry no handle and are refused under live_self.
 const POSE = { position: [0, 1.7, 0], rotation: { x: 0, y: 0, z: 0, w: 1 }, confidence: 1 };
-const ALL_JOINTS = ['head', 'neck', 'spine_chest', 'spine_mid', 'spine_base', 'hips', 'shoulder_left', 'shoulder_right', 'elbow_left', 'elbow_right', 'wrist_left', 'wrist_right', 'hand_left', 'hand_right', 'hip_left', 'hip_right', 'knee_left', 'knee_right', 'ankle_left', 'ankle_right', 'foot_left', 'foot_right'];
+const ALL_JOINTS = [
+  'head',
+  'neck',
+  'spine_chest',
+  'spine_mid',
+  'spine_base',
+  'hips',
+  'shoulder_left',
+  'shoulder_right',
+  'elbow_left',
+  'elbow_right',
+  'wrist_left',
+  'wrist_right',
+  'hand_left',
+  'hand_right',
+  'hip_left',
+  'hip_right',
+  'knee_left',
+  'knee_right',
+  'ankle_left',
+  'ankle_right',
+  'foot_left',
+  'foot_right',
+];
 const DATA = {
   face: { blendShapes: { jawOpen: 0.5, mouthSmileLeft: 0.2 } },
   body: { joints: Object.fromEntries(ALL_JOINTS.map((j) => [j, POSE])) },
@@ -64,15 +87,20 @@ function declaredTraits(ast: unknown, name: string): Record<string, unknown>[] {
   const walk = (n: any) => {
     if (!n || typeof n !== 'object') return;
     if (Array.isArray(n)) return n.forEach(walk);
-    if (String(n.name ?? '').replace(/^@/, '') === name && (n.type === 'ObjectTrait' || n.type === 'Trait' || 'config' in n))
+    if (
+      String(n.name ?? '').replace(/^@/, '') === name &&
+      (n.type === 'ObjectTrait' || n.type === 'Trait' || 'config' in n)
+    )
       out.push((n.config ?? n.args ?? {}) as Record<string, unknown>);
     Object.values(n).forEach(walk);
   };
   walk(ast);
   return out;
 }
-const holo = (f: string) => new HoloCompositionParser().parse(readFileSync(path.join(EX, f), 'utf8')).ast;
-const hsplus = (f: string) => new HoloScriptPlusParser().parse(readFileSync(path.join(EX, f), 'utf8')).ast;
+const holo = (f: string) =>
+  new HoloCompositionParser().parse(readFileSync(path.join(EX, f), 'utf8')).ast;
+const hsplus = (f: string) =>
+  new HoloScriptPlusParser().parse(readFileSync(path.join(EX, f), 'utf8')).ast;
 
 describe.each([
   ['ar-foundation/face-tracking.holo', holo, 'face_tracking', 'face'],

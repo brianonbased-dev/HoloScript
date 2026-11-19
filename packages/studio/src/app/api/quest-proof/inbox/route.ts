@@ -26,7 +26,6 @@ export const runtime = 'nodejs';
  * Closes F.085: agents push to the feed; the founder taps Open in his headset.
  */
 
-
 // ── GET: read the inbox (read feed, filter founderInbox entries) ────────────
 
 export async function GET(req: NextRequest) {

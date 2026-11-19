@@ -26,9 +26,9 @@
  */
 
 /** Delimiters that must balance, in any grammar. */
-const OPENERS = { LBRACE: "RBRACE", LBRACKET: "RBRACKET", LPAREN: "RPAREN" };
-const CLOSERS = { RBRACE: "LBRACE", RBRACKET: "LBRACKET", RPAREN: "LPAREN" };
-const CLOSING_TEXT = { RBRACE: "}", RBRACKET: "]", RPAREN: ")" };
+const OPENERS = { LBRACE: 'RBRACE', LBRACKET: 'RBRACKET', LPAREN: 'RPAREN' };
+const CLOSERS = { RBRACE: 'LBRACE', RBRACKET: 'LBRACKET', RPAREN: 'LPAREN' };
+const CLOSING_TEXT = { RBRACE: '}', RBRACKET: ']', RPAREN: ')' };
 
 /**
  * Tokens that cannot begin a top-level item in any reading of the grammar.
@@ -39,14 +39,14 @@ const CLOSING_TEXT = { RBRACE: "}", RBRACKET: "]", RPAREN: ")" };
  * (`import "./x.holo";`, `} from '@scope/pkg';`).
  */
 const NEVER_STARTS_A_TOP_LEVEL_ITEM = new Set([
-  "COLON",
-  "COMMA",
-  "STAR",
-  "SLASH",
-  "PLUS",
-  "EQUALS",
-  "ARROW",
-  "QUESTION",
+  'COLON',
+  'COMMA',
+  'STAR',
+  'SLASH',
+  'PLUS',
+  'EQUALS',
+  'ARROW',
+  'QUESTION',
 ]);
 
 /**
@@ -57,7 +57,7 @@ const NEVER_STARTS_A_TOP_LEVEL_ITEM = new Set([
  * the base type rather than a list of content fields means a construct added
  * to the grammar counts as content the day it lands.
  */
-const BOOKKEEPING_KEYS = new Set(["type", "loc", "provenance", "name"]);
+const BOOKKEEPING_KEYS = new Set(['type', 'loc', 'provenance', 'name']);
 
 const WORD_START = /^[A-Za-z0-9_]/;
 /** A whole name as written, read from a given offset (sticky). */
@@ -95,8 +95,8 @@ export const MAX_UNKNOWN_TRAIT_DIAGNOSTICS = 100;
  */
 export function analyze(source, deps, options = {}) {
   const { tokenizeHoloSource, parseHolo, traitIds, checkLikeness } = deps;
-  const coreKnown = typeof deps.isKnownTrait === "function" ? deps.isKnownTrait : null;
-  const unknownTraitSeverity = options.unknownTraits === "error" ? "error" : "warning";
+  const coreKnown = typeof deps.isKnownTrait === 'function' ? deps.isKnownTrait : null;
+  const unknownTraitSeverity = options.unknownTraits === 'error' ? 'error' : 'warning';
   const diagnostics = [];
   const seen = new Set();
   const push = (d) => {
@@ -106,8 +106,8 @@ export function analyze(source, deps, options = {}) {
     diagnostics.push(d);
   };
 
-  if (typeof source !== "string") {
-    push(diag("HS1009", "error", `Source must be a string, received ${typeof source}.`, START));
+  if (typeof source !== 'string') {
+    push(diag('HS1009', 'error', `Source must be a string, received ${typeof source}.`, START));
     return { ast: null, diagnostics };
   }
 
@@ -115,19 +115,19 @@ export function analyze(source, deps, options = {}) {
   try {
     tokens = tokenizeHoloSource(source) || [];
   } catch (err) {
-    push(diag("HS1010", "error", `The tokenizer failed: ${err && err.message}`, START));
+    push(diag('HS1010', 'error', `The tokenizer failed: ${err && err.message}`, START));
     return { ast: null, diagnostics };
   }
 
   const anchors = anchorTokens(source, tokens);
   const at = (token) => anchors.of(token);
 
-  const real = tokens.filter((t) => t.type !== "EOF" && t.type !== "COMMENT");
-  const meaningful = real.filter((t) => t.type !== "NEWLINE");
+  const real = tokens.filter((t) => t.type !== 'EOF' && t.type !== 'COMMENT');
+  const meaningful = real.filter((t) => t.type !== 'NEWLINE');
 
   // HS1001 — nothing to parse.
   if (meaningful.length === 0) {
-    push(diag("HS1001", "error", "Source is empty. A composition needs at least one item.", START));
+    push(diag('HS1001', 'error', 'Source is empty. A composition needs at least one item.', START));
     return { ast: null, diagnostics };
   }
 
@@ -139,15 +139,15 @@ export function analyze(source, deps, options = {}) {
     } else if (CLOSERS[token.type]) {
       const opened = stack.pop();
       if (!opened) {
-        push(diag("HS1002", "error", `Closing "${token.value}" with nothing open.`, at(token)));
+        push(diag('HS1002', 'error', `Closing "${token.value}" with nothing open.`, at(token)));
       }
     }
   }
   for (const opened of stack) {
     push(
       diag(
-        "HS1002",
-        "error",
+        'HS1002',
+        'error',
         `"${opened.value}" is never closed.`,
         at(opened),
         `Add a matching "${CLOSING_TEXT[OPENERS[opened.type]]}".`
@@ -169,17 +169,17 @@ export function analyze(source, deps, options = {}) {
     }
     if (depth !== 0) continue;
     if (NEVER_STARTS_A_TOP_LEVEL_ITEM.has(token.type)) {
-      push(diag("HS1003", "error", `"${token.value}" cannot start a top-level item.`, at(token)));
+      push(diag('HS1003', 'error', `"${token.value}" cannot start a top-level item.`, at(token)));
     }
     // A trait marker must be followed by a name.
-    if (token.type === "AT" && !isNameToken(real[i + 1])) {
+    if (token.type === 'AT' && !isNameToken(real[i + 1])) {
       push(
         diag(
-          "HS1005",
-          "error",
-          "\"@\" is not followed by a trait name.",
+          'HS1005',
+          'error',
+          '"@" is not followed by a trait name.',
           at(token),
-          "Write a trait as @name, for example @grabbable."
+          'Write a trait as @name, for example @grabbable.'
         )
       );
     }
@@ -192,7 +192,7 @@ export function analyze(source, deps, options = {}) {
   try {
     parsed = parseHolo(source);
   } catch (err) {
-    push(diag("HS1010", "error", `The parser threw: ${err && err.message}`, START));
+    push(diag('HS1010', 'error', `The parser threw: ${err && err.message}`, START));
     return { ast: null, diagnostics };
   }
   for (const err of parsed.errors || []) {
@@ -200,24 +200,28 @@ export function analyze(source, deps, options = {}) {
     // A token that already carries an error (from the checks above, such as an
     // unclosed "{" or a nameless "@", or from an earlier parser error) keeps
     // only that first one: later reports on the same token are knock-ons.
-    if (diagnostics.some((d) => d.severity === "error" && d.line === where.line && d.column === where.column)) {
+    if (
+      diagnostics.some(
+        (d) => d.severity === 'error' && d.line === where.line && d.column === where.column
+      )
+    ) {
       continue;
     }
     // The parser names some findings with a contract code itself (HS1005 for a
     // nameless "@"); keep it. Everything else is carried as HS1007.
-    const code = typeof err?.code === "string" && /^HS1\d{3}$/.test(err.code) ? err.code : "HS1007";
-    push(diag(code, "error", messageOf(err), where));
+    const code = typeof err?.code === 'string' && /^HS1\d{3}$/.test(err.code) ? err.code : 'HS1007';
+    push(diag(code, 'error', messageOf(err), where));
   }
   // parseHolo reports an unknown trait as HS1006 itself. When this layer checks traits (below) it
   // reports HS1006 once with its own location and severity, so the parser's copy is dropped;
   // otherwise the parser's copy is kept under its own code, never relabelled HS1008.
   const checksTraits = !!coreKnown || !!(traitIds && traitIds.size);
   for (const warn of parsed.warnings || []) {
-    if (warn && warn.code === "HS1006") {
-      if (!checksTraits) push(diag("HS1006", "warning", messageOf(warn), anchors.fromParser(warn)));
+    if (warn && warn.code === 'HS1006') {
+      if (!checksTraits) push(diag('HS1006', 'warning', messageOf(warn), anchors.fromParser(warn)));
       continue;
     }
-    push(diag("HS1008", "warning", messageOf(warn), anchors.fromParser(warn)));
+    push(diag('HS1008', 'warning', messageOf(warn), anchors.fromParser(warn)));
   }
 
   const ast = parsed.ast || null;
@@ -226,11 +230,11 @@ export function analyze(source, deps, options = {}) {
   if (!hasContent(ast)) {
     push(
       diag(
-        "HS1004",
-        "error",
-        "Nothing in this source parsed into a composition.",
+        'HS1004',
+        'error',
+        'Nothing in this source parsed into a composition.',
         at(meaningful[0]),
-        "This is what a non-HoloScript file looks like to the parser."
+        'This is what a non-HoloScript file looks like to the parser.'
       )
     );
   }
@@ -240,7 +244,7 @@ export function analyze(source, deps, options = {}) {
   const checkTraits = !!coreKnown || !!(traitIds && traitIds.size);
   const declared = !checkTraits
     ? new Set()
-    : coreKnown && typeof deps.declaredTraitNames === "function"
+    : coreKnown && typeof deps.declaredTraitNames === 'function'
       ? deps.declaredTraitNames(ast)
       : declaredTraits(ast, traits, options.knownTraits);
   const known = (bare) =>
@@ -249,7 +253,10 @@ export function analyze(source, deps, options = {}) {
       : isKnownTrait(bare, traitIds) || declared.has(normalizeTrait(bare));
   const locator = traitLocator(source, real, anchors);
   const likenessAt = new Map();
-  const shared = typeof checkLikeness === "function" && deps.likenessSources && typeof deps.likenessSources === "object";
+  const shared =
+    typeof checkLikeness === 'function' &&
+    deps.likenessSources &&
+    typeof deps.likenessSources === 'object';
   // Fail closed: without core's shared check, every likeness trait (and every source-gated
   // tracking trait, whatever its source) is refused below.
   const likenessSources = shared ? deps.likenessSources : FALLBACK_LIKENESS;
@@ -258,20 +265,26 @@ export function analyze(source, deps, options = {}) {
   let unknownShown = 0;
   let unknownMore = 0;
   for (const { trait, owner } of traits) {
-    const bare = String(trait.name ?? "").trim().replace(/^@/, "");
+    const bare = String(trait.name ?? '')
+      .trim()
+      .replace(/^@/, '');
     if (!WORD_START.test(bare)) {
       const where = locator.unnamed()?.at ?? anchors.fromNode(owner) ?? at(meaningful[0]);
       // The depth-0 check above may already have reported this same "@".
       const already = diagnostics.some(
-        (d) => d.code === "HS1005" && d.line === where.line && d.column === where.column
+        (d) => d.code === 'HS1005' && d.line === where.line && d.column === where.column
       );
-      if (!already) push(diag("HS1005", "error", "A trait was parsed with an empty name.", where));
+      if (!already) push(diag('HS1005', 'error', 'A trait was parsed with an empty name.', where));
       continue;
     }
     // Each trait's `@name` is looked up once: the locator hands out the k-th `@X` to the k-th call.
     let located;
-    const locate = () => (located === undefined ? (located = locator.named(bare) ?? null) : located);
-    if (likenessSources && likenessKeyOf(bare, likenessSources, deps.likenessTraitName) !== undefined) {
+    const locate = () =>
+      located === undefined ? (located = locator.named(bare) ?? null) : located;
+    if (
+      likenessSources &&
+      likenessKeyOf(bare, likenessSources, deps.likenessTraitName) !== undefined
+    ) {
       likenessAt.set(trait, () => locate()?.at ?? anchors.fromNode(owner) ?? at(meaningful[0]));
     }
     if (!checkTraits || known(bare)) continue;
@@ -285,15 +298,15 @@ export function analyze(source, deps, options = {}) {
     const misread = written && written.toLowerCase() !== bare.toLowerCase();
     push(
       diag(
-        "HS1006",
+        'HS1006',
         unknownTraitSeverity,
         misread
           ? `The parser read "@${written}" as a trait named "@${bare}", which is not a known trait.`
           : `Unknown trait "@${bare}".`,
         (found && found.at) ?? anchors.fromNode(owner) ?? at(meaningful[0]),
         misread
-          ? "This is a parser defect, not a fault in the source; it needs fixing in core."
-          : "Check the trait registry, or register it before use."
+          ? 'This is a parser defect, not a fault in the source; it needs fixing in core.'
+          : 'Check the trait registry, or register it before use.'
       )
     );
   }
@@ -301,11 +314,11 @@ export function analyze(source, deps, options = {}) {
   if (unknownMore > 0) {
     push(
       diag(
-        "HS1006",
+        'HS1006',
         unknownTraitSeverity,
         `${unknownMore} more unknown traits not listed (HS1006; ${unknownShown + unknownMore} in total).`,
         START,
-        "Only the first " + MAX_UNKNOWN_TRAIT_DIAGNOSTICS + " unknown traits are listed."
+        'Only the first ' + MAX_UNKNOWN_TRAIT_DIAGNOSTICS + ' unknown traits are listed.'
       )
     );
   }
@@ -317,27 +330,53 @@ export function analyze(source, deps, options = {}) {
   const findings = shared
     ? checkLikeness(ast, options.consentRules)
     : traits
-        .filter(({ trait }) => likenessKeyOf(String(trait.name ?? "").trim().replace(/^@/, ""), FALLBACK_LIKENESS) !== undefined)
+        .filter(
+          ({ trait }) =>
+            likenessKeyOf(
+              String(trait.name ?? '')
+                .trim()
+                .replace(/^@/, ''),
+              FALLBACK_LIKENESS
+            ) !== undefined
+        )
         .map(({ trait, owner }) => ({
           trait,
           owner,
-          message: `"@${String(trait.name ?? "").trim().replace(/^@/, "")}" renders a likeness, and core's likeness check is unavailable, so no grant can be verified. Refused (fail closed).`,
-          hint: "Use a @holoscript/core that exports checkLikeness from @holoscript/core/parser.",
+          message: `"@${String(trait.name ?? '')
+            .trim()
+            .replace(
+              /^@/,
+              ''
+            )}" renders a likeness, and core's likeness check is unavailable, so no grant can be verified. Refused (fail closed).`,
+          hint: 'Use a @holoscript/core that exports checkLikeness from @holoscript/core/parser.',
         }));
   {
     for (const finding of findings) {
       const where = likenessAt.get(finding.trait);
-      push(diag("HS1011", "error", finding.message, where ? where() : anchors.fromNode(finding.owner) ?? at(meaningful[0]), finding.hint));
+      push(
+        diag(
+          'HS1011',
+          'error',
+          finding.message,
+          where ? where() : (anchors.fromNode(finding.owner) ?? at(meaningful[0])),
+          finding.hint
+        )
+      );
     }
   }
 
   return { ast, diagnostics };
 }
 
-
 /** Fail-closed fallback when core's checkLikeness is missing: refuse these outright (HS1011). */
 const FALLBACK_LIKENESS = Object.freeze({
-  face_mesh: 1, voice_print: 1, body_scan: 1, lip_sync: 1, lipsync: 1, face_tracking: 1, body_tracking: 1,
+  face_mesh: 1,
+  voice_print: 1,
+  body_scan: 1,
+  lip_sync: 1,
+  lipsync: 1,
+  face_tracking: 1,
+  body_tracking: 1,
   avatar_embodiment: 1,
 });
 
@@ -348,16 +387,16 @@ const FALLBACK_LIKENESS = Object.freeze({
  * `@face__mesh` are all face_mesh.
  */
 function likenessKeyOf(bare, table, coreResolve) {
-  if (typeof coreResolve === "function") {
+  if (typeof coreResolve === 'function') {
     const name = coreResolve(bare);
     return Object.prototype.hasOwnProperty.call(table, name) ? name : undefined;
   }
   const normalized = normalizeTrait(String(bare).trim());
-  const key = normalized.replace(/_/g, "");
+  const key = normalized.replace(/_/g, '');
   const entries = Object.keys(table);
   return (
     entries.find((entry) => normalizeTrait(entry) === normalized) ??
-    entries.find((entry) => normalizeTrait(entry).replace(/_/g, "") === key)
+    entries.find((entry) => normalizeTrait(entry).replace(/_/g, '') === key)
   );
 }
 
@@ -371,10 +410,14 @@ function likenessKeyOf(bare, table, coreResolve) {
  *    core's `HoloParserOptions.knownTraits`.
  */
 function declaredTraits(ast, traits, knownTraits) {
-  const names = new Set(["trait"]);
+  const names = new Set(['trait']);
   for (const { trait } of traits) {
     const config = trait.config;
-    if (String(trait.name).replace(/^@/, "").toLowerCase() === "trait" && config && typeof config.name === "string") {
+    if (
+      String(trait.name).replace(/^@/, '').toLowerCase() === 'trait' &&
+      config &&
+      typeof config.name === 'string'
+    ) {
       names.add(normalizeTrait(config.name));
     }
   }
@@ -386,25 +429,30 @@ function declaredTraits(ast, traits, knownTraits) {
 }
 
 function messageOf(entry) {
-  return typeof entry === "string" ? entry : (entry && entry.message) || String(entry);
+  return typeof entry === 'string' ? entry : (entry && entry.message) || String(entry);
 }
 
 /** A token that can be (the start of) a trait name: a word, a keyword, or a digit-led name. */
 function isNameToken(token) {
-  return !!token && token.type !== "STRING" && token.type !== "NEWLINE" && WORD_START.test(String(token.value));
+  return (
+    !!token &&
+    token.type !== 'STRING' &&
+    token.type !== 'NEWLINE' &&
+    WORD_START.test(String(token.value))
+  );
 }
 
 /** True when any non-bookkeeping field of the composition holds something. */
 function hasContent(ast) {
-  if (!ast || typeof ast !== "object") return false;
+  if (!ast || typeof ast !== 'object') return false;
   for (const [key, value] of Object.entries(ast)) {
     if (BOOKKEEPING_KEYS.has(key)) continue;
     if (value === null || value === undefined) continue;
     if (Array.isArray(value)) {
       if (value.length > 0) return true;
-    } else if (typeof value === "object") {
+    } else if (typeof value === 'object') {
       if (Object.keys(value).length > 0) return true;
-    } else if (typeof value === "string") {
+    } else if (typeof value === 'string') {
       if (value.length > 0) return true;
     } else {
       return true;
@@ -419,13 +467,13 @@ function hasContent(ast) {
  */
 export function normalizeTrait(name) {
   return String(name)
-    .replace(/^@/, "")
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
-    .replace(/-/g, "_")
+    .replace(/^@/, '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/-/g, '_')
     .toLowerCase();
 }
 
-const squash = (normalized) => normalized.replace(/_/g, "");
+const squash = (normalized) => normalized.replace(/_/g, '');
 const vocabularies = new WeakMap();
 
 /** Normalized lookup tables for a trait vocabulary, built once per Set. */
@@ -452,15 +500,15 @@ function isKnownTrait(bare, traitIds) {
 
 /** Every trait node in the AST, with the nearest ancestor that carries a `loc`. */
 function collectTraits(node, found = [], owner = null) {
-  if (!node || typeof node !== "object") return found;
+  if (!node || typeof node !== 'object') return found;
   if (Array.isArray(node)) {
     for (const item of node) collectTraits(item, found, owner);
     return found;
   }
-  if (node.type === "ObjectTrait" || node.type === "Trait") found.push({ trait: node, owner });
+  if (node.type === 'ObjectTrait' || node.type === 'Trait') found.push({ trait: node, owner });
   const nextOwner = node.loc && node.loc.start ? node : owner;
   for (const value of Object.values(node)) {
-    if (value && typeof value === "object") collectTraits(value, found, nextOwner);
+    if (value && typeof value === 'object') collectTraits(value, found, nextOwner);
   }
   return found;
 }
@@ -475,7 +523,7 @@ function traitLocator(source, real, anchors) {
   const named = new Map();
   const unnamed = [];
   for (let i = 0; i < real.length; i++) {
-    if (real[i].type !== "AT") continue;
+    if (real[i].type !== 'AT') continue;
     const next = real[i + 1];
     const at = anchors.of(real[i]);
     if (isNameToken(next)) {
@@ -489,7 +537,7 @@ function traitLocator(source, real, anchors) {
       if (!named.has(key)) named.set(key, { list: [], used: 0 });
       named.get(key).list.push({ at, word });
     } else {
-      unnamed.push({ at, word: "" });
+      unnamed.push({ at, word: '' });
     }
   }
   let unnamedUsed = 0;
@@ -526,21 +574,21 @@ function traitLocator(source, real, anchors) {
 // The offset found gives a real line and column.
 // ---------------------------------------------------------------------------
 
-const SYMBOL_START = new Set("{}[]():,.=+-*/<>!@#;?".split(""));
+const SYMBOL_START = new Set('{}[]():,.=+-*/<>!@#;?'.split(''));
 
 /** Length of `token`'s source text if it starts at offset `p`, else -1. */
 function tokenLengthAt(source, p, token) {
   const ch = source[p];
   switch (token.type) {
-    case "EOF":
+    case 'EOF':
       return p >= source.length ? 0 : -1;
-    case "NEWLINE":
-      if (ch === "\r") return source[p + 1] === "\n" ? 2 : 1;
-      return ch === "\n" ? 1 : -1;
-    case "STRING": {
+    case 'NEWLINE':
+      if (ch === '\r') return source[p + 1] === '\n' ? 2 : 1;
+      return ch === '\n' ? 1 : -1;
+    case 'STRING': {
       if (ch !== '"' && ch !== "'") return -1;
       let i = p + 1;
-      while (i < source.length && source[i] !== ch) i += source[i] === "\\" ? 2 : 1;
+      while (i < source.length && source[i] !== ch) i += source[i] === '\\' ? 2 : 1;
       return Math.min(i + 1, source.length) - p;
     }
     default: {
@@ -548,7 +596,7 @@ function tokenLengthAt(source, p, token) {
       if (text.length === 0) return -1;
       const raw = source.substr(p, text.length);
       if (raw === text) return text.length;
-      if (token.type === "BOOLEAN" && raw.toLowerCase() === text) return text.length;
+      if (token.type === 'BOOLEAN' && raw.toLowerCase() === text) return text.length;
       return -1;
     }
   }
@@ -558,19 +606,19 @@ function tokenLengthAt(source, p, token) {
 function startsToken(source, p) {
   const ch = source[p];
   const next = source[p + 1];
-  if (ch === "\n" || ch === "\r" || ch === '"' || ch === "'") return true;
+  if (ch === '\n' || ch === '\r' || ch === '"' || ch === "'") return true;
   if (/[A-Za-z0-9_]/.test(ch)) return true;
   if (SYMBOL_START.has(ch)) return true;
-  return (ch === "&" && next === "&") || (ch === "|" && next === "|");
+  return (ch === '&' && next === '&') || (ch === '|' && next === '|');
 }
 
 function lineStarts(source) {
   const starts = [0];
   for (let i = 0; i < source.length; i++) {
     const c = source[i];
-    if (c === "\n") starts.push(i + 1);
-    else if (c === "\r") {
-      if (source[i + 1] === "\n") i++;
+    if (c === '\n') starts.push(i + 1);
+    else if (c === '\r') {
+      if (source[i + 1] === '\n') i++;
       starts.push(i + 1);
     }
   }
@@ -603,17 +651,17 @@ export function anchorTokens(source, tokens) {
   let p = 0;
   let exact = true;
   for (const token of tokens) {
-    if (token.type === "COMMENT") continue;
+    if (token.type === 'COMMENT') continue;
     let found = -1;
     let length = 0;
     if (exact) {
       while (p <= source.length) {
-        if (source[p] === "/" && source[p + 1] === "/") {
-          while (p < source.length && source[p] !== "\n") p++;
+        if (source[p] === '/' && source[p + 1] === '/') {
+          while (p < source.length && source[p] !== '\n') p++;
           continue;
         }
-        if (source[p] === "/" && source[p + 1] === "*") {
-          const end = source.indexOf("*/", p + 2);
+        if (source[p] === '/' && source[p + 1] === '*') {
+          const end = source.indexOf('*/', p + 2);
           p = end === -1 ? source.length : end + 2;
           continue;
         }
@@ -641,9 +689,12 @@ export function anchorTokens(source, tokens) {
     if (!byLexerPosition.has(key)) byLexerPosition.set(key, pos);
   }
 
-  const clamp = (line, column) => ({ line: Math.max(1, line | 0), column: Math.max(1, column | 0) });
+  const clamp = (line, column) => ({
+    line: Math.max(1, line | 0),
+    column: Math.max(1, column | 0),
+  });
   const fromLexer = (loc) => {
-    if (!loc || typeof loc.line !== "number") return undefined;
+    if (!loc || typeof loc.line !== 'number') return undefined;
     return byLexerPosition.get(`${loc.line}:${loc.column}`) ?? clamp(loc.line, loc.column);
   };
   return {
@@ -661,13 +712,13 @@ export function anchorTokens(source, tokens) {
 
 export function parseTolerant(source, deps, options = {}) {
   const { ast, diagnostics } = analyze(source, deps, options);
-  return { ok: true, mode: "tolerant", ast, diagnostics };
+  return { ok: true, mode: 'tolerant', ast, diagnostics };
 }
 
 export function parseStrict(source, deps, options = {}) {
   const { ast, diagnostics } = analyze(source, deps, options);
-  const errors = diagnostics.filter((d) => d.severity === "error");
+  const errors = diagnostics.filter((d) => d.severity === 'error');
   return errors.length
-    ? { ok: false, mode: "strict", ast: null, diagnostics }
-    : { ok: true, mode: "strict", ast, diagnostics };
+    ? { ok: false, mode: 'strict', ast: null, diagnostics }
+    : { ok: true, mode: 'strict', ast, diagnostics };
 }

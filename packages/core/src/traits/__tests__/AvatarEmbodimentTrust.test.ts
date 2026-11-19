@@ -7,26 +7,47 @@ import { validateCanonicalSource } from '../../validation/CanonicalSourceValidat
 // Trust rulings on avatar_embodiment: gate on whose likeness the avatar carries; runtime default
 // 'unknown' gated like the checker; declared live without a verified handle is self-preview only.
 const GRANT = 'grant_ava';
-function embody(tracking_source: unknown, opts: { likeness?: boolean; granted?: boolean; capture?: unknown } = {}) {
-  const node: Record<string, any> = { traits: new Map<string, unknown>([['avatar_embodiment', {}]]) };
+function embody(
+  tracking_source: unknown,
+  opts: { likeness?: boolean; granted?: boolean; capture?: unknown } = {}
+) {
+  const node: Record<string, any> = {
+    traits: new Map<string, unknown>([['avatar_embodiment', {}]]),
+  };
   if (opts.likeness) node.traits.set('face_mesh', {});
-  if (opts.granted !== undefined) node.__consentGateState = { status: opts.granted ? 'granted' : 'pending' };
+  if (opts.granted !== undefined)
+    node.__consentGateState = { status: opts.granted ? 'granted' : 'pending' };
   const emit = vi.fn();
-  const config = { ...avatarEmbodimentHandler.defaultConfig, ...(tracking_source === undefined ? {} : { tracking_source }) } as any;
+  const config = {
+    ...avatarEmbodimentHandler.defaultConfig,
+    ...(tracking_source === undefined ? {} : { tracking_source }),
+  } as any;
   avatarEmbodimentHandler.onAttach!(node as any, config, { emit } as any);
-  avatarEmbodimentHandler.onEvent!(node as any, config, { emit } as any, { type: 'embody', capture: opts.capture } as any);
-  return { node, names: emit.mock.calls.map((c) => c[0]), embodied: node.__avatarEmbodimentState.isEmbodied as boolean };
+  avatarEmbodimentHandler.onEvent!(
+    node as any,
+    config,
+    { emit } as any,
+    { type: 'embody', capture: opts.capture } as any
+  );
+  return {
+    node,
+    names: emit.mock.calls.map((c) => c[0]),
+    embodied: node.__avatarEmbodimentState.isEmbodied as boolean,
+  };
 }
 
 describe('AvatarEmbodiment runtime (Trust)', () => {
-  it.each(['playback', 'remote'])('%s: refused without granted consent, applies (shared) with it', (ts) => {
-    const no = embody(ts);
-    expect(no.embodied).toBe(false);
-    expect(no.names).toContain('avatar_generic_fallback');
-    const yes = embody(ts, { granted: true });
-    expect(yes.embodied).toBe(true);
-    expect(avatarRenderAllowed(yes.node, true)).toBe(true);
-  });
+  it.each(['playback', 'remote'])(
+    '%s: refused without granted consent, applies (shared) with it',
+    (ts) => {
+      const no = embody(ts);
+      expect(no.embodied).toBe(false);
+      expect(no.names).toContain('avatar_generic_fallback');
+      const yes = embody(ts, { granted: true });
+      expect(yes.embodied).toBe(true);
+      expect(avatarRenderAllowed(yes.node, true)).toBe(true);
+    }
+  );
 
   it('default source is unknown: renders on a synthetic avatar, fails closed on a real-likeness one', () => {
     expect(embody(undefined).embodied).toBe(true);
@@ -36,15 +57,18 @@ describe('AvatarEmbodiment runtime (Trust)', () => {
     expect(embody(undefined, { likeness: true, granted: true }).embodied).toBe(true);
   });
 
-  it.each(['headset', 'camera'])('declared live (%s) without a verified handle: self-preview only, never shown to others', (ts) => {
-    for (const capture of [undefined, { kind: 'body', deviceLabel: 'forged' }]) {
-      const { node, names } = embody(ts, { capture, likeness: true });
-      expect(node.__avatarEmbodimentState.visibility).toBe('self_preview');
-      expect(names).toContain('avatar_visibility_restricted');
-      expect(avatarRenderAllowed(node, false)).toBe(true);
-      expect(avatarRenderAllowed(node, true)).toBe(false);
+  it.each(['headset', 'camera'])(
+    'declared live (%s) without a verified handle: self-preview only, never shown to others',
+    (ts) => {
+      for (const capture of [undefined, { kind: 'body', deviceLabel: 'forged' }]) {
+        const { node, names } = embody(ts, { capture, likeness: true });
+        expect(node.__avatarEmbodimentState.visibility).toBe('self_preview');
+        expect(names).toContain('avatar_visibility_restricted');
+        expect(avatarRenderAllowed(node, false)).toBe(true);
+        expect(avatarRenderAllowed(node, true)).toBe(false);
+      }
     }
-  });
+  );
 
   it('B1: verified live capture is self-preview only; shown to others needs the self share grant', () => {
     const session = startLocalCaptureSession('body', 'quest');
@@ -58,7 +82,15 @@ describe('AvatarEmbodiment runtime (Trust)', () => {
     expect(avatarRenderAllowed(node, true, scope)).toBe(false);
     // face_mesh present: share grant + render_likeness yes + @consent_gate granted are all needed.
     (node as any).__trackedPersonId = 'ava';
-    expect(grantLikenessShare(node, { grantorId: 'ava', trackedPersonId: 'ava', sessionId: 's1', audience: ['bob'], renderLikenessYes: true })).toBe(true);
+    expect(
+      grantLikenessShare(node, {
+        grantorId: 'ava',
+        trackedPersonId: 'ava',
+        sessionId: 's1',
+        audience: ['bob'],
+        renderLikenessYes: true,
+      })
+    ).toBe(true);
     expect(avatarRenderAllowed(node, true, scope)).toBe(false);
     node.__consentGateState = { status: 'granted' };
     expect(avatarRenderAllowed(node, true, scope)).toBe(true);
@@ -72,7 +104,16 @@ describe('AvatarEmbodiment runtime (Trust)', () => {
 });
 
 describe('parity: checker and runtime agree across source x likeness', () => {
-  const sources: Array<string | undefined> = [undefined, 'unknown', 'ai', 'scripted', 'headset', 'camera', 'playback', 'remote'];
+  const sources: Array<string | undefined> = [
+    undefined,
+    'unknown',
+    'ai',
+    'scripted',
+    'headset',
+    'camera',
+    'playback',
+    'remote',
+  ];
   const cases = sources.flatMap((s) => [false, true].map((likeness) => [s, likeness] as const));
   it.each(cases)('tracking_source %s, real likeness %s', (source, likeness) => {
     const ts = source === undefined ? '' : `(tracking_source: "${source}")`;

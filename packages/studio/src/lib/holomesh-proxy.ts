@@ -49,12 +49,20 @@ export function upstreamFailure(err: unknown): {
   if (name === 'TimeoutError' || name === 'AbortError') {
     return {
       status: 504,
-      body: { success: false, error: 'HoloMesh did not respond in time. Try again shortly.', code: 'holomesh_timeout' },
+      body: {
+        success: false,
+        error: 'HoloMesh did not respond in time. Try again shortly.',
+        code: 'holomesh_timeout',
+      },
     };
   }
   return {
     status: 503,
-    body: { success: false, error: 'HoloMesh is unreachable right now. Try again shortly.', code: 'holomesh_unavailable' },
+    body: {
+      success: false,
+      error: 'HoloMesh is unreachable right now. Try again shortly.',
+      code: 'holomesh_unavailable',
+    },
   };
 }
 
@@ -179,9 +187,7 @@ export async function resolveHoloMeshCaller(req: Request): Promise<HoloMeshCalle
   };
 }
 
-export type TeamMembership =
-  | { ok: true }
-  | { ok: false; status: 403 | 502; error: string };
+export type TeamMembership = { ok: true } | { ok: false; status: 403 | 502; error: string };
 
 /** One row of a team's member list, in either spelling mcp-server may use. */
 interface TeamMemberRow {
@@ -223,15 +229,12 @@ export async function callerIsTeamMember(
 
   let upstream: Response;
   try {
-    upstream = await fetch(
-      `${BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/members`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json', ...credential },
-        cache: 'no-store',
-        signal: AbortSignal.timeout(10_000),
-      }
-    );
+    upstream = await fetch(`${BASE}/api/holomesh/team/${encodeURIComponent(teamId)}/members`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json', ...credential },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(10_000),
+    });
   } catch {
     return { ok: false, status: 502, error: 'Could not check your membership of this team.' };
   }
@@ -259,7 +262,9 @@ export async function callerIsTeamMember(
     const id = typeof row?.agentId === 'string' ? row.agentId : row?.agent_id;
     return typeof id === 'string' && id === agentId;
   });
-  return isMember ? { ok: true } : { ok: false, status: 403, error: 'You are not a member of this team.' };
+  return isMember
+    ? { ok: true }
+    : { ok: false, status: 403, error: 'You are not a member of this team.' };
 }
 
 /**
@@ -297,7 +302,10 @@ export async function proxyHoloMesh(path: string, req: NextRequest): Promise<Res
     } catch {
       // Not JSON after all: no knowledge rows to cut; pass it on as it came.
     }
-    return new Response(body, { status: upstream.status, headers: { 'Content-Type': contentType } });
+    return new Response(body, {
+      status: upstream.status,
+      headers: { 'Content-Type': contentType },
+    });
   }
 
   return new Response(upstream.body, {

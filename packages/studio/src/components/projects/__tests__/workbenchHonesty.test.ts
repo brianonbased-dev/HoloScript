@@ -75,13 +75,18 @@ function job(patch: Partial<DaemonJob> = {}): DaemonJob {
 describe('workbenchHonesty', () => {
   it('never shows Ready alongside Absorb stale / Build unknown', () => {
     const stale = workspace({ lastAbsorbedAt: null, metadata: {} });
-    const readiness = workspaceReadiness(stale, [], { status: 'clean', branch: 'main', changedFiles: 0, checkedAt: new Date().toISOString() });
+    const readiness = workspaceReadiness(stale, [], {
+      status: 'clean',
+      branch: 'main',
+      changedFiles: 0,
+      checkedAt: new Date().toISOString(),
+    });
     expect(readiness.ready).toBe(false);
     expect(readiness.label).not.toBe('Ready');
     expect(readiness.label.toLowerCase()).toMatch(/absorb stale|not ready|build/);
-    expect(readiness.blockers.some((b) => b.code === 'absorb_stale' || b.code === 'build_unknown')).toBe(
-      true
-    );
+    expect(
+      readiness.blockers.some((b) => b.code === 'absorb_stale' || b.code === 'build_unknown')
+    ).toBe(true);
   });
 
   it('collapses Build:unknown into blockers instead of Ready', () => {

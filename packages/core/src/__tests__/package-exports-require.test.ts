@@ -46,16 +46,21 @@ describe('core exports: every require target exists and loads from dist', () => 
   });
 
   const withRequire = concrete.filter((sp) => 'require' in (exportsMap[sp] as object));
-  it.each(withRequire)('%s', (sp) => {
-    const target = (exportsMap[sp] as Record<string, unknown>).require;
-    const file = typeof target === 'string' ? target : (target as Record<string, string>)?.default;
-    expect(typeof file, `${sp} require target`).toBe('string');
-    expect(existsSync(join(coreRoot, file)), `${sp} -> ${file} missing from dist`).toBe(true);
-    const id = sp === '.' ? '@holoscript/core' : `@holoscript/core/${sp.slice(2)}`;
-    if (RESOLVE_ONLY.has(sp)) {
-      expect(requireFromCore.resolve(id)).toContain('dist');
-    } else {
-      expect(() => requireFromCore(id)).not.toThrow();
-    }
-  }, 60_000);
+  it.each(withRequire)(
+    '%s',
+    (sp) => {
+      const target = (exportsMap[sp] as Record<string, unknown>).require;
+      const file =
+        typeof target === 'string' ? target : (target as Record<string, string>)?.default;
+      expect(typeof file, `${sp} require target`).toBe('string');
+      expect(existsSync(join(coreRoot, file)), `${sp} -> ${file} missing from dist`).toBe(true);
+      const id = sp === '.' ? '@holoscript/core' : `@holoscript/core/${sp.slice(2)}`;
+      if (RESOLVE_ONLY.has(sp)) {
+        expect(requireFromCore.resolve(id)).toContain('dist');
+      } else {
+        expect(() => requireFromCore(id)).not.toThrow();
+      }
+    },
+    60_000
+  );
 });

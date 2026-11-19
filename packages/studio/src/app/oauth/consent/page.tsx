@@ -27,8 +27,7 @@ const SCOPE_TEXT: Record<string, string> = {
   'tools:read': 'Use read-only HoloScript tools (look things up, no changes).',
   'tools:write': 'Use HoloScript tools that create or change things.',
   social: 'Post and read on HoloMesh as you.',
-  'user:private':
-    'See your private account data (credits, earnings). Only approve apps you trust.',
+  'user:private': 'See your private account data (credits, earnings). Only approve apps you trust.',
 };
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -115,12 +114,20 @@ export default async function OAuthConsentPage({
         <strong>{redirectHost}</strong>.
       </p>
       {errorText && (
-        <p role="alert" className="rounded border border-red-500 p-3 text-red-700" data-testid="consent-error">
+        <p
+          role="alert"
+          className="rounded border border-red-500 p-3 text-red-700"
+          data-testid="consent-error"
+        >
           {errorText}
         </p>
       )}
       {lookalike && (
-        <p role="alert" className="text-sm font-semibold text-red-600" data-testid="lookalike-warning">
+        <p
+          role="alert"
+          className="text-sm font-semibold text-red-600"
+          data-testid="lookalike-warning"
+        >
           Careful: this name looks like {lookalike}, but HoloScript has not verified that this app
           comes from {lookalike}. Check the app id and where it sends you before approving.
         </p>

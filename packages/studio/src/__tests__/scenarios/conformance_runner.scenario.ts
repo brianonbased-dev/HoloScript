@@ -15,7 +15,8 @@ import { DEFAULT_RULES } from '../../components/validation/ConformanceSuitePanel
 import * as CompilerConformance from '../../components/validation/compilerConformance';
 
 vi.mock('../../components/validation/compilerConformance', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../components/validation/compilerConformance')>();
+  const actual =
+    await importOriginal<typeof import('../../components/validation/compilerConformance')>();
   return {
     ...actual,
     evaluateCompilerRules: vi.fn(actual.evaluateCompilerRules),
@@ -70,8 +71,9 @@ describe('Scenario: Conformance Runner', () => {
     expect(statusOf('Gravitational Constant')).toBe('not checked');
     expect(statusOf('Trait Dependency')).toBe('not checked');
     expect(
-      screen.getAllByText(/assumes the @collision trait, which is not in the HoloScript trait registry/i)
-        .length
+      screen.getAllByText(
+        /assumes the @collision trait, which is not in the HoloScript trait registry/i
+      ).length
     ).toBeGreaterThanOrEqual(1);
   }, 10000);
 
@@ -207,7 +209,13 @@ describe('Scenario: Conformance Runner runs the real compiler (H5)', () => {
 
   it('rules 1 and 11 never show passed while @collision is unknown', async () => {
     await run('composition "A" {\n  object "Cube" { geometry: "cube" }\n}\n', [
-      { id: '1', name: 'X', type: 'mesh', props: {}, traits: [{ name: 'physics', properties: {} }] },
+      {
+        id: '1',
+        name: 'X',
+        type: 'mesh',
+        props: {},
+        traits: [{ name: 'physics', properties: {} }],
+      },
     ]);
     expect(statusOf('Gravitational Constant')).toBe('not checked');
     expect(statusOf('Trait Dependency')).toBe('not checked');
@@ -217,20 +225,20 @@ describe('Scenario: Conformance Runner runs the real compiler (H5)', () => {
 
   it('throwing evaluator: second run never leaves stale passed on rules 5-7', async () => {
     (useSceneGraphStore as any).mockImplementation((selector: any) => selector({ nodes: [] }));
-    useSceneStore.getState().setCode(
-      'composition "A" {\n  object "Cube" {\n    @grabbable\n    geometry: "cube"\n  }\n}\n'
-    );
+    useSceneStore
+      .getState()
+      .setCode(
+        'composition "A" {\n  object "Cube" {\n    @grabbable\n    geometry: "cube"\n  }\n}\n'
+      );
     render(React.createElement(ConformanceSuitePanel, { onClose: () => {} }));
     await act(async () => {
       fireEvent.click(screen.getByText('Run Conformance Suite'));
     });
     expect(statusOf('Missing Braces')).toBe('passed');
 
-    const spy = vi
-      .mocked(CompilerConformance.evaluateCompilerRules)
-      .mockImplementation(() => {
-        throw new Error('simulated checker failure');
-      });
+    const spy = vi.mocked(CompilerConformance.evaluateCompilerRules).mockImplementation(() => {
+      throw new Error('simulated checker failure');
+    });
 
     await act(async () => {
       fireEvent.click(screen.getByText('Run Conformance Suite'));
@@ -243,8 +251,6 @@ describe('Scenario: Conformance Runner runs the real compiler (H5)', () => {
     expect(screen.getAllByText(/checker stopped/i).length).toBeGreaterThan(0);
     spy.mockRestore();
   });
-
-
 
   it('every rule is accounted for: nothing shows passed unless its check ran', async () => {
     await run('');

@@ -11,7 +11,10 @@ import type * as http from 'http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleGithubWebhookRoutes } from '../github-webhook-routes';
 
-const PING = JSON.stringify({ zen: 'Keep it logically awesome.', repository: { full_name: 'o/r' } });
+const PING = JSON.stringify({
+  zen: 'Keep it logically awesome.',
+  repository: { full_name: 'o/r' },
+});
 
 function fakeReq(body: string, headers: Record<string, string>): http.IncomingMessage {
   const stream = Object.assign(new PassThrough(), { headers });
@@ -83,7 +86,9 @@ describe('github webhook signature — secret configured', () => {
     vi.stubEnv('GITHUB_WEBHOOK_SECRET', SECRET);
     vi.stubEnv('HOLOCI_WEBHOOK_SECRETS', undefined);
     const good = 'sha256=' + createHmac('sha256', SECRET).update(PING).digest('hex');
-    expect((await post({ 'x-github-event': 'ping', 'x-hub-signature-256': good })).status).toBe(200);
+    expect((await post({ 'x-github-event': 'ping', 'x-hub-signature-256': good })).status).toBe(
+      200
+    );
     const bad = 'sha256=' + '0'.repeat(64);
     expect((await post({ 'x-github-event': 'ping', 'x-hub-signature-256': bad })).status).toBe(401);
   });

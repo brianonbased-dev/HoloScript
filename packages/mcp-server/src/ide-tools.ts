@@ -503,13 +503,19 @@ export async function handleIDETool(name: string, args: Record<string, unknown>)
       // validator's HS1006 on the PARSED trait uses). The curated `allTraits` list above is used
       // only for the "did you mean" suggestion.
       const filePath = (args.filePath as string) || '<input>';
-      const surface = /\.hsplus$/i.test(filePath) ? 'hsplus' : /\.hs$/i.test(filePath) ? 'hs' : 'holo';
+      const surface = /\.hsplus$/i.test(filePath)
+        ? 'hsplus'
+        : /\.hs$/i.test(filePath)
+          ? 'hs'
+          : 'holo';
       if (surface !== 'hs') {
         let unknown: Array<{ line?: number; column?: number; message: string }> = [];
         try {
-          unknown = validateCanonicalSource({ source: code, surface, allowEmpty: true }).warnings.filter(
-            (w) => w.code === UNKNOWN_TRAIT_CODE
-          );
+          unknown = validateCanonicalSource({
+            source: code,
+            surface,
+            allowEmpty: true,
+          }).warnings.filter((w) => w.code === UNKNOWN_TRAIT_CODE);
         } catch {
           unknown = [];
         }

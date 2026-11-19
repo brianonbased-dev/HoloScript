@@ -24,9 +24,16 @@ const AVATAR_STATE =
  * They are local-only: no network file may touch them without the share-grant gate.
  */
 const LOCAL_LIVE_EVENTS = [
-  'local_avatar_pose', 'avatar_blend_shapes', 'avatar_eye_gaze', 'avatar_head_pose',
-  'lip_sync_phoneme', 'face_expression_update', 'body_pose_changed', 'body_pose_update',
-  'face_data_update', 'local_voice_stream_ready',
+  'local_avatar_pose',
+  'avatar_blend_shapes',
+  'avatar_eye_gaze',
+  'avatar_head_pose',
+  'lip_sync_phoneme',
+  'face_expression_update',
+  'body_pose_changed',
+  'body_pose_update',
+  'face_data_update',
+  'local_voice_stream_ready',
 ];
 const LOCAL_LIVE = new RegExp(`['"\`](${LOCAL_LIVE_EVENTS.join('|')})['"\`]`);
 /** The network-bound live pose event. Every emitter of it must be share-grant gated. */
@@ -34,7 +41,8 @@ const NETWORK_POSE_EMIT = /emit\??\.?\(\s*['"`]avatar_pose_update['"`]/;
 const GATED = (src: string) => src.includes('avatarRenderAllowed('); // which itself requires the LikenessShareGrant grant
 /** Files that match lexically but carry no avatar state; reason required. */
 const ALLOW: Record<string, string> = {
-  'packages/core/scripts/generate-types.mjs': 'type declarations only (it declares avatarRenderAllowed)',
+  'packages/core/scripts/generate-types.mjs':
+    'type declarations only (it declares avatarRenderAllowed)',
 };
 
 /**
@@ -45,16 +53,31 @@ const ALLOW: Record<string, string> = {
 function listSourceFiles(): string[] {
   // --others --exclude-standard: a new, not-yet-added file is guarded too (and the planted
   // violation below goes through this exact path).
-  const out = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '--', 'packages/*.ts', 'packages/*.js', 'packages/*.mjs'], {
-    cwd: ROOT,
-    encoding: 'utf8',
-    maxBuffer: 256 * 1024 * 1024,
-  });
+  const out = execFileSync(
+    'git',
+    [
+      'ls-files',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+      '--',
+      'packages/*.ts',
+      'packages/*.js',
+      'packages/*.mjs',
+    ],
+    {
+      cwd: ROOT,
+      encoding: 'utf8',
+      maxBuffer: 256 * 1024 * 1024,
+    }
+  );
   const files = out
     .split(/\r?\n/)
     .filter((f) => f && !/(__tests__|\.test\.|\.spec\.|\/dist\/|\/node_modules\/)/.test(f));
   if (files.length < 100) {
-    throw new Error(`AvatarReplicationGuard: git ls-files matched ${files.length} source files under ${ROOT}; the guard would pass vacuously`);
+    throw new Error(
+      `AvatarReplicationGuard: git ls-files matched ${files.length} source files under ${ROOT}; the guard would pass vacuously`
+    );
   }
   return [...new Set(files)];
 }
@@ -64,13 +87,21 @@ const readSources = (files: string[]): Source[] =>
   files.map((f) => ({ f, src: readFileSync(path.join(ROOT, f), 'utf8') }));
 /** Replicating files (network + avatar/tracking state) that skip avatarRenderAllowed. */
 const replicationOffenders = (sources: Source[]) =>
-  sources.filter(({ f, src }) => NETWORK.test(src) && AVATAR_STATE.test(src) && !GATED(src) && !(f in ALLOW)).map((e) => e.f);
+  sources
+    .filter(
+      ({ f, src }) => NETWORK.test(src) && AVATAR_STATE.test(src) && !GATED(src) && !(f in ALLOW)
+    )
+    .map((e) => e.f);
 /** Emitters of the network pose event that skip the gate. */
 const poseEmitOffenders = (sources: Source[]) =>
   sources.filter(({ src }) => NETWORK_POSE_EMIT.test(src) && !GATED(src)).map((e) => e.f);
 /** Network files that touch a local live event ungated. */
 const localLeakOffenders = (sources: Source[]) =>
-  sources.filter(({ f, src }) => NETWORK.test(src) && LOCAL_LIVE.test(src) && !GATED(src) && !(f in ALLOW)).map((e) => e.f);
+  sources
+    .filter(
+      ({ f, src }) => NETWORK.test(src) && LOCAL_LIVE.test(src) && !GATED(src) && !(f in ALLOW)
+    )
+    .map((e) => e.f);
 
 describe('avatar replication guard', () => {
   it('every replicating file calls avatarRenderAllowed', () => {
@@ -88,8 +119,10 @@ describe('avatar replication guard', () => {
   });
 
   it('the guard bites: a replicating file without the call is flagged', () => {
-    const src = "transport.send(peer, { pose: node.__avatarState.pose });";
-    expect(NETWORK.test(src) && AVATAR_STATE.test(src) && !src.includes('avatarRenderAllowed(')).toBe(true);
+    const src = 'transport.send(peer, { pose: node.__avatarState.pose });';
+    expect(
+      NETWORK.test(src) && AVATAR_STATE.test(src) && !src.includes('avatarRenderAllowed(')
+    ).toBe(true);
   });
 
   it.each([
@@ -97,7 +130,9 @@ describe('avatar replication guard', () => {
     'sendToPeer(id, { face: node.__faceTrackingState.blendshapes });',
     'room.broadcast({ visemes: node.__lip_sync_instance.current });',
   ])('N1: tracking state without avatar_embodiment is caught: %s', (src) => {
-    expect(NETWORK.test(src) && AVATAR_STATE.test(src) && !src.includes('avatarRenderAllowed(')).toBe(true);
+    expect(
+      NETWORK.test(src) && AVATAR_STATE.test(src) && !src.includes('avatarRenderAllowed(')
+    ).toBe(true);
   });
 
   const sources = () => readSources(listSourceFiles());
@@ -139,7 +174,10 @@ describe('avatar replication guard', () => {
   });
 
   it('BodyTrackingTrait emits live joints only as local_avatar_pose', () => {
-    const src = readFileSync(path.join(ROOT, 'packages/core/src/traits/BodyTrackingTrait.ts'), 'utf8');
+    const src = readFileSync(
+      path.join(ROOT, 'packages/core/src/traits/BodyTrackingTrait.ts'),
+      'utf8'
+    );
     expect(src).toMatch(/emit\??\.?\(\s*'local_avatar_pose'/);
     expect(NETWORK_POSE_EMIT.test(src)).toBe(false);
   });
@@ -149,12 +187,12 @@ describe('avatar replication guard', () => {
     const abs = path.join(ROOT, rel);
     writeFileSync(
       abs,
-      "export const planted = (context: any, node: any) => {\n" +
-        "  // Emit event to network layer\n" +
+      'export const planted = (context: any, node: any) => {\n' +
+        '  // Emit event to network layer\n' +
         "  context.emit('avatar_pose_update', { node, pose: node.__avatarState.pose });\n" +
-        "  transport.send(peer, node.__bodyTrackingState.joints);\n" +
+        '  transport.send(peer, node.__bodyTrackingState.joints);\n' +
         "  bus.on('local_avatar_pose', (e: any) => sendToPeer(id, e));\n" +
-        "};\n"
+        '};\n'
     );
     try {
       const files = listSourceFiles();

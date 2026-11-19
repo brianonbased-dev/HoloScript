@@ -8,12 +8,19 @@ import { HotReloadPipeline } from './HotReloadPipeline';
 
 // The diff itself is not under test: any change between scenes is one mutation.
 vi.mock('./SceneDiffer', () => ({
-  diffScenes: (a: unknown, b: unknown) => ({ mutations: a === b ? [] : [{ type: 'replace' }], affectedObjectNames: [] }),
+  diffScenes: (a: unknown, b: unknown) => ({
+    mutations: a === b ? [] : [{ type: 'replace' }],
+    affectedObjectNames: [],
+  }),
 }));
 
 const HS1001 = { message: 'Source is empty (HS1001)', code: 'HS1001', line: 1 };
 const empty = { type: 'Composition', name: 'untitled', objects: [] } as any;
-const full = { type: 'Composition', name: 'scene', objects: [{ name: 'cube', type: 'Object' }] } as any;
+const full = {
+  type: 'Composition',
+  name: 'scene',
+  objects: [{ name: 'cube', type: 'Object' }],
+} as any;
 
 function makeBridge() {
   return { reset: vi.fn(), apply: vi.fn() } as any;
@@ -43,7 +50,11 @@ describe('HotReloadPipeline blank buffer (HS1001)', () => {
   it('clearing the editor resets the preview to empty instead of pushing an error', async () => {
     const parser = makeParser();
     const bridge = makeBridge();
-    const p = new HotReloadPipeline(bridge, { createParser: () => parser as any, fullSceneFallbackThreshold: true, maxMutationsBeforeFallback: 0 });
+    const p = new HotReloadPipeline(bridge, {
+      createParser: () => parser as any,
+      fullSceneFallbackThreshold: true,
+      maxMutationsBeforeFallback: 0,
+    });
     const updates: any[] = [];
     p.onLiveUpdate = (m) => updates.push(m);
     await p.processCodeUpdate('composition scene { object cube {} }');

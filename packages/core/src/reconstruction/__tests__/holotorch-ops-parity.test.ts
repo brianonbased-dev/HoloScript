@@ -98,7 +98,6 @@ function compareAllClose(
   return { maxAbs, maxRefAbs, relToScale: maxAbs / Math.max(maxRefAbs, 1e-12), allClose };
 }
 
-
 function rng(seed: number): () => number {
   let s = seed >>> 0;
   return () => {

@@ -22,10 +22,7 @@ export function studioOwnOrigin(env: NodeJS.ProcessEnv = process.env): string | 
  * refused, and so is everything when no Studio URL is configured (fail closed).
  * Host and X-Forwarded-Host are not consulted at all.
  */
-export function isOwnOriginRequest(
-  req: Request,
-  env: NodeJS.ProcessEnv = process.env
-): boolean {
+export function isOwnOriginRequest(req: Request, env: NodeJS.ProcessEnv = process.env): boolean {
   const own = studioOwnOrigin(env);
   const origin = req.headers.get('origin');
   if (!own || !origin || origin === 'null') return false;

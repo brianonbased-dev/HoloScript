@@ -15,7 +15,10 @@ const dockerCfg = 'scripts/docker/tsup.core.docker.cjs';
 
 test('pre-push runs check-docker-core-entries.mjs and blocks on failure', () => {
   const hook = readFileSync(join(root, '.githooks/pre-push'), 'utf8');
-  assert.match(hook, /if ! node scripts\/holo-ci\/check-docker-core-entries\.mjs; then[\s\S]*?exit 1/);
+  assert.match(
+    hook,
+    /if ! node scripts\/holo-ci\/check-docker-core-entries\.mjs; then[\s\S]*?exit 1/
+  );
 });
 
 test('checker passes on the real tree', () => {

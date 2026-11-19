@@ -13,7 +13,10 @@ const h = vi.hoisted(() => {
   process.env.USERPROFILE = home;
   return { home, requireFounder: vi.fn() };
 });
-vi.mock('@/lib/api-auth', () => ({ requireFounder: h.requireFounder, requireAuth: h.requireFounder }));
+vi.mock('@/lib/api-auth', () => ({
+  requireFounder: h.requireFounder,
+  requireAuth: h.requireFounder,
+}));
 
 import * as fs from 'fs';
 import { GET, POST } from './route';
@@ -29,7 +32,10 @@ afterEach(() => h.requireFounder.mockReset());
 afterAll(() => fs.rmSync(h.home, { recursive: true, force: true }));
 
 describe('self-improve/status is founder-only', () => {
-  for (const [label, status] of [['anonymous', 401], ['non-founder', 403]] as const) {
+  for (const [label, status] of [
+    ['anonymous', 401],
+    ['non-founder', 403],
+  ] as const) {
     it(`${label}: POST ${status} and nothing written; GET ${status}`, async () => {
       h.requireFounder.mockResolvedValue(NextResponse.json({ error: label }, { status }));
       expect((await POST(post())).status).toBe(status);

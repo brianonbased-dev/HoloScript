@@ -30,9 +30,7 @@ import {
 // =============================================================================
 
 function getStudioUrl(): string {
-  return (
-    process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://holoscript.studio'
-  );
+  return process.env.HOLOSCRIPT_STUDIO_URL || process.env.STUDIO_URL || 'https://holoscript.studio';
 }
 
 function getDefaultApiKey(): string {

@@ -168,41 +168,82 @@ describe('networkedAvatarHandler.onUpdate (isLocal=true)', () => {
   it('no self share grant: broadcasts the generic avatar with no live pose (POLICY §3)', () => {
     const { node, ctx, config } = attach({ isLocal: true, updateRate: 30 });
     networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', {
+      generic: true,
+      avatarId: expect.anything(),
+    });
     expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
   });
 
   it('synthetic avatar + live body tracking + no self-grant: broadcast carries no live pose', () => {
-    const { node, ctx, config } = attach({ isLocal: true, updateRate: 30, sessionId: 's1', audience: ['bob'] });
-    (node as any).traits = new Map([['body_tracking', { source: 'live_self' }], ['avatar_embodiment', { tracking_source: 'headset' }]]);
+    const { node, ctx, config } = attach({
+      isLocal: true,
+      updateRate: 30,
+      sessionId: 's1',
+      audience: ['bob'],
+    });
+    (node as any).traits = new Map([
+      ['body_tracking', { source: 'live_self' }],
+      ['avatar_embodiment', { tracking_source: 'headset' }],
+    ]);
     networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
     expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', {
+      generic: true,
+      avatarId: expect.anything(),
+    });
   });
 
   it('emits the live pose with the self grant; audience mismatch and revoke fall back next frame', () => {
     const cfg = { isLocal: true, updateRate: 30, sessionId: 's1', audience: ['bob'] };
     const { node, ctx, config } = attach(cfg);
     (node as any).__trackedPersonId = 'ava';
-    expect(grantLikenessShare(node, { grantorId: 'ava', trackedPersonId: 'ava', sessionId: 's1', audience: ['bob'], renderLikenessYes: true })).toBe(true);
+    expect(
+      grantLikenessShare(node, {
+        grantorId: 'ava',
+        trackedPersonId: 'ava',
+        sessionId: 's1',
+        audience: ['bob'],
+        renderLikenessYes: true,
+      })
+    ).toBe(true);
     networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', expect.objectContaining({ pose: expect.any(Object) }));
+    expect(ctx.emit).toHaveBeenCalledWith(
+      'avatar_pose_update',
+      expect.objectContaining({ pose: expect.any(Object) })
+    );
     // audience mismatch
     ctx.emit.mockClear();
     getState(node).lastUpdate = 0;
-    networkedAvatarHandler.onUpdate!(node as any, { ...config, audience: ['bob', 'eve'] } as any, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
+    networkedAvatarHandler.onUpdate!(
+      node as any,
+      { ...config, audience: ['bob', 'eve'] } as any,
+      ctx as any,
+      0.016
+    );
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', {
+      generic: true,
+      avatarId: expect.anything(),
+    });
     // revoke: the very next frame is generic
     ctx.emit.mockClear();
     getState(node).lastUpdate = 0;
     revokeLikenessShare(node);
     networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);
-    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', { generic: true, avatarId: expect.anything() });
+    expect(ctx.emit).toHaveBeenCalledWith('avatar_pose_update', {
+      generic: true,
+      avatarId: expect.anything(),
+    });
     expect(ctx.emit.mock.calls.some((c: any[]) => c[1]?.pose)).toBe(false);
   });
 
   it('generic payload serializes with no node, pose or joints (Release B1 note)', async () => {
-    const { node, ctx, config } = await attach({ isLocal: true, updateRate: 30, sessionId: 's1', audience: ['bob'] });
+    const { node, ctx, config } = await attach({
+      isLocal: true,
+      updateRate: 30,
+      sessionId: 's1',
+      audience: ['bob'],
+    });
     (node as any).traits = new Map([['body_tracking', { source: 'live_self' }]]);
     (node as any).__bodyTrackingState = { joints: new Map([['head', { position: [1, 2, 3] }]]) };
     await networkedAvatarHandler.onUpdate!(node as any, config, ctx as any, 0.016);

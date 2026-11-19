@@ -174,7 +174,8 @@ export function admitHoloServeHealth(
   if (
     health.status !== 'ok' ||
     health.backend !== 'pytorch-holo' ||
-    !isRecord(health.sovereignty) || health.sovereignty.weights !== 'sovereign' ||
+    !isRecord(health.sovereignty) ||
+    health.sovereignty.weights !== 'sovereign' ||
     health.llama_cpp !== false ||
     health.gguf !== false
   )

@@ -40,7 +40,15 @@ describe('validate_holoscript: HS1011 likeness', () => {
   });
 
   it('Trust and Consent: replayed lip sync without a grant is refused; live own mic is not', async () => {
-    expect((await validate(`object "Ava" {\n  @lip_sync(source: "audio_node")\n}\n`)).errors.map((e) => e.code)).toContain('HS1011');
-    expect((await validate(`object "Ava" {\n  @lip_sync(source: "microphone")\n}\n`)).errors.map((e) => e.code)).not.toContain('HS1011');
+    expect(
+      (await validate(`object "Ava" {\n  @lip_sync(source: "audio_node")\n}\n`)).errors.map(
+        (e) => e.code
+      )
+    ).toContain('HS1011');
+    expect(
+      (await validate(`object "Ava" {\n  @lip_sync(source: "microphone")\n}\n`)).errors.map(
+        (e) => e.code
+      )
+    ).not.toContain('HS1011');
   });
 });

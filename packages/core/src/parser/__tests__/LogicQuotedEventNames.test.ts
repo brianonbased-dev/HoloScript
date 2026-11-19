@@ -19,10 +19,20 @@ function parse(code: string) {
   const r = new HoloScriptPlusParser().parse(code) as unknown as {
     success: boolean;
     errors?: Array<{ message: string }>;
-    ast: { root?: { children?: Array<{ type: string; body?: { eventHandlers?: Array<{ event: string }> } }> } };
+    ast: {
+      root?: {
+        children?: Array<{ type: string; body?: { eventHandlers?: Array<{ event: string }> } }>;
+      };
+    };
   };
   const root = (r.ast as { root?: unknown }).root ?? r.ast;
-  return { r, children: ((root as { children?: unknown[] }).children ?? []) as Array<{ type: string; body?: { eventHandlers?: Array<{ event: string }> } }> };
+  return {
+    r,
+    children: ((root as { children?: unknown[] }).children ?? []) as Array<{
+      type: string;
+      body?: { eventHandlers?: Array<{ event: string }> };
+    }>,
+  };
 }
 
 describe('logic block: quoted event names (audit item 3)', () => {
@@ -42,9 +52,12 @@ describe('logic block: quoted event names (audit item 3)', () => {
     expect(r.success).toBe(true);
   });
 
-  it.each(['settings', 'projects', 'integrations'])('Studio %s.hsplus parses with its UI objects', (name) => {
-    const { r, children } = parse(studioComposition(name));
-    expect(r.errors?.map((e) => e.message) ?? []).toEqual([]);
-    expect(children.some((c) => c.type === 'object')).toBe(true);
-  });
+  it.each(['settings', 'projects', 'integrations'])(
+    'Studio %s.hsplus parses with its UI objects',
+    (name) => {
+      const { r, children } = parse(studioComposition(name));
+      expect(r.errors?.map((e) => e.message) ?? []).toEqual([]);
+      expect(children.some((c) => c.type === 'object')).toBe(true);
+    }
+  );
 });

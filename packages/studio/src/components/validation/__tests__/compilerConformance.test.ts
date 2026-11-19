@@ -75,8 +75,6 @@ describe('evaluateCompilerRules (real parser)', () => {
     expect(r.unknownTrait.message).not.toMatch(/GrabBable|GRABBABLE/i);
   });
 
-
-
   it('rule 7 still warns on a truly unknown trait after folding', () => {
     const r = evaluateCompilerRules(
       'composition "A" {\n  object "Cube" {\n    @NoPe_XyZ\n    geometry: "cube"\n  }\n}\n'

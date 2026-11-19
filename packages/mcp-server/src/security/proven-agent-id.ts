@@ -271,8 +271,7 @@ export function resolveProvenAgentId(headers: IncomingHttpHeaders): string | und
 }
 
 export type RegistrationAgentBinding =
-  | { ok: true; boundAgentId?: string }
-  | { ok: false; reason: string };
+  { ok: true; boundAgentId?: string } | { ok: false; reason: string };
 
 /**
  * Decide whether `POST /oauth/register` may record an agent binding.

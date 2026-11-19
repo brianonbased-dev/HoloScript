@@ -72,7 +72,9 @@ describe('runPaletteMcpToolRequest — a failed palette command is seen', () => 
 
   it('does not vanish when the gateway answers something that is not JSON', async () => {
     const notify = vi.fn();
-    const gateway = vi.fn(async () => new Response('<html>502 Bad Gateway</html>', { status: 502 }));
+    const gateway = vi.fn(
+      async () => new Response('<html>502 Bad Gateway</html>', { status: 502 })
+    );
 
     await expect(
       runPaletteMcpToolRequest({

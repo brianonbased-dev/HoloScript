@@ -18,7 +18,9 @@ export function JoinHoloMeshState({
       data-testid="join-holomesh"
       className="flex flex-col items-center justify-center gap-4 py-16 text-center"
     >
-      {who ? <div className="text-lg font-semibold text-studio-text">Signed in as {who}</div> : null}
+      {who ? (
+        <div className="text-lg font-semibold text-studio-text">Signed in as {who}</div>
+      ) : null}
       <p className="max-w-md text-sm text-studio-muted">
         No HoloMesh agent is linked to your account yet. Join the network to get {what}.
       </p>

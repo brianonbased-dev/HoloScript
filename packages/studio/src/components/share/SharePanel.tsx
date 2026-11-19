@@ -78,7 +78,6 @@ export function SharePanel({ onClose }: SharePanelProps) {
   // (lib/worldQrUrl) shared with PublishModal, anchored to the pathname.
   const qrUrl = shareUrl ? worldQrUrl(shareUrl) : null;
 
-
   return (
     <div className="flex h-full flex-col bg-studio-panel text-studio-text">
       {/* Header */}

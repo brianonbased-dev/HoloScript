@@ -8,7 +8,10 @@ vi.mock('next-auth', () => ({ getServerSession: h.session }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));
 vi.mock('@/lib/workspace/workspaceIdentity', () => ({ isFounderWorkspaceIdentity: h.isFounder }));
 vi.mock('@/lib/absorb/projectState', () => ({ findDurableAbsorbProject: () => null }));
-vi.mock('@/lib/services/absorb-client', () => ({ ABSORB_API_KEY: '', ABSORB_BASE: 'https://absorb.test' }));
+vi.mock('@/lib/services/absorb-client', () => ({
+  ABSORB_API_KEY: '',
+  ABSORB_BASE: 'https://absorb.test',
+}));
 vi.mock('@/lib/workspace/founderWorkspaceBackfill', () => ({
   buildFounderWorkspaceBackfill: async () => ({
     knowledgeSyncPayload: { entries: [{ id: 'e1' }] },

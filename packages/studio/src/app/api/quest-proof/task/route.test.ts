@@ -5,8 +5,16 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 
-const h = vi.hoisted(() => ({ requireFounder: vi.fn(), spawn: vi.fn(), mkdir: vi.fn(), writeFile: vi.fn() }));
-vi.mock('@/lib/api-auth', () => ({ requireFounder: h.requireFounder, requireAuth: h.requireFounder }));
+const h = vi.hoisted(() => ({
+  requireFounder: vi.fn(),
+  spawn: vi.fn(),
+  mkdir: vi.fn(),
+  writeFile: vi.fn(),
+}));
+vi.mock('@/lib/api-auth', () => ({
+  requireFounder: h.requireFounder,
+  requireAuth: h.requireFounder,
+}));
 vi.mock('node:child_process', () => ({ spawn: h.spawn, default: { spawn: h.spawn } }));
 vi.mock('node:fs/promises', () => ({
   mkdir: h.mkdir,
@@ -26,7 +34,10 @@ const post = () =>
 afterEach(() => vi.resetAllMocks());
 
 describe('quest-proof/task is founder-only', () => {
-  for (const [label, status] of [['anonymous', 401], ['non-founder', 403]] as const) {
+  for (const [label, status] of [
+    ['anonymous', 401],
+    ['non-founder', 403],
+  ] as const) {
     it(`${label}: POST ${status}, nothing written or spawned`, async () => {
       h.requireFounder.mockResolvedValue(NextResponse.json({ error: label }, { status }));
       const res = await POST(post());

@@ -28,7 +28,11 @@ import { useSession, signIn } from 'next-auth/react';
 import { SignInCta } from '@/components/auth/SignInCta';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { PURCHASE_RETURN_PARAM, creditBalanceFrom, purchaseReturnNotice } from '@/lib/purchase-return';
+import {
+  PURCHASE_RETURN_PARAM,
+  creditBalanceFrom,
+  purchaseReturnNotice,
+} from '@/lib/purchase-return';
 import { logger } from '@/lib/logger';
 import { SAVE_FEEDBACK_DURATION } from '@/lib/ui-timings';
 import { HoloSurfaceRenderer, useHoloComposition } from '@/components/holo-surface';
@@ -532,7 +536,11 @@ export function SettingsView() {
                   style={{
                     padding: 12,
                     color:
-                      purchaseTone === 'error' ? '#f87171' : purchaseTone === 'ok' ? '#4ade80' : '#a1a1aa',
+                      purchaseTone === 'error'
+                        ? '#f87171'
+                        : purchaseTone === 'ok'
+                          ? '#4ade80'
+                          : '#a1a1aa',
                     fontFamily: 'system-ui',
                     fontSize: 14,
                   }}

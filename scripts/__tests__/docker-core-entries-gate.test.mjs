@@ -191,7 +191,11 @@ function runGate(root) {
       `import { p } from '@holoscript/core/policy';\nexport const y = p;\n`
     );
     const r = runGate(root);
-    assertEq(r.code, 0, 'I: a workspace built but not shipped by a selective-ship image is not scanned');
+    assertEq(
+      r.code,
+      0,
+      'I: a workspace built but not shipped by a selective-ship image is not scanned'
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -251,7 +255,11 @@ function buildParserFixture({ dockerParser, standardParser }) {
   });
   try {
     const r = runGate(root);
-    assertEq(r.code, 1, 'E: Docker builds a subpath from a different source than the standard build -> exit 1');
+    assertEq(
+      r.code,
+      1,
+      'E: Docker builds a subpath from a different source than the standard build -> exit 1'
+    );
     assertEq(
       /\[FAIL\]/.test(r.out) && /parser/.test(r.out) && /HoloScriptPlusParser\.ts/.test(r.out),
       true,
@@ -266,7 +274,11 @@ function buildParserFixture({ dockerParser, standardParser }) {
   const root = buildParserFixture({ dockerParser: null, standardParser: 'src/parser/index.ts' });
   try {
     const r = runGate(root);
-    assertEq(r.code, 1, 'F: a flat dist subpath (./dist/parser.js) missing from Docker config -> exit 1');
+    assertEq(
+      r.code,
+      1,
+      'F: a flat dist subpath (./dist/parser.js) missing from Docker config -> exit 1'
+    );
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

@@ -8714,7 +8714,9 @@ function unknownTraitWarnings(
   const locate = (name: string): SourceLocation => {
     const k = used.get(name) ?? 0;
     used.set(name, k + 1);
-    const at = /^[A-Za-z0-9_]+$/.test(name) ? offsets.get(name)?.[k] : nthTraitOffset(source, name, k);
+    const at = /^[A-Za-z0-9_]+$/.test(name)
+      ? offsets.get(name)?.[k]
+      : nthTraitOffset(source, name, k);
     if (at === undefined) return { line: 1, column: 1 };
     let lo = 0;
     let hi = lineStarts.length - 1;

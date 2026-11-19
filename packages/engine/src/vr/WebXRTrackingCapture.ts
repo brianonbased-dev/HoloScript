@@ -46,7 +46,10 @@ const JOINTS: Record<string, string> = {
 };
 
 interface PoseLike {
-  transform: { position: { x: number; y: number; z: number }; orientation: { x: number; y: number; z: number; w: number } };
+  transform: {
+    position: { x: number; y: number; z: number };
+    orientation: { x: number; y: number; z: number; w: number };
+  };
   emulatedPosition?: boolean;
 }
 interface FrameLike {

@@ -19,9 +19,7 @@ describe('SignInCta', () => {
 
     const link = screen.getByTestId('sign-in-cta');
     expect(link).toBeTruthy();
-    expect(link.getAttribute('href')).toBe(
-      '/auth/signin?callbackUrl=%2Fsettings'
-    );
+    expect(link.getAttribute('href')).toBe('/auth/signin?callbackUrl=%2Fsettings');
     expect(link.textContent).toMatch(/Sign in/i);
   });
 
@@ -29,9 +27,7 @@ describe('SignInCta', () => {
     render(<SignInCta callbackUrl="/projects" label="Continue with GitHub" />);
 
     const link = screen.getByTestId('sign-in-cta');
-    expect(link.getAttribute('href')).toBe(
-      '/auth/signin?callbackUrl=%2Fprojects'
-    );
+    expect(link.getAttribute('href')).toBe('/auth/signin?callbackUrl=%2Fprojects');
     expect(link.textContent).toBe('Continue with GitHub');
   });
 });

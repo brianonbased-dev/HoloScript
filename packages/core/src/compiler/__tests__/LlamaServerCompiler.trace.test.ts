@@ -1,14 +1,7 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createServer, request as httpRequest, type IncomingHttpHeaders } from 'node:http';
 import { connect as netConnect } from 'node:net';
-import {
-  chmodSync,
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { networkInterfaces, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -326,7 +319,12 @@ function waitForTcp(host: string, port: number): Promise<void> {
   });
 }
 
-async function untilReady(host: string, port: number, proc: ChildProcess, logs: () => string): Promise<void> {
+async function untilReady(
+  host: string,
+  port: number,
+  proc: ChildProcess,
+  logs: () => string
+): Promise<void> {
   const deadline = Date.now() + 8000;
   let last = '';
   while (Date.now() < deadline) {
@@ -358,7 +356,12 @@ async function startProxy(opts: {
   const callLog = join(root, 'calls.ndjson');
   const receiptsDir = join(root, 'receipts');
   const capsulesDir = join(root, 'capsules');
-  writeFileSync(scriptPath, compile({ ...baseConfig, trace_capture: true }).files.find((f) => f.path === 'holo-inference-proxy.mjs')!.content);
+  writeFileSync(
+    scriptPath,
+    compile({ ...baseConfig, trace_capture: true }).files.find(
+      (f) => f.path === 'holo-inference-proxy.mjs'
+    )!.content
+  );
   writeFileSync(clientPath, FAKE_HOLOKEYCTL);
   chmodSync(clientPath, 0o755);
   writeFileSync(keyFile, `${PROXY_SECRET}\n`);
@@ -375,7 +378,10 @@ async function startProxy(opts: {
         authorization: headers.authorization,
       });
       const body = Buffer.concat(chunks).toString('utf8');
-      if (body.includes(PROXY_SECRET) || String(headers.authorization ?? '').includes(PROXY_SECRET)) {
+      if (
+        body.includes(PROXY_SECRET) ||
+        String(headers.authorization ?? '').includes(PROXY_SECRET)
+      ) {
         hits[hits.length - 1]!.url = `${hits[hits.length - 1]!.url} LEAKED`;
       }
       if (req.url?.startsWith('/v1/models')) {
@@ -510,7 +516,11 @@ describe('generated holo-inference-proxy bearer auth', () => {
   it('allows loopback in enforce with no credentials, and still checks a LAN caller', async () => {
     const running: ProxyHarness[] = [];
     try {
-      const v4 = await startProxy({ bindHost: '0.0.0.0', mode: 'enforce', keyName: PROXY_KEY_NAME });
+      const v4 = await startProxy({
+        bindHost: '0.0.0.0',
+        mode: 'enforce',
+        keyName: PROXY_KEY_NAME,
+      });
       running.push(v4);
       const loop = await proxyCall('127.0.0.1', v4.port, '/v1/models');
       const denied = await proxyCall(lan, v4.port, '/v1/models');
@@ -531,28 +541,35 @@ describe('generated holo-inference-proxy bearer auth', () => {
 
   // A host with no IPv6 stack refuses listen('::') with EAFNOSUPPORT, and some
   // containers accept '::' but have no ::1. That is the host, not the proxy.
-  it.skipIf(!hasIPv6Loopback)('allows loopback on a dual-stack :: bind, and still checks a LAN caller', async () => {
-    const running: ProxyHarness[] = [];
-    try {
-      const v6 = await startProxy({ bindHost: '::', mode: 'enforce', keyName: PROXY_KEY_NAME });
-      running.push(v6);
-      const mapped = await proxyCall('127.0.0.1', v6.port, '/v1/models');
-      const v6Loop = await proxyCall('::1', v6.port, '/v1/models');
-      const deniedV6 = await proxyCall(lan, v6.port, '/v1/models');
-      expect(mapped.status).toBe(200);
-      expect(v6Loop.status).toBe(200);
-      expect(deniedV6.status).toBe(401);
-      const v6Logs = await waitUntil(() => v6.logs(), 'auth result=missing ip=::ffff:');
-      expect(v6Logs).not.toContain('ip=::1');
-      expect(v6Logs).not.toContain('ip=::ffff:127.0.0.1');
-      assertNoSecret(v6Logs, mapped.body, v6Loop.body, deniedV6.body);
-    } finally {
-      for (const proxy of running) await proxy.stop();
+  it.skipIf(!hasIPv6Loopback)(
+    'allows loopback on a dual-stack :: bind, and still checks a LAN caller',
+    async () => {
+      const running: ProxyHarness[] = [];
+      try {
+        const v6 = await startProxy({ bindHost: '::', mode: 'enforce', keyName: PROXY_KEY_NAME });
+        running.push(v6);
+        const mapped = await proxyCall('127.0.0.1', v6.port, '/v1/models');
+        const v6Loop = await proxyCall('::1', v6.port, '/v1/models');
+        const deniedV6 = await proxyCall(lan, v6.port, '/v1/models');
+        expect(mapped.status).toBe(200);
+        expect(v6Loop.status).toBe(200);
+        expect(deniedV6.status).toBe(401);
+        const v6Logs = await waitUntil(() => v6.logs(), 'auth result=missing ip=::ffff:');
+        expect(v6Logs).not.toContain('ip=::1');
+        expect(v6Logs).not.toContain('ip=::ffff:127.0.0.1');
+        assertNoSecret(v6Logs, mapped.body, v6Loop.body, deniedV6.body);
+      } finally {
+        for (const proxy of running) await proxy.stop();
+      }
     }
-  });
+  );
 
   it('log-only forwards missing and bad keys, logs the result, and strips Authorization', async () => {
-    const proxy = await startProxy({ bindHost: '0.0.0.0', mode: 'log-only', keyName: PROXY_KEY_NAME });
+    const proxy = await startProxy({
+      bindHost: '0.0.0.0',
+      mode: 'log-only',
+      keyName: PROXY_KEY_NAME,
+    });
     try {
       const missing = await proxyCall(lan, proxy.port, '/v1/chat/completions?n=1', {
         method: 'POST',
@@ -568,7 +585,10 @@ describe('generated holo-inference-proxy bearer auth', () => {
       expect(missing.status).toBe(200);
       expect(bad.status).toBe(200);
       expect(ok.status).toBe(200);
-      const logs = await waitUntil(() => proxy.logs(), `auth result=ok ip=${lan} method=GET path=/v1/models`);
+      const logs = await waitUntil(
+        () => proxy.logs(),
+        `auth result=ok ip=${lan} method=GET path=/v1/models`
+      );
       expect(logs).toContain(`auth result=missing ip=${lan} method=POST path=/v1/chat/completions`);
       expect(logs).toContain(`auth result=bad ip=${lan} method=GET path=/v1/models`);
       expect(logs).toContain(`auth result=ok ip=${lan} method=GET path=/v1/models`);
@@ -622,7 +642,9 @@ describe('generated holo-inference-proxy bearer auth', () => {
       const receipts = await waitUntil(() => proxy.receiptText(), '"authResult":"bad"');
       const rows = receiptRows(receipts);
       expect(rows.map((row) => row.authResult)).toEqual(['missing', 'bad']);
-      expect(rows.every((row) => row.status === 401 && row.v === 'inference-receipt/v0')).toBe(true);
+      expect(rows.every((row) => row.status === 401 && row.v === 'inference-receipt/v0')).toBe(
+        true
+      );
       expect(rows[0]).toMatchObject({
         remoteAddr: expect.stringContaining(lan) as unknown,
         method: 'GET',
@@ -788,7 +810,9 @@ describe('generated holo-inference-proxy bearer auth', () => {
       expect(proxy.logs()).not.toContain('auth: log-only');
       expect(proxy.logs()).not.toContain('auth result=');
       expect(proxy.calls()).toHaveLength(1);
-      expect(proxy.hits()).toEqual([{ method: 'GET', url: '/v1/models', authorization: undefined }]);
+      expect(proxy.hits()).toEqual([
+        { method: 'GET', url: '/v1/models', authorization: undefined },
+      ]);
       assertNoSecret(proxy.logs(), first.body, second.body, proxy.receiptText());
     } finally {
       await proxy.stop();
@@ -919,24 +943,43 @@ describe('generated holo-inference-proxy bearer auth', () => {
       expect(unset.calls()).toEqual([]);
       expect(explicitOff.calls()).toEqual([]);
       expect(implicitLogOnly.calls()).toHaveLength(1);
-      expect(implicitLogOnly.logs()).toContain(`auth result=missing ip=${lan} method=GET path=/v1/models`);
+      expect(implicitLogOnly.logs()).toContain(
+        `auth result=missing ip=${lan} method=GET path=/v1/models`
+      );
       expect(unset.hits()[0]?.authorization).toBeUndefined();
-      const loopReceipt = await proxyCall('127.0.0.1', implicitLogOnly.port, '/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: chatBody,
-      });
+      const loopReceipt = await proxyCall(
+        '127.0.0.1',
+        implicitLogOnly.port,
+        '/v1/chat/completions',
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: chatBody,
+        }
+      );
       expect(loopReceipt.status).toBe(200);
-      const exemptReceipt = await waitUntil(() => implicitLogOnly.receiptText(), '"authResult":"exempt"');
+      const exemptReceipt = await waitUntil(
+        () => implicitLogOnly.receiptText(),
+        '"authResult":"exempt"'
+      );
       const offPost = await proxyCall(lan, unset.port, '/v1/chat/completions', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: chatBody,
       });
       expect(offPost.status).toBe(200);
-      const offReceiptText = await waitUntil(() => unset.receiptText(), '"v":"inference-receipt/v0"');
-      const offLines = offReceiptText.trim().split('\n').filter((line) => line.length > 0);
-      const offReceipt = JSON.parse(offLines[offLines.length - 1] ?? '{}') as Record<string, unknown>;
+      const offReceiptText = await waitUntil(
+        () => unset.receiptText(),
+        '"v":"inference-receipt/v0"'
+      );
+      const offLines = offReceiptText
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0);
+      const offReceipt = JSON.parse(offLines[offLines.length - 1] ?? '{}') as Record<
+        string,
+        unknown
+      >;
       expect(offReceipt.v).toBe('inference-receipt/v0');
       expect(offReceipt).not.toHaveProperty('authResult');
       assertNoSecret(

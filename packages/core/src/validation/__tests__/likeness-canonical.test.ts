@@ -63,7 +63,9 @@ describe('canonical validator: HS1011 likeness (fail closed)', () => {
     // face_tracking and body_tracking: only source "live_self" is exempt; omitted is refused (N-2)
     expect(hs1011(v(obj('  @face_tracking\n  @body_tracking')))).toBe(2);
     expect(
-      hs1011(v(obj('  @face_tracking { source: "live_self" }\n  @body_tracking { source: "live_self" }')))
+      hs1011(
+        v(obj('  @face_tracking { source: "live_self" }\n  @body_tracking { source: "live_self" }'))
+      )
     ).toBe(0);
   });
 
@@ -101,25 +103,42 @@ describe('canonical validator: HS1011 likeness (fail closed)', () => {
     const v = (src: string, consentRules?: Record<string, string[]>) =>
       validateCanonicalSource({ source: src, surface: 'holo', consentRules });
     const obj = (body: string) => `object "Ava" {\n${body}\n}\n`;
-    it.each(['playback', 'remote'])('%s (a real person\'s tracking) with no grant is refused; with a grant and the rule yes it applies', (ts) => {
-      expect(hs1011(v(obj(`  @avatar_embodiment(tracking_source: "${ts}")`)))).toBe(1);
-      const granted = obj(`  @consent_gate(grant: "${GRANT}")\n  @avatar_embodiment(tracking_source: "${ts}")`);
-      expect(hs1011(v(granted))).toBe(1);
-      expect(v(granted, { [GRANT]: ['body'] }).valid).toBe(true);
-    });
+    it.each(['playback', 'remote'])(
+      "%s (a real person's tracking) with no grant is refused; with a grant and the rule yes it applies",
+      (ts) => {
+        expect(hs1011(v(obj(`  @avatar_embodiment(tracking_source: "${ts}")`)))).toBe(1);
+        const granted = obj(
+          `  @consent_gate(grant: "${GRANT}")\n  @avatar_embodiment(tracking_source: "${ts}")`
+        );
+        expect(hs1011(v(granted))).toBe(1);
+        expect(v(granted, { [GRANT]: ['body'] }).valid).toBe(true);
+      }
+    );
     it('a synthetic avatar is exempt for ai, unknown, omitted and live sources', () => {
-      for (const t of ['@avatar_embodiment', '@avatar_embodiment(tracking_source: "ai")', '@avatar_embodiment(tracking_source: "scripted")', '@avatar_embodiment(tracking_source: "headset")']) {
+      for (const t of [
+        '@avatar_embodiment',
+        '@avatar_embodiment(tracking_source: "ai")',
+        '@avatar_embodiment(tracking_source: "scripted")',
+        '@avatar_embodiment(tracking_source: "headset")',
+      ]) {
         expect(hs1011(v(obj(`  ${t}`))), t).toBe(0);
       }
     });
     it('on a real-likeness avatar, ai / unknown / omitted need the grant; live does not', () => {
-      const claimed = (t: string) => obj(`  @consent_gate(grant: "${GRANT}")\n  @face_mesh\n  ${t}`);
+      const claimed = (t: string) =>
+        obj(`  @consent_gate(grant: "${GRANT}")\n  @face_mesh\n  ${t}`);
       const yes = { [GRANT]: ['face', 'body'] };
-      for (const t of ['@avatar_embodiment', '@avatar_embodiment(tracking_source: "ai")', '@avatar_embodiment(tracking_source: "scripted")']) {
+      for (const t of [
+        '@avatar_embodiment',
+        '@avatar_embodiment(tracking_source: "ai")',
+        '@avatar_embodiment(tracking_source: "scripted")',
+      ]) {
         expect(hs1011(v(claimed(t), { [GRANT]: ['face'] })), t).toBe(1);
         expect(v(claimed(t), yes).valid, t).toBe(true);
       }
-      expect(hs1011(v(claimed('@avatar_embodiment(tracking_source: "headset")'), { [GRANT]: ['face'] }))).toBe(0);
+      expect(
+        hs1011(v(claimed('@avatar_embodiment(tracking_source: "headset")'), { [GRANT]: ['face'] }))
+      ).toBe(0);
     });
   });
 
