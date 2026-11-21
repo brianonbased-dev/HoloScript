@@ -15,9 +15,14 @@
 // PENDING pre-apply checks P1–P4: P1 replace every INFERRED name; P2 confirm
 // which file each live service actually reads; P3 read the live dashboard
 // value of every commented-out key; P4 env var names and volumes (names only,
-// never values). Also PENDING: a live old-account pull of source,
-// rootDirectory, volume name+mountPath, replicas/region and domains — do not
-// plan/apply until filled. A
+// never values). Also read in the P1–P4 session (Release, via CoS; items to
+// read, not values): holoscript-agent's live start command (its Dockerfile CMD
+// is `help`, so the service exits if the carried start command is lost on
+// apply) and R6, which Config File the live mcp-server builds from. Also
+// PENDING: a live old-account pull of source, rootDirectory, volume
+// name+mountPath, replicas/region and domains — do not plan/apply until filled.
+// No Railway calls of any kind against old-account project or service ids
+// (e.g. 45da3535) until Joseph's P1–P4 session and GO. A
 // 2026-11-21 3:38 PM MST (America/Phoenix) read-only check from this box
 // (the box Railway login, workspace "joecoolproductions's Projects") could
 // not see the HoloScript project (45da3535, Not Authorized) or any of the
@@ -90,6 +95,8 @@ export default defineRailway(() => {
       'P2 confirm which file each live service actually reads; ' +
       'P3 read the live dashboard value of every commented-out key; ' +
       'P4 env var names and volumes (names only, never values). ' +
+      "Also read: holoscript-agent's live start command (Dockerfile CMD is help); " +
+      'R6 which Config File the live mcp-server builds from. ' +
       'Also PENDING: a live old-account pull of source, rootDirectory, ' +
       'volume name+mountPath, replicas/region and domains — do not plan/apply until filled'
   );
@@ -98,6 +105,8 @@ export default defineRailway(() => {
   // PENDING pre-apply checks P1–P4 (defined at the throw above) and a live
   // old-account pull of source, rootDirectory, volume name+mountPath,
   // replicas/region and domains — do not plan/apply until filled.
+  // PENDING P1–P4 read: the live start command. The Dockerfile CMD is `help`,
+  // so the service exits if this carried startCommand is lost on apply.
   // Toml says (unverified): volume agent-state at /data. Not declared.
   // INFERRED service name 'holoscript-agent' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
@@ -161,6 +170,7 @@ export default defineRailway(() => {
   // PENDING pre-apply checks P1–P4 (defined at the throw above) and a live
   // old-account pull of source, rootDirectory, volume name+mountPath,
   // replicas/region and domains — do not plan/apply until filled.
+  // PENDING P1–P4 read (R6): which Config File the live service builds from.
   // Toml says (unverified): volume holomesh-data at /data/holomesh. Not declared.
   // INFERRED service name 'mcp-server' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
