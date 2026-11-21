@@ -12,6 +12,18 @@
 // before cutover, confirm in the dashboard that every [env] value those files
 // carried is set as a service variable and every volume is attached.
 //
+// PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+// name+mountPath, replicas/region — do not plan/apply until filled. A
+// 2026-11-21 3:38 PM MST (America/Phoenix) read-only check from this box
+// (josephtaxwise@gmail.com, workspace "joecoolproductions's Projects") could
+// not see the HoloScript project (45da3535, Not Authorized) or any of the
+// other known old-account projects. No service was pulled. Source, root
+// directory, volumes, and live replicas/region are declared ONLY where a
+// live unmanaged pull exists. None does. Toml volume names are cited in
+// comments as "toml says, unverified" and are not declared (a guessed
+// volume() / volumeMounts block is worse than none; lesson from
+// fifteen-minute-ride #26 / #91).
+//
 // The old railway.toml / railway.json files are NOT deleted in this PR. Per
 // Railway's docs, delete them only after `railway config migrate cutover`
 // clears each service's Config File path.
@@ -59,8 +71,19 @@ import { defineRailway, project, service } from 'railway/iac';
 export const partial = 'holoscript-repo';
 
 export default defineRailway(() => {
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
+  // Remove this throw only after those fields are declared from a live
+  // `railway config pull --variables=unmanaged` (no guessed values).
+  throw new Error(
+    'PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume ' +
+      'name+mountPath, replicas/region — do not plan/apply until filled'
+  );
+
   // from packages/holoscript-agent/deploy/railway.toml
-  // ([[volumes]] agent-state at /data stays in the dashboard)
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
+  // Toml says (unverified): volume agent-state at /data. Not declared.
   // INFERRED service name 'holoscript-agent' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const holoscriptAgent = service('holoscript-agent', {
@@ -75,6 +98,8 @@ export default defineRailway(() => {
   });
 
   // from packages/marketplace-api/railway.toml (start comes from the Dockerfile CMD)
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   // INFERRED service name 'marketplace-api' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const marketplaceApi = service('marketplace-api', {
@@ -97,6 +122,8 @@ export default defineRailway(() => {
   });
 
   // from packages/marketplace-web/railway.toml
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   // INFERRED service name 'marketplace-web' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const marketplaceWeb = service('marketplace-web', {
@@ -114,7 +141,9 @@ export default defineRailway(() => {
   });
 
   // from packages/mcp-server/railway.toml
-  // ([[volumes]] holomesh-data at /data/holomesh stays in the dashboard)
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
+  // Toml says (unverified): volume holomesh-data at /data/holomesh. Not declared.
   // INFERRED service name 'mcp-server' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const mcpServer = service('mcp-server', {
@@ -146,6 +175,8 @@ export default defineRailway(() => {
   // from packages/studio/railway.toml. The toml sets no builder key, so per
   // the rule above builder stays commented out; verify the live builder
   // before uncommenting.
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   // INFERRED service name 'studio' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const studio = service('studio', {
@@ -163,6 +194,8 @@ export default defineRailway(() => {
   });
 
   // from services/absorb-service/railway.toml
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   // INFERRED service name 'absorb-service' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const absorbService = service('absorb-service', {
@@ -188,6 +221,8 @@ export default defineRailway(() => {
   // from services/holoscript-net-v2/railway.json. Its 'sleep': false is not a
   // Config as Code key, so Railway never applied it; per the rule above
   // sleepApplication stays commented out.
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   // INFERRED service name 'holoscript-net-v2' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const holoscriptNetV2 = service('holoscript-net-v2', {
@@ -210,6 +245,8 @@ export default defineRailway(() => {
   // (capital C). Config as Code keys are healthcheckPath / healthcheckTimeout,
   // so the healthcheck there was most likely never applied. Its 'sleep': false
   // is not a CaC key either. Per the rule above, both stay commented out.
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   // INFERRED service name 'holoscript-net' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const holoscriptNet = service('holoscript-net', {
@@ -228,6 +265,8 @@ export default defineRailway(() => {
   });
 
   // from services/llm-service/railway.toml
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   // INFERRED service name 'llm-service' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const llmService = service('llm-service', {
@@ -242,6 +281,8 @@ export default defineRailway(() => {
   });
 
   // from services/render-service/railway.toml
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   // INFERRED service name 'render-service' (old Railway account, not visible from this box).
   // CoS will supply the live name; replace before any plan.
   const renderService = service('render-service', {
@@ -263,6 +304,8 @@ export default defineRailway(() => {
   // this box; packages/mcp-server/railway.toml names project 45da3535).
   // CoS will supply the live name. These services may not all live in one
   // Railway project; if they do not, split this file per project.
+  // PENDING Joseph P1-P4 old-account read: source, rootDirectory, volume
+  // name+mountPath, replicas/region — do not plan/apply until filled.
   return project('HoloScript', {
     variables: { managed: false },
     resources: [
