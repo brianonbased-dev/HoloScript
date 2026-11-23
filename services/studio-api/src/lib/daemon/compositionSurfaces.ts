@@ -1,7 +1,9 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { existsSync } from 'node:fs';
-import { HoloScriptPlusParser } from '@holoscript/core';
+// Parser subpath only: the core barrel pulls in engine -> transformers -> sharp (native libvips)
+// and core's relative scripts/*.py lookups, which Turbopack cannot bundle.
+import { HoloScriptPlusParser } from '@holoscript/core/parser';
 import type { DaemonJob, DaemonTelemetrySummary } from '@/lib/daemon/types';
 
 export type DaemonSurfaceKind = 'dashboard' | 'orchestration';
