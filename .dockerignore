@@ -54,10 +54,16 @@ synthetic_*.txt
 .DS_Store
 Thumbs.db
 
-# Environment files (never in Docker context)
-.env
-.env.local
-.env.*.local
+# Environment files (never in Docker context). Catch-all, mirrors .gitignore:
+# every .env / .env.* at any depth, incl. tracked .env.docker.
+.env*
+**/.env*
+# TEMPORARY re-include: packages/studio/Dockerfile runs "next build" over the
+# wholesale COPY packages/, and Next reads .env.production to inline NEXT_PUBLIC_*
+# at build time. The Dockerfile declares no ARGs for them, so dropping this file
+# would silently change the Studio bundle. Remove once those values move to
+# Railway build args (ARG NEXT_PUBLIC_* in packages/studio/Dockerfile).
+!packages/studio/.env.production
 
 # Debug/temp files
 *.tmp
