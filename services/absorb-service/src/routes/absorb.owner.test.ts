@@ -207,7 +207,10 @@ let pathSeq = 0;
 async function scanOwned(userId: string | undefined): Promise<string> {
   pathSeq += 1;
   const req: Record<string, unknown> = { body: { path: `/repo/owner-check-${pathSeq}`, shallow: true } };
-  if (userId !== undefined) req.userId = userId;
+  if (userId !== undefined) {
+    req.userId = userId;
+    req.authenticated = true;
+  }
   const res = await call(scan, req);
   expect(res._status).toBe(200);
   const graphId = res._json?.graphId;
@@ -346,7 +349,11 @@ describe('owner checks on graphs, query and projects', () => {
   });
 
   it('a graph with no owner is not visible on these routes', async () => {
-    const ownerless = await scanOwned(undefined);
+    // NO FREE PATHS (#617): a scan with no account is refused, so no
+    // ownerless graph is saved. The id below was never saved by anyone.
+    const refused = await call(scan, { body: { path: '/repo/owner-check-none', shallow: true } });
+    expect(refused._status).toBe(401);
+    const ownerless = 'graph-ownerless-never-saved';
 
     for (const userId of [CALLER_A, CALLER_B, undefined] as const) {
       const listed = await call(listGraphs, userId === undefined ? {} : { userId });

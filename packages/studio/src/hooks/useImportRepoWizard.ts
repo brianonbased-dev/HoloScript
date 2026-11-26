@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useGitHubRepos } from '@/hooks/useGitHubRepos';
 import type { GitHubRepoItem } from '@/hooks/useGitHubRepos';
 import { useWorkspaceStore } from '@/lib/stores/workspaceStore';
@@ -86,6 +86,55 @@ interface WorkspaceImportResponse {
   paperUnlockState?: PaperUnlockState | null;
 }
 
+/**
+ * Absorb answers these BEFORE any charge (bad URL or branch, no credential,
+ * not enough credits, refused, not found, too large, clone timeout). Only these
+ * roll a new workspace back.
+ */
+const CLEAN_ABSORB_REFUSALS: ReadonlySet<number> = new Set([400, 401, 402, 403, 404, 413, 504]);
+
+/** One importId per workspace: a retry of the same workspace replays, never recharges. */
+export function absorbImportIdFor(workspaceId: string): string {
+  return `imp-${workspaceId}`;
+}
+
+/**
+ * The importId is saved in localStorage BEFORE the absorb request (#617,
+ * CoS/Treasurer): a reload after a 502 sends the same id again. The server
+ * also keys the charge on user + repo + commit SHA, so even a lost id is
+ * charged once; this keeps the client's id stable as well.
+ */
+const IMPORT_ID_STORAGE_PREFIX = 'holoscript.absorb.importId:';
+
+function importIdStorageKey(repoUrl: string, branch: string): string {
+  return `${IMPORT_ID_STORAGE_PREFIX}${repoUrl.trim()}#${branch.trim()}`;
+}
+
+export function readSavedImportId(repoUrl: string, branch: string): string | null {
+  try {
+    const v = globalThis.localStorage?.getItem(importIdStorageKey(repoUrl, branch));
+    return typeof v === 'string' && v ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveImportId(repoUrl: string, branch: string, importId: string): void {
+  try {
+    globalThis.localStorage?.setItem(importIdStorageKey(repoUrl, branch), importId);
+  } catch {
+    // Storage full or blocked: the server-side commit key still stops a second charge.
+  }
+}
+
+export function clearSavedImportId(repoUrl: string, branch: string): void {
+  try {
+    globalThis.localStorage?.removeItem(importIdStorageKey(repoUrl, branch));
+  } catch {
+    // ignore
+  }
+}
+
 export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState {
   const addWorkspace = useWorkspaceStore((s) => s.addWorkspace);
   const updateWorkspace = useWorkspaceStore((s) => s.updateWorkspace);
@@ -150,6 +199,15 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
   }, [selectedRepo, useManual]);
 
   // ── Import flow (Step 2) ──
+  // An absorb whose outcome is unknown (timeout, 5xx, 409, network error) may
+  // have been charged. Its workspace is kept, and the next attempt re-asks
+  // absorb with the SAME workspace and importId, which replays a finished
+  // import at cost 0 instead of cloning again and charging again
+  // (Treasurer, #617).
+  const pendingAbsorbRef = useRef<{ repoUrl: string; cloneResult: WorkspaceImportResponse } | null>(
+    null
+  );
+
   const runImport = useCallback(async () => {
     if (!repoUrl) return;
 
@@ -161,68 +219,107 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
     // so the old catch never saw the workspace it had just created.
     let createdWsId: string | null = null;
     let absorbSucceeded = false;
+    let absorbAttempted = false;
+    let cleanRefusal = false;
+    const pending = pendingAbsorbRef.current?.repoUrl === repoUrl ? pendingAbsorbRef.current : null;
+    let cloneForRetry: WorkspaceImportResponse | null = pending?.cloneResult ?? null;
     try {
-      // Phase 1: Clone
-      const cloneRes = await fetch('/api/workspace/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      let cloneResult: WorkspaceImportResponse;
+      if (pending) {
+        // Retry of an absorb with an unknown outcome: no new clone, same ids.
+        cloneResult = pending.cloneResult;
+        createdWsId = cloneResult.id;
+        setWorkspaceId(cloneResult.id);
+        updateWorkspace(cloneResult.id, { status: 'absorbing', error: null });
+        setImportStatus('absorbing');
+      } else {
+        // Phase 1: Clone
+        const cloneRes = await fetch('/api/workspace/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            repoUrl,
+            approvedRepos: [repoUrl],
+            branch: branch || undefined,
+            name: repoName,
+          }),
+        });
+
+        if (!cloneRes.ok) {
+          const body = await cloneRes.json().catch(() => ({ error: 'Clone failed' }));
+          throw new Error(body.error ?? `Clone failed: HTTP ${cloneRes.status}`);
+        }
+
+        cloneResult = (await cloneRes.json()) as WorkspaceImportResponse;
+        cloneForRetry = cloneResult;
+        createdWsId = cloneResult.id;
+        const wsId = cloneResult.id;
+        const candidates = cloneResult.conversionCandidates ?? [];
+        setWorkspaceId(wsId);
+        setConversionCandidates(candidates);
+        setConversionActions({});
+        setConversionManifestPath(cloneResult.conversionManifestPath ?? null);
+        setImportProgress(40);
+
+        // Create workspace entry in store
+        const ws: Workspace = {
+          id: wsId,
+          name: cloneResult.name,
           repoUrl,
-          approvedRepos: [repoUrl],
-          branch: branch || undefined,
-          name: repoName,
-        }),
-      });
-
-      if (!cloneRes.ok) {
-        const body = await cloneRes.json().catch(() => ({ error: 'Clone failed' }));
-        throw new Error(body.error ?? `Clone failed: HTTP ${cloneRes.status}`);
+          branch: cloneResult.branch,
+          localPath: cloneResult.localPath,
+          status: 'absorbing',
+          dna: null,
+          absorbedAt: null,
+          createdAt: cloneResult.createdAt,
+          error: null,
+          stats: null,
+          conversionCandidates: candidates,
+          conversionManifestPath: cloneResult.conversionManifestPath ?? null,
+          conversionActions: {},
+          publishWorthiness: cloneResult.publishWorthiness ?? null,
+          paperUnlockState: cloneResult.paperUnlockState ?? null,
+        };
+        addWorkspace(ws);
+        setImportStatus('absorbing');
       }
-
-      const cloneResult = (await cloneRes.json()) as WorkspaceImportResponse;
       const wsId = cloneResult.id;
-      createdWsId = wsId;
       const candidates = cloneResult.conversionCandidates ?? [];
-      setWorkspaceId(wsId);
-      setConversionCandidates(candidates);
-      setConversionActions({});
-      setConversionManifestPath(cloneResult.conversionManifestPath ?? null);
-      setImportProgress(40);
-
-      // Create workspace entry in store
-      const ws: Workspace = {
-        id: wsId,
-        name: cloneResult.name,
-        repoUrl,
-        branch: cloneResult.branch,
-        localPath: cloneResult.localPath,
-        status: 'absorbing',
-        dna: null,
-        absorbedAt: null,
-        createdAt: cloneResult.createdAt,
-        error: null,
-        stats: null,
-        conversionCandidates: candidates,
-        conversionManifestPath: cloneResult.conversionManifestPath ?? null,
-        conversionActions: {},
-        publishWorthiness: cloneResult.publishWorthiness ?? null,
-        paperUnlockState: cloneResult.paperUnlockState ?? null,
-      };
-      addWorkspace(ws);
-      setImportStatus('absorbing');
 
       // Phase 2: Absorb
       setImportProgress(55);
+      // The server keeps this workspace's pending importId (Mapping N1): read
+      // it first, so a reload, another tab or another device replays the same
+      // import. The route also prefers it over what is sent here.
+      const pendingImportId: string | null = await fetch(
+        `/api/daemon/absorb?workspaceId=${encodeURIComponent(wsId)}`
+      )
+        .then((r) => (r && r.ok ? r.json() : null))
+        .then((d) => (typeof d?.pendingImportId === 'string' ? d.pendingImportId : null))
+        .catch(() => null);
+      const absorbImportId =
+        pendingImportId ?? readSavedImportId(repoUrl, branch ?? '') ?? absorbImportIdFor(wsId);
+      // Saved before the request, so a reload after a 502 reuses it.
+      saveImportId(repoUrl, branch ?? '', absorbImportId);
       const absorbRes = await fetch('/api/daemon/absorb', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // absorb clones the repo itself from the workspace's URL (it cannot
+        // see Studio's clone). One importId per WORKSPACE, derived from its
+        // id: every retry for this workspace replays instead of recharging.
         body: JSON.stringify({
-          projectPath: cloneResult.localPath,
+          workspaceId: wsId,
+          importId: absorbImportId,
           depth: 'medium',
         }),
+      }).finally(() => {
+        absorbAttempted = true;
       });
 
       if (!absorbRes.ok) {
+        // Only a refusal that absorb answers BEFORE any charge may roll the
+        // workspace back; anything else may have been charged.
+        cleanRefusal = CLEAN_ABSORB_REFUSALS.has(absorbRes.status);
         const body = await absorbRes.json().catch(() => ({ error: 'Absorb failed' }));
         throw new Error(body.error ?? `Absorb failed: HTTP ${absorbRes.status}`);
       }
@@ -239,6 +336,8 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
         throw new Error(`Absorb failed: ${reason}`);
       }
       absorbSucceeded = true;
+      pendingAbsorbRef.current = null;
+      clearSavedImportId(repoUrl, branch ?? '');
       setImportProgress(80);
       setAbsorbStats({
         totalFiles: absorbResult.stats.totalFiles,
@@ -287,7 +386,13 @@ export function useImportRepoWizard(onClose: () => void): ImportRepoWizardState 
       // absorbed workspace and marks it errored instead.
       if (createdWsId && absorbSucceeded) {
         updateWorkspace(createdWsId, { status: 'error', error: (err as Error).message });
+      } else if (createdWsId && absorbAttempted && !cleanRefusal) {
+        // Outcome unknown (may have been charged): keep the workspace, and let
+        // the next attempt replay the same importId before anything is rolled back.
+        updateWorkspace(createdWsId, { status: 'error', error: (err as Error).message });
+        if (cloneForRetry) pendingAbsorbRef.current = { repoUrl, cloneResult: cloneForRetry };
       } else if (createdWsId) {
+        pendingAbsorbRef.current = null;
         const failedId = createdWsId;
         removeWorkspace(failedId);
         setWorkspaceId(null);

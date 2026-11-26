@@ -107,6 +107,10 @@ ARG PNPM_VERSION
 
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
+# git for /scan { repoUrl }: absorb clones public github.com repos itself
+# (services/absorb-service/src/lib/absorb/clone-from-url.ts). No git-lfs.
+RUN apk add --no-cache git
+
 WORKDIR /app
 
 # Create non-root user
